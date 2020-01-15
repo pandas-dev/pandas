@@ -489,9 +489,9 @@ class TestIndexReductions:
     def test_min_max_categorical(self):
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             ci.min()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             ci.max()
 
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=True)
@@ -830,15 +830,15 @@ class TestSeriesReductions:
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
         # bool_only is not implemented with level option.
-        with pytest.raises(NotImplementedError, match=msg):
+        with pytest.raises(NotImplementedError):
             s.any(bool_only=True, level=0)
-        with pytest.raises(NotImplementedError, match=msg):
+        with pytest.raises(NotImplementedError):
             s.all(bool_only=True, level=0)
 
         # bool_only is not implemented alone.
-        with pytest.raises(NotImplementedError, match=msg):
+        with pytest.raises(NotImplementedError):
             s.any(bool_only=True)
-        with pytest.raises(NotImplementedError, match=msg):
+        with pytest.raises(NotImplementedError):
             s.all(bool_only=True)
 
     def test_timedelta64_analytics(self):
@@ -900,13 +900,13 @@ class TestSeriesReductions:
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
-        with pytest.raises(error_type, match=msg):
+        with pytest.raises(error_type):
             test_input.idxmin()
-        with pytest.raises(error_type, match=msg):
+        with pytest.raises(error_type):
             test_input.idxmin(skipna=False)
-        with pytest.raises(error_type, match=msg):
+        with pytest.raises(error_type):
             test_input.idxmax()
-        with pytest.raises(error_type, match=msg):
+        with pytest.raises(error_type):
             test_input.idxmax(skipna=False)
 
     def test_idxminmax_with_inf(self):
@@ -1001,9 +1001,9 @@ class TestCategoricalSeriesReductions:
     def test_min_max(self):
         # unordered cats have no min/max
         cat = Series(Categorical(["a", "b", "c", "d"], ordered=False))
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             cat.min()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             cat.max()
 
         cat = Series(Categorical(["a", "b", "c", "d"], ordered=True))

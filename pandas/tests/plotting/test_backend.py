@@ -92,7 +92,7 @@ def test_setting_backend_without_plot_raises():
 
 @td.skip_if_mpl
 def test_no_matplotlib_ok():
-    with pytest.raises(ImportError, match=msg):
+    with pytest.raises(ImportError):
         pandas.plotting._core._get_plot_backend("matplotlib")
 
 

@@ -2417,7 +2417,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception, match=msg):
+        with pytest.raises(Exception):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self):
@@ -2436,7 +2436,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception, match=msg):
+        with pytest.raises(Exception):
             tquery("select * from test", con=self.conn)
 
     def test_na_roundtrip(self):
@@ -2700,7 +2700,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception, match=msg):
+        with pytest.raises(Exception):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self, request, datapath):
@@ -2721,7 +2721,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception, match=msg):
+        with pytest.raises(Exception):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)

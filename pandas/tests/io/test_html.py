@@ -276,14 +276,14 @@ class TestReadHtml:
 
     @tm.network
     def test_bad_url_protocol(self):
-        with pytest.raises(URLError, match=msg):
+        with pytest.raises(URLError):
             self.read_html("git://github.com", match=".*Water.*")
 
     @tm.network
     @pytest.mark.slow
     def test_invalid_url(self):
         try:
-            with pytest.raises(URLError, match=msg):
+            with pytest.raises(URLError):
                 self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
         except ValueError as e:
             assert "No tables found" in str(e)
@@ -964,7 +964,7 @@ class TestReadHtml:
     def test_bool_header_arg(self):
         # GH 6114
         for arg in [True, False]:
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 self.read_html(self.spam_data, header=arg)
 
     def test_converters(self):

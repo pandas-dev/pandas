@@ -96,7 +96,7 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.boxplot(return_type="NOTATYPE")
 
         result = df.boxplot()
@@ -429,7 +429,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):

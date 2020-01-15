@@ -187,7 +187,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_color_empty_string(self):
         df = DataFrame(randn(10, 2))
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(color="")
 
     def test_color_and_style_arguments(self):
@@ -203,7 +203,7 @@ class TestDataFramePlots(TestPlotBase):
         assert color == ["red", "black"]
         # passing both 'color' and 'style' arguments should not be allowed
         # if there is a color symbol in the style strings:
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(color=["red", "black"], style=["k-", "r--"])
 
     def test_nonnumeric_exclude(self):
@@ -628,9 +628,9 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=3, layout=(4, 1))
         assert axes.shape == (4, 1)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(subplots=True, layout=(1, 1))
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(subplots=True, layout=(-1, -1))
 
         # single column
@@ -673,7 +673,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
         tm.close()
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             df.plot(subplots=True, ax=axes)
@@ -784,9 +784,9 @@ class TestDataFramePlots(TestPlotBase):
             columns=["x", "y", "z", "four"],
         )
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot.area(logy=True)
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot.area(loglog=True)
 
     def _compare_stacked_y_cood(self, normal_lines, stacked_lines):
@@ -826,7 +826,7 @@ class TestDataFramePlots(TestPlotBase):
                 self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
 
                 _check_plot_works(mixed_df.plot, stacked=False)
-                with pytest.raises(ValueError, match=msg):
+                with pytest.raises(ValueError):
                     mixed_df.plot(stacked=True)
 
                 # Use an index with strictly positive values, preventing
@@ -1153,9 +1153,9 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x="x", y="y")
         _check_plot_works(df.plot.scatter, x=1, y=2)
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             df.plot.scatter(x="x")
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             df.plot.scatter(y="y")
 
         # GH 6951
@@ -1310,7 +1310,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             df.plot.scatter(x="a", y="b", c="c", color="green")
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
@@ -1580,7 +1580,7 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot.box(return_type="NOTATYPE")
 
         result = df.plot.box(return_type="dict")
@@ -2036,7 +2036,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
         tm.close()
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             # Color contains shorthand hex value results in ValueError
             custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
             # Forced show plot
@@ -2093,7 +2093,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             # Color contains shorthand hex value results in ValueError
             custom_colors = ["#F00", "#00F", "#FF0", "#000", "#FFF"]
             # Forced show plot
@@ -2348,7 +2348,7 @@ class TestDataFramePlots(TestPlotBase):
         bp = df.plot.box(color=(0, 1, 0), sym="#123456", return_type="dict")
         _check_colors(bp, (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), "#123456")
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             # Color contains invalid key results in ValueError
             df.plot.box(color=dict(boxes="red", xxxx="blue"))
 
@@ -2418,7 +2418,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_invalid_kind(self):
         df = DataFrame(randn(10, 2))
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(kind="aasdf")
 
     @pytest.mark.parametrize(
@@ -2432,14 +2432,14 @@ class TestDataFramePlots(TestPlotBase):
     def test_invalid_xy_args(self, x, y, lbl):
         # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(x=x, y=y, label=lbl)
 
     @pytest.mark.parametrize("x,y", [("A", "B"), (["A"], "B")])
     def test_invalid_xy_args_dup_cols(self, x, y):
         # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list("AAB"))
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(x=x, y=y)
 
     @pytest.mark.parametrize(
@@ -2518,7 +2518,7 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.hexbin(x="A", y="B", cmap="YlGn")
         assert ax.collections[0].cmap.name == "YlGn"
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             df.plot.hexbin(x="A", y="B", cmap="YlGn", colormap="BuGn")
 
     @pytest.mark.slow
@@ -2528,7 +2528,7 @@ class TestDataFramePlots(TestPlotBase):
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot.pie()
 
         ax = _check_plot_works(df.plot.pie, y="Y")
@@ -2635,11 +2635,11 @@ class TestDataFramePlots(TestPlotBase):
                 ax = _check_plot_works(s_df.plot, y="y", x="x", yerr=yerr)
                 self._check_has_errorbars(ax, xerr=0, yerr=1)
 
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises(ValueError):
                 df.plot(yerr=np.random.randn(11))
 
             df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
-            with pytest.raises((ValueError, TypeError), match=msg):
+            with pytest.raises((ValueError, TypeError)):
                 df.plot(yerr=df_err)
 
     @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
@@ -2731,7 +2731,7 @@ class TestDataFramePlots(TestPlotBase):
         expected_0_0 = err[0, :, 0] * np.array([-1, 1])
         tm.assert_almost_equal(yerr_0_0, expected_0_0)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(yerr=err.T)
 
         tm.close()
@@ -2923,7 +2923,7 @@ class TestDataFramePlots(TestPlotBase):
         gc.collect()
         for key in results:
             # check that every plot was collected
-            with pytest.raises(ReferenceError, match=msg):
+            with pytest.raises(ReferenceError):
                 # need to actually access something to get an error
                 results[key].lines
 
@@ -3102,7 +3102,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_invalid_colormap(self):
         df = DataFrame(randn(3, 2), columns=["A", "B"])
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             df.plot(colormap="invalid_colormap")
 
     def test_plain_axes(self):
@@ -3268,7 +3268,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_plot_no_numeric_data(self):
         df = pd.DataFrame(["a", "b", "c"])
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             df.plot()
 
     def test_missing_markers_legend(self):
