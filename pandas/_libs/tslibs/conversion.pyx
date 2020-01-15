@@ -362,10 +362,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
-        # GH 24329 Take DST offset into account
+        # GH 24329 When datetime is ambiguous,
         # pydatetime_to_dt64 doesn't take DST into account
-        # but get_utcoffset does. dateutil assumes DST
-        # when time is ambiguous, so we need to correct for it
+        # but with dateutil timezone, get_utcoffset does
+        # so we need to correct for it
         if treat_tz_as_dateutil(ts.tzinfo):
             if ts.tzinfo.is_ambiguous(ts):
                 dst_offset = ts.tzinfo.dst(ts)
