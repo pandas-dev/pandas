@@ -14,15 +14,13 @@ if [ "$COVERAGE" ]; then
     COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
 fi
 
-if [[ "not clipboard" != *"$PATTERN"* ]]; then
-    echo "DISPLAY (original): $DISPLAY"
-    if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
-        export DISPLAY=":0"
-        XVFB="xvfb-run "
-    fi
+# If no X server is found, we use xvfb to emulate it
+if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
+    export DISPLAY=":0"
+    XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas/tests/io/test_clipboard.py"
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
