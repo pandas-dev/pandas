@@ -502,7 +502,6 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 def interpolate_1d_fill(
     values,
     method="pad",
-    axis=0,
     limit=None,
     limit_area=None,
     fill_value=None,

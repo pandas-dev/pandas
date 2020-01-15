@@ -1181,7 +1181,6 @@ class Block(PandasObject):
                 return missing.interpolate_1d_fill(
                     x,
                     method=method,
-                    axis=axis,
                     limit=limit,
                     limit_area=limit_area,
                     fill_value=fill_value,
