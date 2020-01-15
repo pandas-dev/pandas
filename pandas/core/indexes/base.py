@@ -1163,6 +1163,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def name(self):
+        """
+        Return Index or MultiIndex name.
+        """
         return self._name
 
     @name.setter
@@ -1922,6 +1925,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def is_all_dates(self) -> bool:
+        """
+        Whether or not the index values only consist of dates.
+        """
         return is_datetime_array(ensure_object(self.values))
 
     # --------------------------------------------------------------------
