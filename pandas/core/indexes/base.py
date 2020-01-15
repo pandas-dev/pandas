@@ -1652,7 +1652,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index has duplicate values.
 
         Examples
@@ -1683,8 +1683,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index only consists of booleans.
+
+        See Also
+        --------
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -1706,9 +1716,19 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if the Index only consists of integers.
 
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
+
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index only consists of integers.
 
         Examples
@@ -1729,14 +1749,26 @@ class Index(IndexOpsMixin, PandasObject):
 
     def is_floating(self) -> bool:
         """
-        Check if the Index only consists of floats, NaNs, or
-        a mix of floats, integers, or NaNs.
+        Check if the Index is a floating type.
+
+        The Index may consist of only floats, NaNs, or a mix of floats,
+        integers, or NaNs.
 
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index only consists of only consists of floats, NaNs, or
             a mix of floats, integers, or NaNs.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -1764,14 +1796,23 @@ class Index(IndexOpsMixin, PandasObject):
 
     def is_numeric(self) -> bool:
         """
-        Check if the Index only consists of numeric
-        data.
+        Check if the Index only consists of numeric data.
 
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index only only consists of numeric
         data.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -1803,8 +1844,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index is of the object dtype.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -1833,12 +1884,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             True if the Index is categorical.
 
         See Also
         --------
         CategoricalIndex : Index for categorical data.
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -1869,12 +1927,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index holds Interval objects.
 
         See Also
         --------
         IntervalIndex : Index for Interval objects.
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -1895,8 +1960,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             Whether or not the Index holds data with mixed data types.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
 
         Examples
         --------
