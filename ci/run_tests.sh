@@ -15,24 +15,25 @@ if [ "$COVERAGE" ]; then
 fi
 
 if [[ "not clipboard" != *"$PATTERN"* ]]; then
+    echo "DISPLAY (original): $DISPLAY"
+
     # An X server has to exist, and DISPLAY set, for the clipboard (and its tests) to work
-    export DISPLAY=":0"
+    if [ -z $DISPLAY ]; then
+        export DISPLAY=":0"
+        XVFB="xvfb-run -e /dev/stdout "
+    fi
+
     echo "xsel path: $(which xsel)"
-    echo "testing xsel from terminal"
     echo "DISPLAY: $DISPLAY"
-    echo "abc" | xsel -i
-    echo "clipboard content (should be abc): $(xsel -o)"
+
+    echo "testing xsel from terminal"
+    xvfb-run -e /dev/stdout "echo \"terminal clipboard works\" | xsel -i ; echo \"clipboard content: $(xsel -o)\""
+
     echo "testing xsel from pandas"
-    python -c "import pandas.io.clipboard ; pandas.io.clipboard.clipboard_set('123')"
-    python -c "import pandas.io.clipboard ; print(f'clipboard content (should be 123): {pandas.io.clipboard.clipboard_get()}')"
+    python -c "import pandas.io.clipboard ; pandas.io.clipboard.clipboard_set('pandas clipboard works') ; print(f'clipboard content: {pandas.io.clipboard.clipboard_get()}')"
 fi
 
-PYTEST_CMD="pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas/tests/io/test_clipboard.py"
-
-# Travis does not have have an X server
-if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    PYTEST_CMD="xvfb-run -e /dev/stdout $PYTEST_CMD"
-fi
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n auto --dist=loadfile -s --strict --durations=10 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas/tests/io/test_clipboard.py"
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
