@@ -112,7 +112,7 @@ class NoNewAttributesMixin:
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value):
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
@@ -241,7 +241,7 @@ class SelectionMixin:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         sub-classes to define
         return a sliced object
@@ -1090,7 +1090,7 @@ class IndexOpsMixin:
         return bool(isna(self).any())
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self, op, name: str, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
         """ perform the reduction type operation if we can """
         func = getattr(self, name, None)
@@ -1508,7 +1508,7 @@ class IndexOpsMixin:
 
     @Substitution(klass="Index")
     @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first", inplace=False):
