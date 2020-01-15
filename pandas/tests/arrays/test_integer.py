@@ -90,7 +90,7 @@ def test_repr_dtype(dtype, expected):
 
 def test_repr_array():
     result = repr(integer_array([1, None, 3]))
-    expected = "<IntegerArray>\n[1, NA, 3]\nLength: 3, dtype: Int64"
+    expected = "<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: Int64"
     assert result == expected
 
 
@@ -98,9 +98,9 @@ def test_repr_array_long():
     data = integer_array([1, 2, None] * 1000)
     expected = (
         "<IntegerArray>\n"
-        "[ 1,  2, NA,  1,  2, NA,  1,  2, NA,  1,\n"
+        "[   1,    2, <NA>,    1,    2, <NA>,    1,    2, <NA>,    1,\n"
         " ...\n"
-        " NA,  1,  2, NA,  1,  2, NA,  1,  2, NA]\n"
+        " <NA>,    1,    2, <NA>,    1,    2, <NA>,    1,    2, <NA>]\n"
         "Length: 3000, dtype: Int64"
     )
     result = repr(data)
@@ -363,24 +363,26 @@ class TestArithmeticOps(BaseOpsUtil):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_pow_scalar(self):
-        a = pd.array([0, 1, None, 2], dtype="Int64")
+        a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
         result = a ** 0
-        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** 1
-        expected = pd.array([0, 1, None, 2], dtype="Int64")
+        expected = pd.array([-1, 0, 1, None, 2], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** pd.NA
-        expected = pd.array([None, 1, None, None], dtype="Int64")
+        expected = pd.array([None, None, 1, None, None], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** np.nan
-        expected = np.array([np.nan, 1, np.nan, np.nan], dtype="float64")
+        expected = np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64")
         tm.assert_numpy_array_equal(result, expected)
 
         # reversed
+        a = a[1:]  # Can't raise integers to negative powers.
+
         result = 0 ** a
         expected = pd.array([1, 0, None, 0], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
@@ -673,7 +675,7 @@ class TestCasting:
 
     def test_astype_str(self):
         a = pd.array([1, 2, None], dtype="Int64")
-        expected = np.array(["1", "2", "NA"], dtype=object)
+        expected = np.array(["1", "2", "<NA>"], dtype=object)
 
         tm.assert_numpy_array_equal(a.astype(str), expected)
         tm.assert_numpy_array_equal(a.astype("str"), expected)
@@ -683,7 +685,7 @@ def test_frame_repr(data_missing):
 
     df = pd.DataFrame({"A": data_missing})
     result = repr(df)
-    expected = "    A\n0  NA\n1   1"
+    expected = "      A\n0  <NA>\n1     1"
     assert result == expected
 
 
@@ -1037,6 +1039,17 @@ def test_stat_method(pandasmethname, kwargs):
     pandasmeth = getattr(s2, pandasmethname)
     expected = pandasmeth(**kwargs)
     assert expected == result
+
+
+def test_value_counts_na():
+    arr = pd.array([1, 2, 1, pd.NA], dtype="Int64")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([2, 1, 1], index=[1, 2, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
 
 
 # TODO(jreback) - these need testing / are broken

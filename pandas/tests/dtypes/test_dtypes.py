@@ -28,7 +28,7 @@ from pandas.core.dtypes.dtypes import (
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
 class Base:
@@ -914,7 +914,7 @@ def test_registry_find(dtype, expected):
         (pd.Series([1, 2]), False),
         (np.array([True, False]), True),
         (pd.Series([True, False]), True),
-        (pd.arrays.SparseArray([True, False]), True),
+        (SparseArray([True, False]), True),
         (SparseDtype(bool), True),
     ],
 )
@@ -924,7 +924,7 @@ def test_is_bool_dtype(dtype, expected):
 
 
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.Series(pd.arrays.SparseArray([True, False])))
+    result = is_bool_dtype(pd.Series(SparseArray([True, False])))
     assert result is True
 
 

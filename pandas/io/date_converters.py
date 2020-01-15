@@ -57,8 +57,7 @@ def _check_columns(cols):
     for i, n in enumerate(map(len, tail)):
         if n != N:
             raise AssertionError(
-                f"All columns must have the same length: {N}; "
-                f"column {i} has length {n}"
+                f"All columns must have the same length: {N}; column {i} has length {n}"
             )
 
     return N

@@ -34,10 +34,7 @@ import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, MultiIndex, ensure_index
-
-from pandas.io.formats.printing import pprint_thing
-
-from .blocks import (
+from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
     DatetimeTZBlock,
@@ -49,12 +46,14 @@ from .blocks import (
     get_block_type,
     make_block,
 )
-from .concat import (  # all for concatenate_block_managers
+from pandas.core.internals.concat import (  # all for concatenate_block_managers
     combine_concat_plans,
     concatenate_join_units,
     get_mgr_concatenation_plan,
     is_uniform_join_units,
 )
+
+from pandas.io.formats.printing import pprint_thing
 
 # TODO: flexible with index=None and/or items=None
 
@@ -1342,7 +1341,7 @@ class BlockManager(PandasObject):
                     # only one item and each mgr loc is a copy of that single
                     # item.
                     for mgr_loc in mgr_locs:
-                        newblk = blk.copy(deep=True)
+                        newblk = blk.copy(deep=False)
                         newblk.mgr_locs = slice(mgr_loc, mgr_loc + 1)
                         blocks.append(newblk)
 

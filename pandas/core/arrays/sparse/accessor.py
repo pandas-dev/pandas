@@ -7,9 +7,8 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.accessor import PandasDelegate, delegate_names
-
-from .array import SparseArray
-from .dtype import SparseDtype
+from pandas.core.arrays.sparse.array import SparseArray
+from pandas.core.arrays.sparse.dtype import SparseDtype
 
 
 class BaseAccessor:

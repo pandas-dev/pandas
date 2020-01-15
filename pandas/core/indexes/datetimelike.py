@@ -31,27 +31,20 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import (
-    DatetimeArray,
-    ExtensionArray,
-    ExtensionOpsMixin,
-    TimedeltaArray,
-)
+from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.extension import (
+    ExtensionIndex,
+    inherit_names,
+    make_wrapped_arith_op,
+)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
 from pandas.tseries.frequencies import DateOffset, to_offset
-
-from .extension import (
-    ExtensionIndex,
-    inherit_names,
-    make_wrapped_arith_op,
-    make_wrapped_comparison_op,
-)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -91,7 +84,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
     DatetimeLikeArrayMixin,
 )
-class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
+class DatetimeIndexOpsMixin(ExtensionIndex):
     """
     Common ops mixin to support a unified interface datetimelike Index.
     """
@@ -109,13 +102,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     @property
     def is_all_dates(self) -> bool:
         return True
-
-    @classmethod
-    def _create_comparison_method(cls, op):
-        """
-        Create a comparison method that dispatches to ``cls.values``.
-        """
-        return make_wrapped_comparison_op(f"__{op.__name__}__")
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
@@ -170,13 +156,11 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return (
-                is_scalar(res)
-                or isinstance(res, slice)
-                or (is_list_like(res) and len(res))
-            )
         except (KeyError, TypeError, ValueError):
             return False
+        return bool(
+            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
+        )
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
@@ -402,10 +386,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem', 'iloc'} or None
         """
 
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # we don't allow integer/float indexing for loc
         # we don't allow float indexing for ix/getitem
@@ -414,7 +398,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             is_flt = is_float(key)
             if kind in ["loc"] and (is_int or is_flt):
                 self._invalid_indexer("index", key)
-            elif kind in ["ix", "getitem"] and is_flt:
+            elif kind in ["getitem"] and is_flt:
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
@@ -459,12 +443,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
                 return self.astype(object).isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
-
-    @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis=None):
-        nv.validate_repeat(tuple(), dict(axis=axis))
-        result = type(self._data)(self.asi8.repeat(repeats), dtype=self.dtype)
-        return self._shallow_copy(result)
 
     @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
     def where(self, cond, other=None):
@@ -541,18 +519,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex, ExtensionOpsMixin):
             attribs["freq"] = None
 
         return self._simple_new(new_data, **attribs)
-
-    @Appender(_index_shared_docs["astype"])
-    def astype(self, dtype, copy=True):
-        if is_dtype_equal(self.dtype, dtype) and copy is False:
-            # Ensure that self.astype(self.dtype) is self
-            return self
-
-        new_values = self._data.astype(dtype, copy=copy)
-
-        # pass copy=False because any copying will be done in the
-        #  _data.astype call above
-        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     def shift(self, periods=1, freq=None):
         """
@@ -907,11 +873,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
-        if (
-            isinstance(other, type(self))
-            and self.freq == other.freq
-            and self._can_fast_union(other)
-        ):
+        if self._can_fast_union(other):
             joined = self._shallow_copy(joined)
             joined.name = name
             return joined

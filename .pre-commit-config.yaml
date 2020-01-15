@@ -20,11 +20,11 @@ repos:
     rev: v0.730
     hooks:
      -  id: mypy
-        # We run mypy over all files because of:
-        #  * changes in type definitions may affect non-touched files.
-        #  * Running it with `mypy pandas` and the filenames will lead to
-        #    spurious duplicate module errors,
-        #    see also https://github.com/pre-commit/mirrors-mypy/issues/5
-        pass_filenames: false
         args:
-        - pandas
+          # As long as a some files are excluded from check-untyped-defs
+          # we have to exclude it from the pre-commit hook as the configuration
+          # is based on modules but the hook runs on files.
+          - --no-check-untyped-defs
+          - --follow-imports
+          - skip
+        files: pandas/

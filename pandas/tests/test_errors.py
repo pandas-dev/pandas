@@ -22,12 +22,15 @@ import pandas as pd  # noqa
 def test_exception_importable(exc):
     from pandas import errors
 
-    e = getattr(errors, exc)
-    assert e is not None
+    err = getattr(errors, exc)
+    assert err is not None
 
     # check that we can raise on them
-    with pytest.raises(e):
-        raise e()
+
+    msg = "^$"
+
+    with pytest.raises(err, match=msg):
+        raise err()
 
 
 def test_catch_oob():
