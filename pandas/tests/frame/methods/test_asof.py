@@ -30,7 +30,6 @@ class TestFrameAsof:
         ub = df.index[30]
 
         dates = list(dates)
-
         result = df.asof(dates)
         assert result.notna().all(1).all()
 
@@ -66,7 +65,6 @@ class TestFrameAsof:
         # no match found - `where` value before earliest date in index
         N = 10
         df = date_range_frame.iloc[:N].copy()
-
         result = df.asof("1989-12-31")
 
         expected = Series(
@@ -140,6 +138,5 @@ class TestFrameAsof:
                 Timestamp("2018-01-01 22:35:10.550+00:00"),
             ],
         )
-
         result = df.asof(stamp)
         tm.assert_series_equal(result, expected)
