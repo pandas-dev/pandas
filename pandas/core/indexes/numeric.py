@@ -412,10 +412,7 @@ class Float64Index(NumericIndex):
         return key
 
     @Appender(_index_shared_docs["_convert_slice_indexer"])
-    def _convert_slice_indexer(self, key, kind=None):
-        # if we are not a slice, then we are done
-        if not isinstance(key, slice):
-            return key
+    def _convert_slice_indexer(self, key: slice, kind=None):
 
         if kind == "iloc":
             return super()._convert_slice_indexer(key, kind=kind)

@@ -50,7 +50,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCDataFrame,
-    ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCIndexClass,
     ABCIntervalIndex,
@@ -96,6 +95,8 @@ _index_doc_kwargs = dict(
     duplicated="np.ndarray",
 )
 _index_shared_docs = dict()
+
+str_t = str
 
 
 def _make_comparison_op(op, cls):
@@ -514,12 +515,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not len(values) and "dtype" not in kwargs:
             attributes["dtype"] = self.dtype
 
-        # _simple_new expects an the type of self._data
+        # _simple_new expects the type of self._data
         values = getattr(values, "_values", values)
-        if isinstance(values, ABCDatetimeArray):
-            # `self.values` returns `self` for tz-aware, so we need to unwrap
-            #  more specifically
-            values = values.asi8
 
         return self._simple_new(values, **attributes)
 
@@ -540,6 +537,7 @@ class Index(IndexOpsMixin, PandasObject):
         attributes.update(kwargs)
         attributes["copy"] = False
         if not len(values) and "dtype" not in kwargs:
+            # TODO: what if hasattr(values, "dtype")?
             attributes["dtype"] = self.dtype
         if self._infer_as_myclass:
             try:
@@ -867,7 +865,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    def __repr__(self):
+    def __repr__(self) -> str_t:
         """
         Return a string representation for this object.
         """
@@ -886,7 +884,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return res
 
-    def _format_space(self):
+    def _format_space(self) -> str_t:
 
         # using space here controls if the attributes
         # are line separated or not (the default)
@@ -903,18 +901,19 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return default_pprint
 
-    def _format_data(self, name=None):
+    def _format_data(self, name=None) -> str_t:
         """
         Return the formatted data as a unicode string.
         """
 
         # do we want to justify (only do so for non-objects)
-        is_justify = not (
-            self.inferred_type in ("string", "unicode")
-            or (
-                self.inferred_type == "categorical" and is_object_dtype(self.categories)
-            )
-        )
+        is_justify = True
+
+        if self.inferred_type == "string":
+            is_justify = False
+        elif self.inferred_type == "categorical":
+            if is_object_dtype(self.categories):  # type: ignore
+                is_justify = False
 
         return format_object_summary(
             self, self._formatter_func, is_justify=is_justify, name=name
@@ -930,7 +929,7 @@ class Index(IndexOpsMixin, PandasObject):
         # how to represent ourselves to matplotlib
         return self.values
 
-    def format(self, name=False, formatter=None, **kwargs):
+    def format(self, name: bool = False, formatter=None, **kwargs):
         """
         Render a string representation of the Index.
         """
@@ -1016,7 +1015,7 @@ class Index(IndexOpsMixin, PandasObject):
         values[mask] = na_rep
         return values
 
-    def _summary(self, name=None):
+    def _summary(self, name=None) -> str_t:
         """
         Return a summarized representation.
 
@@ -1096,7 +1095,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Series(self.values.copy(), index=index, name=name)
 
-    def to_frame(self, index=True, name=None):
+    def to_frame(self, index: bool = True, name=None):
         """
         Create a DataFrame with a column containing the Index.
 
@@ -1176,7 +1175,7 @@ class Index(IndexOpsMixin, PandasObject):
         maybe_extract_name(value, None, type(self))
         self._name = value
 
-    def _validate_names(self, name=None, names=None, deep=False):
+    def _validate_names(self, name=None, names=None, deep: bool = False):
         """
         Handles the quirks of having a singular 'name' parameter for general
         Index and plural 'names' parameter for MultiIndex.
@@ -1229,7 +1228,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     names = property(fset=_set_names, fget=_get_names)
 
-    def set_names(self, names, level=None, inplace=False):
+    def set_names(self, names, level=None, inplace: bool = False):
         """
         Set Index or MultiIndex name.
 
@@ -1398,7 +1397,7 @@ class Index(IndexOpsMixin, PandasObject):
                 f"Requested level ({level}) does not match index name ({self.name})"
             )
 
-    def _get_level_number(self, level):
+    def _get_level_number(self, level) -> int:
         self._validate_index_level(level)
         return 0
 
@@ -1568,7 +1567,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.is_monotonic_increasing
 
     @property
-    def is_monotonic_increasing(self):
+    def is_monotonic_increasing(self) -> bool:
         """
         Return if the index is monotonic increasing (only equal or
         increasing) values.
@@ -1703,14 +1702,14 @@ class Index(IndexOpsMixin, PandasObject):
     def is_mixed(self) -> bool:
         return self.inferred_type in ["mixed"]
 
-    def holds_integer(self):
+    def holds_integer(self) -> bool:
         """
         Whether the type is an integer type.
         """
         return self.inferred_type in ["integer", "mixed-integer"]
 
     @cache_readonly
-    def inferred_type(self):
+    def inferred_type(self) -> str_t:
         """
         Return a string of the type inferred from the values.
         """
@@ -1755,7 +1754,7 @@ class Index(IndexOpsMixin, PandasObject):
             return np.array([], dtype=np.int64)
 
     @cache_readonly
-    def hasnans(self):
+    def hasnans(self) -> bool:
         """
         Return if I have any nans; enables various perf speedups.
         """
@@ -2060,13 +2059,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return super().duplicated(keep=keep)
 
-    def _get_unique_index(self, dropna=False):
+    def _get_unique_index(self, dropna: bool = False):
         """
         Returns an index containing unique values.
 
         Parameters
         ----------
-        dropna : bool
+        dropna : bool, default False
             If True, NaN values are dropped.
 
         Returns
@@ -2173,7 +2172,7 @@ class Index(IndexOpsMixin, PandasObject):
         other = Index(other).astype(object, copy=False)
         return Index.union(this, other, sort=sort).astype(object, copy=False)
 
-    def _is_compatible_with_other(self, other):
+    def _is_compatible_with_other(self, other) -> bool:
         """
         Check whether this and the other dtype are compatible with each other.
         Meaning a union can be formed between them without needing to be cast
@@ -2848,7 +2847,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if kind in ["getitem"] and is_float(key):
                 if not self.is_floating():
-                    return self._invalid_indexer("label", key)
+                    self._invalid_indexer("label", key)
 
             elif kind in ["loc"] and is_float(key):
 
@@ -3016,7 +3015,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         keyarr : Index (or sub-class)
             Indexer to convert.
-        kind : iloc, ix, loc, optional
+        kind : iloc, loc, optional
 
         Returns
         -------
@@ -3029,7 +3028,6 @@ class Index(IndexOpsMixin, PandasObject):
             kind in [None, "iloc"]
             and is_integer_dtype(keyarr)
             and not self.is_floating()
-            and not isinstance(keyarr, ABCPeriodIndex)
         ):
 
             if self.inferred_type == "mixed-integer":
@@ -3641,7 +3639,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data.view(np.ndarray)
 
     @property
-    def _values(self) -> Union[ExtensionArray, ABCIndexClass, np.ndarray]:
+    def _values(self) -> Union[ExtensionArray, np.ndarray]:
         # TODO(EA): remove index types as they become extension arrays
         """
         The best array representation.
@@ -3659,7 +3657,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index             | ndarray         | ndarray       | ndarray         |
         CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
         DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTA[tz]       | ndarray[M8ns]   |
         PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
         IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
 
@@ -3715,7 +3713,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         result = super().memory_usage(deep=deep)
 
         # include our engine hashtable
