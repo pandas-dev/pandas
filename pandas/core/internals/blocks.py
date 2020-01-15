@@ -1186,9 +1186,10 @@ class Block(PandasObject):
                     fill_value=fill_value,
                     dtype=self.dtype,
                 )
+            # Beware that this also change the input array `values`!
             interp_values = np.apply_along_axis(func, axis, values)
         else:
-            values = missing.interpolate_2d(
+            interp_values = missing.interpolate_2d(
                 values,
                 method=method,
                 axis=axis,
@@ -1197,7 +1198,7 @@ class Block(PandasObject):
                 dtype=self.dtype,
             )
 
-        blocks = [self.make_block_same_class(values, ndim=self.ndim)]
+        blocks = [self.make_block_same_class(interp_values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
 
     def _interpolate(
