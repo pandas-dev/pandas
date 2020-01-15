@@ -14,6 +14,7 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
+    is_float,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -344,12 +345,14 @@ class RangeIndex(Int64Index):
 
     @Appender(_index_shared_docs["get_loc"])
     def get_loc(self, key, method=None, tolerance=None):
-        if is_integer(key) and method is None and tolerance is None:
-            new_key = int(key)
-            try:
-                return self._range.index(new_key)
-            except ValueError:
-                raise KeyError(key)
+        if method is None and tolerance is None:
+            if is_integer(key) or (is_float(key) and key.is_integer()):
+                new_key = int(key)
+                try:
+                    return self._range.index(new_key)
+                except ValueError:
+                    raise KeyError(key)
+            raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @Appender(_index_shared_docs["get_indexer"])

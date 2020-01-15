@@ -1341,7 +1341,7 @@ class BlockManager(PandasObject):
                     # only one item and each mgr loc is a copy of that single
                     # item.
                     for mgr_loc in mgr_locs:
-                        newblk = blk.copy(deep=True)
+                        newblk = blk.copy(deep=False)
                         newblk.mgr_locs = slice(mgr_loc, mgr_loc + 1)
                         blocks.append(newblk)
 

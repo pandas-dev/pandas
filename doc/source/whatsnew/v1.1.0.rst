@@ -82,7 +82,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-
+- Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
 -
 -
 
@@ -140,7 +140,9 @@ Reshaping
 ^^^^^^^^^
 
 -
+- Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
 - Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
+
 
 Sparse
 ^^^^^^

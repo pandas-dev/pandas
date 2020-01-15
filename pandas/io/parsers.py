@@ -906,8 +906,8 @@ class TextFileReader(abc.Iterator):
                         pass
                     else:
                         raise ValueError(
-                            f"The {repr(argname)} option is not supported with the"
-                            f" {repr(engine)} engine"
+                            f"The {repr(argname)} option is not supported with the "
+                            f"{repr(engine)} engine"
                         )
             else:
                 value = _deprecated_defaults.get(argname, default)
@@ -1304,7 +1304,7 @@ def _validate_usecols_arg(usecols):
 
         usecols_dtype = lib.infer_dtype(usecols, skipna=False)
 
-        if usecols_dtype not in ("empty", "integer", "string", "unicode"):
+        if usecols_dtype not in ("empty", "integer", "string"):
             raise ValueError(msg)
 
         usecols = set(usecols)
