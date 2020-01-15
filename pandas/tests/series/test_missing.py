@@ -1431,7 +1431,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(result, expected)
 
         expected = Series(
-            [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan]
+            [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan]
         )
         result = s.interpolate(method="bfill", limit_area="outside", limit=1)
         tm.assert_series_equal(result, expected)
