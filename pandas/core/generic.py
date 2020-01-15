@@ -6680,7 +6680,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis=0,
         limit=None,
         inplace=False,
-        limit_direction="forward",
+        limit_direction=None,
         limit_area=None,
         downcast=None,
         **kwargs,
@@ -6719,6 +6719,29 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
+
+        # Set `limit_direction` depending on `method`
+        if (method == "pad") or (method == "ffill"):
+            if (limit_direction == "backward") or (
+                limit_direction == "both"):
+                raise ValueError(
+                    f"`limit_direction` must not be `{limit_direction}` "
+                    f"for method `{method}`"
+                )
+            else:
+                limit_direction = "forward"
+        elif (method == "backfill") or (method == "bfill"):
+            if (limit_direction == "forward") or (limit_direction == "both"):
+                raise ValueError(
+                    f"`limit_direction` must not be `{limit_direction}` "
+                    f"for method `{method}`"
+                )
+            else:
+                limit_direction = "backward"
+        else:
+            # Set default
+            if limit_direction is None:
+                limit_direction = "forward"
 
         # create/use the index
         if method == "linear":
