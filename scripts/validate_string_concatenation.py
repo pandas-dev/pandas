@@ -15,12 +15,12 @@ import os
 import sys
 import token
 import tokenize
-from typing import Callable, Generator, List, Tuple
+from typing import IO, Callable, Generator, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
 
 
-def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None, None]:
+def bare_pytest_raises(file_obj: IO) -> Generator[Tuple[int, str], None, None]:
     """
     Test Case for bare pytest raises.
 
@@ -36,13 +36,11 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
 
     Parameters
     ----------
-    source_path : str
-        File path pointing to a single file.
+    file_obj : IO
+        File object to operate on.
 
     Yields
     ------
-    source_path : str
-        Source file path.
     line_number : int
         Line number of unconcatenated string.
     msg : str
@@ -52,8 +50,7 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
     -----
     GH #23922
     """
-    with open(source_path, "r") as file_name:
-        tokens: List = list(tokenize.generate_tokens(file_name.readline))
+    tokens: List = list(tokenize.generate_tokens(file_obj))
 
     for counter, current_token in enumerate(tokens, start=1):
         if not (current_token.type == token.NAME and current_token.string == "raises"):
@@ -65,7 +62,6 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
             # unlike token.NL or "\n" which represents a newline
             if next_token.type == token.NEWLINE:
                 yield (
-                    source_path,
                     current_token.start[0],
                     "Bare pytests raise have been found. "
                     "Please pass in the argument 'match' as well the exception.",
@@ -73,9 +69,7 @@ def bare_pytest_raises(source_path: str) -> Generator[Tuple[str, int, str], None
                 break
 
 
-def strings_to_concatenate(
-    source_path: str,
-) -> Generator[Tuple[str, int, str], None, None]:
+def strings_to_concatenate(file_obj: IO) -> Generator[Tuple[int, str], None, None]:
     """
     This test case is necessary after 'Black' (https://github.com/psf/black),
     is formating strings over multiple lines.
@@ -97,13 +91,11 @@ def strings_to_concatenate(
 
     Parameters
     ----------
-    source_path : str
-        File path pointing to a single file.
+    file_obj : IO
+        File object to operate on.
 
     Yields
     ------
-    source_path : str
-        Source file path.
     line_number : int
         Line number of unconcatenated string.
     msg : str
@@ -113,13 +105,11 @@ def strings_to_concatenate(
     -----
     GH #30454
     """
-    with open(source_path, "r") as file_name:
-        tokens: List = list(tokenize.generate_tokens(file_name.readline))
+    tokens: List = list(tokenize.generate_tokens(file_obj))
 
     for current_token, next_token in zip(tokens, tokens[1:]):
         if current_token.type == next_token.type == token.STRING:
             yield (
-                source_path,
                 current_token.start[0],
                 (
                     "String unnecessarily split in two by black. "
@@ -129,8 +119,8 @@ def strings_to_concatenate(
 
 
 def strings_with_wrong_placed_whitespace(
-    source_path: str,
-) -> Generator[Tuple[str, int, str], None, None]:
+    file_obj: IO,
+) -> Generator[Tuple[int, str], None, None]:
     """
     Test case for leading spaces in concated strings.
 
@@ -150,13 +140,11 @@ def strings_with_wrong_placed_whitespace(
 
     Parameters
     ----------
-    source_path : str
-        File path pointing to a single file.
+    file_obj : IO
+        File object to operate on.
 
     Yields
     ------
-    source_path : str
-        Source file path.
     line_number : int
         Line number of unconcatenated string.
     msg : str
@@ -229,8 +217,7 @@ def strings_with_wrong_placed_whitespace(
             return True
         return False
 
-    with open(source_path, "r") as file_name:
-        tokens: List = list(tokenize.generate_tokens(file_name.readline))
+    tokens: List = list(tokenize.generate_tokens(file_obj))
 
     for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
         # Checking if we are in a block of concated string
@@ -258,7 +245,6 @@ def strings_with_wrong_placed_whitespace(
 
             if has_wrong_whitespace(first_string, second_string):
                 yield (
-                    source_path,
                     third_token.start[0],
                     (
                         "String has a space at the beginning instead "
@@ -268,7 +254,7 @@ def strings_with_wrong_placed_whitespace(
 
 
 def main(
-    function: Callable[[str], Generator[Tuple[str, int, str], None, None]],
+    function: Callable[[str], Generator[Tuple[int, str], None, None]],
     source_path: str,
     output_format: str,
 ) -> bool:
@@ -278,7 +264,7 @@ def main(
     Parameters
     ----------
     function : Callable
-        Function to execute for the test case.
+        Function to execute for the specified validation type.
     source_path : str
         Source path representing path to a file/directory.
     output_format : str
@@ -295,35 +281,42 @@ def main(
         If the `source_path` is not pointing to existing file/directory.
     """
     if not os.path.exists(source_path):
-        raise ValueError(
-            "Please enter a valid path, pointing to a valid file/directory."
-        )
+        raise ValueError("Please enter a valid path, pointing to a file/directory.")
 
     is_failed: bool = False
 
     if os.path.isfile(source_path):
-        for source_path, line_number, msg in function(source_path):
-            is_failed = True
-            print(
-                output_format.format(
-                    source_path=source_path, line_number=line_number, msg=msg
+        file_path: str = source_path
+        with open(file_path, "r") as file_obj:
+            file_desc = file_obj.readline
+
+            for line_number, msg in function(file_desc):
+                is_failed = True
+                print(
+                    output_format.format(
+                        source_path=file_path, line_number=line_number, msg=msg
+                    )
                 )
-            )
 
     for subdir, _, files in os.walk(source_path):
         for file_name in files:
-            if any(
+            if not any(
                 file_name.endswith(extension) for extension in FILE_EXTENSIONS_TO_CHECK
             ):
-                for source_path, line_number, msg in function(
-                    os.path.join(subdir, file_name)
-                ):
+                continue
+
+            file_path: str = os.path.join(subdir, file_name)
+            with open(file_path, "r") as file_obj:
+                file_desc = file_obj.readline
+
+                for line_number, msg in function(file_desc):
                     is_failed = True
                     print(
                         output_format.format(
-                            source_path=source_path, line_number=line_number, msg=msg
+                            source_path=file_path, line_number=line_number, msg=msg
                         )
                     )
+
     return is_failed
 
 
