@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
+from pandas._typing import Optional, Hashable, Dtype
 
 
 def mask_missing(arr, values_to_mask):
@@ -501,11 +502,11 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
 def interpolate_1d_fill(
     values,
-    method="pad",
-    limit=None,
-    limit_area=None,
-    fill_value=None,
-    dtype=None,
+    method: str = "pad",
+    limit: Optional[int] = None,
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Hashable] = None,
+    dtype: Optional[Dtype] = None,
 ):
     """
     This is a  1D-versoin of `interpolate_2d`, which is used for methods `pad`
