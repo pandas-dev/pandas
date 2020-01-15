@@ -15,7 +15,7 @@ to the extent provided by law. As with any donation, you should consult with you
 
 As a free and open source project, _pandas_ relies on the support of the community of users for its development.
 If you work for an organization that uses and benefits from _pandas_, please consider supporting pandas. There
-are different ways, such as employing people to work on pandas, funds the project, or becoming a
+are different ways, such as employing people to work on pandas, funding the project, or becoming a
 [NumFOCUS sponsor](https://numfocus.org/sponsors) to support the broader ecosystem. Please contact us at
 [admin@numfocus.org](mailto:admin@numfocus.org) to discuss.
 
