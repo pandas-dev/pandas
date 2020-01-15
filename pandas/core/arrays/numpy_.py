@@ -45,6 +45,13 @@ class PandasDtype(ExtensionDtype):
         self._dtype = dtype
         self._type = dtype.type
 
+    @classmethod
+    def _simple_new(cls, dtype):
+        result = object.__new__(cls)
+        result._dtype = dtype
+        result._type = dtype.type
+        return result
+
     def __repr__(self) -> str:
         return f"PandasDtype({repr(self.name)})"
 
@@ -152,6 +159,13 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         self._ndarray = values
         self._dtype = PandasDtype(values.dtype)
+
+    @classmethod
+    def _simple_new(cls, values):
+        result = object.__new__(cls)
+        result._ndarray = values
+        result._dtype = PandasDtype._simple_new(values.dtype)
+        return result
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
