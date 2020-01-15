@@ -1962,6 +1962,14 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     Series[T].values is an ndarray of objects.
     """
 
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
+        # Block.shape vs. Block.values.shape mismatch
+        # Do the op, get the object-dtype ndarray, and reshape
+        # to put into an ObjectBlock
+        new_values = algos.diff(self.values, n, axis=axis)
+        new_values = np.atleast_2d(new_values)
+        return [self.make_block(values=new_values)]
+
     def external_values(self, dtype=None):
         return self.values.astype(object)
 

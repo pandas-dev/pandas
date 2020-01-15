@@ -1834,6 +1834,9 @@ def diff(arr, n: int, axis: int = 0):
     na = np.nan
     dtype = arr.dtype
 
+    if is_extension_array_dtype(dtype):
+        return arr.diff(n)
+
     is_timedelta = False
     is_bool = False
     if needs_i8_conversion(arr):

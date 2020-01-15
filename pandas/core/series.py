@@ -2316,7 +2316,7 @@ Name: Max Speed, dtype: float64
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com.values_from_object(self), periods)
+        result = algorithms.diff(self.array, periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1) -> float:

@@ -15,7 +15,7 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
-from pandas.core import nanops
+from pandas.core import algorithms, nanops
 from pandas.core.algorithms import searchsorted, take, unique
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
@@ -163,6 +163,10 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
+
+    def diff(self, periods: int = 1):
+        result = algorithms.diff(com.values_from_object(self._ndarray), periods)
+        return type(self)(result)
 
     @classmethod
     def _from_factorized(cls, values, original):
