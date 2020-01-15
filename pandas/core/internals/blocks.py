@@ -362,13 +362,17 @@ class Block(PandasObject):
         self.values = np.delete(self.values, loc, 0)
         self.mgr_locs = self.mgr_locs.delete(loc)
 
-    def apply(self, func, **kwargs):
+    def apply(self, func, **kwargs) -> List["Block"]:
         """ apply the function to my values; return a block if we are not
         one
         """
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
 
+        return self._split_op_result(result)
+
+    def _split_op_result(self, result) -> List["Block"]:
+        # See also: split_and_operate
         if is_extension_array_dtype(result) and result.ndim > 1:
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
@@ -382,7 +386,7 @@ class Block(PandasObject):
         if not isinstance(result, Block):
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
-        return result
+        return [result]
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         """ fillna on the block with the value. If we fail, then convert to
