@@ -357,7 +357,7 @@ class TestReadHtml:
 
     def test_negative_skiprows(self):
         msg = r"\(you passed a negative value\)"
-        with (ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_html(self.spam_data, "Water", skiprows=-1)
 
     @tm.network
