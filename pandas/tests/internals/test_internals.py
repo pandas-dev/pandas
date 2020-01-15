@@ -1236,16 +1236,21 @@ class TestCanHoldElement:
         }
 
         if (op, dtype) in invalid:
-            msg = (
-                r"cannot perform __pow\_\_ with this index type: DatetimeArray|"
-                r"cannot perform __mod\_\_ with this index type: DatetimeArray|"
-                r"cannot perform __truediv\_\_ with this index type: DatetimeArray|"
-                r"cannot perform __mul\_\_ with this index type: DatetimeArray|"
-                r"cannot perform __pow\_\_ with this index type: TimedeltaArray|"
-                "ufunc 'multiply' cannot use operands with types dtype"
-                r"\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)|"
-                "cannot add DatetimeArray and Timestamp"
-            )
+            if op is operator.add:
+                msg = "cannot add DatetimeArray and Timestamp"
+            elif op is operator.mul:
+                msg = (
+                    re.escape(
+                        "ufunc 'multiply' cannot use operands with "
+                        "types dtype('<m8[ns]') and dtype('<m8[ns]')"
+                    )
+                    + "|cannot perform __mul__ with this index type: DatetimeArray"
+                )
+            else:
+                msg = (
+                    f"cannot perform __{op.__name__}__ with this index type: "
+                    "(DatetimeArray|TimedeltaArray)"
+                )
             with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
         else:
