@@ -1094,7 +1094,6 @@ I/O
 - Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by `record_path` would raise a ``TypeError`` (:issue:`30148`)
 - :func:`read_excel` now accepts binary data (:issue:`15914`)
 - Bug in :meth:`read_csv` in which encoding handling was limited to just the string `utf-16` for the C engine (:issue:`24130`)
-- When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 
 Plotting
 ^^^^^^^^

@@ -132,7 +132,7 @@ MultiIndex
 
 I/O
 ^^^
-
+- When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 -
 -
 
