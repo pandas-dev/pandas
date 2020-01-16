@@ -312,7 +312,9 @@ class FrameApply(metaclass=abc.ABCMeta):
                 pass
             else:
                 return_result = self.obj._constructor_sliced(result, index=labels)
-                if (self.axis != 0 and self.axis != "index") or self.dtypes.nunique() <= 1:
+                if (
+                    self.axis != 0 and self.axis != "index"
+                ) or self.dtypes.nunique() <= 1:
                     return return_result
 
         # compute the result using the series generator
