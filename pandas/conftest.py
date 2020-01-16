@@ -12,8 +12,8 @@ import numpy as np
 import pytest
 from pytz import FixedOffset, utc
 
-import pandas.util._test_decorators as td
 from pandas._typing import Dtype
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame

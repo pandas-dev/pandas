@@ -11,9 +11,9 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Type,
     TypeVar,
     Union,
-    Type,
 )
 
 import numpy as np
