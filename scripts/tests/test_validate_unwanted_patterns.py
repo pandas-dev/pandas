@@ -4,74 +4,63 @@ import io
 import validate_string_concatenation as validate_unwanted_patterns
 
 
-class GoodBarePytestRaises:
-    def normal_pytest_raises(self):
-        return io.StringIO(
+class TestBarePytestRaises:
+    def test_bare_pytest_raises(self):
+        fd = io.StringIO(
+            """
+with pytest.raises(ValueError):
+    pass
+""".strip()
+        )
+        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
+        expected = [
+            (
+                1,
+                (
+                    "Bare pytests raise have been found. "
+                    "Please pass in the argument 'match' as well the exception."
+                ),
+            )
+        ]
+        assert result == expected
+
+    def test_pytest_raises(self):
+        fd = io.StringIO(
             """
 with pytest.raises(ValueError, match="foo"):
     pass
-"""
+""".strip()
         )
-
-    def pytest_raises_as_comment(self):
-        return io.StringIO(
-            """
-# with pytest.raises(ValueError, match="foo"):
-#     pass
-"""
-        )
-
-    def bare_pytest_raises_as_comment(self):
-        """
-        We do not care if the bare pytest raises is commented out.
-        """
-        return io.StringIO(
-            """
-# with pytest.raises(ValueError):
-#     pass
-"""
-        )
-
-
-class BadBarePytestRaises:
-    def normal_bare_pytest_raises(self):
-        return io.StringIO(
-            """
-with pytest.raises(ValueError):
-    raise ValueError("foo")
-"""
-        )
-
-
-class TestGoodBarePytestRaises:
-    def test_good_normal_pytest_raises(self):
-        result = validate_unwanted_patterns.bare_pytest_raises(
-            GoodBarePytestRaises.normal_pytest_raises(self)
-        )
-
-        for _ in result:
-            assert False  # Not sure about this
-
-    def test_pytest_raises_as_comment(self):
-        result = validate_unwanted_patterns.bare_pytest_raises(
-            GoodBarePytestRaises.pytest_raises_as_comment(self)
-        )
-        for _ in result:
-            assert False  # Not sure about this
+        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
+        expected = []
+        assert result == expected
 
     def test_bare_pytest_raises_as_comment(self):
-        result = validate_unwanted_patterns.bare_pytest_raises(
-            GoodBarePytestRaises.bare_pytest_raises_as_comment(self)
+        fd = io.StringIO(
+            """
+# with pytest.raises(ValueError):
+#    pass
+""".strip()
         )
-        for _ in result:
-            assert False  # Not sure about this
+        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
+        expected = []
+        assert result == expected
 
-
-class TestBadBarePytestRaises:
-    def test_bad_normal_pytest_raises(self):
-        result = validate_unwanted_patterns.bare_pytest_raises(
-            BadBarePytestRaises.normal_bare_pytest_raises(self)
+    def test_pytest_raises_as_comment(self):
+        fd = io.StringIO(
+            """
+# with pytest.raises(ValueError, match="foo"):
+#    pass
+""".strip()
         )
+        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
+        expected = []
+        assert result == expected
 
-        for bare_pytest_raise in result:
-            assert bare_pytest_raise[0] == 2
+
+class TestStringsToConcatenate:
+    pass
+
+
+class TestStringsWithWrongPlacedWhitespace:
+    pass
