@@ -694,8 +694,9 @@ class TestDataFrameApply:
     def test_apply_get_dtype(self):
         # GH 28773
         df = DataFrame({"col_1": [1, 2, 3], "col_2": ["hi", "there", "friend"]})
+        result = df.apply(lambda x: x.dtype)
         expected = Series(data=["int64", "object"], index=["col_1", "col_2"])
-        tm.assert_series_equal(df.apply(lambda x: x.dtype), expected)
+        tm.assert_series_equal(result, expected)
 
     def test_apply_nested_result_axis_1(self):
         # GH 13820

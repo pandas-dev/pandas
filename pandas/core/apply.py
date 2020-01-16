@@ -274,17 +274,16 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         # we cannot reduce using non-numpy dtypes,
         # as demonstrated in gh-12244
-        flag = (
+        can_reduce = (
             self.result_type in ["reduce", None]
             and not self.dtypes.apply(is_extension_array_dtype).any()
             # Disallow complex_internals since libreduction shortcut
             #  cannot handle MultiIndex
             and not isinstance(self.agg_axis, ABCMultiIndex)
-            and len(set(self.dtypes))
         )
         return_result = None
 
-        if flag:
+        if can_reduce:
 
             values = self.values
             index = self.obj._get_axis(self.axis)
@@ -313,13 +312,13 @@ class FrameApply(metaclass=abc.ABCMeta):
                 pass
             else:
                 return_result = self.obj._constructor_sliced(result, index=labels)
-                if self.axis != 0 and self.axis != "index":
+                if (self.axis != 0 and self.axis != "index") or self.dtypes.nunique() <= 1:
                     return return_result
 
         # compute the result using the series generator
         results, res_index = self.apply_series_generator()
 
-        if flag and return_result is not None:
+        if can_reduce and return_result is not None:
             results = np.array(list(results.values()))
             return self.obj._constructor_sliced(
                 results, index=res_index, dtype=return_result.dtype
