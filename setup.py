@@ -716,7 +716,10 @@ if suffix == ".pyx":
 
 ujson_ext = Extension(
     "pandas._libs.json",
-    depends=["pandas/_libs/src/ujson/lib/ultrajson.h", "pandas/_libs/src/ujson/python/date_conversions.h"],
+    depends=[
+        "pandas/_libs/src/ujson/lib/ultrajson.h",
+        "pandas/_libs/src/ujson/python/date_conversions.h",
+    ],
     sources=(
         [
             "pandas/_libs/src/ujson/python/ujson.c",
