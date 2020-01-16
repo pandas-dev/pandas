@@ -2667,8 +2667,8 @@ def _delta_to_tick(delta: timedelta) -> Tick:
                 return Second(seconds)
     else:
         nanos = delta_to_nanoseconds(delta)
-        if nanos % 1000000 == 0:
-            return Milli(nanos // 1000000)
+        if nanos % 1_000_000 == 0:
+            return Milli(nanos // 1_000_000)
         elif nanos % 1000 == 0:
             return Micro(nanos // 1000)
         else:  # pragma: no cover
