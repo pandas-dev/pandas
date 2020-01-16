@@ -9,7 +9,7 @@ from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.common as com
-from pandas.core.frame import _shared_docs
+from pandas.core.frame import DataFrame, _shared_docs
 from pandas.core.groupby import Grouper
 from pandas.core.indexes.api import Index, MultiIndex, get_objs_combined_axis
 from pandas.core.reshape.concat import concat
