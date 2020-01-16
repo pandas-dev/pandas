@@ -254,7 +254,7 @@ def strings_with_wrong_placed_whitespace(
 
 
 def main(
-    function: Callable[[str], Generator[Tuple[int, str], None, None]],
+    function: Callable[[IO], Generator[Tuple[int, str], None, None]],
     source_path: str,
     output_format: str,
 ) -> bool:
