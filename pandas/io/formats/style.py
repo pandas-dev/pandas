@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import is_float
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
@@ -555,16 +556,18 @@ class Styler:
         d.update(kwargs)
         return self.template.render(**d)
 
-    def _update_ctx(self, attrs: FrameOrSeries) -> None:
+    def _update_ctx(self, attrs: DataFrame) -> None:
         """
         Update the state of the Styler.
 
         Collects a mapping of {index_label: ['<property>: <value>']}.
 
-        attrs : Series or DataFrame
-        should contain strings of '<property>: <value>;<prop2>: <val2>'
-        Whitespace shouldn't matter and the final trailing ';' shouldn't
-        matter.
+        Parameters
+        ----------
+        attrs : DataFrame
+            should contain strings of '<property>: <value>;<prop2>: <val2>'
+            Whitespace shouldn't matter and the final trailing ';' shouldn't
+            matter.
         """
         for row_label, v in attrs.iterrows():
             for col_label, col in v.items():
