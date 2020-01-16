@@ -18,7 +18,7 @@ jobs:
         py36_minimum_versions:
           ENV_FILE: ci/deps/azure-36-minimum_versions.yaml
           CONDA_PY: "36"
-          PATTERN: "not slow and not network"
+          PATTERN: "not slow and not network and not clipboard"
 
         py36_locale_slow_old_np:
           ENV_FILE: ci/deps/azure-36-locale_slow.yaml
@@ -36,12 +36,12 @@ jobs:
           PATTERN: "not slow and not network"
           LANG: "it_IT.utf8"
           LC_ALL: "it_IT.utf8"
-          EXTRA_APT: "language-pack-it"
+          EXTRA_APT: "language-pack-it xsel"
 
         py36_32bit:
           ENV_FILE: ci/deps/azure-36-32bit.yaml
           CONDA_PY: "36"
-          PATTERN: "not slow and not network"
+          PATTERN: "not slow and not network and not clipboard"
           BITS32: "yes"
 
         py37_locale:
@@ -50,7 +50,7 @@ jobs:
           PATTERN: "not slow and not network"
           LANG: "zh_CN.utf8"
           LC_ALL: "zh_CN.utf8"
-          EXTRA_APT: "language-pack-zh-hans"
+          EXTRA_APT: "language-pack-zh-hans xsel"
 
         py37_np_dev:
           ENV_FILE: ci/deps/azure-37-numpydev.yaml

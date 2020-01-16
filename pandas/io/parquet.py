@@ -51,7 +51,7 @@ class BaseImpl:
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "unicode", "empty"}:
+        if df.columns.inferred_type not in {"string", "empty"}:
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
