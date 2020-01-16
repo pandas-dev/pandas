@@ -485,7 +485,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         formatter = self._formatter_func
         if len(self) > 0:
-            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
+            index_summary = f", {formatter(self.min())} to {formatter(self.max())}"
         else:
             index_summary = ""
 
