@@ -1374,7 +1374,7 @@ class TestStata:
                 "dates": dates,
             }
         )
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError, match="Data type datetime64"):
             with tm.ensure_clean() as path:
                 original.to_stata(path)
 
