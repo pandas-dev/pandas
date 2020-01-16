@@ -11,9 +11,8 @@ import pytz
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -120,7 +119,8 @@ class TestMultiLevel(Base):
                     (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
                     (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
                 ]
-                + expected_tuples
+                + expected_tuples,
+                dtype=object,
             ),
             None,
         )
@@ -1359,6 +1359,30 @@ Thur,Lunch,Yes,51.51,17"""
         )
         tm.assert_frame_equal(expected, result)
 
+    def test_drop_multiindex_other_level_nan(self):
+        # GH 12754
+        df = (
+            DataFrame(
+                {
+                    "A": ["one", "one", "two", "two"],
+                    "B": [np.nan, 0.0, 1.0, 2.0],
+                    "C": ["a", "b", "c", "c"],
+                    "D": [1, 2, 3, 4],
+                }
+            )
+            .set_index(["A", "B", "C"])
+            .sort_index()
+        )
+        result = df.drop("c", level="C")
+        expected = DataFrame(
+            [2, 1],
+            columns=["D"],
+            index=pd.MultiIndex.from_tuples(
+                [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_drop_nonunique(self):
         df = DataFrame(
             [
@@ -2285,6 +2309,14 @@ class TestSorted(Base):
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_non_existent_label_multiindex(self):
+        # GH 12261
+        df = DataFrame(0, columns=[], index=pd.MultiIndex.from_product([[], []]))
+        df.loc["b", "2"] = 1
+        df.loc["a", "3"] = 1
+        result = df.sort_index().index.is_monotonic
+        assert result is True
 
     def test_sort_index_reorder_on_ops(self):
         # 15687

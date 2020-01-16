@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from .test_generic import Generic
 
@@ -196,7 +196,7 @@ class TestDataFrame(Generic):
     def test_to_xarray_index_types(self, index):
         from xarray import Dataset
 
-        index = getattr(tm, "make{}".format(index))
+        index = getattr(tm, f"make{index}")
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -222,11 +222,10 @@ class TestDataFrame(Generic):
 
         # idempotency
         # categoricals are not preserved
-        # datetimes w/tz are not preserved
+        # datetimes w/tz are preserved
         # column names are lost
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
-        expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
         tm.assert_frame_equal(
             result.to_dataframe(),
@@ -271,7 +270,6 @@ class TestDataFrame(Generic):
         result = result.to_dataframe()
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
-        expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
         tm.assert_frame_equal(result, expected, check_index_type=False)
 

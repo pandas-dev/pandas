@@ -129,20 +129,6 @@ Some specific goals include
 * Improve the overall organization of the documentation and specific subsections
   of the documentation to make navigation and finding content easier.
 
-Package docstring validation
-----------------------------
-
-To improve the quality and consistency of pandas docstrings, we've developed
-tooling to check docstrings in a variety of ways.
-https://github.com/pandas-dev/pandas/blob/master/scripts/validate_docstrings.py
-contains the checks.
-
-Like many other projects, pandas uses the
-`numpydoc <https://numpydoc.readthedocs.io/en/latest/>`__ style for writing
-docstrings. With the collaboration of the numpydoc maintainers, we'd like to
-move the checks to a package other than pandas so that other projects can easily
-use them as well.
-
 Performance monitoring
 ----------------------
 

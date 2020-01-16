@@ -791,7 +791,7 @@ the nullable :doc:`integer <integer_na>`, boolean and
 :ref:`dedicated string <text.types>` data types as the missing value indicator.
 
 The goal of ``pd.NA`` is provide a "missing" indicator that can be used
-consistently accross data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
+consistently across data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
 depending on the data type).
 
 For example, when having missing values in a Series with the nullable integer
@@ -825,14 +825,10 @@ For example, ``pd.NA`` propagates in arithmetic operations, similarly to
 There are a few special cases when the result is known, even when one of the
 operands is ``NA``.
 
+.. ipython:: python
 
-================ ======
-Operation        Result
-================ ======
-``pd.NA ** 0``   0
-``1 ** pd.NA``   1
-``-1 ** pd.NA``  -1
-================ ======
+   pd.NA ** 0
+   1 ** pd.NA
 
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
@@ -920,3 +916,29 @@ filling missing values beforehand.
 
 A similar situation occurs when using Series or DataFrame objects in ``if``
 statements, see :ref:`gotchas.truth`.
+
+NumPy ufuncs
+------------
+
+:attr:`pandas.NA` implements NumPy's ``__array_ufunc__`` protocol. Most ufuncs
+work with ``NA``, and generally return ``NA``:
+
+.. ipython:: python
+
+   np.log(pd.NA)
+   np.add(pd.NA, 1)
+
+.. warning::
+
+   Currently, ufuncs involving an ndarray and ``NA`` will return an
+   object-dtype filled with NA values.
+
+   .. ipython:: python
+
+      a = np.array([1, 2, 3])
+      np.greater(a, pd.NA)
+
+   The return type here may change to return a different array type
+   in the future.
+
+See :ref:`dsintro.numpy_interop` for more on ufuncs.
