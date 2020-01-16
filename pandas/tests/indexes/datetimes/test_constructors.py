@@ -954,6 +954,6 @@ class TestTimeSeries:
 
 def test_timedelta_constructor_identity():
     # Test for #30543
-    expected = pd.Timedelta(np.timedelta64(1, 's'))
+    expected = pd.Timedelta(np.timedelta64(1, "s"))
     result = pd.Timedelta(expected)
     assert result is expected
