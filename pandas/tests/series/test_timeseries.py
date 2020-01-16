@@ -137,7 +137,9 @@ class TestTimeSeries:
         assert ts.last_valid_index().freq == ts.index.freq
 
     def test_mpl_compat_hack(self, datetime_series):
-        result = datetime_series[:, np.newaxis]
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            # GH#30588 multi-dimensional indexing deprecated
+            result = datetime_series[:, np.newaxis]
         expected = datetime_series.values[:, np.newaxis]
         tm.assert_almost_equal(result, expected)
 
@@ -501,10 +503,7 @@ class TestTimeSeries:
     def test_between_time_types(self):
         # GH11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        msg = (
-            r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\]"
-            " to a time"
-        )
+        msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
         with pytest.raises(ValueError, match=msg):
             rng.indexer_between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 

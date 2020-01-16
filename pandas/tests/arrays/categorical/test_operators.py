@@ -97,8 +97,8 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         # comparison (in both directions) with Series will raise
         s = Series(["b", "b", "b"])
         msg = (
-            "Cannot compare a Categorical for op __gt__ with type"
-            r" <class 'numpy\.ndarray'>"
+            "Cannot compare a Categorical for op __gt__ with type "
+            r"<class 'numpy\.ndarray'>"
         )
         with pytest.raises(TypeError, match=msg):
             cat > s
@@ -172,8 +172,8 @@ class TestCategoricalOps:
         cat = Categorical([1, 2, 3], ordered=True)
 
         msg = (
-            "Cannot compare a Categorical for op __{}__ with a scalar,"
-            " which is not a category"
+            "Cannot compare a Categorical for op __{}__ with a scalar, "
+            "which is not a category"
         )
         with pytest.raises(TypeError, match=msg.format("lt")):
             cat < 4
@@ -265,8 +265,8 @@ class TestCategoricalOps:
         # categorical cannot be compared to Series or numpy array, and also
         # not the other way around
         msg = (
-            "Cannot compare a Categorical for op __gt__ with type"
-            r" <class 'numpy\.ndarray'>"
+            "Cannot compare a Categorical for op __gt__ with type "
+            r"<class 'numpy\.ndarray'>"
         )
         with pytest.raises(TypeError, match=msg):
             cat > s

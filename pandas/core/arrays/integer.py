@@ -301,19 +301,19 @@ class IntegerArray(BaseMaskedArray):
     >>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())
     >>> int_array
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: Int32
 
     String aliases for the dtypes are also available. They are capitalized.
 
     >>> pd.array([1, None, 3], dtype='Int32')
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: Int32
 
     >>> pd.array([1, None, 3], dtype='UInt16')
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: UInt16
     """
 
@@ -466,55 +466,6 @@ class IntegerArray(BaseMaskedArray):
         used for interacting with our indexers.
         """
         return self._data
-
-    def value_counts(self, dropna=True):
-        """
-        Returns a Series containing counts of each category.
-
-        Every category will have an entry, even those with a count of 0.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaN.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-
-        """
-
-        from pandas import Index, Series
-
-        # compute counts on the data with no nans
-        data = self._data[~self._mask]
-        value_counts = Index(data).value_counts()
-        array = value_counts.values
-
-        # TODO(extension)
-        # if we have allow Index to hold an ExtensionArray
-        # this is easier
-        index = value_counts.index.astype(object)
-
-        # if we want nans, count the mask
-        if not dropna:
-
-            # TODO(extension)
-            # appending to an Index *always* infers
-            # w/o passing the dtype
-            array = np.append(array, [self._mask.sum()])
-            index = Index(
-                np.concatenate(
-                    [index.values, np.array([self.dtype.na_value], dtype=object)]
-                ),
-                dtype=object,
-            )
-
-        return Series(array, index=index)
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
