@@ -154,6 +154,7 @@ class TestSlicing:
         ],
     )
     def test_slice_end_of_period_resolution(self, partial_dtime):
+        # GH#31064
         dti = date_range("2019-12-31 23:59:55.999999999", periods=10, freq="s")
 
         ser = pd.Series(range(10), index=dti)
