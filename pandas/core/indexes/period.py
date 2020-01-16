@@ -511,26 +511,20 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return series.iat[key]
 
         if isinstance(key, str):
+            try:
+                loc = self._get_string_slice(key)
+                return series[loc]
+            except (TypeError, ValueError):
+                pass
+
             asdt, parsed, reso = parse_time_string(key, self.freq)
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
 
-            vals = self.asi8
+            # _get_string_slice will handle cases where grp < freqn
+            assert grp >= freqn
 
-            # if our data is higher resolution than requested key, slice
-            if grp < freqn:
-                iv = Period(asdt, freq=(grp, 1))
-                ord1 = iv.asfreq(self.freq, how="S").ordinal
-                ord2 = iv.asfreq(self.freq, how="E").ordinal
-
-                if ord2 < vals[0] or ord1 > vals[-1]:
-                    # TODO: are we implicitly assuming monotonicity here?
-                    raise KeyError(key)
-
-                pos = np.searchsorted(vals, [ord1, ord2])
-                key = slice(pos[0], pos[1] + 1)
-                return series[key]
-            elif grp == freqn:
+            if grp == freqn:
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key)
                 return series.iloc[loc]
@@ -681,18 +675,29 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _get_string_slice(self, key):
+        raw = key
         if not self.is_monotonic:
             raise ValueError("Partial indexing only valid for ordered time series")
 
         key, parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
-        if reso in ["day", "hour", "minute", "second"] and not grp < freqn:
-            raise KeyError(key)
+
+        if not grp < freqn:
+            # TODO: we used to also check for
+            #  reso in ["day", "hour", "minute", "second"]
+            #  why is that check not needed?
+            raise TypeError(key)
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
+        if len(self):
+            if t2 < self.min() or t1 > self.max():
+                raise KeyError(raw)
+
+        # Use asi8 searchsorted to avoid overhead of re-validating inputs
         return slice(
-            self.searchsorted(t1, side="left"), self.searchsorted(t2, side="right")
+            self.asi8.searchsorted(t1.ordinal, side="left"),
+            self.asi8.searchsorted(t2.ordinal, side="right"),
         )
 
     def _convert_tolerance(self, tolerance, target):
