@@ -272,7 +272,7 @@ class Styler:
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
 
-        cell_context: Dict = dict()
+        cell_context = dict()
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
