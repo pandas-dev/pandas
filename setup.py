@@ -412,15 +412,14 @@ class DummyBuildSrc(Command):
 
 
 cmdclass.update({"clean": CleanCommand, "build": build})
+cmdclass["build_ext"] = CheckingBuildExt
 
 if cython:
     suffix = ".pyx"
-    cmdclass["build_ext"] = CheckingBuildExt
     cmdclass["cython"] = CythonCommand
 else:
     suffix = ".c"
     cmdclass["build_src"] = DummyBuildSrc
-    cmdclass["build_ext"] = CheckingBuildExt
 
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
