@@ -98,8 +98,6 @@ char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
     return result;
 }
 
-
-
 npy_datetime PyDateTimeToEpoch(PyDateTime_Date *dt, NPY_DATETIMEUNIT base) {
     npy_datetimestruct dts;
     int ret;
