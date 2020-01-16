@@ -1208,6 +1208,8 @@ class Timedelta(_Timedelta):
                 "represent unambiguous timedelta values durations."
             )
 
+        # GH 30543 if pd.Timedelta already passed, return it
+        # check that only value is passed
         if (isinstance(value, Timedelta) and unit is None and
                 len(kwargs) == 0):
             return value
