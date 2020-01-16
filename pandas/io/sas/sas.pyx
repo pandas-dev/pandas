@@ -33,7 +33,7 @@ cdef const uint8_t[:] rle_decompress(int result_length,
                 raise ValueError("Unexpected non-zero end_of_first_byte")
             nbytes = <int>(inbuff[ipos]) + 64
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
                 rpos += 1
                 ipos += 1
@@ -42,20 +42,20 @@ cdef const uint8_t[:] rle_decompress(int result_length,
             nbytes = end_of_first_byte * 16
             nbytes += <int>(inbuff[ipos])
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = inbuff[ipos]
                 rpos += 1
             ipos += 1
         elif control_byte == 0x60:
             nbytes = end_of_first_byte * 256 + <int>(inbuff[ipos]) + 17
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x20
                 rpos += 1
         elif control_byte == 0x70:
             nbytes = end_of_first_byte * 256 + <int>(inbuff[ipos]) + 17
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x00
                 rpos += 1
         elif control_byte == 0x80:
@@ -86,22 +86,22 @@ cdef const uint8_t[:] rle_decompress(int result_length,
             nbytes = end_of_first_byte + 3
             x = inbuff[ipos]
             ipos += 1
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = x
                 rpos += 1
         elif control_byte == 0xD0:
             nbytes = end_of_first_byte + 2
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x40
                 rpos += 1
         elif control_byte == 0xE0:
             nbytes = end_of_first_byte + 2
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x20
                 rpos += 1
         elif control_byte == 0xF0:
             nbytes = end_of_first_byte + 2
-            for i in range(nbytes):
+            for _ in range(nbytes):
                 result[rpos] = 0x00
                 rpos += 1
         else:
@@ -289,7 +289,7 @@ cdef class Parser:
             bint done
             int i
 
-        for i in range(nrows):
+        for _ in range(nrows):
             done = self.readline()
             if done:
                 break
