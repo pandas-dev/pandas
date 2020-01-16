@@ -1344,6 +1344,7 @@ class BarPlot(MPLPlot):
 
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
+
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()

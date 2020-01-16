@@ -865,6 +865,21 @@ class PlotAccessor(PandasObject):
             The values to be plotted.
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
+        color : str, int, array_like, or dict, optional
+            The color of each line for each row. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+              for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each line for each row recursively. For
+              instance ['green','yellow'] all lines for each row will be filled in green
+              or yellow, alternatively.
+
+            - A dict of the form {column name : color}, so that each row's lines will be
+              colored accordingly. For example, if your columns are called `a` and `b`,
+              then passing {'a': 'green', 'b': 'red'} will color the lines for column
+              `a` in green and lines for column `b` in red.
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
@@ -908,6 +923,16 @@ class PlotAccessor(PandasObject):
            <class 'numpy.ndarray'>
 
         .. plot::
+           :context: close-figs
+
+           Let's repeat the same example, but specifying colors for
+           each column (in this case, for each animal).
+
+           >>> axes = df.plot.line(
+           ...     subplots=True, color={"pig": "pink", "horse": "#742802"}
+           ... )
+
+        .. plot::
             :context: close-figs
 
             The following example shows the relationship between both
@@ -935,6 +960,21 @@ class PlotAccessor(PandasObject):
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
+        color : str, int, array_like, or dict, optional
+            The color of each bar for each row. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+              for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each bar for each row recursively. For
+              instance ['green','yellow'] all bars for each row will be filled in green
+              or yellow, alternatively.
+
+            - A dict of the form {column name : color}, so that each row's bars will be
+              colored accordingly. For example, if your columns are called `a` and `b`,
+              then passing {'a': 'green', 'b': 'red'} will color bars for column `a` in
+              green and bars for column `b` in red.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -986,6 +1026,17 @@ class PlotAccessor(PandasObject):
             >>> axes = df.plot.bar(rot=0, subplots=True)
             >>> axes[1].legend(loc=2)  # doctest: +SKIP
 
+        If we don't like the default colours, we can specify how we'd
+        like each column to be colored.
+
+        .. plot::
+            :context: close-figs
+
+            >>> axes = df.plot.bar(
+            ...     rot=0, subplots=True, color={"speed": "red", "lifespan": "green"}
+            ... )
+            >>> axes[1].legend(loc=2)  # doctest: +SKIP
+
         Plot a single column.
 
         .. plot::
@@ -1018,6 +1069,21 @@ class PlotAccessor(PandasObject):
             Column to be used for categories.
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
+        color : str, int, array_like, or dict, optional
+            The color of each bar for each row. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+              for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each bar for each row recursively. For
+              instance ['green','yellow'] all bars for each row will be filled in green
+              or yellow, alternatively.
+
+            - A dict of the form {column name : color}, so that each row's bars will be
+              colored accordingly. For example, if your columns are called `a` and `b`,
+              then passing {'a': 'green', 'b': 'red'} will color bars for column `a` in
+              green and bars for column `b` in red.
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
@@ -1053,6 +1119,13 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.barh()
+
+        We can specify colors for each column
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.barh(color={"speed": "red", "lifespan": "green"})
 
         Plot a column of the DataFrame to a horizontal bar plot
 
