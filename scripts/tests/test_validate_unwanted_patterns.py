@@ -13,7 +13,7 @@ with pytest.raises(ValueError, match="foo"):
 """
         )
 
-    def good_pytest_raises_as_comment(self):
+    def pytest_raises_as_comment(self):
         return io.StringIO(
             """
 # with pytest.raises(ValueError, match="foo"):
@@ -21,7 +21,7 @@ with pytest.raises(ValueError, match="foo"):
 """
         )
 
-    def good_bare_pytest_raises_as_comment(self):
+    def bare_pytest_raises_as_comment(self):
         """
         We do not care if the bare pytest raises is commented out.
         """
@@ -54,14 +54,14 @@ class TestGoodBarePytestRaises:
 
     def test_good_pytest_raises_as_comment(self):
         result = validate_unwanted_patterns.bare_pytest_raises(
-            GoodBarePytestRaises.good_pytest_raises_as_comment(self)
+            GoodBarePytestRaises.pytest_raises_as_comment(self)
         )
         for _ in result:
             assert False  # Not sure about this
 
     def test_good_bare_pytest_raises_as_comment(self):
         result = validate_unwanted_patterns.bare_pytest_raises(
-            GoodBarePytestRaises.good_bare_pytest_raises_as_comment(self)
+            GoodBarePytestRaises.bare_pytest_raises_as_comment(self)
         )
         for _ in result:
             assert False  # Not sure about this
