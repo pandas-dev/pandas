@@ -701,7 +701,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         numpy.ndarray
-            The values in the series converted to a :class:`numpy.ndarary`
+            The values in the series converted to a :class:`numpy.ndarray`
             with the specified `dtype`.
 
         See Also
