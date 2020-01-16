@@ -4220,11 +4220,11 @@ Compression
 all kinds of stores, not just tables. Two parameters are used to
 control compression: ``complevel`` and ``complib``.
 
-complevel : specifies if and how hard data is to be compressed.
+* ``complevel`` specifies if and how hard data is to be compressed.
   ``complevel=0`` and ``complevel=None`` disables compression and
   ``0<complevel<10`` enables compression.
 
-complib : specifies which compression library to use.
+* ``complib`` specifies which compression library to use.
   If nothing is  specified the default library ``zlib`` is used. A
   compression library usually optimizes for either good compression rates
   or speed and the results will depend on the type of data. Which type of
