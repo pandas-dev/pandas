@@ -26,7 +26,7 @@ from pandas._libs.tslibs.offsets import (
     BaseOffset,
     _get_calendar,
     _is_normalized,
-    _to_dt64,
+    _to_dt64D,
     apply_index_wraps,
     as_datetime,
     roll_yearday,
@@ -1090,7 +1090,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        day64 = _to_dt64(dt, "datetime64[D]")
+        day64 = _to_dt64D(dt)
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
