@@ -20,7 +20,6 @@ from pandas.core.indexes.api import (
     ensure_index_from_sequences,
     get_objs_combined_axis,
 )
-from pandas.core.indexes.multi import _sparsify
 
 __all__ = [
     "CategoricalIndex",
@@ -41,7 +40,6 @@ __all__ = [
     "ensure_index",
     "ensure_index_from_sequences",
     "get_objs_combined_axis",
-    "_sparsify",
 ]
 
 
