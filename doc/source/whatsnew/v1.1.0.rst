@@ -142,6 +142,8 @@ Reshaping
 
 -
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Bug in :meth:`DataFrame.pivot_table` when ``margin`` is ``True`` and only ``column`` is defined (:issue:`31016`)
+
 
 Sparse
 ^^^^^^
