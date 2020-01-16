@@ -1236,24 +1236,7 @@ class TestCanHoldElement:
         }
 
         if (op, dtype) in invalid:
-            if op is operator.add:
-                msg = "cannot add DatetimeArray and Timestamp"
-            elif op is operator.mul:
-                msg = (
-                    re.escape(
-                        "ufunc 'multiply' cannot use operands with "
-                        "types dtype('<m8[ns]') and dtype('<m8[ns]')"
-                    )
-                    + "|cannot perform __mul__ with this index type: DatetimeArray"
-                )
-            else:
-                msg = (
-                    re.escape(
-                        f"cannot perform __{op.__name__}__ with this index type: "
-                    )
-                    + "(DatetimeArray|TimedeltaArray)"
-                )
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(TypeError):
                 op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
