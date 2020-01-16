@@ -1,4 +1,4 @@
-// Conversion routines that are useful for seralization,
+// Conversion routines that are useful for serialization,
 // but which don't interact with JSON objects directly
 
 #include "date_conversions.h"
