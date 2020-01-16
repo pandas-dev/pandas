@@ -159,14 +159,14 @@ You can use the alias ``"boolean"`` as well.
 
 .. _whatsnew_100.numba_rolling_apply:
 
-Using Numba in ``rolling.apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using Numba in ``rolling.apply`` and ``expanding.apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` that allows the user to execute the
-routine using `Numba <https://numba.pydata.org/>`__ instead of Cython. Using the Numba engine
-can yield significant performance gains if the apply function can operate on numpy arrays and
+We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` and :meth:`~core.window.expanding.Expanding.apply`
+that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
+Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
 the data set is larger (1 million rows or greater). For more details, see
-:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`)
+:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
 
 .. _whatsnew_100.custom_window:
 
