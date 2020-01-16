@@ -104,4 +104,112 @@ msg = ("foo " "bar " "baz")
 
 
 class TestStringsWithWrongPlacedWhitespace:
-    pass
+    def test_strings_with_wrong_placed_whitespace(self):
+        fd = io.StringIO(
+            """
+msg = (
+    "foo"
+    " bar"
+)
+""".strip()
+        )
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        expected = [
+            (
+                3,
+                (
+                    "String has a space at the beginning instead "
+                    "of the end of the previous string."
+                ),
+            ),
+        ]
+        assert result == expected
+
+    def test_strings_with_wrong_placed_whitespace_ends_new_line(self):
+        fd = io.StringIO(
+            """
+msg = (
+    "foo\n"
+    " bar"
+)
+""".strip()
+        )
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        expected = []
+        assert result == expected
+
+    def test_strings_with_wrong_placed_whitespace_first_line_starts_double_sapce(self):
+        fd = io.StringIO(
+            """
+msg = (
+    "  foo"
+    "bar"
+)
+""".strip()
+        )
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        expected = []
+        assert result == expected
+
+    def test_strings_with_wrong_placed_whitespace_second_line_starts_double_sapce(self):
+        fd = io.StringIO(
+            """
+msg = (
+    "foo"
+    "  bar"
+)
+""".strip()
+        )
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        expected = []
+        assert result == expected
+
+    def test_strings_with_wrong_placed_whitespace_first_line_string_literal_prefix(
+        self,
+    ):
+        fd = io.StringIO(
+            """
+msg = (
+    f"foo"
+    "  bar"
+)
+""".strip()
+        )
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        expected = []
+        assert result == expected
+
+    def test_strings_with_wrong_placed_whitespace_second_line_string_literal_prefix(
+        self,
+    ):
+        fd = io.StringIO(
+            """
+msg = (
+    "foo"
+    f" bar"
+)
+""".strip()
+        )
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        expected = [
+            (
+                3,
+                (
+                    "String has a space at the beginning instead "
+                    "of the end of the previous string."
+                ),
+            )
+        ]
+        assert result == expected
