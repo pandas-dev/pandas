@@ -356,7 +356,7 @@ class CheckSDist(sdist_class):
                     sourcefile = pyxfile[:-3] + extension
                     msg = (
                         f"{extension}-source file '{sourcefile}' not found.\n"
-                        f"Run 'setup.py cython' before sdist."
+                        "Run 'setup.py cython' before sdist."
                     )
                     assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)

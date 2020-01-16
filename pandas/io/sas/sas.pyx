@@ -13,8 +13,7 @@ ctypedef unsigned short     uint16_t
 # algorithm.  It is partially documented here:
 #
 # https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
-cdef const uint8_t[:] rle_decompress(int result_length,
-                                     const uint8_t[:] inbuff):
+cdef const uint8_t[:] rle_decompress(int result_length, const uint8_t[:] inbuff):
 
     cdef:
         uint8_t control_byte, x
@@ -117,8 +116,7 @@ cdef const uint8_t[:] rle_decompress(int result_length,
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
 # http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
-cdef const uint8_t[:] rdc_decompress(int result_length,
-                                     const uint8_t[:] inbuff):
+cdef const uint8_t[:] rdc_decompress(int result_length, const uint8_t[:] inbuff):
 
     cdef:
         uint8_t cmd
@@ -233,8 +231,7 @@ cdef class Parser:
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        const uint8_t[:] (*decompress)(int result_length,
-                                       const uint8_t[:] inbuff)
+        const uint8_t[:] (*decompress)(int result_length, const uint8_t[:] inbuff)
         object parser
 
     def __init__(self, object parser):
@@ -267,9 +264,7 @@ cdef class Parser:
             elif column_types[j] == b's':
                 self.column_types[j] = column_type_string
             else:
-                raise ValueError(
-                    f"unknown column type: {self.parser.columns[j].ctype}"
-                )
+                raise ValueError(f"unknown column type: {self.parser.columns[j].ctype}")
 
         # compression
         if parser.compression == const.rle_compression:
@@ -296,8 +291,7 @@ cdef class Parser:
 
         # update the parser
         self.parser._current_row_on_page_index = self.current_row_on_page_index
-        self.parser._current_row_in_chunk_index =\
-            self.current_row_in_chunk_index
+        self.parser._current_row_in_chunk_index = self.current_row_in_chunk_index
         self.parser._current_row_in_file_index = self.current_row_in_file_index
 
     cdef bint read_next_page(self):
@@ -318,9 +312,9 @@ cdef class Parser:
         self.current_page_type = self.parser._current_page_type
         self.current_page_block_count = self.parser._current_page_block_count
         self.current_page_data_subheader_pointers_len = len(
-            self.parser._current_page_data_subheader_pointers)
-        self.current_page_subheaders_count =\
-            self.parser._current_page_subheaders_count
+            self.parser._current_page_data_subheader_pointers
+        )
+        self.current_page_subheaders_count = self.parser._current_page_subheaders_count
 
     cdef readline(self):
 
@@ -358,19 +352,18 @@ cdef class Parser:
                 return False
             elif (self.current_page_type == page_mix_types_0 or
                     self.current_page_type == page_mix_types_1):
-                align_correction = (bit_offset + subheader_pointers_offset +
-                                    self.current_page_subheaders_count *
-                                    subheader_pointer_length)
+                align_correction = (
+                    bit_offset
+                    + subheader_pointers_offset
+                    + self.current_page_subheaders_count * subheader_pointer_length
+                )
                 align_correction = align_correction % 8
                 offset = bit_offset + align_correction
                 offset += subheader_pointers_offset
-                offset += (self.current_page_subheaders_count *
-                           subheader_pointer_length)
+                offset += self.current_page_subheaders_count * subheader_pointer_length
                 offset += self.current_row_on_page_index * self.row_length
-                self.process_byte_array_with_data(offset,
-                                                  self.row_length)
-                mn = min(self.parser.row_count,
-                         self.parser._mix_page_row_count)
+                self.process_byte_array_with_data(offset, self.row_length)
+                mn = min(self.parser.row_count, self.parser._mix_page_row_count)
                 if self.current_row_on_page_index == mn:
                     done = self.read_next_page()
                     if done:
@@ -378,11 +371,12 @@ cdef class Parser:
                 return False
             elif self.current_page_type & page_data_type == page_data_type:
                 self.process_byte_array_with_data(
-                    bit_offset + subheader_pointers_offset +
-                    self.current_row_on_page_index * self.row_length,
-                    self.row_length)
-                flag = (self.current_row_on_page_index ==
-                        self.current_page_block_count)
+                    bit_offset
+                    + subheader_pointers_offset
+                    + self.current_row_on_page_index * self.row_length,
+                    self.row_length,
+                )
+                flag = self.current_row_on_page_index == self.current_page_block_count
                 if flag:
                     done = self.read_next_page()
                     if done:
