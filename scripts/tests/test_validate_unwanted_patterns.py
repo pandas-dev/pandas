@@ -52,14 +52,14 @@ class TestGoodBarePytestRaises:
         for _ in result:
             assert False  # Not sure about this
 
-    def test_good_pytest_raises_as_comment(self):
+    def test_pytest_raises_as_comment(self):
         result = validate_unwanted_patterns.bare_pytest_raises(
             GoodBarePytestRaises.pytest_raises_as_comment(self)
         )
         for _ in result:
             assert False  # Not sure about this
 
-    def test_good_bare_pytest_raises_as_comment(self):
+    def test_bare_pytest_raises_as_comment(self):
         result = validate_unwanted_patterns.bare_pytest_raises(
             GoodBarePytestRaises.bare_pytest_raises_as_comment(self)
         )
