@@ -1716,6 +1716,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if the Index only consists of integers.
 
+        Returns
+        -------
+        bool
+            Whether or not the Index only consists of integers.
+
         See Also
         --------
         is_boolean : Check if the Index only consists of booleans.
@@ -1725,11 +1730,6 @@ class Index(IndexOpsMixin, PandasObject):
         is_categorical : Check if the Index holds categorical data.
         is_interval : Check if the Index holds Interval objects.
         is_mixed : Check if the Index holds data with mixed data types.
-
-        Returns
-        -------
-        bool
-            Whether or not the Index only consists of integers.
 
         Examples
         --------
@@ -1741,7 +1741,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_integer()
         False
 
-        >>> idx = pd.Index([1, 2, 3, 4.0])
+        >>> idx = pd.Index(["Apple", "Mango", "Watermelon"])
         >>> idx.is_integer()
         False
         """
@@ -1776,11 +1776,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_floating()
         True
 
-        >>> idx = pd.Index([1, 2, 3, 4.0])
-        >>> idx.is_floating()
-        True
-
-        >>> idx = pd.Index([1, 2, 3, 4.0, np.nan])
+        >>> idx = pd.Index([1.0, 2.0, np.nan, 4.0])
         >>> idx.is_floating()
         True
 
@@ -1801,8 +1797,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         bool
-            Whether or not the Index only only consists of numeric
-        data.
+            Whether or not the Index only consists of numeric data.
 
         See Also
         --------
