@@ -59,7 +59,48 @@ with pytest.raises(ValueError, match="foo"):
 
 
 class TestStringsToConcatenate:
-    pass
+    def test_strings_to_concatenate(self):
+        fd = io.StringIO(
+            """
+msg = ("bar " "baz")
+""".strip()
+        )
+        result = list(validate_unwanted_patterns.strings_to_concatenate(fd))
+        expected = [
+            (
+                1,
+                (
+                    "String unnecessarily split in two by black. "
+                    "Please merge them manually."
+                ),
+            )
+        ]
+        assert result == expected
+
+    def test_strings_to_concatenate_two_occurrences_same_line(self):
+        fd = io.StringIO(
+            """
+msg = ("foo " "bar " "baz")
+""".strip()
+        )
+        result = list(validate_unwanted_patterns.strings_to_concatenate(fd))
+        expected = [
+            (
+                1,
+                (
+                    "String unnecessarily split in two by black. "
+                    "Please merge them manually."
+                ),
+            ),
+            (
+                1,
+                (
+                    "String unnecessarily split in two by black. "
+                    "Please merge them manually."
+                ),
+            ),
+        ]
+        assert result == expected
 
 
 class TestStringsWithWrongPlacedWhitespace:
