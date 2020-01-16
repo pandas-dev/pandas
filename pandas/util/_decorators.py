@@ -247,6 +247,36 @@ def rewrite_axis_style_signature(
     return decorate
 
 
+def doc(*args: Union[str, Callable], **kwargs: str) -> Callable:
+    """
+    A decorator take docstring templates, concatenate them and perform string
+    substitution on it.
+
+    This decorator should be robust even if func.__doc__ is None.
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> Callable:
+            return func(*args, **kwargs)
+
+        templates = [func.__doc__ if func.__doc__ else ""]
+        for arg in args:
+            if isinstance(arg, str):
+                templates.append(arg)
+            elif hasattr(arg, "_docstr_template"):
+                templates.append(arg._docstr_template)  # type: ignore
+            elif arg.__doc__:
+                templates.append(arg.__doc__)
+
+        wrapper._docstr_template = "".join(dedent(t) for t in templates)  # type: ignore
+        wrapper.__doc__ = wrapper._docstr_template.format(**kwargs)  # type: ignore
+
+        return wrapper
+
+    return decorator
+
+
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module http://matplotlib.org/users/license.html
 
