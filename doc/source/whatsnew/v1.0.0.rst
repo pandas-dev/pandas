@@ -1155,6 +1155,7 @@ Other
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support dicts as ``compression`` argument with key ``'method'`` being the compression method and others as additional compression options when the compression method is ``'zip'``. (:issue:`26023`)
 - Bug in :meth:`Series.diff` where a boolean series would incorrectly raise a ``TypeError`` (:issue:`17294`)
 - :meth:`Series.append` will no longer raise a ``TypeError`` when passed a tuple of ``Series`` (:issue:`28410`)
+- :meth:`Series.append` will now raise a ``TypeError`` when passed a DataFrame (:issue:`30975`)
 - Fix corrupted error message when calling ``pandas.libs._json.encode()`` on a 0d array (:issue:`18878`)
 - Backtick quoting in :meth:`DataFrame.query` and :meth:`DataFrame.eval` can now also be used to use invalid identifiers like names that start with a digit, are python keywords, or are using single character operators. (:issue:`27017`)
 - Bug in ``pd.core.util.hashing.hash_pandas_object`` where arrays containing tuples were incorrectly treated as non-hashable (:issue:`28969`)
@@ -1170,7 +1171,7 @@ Other
 - Bug where :meth:`DataFrame.itertuples` would incorrectly determine whether or not namedtuples could be used for dataframes of 255 columns (:issue:`28282`)
 - Handle nested NumPy ``object`` arrays in :func:`testing.assert_series_equal` for ExtensionArray implementations (:issue:`30841`)
 - Bug in :class:`Index` constructor incorrectly allowing 2-dimensional input arrays (:issue:`13601`, :issue:`27125`)
-- :meth:`Series.append` will now raise a ``TypeError`` when passed a DataFrame (:issue:`30975`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_100.contributors:
