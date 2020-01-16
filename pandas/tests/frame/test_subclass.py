@@ -561,21 +561,13 @@ class TestDataFrameSubclassing:
     def test_subclassed_numeric_reductions(self, all_numeric_reductions):
         # GH 25596
 
-        op = all_numeric_reductions
-
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-
-        result = getattr(df, op)()
-
+        result = getattr(df, all_numeric_reductions)()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_subclassed_boolean_reductions(self, all_boolean_reductions):
         # GH 25596
 
-        op = all_boolean_reductions
-
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-
-        result = getattr(df, op)()
-
+        result = getattr(df, all_boolean_reductions)()
         assert isinstance(result, tm.SubclassedSeries)
