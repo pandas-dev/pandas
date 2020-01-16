@@ -155,7 +155,7 @@ class TestArithmetic:
         obj_ser.name = "objects"
 
         obj_ser = tm.box_expected(obj_ser, box)
-        msg = "can only concatenate str|unsupported operand type"
+        msg = "can only concatenate str|unsupported operand type|must be str"
         with pytest.raises(Exception, match=msg):
             op(obj_ser, 1)
         with pytest.raises(Exception, match=msg):
