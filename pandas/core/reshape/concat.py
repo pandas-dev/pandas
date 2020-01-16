@@ -2,9 +2,11 @@
 concat routines
 """
 
-from typing import Hashable, List, Optional
+from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
 
 import numpy as np
+
+from pandas._typing import FrameOrSeriesUnion
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
@@ -26,8 +28,9 @@ from pandas.core.internals import concatenate_block_managers
 # Concatenate DataFrame objects
 
 
+@overload
 def concat(
-    objs,
+    objs: Union[Iterable["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -37,7 +40,42 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-):
+) -> "DataFrame":
+    ...
+
+
+@overload
+def concat(
+    objs: Union[
+        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
+    axis=0,
+    join: str = "outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
+    ...
+
+
+def concat(
+    objs: Union[
+        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
+    ],
+    axis=0,
+    join="outer",
+    ignore_index: bool = False,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> FrameOrSeriesUnion:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
@@ -267,8 +305,7 @@ class _Concatenator:
         if isinstance(objs, (NDFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
-                "objects, you passed an object of type "
-                '"{name}"'.format(name=type(objs).__name__)
+                f'objects, you passed an object of type "{type(objs).__name__}"'
             )
 
         if join == "outer":
@@ -313,8 +350,8 @@ class _Concatenator:
         for obj in objs:
             if not isinstance(obj, (Series, DataFrame)):
                 msg = (
-                    "cannot concatenate object of type '{typ}';"
-                    " only Series and DataFrame objs are valid".format(typ=type(obj))
+                    "cannot concatenate object of type '{typ}'; "
+                    "only Series and DataFrame objs are valid".format(typ=type(obj))
                 )
                 raise TypeError(msg)
 
@@ -364,8 +401,8 @@ class _Concatenator:
         self._is_series = isinstance(sample, Series)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
-                "axis must be between 0 and {ndim}, input was"
-                " {axis}".format(ndim=sample.ndim, axis=axis)
+                "axis must be between 0 and {ndim}, input was "
+                "{axis}".format(ndim=sample.ndim, axis=axis)
             )
 
         # if we have mixed ndims, then convert to highest ndim
@@ -462,9 +499,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = self.objs[0]._constructor
-            return cons._from_axes(new_data, self.new_axes).__finalize__(
-                self, method="concat"
-            )
+            return cons(new_data).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:
@@ -539,10 +574,7 @@ class _Concatenator:
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
-                raise ValueError(
-                    "Indexes have overlapping values: "
-                    "{overlap!s}".format(overlap=overlap)
-                )
+                raise ValueError(f"Indexes have overlapping values: {overlap}")
 
 
 def _concat_indexes(indexes) -> Index:
@@ -610,8 +642,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             # make sure that all of the passed indices have the same nlevels
             if not len({idx.nlevels for idx in indexes}) == 1:
                 raise AssertionError(
-                    "Cannot concat indices that do"
-                    " not have the same number of levels"
+                    "Cannot concat indices that do not have the same number of levels"
                 )
 
             # also copies

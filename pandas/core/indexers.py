@@ -274,14 +274,14 @@ def check_bool_array_indexer(array: AnyArrayLike, mask: AnyArrayLike) -> np.ndar
 
     See Also
     --------
-    api.extensions.is_bool_indexer : Check if `key` is a boolean indexer.
+    api.types.is_bool_dtype : Check if `key` is of boolean dtype.
 
     Examples
     --------
     A boolean ndarray is returned when the arguments are all valid.
 
     >>> mask = pd.array([True, False])
-    >>> arr = pd.Series([1, 2])
+    >>> arr = pd.array([1, 2])
     >>> pd.api.extensions.check_bool_array_indexer(arr, mask)
     array([ True, False])
 

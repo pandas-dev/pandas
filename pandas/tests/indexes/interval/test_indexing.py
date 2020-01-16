@@ -349,8 +349,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get left slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get left slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))
@@ -358,8 +358,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get left slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get left slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(start=Interval(0, 2))
@@ -369,8 +369,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get right slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(end=Interval(0, 2))
@@ -378,8 +378,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=re.escape(
-                '"Cannot get right slice bound for non-unique label:'
-                " Interval(0, 2, closed='right')\""
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
             ),
         ):
             index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))
@@ -431,8 +431,8 @@ class TestSliceLocs:
         with pytest.raises(
             KeyError,
             match=(
-                "'can only get slices from an IntervalIndex if bounds are"
-                " non-overlapping and all monotonic increasing or decreasing'"
+                "'can only get slices from an IntervalIndex if bounds are "
+                "non-overlapping and all monotonic increasing or decreasing'"
             ),
         ):
             index.slice_locs(start, stop)

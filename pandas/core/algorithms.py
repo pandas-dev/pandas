@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from textwrap import dedent
-from typing import Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -49,6 +49,9 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -198,7 +201,7 @@ def _ensure_arraylike(values):
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "unicode"]:
+        if inferred in ["mixed", "string"]:
             if isinstance(values, tuple):
                 values = list(values)
             values = construct_1d_object_array_from_listlike(values)
@@ -651,7 +654,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-) -> ABCSeries:
+) -> "Series":
     """
     Compute a histogram of the counts of non-null values.
 
@@ -793,7 +796,7 @@ def duplicated(values, keep="first") -> np.ndarray:
     return f(values, keep=keep)
 
 
-def mode(values, dropna: bool = True) -> ABCSeries:
+def mode(values, dropna: bool = True) -> "Series":
     """
     Returns the mode(s) of an array.
 

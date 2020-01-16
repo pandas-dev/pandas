@@ -230,6 +230,7 @@ class TestDataFrameSortIndex:
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ascending, ignore_index, output_index",
         [
@@ -240,25 +241,28 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_ignore_index(
-        self, original_dict, sorted_dict, ascending, ignore_index, output_index
+        self, inplace, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
         # GH 30114
         original_index = [2, 5, 3]
         df = DataFrame(original_dict, index=original_index)
         expected_df = DataFrame(sorted_dict, index=output_index)
+        kwargs = {
+            "ascending": ascending,
+            "ignore_index": ignore_index,
+            "inplace": inplace,
+        }
 
-        sorted_df = df.sort_index(ascending=ascending, ignore_index=ignore_index)
-        tm.assert_frame_equal(sorted_df, expected_df)
+        if inplace:
+            result_df = df.copy()
+            result_df.sort_index(**kwargs)
+        else:
+            result_df = df.sort_index(**kwargs)
+
+        tm.assert_frame_equal(result_df, expected_df)
         tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
 
-        # Test when inplace is True
-        copied_df = df.copy()
-        copied_df.sort_index(
-            ascending=ascending, ignore_index=ignore_index, inplace=True
-        )
-        tm.assert_frame_equal(copied_df, expected_df)
-        tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
-
+    @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ascending, ignore_index, output_index",
         [
@@ -293,21 +297,24 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_ignore_index_multi_index(
-        self, original_dict, sorted_dict, ascending, ignore_index, output_index
+        self, inplace, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
         # GH 30114, this is to test ignore_index on MulitIndex of index
         mi = MultiIndex.from_tuples([[2, 1], [3, 4]], names=list("AB"))
         df = DataFrame(original_dict, index=mi)
         expected_df = DataFrame(sorted_dict, index=output_index)
 
-        sorted_df = df.sort_index(ascending=ascending, ignore_index=ignore_index)
-        tm.assert_frame_equal(sorted_df, expected_df)
-        tm.assert_frame_equal(df, DataFrame(original_dict, index=mi))
+        kwargs = {
+            "ascending": ascending,
+            "ignore_index": ignore_index,
+            "inplace": inplace,
+        }
 
-        # Test when inplace is True
-        copied_df = df.copy()
-        copied_df.sort_index(
-            ascending=ascending, ignore_index=ignore_index, inplace=True
-        )
-        tm.assert_frame_equal(copied_df, expected_df)
+        if inplace:
+            result_df = df.copy()
+            result_df.sort_index(**kwargs)
+        else:
+            result_df = df.sort_index(**kwargs)
+
+        tm.assert_frame_equal(result_df, expected_df)
         tm.assert_frame_equal(df, DataFrame(original_dict, index=mi))

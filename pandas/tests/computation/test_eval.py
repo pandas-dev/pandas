@@ -274,9 +274,9 @@ class TestEvalNumexprPandas:
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = f"lhs {cmp1} rhs"
         msg = (
-            r"only list-like( or dict-like)? objects are allowed to be"
-            r" passed to (DataFrame\.)?isin\(\), you passed a"
-            r" (\[|')bool(\]|')|"
+            r"only list-like( or dict-like)? objects are allowed to be "
+            r"passed to (DataFrame\.)?isin\(\), you passed a "
+            r"(\[|')bool(\]|')|"
             "argument of type 'bool' is not iterable"
         )
         if cmp1 in ("in", "not in") and not is_list_like(rhs):
@@ -339,8 +339,8 @@ class TestEvalNumexprPandas:
             self.check_equal(res, expected)
         else:
             msg = (
-                r"unsupported operand type\(s\) for //: 'VariableNode' and"
-                " 'VariableNode'"
+                r"unsupported operand type\(s\) for //: 'VariableNode' and "
+                "'VariableNode'"
             )
             with pytest.raises(TypeError, match=msg):
                 pd.eval(
@@ -408,9 +408,9 @@ class TestEvalNumexprPandas:
         ex = f"~(lhs {cmp1} rhs)"
 
         msg = (
-            r"only list-like( or dict-like)? objects are allowed to be"
-            r" passed to (DataFrame\.)?isin\(\), you passed a"
-            r" (\[|')float(\]|')|"
+            r"only list-like( or dict-like)? objects are allowed to be "
+            r"passed to (DataFrame\.)?isin\(\), you passed a "
+            r"(\[|')float(\]|')|"
             "argument of type 'float' is not iterable"
         )
         if is_scalar(rhs) and cmp1 in skip_these:

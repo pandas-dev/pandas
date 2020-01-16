@@ -294,6 +294,11 @@ def test_array_equivalent():
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
     )
+    # Check the handling of nested arrays in array_equivalent_object
+    assert array_equivalent(
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+    )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 1j], dtype="complex"),
