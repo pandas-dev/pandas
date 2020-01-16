@@ -926,28 +926,6 @@ class TestPivotTable:
                     names=["A", "B"],
                 ),
             ),
-            (
-                ["A", "B", "C"],
-                np.mean,
-                [
-                    [4.0, 5.0, 7.0, 6.0, 5.5, 2.0, 1.0, 3.0, 2.0],
-                    [6.0, 8.0, 9.0, 9.0, 8.0, 4.5, 2.0, 5.5, 4.0],
-                ],
-                MultiIndex.from_tuples(
-                    [
-                        ("bar", "one", "large"),
-                        ("bar", "one", "small"),
-                        ("bar", "two", "large"),
-                        ("bar", "two", "small"),
-                        ("bar", "All", ""),
-                        ("foo", "one", "large"),
-                        ("foo", "one", "small"),
-                        ("foo", "two", "small"),
-                        ("foo", "All", ""),
-                    ],
-                    names=["A", "B", "C"],
-                ),
-            ),
         ],
     )
     def test_margin_with_only_columns_defined(
