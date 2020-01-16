@@ -43,6 +43,7 @@
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],
+        "numba": [],
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "tables": [null, ""],
