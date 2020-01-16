@@ -12,7 +12,6 @@ from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     _format_is_iso,
     _guess_datetime_format,
-    parse_time_string,
 )
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import ArrayLike

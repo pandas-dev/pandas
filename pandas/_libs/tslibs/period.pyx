@@ -2466,7 +2466,7 @@ class Period(_Period):
             if util.is_integer_object(value):
                 value = str(value)
             value = value.upper()
-            dt, _, reso = parse_time_string(value, freq)
+            dt, reso = parse_time_string(value, freq)
             if dt is NaT:
                 ordinal = NPY_NAT
 
