@@ -15,7 +15,6 @@ from pandas.core.indexes.api import (
     RangeIndex,
     TimedeltaIndex,
     UInt64Index,
-    _new_Index,
     ensure_index,
     ensure_index_from_sequences,
     get_objs_combined_axis,
