@@ -884,11 +884,12 @@ def _str_extract_noexpand(arr, pat, flags=0):
         if arr.empty:
             result = DataFrame(columns=columns, dtype=object)
         else:
+            dtype = _result_dtype(arr)
             result = DataFrame(
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,
-                dtype=object,
+                dtype=dtype,
             )
     return result, name
 
