@@ -379,8 +379,6 @@ class Timestamp(_Timestamp):
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
 
-        _non_ts_attributes = [freq, tz, unit, tzinfo] + _date_attributes
-
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
@@ -395,8 +393,12 @@ class Timestamp(_Timestamp):
 
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
-        if (isinstance(ts_input, Timestamp) and not
-                any(arg is not None for arg in _non_ts_attributes)):
+        if (isinstance(ts_input, Timestamp) and freq is None and
+                tz is None and unit is None and year is None and
+                month is None and day is None and hour is None and
+                minute is None and second is None and
+                microsecond is None and nanosecond is None and
+                tzinfo is None):
             return ts_input
         elif isinstance(ts_input, str):
             # User passed a date string to parse.
