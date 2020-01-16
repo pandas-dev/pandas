@@ -1404,10 +1404,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_method_callable(self):
         self._to_sql_method_callable()
 
-    """
     def test_to_sql_upsert_keep(self):
         self._to_sql_upsert_keep()
 
+    """
     def test_to_sql_upsert_overwrite(self):
         self._to_sql_upsert_overwrite()
     """
