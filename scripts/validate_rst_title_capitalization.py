@@ -7,11 +7,12 @@ NOTE: Run from the root directory of pandas repository
 Example:
 python ./scripts/validate_rst_title_capitalization.py doc/source/development/contributing.rst
 
-Folders that have been validated:
-doc/source/development
+Files that cannot be validated: (code crashes when validating for some reason)
+doc/source/user_guide/io.rst
+doc/source/whatsnew/v0.17.1.rst
 
 Reference: doctree elements
-http://epydoc.sourceforge.net/docutils/public/docutils.nodes.Element-class.html#get_children
+http://epydoc.sourceforge.net/docutils/public/docutils.nodes.Element-class.html
 
 """
 
@@ -27,11 +28,17 @@ from os import walk
 CAPITALIZATION_EXCEPTIONS = {
     'pandas', 'Python', 'IPython','PyTables', 'Excel', 'JSON',
     'HTML', 'SAS', 'SQL', 'BigQuery', 'STATA', 'Interval', 'PEP8',
-    'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub'
+    'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub', 'NumPy',
+    'Apache', 'Arrow', 'Parquet', 'Triage', 'MultiIndex', 'NumFOCUS'
 }
 
+# Dictionary of bad titles that will be printed later
+badTitleDictionary = {}
 
+# List of files that, when validated, causes the program to crash
+cannotValidate = ['doc/source/user_guide/io.rst', 'doc/source/whatsnew/v0.17.1.rst']
 
+# Method returns true or false depending on whether title follows convention
 def followCapitalizationConvention(title):
 
     # Lowercase representation of keynames
@@ -73,11 +80,19 @@ def followCapitalizationConvention(title):
 
     return True
 
-
+# Method prints all of the bad titles
 def printBadTitles(rstFile):
-    badTitles = []
+    # Ensure file isn't one that causes the code to crash
+    if rstFile in cannotValidate:
+        return
+    # Initialize this file's badtitleDictionary slot
+    if rstFile in badTitleDictionary:
+        return
+    else:
+        badTitleDictionary[rstFile] = []
+
+    # Parse through rstFile
     parser = docutils.parsers.rst.Parser()
-    # f = open("doc/source/development/contributing.rst", "r")
     f = open(rstFile, "r")
     input = f.read()
     settings = docutils.frontend.OptionParser(
@@ -119,11 +134,9 @@ def printBadTitles(rstFile):
 
     for text in titleList:
         if not followCapitalizationConvention(text):
-            print(text)
-            # badTitles.append(text)
+            badTitleDictionary[rstFile].append(text)
 
-    # print(badTitles)
-
+# Method finds all the bad titles, runs printBadTitles
 def findBadTitles(directoryAddress):
     f = []
     if (directoryAddress.endswith(".rst")):
@@ -135,9 +148,19 @@ def findBadTitles(directoryAddress):
                     f.append(os.path.join(dirpath, file))
 
     for filename in f:
-        print(filename)
         printBadTitles(filename)
 
+# Main Method
 if __name__ == "__main__":
     for i in range(1, len(sys.argv)):
         findBadTitles(sys.argv[i])
+
+    print("\n \nBAD TITLES \n \n")
+
+    # Print badTitleDictionary Results
+    for key in badTitleDictionary:
+        if (len(badTitleDictionary[key]) != 0):
+            print(key)
+            for titles in badTitleDictionary[key]:
+                print(titles)
+            print()
