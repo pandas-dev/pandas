@@ -512,25 +512,20 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return series.iat[key]
 
         if isinstance(key, str):
+            try:
+                loc = self._get_string_slice(key)
+                return series[loc]
+            except (TypeError, ValueError):
+                pass
+
             asdt, reso = parse_time_string(key, self.freq)
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
 
-            vals = self._ndarray_values
+            # _get_string_slice will handle cases where grp < freqn
+            assert grp >= freqn
 
-            # if our data is higher resolution than requested key, slice
-            if grp < freqn:
-                iv = Period(asdt, freq=(grp, 1))
-                ord1 = iv.asfreq(self.freq, how="S").ordinal
-                ord2 = iv.asfreq(self.freq, how="E").ordinal
-
-                if ord2 < vals[0] or ord1 > vals[-1]:
-                    raise KeyError(key)
-
-                pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
-                key = slice(pos[0], pos[1] + 1)
-                return series[key]
-            elif grp == freqn:
+            if grp == freqn:
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key)
                 return series.iloc[loc]
@@ -601,6 +596,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
 
         if isinstance(key, str):
+            try:
+                return self._get_string_slice(key)
+            except (TypeError, KeyError, ValueError, OverflowError):
+                pass
+
             try:
                 asdt, reso = parse_time_string(key, self.freq)
                 key = asdt
@@ -713,20 +713,41 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             raise KeyError(reso)
         return (t1.asfreq(self.freq, how="start"), t1.asfreq(self.freq, how="end"))
 
-    def _get_string_slice(self, key):
-        if not self.is_monotonic:
-            raise ValueError("Partial indexing only valid for ordered time series")
+    def _get_string_slice(self, key, use_lhs: bool = True, use_rhs: bool = True):
 
         parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
-        if reso in ["day", "hour", "minute", "second"] and not grp < freqn:
-            raise KeyError(key)
+        if not grp < freqn:
+            raise ValueError(key)
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        return slice(
-            self.searchsorted(t1, side="left"), self.searchsorted(t2, side="right")
-        )
+        i8vals = self.asi8
+
+        if self.is_monotonic:
+
+            # we are out of range
+            if len(self) and (
+                (use_lhs and t1 < self[0] and t2 < self[0])
+                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+            ):
+                raise KeyError(key)
+
+            # TODO: does this depend on being monotonic _increasing_?
+            #  If so, DTI will also be affected.
+
+            # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating Periods
+            left = i8vals.searchsorted(t1.ordinal, side="left") if use_lhs else None
+            right = i8vals.searchsorted(t2.ordinal, side="right") if use_rhs else None
+            return slice(left, right)
+
+        else:
+            lhs_mask = (i8vals >= t1.ordinal) if use_lhs else True
+            rhs_mask = (i8vals <= t2.ordinal) if use_rhs else True
+
+            # try to find a the dates
+            return (lhs_mask & rhs_mask).nonzero()[0]
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
