@@ -317,6 +317,19 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
+def test_transform_fillna():
+    # GH 30918
+    df = pd.DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
+            "B": [1, 2, np.nan, 3, 3, np.nan, 4],
+        }
+    )
+    result = df.groupby("A").transform("fillna", value=9)
+    expected = df[["B"]].fillna(value=9)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_transform_select_columns(df):
     f = lambda x: x.mean()
     result = df.groupby("A")[["C", "D"]].transform(f)

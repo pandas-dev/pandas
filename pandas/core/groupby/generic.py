@@ -1428,6 +1428,12 @@ class DataFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
+        # GH 30918
+        if len(result) != self.ngroups:
+            # if func does not aggregate each group,
+            # we don't want to broadcast the result
+            return self._transform_general(func, *args, **kwargs)
+
         return self._transform_fast(result, func)
 
     def _transform_fast(self, result: DataFrame, func_nm: str) -> DataFrame:
