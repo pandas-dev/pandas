@@ -912,7 +912,7 @@ class TestPivotTable:
             ),
             (
                 ["A", "B"],
-                np.sum,
+                "sum",
                 [[9, 13, 22, 5, 6, 11], [14, 18, 32, 11, 11, 22]],
                 MultiIndex.from_tuples(
                     [
