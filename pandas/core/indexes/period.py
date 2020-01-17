@@ -5,6 +5,7 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, frequencies as libfrequencies, resolution
+from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -44,7 +45,7 @@ from pandas.core.indexes.datetimelike import (
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.datetimes import DateParseError, parse_time_string
+from pandas.core.tools.datetimes import DateParseError
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
@@ -511,7 +512,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return series.iat[key]
 
         if isinstance(key, str):
-            asdt, parsed, reso = parse_time_string(key, self.freq)
+            asdt, reso = parse_time_string(key, self.freq)
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
 
@@ -601,7 +602,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(key, str):
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
+                asdt, reso = parse_time_string(key, self.freq)
                 key = asdt
             except DateParseError:
                 # A string with invalid format
@@ -659,7 +660,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                _, parsed, reso = parse_time_string(label, self.freq)
+                parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except ValueError:
@@ -716,7 +717,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if not self.is_monotonic:
             raise ValueError("Partial indexing only valid for ordered time series")
 
-        key, parsed, reso = parse_time_string(key, self.freq)
+        parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
         if reso in ["day", "hour", "minute", "second"] and not grp < freqn:
