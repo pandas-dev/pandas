@@ -112,16 +112,14 @@ also goes beyond matplotlib and pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
-`has2k1/plotnine <https://github.com/has2k1/plotnine/>`__
+`plotnine <https://github.com/has2k1/plotnine/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammar of Graphics" <https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
-It's really quite incredible. Various implementations to other languages are available.
-A good implementation for Python users is `has2k1/plotnine <https://github.com/has2k1/plotnine/>`__,
-which started as an effort to improve the scaling functionality in
-`yhat/ggpy <https://github.com/yhat/ggpy>`__ formally known as "ggplot for python".
+Various implementations to other languages are available.
+A good implementation for Python users is `has2k1/plotnine <https://github.com/has2k1/plotnine/>`__.
 
 `IPython Vega <https://github.com/vega/ipyvega>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
