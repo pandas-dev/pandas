@@ -75,7 +75,7 @@ CAPITALIZATION_EXCEPTIONS = {
     'pandas', 'Python', 'IPython','PyTables', 'Excel', 'JSON',
     'HTML', 'SAS', 'SQL', 'BigQuery', 'STATA', 'Interval', 'PEP8',
     'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub', 'NumPy',
-    'Apache', 'Arrow', 'Parquet', 'Triage', 'MultiIndex', 'NumFOCUS'
+    'Apache', 'Arrow', 'Parquet', 'Triage', 'MultiIndex', 'NumFOCUS', 'sklearn-pandas'
 }
 
 # Lowercase representation of CAPITALIZATION_EXCEPTIONS
