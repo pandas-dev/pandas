@@ -1536,7 +1536,7 @@ all of the contributions, which can often lead to bottlenecks.
 
 To improve the chances of your pull request being reviewed, you should:
 
-  - **Ensure you have appropriate tests**. These should be the first part of any PR.
-  - **Keep your pull requests as simple as possible**. Larger PRs take longer to review.
-  - **Ensure that CI is in a green state**. Reviewers may not even look otherwise.
-  - **Keep `Updating your pull request`_, either by request or every few days.
+  - **Ensure you have appropriate tests**. These should be the first part of any PR
+  - **Keep your pull requests as simple as possible**. Larger PRs take longer to review
+  - **Ensure that CI is in a green state**. Reviewers may not even look otherwise
+  - **Keep** `Updating your pull request`_, either by request or every few days
