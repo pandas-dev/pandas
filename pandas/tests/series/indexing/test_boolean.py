@@ -5,8 +5,8 @@ from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import Index, Series, Timestamp, date_range, isna
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import BDay
 
@@ -44,8 +44,8 @@ def test_getitem_boolean_empty():
     # invalid because of the boolean indexer
     # that's empty or not-aligned
     msg = (
-        r"Unalignable boolean Series provided as indexer \(index of"
-        r" the boolean Series and of the indexed object do not match"
+        r"Unalignable boolean Series provided as indexer \(index of "
+        r"the boolean Series and of the indexed object do not match"
     )
     with pytest.raises(IndexingError, match=msg):
         s[Series([], dtype=bool)]
@@ -75,7 +75,7 @@ def test_getitem_boolean_object(string_series):
 
     # nans raise exception
     omask[5:10] = np.nan
-    msg = "cannot index with vector containing NA / NaN values"
+    msg = "cannot mask with array containing NA / NaN values"
     with pytest.raises(ValueError, match=msg):
         s[omask]
     with pytest.raises(ValueError, match=msg):
@@ -89,8 +89,8 @@ def test_getitem_setitem_boolean_corner(datetime_series):
     # these used to raise...??
 
     msg = (
-        r"Unalignable boolean Series provided as indexer \(index of"
-        r" the boolean Series and of the indexed object do not match"
+        r"Unalignable boolean Series provided as indexer \(index of "
+        r"the boolean Series and of the indexed object do not match"
     )
     with pytest.raises(IndexingError, match=msg):
         ts[mask_shifted]
@@ -285,8 +285,8 @@ def test_where_error():
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
     msg = (
-        "NumPy boolean array indexing assignment cannot assign 0 input"
-        " values to the 1 output values where the mask is true"
+        "NumPy boolean array indexing assignment cannot assign 0 input "
+        "values to the 1 output values where the mask is true"
     )
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []

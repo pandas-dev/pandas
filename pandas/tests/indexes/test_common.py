@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import needs_i8_conversion
 
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex, RangeIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCommon:
@@ -158,16 +158,10 @@ class TestCommon:
         assert indices.name == name
         assert indices.names == [name]
 
-    def test_dtype_str(self, indices):
-        with tm.assert_produces_warning(FutureWarning):
-            dtype = indices.dtype_str
-            assert isinstance(dtype, str)
-            assert dtype == str(indices.dtype)
-
     def test_hash_error(self, indices):
         index = indices
         with pytest.raises(
-            TypeError, match=(f"unhashable type: {type(index).__name__!r}")
+            TypeError, match=f"unhashable type: '{type(index).__name__}'"
         ):
             hash(indices)
 

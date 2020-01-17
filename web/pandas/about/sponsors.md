@@ -11,31 +11,50 @@ health and sustainability of the project. Visit numfocus.org for more informatio
 Donations to _pandas_ are managed by NumFOCUS. For donors in the United States, your gift is tax-deductible
 to the extent provided by law. As with any donation, you should consult with your tax adviser about your particular tax situation.
 
-## Tidelift
+## Become a sponsor
 
-_pandas_ is part of the [Tidelift subscription](https://tidelift.com/subscription/pkg/pypi-pandas?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme).
-You can support pandas by becoming a Tidelift subscriber.
+As a free and open source project, _pandas_ relies on the support of the community of users for its development.
+If you work for an organization that uses and benefits from _pandas_, please consider supporting pandas. There
+are different ways, such as employing people to work on pandas, funding the project, or becoming a
+[NumFOCUS sponsor](https://numfocus.org/sponsors) to support the broader ecosystem. Please contact us at
+[admin@numfocus.org](mailto:admin@numfocus.org) to discuss.
 
 ## Institutional partners
 
-Institutional Partners are companies and universities that support the project by employing contributors.
-Current Institutional Partners include:
+Institutional partners are companies and universities that support the project by employing contributors.
+Current institutional partners include:
 
 <ul>
-    {% for company in partners.active if company.employs %}
-        <li><a href="{{ company.url }}">{{ company.name }}</a> ({{ company.employs }})</li>
+    {% for company in sponsors.active if company.kind == "partner" %}
+        <li><a href="{{ company.url }}">{{ company.name }}</a>: {{ company.description }}</li>
+    {% endfor %}
+</ul>
+
+## Sponsors
+
+Sponsors are organizations that provide funding for pandas. Current sponsors include:
+
+<ul>
+    {% for company in sponsors.active if company.kind == "regular" %}
+        <li><a href="{{ company.url }}">{{ company.name }}</a>: {{ company.description }}</li>
     {% endfor %}
 </ul>
 
 ## In-kind sponsors
 
-- [OVH](https://us.ovhcloud.com/): Hosting
-- [Indeed](https://opensource.indeedeng.io/): Logo and website design
+In-kind sponsors are organizations that support pandas development with goods or services.
+Current in-kind sponsors include:
+
+<ul>
+    {% for company in sponsors.inkind %}
+        <li><a href="{{ company.url }}">{{ company.name }}</a>: {{ company.description }}</li>
+    {% endfor %}
+</ul>
 
 ## Past institutional partners
 
 <ul>
-    {% for company in partners.past %}
+    {% for company in sponsors.past if company.kind == "partner" %}
         <li><a href="{{ company.url }}">{{ company.name }}</a></li>
     {% endfor %}
 </ul>

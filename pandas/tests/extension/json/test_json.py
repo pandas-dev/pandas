@@ -4,8 +4,8 @@ import operator
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -93,6 +93,7 @@ class BaseJSON:
         tm.assert_series_equal(left, right, **kwargs)
 
     def assert_frame_equal(self, left, right, *args, **kwargs):
+        obj_type = kwargs.get("obj", "DataFrame")
         tm.assert_index_equal(
             left.columns,
             right.columns,
@@ -100,7 +101,7 @@ class BaseJSON:
             check_names=kwargs.get("check_names", True),
             check_exact=kwargs.get("check_exact", False),
             check_categorical=kwargs.get("check_categorical", True),
-            obj="{obj}.columns".format(obj=kwargs.get("obj", "DataFrame")),
+            obj=f"{obj_type}.columns",
         )
 
         jsons = (left.dtypes == "json").index
@@ -161,6 +162,10 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
         # The base test has NaN for the expected NA value.
         # this matches otherwise
         return super().test_unstack(data, index)
+
+    @pytest.mark.xfail(reason="Inconsistent sizes.")
+    def test_transpose(self, data):
+        super().test_transpose(data)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):

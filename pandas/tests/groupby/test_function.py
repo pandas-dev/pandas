@@ -20,8 +20,9 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 import pandas.core.nanops as nanops
-from pandas.util import _test_decorators as td, testing as tm
+from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -102,9 +103,7 @@ def test_builtins_apply(keys, f):
     result = df.groupby(keys).apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
-    assert_msg = "invalid frame shape: {} (expected ({}, 3))".format(
-        result.shape, ngroups
-    )
+    assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
     tm.assert_frame_equal(
@@ -1047,7 +1046,7 @@ def test_nunique_with_object():
 
 def test_nunique_with_empty_series():
     # GH 12553
-    data = pd.Series(name="name")
+    data = pd.Series(name="name", dtype=object)
     result = data.groupby(level=0).nunique()
     expected = pd.Series(name="name", dtype="int64")
     tm.assert_series_equal(result, expected)
@@ -1300,8 +1299,8 @@ def test_size_groupby_all_null():
         ([np.nan, 4.0, np.nan, 2.0, np.nan], [np.nan, 4.0, np.nan, 2.0, np.nan]),
         # Timestamps
         (
-            [x for x in pd.date_range("1/1/18", freq="D", periods=5)],
-            [x for x in pd.date_range("1/1/18", freq="D", periods=5)][::-1],
+            list(pd.date_range("1/1/18", freq="D", periods=5)),
+            list(pd.date_range("1/1/18", freq="D", periods=5))[::-1],
         ),
         # All NA
         ([np.nan] * 5, [np.nan] * 5),
@@ -1395,6 +1394,35 @@ def test_quantile_array_multiple_levels():
     expected = pd.DataFrame(
         {"A": [0.25, 0.75, 2.0, 2.0], "B": [3.25, 3.75, 5.0, 5.0]}, index=index
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("frame_size", [(2, 3), (100, 10)])
+@pytest.mark.parametrize("groupby", [[0], [0, 1]])
+@pytest.mark.parametrize("q", [[0.5, 0.6]])
+def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, q):
+    # GH30289
+    nrow, ncol = frame_size
+    df = pd.DataFrame(
+        np.array([ncol * [_ % 4] for _ in range(nrow)]), columns=range(ncol)
+    )
+
+    idx_levels = [list(range(min(nrow, 4)))] * len(groupby) + [q]
+    idx_codes = [[x for x in range(min(nrow, 4)) for _ in q]] * len(groupby) + [
+        list(range(len(q))) * min(nrow, 4)
+    ]
+    expected_index = pd.MultiIndex(
+        levels=idx_levels, codes=idx_codes, names=groupby + [None]
+    )
+    expected_values = [
+        [float(x)] * (ncol - len(groupby)) for x in range(min(nrow, 4)) for _ in q
+    ]
+    expected_columns = [x for x in range(ncol) if x not in groupby]
+    expected = pd.DataFrame(
+        expected_values, index=expected_index, columns=expected_columns
+    )
+    result = df.groupby(groupby).quantile(q)
+
     tm.assert_frame_equal(result, expected)
 
 

@@ -88,7 +88,7 @@ def concat_compat(to_concat, axis: int = 0):
 
     # filter empty arrays
     # 1-d dtypes always are included here
-    def is_nonempty(x):
+    def is_nonempty(x) -> bool:
         if x.ndim <= axis:
             return True
         return x.shape[axis] > 0
@@ -220,7 +220,7 @@ def union_categoricals(
     -----
 
     To learn more about categories, see `link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------
