@@ -866,20 +866,20 @@ class PlotAccessor(PandasObject):
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
         color : str, int, array_like, or dict, optional
-            The color of each line for each row. Possible values are:
+            The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
               for instance 'red' or '#a98d19'.
 
             - A sequence of color strings referred to by name, RGB or RGBA
-              code, which will be used for each line for each row recursively. For
-              instance ['green','yellow'] all lines for each row will be filled in green
-              or yellow, alternatively.
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's line will be coloured in
+              green or yellow, alternatively.
 
-            - A dict of the form {column name : color}, so that each row's lines will be
+            - A dict of the form {column name : color}, so that each column will be
               colored accordingly. For example, if your columns are called `a` and `b`,
-              then passing {'a': 'green', 'b': 'red'} will color the lines for column
-              `a` in green and lines for column `b` in red.
+              then passing {'a': 'green', 'b': 'red'} will color lines for column `a` in
+              green and lines for column `b` in red.
         **kwargs
             Keyword arguments to pass on to :meth:`DataFrame.plot`.
 
@@ -961,17 +961,17 @@ class PlotAccessor(PandasObject):
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
         color : str, int, array_like, or dict, optional
-            The color of each bar for each row. Possible values are:
+            The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
               for instance 'red' or '#a98d19'.
 
             - A sequence of color strings referred to by name, RGB or RGBA
-              code, which will be used for each bar for each row recursively. For
-              instance ['green','yellow'] all bars for each row will be filled in green
-              or yellow, alternatively.
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's bar will be filled in
+              green or yellow, alternatively.
 
-            - A dict of the form {column name : color}, so that each row's bars will be
+            - A dict of the form {column name : color}, so that each column will be
               colored accordingly. For example, if your columns are called `a` and `b`,
               then passing {'a': 'green', 'b': 'red'} will color bars for column `a` in
               green and bars for column `b` in red.
@@ -1026,7 +1026,7 @@ class PlotAccessor(PandasObject):
             >>> axes = df.plot.bar(rot=0, subplots=True)
             >>> axes[1].legend(loc=2)  # doctest: +SKIP
 
-        If we don't like the default colours, we can specify how we'd
+        If you don't like the default colours, you can specify how you'd
         like each column to be colored.
 
         .. plot::
@@ -1070,17 +1070,17 @@ class PlotAccessor(PandasObject):
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
         color : str, int, array_like, or dict, optional
-            The color of each bar for each row. Possible values are:
+            The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
               for instance 'red' or '#a98d19'.
 
             - A sequence of color strings referred to by name, RGB or RGBA
-              code, which will be used for each bar for each row recursively. For
-              instance ['green','yellow'] all bars for each row will be filled in green
-              or yellow, alternatively.
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's bar will be filled in
+              green or yellow, alternatively.
 
-            - A dict of the form {column name : color}, so that each row's bars will be
+            - A dict of the form {column name : color}, so that each column will be
               colored accordingly. For example, if your columns are called `a` and `b`,
               then passing {'a': 'green', 'b': 'red'} will color bars for column `a` in
               green and bars for column `b` in red.
