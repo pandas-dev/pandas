@@ -1531,9 +1531,11 @@ class SingleBlockManager(BlockManager):
         return np.array([self._block.dtype])
 
     def external_values(self):
+        """The array that Series.values returns"""
         return self._block.external_values()
 
     def internal_values(self):
+        """The array that Series._values returns"""
         return self._block.internal_values()
 
     def get_values(self):
