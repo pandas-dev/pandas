@@ -10,8 +10,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -32,14 +32,9 @@ def test_get_accessor_args():
     with pytest.raises(TypeError, match=msg):
         func(backend_name="", data=[], args=[], kwargs={})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        x, y, kind, kwargs = func(
-            backend_name="", data=Series(), args=["line", None], kwargs={}
-        )
-    assert x is None
-    assert y is None
-    assert kind == "line"
-    assert kwargs == {"ax": None}
+    msg = "should not be called with positional arguments"
+    with pytest.raises(TypeError, match=msg):
+        func(backend_name="", data=Series(dtype=object), args=["line", None], kwargs={})
 
     x, y, kind, kwargs = func(
         backend_name="",
@@ -53,7 +48,10 @@ def test_get_accessor_args():
     assert kwargs == {"grid": False}
 
     x, y, kind, kwargs = func(
-        backend_name="pandas.plotting._matplotlib", data=Series(), args=[], kwargs={}
+        backend_name="pandas.plotting._matplotlib",
+        data=Series(dtype=object),
+        args=[],
+        kwargs={},
     )
     assert x is None
     assert y is None
@@ -204,9 +202,6 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
 
-        with tm.assert_produces_warning(FutureWarning):
-            andrews_curves(data=df, class_column="Name")
-
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
         from pandas.plotting import parallel_coordinates
@@ -252,11 +247,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = parallel_coordinates(df, "Name", color=colors)
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, linecolors=colors)
-
-        with tm.assert_produces_warning(FutureWarning):
-            parallel_coordinates(data=df, class_column="Name")
-        with tm.assert_produces_warning(FutureWarning):
-            parallel_coordinates(df, "Name", colors=colors)
 
     # not sure if this is indicative of a problem
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
@@ -329,8 +319,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case len(title) > len(df)
         msg = (
-            "The length of `title` must equal the number of columns if"
-            " using `title` of type `list` and `subplots=True`"
+            "The length of `title` must equal the number of columns if "
+            "using `title` of type `list` and `subplots=True`"
         )
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, title=title + ["kittens > puppies"])
@@ -341,8 +331,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case subplots=False and title is of type list
         msg = (
-            "Using `title` of type `list` is not supported unless"
-            " `subplots=True` is passed"
+            "Using `title` of type `list` is not supported unless "
+            "`subplots=True` is passed"
         )
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=False, title=title)

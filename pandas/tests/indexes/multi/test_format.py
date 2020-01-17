@@ -4,14 +4,7 @@ import pytest
 
 import pandas as pd
 from pandas import MultiIndex
-import pandas.util.testing as tm
-
-
-def test_dtype_str(indices):
-    with tm.assert_produces_warning(FutureWarning):
-        dtype = indices.dtype_str
-    assert isinstance(dtype, str)
-    assert dtype == str(indices.dtype)
+import pandas._testing as tm
 
 
 def test_format(idx):

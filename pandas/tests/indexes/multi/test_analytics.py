@@ -5,7 +5,7 @@ from pandas.compat.numpy import _np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_shift(idx):
@@ -218,7 +218,7 @@ def test_take_fill_value():
     with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -5]), fill_value=True)
 
-    msg = "index -5 is out of bounds for size 4"
+    msg = "index -5 is out of bounds for( axis 0 with)? size 4"
     with pytest.raises(IndexError, match=msg):
         idx.take(np.array([1, -5]))
 
@@ -277,7 +277,7 @@ def test_map(idx):
 def test_map_dictlike(idx, mapper):
 
     if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
-        pytest.skip("skipping tests for {}".format(type(idx)))
+        pytest.skip(f"skipping tests for {type(idx)}")
 
     identity = mapper(idx.values, idx)
 
@@ -330,13 +330,13 @@ def test_numpy_ufuncs(idx, func):
 
     if _np_version_under1p17:
         expected_exception = AttributeError
-        msg = "'tuple' object has no attribute '{}'".format(func.__name__)
+        msg = f"'tuple' object has no attribute '{func.__name__}'"
     else:
         expected_exception = TypeError
         msg = (
-            "loop of ufunc does not support argument 0 of type tuple which"
-            " has no callable {} method"
-        ).format(func.__name__)
+            "loop of ufunc does not support argument 0 of type tuple which "
+            f"has no callable {func.__name__} method"
+        )
     with pytest.raises(expected_exception, match=msg):
         func(idx)
 
@@ -348,9 +348,9 @@ def test_numpy_ufuncs(idx, func):
 )
 def test_numpy_type_funcs(idx, func):
     msg = (
-        "ufunc '{}' not supported for the input types, and the inputs"
-        " could not be safely coerced to any supported types according to"
-        " the casting rule ''safe''"
-    ).format(func.__name__)
+        f"ufunc '{func.__name__}' not supported for the input types, and the inputs "
+        "could not be safely coerced to any supported types according to "
+        "the casting rule ''safe''"
+    )
     with pytest.raises(TypeError, match=msg):
         func(idx)

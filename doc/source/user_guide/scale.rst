@@ -26,7 +26,7 @@ Assuming you want or need the expressiveness and power of pandas, let's carry on
 .. ipython:: python
    :suppress:
 
-   from pandas.util.testing import _make_timeseries
+   from pandas._testing import _make_timeseries
 
    # Make a random in-memory dataset
    ts = _make_timeseries(freq="30S", seed=0)
@@ -358,6 +358,7 @@ results will fit in memory, so we can safely call ``compute`` without running
 out of memory. At that point it's just a regular pandas object.
 
 .. ipython:: python
+   :okwarning:
 
    @savefig dask_resample.png
    ddf[['x', 'y']].resample("1D").mean().cumsum().compute().plot()

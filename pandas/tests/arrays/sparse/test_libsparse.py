@@ -7,8 +7,8 @@ import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
 
 from pandas import Series
+import pandas._testing as tm
 from pandas.core.arrays.sparse import BlockIndex, IntIndex, _make_index
-import pandas.util.testing as tm
 
 TEST_LENGTH = 20
 
@@ -596,6 +596,6 @@ class TestSparseOperators:
 
     @pytest.mark.parametrize("opname", ["add", "sub", "mul", "truediv", "floordiv"])
     def test_op(self, opname):
-        sparse_op = getattr(splib, "sparse_{opname}_float64".format(opname=opname))
+        sparse_op = getattr(splib, f"sparse_{opname}_float64")
         python_op = getattr(operator, opname)
         self._op_tests(sparse_op, python_op)

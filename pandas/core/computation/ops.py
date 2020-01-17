@@ -56,11 +56,12 @@ class UndefinedVariableError(NameError):
     """
 
     def __init__(self, name, is_local: bool):
+        base_msg = f"{repr(name)} is not defined"
         if is_local:
-            msg = "local variable {0!r} is not defined"
+            msg = f"local variable {base_msg}"
         else:
-            msg = "name {0!r} is not defined"
-        super().__init__(msg.format(name))
+            msg = f"name {base_msg}"
+        super().__init__(msg)
 
 
 class Term:
@@ -143,10 +144,7 @@ class Term:
 
     @property
     def raw(self) -> str:
-        return pprint_thing(
-            "{0}(name={1!r}, type={2})"
-            "".format(type(self).__name__, self.name, self.type)
-        )
+        return f"{type(self).__name__}(name={repr(self.name)}, type={self.type})"
 
     @property
     def is_datetime(self) -> bool:
@@ -214,8 +212,8 @@ class Op:
         Print a generic n-ary operator and its operands using infix notation.
         """
         # recurse over the operands
-        parened = ("({0})".format(pprint_thing(opr)) for opr in self.operands)
-        return pprint_thing(" {0} ".format(self.op).join(parened))
+        parened = (f"({pprint_thing(opr)})" for opr in self.operands)
+        return pprint_thing(f" {self.op} ".join(parened))
 
     @property
     def return_type(self):
@@ -374,8 +372,7 @@ class BinOp(Op):
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
-                "Invalid binary operator {0!r}, valid"
-                " operators are {1}".format(op, keys)
+                f"Invalid binary operator {repr(op)}, valid operators are {keys}"
             )
 
     def __call__(self, env):
@@ -509,8 +506,8 @@ class Div(BinOp):
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError(
-                "unsupported operand type(s) for {0}:"
-                " '{1}' and '{2}'".format(self.op, lhs.return_type, rhs.return_type)
+                f"unsupported operand type(s) for {self.op}: "
+                f"'{lhs.return_type}' and '{rhs.return_type}'"
             )
 
         # do not upcast float32s to float64 un-necessarily
@@ -548,8 +545,8 @@ class UnaryOp(Op):
             self.func = _unary_ops_dict[op]
         except KeyError:
             raise ValueError(
-                "Invalid unary operator {0!r}, valid operators "
-                "are {1}".format(op, _unary_ops_syms)
+                f"Invalid unary operator {repr(op)}, "
+                f"valid operators are {_unary_ops_syms}"
             )
 
     def __call__(self, env):
@@ -557,7 +554,7 @@ class UnaryOp(Op):
         return self.func(operand)
 
     def __repr__(self) -> str:
-        return pprint_thing("{0}({1})".format(self.op, self.operand))
+        return pprint_thing(f"{self.op}({self.operand})")
 
     @property
     def return_type(self) -> np.dtype:
@@ -583,7 +580,7 @@ class MathCall(Op):
 
     def __repr__(self) -> str:
         operands = map(str, self.operands)
-        return pprint_thing("{0}({1})".format(self.op, ",".join(operands)))
+        return pprint_thing(f"{self.op}({','.join(operands)})")
 
 
 class FuncNode:
@@ -595,7 +592,7 @@ class FuncNode:
             and _NUMEXPR_VERSION < LooseVersion("2.6.9")
             and name in ("floor", "ceil")
         ):
-            raise ValueError('"{0}" is not a supported function'.format(name))
+            raise ValueError(f'"{name}" is not a supported function')
 
         self.name = name
         self.func = getattr(np, name)

@@ -26,8 +26,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def __init__(self, data, orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
         self._parent = data
@@ -54,8 +53,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
         raise TypeError(
-            "cannot convert an object of type {0} to a "
-            "datetimelike index".format(type(data))
+            f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
     def _delegate_property_get(self, name):
@@ -92,9 +90,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
         raise ValueError(
-            "modifications to a property of a datetimelike "
-            "object are not supported. Change values on the "
-            "original."
+            "modifications to a property of a datetimelike object are not supported. "
+            "Change values on the original."
         )
 
     def _delegate_method(self, name, *args, **kwargs):
@@ -223,7 +220,7 @@ class TimedeltaProperties(Properties):
 
         Returns
         -------
-        a : numpy.ndarray
+        numpy.ndarray
             Array of 1D containing data with `datetime.timedelta` type.
 
         See Also
@@ -315,8 +312,7 @@ class CombinedDatetimelikeProperties(
 
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
         orig = data if is_categorical_dtype(data) else None

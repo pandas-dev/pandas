@@ -24,9 +24,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas import get_option
+from pandas import Index, get_option
 import pandas.core.common as com
-from pandas.core.index import Index
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 import pandas.core.tools.datetimes as tools
@@ -387,12 +386,12 @@ class MilliSecondLocator(dates.DateLocator):
         except ValueError:
             return []
 
-        if dmin > dmax:
-            dmax, dmin = dmin, dmax
         # We need to cap at the endpoints of valid datetime
 
         # FIXME: dont leave commented-out
         # TODO(wesm) unused?
+        # if dmin > dmax:
+        #     dmax, dmin = dmin, dmax
         # delta = relativedelta(dmax, dmin)
         # try:
         #     start = dmin - delta
@@ -422,8 +421,7 @@ class MilliSecondLocator(dates.DateLocator):
         if estimate > self.MAXTICKS * 2:
             raise RuntimeError(
                 "MillisecondLocator estimated to generate "
-                f"{estimate:d} ticks from {dmin} to {dmax}: "
-                "exceeds Locator.MAXTICKS"
+                f"{estimate:d} ticks from {dmin} to {dmax}: exceeds Locator.MAXTICKS"
                 f"* 2 ({self.MAXTICKS * 2:d}) "
             )
 
@@ -1098,6 +1096,8 @@ class TimeSeries_DateFormatter(Formatter):
             return ""
         else:
             fmt = self.formatdict.pop(x, "")
+            if isinstance(fmt, np.bytes_):
+                fmt = fmt.decode("utf-8")
             return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
 
 

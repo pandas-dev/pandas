@@ -9,7 +9,7 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
 
-from .common import (
+from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
     ensure_object,
@@ -31,7 +31,7 @@ from .common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from .generic import (
+from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCGeneric,
@@ -40,7 +40,7 @@ from .generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from .inference import is_list_like
+from pandas.core.dtypes.inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
@@ -79,6 +79,9 @@ def isna(obj):
 
     >>> pd.isna('dog')
     False
+
+    >>> pd.isna(pd.NA)
+    True
 
     >>> pd.isna(np.nan)
     True
@@ -209,7 +212,7 @@ def _use_inf_as_na(key):
     This approach to setting global module values is discussed and
     approved here:
 
-    * http://stackoverflow.com/questions/4859217/
+    * https://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
     flag = get_option(key)
@@ -326,6 +329,9 @@ def notna(obj):
 
     >>> pd.notna('dog')
     True
+
+    >>> pd.notna(pd.NA)
+    False
 
     >>> pd.notna(np.nan)
     False
@@ -444,6 +450,9 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
             if left_value is NaT and right_value is not NaT:
                 return False
 
+            elif left_value is libmissing.NA and right_value is not libmissing.NA:
+                return False
+
             elif isinstance(left_value, float) and np.isnan(left_value):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
@@ -454,6 +463,8 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
                 except TypeError as err:
                     if "Cannot compare tz-naive" in str(err):
                         # tzawareness compat failure, see GH#28507
+                        return False
+                    elif "boolean value of NA is ambiguous" in str(err):
                         return False
                     raise
         return True
