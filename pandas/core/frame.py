@@ -6560,6 +6560,11 @@ Wild         185.0
         -------
         DataFrame
 
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+
         See Also
         --------
         Series.diff: First discrete difference for a Series.
