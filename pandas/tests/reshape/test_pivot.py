@@ -2557,6 +2557,19 @@ class TestCrosstab:
         result = pd.crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
 
+    def test_crosstab_both_tuple_names(self):
+        # GH 18321
+        s1 = pd.Series(range(3), name=("a", "b"))
+        s2 = pd.Series(range(3), name=("c", "d"))
+
+        expected = pd.DataFrame(
+            np.eye(3, dtype="int64"),
+            index=pd.Index(range(3), name=("a", "b")),
+            columns=pd.Index(range(3), name=("c", "d")),
+        )
+        result = crosstab(s1, s2)
+        tm.assert_frame_equal(result, expected)
+
     def test_crosstab_unsorted_order(self):
         df = pd.DataFrame({"b": [3, 1, 2], "a": [5, 4, 6]}, index=["C", "A", "B"])
         result = pd.crosstab(df.index, [df.b, df.a])
