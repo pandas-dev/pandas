@@ -43,15 +43,20 @@
                 </div>
                 <section>
                     <h5>With the support of:</h5>
-                    <div class="row h-100">
-                        {% for company in partners.active %}
-                            <div class="col-sm-6 col-md-2 my-auto">
-                                <a href="{{ company.url }}" target="_blank">
-                                    <img class="img-fluid" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
-                                </a>
-                            </div>
-                        {% endfor %}
-                    </div>
+                    {% for row in sponsors.active | batch(6, "") %}
+                        <div class="row h-100">
+                            {% for company in row %}
+                                <div class="col-sm-6 col-md-2 my-auto">
+                                    {% if company %}
+                                        <a href="{{ company.url }}" target="_blank">
+                                            <img class="img-fluid" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <p class="mt-4">The full list of companies supporting <i>pandas</i> is available in the <a href="{{ base_url }}/about/sponsors.html">sponsors page</a>.
                 </section>
             </div>
             <div class="col-md-3">
