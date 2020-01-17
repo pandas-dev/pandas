@@ -91,7 +91,7 @@ foundational exploratory visualization package for the R language. Based
 on ["The Grammar of
 Graphics"](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html)
 it provides a powerful, declarative and extremely general way to
-generate bespoke plots of any kind of data. 
+generate bespoke plots of any kind of data.
 Various implementations to other languages are available.
 A good implementation for Python users is [has2k1/plotnine](https://github.com/has2k1/plotnine/).
 
