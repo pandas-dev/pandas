@@ -489,50 +489,69 @@ class TestSeriesDtypes:
         tm.assert_series_equal(s1, s2)
 
     @pytest.mark.parametrize(
-        "series, dtype",
+        "data, maindtype, newdtype, nonullabledtype",
         [
-            (Series([1, 2, 3], dtype=np.dtype("int32")), "Int32"),
-            (Series([1, 2, 3], dtype=np.dtype("int64")), "Int64"),
-            (Series(["x", "y", "z"], dtype=np.dtype("O")), pd.StringDtype()),
-            (Series([True, False, np.nan], dtype=np.dtype("O")), pd.BooleanDtype()),
-            (Series(["h", "i", np.nan], dtype=np.dtype("O")), pd.StringDtype()),
-            (Series([10, np.nan, 20], dtype=np.dtype("float")), pd.Int64Dtype()),
-            (Series([np.nan, 100.5, 200], dtype=np.dtype("float")), np.dtype("float")),
-            (Series([3, 4, 5], dtype="Int8"), "Int8"),
-            (Series([[1, 2], [3, 4], [5]]), np.dtype("O")),
-            (Series([4, 5, 6], dtype=np.dtype("uint32")), "UInt32"),
-            (Series([-10, 12, 13], dtype=np.dtype("i1")), "Int8"),
-            (Series([1, 2.0], dtype=object), "Int64"),
-            (Series(["a", "b"], dtype=pd.CategoricalDtype()), pd.CategoricalDtype()),
+            ([1, 2, 3], np.dtype("int32"), "Int32", np.dtype("int32")),
+            ([1, 2, 3], np.dtype("int64"), "Int64", np.dtype("int64")),
+            (["x", "y", "z"], np.dtype("O"), pd.StringDtype(), np.dtype("O")),
+            ([True, False, np.nan], np.dtype("O"), pd.BooleanDtype(), np.dtype("O")),
+            (["h", "i", np.nan], np.dtype("O"), pd.StringDtype(), np.dtype("O")),
+            ([10, np.nan, 20], np.dtype("float"), pd.Int64Dtype(), np.dtype("float")),
             (
-                Series(
-                    pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
-                    dtype=pd.DatetimeTZDtype(tz="UTC"),
-                ),
+                [np.nan, 100.5, 200],
+                np.dtype("float"),
+                np.dtype("float"),
+                np.dtype("float"),
+            ),
+            ([3, 4, 5], "Int8", "Int8", "Int8"),
+            ([[1, 2], [3, 4], [5]], None, np.dtype("O"), np.dtype("O")),
+            ([4, 5, 6], np.dtype("uint32"), "UInt32", np.dtype("uint32")),
+            ([-10, 12, 13], np.dtype("i1"), "Int8", np.dtype("i1")),
+            ([1, 2.0], object, "Int64", np.dtype("float")),
+            (
+                ["a", "b"],
+                pd.CategoricalDtype(),
+                pd.CategoricalDtype(),
+                pd.CategoricalDtype(),
+            ),
+            (
+                pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+                pd.DatetimeTZDtype(tz="UTC"),
+                pd.DatetimeTZDtype(tz="UTC"),
                 pd.DatetimeTZDtype(tz="UTC"),
             ),
             (
-                Series(
-                    pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
-                    dtype="datetime64[ns]",
-                ),
+                pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+                "datetime64[ns]",
+                np.dtype("datetime64[ns]"),
                 np.dtype("datetime64[ns]"),
             ),
             (
-                Series(pd.period_range("1/1/2011", freq="M", periods=3)),
+                pd.period_range("1/1/2011", freq="M", periods=3),
+                None,
+                pd.PeriodDtype("M"),
                 pd.PeriodDtype("M"),
             ),
             (
-                Series(pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])),
+                pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
+                None,
+                pd.IntervalDtype("int64"),
                 pd.IntervalDtype("int64"),
             ),
         ],
     )
-    def test_as_nullable_dtypes(self, series, dtype):
-        ns = series.as_nullable_dtypes()
-        assert ns.dtype == dtype
+    def test_convert_dtypes(self, data, maindtype, newdtype, nonullabledtype):
+        if maindtype is not None:
+            series = pd.Series(data, dtype=maindtype)
+        else:
+            series = pd.Series(data)
+        for (as_nullable, expected_dtype) in zip(
+            [True, False], [newdtype, nonullabledtype]
+        ):
+            ns = series.convert_dtypes(use_nullable_dtypes=as_nullable)
+            expected = pd.Series(series.values, dtype=expected_dtype)
+            tm.assert_series_equal(ns, expected)
 
-        if isinstance(series.dtype, type(ns.dtype)) and series.dtype == ns.dtype:
             # Test that it is a copy
             copy = series.copy(deep=True)
             ns[ns.notna()] = np.nan

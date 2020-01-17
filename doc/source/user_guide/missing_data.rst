@@ -951,10 +951,11 @@ Conversion
 
 If you have a DataFrame or Series using traditional types that have missing data
 represented using ``np.nan``, there are convenience methods
-:meth:`~Series.as_nullable_dtypes` in Series and :meth:`~DataFrame.as_nullable_dtypes`
+:meth:`~Series.convert_dtypes` in Series and :meth:`~DataFrame.convert_dtypes`
 in DataFrame that can convert data to use the newer dtypes for integers, strings and
 booleans listed :ref:`here <basics.dtypes>`. This is especially helpful after reading
-in data sets when letting the readers infer default dtypes.
+in data sets when letting the readers such as :meth:`read_csv` and :meth:`read_excel`
+infer default dtypes.
 
 In this example, while the dtypes of all columns are changed, we show the results for
 the first 10 columns.
@@ -963,5 +964,5 @@ the first 10 columns.
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
    bb[bb.columns[:10]].dtypes
-   bbn = bb.as_nullable_dtypes()
+   bbn = bb.convert_dtypes()
    bbn[bbn.columns[:10]].dtypes

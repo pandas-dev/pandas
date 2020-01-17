@@ -5881,6 +5881,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         to_datetime : Convert argument to datetime.
         to_timedelta : Convert argument to timedelta.
         to_numeric : Convert argument to numeric type.
+        convert_dtypes : Convert argument to best possible dtype.
 
         Examples
         --------
@@ -5909,25 +5910,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
         ).__finalize__(self)
 
-    def as_nullable_dtypes(
-        self: FrameOrSeries, convert_integer: bool_t = True
+    def convert_dtypes(
+        self: FrameOrSeries,
+        use_nullable_dtypes: bool_t = True,
+        convert_integer: bool_t = True,
     ) -> FrameOrSeries:
         """
-        Convert columns of DataFrame or a Series to dtypes supporting ``pd.NA``.
+        Convert columns to best possible dtypes, optionally using dtypes supporting
+        ``pd.NA``.
 
-        Parameters
-        ----------
-        convert_integer : bool, default True
-            Whether ``int`` types should be converted to integer extension types.
-
-        Returns
-        -------
-        Series or DataFrame
-            Copy of input object with new dtype.
-
-        Notes
-        -----
-        If the dtype is ``object``, if possible, convert to ``StringDtype``,
+        For object-dtyped columns, use the inference rules as during normal
+        Series/DataFrame construction.  Then, if possible, convert to ``StringDtype``,
         ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
         ``object``.
 
@@ -5935,6 +5928,26 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         If the dtype is numeric, and consists of all integers, convert to an
         appropriate integer extension type.
+
+        .. versionadded:: 1.0.0
+
+        Parameters
+        ----------
+        use_nullable_dtypes : bool, default True
+            Whether conversion to types supporting ``pd.NA`` should be attempted.
+        convert_integer : bool, default True
+            If ``use_nullable_dtypes`` is True, Whether ``int`` types should be
+            converted to integer extension types. (Ignored if ``use_nullable_dtypes``
+            is False)
+
+        Returns
+        -------
+        Series or DataFrame
+            Copy of input object with new dtype.
+
+        See Also
+        --------
+        infer_objects : infer dtypes of objects.
 
         Examples
         --------
@@ -5964,7 +5977,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f    float64
         dtype: object
 
-        >>> dfn = df.as_nullable_dtypes()
+        >>> dfn = df.convert_dtypes()
         >>> dfn
            a  b      c     d     e      f
         0  1  x   True     h    10    NaN
@@ -5987,17 +6000,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    NaN
         dtype: object
 
-        >>> s.as_nullable_dtypes()
+        >>> s.convert_dtypes()
         0       a
         1       b
         2    <NA>
         dtype: string
         """
         if self.ndim == 1:
-            return self._as_nullable_dtype(convert_integer)
+            return self._convert_dtypes(use_nullable_dtypes, convert_integer)
         else:
             results = [
-                col._as_nullable_dtype(convert_integer)
+                col._convert_dtypes(use_nullable_dtypes, convert_integer)
                 for col_name, col in self.items()
             ]
             result = pd.concat(results, axis=1, copy=False)

@@ -4338,15 +4338,41 @@ Name: Max Speed, dtype: float64
     # ----------------------------------------------------------------------
     # Convert to types that support pd.NA
 
+    def _convert_dtypes(
+        self: ABCSeries, use_nullable_dtypes: bool = True, convert_integer: bool = True
+    ) -> ABCSeries:
+        """
+        Convert objects to best possible type, and optionally,
+        columns of DataFrame or a Series to types supporting ``pd.NA``.
+
+        Parameters
+        ----------
+        use_nullable_dtypes : bool, default True
+            Whether conversion to types supporting ``pd.NA`` should be attempted.
+        convert_integer : bool, default True
+            If ``use_nullable_dtypes`` is True, Whether ``int`` types should be converted
+            to integer extension types. (Ignored if ``use_nullable_dtypes`` is False)
+
+        Returns
+        -------
+        Series
+            copy of Series with new (or existing) dtype
+        """
+        result = self.infer_objects()
+        if use_nullable_dtypes:
+            result = result._as_nullable_dtype(convert_integer)
+        else:
+            if is_object_dtype(result):
+                result = result.copy(deep=True)
+        return result
+
     def _as_nullable_dtype(self: ABCSeries, convert_integer: bool = True) -> ABCSeries:
         """
         Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
-
         Parameters
         ----------
         convert_integer : bool, default True
             Whether ``int`` types should be converted to integer extension types
-
         Returns
         -------
         converted : same type as input object
