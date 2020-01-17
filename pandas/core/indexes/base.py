@@ -57,6 +57,7 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPandasArray,
     ABCPeriodIndex,
+    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -3105,7 +3106,10 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop("freq", None)  # don't preserve freq
-            values = self._data[:0]  # appropriately-dtyped empty array
+            if isinstance(self, ABCRangeIndex):
+                values = range(0)
+            else:
+                values = self._data[:0]  # appropriately-dtyped empty array
             target = self._simple_new(values, dtype=self.dtype, **attrs)
         else:
             target = ensure_index(target)
