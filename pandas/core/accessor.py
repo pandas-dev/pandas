@@ -256,8 +256,8 @@ def _register_accessor(name, cls):
 
     Back in an interactive IPython session:
 
-        >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
-        ...                    'latitude': np.linspace(0, 20)})
+        >>> ds = pd.DataFrame({{'longitude': np.linspace(0, 10),
+        ...                    'latitude': np.linspace(0, 20)}})
         >>> ds.geo.center
         (5.0, 10.0)
         >>> ds.geo.plot()
