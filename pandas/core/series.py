@@ -2534,19 +2534,16 @@ Name: Max Speed, dtype: float64
         """
         from pandas.core.reshape.concat import concat
 
-        is_sequence: bool = False
         if isinstance(to_append, (list, tuple)):
             to_concat = [self]
             to_concat.extend(to_append)
-            is_sequence = True
         else:
             to_concat = [self, to_append]
         for x in to_concat[1:]:
             if isinstance(x, (pd.DataFrame,)):
                 msg = (
                     f"to_append should be a Series or list/tuple of Series, "
-                    f"got {type(to_append).__name__} "
-                    f'{("of "+type(x).__name__) if is_sequence else ""}'
+                    f"got {type(to_append).__name__}"
                 )
                 raise TypeError(msg)
         return self._ensure_type(
