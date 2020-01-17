@@ -579,8 +579,8 @@ class DataFrameFormatter(TableFormatter):
         else:
             raise ValueError(
                 (
-                    "Formatters length({flen}) should match"
-                    " DataFrame number of columns({dlen})"
+                    "Formatters length({flen}) should match "
+                    "DataFrame number of columns({dlen})"
                 ).format(flen=len(formatters), dlen=len(frame.columns))
             )
         self.na_rep = na_rep
@@ -737,12 +737,8 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(List[str], self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
-                        (
-                            "Writing {ncols} cols but got {nalias} "
-                            "aliases".format(
-                                ncols=len(self.columns), nalias=len(self.header)
-                            )
-                        )
+                        f"Writing {len(self.columns)} cols "
+                        f"but got {len(self.header)} aliases"
                     )
                 str_columns = [[label] for label in self.header]
             else:
@@ -1230,7 +1226,7 @@ class GenericArrayFormatter:
                     if x is None:
                         return "None"
                     elif x is NA:
-                        return "NA"
+                        return str(NA)
                     elif x is NaT or np.isnat(x):
                         return "NaT"
                 except (TypeError, ValueError):

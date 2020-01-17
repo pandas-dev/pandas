@@ -73,6 +73,10 @@ class NumericIndex(Index):
         else:
             subarr = data
 
+        if subarr.ndim > 1:
+            # GH#13601, GH#20285, GH#27125
+            raise ValueError("Index data must be 1-dimensional")
+
         name = maybe_extract_name(name, data, cls)
         return cls._simple_new(subarr, name=name)
 
@@ -95,7 +99,7 @@ class NumericIndex(Index):
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
@@ -256,7 +260,7 @@ class Int64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # don't coerce ilocs to integers
         if kind != "iloc":
@@ -313,7 +317,7 @@ class UInt64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # don't coerce ilocs to integers
         if kind != "iloc":
@@ -400,7 +404,7 @@ class Float64Index(NumericIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
             return self._validate_indexer("positional", key, kind)
@@ -473,20 +477,7 @@ class Float64Index(NumericIndex):
         if super().__contains__(other):
             return True
 
-        try:
-            # if other is a sequence this throws a ValueError
-            return np.isnan(other) and self.hasnans
-        except ValueError:
-            try:
-                return len(other) <= 1 and other.item() in self
-            except AttributeError:
-                return len(other) <= 1 and other in self
-            except TypeError:
-                pass
-        except TypeError:
-            pass
-
-        return False
+        return is_float(other) and np.isnan(other) and self.hasnans
 
     @Appender(_index_shared_docs["get_loc"])
     def get_loc(self, key, method=None, tolerance=None):

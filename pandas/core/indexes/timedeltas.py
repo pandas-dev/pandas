@@ -16,7 +16,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
@@ -203,17 +203,6 @@ class TimedeltaIndex(
         return result
 
     # -------------------------------------------------------------------
-
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-        if isinstance(state, dict):
-            super().__setstate__(state)
-        else:
-            raise Exception("invalid pickle state")
-
-    _unpickle_compat = __setstate__
-
-    # -------------------------------------------------------------------
     # Rendering Methods
 
     @property
@@ -221,15 +210,6 @@ class TimedeltaIndex(
         from pandas.io.formats.format import _get_format_timedelta64
 
         return _get_format_timedelta64(self, box=True)
-
-    # -------------------------------------------------------------------
-    # Wrapping TimedeltaArray
-
-    def __getitem__(self, key):
-        result = self._data.__getitem__(key)
-        if is_scalar(result):
-            return result
-        return type(self)(result, name=self.name)
 
     # -------------------------------------------------------------------
 
@@ -245,24 +225,6 @@ class TimedeltaIndex(
                 return Index(result, name=self.name)
             return Index(result.astype("i8"), name=self.name)
         return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)
-
-    def _union(self, other: "TimedeltaIndex", sort):
-        if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super()._union(other, sort=sort)
-
-        # We are called by `union`, which is responsible for this validation
-        assert isinstance(other, TimedeltaIndex)
-
-        this, other = self, other
-
-        if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
-        else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, TimedeltaIndex):
-                if result.freq is None:
-                    result._set_freq("infer")
-            return result
 
     def _maybe_promote(self, other):
         if other.inferred_type == "timedelta":
@@ -348,13 +310,13 @@ class TimedeltaIndex(
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
         label : object
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         if isinstance(label, str):
             parsed = Timedelta(label)
@@ -386,11 +348,25 @@ class TimedeltaIndex(
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, (np.ndarray, Index)):
-            value = np.array(value, dtype=_TD_DTYPE, copy=False)
-        else:
-            value = Timedelta(value).asm8.view(_TD_DTYPE)
+            if not type(self._data)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            value = type(self._data)(value)
+            self._data._check_compatible_with(value)
 
-        return self.values.searchsorted(value, side=side, sorter=sorter)
+        elif isinstance(value, self._data._recognized_scalars):
+            self._data._check_compatible_with(value)
+            value = self._data._scalar_type(value)
+
+        elif not isinstance(value, TimedeltaArray):
+            raise TypeError(
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
@@ -415,42 +391,46 @@ class TimedeltaIndex(
         new_index : Index
         """
         # try to convert if possible
-        if _is_convertible_to_td(item):
-            try:
-                item = Timedelta(item)
-            except ValueError:
-                # e.g. str that can't be parsed to timedelta
-                pass
-        elif is_scalar(item) and isna(item):
+        if isinstance(item, self._data._recognized_scalars):
+            item = self._data._scalar_type(item)
+        elif is_valid_nat_for_dtype(item, self.dtype):
             # GH 18295
             item = self._na_value
+        elif is_scalar(item) and isna(item):
+            # i.e. datetime64("NaT")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
         freq = None
-        if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):
+        if isinstance(item, self._data._scalar_type) or item is NaT:
+            self._data._check_compatible_with(item, setitem=True)
 
             # check freq can be preserved on edge cases
-            if self.freq is not None:
-                if (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+            if self.size and self.freq is not None:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
-            item = Timedelta(item).asm8.view(_TD_DTYPE)
+            item = item.asm8
 
         try:
-            new_tds = np.concatenate(
+            new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_tds, freq=freq)
-
+            return self._shallow_copy(new_i8s, freq=freq)
         except (AttributeError, TypeError):
 
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
-            raise TypeError("cannot insert TimedeltaIndex with incompatible label")
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
 
-TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_logical_methods_disabled()
 
 

@@ -485,8 +485,8 @@ class _GroupBy(PandasObject, SelectionMixin):
                 except KeyError:
                     # turns out it wasn't a tuple
                     msg = (
-                        "must supply a same-length tuple to get_group"
-                        " with multiple grouping keys"
+                        "must supply a same-length tuple to get_group "
+                        "with multiple grouping keys"
                     )
                     raise ValueError(msg)
 

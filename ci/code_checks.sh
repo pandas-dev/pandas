@@ -298,8 +298,11 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests arrays/string_.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/string_.py
+    MSG='Doctests arrays'; echo $MSG
+    pytest -q --doctest-modules \
+        pandas/core/arrays/string_.py \
+        pandas/core/arrays/integer.py \
+        pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays/boolean.py' ; echo $MSG
@@ -311,8 +314,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA01, SA02, SA03, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA01,SA02,SA03,SA05
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA02, SA03, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
