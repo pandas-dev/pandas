@@ -1830,6 +1830,7 @@ def diff(arr, n: int, axis: int = 0):
     -------
     shifted
     """
+    from pandas.core.arrays import PandasDtype
 
     n = int(n)
     na = np.nan
@@ -1839,6 +1840,11 @@ def diff(arr, n: int, axis: int = 0):
         op = operator.xor
     else:
         op = operator.sub
+
+    if isinstance(dtype, PandasDtype):
+        # PandasArray cannot necessarily hold shifted versions of itself.
+        arr = np.asarray(arr)
+        dtype = arr.dtype
 
     if is_extension_array_dtype(dtype):
         return op(arr, arr.shift(n))
