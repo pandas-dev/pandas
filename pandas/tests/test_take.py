@@ -428,7 +428,7 @@ class TestExtensionTake:
         with pytest.raises(IndexError, match=msg):
             algos.take(arr, [2, 3], allow_fill=True)
 
-        msg = "index 2 is out of bounds for size 2"
+        msg = "index 2 is out of bounds for( axis 0 with|) size 2"
         with pytest.raises(IndexError, match=msg):
             algos.take(arr, [2, 3], allow_fill=False)
 
