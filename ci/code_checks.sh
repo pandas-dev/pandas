@@ -340,5 +340,10 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
+### VALIDATE TITLE CAPITALIZATION CONVENTION (Do I need an IF statement?)###
+MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
+$BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development/contributing.rst
+$BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/index.rst $BASE_DIR/doc/source/ecosystem.rst
+RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 exit $RET
