@@ -142,6 +142,7 @@ Reshaping
 
 -
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Bug in :meth:`DataFrame.combine_first` returned incorrect dataframe when combining empty dataframes (:issue:`29562`)
 
 Sparse
 ^^^^^^
