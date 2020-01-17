@@ -1032,7 +1032,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # TODO: parametrize over box for pi?
         tdi = tm.box_expected(tdi, box_with_array)
-        msg = "cannot subtract|" "unsupported operand type"
+        msg = "cannot subtract|unsupported operand type"
         with pytest.raises(TypeError, match=msg):
             tdi - pi
 
