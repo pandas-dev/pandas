@@ -323,7 +323,11 @@ class TestDatetimeBlock:
         val = date(2010, 10, 10)
         assert not block._can_hold_element(val)
 
-        with pytest.raises(TypeError, match=None):
+        msg = (
+            "'value' should be a 'Timestamp', 'NaT', "
+            "or array of those. Got 'date' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
             arr[0] = val
 
 
@@ -813,7 +817,11 @@ class TestBlockManager:
         bm1 = create_mgr("a,b,c: i8-1; d,e,f: i8-2")
 
         for value in invalid_values:
-            with pytest.raises(ValueError, match=None):
+            msg = (
+                'For argument "inplace" expected type bool, '
+                f"received type {type(value).__name__}."
+            )
+            with pytest.raises(ValueError, match=msg):
                 bm1.replace_list([1], [2], inplace=value)
 
 
