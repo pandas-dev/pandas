@@ -5480,7 +5480,8 @@ class DataFrame(NDFrame):
 
         if other.empty and self.empty:
             empty_columns = self.columns.union(other_columns)
-            return self.reindex(columns=empty_columns,index=empty_columns)
+            self.columns = empty_columns
+            return self
 
         if other.empty and len(new_index) == len(self.index):
             return self.copy()
