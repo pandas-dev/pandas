@@ -66,7 +66,6 @@ extensions = [
     "sphinx.ext.linkcode",
     "nbsphinx",
     "contributors",  # custom pandas extension
-    "helloworld", # Tony Wu custom pandas extension
 ]
 
 exclude_patterns = ["**.ipynb_checkpoints"]
