@@ -3273,15 +3273,15 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_group_subplot(self):
         d = {
-            'a': np.arange(10),
-            'b': np.arange(10) + 1,
-            'c': np.arange(10) + 1,
-            'd': np.arange(10),
-            'e': np.arange(10),
+            "a": np.arange(10),
+            "b": np.arange(10) + 1,
+            "c": np.arange(10) + 1,
+            "d": np.arange(10),
+            "e": np.arange(10),
         }
         df = pd.DataFrame(d)
 
-        ax = df.plot(subplots=[('b', 'e'), ('c', 'd')])
+        ax = df.plot(subplots=[("b", "e"), ("c", "d")])
         assert len(ax) == 3  # 2 groups + single column a
 
     def test_missing_markers_legend(self):
