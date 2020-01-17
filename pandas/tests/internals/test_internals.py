@@ -1250,7 +1250,16 @@ class TestCanHoldElement:
         s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
 
         if op in [operator.mul, operator.pow]:
-            with pytest.raises(TypeError):
+            # operator.mul will raise an external error message.
+            msg = (
+                None
+                if op == operator.mul
+                else (
+                    f"cannot perform __{op.__name__}__ "
+                    "with this index type: TimedeltaArray"
+                )
+            )
+            with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
         else:
             result = op(s, e.value).dtypes
@@ -1272,7 +1281,16 @@ class TestCanHoldElement:
             operator.pow,
             operator.truediv,
         ]:
-            with pytest.raises(TypeError):
+            # operator.add will raise an external error message.
+            msg = (
+                None
+                if op == operator.add
+                else (
+                    f"cannot perform __{op.__name__}__ "
+                    "with this index type: DatetimeArray"
+                )
+            )
+            with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
         else:
             result = op(s, e.value).dtypes
