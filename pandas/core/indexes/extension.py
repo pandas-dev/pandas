@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
@@ -188,6 +188,7 @@ class ExtensionIndex(Index):
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
+    @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
