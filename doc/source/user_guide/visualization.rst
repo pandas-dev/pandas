@@ -1654,6 +1654,14 @@ one based on Matplotlib. For example:
     >>> pd.set_option('plotting.backend', 'backend.module')
     >>> pd.Series([1, 2, 3]).plot()
 
+Same thing can be done by setting the ``pd.options.plotting.backend`` keyword
+equals to 'backend.module'. For example:
+
+.. code-block:: python
+
+    >>> pd.options.plotting.backend = 'backend.module'
+    >>> pd.Series([1, 2, 3]).plot()
+
 This would be more or less equivalent to:
 
 .. code-block:: python
@@ -1661,25 +1669,11 @@ This would be more or less equivalent to:
     >>> import backend.module
     >>> backend.module.plot(pd.Series([1, 2, 3]))
 
-The backend module can then use other visualization tools (Bokeh, Altair,...)
+The backend module can then use other visualization tools (Bokeh, Altair, hvplot,...)
 to generate the plots.
 
-Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
-to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
-registers the default "matplotlib" backend as follows.
-
-.. code-block:: python
-
-   # in setup.py
-   setup(  # noqa: F821
-       ...,
-       entry_points={
-           "pandas_plotting_backends": [
-               "matplotlib = pandas:plotting._matplotlib",
-           ],
-       },
-   )
-
+Developers guide can be found at
+https://dev.pandas.io/docs/development/extending.html#plotting-backends
 
 More information on how to implement a third-party plotting backend can be found at
 https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
