@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-"""Python script for collecting the titles in the rst files and validating
+"""
+Author: tonywu1999, Date Edited: 01/17/2020
+
+Python script for collecting the titles in the rst files and validating
 if they follow the capitalization convention.  Prints the titles that do not
 follow the convention. Particularly used for .rst files in the doc/source folder
 
@@ -18,6 +21,7 @@ http://epydoc.sourceforge.net/docutils/public/docutils.nodes.Element-class.html
 
 """
 
+import argparse
 import sys
 from docutils.parsers.rst import Parser
 import docutils
@@ -25,6 +29,7 @@ from docutils import nodes
 import re
 import os
 from os import walk
+from typing import Generator, List, Tuple
 
 class suppress_stdout_stderr(object):
     '''
@@ -71,7 +76,11 @@ CAPITALIZATION_EXCEPTIONS = {
     'Apache', 'Arrow', 'Parquet', 'Triage', 'MultiIndex', 'NumFOCUS'
 }
 
-# Dictionary of bad titles that will be printed later
+# Lowercase representation of CAPITALIZATION_EXCEPTIONS
+CAPITALIZATION_EXCEPTIONS_LOWER = {word.lower() for word in CAPITALIZATION_EXCEPTIONS}
+
+# Dictionary of bad titles that will be printed later along with line numbers
+# Key: Document Directory, Value: Pair(Bad Title, Line Number)
 badTitleDictionary = {}
 
 # List of problematic tags that are exceptions to parent rule
@@ -83,22 +92,17 @@ cannotValidate = ['doc/source/user_guide/io.rst', 'doc/source/whatsnew/v0.17.1.r
 # Error Message:
 errMessage = "Title capitalization formatted incorrectly. Manually format correctly"
 
-
 def followCapitalizationConvention(title: str) -> bool:
     '''
-    Method returns true or false depending on whether a title follows
-    the capitalization convention
+    tonywu1999's algorithm to determine if a heading follows the capitalization convention
+
+    This method returns true if the title follows the convention
+    and false if it does not
 
     '''
-
-    # Lowercase representation of keynames
-    keyNamesLower = {'pandas'}
-    for k in CAPITALIZATION_EXCEPTIONS:
-        keyNamesLower.add(k.lower())
 
     # split with delimiters comma, semicolon and space, parentheses, colon
     wordList = re.split(r'[;,():\s]\s*', title) # followed by any amount of extra whitespace.
-
 
     # Edge Case: First word is an empty string
     if (len(wordList[0]) == 0):
@@ -107,7 +111,7 @@ def followCapitalizationConvention(title: str) -> bool:
     # Dealing with the first word of the title
     if wordList[0] not in CAPITALIZATION_EXCEPTIONS:
         # word is not in keyNames but has different capitalization
-        if wordList[0].lower() in keyNamesLower:
+        if wordList[0].lower() in CAPITALIZATION_EXCEPTIONS_LOWER:
             return False
         # First letter of first word must be uppercase
         if (not wordList[0][0].isupper()):
@@ -121,7 +125,7 @@ def followCapitalizationConvention(title: str) -> bool:
     for i in range(1, len(wordList)):
         if wordList[i] not in CAPITALIZATION_EXCEPTIONS:
             # word is not in keyNames but has different capitalization
-            if wordList[i].lower() in keyNamesLower:
+            if wordList[i].lower() in CAPITALIZATION_EXCEPTIONS_LOWER:
                 return False
             # Remaining letters must not be uppercase
             for j in range(len(wordList[i])):
@@ -132,7 +136,8 @@ def followCapitalizationConvention(title: str) -> bool:
 
 def findLineNumber(node: docutils.nodes) -> int:
     '''
-    Method that finds the line number in a document for a particular node
+    Recursive method that finds the line number in a document for a particular node
+    in the doctree
 
     '''
     if (node.tagname == 'document'):
@@ -142,21 +147,11 @@ def findLineNumber(node: docutils.nodes) -> int:
     else:
         return node.line - 1
 
-def fillBadTitleDictionary(rstFile: str) -> None:
+def parseRST(rstFile: str) -> docutils.nodes.document:
     '''
-    Method that prints all of the bad titles
-    Message: [directory of rstFile, line number of bad title, error message]
+    Method to parse through an rstFile and return a document tree
 
     '''
-    # Ensure file isn't one that causes the code to crash
-    if rstFile in cannotValidate:
-        return
-    # Initialize this file's badtitleDictionary slot
-    if rstFile in badTitleDictionary:
-        return
-    else:
-        badTitleDictionary[rstFile] = []
-
     # Parse through rstFile
     parser = docutils.parsers.rst.Parser()
     f = open(rstFile, "r")
@@ -169,8 +164,14 @@ def fillBadTitleDictionary(rstFile: str) -> None:
     with suppress_stdout_stderr():
         parser.parse(input, document)
 
+    return document
 
-    # Fill up the titleList with lines that follow the title pattern
+def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[str], List[int], None]:
+    '''
+    tonywu1999's algorithm to identify particular text nodes as headings
+    along with the text node's line number
+
+    '''
     myText = ""
     markerGrandparent = ""
     beforeMarker = False
@@ -206,49 +207,97 @@ def fillBadTitleDictionary(rstFile: str) -> None:
         titleList.append(myText)
         lineNumberList.append(lineno)
 
+    return titleList, lineNumberList
 
-    # For each line in the titleList, append the badTitleDictionary if
-    # the capitalization convention is not followed
-    for i in range(len(titleList)):
-        if not followCapitalizationConvention(titleList[i]):
-            badTitleDictionary[rstFile].append((titleList[i], lineNumberList[i]))
-
-
-def findBadTitles(directoryAddress: str) -> None:
+def fillBadTitleDictionary(rstFile: str) -> None:
+    '''
+    Method that prints all of the bad titles
+    Message: [directory of rstFile, line number of bad title, error message]
 
     '''
-    Method finds all the bad titles, runs fillBadTitleDictionary
+
+    # Ensure file isn't one that causes the code to crash
+    if rstFile in cannotValidate:
+        return
+
+    # Ensure this file doesn't already have a badtitleDictionary slot
+    if rstFile in badTitleDictionary:
+        return
+
+    # Parse rstFile with an RST parser
+    document = parseRST(rstFile)
+
+    # Produce a list of headings along with their line numbers from the root document node
+    titleList, lineNumberList = findBadTitlesInDoctree(document)
+
+    # Append the badTitleDictionary if the capitalization convention for a heading is not followed
+    for i in range(len(titleList)):
+        if not followCapitalizationConvention(titleList[i]):
+            if rstFile not in badTitleDictionary:
+                badTitleDictionary[rstFile] = [(titleList[i], lineNumberList[i])]
+            else:
+                badTitleDictionary[rstFile].append((titleList[i], lineNumberList[i]))
+
+
+def createRSTDirectoryList(source_paths: List[str]) -> List[str]:
+    '''
+    Given the command line arguments of directory paths, this method
+    creates a list of all of the .rst file directories that these paths contain
 
     '''
     f = []
-    if (directoryAddress.endswith(".rst")):
-        f.append(directoryAddress)
-    else:
-        for (dirpath, dirnames, filenames) in walk(directoryAddress):
-            for file in filenames:
-                if file.endswith(".rst"):
-                    f.append(os.path.join(dirpath, file))
+    for directoryAddress in source_paths:
+        if (directoryAddress.endswith(".rst")):
+            f.append(directoryAddress)
+        else:
+            for (dirpath, dirnames, filenames) in walk(directoryAddress):
+                for file in filenames:
+                    if file.endswith(".rst"):
+                        f.append(os.path.join(dirpath, file))
 
-    for filename in f:
+    return f
+
+def main(source_paths: List[str], output_format: str) -> bool:
+    '''
+    The main method to execute all commands
+
+    '''
+
+    # Create a list of all RST files from command line directory list
+    directoryList = createRSTDirectoryList(source_paths)
+
+    # Fill the badTitleDictionary, which contains all incorrectly capitalized headings
+    for filename in directoryList:
         fillBadTitleDictionary(filename)
 
-# Main Method
-if __name__ == "__main__":
-    for i in range(1, len(sys.argv)):
-        findBadTitles(sys.argv[i])
-
-    print("BAD TITLES \n \n")
+    # Return an exit status of 0 if there are no bad titles in the dictionary
+    if (len(badTitleDictionary) == 0):
+        return False
 
     # Print badTitleDictionary Results
-    printed = False
     for key in badTitleDictionary:
-        if (len(badTitleDictionary[key]) != 0):
-            printed = True
-            print(key)
-            for titles in badTitleDictionary[key]:
-                print(titles)
-            print()
+        print()
+        print(key)
+        for titles in badTitleDictionary[key]:
+            print(titles)
 
-    # Exit code of 1 if there were bad titles
-    if (printed):
-        sys.exit(1)
+    # Exit status of 1
+    return True
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description = 'Validate capitalization for document headings')
+
+    parser.add_argument(
+        "paths", nargs="+", default=".", help="Source paths of file/directory to check."
+    )
+
+    parser.add_argument(
+        "--format",
+        default="{source_path}:{line_number}:{heading}:{msg}",
+        help="Output format of incorrectly capitalized titles",
+    )
+
+    args = parser.parse_args()
+
+    sys.exit(main(args.paths, args.format))
