@@ -2,6 +2,7 @@
 concat routines
 """
 
+from itertools import chain
 from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
 
 import numpy as np
@@ -9,18 +10,9 @@ import numpy as np
 from pandas._typing import FrameOrSeriesUnion
 
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.core.arrays.categorical import (
-    factorize_from_iterable,
-    factorize_from_iterables,
-)
 import pandas.core.common as com
 from pandas.core.generic import NDFrame
-from pandas.core.indexes.api import (
-    all_indexes_same,
-    ensure_index,
-    get_consensus_names,
-    get_objs_combined_axis,
-)
+from pandas.core.indexes.api import ensure_index, get_objs_combined_axis
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
@@ -582,113 +574,65 @@ def _concat_indexes(indexes) -> Index:
 
 
 def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiIndex:
+    """
+    Produce a MultiIndex which includes concatenated pieces in "indexes",
+    prepended by one or more levels defined by "keys".
 
-    if (levels is None and isinstance(keys[0], tuple)) or (
-        levels is not None and len(levels) > 1
-    ):
-        zipped = list(zip(*keys))
-        if names is None:
-            names = [None] * len(zipped)
+    Parameters
+    ----------
+    indexes : sequence of Index (or subclass) instances.
+        Pieces of new Index.
+    keys : sequence of labels, same length as "indexes".
+        Labels used to index the pieces in "indexes".
+    levels : list of sequences, default None
+        Used to override the ".levels" in the resulting hierarchical index.
+    names : list, default None
+        Names for the levels in the resulting hierarchical index.
+    Returns
+    -------
+    concatenated : MultiIndex
 
-        if levels is None:
-            _, levels = factorize_from_iterables(zipped)
-        else:
-            levels = [ensure_index(x) for x in levels]
-    else:
-        zipped = [keys]
-        if names is None:
-            names = [None]
+    """
 
-        if levels is None:
-            levels = [ensure_index(keys)]
-        else:
-            levels = [ensure_index(x) for x in levels]
+    orig = _concat_indexes(indexes)
 
-    if not all_indexes_same(indexes):
-        codes_list = []
+    keys_chunks = [[key] * len(idx) for (key, idx) in zip(keys, indexes)]
+    keys_levs = Index(chain(*keys_chunks), tupleize_cols=True)
 
-        # things are potentially different sizes, so compute the exact codes
-        # for each level and pass those to MultiIndex.from_arrays
-
-        for hlevel, level in zip(zipped, levels):
-            to_concat = []
-            for key, index in zip(hlevel, indexes):
-                try:
-                    i = level.get_loc(key)
-                except KeyError:
-                    raise ValueError(
-                        "Key {key!s} not in level {level!s}".format(
-                            key=key, level=level
-                        )
-                    )
-
-                to_concat.append(np.repeat(i, len(index)))
-            codes_list.append(np.concatenate(to_concat))
-
-        concat_index = _concat_indexes(indexes)
-
-        # these go at the end
-        if isinstance(concat_index, MultiIndex):
-            levels.extend(concat_index.levels)
-            codes_list.extend(concat_index.codes)
-        else:
-            codes, categories = factorize_from_iterable(concat_index)
-            levels.append(categories)
-            codes_list.append(codes)
-
-        if len(names) == len(levels):
-            names = list(names)
-        else:
-            # make sure that all of the passed indices have the same nlevels
-            if not len({idx.nlevels for idx in indexes}) == 1:
-                raise AssertionError(
-                    "Cannot concat indices that do not have the same number of levels"
-                )
-
-            # also copies
-            names = names + get_consensus_names(indexes)
-
-        return MultiIndex(
-            levels=levels, codes=codes_list, names=names, verify_integrity=False
-        )
-
-    new_index = indexes[0]
-    n = len(new_index)
-    kpieces = len(indexes)
-
-    # also copies
-    new_names = list(names)
-    new_levels = list(levels)
-
-    # construct codes
-    new_codes = []
-
-    # do something a bit more speedy
-
-    for hlevel, level in zip(zipped, levels):
-        hlevel = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel)
-
-        mask = mapped == -1
-        if mask.any():
-            raise ValueError(
-                "Values not found in passed level: {hlevel!s}".format(
-                    hlevel=hlevel[mask]
-                )
-            )
-
-        new_codes.append(np.repeat(mapped, n))
-
-    if isinstance(new_index, MultiIndex):
-        new_levels.extend(new_index.levels)
-        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])
-    else:
-        new_levels.append(new_index)
-        new_codes.append(np.tile(np.arange(n), kpieces))
-
-    if len(new_names) < len(new_levels):
-        new_names.extend(new_index.names)
-
-    return MultiIndex(
-        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+    empty_names = [None] * keys_levs.nlevels + list(orig.names)
+    tot_df = concat(
+        [
+            keys_levs.to_frame().reset_index(drop=True),
+            orig.to_frame().reset_index(drop=True),
+        ],
+        axis=1,
     )
+
+    result = MultiIndex.from_frame(tot_df, names=empty_names)
+
+    # Assign names to multi-index if names are assigned
+    if names is not None:
+        if len(names) == keys_levs.nlevels:
+            # Received only names for keys level(s)
+            result.names = list(names) + list(result.names)[len(names) :]
+        else:
+            result.names = names
+
+    # If the levels are assigned, will iterate the levels, and assign the given
+    # level to the corresponding original MI level
+    if levels is not None:
+        for i, level in enumerate(levels):
+            if level is None:
+                continue
+            cur_lev = result.levels[i]
+            new_lev = Index(level)
+            not_found = np.where(new_lev.get_indexer(cur_lev) == -1)[0]
+
+            if len(not_found):
+                missing = [level[i] for i in not_found]
+                raise ValueError(f"Values not found in passed level: {missing}")
+
+            cur_val = result.get_level_values(i)
+            result = result.set_levels(new_lev, level=i)
+            result = result.set_codes(new_lev.get_indexer_for(cur_val), level=i)
+    return result

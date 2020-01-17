@@ -1388,7 +1388,7 @@ class TestConcatenate:
         with pytest.raises(ValueError, match=msg):
             concat([df, df], keys=["one", "two"], levels=[["foo", "bar", "baz"]])
 
-        msg = "Key one not in level"
+        msg = "Values not found in passed level"
         with pytest.raises(ValueError, match=msg):
             concat([df, df2], keys=["one", "two"], levels=[["foo", "bar", "baz"]])
 
@@ -1413,6 +1413,24 @@ class TestConcatenate:
 
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
+
+    def test_concat_repeated_index(self):
+        # GH 20565
+        df = pd.DataFrame(np.random.randn(3, 2), columns=["A", "B"], index=["Z1"] * 3)
+
+        result = pd.concat([df, df], keys=["Key1", "Key2"], names=["KEY", "ID"])
+        expected = pd.Index(["Z1"], name="ID")
+        tm.assert_index_equal(result.index.levels[1], expected)
+
+    @pytest.mark.parametrize("keys", [["red", "red", "red"], ["red", "blue", "red"]])
+    def test_concat_series_repeated_key(self, keys):
+        # GH 20816
+        series_list = [pd.Series({"a": 1}), pd.Series({"b": 2}), pd.Series({"c": 3})]
+        result = pd.concat(series_list, keys=keys)
+        array = [keys, ["a", "b", "c"]]
+        expected = MultiIndex.from_tuples(list(zip(*array)))
+
+        tm.assert_index_equal(result.index, expected)
 
     def test_crossed_dtypes_weird_corner(self):
         columns = ["A", "B", "C", "D"]
