@@ -1081,3 +1081,14 @@ def test_dt_subclass_add_timedelta(lh, rh):
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
     assert result == expected
+
+
+def test_constructor_ambigous_dst():
+    # GH 24329
+    # Make sure that calling Timestamp constructor
+    # on Timestamp created from ambiguous time
+    # doesn't change Timestamp.value
+    ts = Timestamp(1382835600000000000, tz="dateutil/Europe/London")
+    expected = ts.value
+    result = Timestamp(ts).value
+    assert result == expected
