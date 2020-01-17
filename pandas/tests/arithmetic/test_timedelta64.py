@@ -606,10 +606,10 @@ class TestAddSubNaTMasking:
     def test_tdi_add_overflow(self):
         # See GH#14068
         # preliminary test scalar analogue of vectorized tests below
-        msg = "not found in|[0-9]+"  ########  Again, is this a helpful error message? For example: not found in '10155196800000000000' or just number
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
+        # TODO: Make raised error message more informative and test
+        with pytest.raises(OutOfBoundsDatetime):
             pd.to_timedelta(106580, "D") + Timestamp("2000")
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsDatetime):
             Timestamp("2000") + pd.to_timedelta(106580, "D")
 
         _NaT = int(pd.NaT) + 1

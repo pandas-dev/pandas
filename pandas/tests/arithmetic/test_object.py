@@ -282,14 +282,15 @@ class TestArithmetic:
 
     def test_sub_fail(self):
         index = tm.makeStringIndex(100)
-        msg = "unsupported operand type|<class 'list'>"  # Error for index.toList()-list is uninformative?
-        with pytest.raises(TypeError, match=msg):
+
+        # TODO: Make raised error message more informative and test
+        with pytest.raises(TypeError):
             index - "a"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             index - index
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             index - index.tolist()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             index.tolist() - index
 
     def test_sub_object(self):
