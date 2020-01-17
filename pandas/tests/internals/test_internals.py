@@ -1165,18 +1165,6 @@ class DummyElement:
 
 class TestCanHoldElement:
     @pytest.mark.parametrize(
-        "op",
-        [
-            operator.add,
-            operator.sub,
-            operator.mul,
-            operator.truediv,
-            operator.mod,
-            operator.pow,
-        ],
-        ids=lambda x: x.__name__,
-    )
-    @pytest.mark.parametrize(
         "value, dtype",
         [
             (1, "i8"),
@@ -1188,6 +1176,18 @@ class TestCanHoldElement:
             (np.timedelta64(20, "ns"), "<m8[ns]"),
             (np.datetime64(20, "ns"), "<M8[ns]"),
         ],
+    )
+    @pytest.mark.parametrize(
+        "op",
+        [
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
+            operator.mod,
+            operator.pow,
+        ],
+        ids=lambda x: x.__name__,
     )
     def test_binop_other(self, op, value, dtype):
         skip = {
