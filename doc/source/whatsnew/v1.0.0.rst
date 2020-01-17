@@ -159,14 +159,14 @@ You can use the alias ``"boolean"`` as well.
 
 .. _whatsnew_100.numba_rolling_apply:
 
-Using Numba in ``rolling.apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using Numba in ``rolling.apply`` and ``expanding.apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` that allows the user to execute the
-routine using `Numba <https://numba.pydata.org/>`__ instead of Cython. Using the Numba engine
-can yield significant performance gains if the apply function can operate on numpy arrays and
+We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` and :meth:`~core.window.expanding.Expanding.apply`
+that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
+Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
 the data set is larger (1 million rows or greater). For more details, see
-:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`)
+:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
 
 .. _whatsnew_100.custom_window:
 
@@ -223,7 +223,7 @@ Other enhancements
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
-- Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
+- Added new writer for exporting Stata dta files in versions 118 and 119, ``StataWriterUTF8``.  These files formats support exporting strings containing Unicode characters. Format 119 supports data sets with more than 32,767 variables (:issue:`23573`, :issue:`30959`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
 - Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)

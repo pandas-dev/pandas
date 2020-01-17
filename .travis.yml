@@ -7,10 +7,10 @@ python: 3.7
 # travis cache --delete inside the project directory from the travis command line client
 # The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
- ccache: true
- directories:
-  - $HOME/.cache # cython cache
-  - $HOME/.ccache # compiler cache
+  ccache: true
+  directories:
+    - $HOME/.cache # cython cache
+    - $HOME/.ccache # compiler cache
 
 env:
   global:
@@ -20,33 +20,30 @@ env:
     - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
-    # for cloning
-    depth: false
+  # for cloning
+  depth: false
 
 matrix:
-    fast_finish: true
-    exclude:
-      # Exclude the default Python 3.5 build
-      - python: 3.5
+  fast_finish: true
 
-    include:
+  include:
     - env:
-        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network)"
+        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
 
     - env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network)"
+        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
 
     - env:
-        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
+        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
       services:
         - mysql
         - postgresql
 
     - env:
         # Enabling Deprecations when running tests
-        # You can set the environment variable PANDAS_TESTING_MODE to deprecate to show any DeprecationWarning message. 
-        # This is enabled in the travis builds for numpy 1.9 (and evenutally for the python 3.4 build).
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
+        # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
+        # See pandas/_testing.py for more details.
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
       services:
         - mysql
         - postgresql
@@ -76,7 +73,6 @@ before_install:
   # This overrides travis and tells it to look nowhere.
   - export BOTO_CONFIG=/dev/null
 
-
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
@@ -93,5 +89,5 @@ script:
 after_script:
   - echo "after_script start"
   - source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
-  - ci/print_skipped.py 
+  - ci/print_skipped.py
   - echo "after_script done"
