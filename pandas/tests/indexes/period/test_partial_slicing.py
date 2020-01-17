@@ -144,7 +144,7 @@ class TestPeriodIndex:
 
         # Manually identified locations of year==2014
         indexer_2014 = np.array(
-            [0, 1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19, 20], dtype=np.int64
+            [0, 1, 2, 3, 4, 5, 6, 15, 16, 17, 18, 19, 20], dtype=np.intp
         )
         assert (nidx[indexer_2014].year == 2014).all()
         assert not (nidx[~indexer_2014].year == 2014).any()
@@ -164,7 +164,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         # Manually identified locations where ser.index is within Mat 2015
-        indexer_may2015 = np.array([23], dtype=np.int64)
+        indexer_may2015 = np.array([23], dtype=np.intp)
         assert nidx[23].year == 2015 and nidx[23].month == 5
 
         result = nidx.get_loc("May 2015")
