@@ -136,7 +136,7 @@ Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
 
 This is often a NumPy dtype. However, pandas and 3rd-party libraries
 extend NumPy's type system in a few places, in which case the dtype would
-be a :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
+be an :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
 pandas are :ref:`categorical` and :ref:`integer_na`. See :ref:`basics.dtypes`
 for more.
 
