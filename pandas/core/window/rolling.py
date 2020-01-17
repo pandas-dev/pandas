@@ -1185,8 +1185,14 @@ class _Rolling_and_Expanding(_Rolling):
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
-        min_periods = self.min_periods if self.min_periods is not None else 0
-        min_periods = min(min_periods, len(obj)) if not self.center else min_periods
+
+        # We set the default value min_periods to be 0 because count method
+        # is meant to count NAs, we don't want it by default requires all
+        # values in the window to be valid to produce a valid count
+        min_periods = 0 if self.min_periods is None else self.min_periods
+
+        # this is required as window is mutate above
+        min_periods = min(min_periods, window)
 
         results = []
         for b in blocks:
