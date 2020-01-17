@@ -4321,8 +4321,9 @@ Name: Max Speed, dtype: float64
         use_nullable_dtypes : bool, default True
             Whether conversion to types supporting ``pd.NA`` should be attempted.
         convert_integer : bool, default True
-            If ``use_nullable_dtypes`` is True, Whether ``int`` types should be converted
-            to integer extension types. (Ignored if ``use_nullable_dtypes`` is False)
+            If ``use_nullable_dtypes`` is True, Whether ``int`` types should be
+            converted to integer extension types. (Ignored if ``use_nullable_dtypes`
+            is False)
 
         Returns
         -------
