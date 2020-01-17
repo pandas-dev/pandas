@@ -578,11 +578,6 @@ class ExtensionArray:
         """
         return self[~self.isna()]
 
-    def diff(self, periods: int = 1):
-        if hasattr(self, "__sub__"):
-            return self - self.shift(periods)
-        raise TypeError()
-
     def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
         """
         Shift values by desired number.

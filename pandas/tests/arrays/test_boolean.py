@@ -879,3 +879,19 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([1, 1], index=[True, False], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+def test_diff():
+    a = pd.array(
+        [True, True, False, False, True, None, True, None, False], dtype="boolean"
+    )
+    result = pd.core.algorithms.diff(a, 1)
+    expected = pd.array(
+        [None, False, True, False, True, None, None, None, None], dtype="boolean"
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = s.diff()
+    expected = pd.Series(expected)
+    tm.assert_series_equal(result, expected)

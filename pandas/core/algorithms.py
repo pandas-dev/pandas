@@ -2,6 +2,7 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 from warnings import catch_warnings, simplefilter, warn
@@ -1834,8 +1835,13 @@ def diff(arr, n: int, axis: int = 0):
     na = np.nan
     dtype = arr.dtype
 
+    if dtype.kind == "b":
+        op = operator.xor
+    else:
+        op = operator.sub
+
     if is_extension_array_dtype(dtype):
-        return arr.diff(n)
+        return op(arr, arr.shift(n))
 
     is_timedelta = False
     is_bool = False

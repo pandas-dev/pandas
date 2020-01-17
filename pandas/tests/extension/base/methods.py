@@ -251,7 +251,7 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             b = [0, 0, 0, np.nan, np.nan]
         expected = pd.DataFrame({"A": expected, "B": b})
-        tm.assert_frame_equal(result, expected)
+        self.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "periods, indices",
