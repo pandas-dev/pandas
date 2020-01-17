@@ -348,6 +348,7 @@ Numba will be applied in potentially two routines:
 
 1. If ``func`` is a standard Python function, the engine will `JIT <http://numba.pydata.org/numba-doc/latest/user/overview.html>`__
 the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
+
 2. The engine will JIT the for loop where the apply function is applied to each window.
 
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
