@@ -95,6 +95,24 @@ class PandasObject(DirNamesMixin):
         assert isinstance(obj, type(self)), type(obj)
         return obj
 
+    @classmethod
+    def __init_subclass__(cls):
+        """Automatically inherit docstrings."""
+        import types
+
+        for name, attr in cls.__dict__.items():
+            if isinstance(attr, types.FunctionType):
+                # TODO: property/cache_readonly?
+                if attr.__doc__ is None:
+                    for parent in cls.__mro__:
+                        if parent is cls:
+                            continue
+                        if hasattr(parent, name):
+                            sup = getattr(parent, name)
+                            if sup.__doc__ is not None:
+                                attr.__doc__ = sup.__doc__
+                            break
+
 
 class NoNewAttributesMixin:
     """Mixin which prevents adding new attributes.

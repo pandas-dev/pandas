@@ -11,6 +11,7 @@ from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import NoNewAttributesMixin, PandasObject
+from pandas.core.indexes.extension import ExtensionIndex
 
 
 class TestPandasDelegate:
@@ -140,3 +141,7 @@ class TestConstruction:
         # Forced conversion fails for all -> all cases raise error
         with pytest.raises(pd.errors.OutOfBoundsDatetime):
             klass(a, dtype="datetime64[ns]")
+
+
+def test_docstring_inheritance():
+    assert ExtensionIndex.dropna.__doc__ == Index.dropna.__doc__
