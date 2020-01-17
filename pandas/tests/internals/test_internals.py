@@ -1164,63 +1164,117 @@ class DummyElement:
 
 
 class TestCanHoldElement:
-    @pytest.mark.parametrize(
-        "value, dtype",
-        [
-            (1, "i8"),
-            (1.0, "f8"),
-            (2 ** 63, "f8"),
-            (1j, "complex128"),
-            (2 ** 63, "complex128"),
-            (True, "bool"),
-            (np.timedelta64(20, "ns"), "<m8[ns]"),
-            (np.datetime64(20, "ns"), "<M8[ns]"),
-        ],
-    )
-    @pytest.mark.parametrize(
+
+    ops = pytest.mark.parametrize(
         "op",
         [
             operator.add,
-            operator.sub,
-            operator.mul,
-            operator.truediv,
             operator.mod,
+            operator.mul,
             operator.pow,
+            operator.sub,
+            operator.truediv,
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype):
-        skip = {
-            (operator.add, "bool"),
-            (operator.sub, "bool"),
-            (operator.mul, "bool"),
-            (operator.truediv, "bool"),
-            (operator.mod, "i8"),
-            (operator.mod, "complex128"),
-            (operator.pow, "bool"),
-        }
-        if (op, dtype) in skip:
-            pytest.skip("Invalid combination {},{}".format(op, dtype))
+
+    @ops
+    @pytest.mark.parametrize("value", [True])
+    def test_binop_bool(self, op, value):
+        dtype = "bool"
+
+        if op in [
+            operator.add,
+            operator.mul,
+            operator.pow,
+            operator.sub,
+            operator.truediv,
+        ]:
+            pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
         s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
 
-        invalid = {
-            (operator.pow, "<M8[ns]"),
-            (operator.mod, "<M8[ns]"),
-            (operator.truediv, "<M8[ns]"),
-            (operator.mul, "<M8[ns]"),
-            (operator.add, "<M8[ns]"),
-            (operator.pow, "<m8[ns]"),
-            (operator.mul, "<m8[ns]"),
-        }
+        result = op(s, e.value).dtypes
+        expected = op(s, value).dtypes
+        tm.assert_series_equal(result, expected)
 
-        if (op, dtype) in invalid:
+    @ops
+    @pytest.mark.parametrize("value", [1j, 2 ** 63])
+    def test_binop_complex128(self, op, value):
+        dtype = "complex128"
+
+        if op == operator.mod:
+            pytest.skip(f"Invalid combination {op},{dtype}")
+
+        e = DummyElement(value, dtype)
+        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        result = op(s, e.value).dtypes
+        expected = op(s, value).dtypes
+        tm.assert_series_equal(result, expected)
+
+    @ops
+    @pytest.mark.parametrize("value", [1.0, 2 ** 63])
+    def test_binop_f8(self, op, value):
+        dtype = "f8"
+
+        e = DummyElement(value, dtype)
+        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        result = op(s, e.value).dtypes
+        expected = op(s, value).dtypes
+        tm.assert_series_equal(result, expected)
+
+    @ops
+    @pytest.mark.parametrize("value", [1])
+    def test_binop_i8(self, op, value):
+        dtype = "i8"
+
+        if op == operator.mod:
+            pytest.skip(f"Invalid combination {op},{dtype}")
+
+        e = DummyElement(value, dtype)
+        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        result = op(s, e.value).dtypes
+        expected = op(s, value).dtypes
+        tm.assert_series_equal(result, expected)
+
+    @ops
+    @pytest.mark.parametrize("value", [np.timedelta64(20, "ns")])
+    def test_binop_m(self, op, value):
+        dtype = "<m8[ns]"
+
+        e = DummyElement(value, dtype)
+        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        if op in [operator.mul, operator.pow]:
             with pytest.raises(TypeError):
                 op(s, e.value)
         else:
-            # FIXME: Since dispatching to Series, this test no longer
-            # asserts anything meaningful
+            result = op(s, e.value).dtypes
+            expected = op(s, value).dtypes
+            tm.assert_series_equal(result, expected)
+
+    @ops
+    @pytest.mark.parametrize("value", [np.datetime64(20, "ns")])
+    def test_binop_m_capitalized(self, op, value):
+        dtype = "<M8[ns]"
+
+        e = DummyElement(value, dtype)
+        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        if op in [
+            operator.add,
+            operator.mod,
+            operator.mul,
+            operator.pow,
+            operator.truediv,
+        ]:
+            with pytest.raises(TypeError):
+                op(s, e.value)
+        else:
             result = op(s, e.value).dtypes
             expected = op(s, value).dtypes
             tm.assert_series_equal(result, expected)
