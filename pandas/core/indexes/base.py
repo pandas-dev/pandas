@@ -1785,7 +1785,7 @@ class Index(IndexOpsMixin, PandasObject):
         True
 
         >>> idx = pd.Index([1, 2, 3, 4])
-        >>> idx.is_integer()
+        >>> idx.is_floating()
         False
         """
         return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
