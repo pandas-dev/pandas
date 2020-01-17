@@ -5,7 +5,6 @@ for all of the parsers defined in parsers.py
 
 from io import BytesIO
 import os
-import tempfile
 
 import numpy as np
 import pytest
@@ -164,7 +163,7 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
 
     expected = DataFrame({"foo": ["bar"]})
 
-    with tempfile.TemporaryFile(mode="w+", encoding=encoding) as f:
+    with tm.ensure_clean(mode="w+", encoding=encoding, return_filelike=True) as f:
         f.write("foo\nbar")
         f.seek(0)
 
