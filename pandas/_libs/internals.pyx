@@ -40,8 +40,7 @@ cdef class BlockPlacement:
                 self._as_array = arr
                 self._has_array = True
         else:
-            # Cython memoryview interface requires ndarray to be writeable.
-            arr = np.require(val, dtype=np.int64, requirements='W')
+            arr = np.require(val, dtype=np.int64)
             assert arr.ndim == 1
             self._as_array = arr
             self._has_array = True
