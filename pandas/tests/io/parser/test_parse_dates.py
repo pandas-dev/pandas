@@ -20,8 +20,8 @@ from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
 

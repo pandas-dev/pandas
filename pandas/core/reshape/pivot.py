@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
 from pandas.core.groupby import Grouper
-from pandas.core.index import Index, MultiIndex, get_objs_combined_axis
+from pandas.core.indexes.api import Index, MultiIndex, get_objs_combined_axis
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
@@ -35,12 +35,12 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-):
+) -> "DataFrame":
     index = _convert_by(index)
     columns = _convert_by(columns)
 
     if isinstance(aggfunc, list):
-        pieces = []
+        pieces: List[DataFrame] = []
         keys = []
         for func in aggfunc:
             table = pivot_table(
@@ -117,7 +117,9 @@ def pivot_table(
                 agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
-    if table.index.nlevels > 1:
+
+    # GH17038, this check should only happen if index is defined (not None)
+    if table.index.nlevels > 1 and index:
         # Related GH #17123
         # If index_names are integers, determine whether the integers refer
         # to the level position or name.
@@ -148,7 +150,7 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(value=fill_value, downcast="infer")
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
 
     if margins:
         if dropna:
@@ -211,10 +213,9 @@ def _add_margins(
             if margins_name in table.columns.get_level_values(level):
                 raise ValueError(msg)
 
+    key: Union[str, Tuple[str, ...]]
     if len(rows) > 1:
-        key = (margins_name,) + ("",) * (
-            len(rows) - 1
-        )  # type: Union[str, Tuple[str, ...]]
+        key = (margins_name,) + ("",) * (len(rows) - 1)
     else:
         key = margins_name
 
@@ -262,9 +263,12 @@ def _add_margins(
 
     row_names = result.index.names
     try:
+        # check the result column and leave floats
         for dtype in set(result.dtypes):
             cols = result.select_dtypes([dtype]).columns
-            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+            margin_dummy[cols] = margin_dummy[cols].apply(
+                maybe_downcast_to_dtype, args=(dtype,)
+            )
         result = result.append(margin_dummy)
     except TypeError:
 
@@ -424,7 +428,7 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns=None, values=None):
+def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -457,7 +461,7 @@ def crosstab(
     margins_name: str = "All",
     dropna: bool = True,
     normalize=False,
-):
+) -> "DataFrame":
     """
     Compute a simple cross tabulation of two (or more) factors. By default
     computes a frequency table of the factors unless an array of values and an
@@ -564,7 +568,7 @@ def crosstab(
     if pass_objs:
         common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 
-    data = {}  # type: dict
+    data: Dict = {}
     data.update(zip(rownames, index))
     data.update(zip(colnames, columns))
 
@@ -615,11 +619,11 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
     if margins is False:
 
         # Actual Normalizations
-        normalizers = {
+        normalizers: Dict[Union[bool, str], Callable] = {
             "all": lambda x: x / x.sum(axis=1).sum(axis=0),
             "columns": lambda x: x / x.sum(),
             "index": lambda x: x.div(x.sum(axis=1), axis=0),
-        }  # type: Dict[Union[bool, str], Callable]
+        }
 
         normalizers[True] = normalizers["all"]
 

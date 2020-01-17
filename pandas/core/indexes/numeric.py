@@ -1,8 +1,7 @@
-import warnings
-
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
+from pandas._typing import Dtype
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -29,10 +28,14 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import Dtype
 from pandas.core import algorithms
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, InvalidIndexError, _index_shared_docs
+from pandas.core.indexes.base import (
+    Index,
+    InvalidIndexError,
+    _index_shared_docs,
+    maybe_extract_name,
+)
 from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
@@ -47,17 +50,8 @@ class NumericIndex(Index):
 
     _is_numeric_dtype = True
 
-    def __new__(cls, data=None, dtype=None, copy=False, name=None, fastpath=None):
+    def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
-        if fastpath is not None:
-            warnings.warn(
-                "The 'fastpath' keyword is deprecated, and will be "
-                "removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            if fastpath:
-                return cls._simple_new(data, name=name)
 
         # Coerce to ndarray if not already ndarray or Index
         if not isinstance(data, (np.ndarray, Index)):
@@ -79,8 +73,11 @@ class NumericIndex(Index):
         else:
             subarr = data
 
-        if name is None and hasattr(data, "name"):
-            name = data.name
+        if subarr.ndim > 1:
+            # GH#13601, GH#20285, GH#27125
+            raise ValueError("Index data must be 1-dimensional")
+
+        name = maybe_extract_name(name, data, cls)
         return cls._simple_new(subarr, name=name)
 
     @classmethod
@@ -96,12 +93,13 @@ class NumericIndex(Index):
 
         validation_func, expected = validation_metadata[cls._typ]
         if not validation_func(dtype):
-            msg = f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
-            raise ValueError(msg)
+            raise ValueError(
+                f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
+            )
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
@@ -117,7 +115,6 @@ class NumericIndex(Index):
         """
         Convert value to be insertable to ndarray.
         """
-
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
@@ -132,19 +129,13 @@ class NumericIndex(Index):
         if not np.issubdtype(tolerance.dtype, np.number):
             if tolerance.ndim > 0:
                 raise ValueError(
-                    (
-                        "tolerance argument for %s must contain "
-                        "numeric elements if it is list type"
-                    )
-                    % (type(self).__name__,)
+                    f"tolerance argument for {type(self).__name__} must contain "
+                    "numeric elements if it is list type"
                 )
             else:
                 raise ValueError(
-                    (
-                        "tolerance argument for %s must be numeric "
-                        "if it is a scalar: %r"
-                    )
-                    % (type(self).__name__, tolerance)
+                    f"tolerance argument for {type(self).__name__} must be numeric "
+                    f"if it is a scalar: {repr(tolerance)}"
                 )
         return tolerance
 
@@ -257,7 +248,9 @@ class Int64Index(IntegerIndex):
 
     @property
     def inferred_type(self) -> str:
-        """Always 'integer' for ``Int64Index``"""
+        """
+        Always 'integer' for ``Int64Index``
+        """
         return "integer"
 
     @property
@@ -267,7 +260,7 @@ class Int64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # don't coerce ilocs to integers
         if kind != "iloc":
@@ -312,7 +305,9 @@ class UInt64Index(IntegerIndex):
 
     @property
     def inferred_type(self) -> str:
-        """Always 'integer' for ``UInt64Index``"""
+        """
+        Always 'integer' for ``UInt64Index``
+        """
         return "integer"
 
     @property
@@ -322,7 +317,7 @@ class UInt64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # don't coerce ilocs to integers
         if kind != "iloc":
@@ -331,13 +326,15 @@ class UInt64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_arr_indexer"])
     def _convert_arr_indexer(self, keyarr):
-        # Cast the indexer to uint64 if possible so
-        # that the values returned from indexing are
-        # also uint64.
-        keyarr = com.asarray_tuplesafe(keyarr)
-        if is_integer_dtype(keyarr):
-            return com.asarray_tuplesafe(keyarr, dtype=np.uint64)
-        return keyarr
+        # Cast the indexer to uint64 if possible so that the values returned
+        # from indexing are also uint64.
+        dtype = None
+        if is_integer_dtype(keyarr) or (
+            lib.infer_dtype(keyarr, skipna=False) == "integer"
+        ):
+            dtype = np.uint64
+
+        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
     @Appender(_index_shared_docs["_convert_index_indexer"])
     def _convert_index_indexer(self, keyarr):
@@ -385,18 +382,19 @@ class Float64Index(NumericIndex):
 
     @property
     def inferred_type(self) -> str:
-        """Always 'floating' for ``Float64Index``"""
+        """
+        Always 'floating' for ``Float64Index``
+        """
         return "floating"
 
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if needs_i8_conversion(dtype):
-            msg = (
-                "Cannot convert Float64Index to dtype {dtype}; integer "
+            raise TypeError(
+                f"Cannot convert Float64Index to dtype {dtype}; integer "
                 "values are required for conversion"
-            ).format(dtype=dtype)
-            raise TypeError(msg)
+            )
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
@@ -406,7 +404,7 @@ class Float64Index(NumericIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
             return self._validate_indexer("positional", key, kind)
@@ -479,20 +477,7 @@ class Float64Index(NumericIndex):
         if super().__contains__(other):
             return True
 
-        try:
-            # if other is a sequence this throws a ValueError
-            return np.isnan(other) and self.hasnans
-        except ValueError:
-            try:
-                return len(other) <= 1 and other.item() in self
-            except AttributeError:
-                return len(other) <= 1 and other in self
-            except TypeError:
-                pass
-        except TypeError:
-            pass
-
-        return False
+        return is_float(other) and np.isnan(other) and self.hasnans
 
     @Appender(_index_shared_docs["get_loc"])
     def get_loc(self, key, method=None, tolerance=None):

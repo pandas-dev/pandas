@@ -15,7 +15,7 @@ from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
@@ -87,7 +87,7 @@ def test_same_ordering(datapath):
 @pytest.mark.parametrize(
     "flavor",
     [
-        pytest.param("bs4", marks=td.skip_if_no("lxml")),
+        pytest.param("bs4", marks=td.skip_if_no("bs4")),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
     scope="class",
@@ -178,7 +178,7 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_xrange(self):
+    def test_skiprows_range(self):
         df1 = self.read_html(self.spam_data, ".*Water.*", skiprows=range(2))[0]
         df2 = self.read_html(self.spam_data, "Unit", skiprows=range(2))[0]
         tm.assert_frame_equal(df1, df2)
@@ -383,7 +383,15 @@ class TestReadHtml:
         assert not any(s.isna().any() for _, s in df.items())
 
     @pytest.mark.slow
-    def test_thousands_macau_index_col(self, datapath):
+    def test_thousands_macau_index_col(self, datapath, request):
+        # https://github.com/pandas-dev/pandas/issues/29622
+        # This tests fails for bs4 >= 4.8.0 - so handle xfail accordingly
+        if self.read_html.keywords.get("flavor") == "bs4" and td.safe_import(
+            "bs4", "4.8.0"
+        ):
+            reason = "fails for bs4 version >= 4.8.0"
+            request.node.add_marker(pytest.mark.xfail(reason=reason))
+
         all_non_nan_table_index = -2
         macau_data = datapath("io", "data", "html", "macau.html")
         dfs = self.read_html(macau_data, index_col=0, header=0)
@@ -395,8 +403,7 @@ class TestReadHtml:
         """
         Make sure that read_html ignores empty tables.
         """
-        result = self.read_html(
-            """
+        html = """
             <table>
                 <thead>
                     <tr>
@@ -416,8 +423,7 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-        )
-
+        result = self.read_html(html)
         assert len(result) == 1
 
     def test_multiple_tbody(self):
@@ -902,8 +908,8 @@ class TestReadHtml:
 
     def test_wikipedia_states_table(self, datapath):
         data = datapath("io", "data", "html", "wikipedia_states.html")
-        assert os.path.isfile(data), "{data!r} is not a file".format(data=data)
-        assert os.path.getsize(data), "{data!r} is an empty file".format(data=data)
+        assert os.path.isfile(data), f"{repr(data)} is not a file"
+        assert os.path.getsize(data), f"{repr(data)} is an empty file"
         result = self.read_html(data, "Arizona", header=1)[0]
         assert result["sq mi"].dtype == np.dtype("float64")
 

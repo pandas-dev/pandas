@@ -114,8 +114,7 @@ class LatexFormatter(TableFormatter):
                 column_format = index_format + column_format
         elif not isinstance(self.column_format, str):  # pragma: no cover
             raise AssertionError(
-                "column_format must be str or unicode, "
-                "not {typ}".format(typ=type(column_format))
+                f"column_format must be str or unicode, not {type(column_format)}"
             )
         else:
             column_format = self.column_format
@@ -133,7 +132,7 @@ class LatexFormatter(TableFormatter):
         if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
         strrows = list(zip(*strcols))
-        self.clinebuf = []  # type: List[List[int]]
+        self.clinebuf: List[List[int]] = []
 
         for i, row in enumerate(strrows):
             if i == nlevels and self.fmt.header:
