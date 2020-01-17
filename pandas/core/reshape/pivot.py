@@ -341,7 +341,7 @@ def _generate_marginal_results(
                 # GH31016 this is to calculate margin for each group, and assign
                 # corresponded key as index
                 transformed_piece = DataFrame(piece.apply(aggfunc)).T
-                transformed_piece.index = [all_key]
+                transformed_piece.index = Index([all_key], name=piece.index.name)
 
                 # append piece for margin into table_piece
                 table_pieces.append(transformed_piece)

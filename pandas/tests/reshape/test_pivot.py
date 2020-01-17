@@ -908,7 +908,7 @@ class TestPivotTable:
                 "A",
                 np.mean,
                 [[5.5, 5.5, 2.2, 2.2], [8.0, 8.0, 4.4, 4.4]],
-                Index(["bar", "All", "foo", "All"]),
+                Index(["bar", "All", "foo", "All"], name="A"),
             ),
             (
                 ["A", "B"],
