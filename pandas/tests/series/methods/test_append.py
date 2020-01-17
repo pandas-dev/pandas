@@ -69,10 +69,7 @@ class TestSeriesAppend:
         msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
         with pytest.raises(TypeError, match=msg):
             df.A.append(df)
-        msg = (
-            "to_append should be a Series or list/tuple of Series,"
-            " got list of DataFrame"
-        )
+        msg = "to_append should be a Series or list/tuple of Series, got list"
         with pytest.raises(TypeError, match=msg):
             df.A.append(li)
 
