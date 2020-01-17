@@ -1,7 +1,7 @@
+from collections import Iterable
 import re
 from typing import Optional
 import warnings
-from collections import Iterable
 
 import numpy as np
 
@@ -130,7 +130,7 @@ class MPLPlot:
             # later.
             # TODO: also accept indexes instead of just names?
             # TODO: we're potentially messing with the order of the axes here
-            cols_in_groups = set(col for group in self.subplots for col in group)
+            cols_in_groups = {col for group in self.subplots for col in group}
             cols_remaining = set(data.columns) - cols_in_groups
 
             subplots = []
