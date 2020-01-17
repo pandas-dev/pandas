@@ -1200,7 +1200,7 @@ class TestCanHoldElement:
             (operator.pow, "bool"),
         }
         if (op, dtype) in skip:
-            pytest.skip("Invalid combination {},{}".format(op, dtype))
+            pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
         s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
@@ -1216,7 +1216,17 @@ class TestCanHoldElement:
         }
 
         if (op, dtype) in invalid:
-            with pytest.raises(TypeError):
+            msg = (
+                None
+                if (dtype == "<M8[ns]" and op == operator.add)
+                or (dtype == "<m8[ns]" and op == operator.mul)
+                else (
+                    f"cannot perform __{op.__name__}__ with this "
+                    "index type: (DatetimeArray|TimedeltaArray)"
+                )
+            )
+
+            with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
