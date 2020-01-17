@@ -1205,7 +1205,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs["apply"] = dedent(
         r"""
-    The %(name)s function's apply function.
+    Apply an arbitrary function to each %(name)s window.
 
     Parameters
     ----------
@@ -1822,8 +1822,7 @@ class Rolling(_Rolling_and_Expanding):
         else:
             raise ValueError(
                 f"invalid on specified as {self.on}, "
-                "must be a column (of DataFrame), an Index "
-                "or None"
+                "must be a column (of DataFrame), an Index or None"
             )
 
     def validate(self):
@@ -1840,9 +1839,8 @@ class Rolling(_Rolling_and_Expanding):
             # we don't allow center
             if self.center:
                 raise NotImplementedError(
-                    "center is not implemented "
-                    "for datetimelike and offset "
-                    "based windows"
+                    "center is not implemented for "
+                    "datetimelike and offset based windows"
                 )
 
             # this will raise ValueError on non-fixed freqs
@@ -1888,8 +1886,7 @@ class Rolling(_Rolling_and_Expanding):
         except (TypeError, ValueError):
             raise ValueError(
                 f"passed window {self.window} is not "
-                "compatible with a datetimelike "
-                "index"
+                "compatible with a datetimelike index"
             )
 
     _agg_see_also_doc = dedent(

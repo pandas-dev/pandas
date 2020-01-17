@@ -51,8 +51,9 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     k = <bytes>key.encode(encoding)
     kb = <uint8_t *>k
     if len(k) != 16:
-        raise ValueError("key should be a 16-byte string encoded, "
-                         f"got {k} (len {len(k)})")
+        raise ValueError(
+            f"key should be a 16-byte string encoded, got {k} (len {len(k)})"
+        )
 
     n = len(arr)
 
@@ -77,8 +78,10 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
             hash(val)
             data = <bytes>str(val).encode(encoding)
         else:
-            raise TypeError(f"{val} of type {type(val)} is not a valid type "
-                            "for hashing, must be string or null")
+            raise TypeError(
+                f"{val} of type {type(val)} is not a valid type for hashing, "
+                "must be string or null"
+            )
 
         l = len(data)
         lens[i] = l

@@ -32,8 +32,7 @@ def get_engine(engine: str) -> "BaseImpl":
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
-            "pyarrow or fastparquet is required for parquet "
-            "support"
+            "pyarrow or fastparquet is required for parquet support"
         )
 
     if engine == "pyarrow":
@@ -52,7 +51,7 @@ class BaseImpl:
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "unicode", "empty"}:
+        if df.columns.inferred_type not in {"string", "empty"}:
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
@@ -156,8 +155,7 @@ class FastParquetImpl(BaseImpl):
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(
                 "Cannot use both partition_on and "
-                "partition_cols. Use partition_cols for "
-                "partitioning data"
+                "partition_cols. Use partition_cols for partitioning data"
             )
         elif "partition_on" in kwargs:
             partition_cols = kwargs.pop("partition_on")

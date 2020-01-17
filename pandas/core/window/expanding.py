@@ -1,4 +1,5 @@
 from textwrap import dedent
+from typing import Dict, Optional
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -148,8 +149,23 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
+    def apply(
+        self,
+        func,
+        raw: bool = False,
+        engine: str = "cython",
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        args=None,
+        kwargs=None,
+    ):
+        return super().apply(
+            func,
+            raw=raw,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sum"])
