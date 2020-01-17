@@ -1164,6 +1164,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def name(self):
+        """
+        Return Index or MultiIndex name.
+        """
         return self._name
 
     @name.setter
@@ -1645,21 +1648,230 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def has_duplicates(self) -> bool:
+        """
+        Check if the Index has duplicate values.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index has duplicate values.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 5, 7, 7])
+        >>> idx.has_duplicates
+        True
+
+        >>> idx = pd.Index([1, 5, 7])
+        >>> idx.has_duplicates
+        False
+
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.has_duplicates
+        True
+
+        >>> idx = pd.Index(["Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.has_duplicates
+        False
+        """
         return not self.is_unique
 
     def is_boolean(self) -> bool:
+        """
+        Check if the Index only consists of booleans.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index only consists of booleans.
+
+        See Also
+        --------
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
+
+        Examples
+        --------
+        >>> idx = pd.Index([True, False, True])
+        >>> idx.is_boolean()
+        True
+
+        >>> idx = pd.Index(["True", "False", "True"])
+        >>> idx.is_boolean()
+        False
+
+        >>> idx = pd.Index([True, False, "True"])
+        >>> idx.is_boolean()
+        False
+        """
         return self.inferred_type in ["boolean"]
 
     def is_integer(self) -> bool:
+        """
+        Check if the Index only consists of integers.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index only consists of integers.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx.is_integer()
+        True
+
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_integer()
+        False
+
+        >>> idx = pd.Index(["Apple", "Mango", "Watermelon"])
+        >>> idx.is_integer()
+        False
+        """
         return self.inferred_type in ["integer"]
 
     def is_floating(self) -> bool:
+        """
+        Check if the Index is a floating type.
+
+        The Index may consist of only floats, NaNs, or a mix of floats,
+        integers, or NaNs.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index only consists of only consists of floats, NaNs, or
+            a mix of floats, integers, or NaNs.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_floating()
+        True
+
+        >>> idx = pd.Index([1.0, 2.0, np.nan, 4.0])
+        >>> idx.is_floating()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4, np.nan])
+        >>> idx.is_floating()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx.is_floating()
+        False
+        """
         return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
     def is_numeric(self) -> bool:
+        """
+        Check if the Index only consists of numeric data.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index only consists of numeric data.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0, np.nan])
+        >>> idx.is_numeric()
+        True
+
+        >>> idx = pd.Index([1, 2, 3, 4.0, np.nan, "Apple"])
+        >>> idx.is_numeric()
+        False
+        """
         return self.inferred_type in ["integer", "floating"]
 
     def is_object(self) -> bool:
+        """
+        Check if the Index is of the object dtype.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index is of the object dtype.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["Apple", "Mango", "Watermelon"])
+        >>> idx.is_object()
+        True
+
+        >>> idx = pd.Index(["Apple", "Mango", 2.0])
+        >>> idx.is_object()
+        True
+
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.object()
+        False
+
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 4.0])
+        >>> idx.is_object()
+        False
+        """
         return is_object_dtype(self.dtype)
 
     def is_categorical(self) -> bool:
@@ -1668,12 +1880,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        boolean
+        bool
             True if the Index is categorical.
 
         See Also
         --------
         CategoricalIndex : Index for categorical data.
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_interval : Check if the Index holds Interval objects.
+        is_mixed : Check if the Index holds data with mixed data types.
 
         Examples
         --------
@@ -1699,9 +1918,67 @@ class Index(IndexOpsMixin, PandasObject):
         return self.inferred_type in ["categorical"]
 
     def is_interval(self) -> bool:
+        """
+        Check if the Index holds Interval objects.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index holds Interval objects.
+
+        See Also
+        --------
+        IntervalIndex : Index for Interval objects.
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_mixed : Check if the Index holds data with mixed data types.
+
+        Examples
+        --------
+        >>> idx = pd.Index([pd.Interval(left=0, right=5),
+        ...                 pd.Interval(left=5, right=10)])
+        >>> idx.is_interval()
+        True
+
+        >>> idx = pd.Index([1, 3, 5, 7])
+        >>> idx.is_interval()
+        False
+        """
         return self.inferred_type in ["interval"]
 
     def is_mixed(self) -> bool:
+        """
+        Check if the Index holds data with mixed data types.
+
+        Returns
+        -------
+        bool
+            Whether or not the Index holds data with mixed data types.
+
+        See Also
+        --------
+        is_boolean : Check if the Index only consists of booleans.
+        is_integer : Check if the Index only consists of integers.
+        is_floating : Check if the Index is a floating type.
+        is_numeric : Check if the Index only consists of numeric data.
+        is_object : Check if the Index is of the object dtype.
+        is_categorical : Check if the Index holds categorical data.
+        is_interval : Check if the Index holds Interval objects.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', np.nan, 'b'])
+        >>> idx.is_mixed()
+        True
+
+        >>> idx = pd.Index([1.0, 2.0, 3.0, 5.0])
+        >>> idx.is_mixed()
+        False
+        """
         return self.inferred_type in ["mixed"]
 
     def holds_integer(self):
@@ -1719,6 +1996,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def is_all_dates(self) -> bool:
+        """
+        Whether or not the index values only consist of dates.
+        """
         return is_datetime_array(ensure_object(self.values))
 
     # --------------------------------------------------------------------
