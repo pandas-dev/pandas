@@ -37,7 +37,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.arrays import IntegerArray
+from pandas.core.arrays.datetimes import tz_to_dtype
+from pandas.arrays import IntegerArray, DatetimeArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
 
@@ -427,7 +428,8 @@ def _convert_listlike_datetimes(
             #  datetime objects are found without passing `utc=True`
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
-                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+                dta = DatetimeArray._simple_new(values, dtype=tz_to_dtype(tz))
+                return DatetimeIndex._simple_new(dta, name=name)
             except (ValueError, TypeError):
                 raise e
 
@@ -447,7 +449,8 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)
+        dta = DatetimeArray._simple_new(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)

@@ -42,7 +42,13 @@ def _new_DatetimeIndex(cls, d):
     if "data" in d and not isinstance(d["data"], DatetimeIndex):
         # Avoid need to verify integrity by calling simple_new directly
         data = d.pop("data")
-        result = cls._simple_new(data, **d)
+        if not isinstance(data, DatetimeArray):
+            tz = d.pop("tz")
+            freq = d.pop("freq")
+            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=freq)
+        else:
+            dta = data
+        result = cls._simple_new(dta, **d)
     else:
         with warnings.catch_warnings():
             # TODO: If we knew what was going in to **d, we might be able to
@@ -262,6 +268,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         We require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        assert isinstance(values, DatetimeArray), type(values)
         if isinstance(values, DatetimeArray):
             if tz:
                 tz = validate_tz_from_dtype(dtype, tz)
@@ -274,9 +281,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             freq = values.freq
             values = values._data
 
-        # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
-        if isinstance(values, DatetimeIndex):
-            values = values._data
 
         dtype = tz_to_dtype(tz)
         dtarr = DatetimeArray._simple_new(values, freq=freq, dtype=dtype)
@@ -485,7 +489,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             snapped[i] = s
 
         # we know it conforms; skip check
-        return DatetimeIndex._simple_new(snapped, name=self.name, tz=self.tz, freq=freq)
+        dtarr = DatetimeArray._simple_new(snapped, dtype=self.dtype, freq=freq)
+        return DatetimeIndex._simple_new(dtarr, name=self.name)
 
     def _parsed_string_to_bounds(self, reso, parsed):
         """
@@ -1163,7 +1168,7 @@ def date_range(
         closed=closed,
         **kwargs,
     )
-    return DatetimeIndex._simple_new(dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
+    return DatetimeIndex._simple_new(dtarr, name=name)
 
 
 def bdate_range(

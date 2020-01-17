@@ -1157,6 +1157,11 @@ class MonthOffset(SingleConstructorOffset):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
+        if hasattr(i._data, "_data"):
+            # DTA
+            arr = type(i._data)._simple_new(shifted, dtype=i.dtype, freq=i.freq)
+            return type(i)._simple_new(arr)  # TODO: retain name?
+
         return type(i)._simple_new(shifted, freq=i.freq, dtype=i.dtype)
 
 
@@ -1887,6 +1892,11 @@ class QuarterOffset(DateOffset):
         )
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
+        if hasattr(dtindex._data, "_data"):
+            # DTA
+            arr = type(dtindex._data)._simple_new(shifted, dtype=dtindex.dtype, freq=dtindex.freq)
+            return type(dtindex)._simple_new(arr)  # TODO: retain name?
+
         return type(dtindex)._simple_new(
             shifted, freq=dtindex.freq, dtype=dtindex.dtype
         )
@@ -1973,6 +1983,10 @@ class YearOffset(DateOffset):
         )
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
+        if hasattr(dtindex._data, "_data"):
+            # DTA
+            arr = type(dtindex._data)._simple_new(shifted, dtype=dtindex.dtype, freq=dtindex.freq)
+            return type(dtindex)._simple_new(arr)  # TODO: retain name?
         return type(dtindex)._simple_new(
             shifted, freq=dtindex.freq, dtype=dtindex.dtype
         )

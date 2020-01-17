@@ -193,20 +193,19 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             #  because the treatment of NaT has been changed to put NaT last
             #  instead of first.
             sorted_values = np.sort(self.asi8)
-            attribs = self._get_attributes_dict()
-            freq = attribs["freq"]
+            freq = self.freq
 
             if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
                     freq = freq * -1
-            attribs["freq"] = freq
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
-            return self._simple_new(sorted_values, **attribs)
+            arr = type(self._data)._simple_new(sorted_values, dtype=self.dtype, freq=freq)
+            return self._simple_new(arr, name=self.name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -503,22 +502,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-        attribs = self._get_attributes_dict()
-        attribs["name"] = name
         # do not pass tz to set because tzlocal cannot be hashed
         if len({str(x.dtype) for x in to_concat}) != 1:
             raise ValueError("to_concat must have the same tz")
 
-        new_data = type(self._values)._concat_same_type(to_concat).asi8
+        new_data = type(self._values)._concat_same_type(to_concat)
 
-        # GH 3232: If the concat result is evenly spaced, we can retain the
-        # original frequency
-        is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1
-        if not is_period_dtype(self) and not is_diff_evenly_spaced:
-            # reset freq
-            attribs["freq"] = None
+        if not is_period_dtype(self.dtype):
+            # GH 3232: If the concat result is evenly spaced, we can retain the
+            # original frequency
+            is_diff_evenly_spaced = len(unique_deltas(new_data.asi8)) == 1
+            if is_diff_evenly_spaced:
+                # FIXME: do this isnide _concat_same_type
+                new_data._freq = self.freq
 
-        return self._simple_new(new_data, **attribs)
+        return self._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -614,6 +612,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             values = self._data
         if isinstance(values, type(self)):
             values = values._data
+        if isinstance(values, np.ndarray):
+            values = type(self._data)._simple_new(values, dtype=self.dtype, freq=kwargs.get("freq"))
 
         attributes = self._get_attributes_dict()
 
@@ -767,7 +767,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            return self._shallow_copy(dates, freq=self.freq)  # TODO: is self.freq right here?
         else:
             left, right = other, self
 
@@ -779,7 +779,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            return self._shallow_copy(dates, freq=self.freq)  # TODO: is self.freq right here?
         else:
             return left
 
@@ -880,8 +880,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         else:
             kwargs = {}
             if hasattr(self, "tz"):
-                kwargs["tz"] = getattr(other, "tz", None)
-            return self._simple_new(joined, name, **kwargs)
+                #kwargs["tz"] = getattr(other, "tz", None)
+                kwargs["dtype"] = other.dtype
+
+            arr = type(self._data)._simple_new(joined, **kwargs)
+            return type(self)._simple_new(arr, name)
 
 
 class DatetimelikeDelegateMixin(PandasDelegate):
