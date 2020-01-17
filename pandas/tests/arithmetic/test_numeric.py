@@ -135,10 +135,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right // left
         tm.assert_equal(result, expected)
 
-        msg = (
-            "Cannot divide [A-z0-9]+ data by [A-z0-9]+|"
-            "Cannot divide [A-z0-9]+ by [A-z0-9]+"
-        )
+        msg = "Cannot divide"
         with pytest.raises(TypeError, match=msg):
             left / right
 
