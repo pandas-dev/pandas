@@ -142,7 +142,7 @@ msg = (
         expected = []
         assert result == expected
 
-    def test_strings_with_wrong_placed_whitespace_first_line_starts_double_sapce(self):
+    def test_strings_with_wrong_placed_whitespace_first_line_starts_double_space(self):
         fd = io.StringIO(
             """
 msg = (
