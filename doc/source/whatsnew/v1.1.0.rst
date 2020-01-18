@@ -102,7 +102,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-
+- Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
 -
 -
 
