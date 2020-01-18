@@ -249,7 +249,12 @@ class TestPeriodIndex:
 
         other = np.array([0, 1], dtype=np.int64)
 
-        msg = "requires either a Period or PeriodArray"
+        msg = "|".join(
+            [
+                "searchsorted requires compatible dtype or scalar",
+                "Unexpected type for 'value'",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             pidx.searchsorted(other)
 
