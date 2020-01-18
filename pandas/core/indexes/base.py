@@ -4566,7 +4566,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise NotImplementedError(f"Not supported for type {type(self).__name__}")
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         """
         Return the integer indices that would sort the index.
 
@@ -5052,7 +5052,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(self, label, side, kind) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -5217,7 +5217,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._shallow_copy(np.delete(self._data, loc))
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location.
 
