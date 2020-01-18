@@ -283,14 +283,14 @@ class TestArithmetic:
     def test_sub_fail(self):
         index = tm.makeStringIndex(100)
 
-        # TODO: Make raised error message more informative and test
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type|Cannot broadcast"
+        with pytest.raises(TypeError, match=msg):
             index - "a"
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index - index
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index - index.tolist()
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index.tolist() - index
 
     def test_sub_object(self):
