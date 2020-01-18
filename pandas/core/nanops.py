@@ -1,7 +1,7 @@
 import functools
 import itertools
 import operator
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -56,7 +56,7 @@ class disallow:
     def check(self, obj) -> bool:
         return hasattr(obj, "dtype") and issubclass(obj.dtype.type, self.dtypes)
 
-    def __call__(self, f) -> Callable:
+    def __call__(self, f):
         @functools.wraps(f)
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
@@ -81,11 +81,11 @@ class disallow:
 
 
 class bottleneck_switch:
-    def __init__(self, name: Optional[str] = None, **kwargs):
+    def __init__(self, name=None, **kwargs):
         self.name = name
         self.kwargs = kwargs
 
-    def __call__(self, alt: Callable) -> Callable:
+    def __call__(self, alt):
         bn_name = self.name or alt.__name__
 
         try:
@@ -167,9 +167,7 @@ def _has_infs(result) -> bool:
 
 
 def _get_fill_value(
-    dtype: Dtype,
-    fill_value: Optional[Scalar] = None,
-    fill_value_typ: Optional[str] = None,
+    dtype: Dtype, fill_value: Optional[Scalar] = None, fill_value_typ=None
 ):
     """ return the correct fill value for the dtype of the values """
     if fill_value is not None:
@@ -850,7 +848,7 @@ def nansem(
     return np.sqrt(var) / np.sqrt(count)
 
 
-def _nanminmax(meth: str, fill_value_typ: str) -> Callable:
+def _nanminmax(meth, fill_value_typ):
     @bottleneck_switch(name="nan" + meth)
     def reduction(
         values: np.ndarray,
@@ -1307,7 +1305,7 @@ def nancorr(
     return f(a, b)
 
 
-def get_corr_func(method) -> Callable:
+def get_corr_func(method):
     if method in ["kendall", "spearman"]:
         from scipy.stats import kendalltau, spearmanr
     elif method in ["pearson"]:
@@ -1381,7 +1379,7 @@ def _ensure_numeric(x):
 # NA-friendly array comparisons
 
 
-def make_nancomp(op) -> Callable:
+def make_nancomp(op):
     def f(x, y):
         xmask = isna(x)
         ymask = isna(y)
@@ -1409,7 +1407,7 @@ nanne = make_nancomp(operator.ne)
 
 
 def _nanpercentile_1d(
-    values: np.ndarray, mask: np.ndarray, q, na_value: Scalar, interpolation: str
+    values: np.ndarray, mask: np.ndarray, q, na_value: Scalar, interpolation
 ) -> Union[Scalar, np.ndarray]:
     """
     Wrapper for np.percentile that skips missing values, specialized to
@@ -1448,7 +1446,7 @@ def nanpercentile(
     na_value,
     mask: np.ndarray,
     ndim: int,
-    interpolation: str,
+    interpolation,
 ):
     """
     Wrapper for np.percentile that skips missing values.
