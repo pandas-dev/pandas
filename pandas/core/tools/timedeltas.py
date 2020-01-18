@@ -113,9 +113,10 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
 
     try:
         result = Timedelta(r, unit)
-    except ValueError:
+    except ValueError as err:
         if errors == "raise":
-            raise
+            msg = f"{err.args[0]}. You can coerce to NaT by passing errors='coerce'"
+            raise ValueError(msg) from err
         elif errors == "ignore":
             return r
 
