@@ -2611,7 +2611,7 @@ Keep all original indices and data
     )
     @Appender(generic._shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
-        self, other, axis=1, keep_indices=False, keep_values=False
+        self, other: "Series", axis=1, keep_indices=False, keep_values=False
     ) -> FrameOrSeries:
         return super().differences(
             other=other, axis=axis, keep_indices=keep_indices, keep_values=keep_values
