@@ -133,9 +133,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
--
-
+- Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with ``func='fillna'`` (:issue:`30918`)
 
 Reshaping
 ^^^^^^^^^
