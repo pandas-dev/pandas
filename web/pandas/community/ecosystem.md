@@ -84,19 +84,16 @@ pandas with the option to perform statistical estimation while plotting,
 aggregating across observations and visualizing the fit of statistical
 models to emphasize patterns in a dataset.
 
-### [yhat/ggpy](https://github.com/yhat/ggpy)
+### [plotnine](https://github.com/has2k1/plotnine/)
 
 Hadley Wickham's [ggplot2](https://ggplot2.tidyverse.org/) is a
 foundational exploratory visualization package for the R language. Based
 on ["The Grammar of
 Graphics"](https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html)
 it provides a powerful, declarative and extremely general way to
-generate bespoke plots of any kind of data. It's really quite
-incredible. Various implementations to other languages are available,
-but a faithful implementation for Python users has long been missing.
-Although still young (as of Jan-2014), the
-[yhat/ggpy](https://github.com/yhat/ggpy) project has been progressing
-quickly in that direction.
+generate bespoke plots of any kind of data.
+Various implementations to other languages are available.
+A good implementation for Python users is [has2k1/plotnine](https://github.com/has2k1/plotnine/).
 
 ### [IPython Vega](https://github.com/vega/ipyvega)
 
