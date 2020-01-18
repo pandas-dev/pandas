@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs import index as libindex, lib
@@ -38,6 +40,9 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.ops import get_op_result_name
 
+if TYPE_CHECKING:
+    from pandas import Series
+
 _num_index_shared_docs = dict()
 
 
@@ -52,6 +57,7 @@ class NumericIndex(Index):
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
+        name = maybe_extract_name(name, data, cls)
 
         # Coerce to ndarray if not already ndarray or Index
         if not isinstance(data, (np.ndarray, Index)):
@@ -77,7 +83,7 @@ class NumericIndex(Index):
             # GH#13601, GH#20285, GH#27125
             raise ValueError("Index data must be 1-dimensional")
 
-        name = maybe_extract_name(name, data, cls)
+        subarr = np.asarray(subarr)
         return cls._simple_new(subarr, name=name)
 
     @classmethod
@@ -438,17 +444,18 @@ class Float64Index(NumericIndex):
         )
         return formatter.get_result_as_array()
 
-    def get_value(self, series, key):
+    def get_value(self, series: "Series", key):
         """
         We always want to get an index value, never a value.
         """
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = com.values_from_object(key)
-        loc = self.get_loc(k)
-        new_values = com.values_from_object(series)[loc]
+        loc = self.get_loc(key)
+        if not is_scalar(loc):
+            return series.iloc[loc]
 
+        new_values = series._values[loc]
         return new_values
 
     def equals(self, other) -> bool:
