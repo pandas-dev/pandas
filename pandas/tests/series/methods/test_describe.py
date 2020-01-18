@@ -57,13 +57,14 @@ class TestSeriesDescribe:
         expected = Series(
             [
                 5,
-                5,
-                s.value_counts().index[0],
-                1,
+                Timestamp(2018, 1, 3).tz_localize(tz),
                 start.tz_localize(tz),
+                s[1],
+                s[2],
+                s[3],
                 end.tz_localize(tz),
             ],
             name=name,
-            index=["count", "unique", "top", "freq", "first", "last"],
+            index=["count", "mean", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)
