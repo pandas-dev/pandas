@@ -2755,7 +2755,7 @@ def test_concat_sparse():
 @pytest.mark.parametrize("axis", [0, 1])
 def test_concat_copy_index(axis):
     # GH 29879
-    df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+   df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
     df_comb = pd.concat([df, df], axis=axis, copy=True)
     ser = df["a"]
     ser_comb = pd.concat([ser, ser], axis=axis, copy=True)
