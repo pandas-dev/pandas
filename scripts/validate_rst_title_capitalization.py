@@ -11,7 +11,6 @@ NOTE: Run from the root directory of pandas repository
 
 Examples:
 ./scripts/validate_rst_title_capitalization.py doc/source/development/contributing.rst
-./scripts/validate_rst_title_capitalization.py doc/source/index.rst doc/source/ecosystem.rst
 ./scripts/validate_rst_title_capitalization.py doc/source/
 
 Files that cannot be validated: (code crashes when validating for some reason)
@@ -33,7 +32,8 @@ import os
 from os import walk
 from typing import Generator, List, Tuple
 
-class suppress_stdout_stderr(object):
+
+class suppress_stdout_stderr:
     '''
     Code source:
     https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
@@ -52,19 +52,19 @@ class suppress_stdout_stderr(object):
     '''
     def __init__(self):
         # Open a pair of null files
-        self.null_fds =  [os.open(os.devnull,os.O_RDWR) for x in range(2)]
+        self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
         # Save the actual stdout (1) and stderr (2) file descriptors.
         self.save_fds = [os.dup(1), os.dup(2)]
 
     def __enter__(self):
         # Assign the null pointers to stdout and stderr.
-        os.dup2(self.null_fds[0],1)
-        os.dup2(self.null_fds[1],2)
+        os.dup2(self.null_fds[0], 1)
+        os.dup2(self.null_fds[1], 2)
 
     def __exit__(self, *_):
         # Re-assign the real stdout/stderr back to (1) and (2)
-        os.dup2(self.save_fds[0],1)
-        os.dup2(self.save_fds[1],2)
+        os.dup2(self.save_fds[0], 1)
+        os.dup2(self.save_fds[1], 2)
         # Close all file descriptors
         for fd in self.null_fds + self.save_fds:
             os.close(fd)
@@ -72,7 +72,7 @@ class suppress_stdout_stderr(object):
 
 # Keynames that would not follow capitalization convention
 CAPITALIZATION_EXCEPTIONS = {
-    'pandas', 'Python', 'IPython','PyTables', 'Excel', 'JSON',
+    'pandas', 'Python', 'IPython', 'PyTables', 'Excel', 'JSON',
     'HTML', 'SAS', 'SQL', 'BigQuery', 'STATA', 'Interval', 'PEP8',
     'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub', 'NumPy',
     'Apache', 'Arrow', 'Parquet', 'Triage', 'MultiIndex', 'NumFOCUS', 'sklearn-pandas'
@@ -92,7 +92,8 @@ listOfMarkers = {'emphasis', 'strong', 'reference', 'literal'}
 cannotValidate = ['doc/source/user_guide/io.rst', 'doc/source/whatsnew/v0.17.1.rst']
 
 # Error Message:
-errMessage = "Heading capitalization formatted incorrectly. Please correctly capitalize"
+errMessage = 'Heading capitalization formatted incorrectly. Please correctly capitalize'
+
 
 def followCapitalizationConvention(title: str) -> bool:
     '''
@@ -104,7 +105,7 @@ def followCapitalizationConvention(title: str) -> bool:
     '''
 
     # split with delimiters comma, semicolon and space, parentheses, colon, slashes
-    wordList = re.split(r'[;,/():\s]\s*', title) # followed by any amount of extra whitespace.
+    wordList = re.split(r'[;,/():\s]\s*', title)
 
     # Edge Case: First word is an empty string
     if (len(wordList[0]) == 0):
@@ -137,6 +138,7 @@ def followCapitalizationConvention(title: str) -> bool:
     # Returning True if the heading follows the capitalization convention
     return True
 
+
 def findLineNumber(node: docutils.nodes) -> int:
     '''
     Recursive method that finds the line number in a document for a particular node
@@ -149,10 +151,11 @@ def findLineNumber(node: docutils.nodes) -> int:
     '''
     if (node.tagname == 'document'):
         return 1
-    elif (node.line == None):
+    elif (node.line is None):
         return findLineNumber(node.parent)
     else:
         return node.line - 1
+
 
 def parseRST(rstFile: str) -> docutils.nodes.document:
     '''
@@ -169,19 +172,21 @@ def parseRST(rstFile: str) -> docutils.nodes.document:
     # Set up default settings for the document tree
     settings = docutils.frontend.OptionParser(
         components=(docutils.parsers.rst.Parser,)
-        ).get_default_values()
+    ).get_default_values()
 
     # Initialize an empty document tree with the default settings from above
     document = docutils.utils.new_document('Document', settings)
 
-    # Parse the input string into an RST document tree, suppressing any stdout from the parse method
+    # Parse input into an RST doctree, suppressing any stdout from parse method
     with suppress_stdout_stderr():
         parser.parse(input, document)
 
     # Return the root node of the document tree
     return document
 
-def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[str], List[int], None]:
+
+def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[
+        List[str], List[int], None]:
     '''
     Algorithm to identify particular text nodes as headings
     along with the text node's line number.
@@ -192,9 +197,9 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[
 
     However, the problem occurs when we encounter text that has been either
     italicized, bolded, referenced, etc.  In these situations, the tagname of
-    the parent node could be one of the following: 'emphasis', 'strong', 'reference', 'literal',
-    stored in the 'listOfMarkers' set variable.  In this situation, the node's
-    grandparent would have the 'title' tagname instead.
+    the parent node could be one of the following: 'emphasis', 'strong',
+    'reference', and 'literal', stored in the 'listOfMarkers' set variable.  In
+    this situation, the node's grandparent would have the 'title' tagname instead.
 
     Let's see an example that can cause a problem.  The heading provided will be
     'Looking at *pandas* docs' versus 'Looking at pandas docs'. In this example,
@@ -203,7 +208,7 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[
 
           'Looking at *pandas* docs'                 'Looking at pandas docs'
                     title                                     title
-                /     |      \                                  |
+                /     |       |                                 |
             #text   emphasis  #text          VS               #text
               |       |        |                                |
      'Looking at'   #text    'docs'                    'Looking at pandas docs'
@@ -225,7 +230,7 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[
 
     '''
 
-    # Initialize an empty string.  myText will be used to construct headings and append into titleList
+    # myText will be used to construct headings and append into titleList
     myText: str = ""
 
     # A docutils.nodes object that stores a listOfMarkers text's grandparent node,
@@ -239,7 +244,7 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[
     # titleList is the list of headings that is encountered in the doctree
     titleList: List[str] = []
 
-    # A list of line numbers that the corresponding headings in titleList can be found at
+    # List of line numbers that corresponding headings in titleList can be found at
     lineNumberList: List[int] = []
 
     # Traverse through the nodes.Text in the document tree to construct headings
@@ -258,12 +263,12 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[
                 beforeMarker = False
         # Case 2: Encounter a node with parent tagname in listOfMarkers
         elif (node.parent.parent.tagname == 'title' and
-            node.parent.tagname in listOfMarkers):
+                node.parent.tagname in listOfMarkers):
             lineno = findLineNumber(node)
             myText = myText + node.astext()
             beforeMarker = True
             markerGrandparent = node.parent.parent
-        # Case 3: Encounter a node with parent tagname from none of the above (Ex. 'paragraph' tagname)
+        # Case 3: Encounter parent tagname of none of the above (Ex. 'paragraph')
         else:
             beforeMarker = False
             if (myText != ""):
@@ -272,13 +277,14 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[List[
                 myText = ""
                 lineno = 0
 
-    # Sometimes, there is leftover string that hasn't been appended yet due to how the for loop works
+    # Leftover string that hasn't been appended yet due to how the for loop works
     if (myText != ""):
         titleList.append(myText)
         lineNumberList.append(lineno)
 
     # Return a list of the headings and a list of their corresponding line numbers
     return titleList, lineNumberList
+
 
 def fillBadTitleDictionary(rstFile: str) -> None:
     '''
@@ -298,10 +304,10 @@ def fillBadTitleDictionary(rstFile: str) -> None:
     # Parse rstFile with an RST parser
     document = parseRST(rstFile)
 
-    # Produce a list of headings along with their line numbers from the root document node
+    # Make a list of headings along with their line numbers from document tree
     titleList, lineNumberList = findBadTitlesInDoctree(document)
 
-    # Append the badTitleDictionary if the capitalization convention for a heading is not followed
+    # Append the badTitleDictionary if the capitalization convention not followed
     for i in range(len(titleList)):
         if not followCapitalizationConvention(titleList[i]):
             if rstFile not in badTitleDictionary:
@@ -319,7 +325,7 @@ def createRSTDirectoryList(source_paths: List[str]) -> List[str]:
     # List of .rst file paths
     f = []
 
-    # Loop through source_paths.  If address is a folder, recursively look through the folder for .rst files
+    # Loop through source_paths, recursively looking for .rst files
     for directoryAddress in source_paths:
         if not os.path.exists(directoryAddress):
             raise ValueError(
@@ -335,6 +341,7 @@ def createRSTDirectoryList(source_paths: List[str]) -> List[str]:
 
     # Return the filled up list of .rst file paths
     return f
+
 
 def main(source_paths: List[str], output_format: str) -> bool:
     '''
@@ -357,14 +364,16 @@ def main(source_paths: List[str], output_format: str) -> bool:
     print()
     for key in badTitleDictionary:
         for titles in badTitleDictionary[key]:
-            print(key + ":" + str(titles[1]) + ": " + errMessage + " \"" + titles[0] + "\"")
+            print(key + ":" + str(titles[1]) + ": " + errMessage
+                + " \"" + titles[0] + "\""
+            )
 
     # Exit status of 1
     return True
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description = 'Validate capitalization for document headings')
+    parser = argparse.ArgumentParser(description='Validate heading capitalization')
 
     parser.add_argument(
         "paths", nargs="+", default=".", help="Source paths of file/directory to check."
