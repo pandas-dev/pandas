@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
 
@@ -107,7 +107,6 @@ def test_write_append_mode(ext, mode, expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
 
 
-@pytest.mark.xfail(openpyxl.__version__ > "3.0.1", reason="broken change in openpyxl")
 def test_to_excel_with_openpyxl_engine(ext, tmpdir):
     # GH 29854
     # TODO: Fix this once newer version of openpyxl fixes the bug

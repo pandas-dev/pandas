@@ -4,13 +4,14 @@ similar to how we have a Groupby object.
 """
 from datetime import timedelta
 from functools import partial
+import inspect
 from textwrap import dedent
 from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
 import pandas._libs.window.aggregations as window_aggregations
-import pandas._libs.window.indexers as window_indexers
+from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -23,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
@@ -35,20 +35,25 @@ from pandas.core.dtypes.generic import (
     ABCTimedeltaIndex,
 )
 
-from pandas._typing import Axis, FrameOrSeries, Scalar
 from pandas.core.base import DataError, PandasObject, SelectionMixin, ShallowMixin
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.window.common import (
     WindowGroupByMixin,
     _doc_template,
     _flex_binary_moment,
-    _offset,
     _shared_docs,
-    _use_window,
-    _zsqrt,
+    calculate_center_offset,
     calculate_min_periods,
+    get_weighted_roll_func,
+    zsqrt,
 )
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    FixedWindowIndexer,
+    VariableWindowIndexer,
+)
+from pandas.core.window.numba_ import generate_numba_apply_func
 
 
 class _Window(PandasObject, ShallowMixin, SelectionMixin):
@@ -87,6 +92,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
+        self._numba_func_cache: Dict[Optional[str], Callable] = dict()
 
     @property
     def _constructor(self):
@@ -104,7 +110,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def is_freq_type(self) -> bool:
         return self.win_type == "freq"
 
-    def validate(self):
+    def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None and not is_integer(self.min_periods):
@@ -117,7 +123,27 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         ]:
             raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
         if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
-            raise TypeError("invalid type: {}".format(type(self)))
+            raise TypeError(f"invalid type: {type(self)}")
+        if isinstance(self.window, BaseIndexer):
+            self._validate_get_window_bounds_signature(self.window)
+
+    @staticmethod
+    def _validate_get_window_bounds_signature(window: BaseIndexer) -> None:
+        """
+        Validate that the passed BaseIndexer subclass has
+        a get_window_bounds with the correct signature.
+        """
+        get_window_bounds_signature = inspect.signature(
+            window.get_window_bounds
+        ).parameters.keys()
+        expected_signature = inspect.signature(
+            BaseIndexer().get_window_bounds
+        ).parameters.keys()
+        if get_window_bounds_signature != expected_signature:
+            raise ValueError(
+                f"{type(window).__name__} does not implement the correct signature for "
+                f"get_window_bounds"
+            )
 
     def _create_blocks(self):
         """
@@ -157,14 +183,14 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 self._selection = key
         return self
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
 
         raise AttributeError(
-            "%r object has no attribute %r" % (type(self).__name__, attr)
+            f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
 
     def _dir_additions(self):
@@ -200,6 +226,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         -------
         window : int
         """
+        if isinstance(self.window, BaseIndexer):
+            return self.min_periods or 0
         return self.window
 
     @property
@@ -211,31 +239,17 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         Provide a nice str repr of our rolling object.
         """
 
-        attrs = (
-            "{k}={v}".format(k=k, v=getattr(self, k))
-            for k in self._attributes
-            if getattr(self, k, None) is not None
+        attrs_list = (
+            f"{attr_name}={getattr(self, attr_name)}"
+            for attr_name in self._attributes
+            if getattr(self, attr_name, None) is not None
         )
-        return "{klass} [{attrs}]".format(
-            klass=self._window_type, attrs=",".join(attrs)
-        )
+        attrs = ",".join(attrs_list)
+        return f"{self._window_type} [{attrs}]"
 
     def __iter__(self):
         url = "https://github.com/pandas-dev/pandas/issues/11704"
-        raise NotImplementedError("See issue #11704 {url}".format(url=url))
-
-    def _get_index(self) -> Optional[np.ndarray]:
-        """
-        Return integer representations as an ndarray if index is frequency.
-
-        Returns
-        -------
-        None or ndarray
-        """
-
-        if self.is_freq_type:
-            return self._on.asi8
-        return None
+        raise NotImplementedError(f"See issue #11704 {url}")
 
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
@@ -250,15 +264,14 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             values = ensure_float64(values)
         elif needs_i8_conversion(values.dtype):
             raise NotImplementedError(
-                "ops for {action} for this "
-                "dtype {dtype} are not "
-                "implemented".format(action=self._window_type, dtype=values.dtype)
+                f"ops for {self._window_type} for this "
+                f"dtype {values.dtype} are not implemented"
             )
         else:
             try:
                 values = ensure_float64(values)
             except (ValueError, TypeError):
-                raise TypeError("cannot handle this type -> {0}".format(values.dtype))
+                raise TypeError(f"cannot handle this type -> {values.dtype}")
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -277,17 +290,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         index = obj.index
 
         if isinstance(result, np.ndarray):
-
-            # coerce if necessary
-            if block is not None:
-                if is_timedelta64_dtype(block.values.dtype):
-                    # TODO: do we know what result.dtype is at this point?
-                    #  i.e. can we just do an astype?
-                    from pandas import to_timedelta
-
-                    result = to_timedelta(result.ravel(), unit="ns").values.reshape(
-                        result.shape
-                    )
 
             if result.ndim == 1:
                 from pandas import Series
@@ -357,14 +359,11 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument dimensions")
 
-        offset = _offset(window, True)
+        offset = calculate_center_offset(window)
         if offset > 0:
-            if isinstance(result, (ABCSeries, ABCDataFrame)):
-                result = result.slice_shift(-offset, axis=self.axis)
-            else:
-                lead_indexer = [slice(None)] * result.ndim
-                lead_indexer[self.axis] = slice(offset, None)
-                result = np.copy(result[tuple(lead_indexer)])
+            lead_indexer = [slice(None)] * result.ndim
+            lead_indexer[self.axis] = slice(offset, None)
+            result = np.copy(result[tuple(lead_indexer)])
         return result
 
     def _get_roll_func(self, func_name: str) -> Callable:
@@ -383,30 +382,29 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         window_func = getattr(window_aggregations, func_name, None)
         if window_func is None:
             raise ValueError(
-                "we do not support this function "
-                "in window_aggregations.{func_name}".format(func_name=func_name)
+                f"we do not support this function in window_aggregations.{func_name}"
             )
         return window_func
 
-    def _get_cython_func_type(self, func):
+    def _get_cython_func_type(self, func: str) -> Callable:
         """
         Return a variable or fixed cython function type.
 
         Variable algorithms do not use window while fixed do.
         """
-        if self.is_freq_type:
-            return self._get_roll_func("{}_variable".format(func))
-        return partial(
-            self._get_roll_func("{}_fixed".format(func)), win=self._get_window()
-        )
+        if self.is_freq_type or isinstance(self.window, BaseIndexer):
+            return self._get_roll_func(f"{func}_variable")
+        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
-    def _get_window_indexer(self):
+    def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
+        if isinstance(self.window, BaseIndexer):
+            return self.window
         if self.is_freq_type:
-            return window_indexers.VariableWindowIndexer
-        return window_indexers.FixedWindowIndexer
+            return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
+        return FixedWindowIndexer(window_size=window)
 
     def _apply(
         self,
@@ -416,6 +414,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
+        use_numba_cache: bool = False,
         **kwargs,
     ):
         """
@@ -428,10 +427,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         func : callable function to apply
         center : bool
         require_min_periods : int
-        floor: int
-        is_weighted
-        name: str,
+        floor : int
+        is_weighted : bool
+        name : str,
             compatibility with groupby.rolling
+        use_numba_cache : bool
+            whether to cache a numba compiled function. Only available for numba
+            enabled methods (so far only apply)
         **kwargs
             additional arguments for rolling function and window function
 
@@ -444,8 +446,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
         blocks, obj = self._create_blocks()
         block_list = list(blocks)
-        index_as_array = self._get_index()
-        window_indexer = self._get_window_indexer()
+        window_indexer = self._get_window_indexer(window)
 
         results = []
         exclude: List[Scalar] = []
@@ -466,19 +467,31 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 continue
 
             # calculation function
-            offset = _offset(window, center) if center else 0
+            offset = calculate_center_offset(window) if center else 0
             additional_nans = np.array([np.nan] * offset)
 
             if not is_weighted:
 
                 def calc(x):
                     x = np.concatenate((x, additional_nans))
-                    min_periods = calculate_min_periods(
-                        window, self.min_periods, len(x), require_min_periods, floor
+                    if not isinstance(window, BaseIndexer):
+                        min_periods = calculate_min_periods(
+                            window, self.min_periods, len(x), require_min_periods, floor
+                        )
+                    else:
+                        min_periods = calculate_min_periods(
+                            self.min_periods or 1,
+                            self.min_periods,
+                            len(x),
+                            require_min_periods,
+                            floor,
+                        )
+                    start, end = window_indexer.get_window_bounds(
+                        num_values=len(x),
+                        min_periods=self.min_periods,
+                        center=self.center,
+                        closed=self.closed,
                     )
-                    start, end = window_indexer(
-                        x, window, self.closed, index_as_array
-                    ).get_window_bounds()
                     return func(x, start, end, min_periods)
 
             else:
@@ -493,6 +506,9 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 else:
                     result = calc(values)
                     result = np.asarray(result)
+
+            if use_numba_cache:
+                self._numba_func_cache[name] = func
 
             if center:
                 result = self._center_window(result, window)
@@ -759,13 +775,18 @@ class Window(_Window):
 
     Parameters
     ----------
-    window : int, or offset
+    window : int, offset, or BaseIndexer subclass
         Size of the moving window. This is the number of observations used for
         calculating the statistic. Each window will be a fixed size.
 
         If its an offset then this will be the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
+
+        If a BaseIndexer subclass is passed, calculates the window boundaries
+        based on the defined ``get_window_bounds`` method. Additional rolling
+        keyword arguments, namely `min_periods`, `center`, and
+        `closed` will be passed to `get_window_bounds`.
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
@@ -804,7 +825,7 @@ class Window(_Window):
     changed to the center of the window by setting ``center=True``.
 
     To learn more about the offsets & frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     The recognized win_types are:
 
@@ -850,6 +871,17 @@ class Window(_Window):
     2  1.5
     3  NaN
     4  NaN
+
+    Rolling sum with a window length of 2, using the 'gaussian'
+    window type (note how we need to specify std).
+
+    >>> df.rolling(2, win_type='gaussian').sum(std=3)
+              B
+    0       NaN
+    1  0.986207
+    2  2.958621
+    3       NaN
+    4       NaN
 
     Rolling sum with a window length of 2, min_periods defaults
     to the window length.
@@ -906,7 +938,11 @@ class Window(_Window):
         super().validate()
 
         window = self.window
-        if isinstance(window, (list, tuple, np.ndarray)):
+        if isinstance(window, BaseIndexer):
+            raise NotImplementedError(
+                "BaseIndexer subclasses not implemented with win_types."
+            )
+        elif isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
             if window <= 0:
@@ -917,11 +953,11 @@ class Window(_Window):
             import scipy.signal as sig
 
             if not isinstance(self.win_type, str):
-                raise ValueError("Invalid win_type {0}".format(self.win_type))
+                raise ValueError(f"Invalid win_type {self.win_type}")
             if getattr(sig, self.win_type, None) is None:
-                raise ValueError("Invalid win_type {0}".format(self.win_type))
+                raise ValueError(f"Invalid win_type {self.win_type}")
         else:
-            raise ValueError("Invalid window {0}".format(window))
+            raise ValueError(f"Invalid window {window}")
 
     def _get_win_type(self, kwargs: Dict) -> Union[str, Tuple]:
         """
@@ -958,11 +994,10 @@ class Window(_Window):
             return win_type
 
         def _pop_args(win_type, arg_names, kwargs):
-            msg = "%s window requires %%s" % win_type
             all_args = []
             for n in arg_names:
                 if n not in kwargs:
-                    raise ValueError(msg % n)
+                    raise ValueError(f"{win_type} window requires {n}")
                 all_args.append(kwargs.pop(n))
             return all_args
 
@@ -995,15 +1030,6 @@ class Window(_Window):
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
-
-    def _get_weighted_roll_func(
-        self, cfunc: Callable, check_minp: Callable, **kwargs
-    ) -> Callable:
-        def func(arg, window, min_periods=None, closed=None):
-            minp = check_minp(min_periods, len(window))
-            return cfunc(arg, window, minp, **kwargs)
-
-        return func
 
     _agg_see_also_doc = dedent(
         """
@@ -1072,7 +1098,7 @@ class Window(_Window):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_sum")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="sum", **kwargs
         )
@@ -1082,7 +1108,7 @@ class Window(_Window):
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_mean")
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="mean", **kwargs
         )
@@ -1092,7 +1118,7 @@ class Window(_Window):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
-        window_func = self._get_weighted_roll_func(window_func, _use_window)
+        window_func = get_weighted_roll_func(window_func)
         kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs
@@ -1102,7 +1128,7 @@ class Window(_Window):
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(ddof=ddof, name="std", **kwargs))
+        return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
 class _Rolling(_Window):
@@ -1156,8 +1182,6 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj = self._create_blocks()
-        # Validate the index
-        self._get_index()
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -1179,13 +1203,17 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs["apply"] = dedent(
         r"""
-    The %(name)s function's apply function.
+    Apply an arbitrary function to each %(name)s window.
 
     Parameters
     ----------
     func : function
         Must produce a single value from an ndarray input if ``raw=True``
-        or a single value from a Series if ``raw=False``.
+        or a single value from a Series if ``raw=False``. Can also accept a
+        Numba JIT function with ``engine='numba'`` specified.
+
+        .. versionchanged:: 1.0.0
+
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -1193,9 +1221,27 @@ class _Rolling_and_Expanding(_Rolling):
           objects instead.
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
+    engine : str, default 'cython'
+        * ``'cython'`` : Runs rolling apply through C-extensions from cython.
+        * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
+          Only available when ``raw`` is set to ``True``.
 
-    *args, **kwargs
-        Arguments and keyword arguments to be passed into func.
+          .. versionadded:: 1.0.0
+
+    engine_kwargs : dict, default None
+        * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+        * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+          and ``parallel`` dictionary keys. The values must either be ``True`` or
+          ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+          ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+          applied to both the ``func`` and the ``apply`` rolling aggregation.
+
+          .. versionadded:: 1.0.0
+
+    args : tuple, default None
+        Positional arguments to be passed into func.
+    kwargs : dict, default None
+        Keyword arguments to be passed into func.
 
     Returns
     -------
@@ -1206,18 +1252,65 @@ class _Rolling_and_Expanding(_Rolling):
     --------
     Series.%(name)s : Series %(name)s.
     DataFrame.%(name)s : DataFrame %(name)s.
+
+    Notes
+    -----
+    See :ref:`stats.rolling_apply` for extended documentation and performance
+    considerations for the Numba engine.
     """
     )
 
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        from pandas import Series
-
+    def apply(
+        self,
+        func,
+        raw: bool = False,
+        engine: str = "cython",
+        engine_kwargs: Optional[Dict] = None,
+        args: Optional[Tuple] = None,
+        kwargs: Optional[Dict] = None,
+    ):
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
         kwargs.pop("_level", None)
         kwargs.pop("floor", None)
         window = self._get_window()
-        offset = _offset(window, self.center)
+        offset = calculate_center_offset(window) if self.center else 0
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
+
+        if engine == "cython":
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+            apply_func = self._generate_cython_apply_func(
+                args, kwargs, raw, offset, func
+            )
+        elif engine == "numba":
+            if raw is False:
+                raise ValueError("raw must be `True` when using the numba engine")
+            if func in self._numba_func_cache:
+                # Return an already compiled version of roll_apply if available
+                apply_func = self._numba_func_cache[func]
+            else:
+                apply_func = generate_numba_apply_func(
+                    args, kwargs, func, engine_kwargs
+                )
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")
+
+        # TODO: Why do we always pass center=False?
+        # name=func for WindowGroupByMixin._apply
+        return self._apply(
+            apply_func,
+            center=False,
+            floor=0,
+            name=func,
+            use_numba_cache=engine == "numba",
+        )
+
+    def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
+        from pandas import Series
 
         window_func = partial(
             self._get_cython_func_type("roll_generic"),
@@ -1233,9 +1326,7 @@ class _Rolling_and_Expanding(_Rolling):
                 values = Series(values, index=self.obj.index)
             return window_func(values, begin, end, min_periods)
 
-        # TODO: Why do we always pass center=False?
-        # name=func for WindowGroupByMixin._apply
-        return self._apply(apply_func, center=False, floor=0, name=func)
+        return apply_func
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
@@ -1356,7 +1447,7 @@ class _Rolling_and_Expanding(_Rolling):
         window_func = self._get_cython_func_type("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
-            return _zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
+            return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
         # ddof passed again for compat with groupby.rolling
         return self._apply(
@@ -1634,12 +1725,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
     >>> # numpy returns a 2X2 array, the correlation coefficient
     >>> # is the number at entry [0][1]
-    >>> print(fmt.format(np.corrcoef(v1[:-1], v2[:-1])[0][1]))
+    >>> print(f"{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.6f}")
     0.333333
-    >>> print(fmt.format(np.corrcoef(v1[1:], v2[1:])[0][1]))
+    >>> print(f"{np.corrcoef(v1[1:], v2[1:])[0][1]:.6f}")
     0.916949
     >>> s1 = pd.Series(v1)
     >>> s2 = pd.Series(v2)
@@ -1729,9 +1819,8 @@ class Rolling(_Rolling_and_Expanding):
             return Index(self.obj[self.on])
         else:
             raise ValueError(
-                "invalid on specified as {on}, "
-                "must be a column (of DataFrame), an Index "
-                "or None".format(on=self.on)
+                f"invalid on specified as {self.on}, "
+                "must be a column (of DataFrame), an Index or None"
             )
 
     def validate(self):
@@ -1748,9 +1837,8 @@ class Rolling(_Rolling_and_Expanding):
             # we don't allow center
             if self.center:
                 raise NotImplementedError(
-                    "center is not implemented "
-                    "for datetimelike and offset "
-                    "based windows"
+                    "center is not implemented for "
+                    "datetimelike and offset based windows"
                 )
 
             # this will raise ValueError on non-fixed freqs
@@ -1762,6 +1850,9 @@ class Rolling(_Rolling_and_Expanding):
             if self.min_periods is None:
                 self.min_periods = 1
 
+        elif isinstance(self.window, BaseIndexer):
+            # Passed BaseIndexer subclass should handle all other rolling kwargs
+            return
         elif not is_integer(self.window):
             raise ValueError("window must be an integer")
         elif self.window < 0:
@@ -1780,9 +1871,7 @@ class Rolling(_Rolling_and_Expanding):
             formatted = self.on
             if self.on is None:
                 formatted = "index"
-            raise ValueError(
-                "{formatted} must be monotonic".format(formatted=formatted)
-            )
+            raise ValueError(f"{formatted} must be monotonic")
 
     def _validate_freq(self):
         """
@@ -1794,9 +1883,8 @@ class Rolling(_Rolling_and_Expanding):
             return to_offset(self.window)
         except (TypeError, ValueError):
             raise ValueError(
-                "passed window {window} is not "
-                "compatible with a datetimelike "
-                "index".format(window=self.window)
+                f"passed window {self.window} is not "
+                "compatible with a datetimelike index"
             )
 
     _agg_see_also_doc = dedent(
@@ -1881,8 +1969,23 @@ class Rolling(_Rolling_and_Expanding):
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
+    def apply(
+        self,
+        func,
+        raw=False,
+        engine="cython",
+        engine_kwargs=None,
+        args=None,
+        kwargs=None,
+    ):
+        return super().apply(
+            func,
+            raw=raw,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
 
     @Substitution(name="rolling")
     @Appender(_shared_docs["sum"])
@@ -1941,11 +2044,10 @@ class Rolling(_Rolling_and_Expanding):
     four matching the equivalent function call using `scipy.stats`.
 
     >>> arr = [1, 2, 3, 4, 999]
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
     >>> import scipy.stats
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
     -1.200000
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr[1:], bias=False):.6f}")
     3.999946
     >>> s = pd.Series(arr)
     >>> s.rolling(4).kurt()

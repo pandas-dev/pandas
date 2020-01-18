@@ -10,19 +10,11 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    SparseArray,
-)
+from pandas import Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series
+import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
 from pandas.core.internals import BlockManager, SingleBlockManager, make_block
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -1208,7 +1200,7 @@ class TestCanHoldElement:
             (operator.pow, "bool"),
         }
         if (op, dtype) in skip:
-            pytest.skip("Invalid combination {},{}".format(op, dtype))
+            pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
         s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
@@ -1224,7 +1216,17 @@ class TestCanHoldElement:
         }
 
         if (op, dtype) in invalid:
-            with pytest.raises(TypeError):
+            msg = (
+                None
+                if (dtype == "<M8[ns]" and op == operator.add)
+                or (dtype == "<m8[ns]" and op == operator.mul)
+                else (
+                    f"cannot perform __{op.__name__}__ with this "
+                    "index type: (DatetimeArray|TimedeltaArray)"
+                )
+            )
+
+            with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
@@ -1268,7 +1270,7 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array():
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.array([1, 2])
+    arr = pd.arrays.PandasArray(np.array([1, 2]))
 
     # PandasArray, no dtype
     result = make_block(arr, slice(len(arr)))

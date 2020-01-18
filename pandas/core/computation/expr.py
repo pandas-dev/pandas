@@ -3,19 +3,13 @@
 
 import ast
 from functools import partial, reduce
-from io import StringIO
-import itertools as it
-import operator
+from keyword import iskeyword
 import tokenize
 from typing import Optional, Type
 
 import numpy as np
 
 import pandas.core.common as com
-from pandas.core.computation.common import (
-    _BACKTICK_QUOTED_STRING,
-    _remove_spaces_column_name,
-)
 from pandas.core.computation.ops import (
     _LOCAL_TAG,
     BinOp,
@@ -34,36 +28,10 @@ from pandas.core.computation.ops import (
     _unary_ops_syms,
     is_term,
 )
+from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing
-
-
-def tokenize_string(source: str):
-    """
-    Tokenize a Python source code string.
-
-    Parameters
-    ----------
-    source : str
-        A Python source code string
-    """
-    line_reader = StringIO(source).readline
-    token_generator = tokenize.generate_tokens(line_reader)
-
-    # Loop over all tokens till a backtick (`) is found.
-    # Then, take all tokens till the next backtick to form a backtick quoted
-    # string.
-    for toknum, tokval, _, _, _ in token_generator:
-        if tokval == "`":
-            tokval = " ".join(
-                it.takewhile(
-                    lambda tokval: tokval != "`",
-                    map(operator.itemgetter(1), token_generator),
-                )
-            )
-            toknum = _BACKTICK_QUOTED_STRING
-        yield toknum, tokval
 
 
 def _rewrite_assign(tok):
@@ -133,31 +101,6 @@ def _replace_locals(tok):
     return toknum, tokval
 
 
-def _clean_spaces_backtick_quoted_names(tok):
-    """Clean up a column name if surrounded by backticks.
-
-    Backtick quoted string are indicated by a certain tokval value. If a string
-    is a backtick quoted token it will processed by
-    :func:`_remove_spaces_column_name` so that the parser can find this
-    string when the query is executed.
-    See also :meth:`NDFrame._get_space_character_free_column_resolver`.
-
-    Parameters
-    ----------
-    tok : tuple of int, str
-        ints correspond to the all caps constants in the tokenize module
-
-    Returns
-    -------
-    t : tuple of int, str
-        Either the input or token or the replacement values
-    """
-    toknum, tokval = tok
-    if toknum == _BACKTICK_QUOTED_STRING:
-        return tokenize.NAME, _remove_spaces_column_name(tokval)
-    return toknum, tokval
-
-
 def _compose2(f, g):
     """Compose 2 callables"""
     return lambda *args, **kwargs: f(g(*args, **kwargs))
@@ -172,10 +115,7 @@ def _compose(*funcs):
 def _preparse(
     source: str,
     f=_compose(
-        _replace_locals,
-        _replace_booleans,
-        _rewrite_assign,
-        _clean_spaces_backtick_quoted_names,
+        _replace_locals, _replace_booleans, _rewrite_assign, clean_backtick_quoted_toks
     ),
 ):
     """Compose a collection of tokenization functions
@@ -282,10 +222,9 @@ _unsupported_nodes = (
 # and we don't want `stmt` and friends in their so get only the class whose
 # names are capitalized
 _base_supported_nodes = (_all_node_names - _unsupported_nodes) | _hacked_nodes
-_msg = "cannot both support and not support {intersection}".format(
-    intersection=_unsupported_nodes & _base_supported_nodes
-)
-assert not _unsupported_nodes & _base_supported_nodes, _msg
+intersection = _unsupported_nodes & _base_supported_nodes
+_msg = f"cannot both support and not support {intersection}"
+assert not intersection, _msg
 
 
 def _node_not_implemented(node_name, cls):
@@ -312,7 +251,7 @@ def disallow(nodes):
         cls.unsupported_nodes = ()
         for node in nodes:
             new_method = _node_not_implemented(node, cls)
-            name = "visit_{node}".format(node=node)
+            name = f"visit_{node}"
             cls.unsupported_nodes += (name,)
             setattr(cls, name, new_method)
         return cls
@@ -349,13 +288,13 @@ def add_ops(op_classes):
 
     def f(cls):
         for op_attr_name, op_class in op_classes.items():
-            ops = getattr(cls, "{name}_ops".format(name=op_attr_name))
-            ops_map = getattr(cls, "{name}_op_nodes_map".format(name=op_attr_name))
+            ops = getattr(cls, f"{op_attr_name}_ops")
+            ops_map = getattr(cls, f"{op_attr_name}_op_nodes_map")
             for op in ops:
                 op_node = ops_map[op]
                 if op_node is not None:
                     made_op = _op_maker(op_class, op)
-                    setattr(cls, "visit_{node}".format(node=op_node), made_op)
+                    setattr(cls, f"visit_{op_node}", made_op)
         return cls
 
     return f
@@ -427,8 +366,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))
             except SyntaxError as e:
-                from keyword import iskeyword
-
                 if any(iskeyword(x) for x in clean.split()):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
@@ -529,8 +466,8 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         if res.has_invalid_return_type:
             raise TypeError(
-                "unsupported operand type(s) for {op}:"
-                " '{lhs}' and '{rhs}'".format(op=res.op, lhs=lhs.type, rhs=rhs.type)
+                f"unsupported operand type(s) for {res.op}: "
+                f"'{lhs.type}' and '{rhs.type}'"
             )
 
         if self.engine != "pytables":
@@ -677,7 +614,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 
-        raise ValueError("Invalid Attribute context {name}".format(name=ctx.__name__))
+        raise ValueError(f"Invalid Attribute context {ctx.__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
 
@@ -697,7 +634,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError("Invalid function call {func}".format(func=node.func.id))
+            raise ValueError(f"Invalid function call {node.func.id}")
         if hasattr(res, "value"):
             res = res.value
 
@@ -707,8 +644,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             if node.keywords:
                 raise TypeError(
-                    'Function "{name}" does not support keyword '
-                    "arguments".format(name=res.name)
+                    f'Function "{res.name}" does not support keyword arguments'
                 )
 
             return res(*new_args, **kwargs)
@@ -719,10 +655,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    raise ValueError(
-                        "keyword error in function call "
-                        "'{func}'".format(func=node.func.id)
-                    )
+                    raise ValueError(f"keyword error in function call '{node.func.id}'")
 
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value
@@ -786,9 +719,7 @@ class PandasExprVisitor(BaseExprVisitor):
         parser,
         preparser=partial(
             _preparse,
-            f=_compose(
-                _replace_locals, _replace_booleans, _clean_spaces_backtick_quoted_names
-            ),
+            f=_compose(_replace_locals, _replace_booleans, clean_backtick_quoted_toks),
         ),
     ):
         super().__init__(env, engine, parser, preparser)

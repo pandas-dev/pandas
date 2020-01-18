@@ -1,6 +1,5 @@
 import collections
 import textwrap
-import warnings
 
 import cython
 
@@ -1204,9 +1203,10 @@ class Timedelta(_Timedelta):
                                  "milliseconds, microseconds, nanoseconds]")
 
         if unit in {'Y', 'y', 'M'}:
-            warnings.warn("M and Y units are deprecated and "
-                          "will be removed in a future version.",
-                          FutureWarning, stacklevel=1)
+            raise ValueError(
+                "Units 'M' and 'Y' are no longer supported, as they do not "
+                "represent unambiguous timedelta values durations."
+            )
 
         if isinstance(value, Timedelta):
             value = value.value
@@ -1460,7 +1460,7 @@ class Timedelta(_Timedelta):
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
 
-            # Includes integer array // Timedelta, deprecated in GH#19761
+            # Includes integer array // Timedelta, disallowed in GH#19761
             raise TypeError(f'Invalid dtype {other.dtype} for __floordiv__')
 
         elif is_float_object(other) and util.is_nan(other):

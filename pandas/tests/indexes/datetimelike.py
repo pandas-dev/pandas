@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from .common import Base
 
@@ -72,7 +72,7 @@ class DatetimeLike(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: pd.Series(values, index, dtype=object),
         ],
     )
     def test_map_dictlike(self, mapper):

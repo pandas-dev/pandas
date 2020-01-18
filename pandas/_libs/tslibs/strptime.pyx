@@ -278,8 +278,8 @@ def array_strptime(object[:] values, object fmt,
                                  "the ISO year directive '%G' and a weekday "
                                  "directive '%A', '%a', '%w', or '%u'.")
             else:
-                raise ValueError("ISO week directive '%V' is incompatible with"
-                                 " the year directive '%Y'. Use the ISO year "
+                raise ValueError("ISO week directive '%V' is incompatible with "
+                                 "the year directive '%Y'. Use the ISO year "
                                  "'%G' instead.")
 
         # If we know the wk of the year and what day of that wk, we can figure
@@ -588,7 +588,7 @@ class TimeRE(dict):
         else:
             return ''
         regex = '|'.join(re.escape(stuff) for stuff in to_convert)
-        regex = f'(?P<{directive}>{regex})'
+        regex = f"(?P<{directive}>{regex})"
         return regex
 
     def pattern(self, format):

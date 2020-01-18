@@ -11,9 +11,9 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Series, isna
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 use_bn = nanops._USE_BOTTLENECK
 has_c16 = hasattr(np, "complex128")
@@ -24,7 +24,7 @@ class TestnanopsDataFrame:
         np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
-        arr_shape = (11, 7, 5)
+        arr_shape = (11, 7)
 
         self.arr_float = np.random.randn(*arr_shape)
         self.arr_float1 = np.random.randn(*arr_shape)
@@ -68,21 +68,21 @@ class TestnanopsDataFrame:
             self.arr_nan_infj = self.arr_inf * 1j
             self.arr_complex_nan_infj = np.vstack([self.arr_complex, self.arr_nan_infj])
 
-        self.arr_float_2d = self.arr_float[:, :, 0]
-        self.arr_float1_2d = self.arr_float1[:, :, 0]
+        self.arr_float_2d = self.arr_float
+        self.arr_float1_2d = self.arr_float1
 
-        self.arr_nan_2d = self.arr_nan[:, :, 0]
-        self.arr_float_nan_2d = self.arr_float_nan[:, :, 0]
-        self.arr_float1_nan_2d = self.arr_float1_nan[:, :, 0]
-        self.arr_nan_float1_2d = self.arr_nan_float1[:, :, 0]
+        self.arr_nan_2d = self.arr_nan
+        self.arr_float_nan_2d = self.arr_float_nan
+        self.arr_float1_nan_2d = self.arr_float1_nan
+        self.arr_nan_float1_2d = self.arr_nan_float1
 
-        self.arr_float_1d = self.arr_float[:, 0, 0]
-        self.arr_float1_1d = self.arr_float1[:, 0, 0]
+        self.arr_float_1d = self.arr_float[:, 0]
+        self.arr_float1_1d = self.arr_float1[:, 0]
 
-        self.arr_nan_1d = self.arr_nan[:, 0, 0]
-        self.arr_float_nan_1d = self.arr_float_nan[:, 0, 0]
-        self.arr_float1_nan_1d = self.arr_float1_nan[:, 0, 0]
-        self.arr_nan_float1_1d = self.arr_nan_float1[:, 0, 0]
+        self.arr_nan_1d = self.arr_nan[:, 0]
+        self.arr_float_nan_1d = self.arr_float_nan[:, 0]
+        self.arr_float1_nan_1d = self.arr_float1_nan[:, 0]
+        self.arr_nan_float1_1d = self.arr_nan_float1[:, 0]
 
     def teardown_method(self, method):
         nanops._USE_BOTTLENECK = use_bn
@@ -597,6 +597,14 @@ class TestnanopsDataFrame:
         targ0 = spearmanr(self.arr_float_1d, self.arr_float1_1d)[0]
         targ1 = spearmanr(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="spearman")
+
+    @td.skip_if_no_scipy
+    def test_invalid_method(self):
+        targ0 = np.corrcoef(self.arr_float_2d, self.arr_float1_2d)[0, 1]
+        targ1 = np.corrcoef(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]
+        msg = "Unkown method 'foo', expected one of 'kendall', 'spearman'"
+        with pytest.raises(ValueError, match=msg):
+            self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="foo")
 
     def test_nancov(self):
         targ0 = np.cov(self.arr_float_2d, self.arr_float1_2d)[0, 1]

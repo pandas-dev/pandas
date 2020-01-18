@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -18,8 +18,8 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import integer_array
-import pandas.util.testing as tm
 
 
 def _check_cast(df, v):
@@ -656,8 +656,8 @@ class TestDataFrameDataTypes:
         # GH 16717
         # if dtypes provided is empty, the resulting DataFrame
         # should be the same as the original DataFrame
-        dt7 = dtype_class({})
-        result = df.astype(dt7)
+        dt7 = dtype_class({}) if dtype_class is dict else dtype_class({}, dtype=object)
+        equiv = df.astype(dt7)
         tm.assert_frame_equal(df, equiv)
         tm.assert_frame_equal(df, original)
 
@@ -699,14 +699,7 @@ class TestDataFrameDataTypes:
         expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "cls",
-        [
-            pd.api.types.CategoricalDtype,
-            pd.api.types.DatetimeTZDtype,
-            pd.api.types.IntervalDtype,
-        ],
-    )
+    @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])
     def test_astype_categoricaldtype_class_raises(self, cls):
         df = DataFrame({"A": ["a", "a", "b", "c"]})
         xpr = "Expected an instance of {}".format(cls.__name__)
@@ -904,15 +897,15 @@ class TestDataFrameDataTypes:
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
         msg = (
-            r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
-            r" \[timedelta64\[{}\]\]"
+            r"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
+            r"\[timedelta64\[{}\]\]"
         ).format(unit)
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
         msg = (
-            r"cannot astype a timedelta from \[timedelta64\[ns\]\] to"
-            r" \[datetime64\[{}\]\]"
+            r"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
+            r"\[datetime64\[{}\]\]"
         ).format(unit)
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):

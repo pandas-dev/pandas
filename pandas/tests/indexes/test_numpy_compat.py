@@ -12,8 +12,8 @@ from pandas import (
     _np_version_under1p17,
     _np_version_under1p18,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(
