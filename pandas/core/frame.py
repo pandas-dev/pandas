@@ -38,7 +38,7 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib
+from pandas._libs import algos as libalgos, lib, properties
 from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
@@ -91,8 +91,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -5291,8 +5293,10 @@ class DataFrame(NDFrame):
 
         axis = self._get_axis_number(axis)
         if axis == 0:
+            assert isinstance(result.index, ABCMultiIndex)
             result.index = result.index.swaplevel(i, j)
         else:
+            assert isinstance(result.columns, ABCMultiIndex)
             result.columns = result.columns.swaplevel(i, j)
         return result
 
@@ -5319,8 +5323,10 @@ class DataFrame(NDFrame):
         result = self.copy()
 
         if axis == 0:
+            assert isinstance(result.index, ABCMultiIndex)
             result.index = result.index.reorder_levels(order)
         else:
+            assert isinstance(result.columns, ABCMultiIndex)
             result.columns = result.columns.reorder_levels(order)
         return result
 
@@ -8344,8 +8350,10 @@ Wild         185.0
 
         axis = self._get_axis_number(axis)
         if axis == 0:
+            assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
             new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
         elif axis == 1:
+            assert isinstance(self.columns, (ABCDatetimeIndex, ABCPeriodIndex))
             new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
         else:  # pragma: no cover
             raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
@@ -8378,8 +8386,10 @@ Wild         185.0
 
         axis = self._get_axis_number(axis)
         if axis == 0:
+            assert isinstance(self.index, ABCDatetimeIndex)
             new_data.set_axis(1, self.index.to_period(freq=freq))
         elif axis == 1:
+            assert isinstance(self.columns, ABCDatetimeIndex)
             new_data.set_axis(0, self.columns.to_period(freq=freq))
         else:  # pragma: no cover
             raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
@@ -8481,6 +8491,17 @@ Wild         185.0
                 self.index,
                 self.columns,
             )
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    index: "Index" = properties.AxisProperty(
+        axis=1, doc="The index (row labels) of the DataFrame."
+    )
+    NDFrame._internal_names_set.add("index")
+    columns: "Index" = properties.AxisProperty(
+        axis=0, doc="The column labels of the DataFrame."
+    )
+    NDFrame._internal_names_set.add("columns")
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
