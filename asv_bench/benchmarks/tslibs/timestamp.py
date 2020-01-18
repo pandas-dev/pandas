@@ -3,10 +3,14 @@ import datetime
 import dateutil
 import pytz
 
-from pandas import Timestamp
+from pandas import Series, Timestamp
 
 
 class TimestampConstruction:
+    def setup(self):
+        self.ts = Timestamp("2020-01-01 00:00:00")
+        self.ts_series = Series(range(10000)).astype('<M8[ns]')
+
     def time_parse_iso8601_no_tz(self):
         Timestamp("2017-08-25 08:16:14")
 
@@ -27,6 +31,12 @@ class TimestampConstruction:
 
     def time_fromtimestamp(self):
         Timestamp.fromtimestamp(1515448538)
+
+    def time_identity_scalar(self):
+        Timestamp(self.ts)
+
+    def time_identity_series_apply(self):
+        self.ts_series.apply(lambda x: Timestamp(x))
 
 
 class TimestampProperties:
