@@ -8131,9 +8131,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
 
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
-    def differences(
-        self, other, axis=1, keep_indices=False, keep_values=False
-    ) -> FrameOrSeries:
+    def differences(self, other, axis=1, keep_indices=False, keep_values=False):
         from pandas.core.reshape.concat import concat
 
         mask = ~((self == other) | (self.isna() & other.isna()))
