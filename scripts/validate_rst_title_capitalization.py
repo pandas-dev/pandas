@@ -35,7 +35,7 @@ from typing import Generator, List
 class suppress_stdout_stderr:
     '''
     Code source:
-    https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
+    https://stackoverflow.com/questions/11130156/
 
     A context manager for doing a "deep suppression" of stdout and stderr in
     Python, i.e. will suppress all print, even if the print originates in a
@@ -50,7 +50,7 @@ class suppress_stdout_stderr:
 
     '''
     def __init__(self):
-        self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
+        self.null_fds = [os.open(os.devnull, os.O_WRONLY) for x in range(2)]
         self.save_fds = [os.dup(1), os.dup(2)]
 
     def __enter__(self):
@@ -210,9 +210,8 @@ def parse_RST(rst_file: str) -> docutils.nodes.document:
     # Initialize an empty document tree with the default settings from above
     document = docutils.utils.new_document('Document', settings)
 
-    # Parse input into an RST doctree, suppressing any stdout from parse method
-    with suppress_stdout_stderr():
-        parser.parse(input, document)
+    # Parse input into an RST doctree, suppressing any stderr from parse method
+    parser.parse(input, document)
 
     # Return the root node of the document tree
     return document
@@ -423,8 +422,9 @@ def main(source_paths: List[str], output_format: str) -> bool:
     directory_list = find_rst_files(source_paths)
 
     # Fill the bad_title_dict, which contains all incorrectly capitalized headings
-    for filename in directory_list:
-        fill_bad_title_dict(filename)
+    with suppress_stdout_stderr():
+        for filename in directory_list:
+            fill_bad_title_dict(filename)
 
     # Return an exit status of 0 if there are no bad titles in the dictionary
     if (len(bad_title_dict) == 0):
