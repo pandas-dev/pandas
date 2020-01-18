@@ -743,17 +743,36 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             Array of insertion points with the same shape as `value`.
         """
         if isinstance(value, str):
-            value = self._scalar_from_string(value)
+            try:
+                value = self._scalar_from_string(value)
+            except ValueError:
+                raise TypeError("searchsorted requires compatible dtype or scalar")
 
-        if not (isinstance(value, (self._scalar_type, type(self))) or isna(value)):
-            raise ValueError(f"Unexpected type for 'value': {type(value)}")
+        elif is_valid_nat_for_dtype(value, self.dtype):
+            value = NaT
 
-        self._check_compatible_with(value)
+        elif isinstance(value, self._recognized_scalars):
+            value = self._scalar_type(value)
+
+        elif isinstance(value, np.ndarray):
+            if not type(self)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            value = type(self)(value)
+            self._check_compatible_with(value)
+
+        if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
+            raise TypeError(f"Unexpected type for 'value': {type(value)}")
+
         if isinstance(value, type(self)):
+            self._check_compatible_with(value)
             value = value.asi8
         else:
             value = self._unbox_scalar(value)
 
+        # TODO: Use datetime64 semantics for sorting, xref GH#29844
         return self.asi8.searchsorted(value, side=side, sorter=sorter)
 
     def repeat(self, repeats, *args, **kwargs):

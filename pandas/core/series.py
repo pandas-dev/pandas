@@ -744,35 +744,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
 
-    def _unpickle_series_compat(self, state) -> None:
-        if isinstance(state, dict):
-            self._data = state["_data"]
-            self.name = state["name"]
-            self.index = self._data.index
-
-        elif isinstance(state, tuple):
-
-            # < 0.12 series pickle
-
-            nd_state, own_state = state
-
-            # recreate the ndarray
-            data = np.empty(nd_state[1], dtype=nd_state[2])
-            np.ndarray.__setstate__(data, nd_state)
-
-            # backwards compat
-            index, name = own_state[0], None
-            if len(own_state) > 1:
-                name = own_state[1]
-
-            # recreate
-            self._data = SingleBlockManager(data, index, fastpath=True)
-            self._index = index
-            self.name = name
-
-        else:
-            raise Exception(f"cannot unpickle legacy formats -> [{state}]")
-
     # indexers
     @property
     def axes(self) -> List[Index]:
@@ -837,6 +808,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
+
+        if key is Ellipsis:
+            return self
+
         try:
             result = self.index.get_value(self, key)
 
@@ -859,8 +834,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                 # kludge
                 pass
-            elif key is Ellipsis:
-                return self
             elif com.is_bool_indexer(key):
                 pass
             else:
@@ -968,7 +941,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if takeable:
             return com.maybe_box_datetimelike(self._values[label])
-        return self.index.get_value(self._values, label)
+        return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)

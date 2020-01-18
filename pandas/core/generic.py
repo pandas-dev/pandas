@@ -1928,9 +1928,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         object.__setattr__(self, k, v)
 
             else:
-                self._unpickle_series_compat(state)
+                raise NotImplementedError("Pre-0.12 pickles are no longer supported")
         elif len(state) == 2:
-            self._unpickle_series_compat(state)
+            raise NotImplementedError("Pre-0.12 pickles are no longer supported")
 
         self._item_cache = {}
 
@@ -3174,19 +3174,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return None
 
     # ----------------------------------------------------------------------
-    # Fancy Indexing
-
-    @classmethod
-    def _create_indexer(cls, name: str, indexer) -> None:
-        """Create an indexer like _name in the class.
-
-        Kept for compatibility with geopandas. To be removed in the future. See GH27258
-        """
-        if getattr(cls, name, None) is None:
-            _indexer = functools.partial(indexer, name)
-            setattr(cls, name, property(_indexer, doc=indexer.__doc__))
-
-    # ----------------------------------------------------------------------
     # Lookup Caching
 
     def _set_as_cached(self, item, cacher) -> None:
@@ -3579,14 +3566,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._data.set(key, value)
         self._clear_item_cache()
 
-    def _set_is_copy(self, ref=None, copy: bool_t = True) -> None:
+    def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
             self._is_copy = None
         else:
-            if ref is not None:
-                self._is_copy = weakref.ref(ref)
-            else:
-                self._is_copy = None
+            assert ref is not None
+            self._is_copy = weakref.ref(ref)
 
     def _check_is_chained_assignment_possible(self) -> bool_t:
         """
