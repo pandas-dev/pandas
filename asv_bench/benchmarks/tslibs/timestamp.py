@@ -9,7 +9,7 @@ from pandas import Series, Timestamp
 class TimestampConstruction:
     def setup(self):
         self.ts = Timestamp("2020-01-01 00:00:00")
-        self.ts_series = Series(range(10000)).astype('<M8[ns]')
+        self.ts_series = Series(range(10000)).astype("<M8[ns]")
 
     def time_parse_iso8601_no_tz(self):
         Timestamp("2017-08-25 08:16:14")
