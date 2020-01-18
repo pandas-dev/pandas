@@ -1158,9 +1158,9 @@ class TestReadHtml:
             assert len(dfs) == 1  # Should not parse hidden table
 
     def test_encode(self, html_encoding_file):
-        _, encoding = os.path.splitext(os.path.basename(html_encoding_file))[0].split(
-            "_"
-        )
+        base_path = os.path.basename(html_encoding_file)
+        root = os.path.splitext(base_path)[0]
+        _, encoding = root.split("_")
 
         try:
             with open(html_encoding_file, "rb") as fobj:
@@ -1183,7 +1183,7 @@ class TestReadHtml:
             if is_platform_windows():
                 if "16" in encoding or "32" in encoding:
                     pytest.skip()
-                raise
+            raise
 
     def test_parse_failure_unseekable(self):
         # Issue #17975
