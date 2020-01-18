@@ -5052,7 +5052,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(self, label, side, kind) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
