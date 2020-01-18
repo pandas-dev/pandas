@@ -117,7 +117,9 @@ def pivot_table(
                 agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
-    if table.index.nlevels > 1:
+
+    # GH17038, this check should only happen if index is defined (not None)
+    if table.index.nlevels > 1 and index:
         # Related GH #17123
         # If index_names are integers, determine whether the integers refer
         # to the level position or name.
@@ -579,6 +581,8 @@ def crosstab(
     from pandas import DataFrame
 
     df = DataFrame(data, index=common_idx)
+    original_df_cols = df.columns
+
     if values is None:
         df["__dummy__"] = 0
         kwargs = {"aggfunc": len, "fill_value": 0}
@@ -587,7 +591,7 @@ def crosstab(
         kwargs = {"aggfunc": aggfunc}
 
     table = df.pivot_table(
-        "__dummy__",
+        ["__dummy__"],
         index=rownames,
         columns=colnames,
         margins=margins,
@@ -595,6 +599,12 @@ def crosstab(
         dropna=dropna,
         **kwargs,
     )
+
+    # GH18321, after pivoting, an extra top level of column index of `__dummy__` is
+    # created, and this extra level should not be included in the further steps
+    if not table.empty:
+        cols_diff = df.columns.difference(original_df_cols)[0]
+        table = table[cols_diff]
 
     # Post-process
     if normalize is not False:

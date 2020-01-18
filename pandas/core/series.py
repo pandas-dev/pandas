@@ -70,7 +70,6 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
-from pandas.core.groupby import generic as groupby_generic
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -94,6 +93,7 @@ import pandas.plotting
 
 if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
+    from pandas.core.groupby.generic import SeriesGroupBy
 
 __all__ = ["Series"]
 
@@ -701,7 +701,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         numpy.ndarray
-            The values in the series converted to a :class:`numpy.ndarary`
+            The values in the series converted to a :class:`numpy.ndarray`
             with the specified `dtype`.
 
         See Also
@@ -743,35 +743,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
-
-    def _unpickle_series_compat(self, state) -> None:
-        if isinstance(state, dict):
-            self._data = state["_data"]
-            self.name = state["name"]
-            self.index = self._data.index
-
-        elif isinstance(state, tuple):
-
-            # < 0.12 series pickle
-
-            nd_state, own_state = state
-
-            # recreate the ndarray
-            data = np.empty(nd_state[1], dtype=nd_state[2])
-            np.ndarray.__setstate__(data, nd_state)
-
-            # backwards compat
-            index, name = own_state[0], None
-            if len(own_state) > 1:
-                name = own_state[1]
-
-            # recreate
-            self._data = SingleBlockManager(data, index, fastpath=True)
-            self._index = index
-            self.name = name
-
-        else:
-            raise Exception(f"cannot unpickle legacy formats -> [{state}]")
 
     # indexers
     @property
@@ -1404,8 +1375,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # catch contract violations
         if not isinstance(result, str):
             raise AssertionError(
-                "result must be of type str, type"
-                f" of result is {repr(type(result).__name__)}"
+                "result must be of type str, type "
+                f"of result is {repr(type(result).__name__)}"
             )
 
         if buf is None:
@@ -1634,13 +1605,14 @@ Name: Max Speed, dtype: float64
         group_keys: bool = True,
         squeeze: bool = False,
         observed: bool = False,
-    ) -> "groupby_generic.SeriesGroupBy":
+    ) -> "SeriesGroupBy":
+        from pandas.core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
-        return groupby_generic.SeriesGroupBy(
+        return SeriesGroupBy(
             obj=self,
             keys=by,
             axis=axis,
