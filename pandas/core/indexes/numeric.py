@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs import index as libindex, lib
@@ -37,6 +39,9 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 from pandas.core.ops import get_op_result_name
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 _num_index_shared_docs = dict()
 
@@ -438,17 +443,18 @@ class Float64Index(NumericIndex):
         )
         return formatter.get_result_as_array()
 
-    def get_value(self, series, key):
+    def get_value(self, series: "Series", key):
         """
         We always want to get an index value, never a value.
         """
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = com.values_from_object(key)
-        loc = self.get_loc(k)
-        new_values = com.values_from_object(series)[loc]
+        loc = self.get_loc(key)
+        if not is_scalar(loc):
+            return series.iloc[loc]
 
+        new_values = series._values[loc]
         return new_values
 
     def equals(self, other) -> bool:

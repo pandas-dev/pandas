@@ -808,6 +808,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
+
+        if key is Ellipsis:
+            return self
+
         try:
             result = self.index.get_value(self, key)
 
@@ -830,8 +834,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                 # kludge
                 pass
-            elif key is Ellipsis:
-                return self
             elif com.is_bool_indexer(key):
                 pass
             else:
@@ -939,7 +941,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if takeable:
             return com.maybe_box_datetimelike(self._values[label])
-        return self.index.get_value(self._values, label)
+        return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
