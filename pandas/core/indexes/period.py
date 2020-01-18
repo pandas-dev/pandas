@@ -250,8 +250,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             freq = Period._maybe_convert_freq(freq)
         values = PeriodArray(values, freq=freq)
 
-        if not isinstance(values, PeriodArray):
-            raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
         result = object.__new__(cls)
         result._data = values
         # For groupby perf. See note in indexes/base about _index_data
