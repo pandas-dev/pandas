@@ -8103,7 +8103,37 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
-    def differences(self, other, axis=1, keep_indices=False, keep_values=False):
+    _shared_docs[
+        "differences"
+    ] = """
+        Compare to another %(klass)s and show the differences.
+
+        The axis on which to stack results and how much information to
+        preserve can be customized.
+
+        Note that NaNs are considered not different from other NaNs.
+
+        Parameters
+        ----------
+        other : %(klass)s
+            Object to compare with.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 1
+            Determine how the differences are stacked.
+            * 0, or 'index' : Stack differences on neighbouring rows.
+            * 1, or 'columns' : Stack differences on neighbouring columns.
+
+        keep_indices : bool, default False
+            Whether to keep the rows and columns that are equal, or drop them.
+
+        keep_values : bool, default False
+            Whether to keep the values that are equal, or show as NaNs.
+        """
+
+    @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
+    def differences(
+        self, other, axis=1, keep_indices=False, keep_values=False
+    ) -> FrameOrSeries:
         from pandas.core.reshape.concat import concat
 
         mask = ~((self == other) | (self.isna() & other.isna()))

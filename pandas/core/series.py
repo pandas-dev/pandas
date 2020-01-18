@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
-from pandas._typing import Label
+from pandas._typing import Label, FrameOrSeries
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -2555,82 +2555,64 @@ Name: Max Speed, dtype: float64
         ret = ops._construct_result(self, result, new_index, name)
         return ret
 
-    def differences(self, other, axis=1, keep_indices=False, keep_values=False):
+    @Appender(
         """
-        Compare to another Series and show the differences.
+Returns
+-------
+Series or DataFrame
+    If axis is 0 or 'index' the result will be a Series.
+    If axis is 1 or 'columns' the result will be a DataFrame.
 
-        The axis on which to stack results and how much information to
-        preserve can be customized.
+See Also
+--------
+DataFrame.differences: Show differences.
 
-        Note that NaNs are considered not different from other NaNs.
+Examples
+--------
+>>> s1 = pd.Series(["a", "b", "c", "d", "e"])
+>>> s2 = pd.Series(["a", "a", "c", "b", "e"])
 
-        Parameters
-        ----------
-        other : Series
-            Object to compare with.
+Stack the differences on columns
 
-        axis : {0 or 'index', 1 or 'columns'}, default 1
-            Determine how the differences are stacked.
-            * 0, or 'index' : Stack differences on neighbouring indices.
-            * 1, or 'columns' : Stack differences on neighbouring columns.
+>>> s1.differences(s2)
+  self other
+1    b     a
+3    d     b
 
-        keep_indices : bool, default False
-            Whether to keep the indices that are equal, or drop them.
+Stack the differences on indices
 
-        keep_values : bool, default False
-            Whether to keep the values that are equal, or show as NaNs.
+>>> s1.differences(s2, axis=0)
+1  self     b
+   other    a
+3  self     d
+   other    b
+dtype: object
 
-        Returns
-        -------
-        Series or DataFrame
-            If axis is 0 or 'index' the result will be a Series.
-            If axis is 1 or 'columns' the result will be a DataFrame.
+Keep all the original indices
 
-        See Also
-        --------
-        DataFrame.differences: Show differences.
+>>> s1.differences(s2, keep_indices=True)
+  self other
+0  NaN   NaN
+1    b     a
+2  NaN   NaN
+3    d     b
+4  NaN   NaN
 
-        Examples
-        --------
-        >>> s1 = pd.Series(["a", "b", "c", "d", "e"])
-        >>> s2 = pd.Series(["a", "a", "c", "b", "e"])
+Keep all original indices and data
 
-        Stack the differences on columns
-
-        >>> s1.differences(s2)
-          self other
-        1    b     a
-        3    d     b
-
-        Stack the differences on indices
-
-        >>> s1.differences(s2, axis=0)
-        1  self     b
-           other    a
-        3  self     d
-           other    b
-        dtype: object
-
-        Keep all the original indices
-
-        >>> s1.differences(s2, keep_indices=True)
-          self other
-        0  NaN   NaN
-        1    b     a
-        2  NaN   NaN
-        3    d     b
-        4  NaN   NaN
-
-        Keep all original indices and data
-
-        >>> s1.differences(s2, keep_indices=True, keep_values=True)
-          self other
-        0    a     a
-        1    b     a
-        2    c     c
-        3    d     b
-        4    e     e
-        """
+>>> s1.differences(s2, keep_indices=True, keep_values=True)
+  self other
+0    a     a
+1    b     a
+2    c     c
+3    d     b
+4    e     e
+"""
+    )
+    @Appender(generic._shared_docs["differences"] % _shared_doc_kwargs)
+    def differences(
+        self, other, axis=1, keep_indices=False, keep_values=False
+    ) -> FrameOrSeries:
         return super().differences(
             other=other, axis=axis, keep_indices=keep_indices, keep_values=keep_values
         )
