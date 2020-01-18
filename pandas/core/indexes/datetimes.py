@@ -5,7 +5,14 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, Timestamp, index as libindex, lib, tslib as libts
+from pandas._libs import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    index as libindex,
+    lib,
+    tslib as libts,
+)
 from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
@@ -31,7 +38,7 @@ from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
 from pandas.tseries.frequencies import Resolution, to_offset
-from pandas.tseries.offsets import Nano, prefix_mapping
+from pandas.tseries.offsets import prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):
@@ -253,7 +260,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             ambiguous=ambiguous,
         )
 
-        subarr = cls._simple_new(dtarr, name=name, freq=dtarr.freq, tz=dtarr.tz)
+        subarr = cls._simple_new(dtarr, name=name)
         return subarr
 
     @classmethod
@@ -272,10 +279,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             values = DatetimeArray(values, freq=freq, dtype=dtype)
             tz = values.tz
             freq = values.freq
-            values = values._data
-
-        # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
-        if isinstance(values, DatetimeIndex):
             values = values._data
 
         dtype = tz_to_dtype(tz)
@@ -519,27 +522,27 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             raise KeyError
         if reso == "year":
             start = Timestamp(parsed.year, 1, 1)
-            end = Timestamp(parsed.year, 12, 31, 23, 59, 59, 999999)
+            end = Timestamp(parsed.year + 1, 1, 1) - Timedelta(nanoseconds=1)
         elif reso == "month":
             d = ccalendar.get_days_in_month(parsed.year, parsed.month)
             start = Timestamp(parsed.year, parsed.month, 1)
-            end = Timestamp(parsed.year, parsed.month, d, 23, 59, 59, 999999)
+            end = start + Timedelta(days=d, nanoseconds=-1)
         elif reso == "quarter":
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
             d = ccalendar.get_days_in_month(parsed.year, qe)  # at end of month
             start = Timestamp(parsed.year, parsed.month, 1)
-            end = Timestamp(parsed.year, qe, d, 23, 59, 59, 999999)
+            end = Timestamp(parsed.year, qe, 1) + Timedelta(days=d, nanoseconds=-1)
         elif reso == "day":
             start = Timestamp(parsed.year, parsed.month, parsed.day)
-            end = start + timedelta(days=1) - Nano(1)
+            end = start + Timedelta(days=1, nanoseconds=-1)
         elif reso == "hour":
             start = Timestamp(parsed.year, parsed.month, parsed.day, parsed.hour)
-            end = start + timedelta(hours=1) - Nano(1)
+            end = start + Timedelta(hours=1, nanoseconds=-1)
         elif reso == "minute":
             start = Timestamp(
                 parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute
             )
-            end = start + timedelta(minutes=1) - Nano(1)
+            end = start + Timedelta(minutes=1, nanoseconds=-1)
         elif reso == "second":
             start = Timestamp(
                 parsed.year,
@@ -549,7 +552,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                 parsed.minute,
                 parsed.second,
             )
-            end = start + timedelta(seconds=1) - Nano(1)
+            end = start + Timedelta(seconds=1, nanoseconds=-1)
         elif reso == "microsecond":
             start = Timestamp(
                 parsed.year,
@@ -560,7 +563,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                 parsed.second,
                 parsed.microsecond,
             )
-            end = start + timedelta(microseconds=1) - Nano(1)
+            end = start + Timedelta(microseconds=1, nanoseconds=-1)
         # GH 24076
         # If an incoming date string contained a UTC offset, need to localize
         # the parsed date to this offset first before aligning with the index's
@@ -750,7 +753,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
         if isinstance(label, str):
             freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-            _, parsed, reso = parsing.parse_time_string(label, freq)
+            parsed, reso = parsing.parse_time_string(label, freq)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -766,7 +769,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-        _, parsed, reso = parsing.parse_time_string(key, freq)
+        parsed, reso = parsing.parse_time_string(key, freq)
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
         return loc
 
@@ -826,24 +829,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
     @Substitution(klass="DatetimeIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, (np.ndarray, Index)):
-            if not type(self._data)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
-            value = type(self._data)(value)
-            self._data._check_compatible_with(value)
-
-        elif isinstance(value, self._data._recognized_scalars):
-            self._data._check_compatible_with(value)
-            value = self._data._scalar_type(value)
-
-        elif not isinstance(value, DatetimeArray):
+        if isinstance(value, str):
             raise TypeError(
                 "searchsorted requires compatible dtype or scalar, "
                 f"not {type(value).__name__}"
             )
+        if isinstance(value, Index):
+            value = value._data
 
         return self._data.searchsorted(value, side=side)
 
@@ -1163,7 +1155,7 @@ def date_range(
         closed=closed,
         **kwargs,
     )
-    return DatetimeIndex._simple_new(dtarr, tz=dtarr.tz, freq=dtarr.freq, name=name)
+    return DatetimeIndex._simple_new(dtarr, name=name)
 
 
 def bdate_range(

@@ -259,6 +259,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         closed : Any
             Ignored.
         """
+        assert isinstance(array, IntervalArray), type(array)
+
         result = IntervalMixin.__new__(cls)
         result._data = array
         result.name = name
@@ -405,10 +407,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         """
         return self._data
 
-    @cache_readonly
-    def _values(self):
-        return self._data
-
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
@@ -472,7 +470,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return True
 
     @property
-    def is_overlapping(self):
+    def is_overlapping(self) -> bool:
         """
         Return True if the IntervalIndex has overlapping intervals, else False.
 
@@ -566,7 +564,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if self.is_overlapping and len(indexer):
             raise ValueError("cannot reindex from an overlapping axis")
 
-    def _needs_i8_conversion(self, key):
+    def _needs_i8_conversion(self, key) -> bool:
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
         Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
@@ -1040,7 +1038,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         return np.lexsort((self.right, self.left))
 
     def equals(self, other) -> bool:
@@ -1055,7 +1053,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if not isinstance(other, IntervalIndex):
             if not is_interval_dtype(other):
                 return False
-            other = Index(getattr(other, ".values", other))
+            other = Index(other)
 
         return (
             self.left.equals(other.left)
