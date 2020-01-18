@@ -2750,3 +2750,16 @@ def test_concat_sparse():
     )
     result = pd.concat([a, a], axis=1)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_concat_copy_index(axis):
+    # GH 29879
+    df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+    df_comb = pd.concat([df, df], axis=axis, copy=True)
+    ser = df["a"]
+    ser_comb = pd.concat([ser, ser], axis=axis, copy=True)
+
+    assert df_comb.index is not df.index
+    assert df_comb.columns is not df.columns
+    assert ser_comb.index is not ser.index

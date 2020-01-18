@@ -516,9 +516,12 @@ class _Concatenator:
 
     def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
-        return get_objs_combined_axis(
+        comb_axis = get_objs_combined_axis(
             self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
         )
+        # GH 29879
+        # No need for deep copy. Indexes are immutable so they can share underlying data
+        return comb_axis.copy(deep=False) if self.copy else comb_axis
 
     def _get_concat_axis(self) -> Index:
         """
