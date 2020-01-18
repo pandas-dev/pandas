@@ -193,20 +193,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             #  because the treatment of NaT has been changed to put NaT last
             #  instead of first.
             sorted_values = np.sort(self.asi8)
-            attribs = self._get_attributes_dict()
-            freq = attribs["freq"]
 
+            freq = self.freq
             if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
                     freq = freq * -1
-            attribs["freq"] = freq
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
-            return self._simple_new(sorted_values, **attribs)
+            arr = type(self._data)._simple_new(
+                sorted_values, dtype=self.dtype, freq=freq
+            )
+            return self._simple_new(arr, name=self.name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -503,22 +504,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-        attribs = self._get_attributes_dict()
-        attribs["name"] = name
+
         # do not pass tz to set because tzlocal cannot be hashed
         if len({str(x.dtype) for x in to_concat}) != 1:
             raise ValueError("to_concat must have the same tz")
 
-        new_data = type(self._values)._concat_same_type(to_concat).asi8
+        new_data = type(self._data)._concat_same_type(to_concat)
 
-        # GH 3232: If the concat result is evenly spaced, we can retain the
-        # original frequency
-        is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1
-        if not is_period_dtype(self) and not is_diff_evenly_spaced:
-            # reset freq
-            attribs["freq"] = None
+        if not is_period_dtype(self.dtype):
+            # GH 3232: If the concat result is evenly spaced, we can retain the
+            # original frequency
+            is_diff_evenly_spaced = len(unique_deltas(new_data.asi8)) == 1
+            if is_diff_evenly_spaced:
+                new_data._freq = self.freq
 
-        return self._simple_new(new_data, **attribs)
+        return self._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
