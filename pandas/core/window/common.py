@@ -98,8 +98,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
     ):
         raise TypeError(
-            "arguments to moment function must be of type "
-            "np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type np.ndarray/Series/DataFrame"
         )
 
     if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(

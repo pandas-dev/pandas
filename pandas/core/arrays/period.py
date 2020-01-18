@@ -169,8 +169,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         self._dtype = PeriodDtype(freq)
 
     @classmethod
-    def _simple_new(cls, values, freq=None, **kwargs):
+    def _simple_new(cls, values: np.ndarray, freq=None, **kwargs):
         # alias for PeriodArray.__init__
+        assert isinstance(values, np.ndarray) and values.dtype == "i8"
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
@@ -297,12 +298,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 # ensure we have the same freq
                 if self.freqstr != type.freq:
                     raise TypeError(
-                        "Not supported to convert PeriodArray to array with different"
-                        " 'freq' ({0} vs {1})".format(self.freqstr, type.freq)
+                        "Not supported to convert PeriodArray to array with different "
+                        f"'freq' ({self.freqstr} vs {type.freq})"
                     )
             else:
                 raise TypeError(
-                    "Not supported to convert PeriodArray to '{0}' type".format(type)
+                    f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
         period_type = ArrowPeriodType(self.freqstr)
