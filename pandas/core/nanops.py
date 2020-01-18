@@ -132,10 +132,10 @@ class bottleneck_switch:
         return f
 
 
-def _bn_ok_dtype(dt: Dtype, name: str) -> bool:
+def _bn_ok_dtype(dtype: Dtype, name: str) -> bool:
     # Bottleneck chokes on datetime64
-    if not is_object_dtype(dt) and not (
-        is_datetime_or_timedelta_dtype(dt) or is_datetime64tz_dtype(dt)
+    if not is_object_dtype(dtype) and not (
+        is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype)
     ):
 
         # GH 15507
