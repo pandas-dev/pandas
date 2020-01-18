@@ -2,6 +2,7 @@
 concat routines
 """
 
+from itertools import chain
 from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
 
 import numpy as np
@@ -596,7 +597,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     orig = _concat_indexes(indexes)
 
     keys_chunks = [[key] * len(idx) for (key, idx) in zip(keys, indexes)]
-    keys_levs = Index([i for l in keys_chunks for i in l], tupleize_cols=True)
+    keys_levs = Index(chain(*keys_chunks), tupleize_cols=True)
 
     empty_names = [None] * keys_levs.nlevels + list(orig.names)
     tot_df = concat(
