@@ -142,6 +142,7 @@ Reshaping
 
 -
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Bug in :func:`concat` index and columns not copied when ``copy=True`` (:issue:`29879`)
 
 Sparse
 ^^^^^^

@@ -1133,7 +1133,6 @@ Reshaping
 - Bug in :func:`merge_asof` merging on a tz-aware ``left_index`` and ``right_on`` a tz-aware column (:issue:`29864`)
 - Improved error message and docstring in :func:`cut` and :func:`qcut` when `labels=True` (:issue:`13318`)
 - Bug in missing `fill_na` parameter to :meth:`DataFrame.unstack` with list of levels (:issue:`30740`)
-- Bug in :func:`concat` index and columns not copied when ``copy=True`` (:issue:`29879`)
 
 Sparse
 ^^^^^^
