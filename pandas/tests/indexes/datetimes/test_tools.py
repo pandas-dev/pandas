@@ -482,14 +482,14 @@ class TestToDatetime:
 
     def test_to_datetime_unparseable_raise(self):
         # GH#10720
-        s = "Month 1, 1999"
+        date = "Month 1, 1999"
         expected_args = (
-            f"Unknown string format: {s}. "
+            f"Unknown string format: %s {date}. "
             "You can coerce to NaT by passing errors='coerce'"
         )
 
         with pytest.raises(ValueError, match=expected_args):
-            pd.to_datetime(s, errors="raise")
+            pd.to_datetime(date, errors="raise")
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
     def test_to_datetime_now(self):

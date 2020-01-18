@@ -1856,8 +1856,7 @@ def objects_to_datetime64ns(
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
             if "Unknown string format" in err.args[0]:
-                msg = " ".join(err.args[1:])
-                msg = f"Unknown string format: {msg}"
+                msg = " ".join(err.args)
                 msg = f"{msg}. You can coerce to NaT by passing errors='coerce'"
                 raise ValueError(msg) from err
             raise err

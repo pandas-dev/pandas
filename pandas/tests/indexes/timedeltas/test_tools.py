@@ -116,6 +116,7 @@ class TestTimedeltas:
             "unit abbreviation w/o a number. "
             "You can coerce to NaT by passing errors='coerce'"
         )
+
         with pytest.raises(ValueError, match=expected_msg):
             to_timedelta(invalid_data, errors="raise")
 
