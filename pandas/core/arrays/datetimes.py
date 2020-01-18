@@ -1952,7 +1952,7 @@ def objects_to_datetime64ns(
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
         )
-    except ValueError as e:
+    except ValueError as err:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data)
             # If tzaware, these values represent unix timestamps, so we
@@ -1960,13 +1960,13 @@ def objects_to_datetime64ns(
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
             # GH#10720. If we failed to parse datetime then notify
-            #  that flag errors='coerce' could be used to NaT.
-            #  Trying to distinguish exception based on message.
-            msg = " ".join([str(arg) for arg in e.args])
-            if "Unknown string format" in e.args[0]:
+            # that flag errors='coerce' could be used to NaT.
+            # Trying to distinguish exception based on message.
+            if "Unknown string format" in err.args[0]:
+                msg = f"Unknown string format: {err.args[1]}"
                 msg = f"{msg}. You can coerce to NaT by passing errors='coerce'"
-                raise ValueError(msg) from e
-            raise e
+                raise ValueError(msg).with_traceback(err.__traceback__)
+            raise
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
