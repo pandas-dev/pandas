@@ -798,7 +798,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """
         return self._create_from_codes(np.delete(self.codes, loc))
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values

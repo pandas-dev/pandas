@@ -334,7 +334,7 @@ class _FrequencyInferer:
         return len(self.deltas) == 1
 
     @cache_readonly
-    def is_unique_asi8(self):
+    def is_unique_asi8(self) -> bool:
         return len(self.deltas_asi8) == 1
 
     def get_freq(self) -> Optional[str]:
