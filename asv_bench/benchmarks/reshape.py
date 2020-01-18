@@ -160,6 +160,9 @@ class PivotTable:
             fill_value=0,
             observed=True,
         )
+        
+    def time_pivot_table_margins_only_column(self):
+        self.df.pivot_table(columns=["key2", "key3"], margins=True, aggfunc=np.sum)
 
 
 class Crosstab:
