@@ -3129,7 +3129,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if kind in ["getitem"] and is_float(key):
                 if not self.is_floating():
-                    return self._invalid_indexer("label", key)
+                    self._invalid_indexer("label", key)
 
             elif kind in ["loc"] and is_float(key):
 

@@ -2749,14 +2749,7 @@ class DataFrame(NDFrame):
         else:
             label = self.columns[i]
 
-            # if the values returned are not the same length
-            # as the index (iow a not found value), iget returns
-            # a 0-len ndarray. This is effectively catching
-            # a numpy error (as numpy should really raise)
             values = self._data.iget(i)
-
-            if len(self.index) and not len(values):
-                values = np.array([np.nan] * len(self.index), dtype=object)
             result = self._box_col_values(values, label)
 
             # this is a cached value, mark it so

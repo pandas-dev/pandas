@@ -619,9 +619,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(key, range):
             return list(key)
 
-        axis = self.axis or 0
         try:
-            return self._convert_to_indexer(key, axis=axis)
+            return self._convert_to_indexer(key, axis=0)
         except TypeError as e:
 
             # invalid indexer type vs 'other' indexing errors
@@ -1472,9 +1471,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         else:
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
-        self._validate_read_indexer(
-            keyarr, indexer, o._get_axis_number(axis), raise_missing=raise_missing
-        )
+        self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
         return keyarr, indexer
 
     def _getitem_iterable(self, key, axis: int):

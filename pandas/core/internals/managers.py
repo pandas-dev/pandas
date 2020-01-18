@@ -766,16 +766,14 @@ class BlockManager(PandasObject):
         res.axes = new_axes
         return res
 
-    def as_array(self, transpose=False, items=None):
-        """Convert the blockmanager data into an numpy array.
+    def as_array(self, transpose: bool = False) -> np.ndarray:
+        """
+        Convert the blockmanager data into an numpy array.
 
         Parameters
         ----------
         transpose : boolean, default False
             If True, transpose the return array
-        items : list of strings or None
-            Names of block items that will be included in the returned
-            array. ``None`` means that all block items will be used
 
         Returns
         -------
@@ -785,10 +783,7 @@ class BlockManager(PandasObject):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose() if transpose else arr
 
-        if items is not None:
-            mgr = self.reindex_axis(items, axis=0)
-        else:
-            mgr = self
+        mgr = self
 
         if self._is_single_block and mgr.blocks[0].is_datetimetz:
             # TODO(Block.get_values): Make DatetimeTZBlock.get_values
