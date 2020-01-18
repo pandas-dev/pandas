@@ -1,6 +1,5 @@
 from datetime import date, datetime, timedelta
 from itertools import product
-import re
 
 import numpy as np
 import pytest
@@ -787,7 +786,7 @@ class TestPivotTable:
         df = pd.DataFrame(
             {"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]}
         )
-        msg = re.escape("pivot() missing 1 required argument: 'columns'")
+        msg = r"pivot\(\) missing 1 required argument: 'columns'"
         with pytest.raises(TypeError, match=msg):
             df.pivot(index="col1", values="col3")
 
