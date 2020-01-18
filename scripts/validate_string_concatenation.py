@@ -37,7 +37,7 @@ def bare_pytest_raises(file_obj: IO) -> Generator[Tuple[int, str], None, None]:
     Parameters
     ----------
     file_obj : IO
-        File object to operate on.
+        File-like object containing the Python code to validate.
 
     Yields
     ------
@@ -92,7 +92,7 @@ def strings_to_concatenate(file_obj: IO) -> Generator[Tuple[int, str], None, Non
     Parameters
     ----------
     file_obj : IO
-        File object to operate on.
+        File-like object containing the Python code to validate.
 
     Yields
     ------
@@ -141,7 +141,7 @@ def strings_with_wrong_placed_whitespace(
     Parameters
     ----------
     file_obj : IO
-        File object to operate on.
+        File-like object containing the Python code to validate.
 
     Yields
     ------
