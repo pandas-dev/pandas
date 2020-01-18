@@ -57,6 +57,7 @@ class NumericIndex(Index):
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
+        name = maybe_extract_name(name, data, cls)
 
         # Coerce to ndarray if not already ndarray or Index
         if not isinstance(data, (np.ndarray, Index)):
@@ -82,7 +83,7 @@ class NumericIndex(Index):
             # GH#13601, GH#20285, GH#27125
             raise ValueError("Index data must be 1-dimensional")
 
-        name = maybe_extract_name(name, data, cls)
+        subarr = np.asarray(subarr)
         return cls._simple_new(subarr, name=name)
 
     @classmethod

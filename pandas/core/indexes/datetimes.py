@@ -281,10 +281,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             freq = values.freq
             values = values._data
 
-        # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
-        if isinstance(values, DatetimeIndex):
-            values = values._data
-
         dtype = tz_to_dtype(tz)
         dtarr = DatetimeArray._simple_new(values, freq=freq, dtype=dtype)
         assert isinstance(dtarr, DatetimeArray)

@@ -114,7 +114,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(rng, dtype=dtype, name=name)
 
     @classmethod
-    def from_range(cls, data, name=None, dtype=None):
+    def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
         """
         Create RangeIndex from a range object.
 
