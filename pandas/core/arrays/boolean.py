@@ -670,12 +670,14 @@ class BooleanArray(BaseMaskedArray):
         mask = self._mask
 
         # coerce to a nan-aware float if needed
-        if mask.any():
-            data = self._data.astype("float64")
-            data[mask] = np.nan
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
 
         # if we have numeric op that would result in an int, coerce to int if possible
         if name in ["sum", "prod"] and notna(result):

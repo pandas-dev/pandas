@@ -327,7 +327,9 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         result = getattr(s, op_name)(skipna=skipna)
         expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         # override parent function to cast to bool for min/max
-        if op_name in ("min", "max") and not pd.isna(expected):
+        if np.isnan(expected):
+            expected = pd.NA
+        elif op_name in ("min", "max"):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
 
