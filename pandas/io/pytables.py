@@ -58,7 +58,7 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.indexes.api import ensure_index
@@ -2656,7 +2656,8 @@ class GenericFixed(Fixed):
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values.values, name=None, freq=freq)
+                dta = DatetimeArray._simple_new(values.values, freq=freq)
+                result = DatetimeIndex._simple_new(dta, name=None)
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
@@ -2665,7 +2666,8 @@ class GenericFixed(Fixed):
         elif klass == PeriodIndex:
 
             def f(values, freq=None, tz=None):
-                return PeriodIndex._simple_new(values, name=None, freq=freq)
+                parr = PeriodArray._simple_new(values, freq=freq)
+                return PeriodIndex._simple_new(parr, name=None)
 
             return f
 
