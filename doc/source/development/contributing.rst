@@ -1525,3 +1525,19 @@ The branch will still exist on GitHub, so to delete it there do::
     git push origin --delete shiny-new-feature
 
 .. _Gitter: https://gitter.im/pydata/pandas
+
+
+Tips for a successful Pull Request
+==================================
+
+If you have made it to the `Review your code`_ phase, one of the core contributors may
+take a look. Please note however that a handful of people are responsible for reviewing
+all of the contributions, which can often lead to bottlenecks.
+
+To improve the chances of your pull request being reviewed, you should:
+
+- **Reference an open issue** for non-trivial changes to clarify the PR's purpose
+- **Ensure you have appropriate tests**. These should be the first part of any PR
+- **Keep your pull requests as simple as possible**. Larger PRs take longer to review
+- **Ensure that CI is in a green state**. Reviewers may not even look otherwise
+- **Keep** `Updating your pull request`_, either by request or every few days
