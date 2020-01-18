@@ -30,7 +30,7 @@ from docutils import nodes
 import re
 import os
 from os import walk
-from typing import Generator, List, Tuple
+from typing import Generator, List
 
 
 class suppress_stdout_stderr:
@@ -163,7 +163,7 @@ def parseRST(rstFile: str) -> docutils.nodes.document:
 
     '''
     # Create rst Parser object
-    parser = docutils.parsers.rst.Parser()
+    parser = Parser()
 
     # Open and read the .rst file and store the string of data into input
     f = open(rstFile, "r")
@@ -233,9 +233,12 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[
     # myText will be used to construct headings and append into titleList
     myText: str = ""
 
+    # lineno will be used to retrieve line numbers of certain headings
+    lineno: int = 0
+
     # A docutils.nodes object that stores a listOfMarkers text's grandparent node,
     # which should have a tagname of title
-    markerGrandparent: docutils.nodes.Title
+    markerGrandparent: docutils.nodes.Title = None
 
     # True if the most recent node encountered had a parent with a listOfMarkers tagname
     # and a grandparent with a tagname of title
@@ -363,9 +366,9 @@ def main(source_paths: List[str], output_format: str) -> bool:
     # Print badTitleDictionary Results
     print()
     for key in badTitleDictionary:
-        for titles in badTitleDictionary[key]:
-            print(key + ":" + str(titles[1]) + ": " + errMessage
-                + " \"" + titles[0] + "\""
+        for line in badTitleDictionary[key]:
+            print(
+                key + ":" + str(line[1]) + ": " + errMessage + " \"" + line[0] + "\""
             )
 
     # Exit status of 1
