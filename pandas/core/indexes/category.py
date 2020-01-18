@@ -503,8 +503,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         Any
             The element of the series at the position indicated by the key
         """
+        k = key
         try:
-            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind="getitem")
             indexer = self.get_loc(k)
             return series.take([indexer])[0]
@@ -798,7 +798,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """
         return self._create_from_codes(np.delete(self.codes, loc))
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values

@@ -192,13 +192,19 @@ class Block(PandasObject):
 
         return False
 
-    def external_values(self, dtype=None):
-        """ return an outside world format, currently just the ndarray """
+    def external_values(self):
+        """
+        The array that Series.values returns (public attribute).
+        This has some historical constraints, and is overridden in block
+        subclasses to return the correct array (e.g. period returns
+        object ndarray and datetimetz a datetime64[ns] ndarray instead of
+        proper extension array).
+        """
         return self.values
 
-    def internal_values(self, dtype=None):
-        """ return an internal format, currently just the ndarray
-        this should be the pure internal API format
+    def internal_values(self):
+        """
+        The array that Series._values returns (internal values).
         """
         return self.values
 
@@ -1966,7 +1972,7 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     Series[T].values is an ndarray of objects.
     """
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return self.values.astype(object)
 
 
@@ -2482,7 +2488,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         )
         return rvalues
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
 
 
