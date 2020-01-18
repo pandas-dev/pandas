@@ -18,11 +18,9 @@ _is_numpy_dev = ".dev" in str(_nlv)
 
 if _nlv < "1.13.3":
     raise ImportError(
-        f"this version of pandas is incompatible with "
-        f"numpy < 1.13.3\n"
+        "this version of pandas is incompatible with numpy < 1.13.3\n"
         f"your numpy version is {_np_version}.\n"
-        f"Please upgrade numpy to >= 1.13.3 to use "
-        f"this pandas version"
+        "Please upgrade numpy to >= 1.13.3 to use this pandas version"
     )
 
 

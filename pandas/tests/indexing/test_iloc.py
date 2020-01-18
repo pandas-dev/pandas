@@ -1,5 +1,6 @@
 """ test positional based indexing with iloc """
 
+from datetime import datetime
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -7,10 +8,10 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, concat, date_range, isna
+import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
-import pandas.util.testing as tm
 
 
 class TestiLoc(Base):
@@ -122,7 +123,7 @@ class TestiLoc(Base):
         [
             ([slice(None), ["A", "D"]]),
             (["1", "2"], slice(None)),
-            ([pd.datetime(2019, 1, 1)], slice(None)),
+            ([datetime(2019, 1, 1)], slice(None)),
         ],
     )
     def test_iloc_non_integer_raises(self, index, columns, index_vals, column_vals):
@@ -436,9 +437,9 @@ class TestiLoc(Base):
 
         # trying to use a label
         msg = (
-            r"Location based indexing can only have \[integer, integer"
-            r" slice \(START point is INCLUDED, END point is EXCLUDED\),"
-            r" listlike of integers, boolean array\] types"
+            r"Location based indexing can only have \[integer, integer "
+            r"slice \(START point is INCLUDED, END point is EXCLUDED\), "
+            r"listlike of integers, boolean array\] types"
         )
         with pytest.raises(ValueError, match=msg):
             df.iloc["j", "D"]

@@ -19,9 +19,9 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p14
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -226,6 +226,10 @@ class TestMethods(base.BaseMethodsTests):
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
+    @pytest.mark.skip(reason="uses nullable integer")
+    def test_value_counts(self, all_data, dropna):
+        return super().test_value_counts(all_data, dropna)
+
 
 class TestCasting(base.BaseCastingTests):
     pass
@@ -323,7 +327,9 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         result = getattr(s, op_name)(skipna=skipna)
         expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         # override parent function to cast to bool for min/max
-        if op_name in ("min", "max") and not pd.isna(expected):
+        if np.isnan(expected):
+            expected = pd.NA
+        elif op_name in ("min", "max"):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
 

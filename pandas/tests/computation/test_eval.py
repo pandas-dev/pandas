@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
 from pandas import DataFrame, Series, compat, date_range
+import pandas._testing as tm
 from pandas.core.computation import pytables
 from pandas.core.computation.check import _NUMEXPR_VERSION
 from pandas.core.computation.engines import NumExprClobberingError, _engines
@@ -33,7 +34,6 @@ from pandas.core.computation.ops import (
     _special_case_arith_ops_syms,
     _unary_math_ops,
 )
-import pandas.util.testing as tm
 
 
 @pytest.fixture(
@@ -274,9 +274,9 @@ class TestEvalNumexprPandas:
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = f"lhs {cmp1} rhs"
         msg = (
-            r"only list-like( or dict-like)? objects are allowed to be"
-            r" passed to (DataFrame\.)?isin\(\), you passed a"
-            r" (\[|')bool(\]|')|"
+            r"only list-like( or dict-like)? objects are allowed to be "
+            r"passed to (DataFrame\.)?isin\(\), you passed a "
+            r"(\[|')bool(\]|')|"
             "argument of type 'bool' is not iterable"
         )
         if cmp1 in ("in", "not in") and not is_list_like(rhs):
@@ -339,8 +339,8 @@ class TestEvalNumexprPandas:
             self.check_equal(res, expected)
         else:
             msg = (
-                r"unsupported operand type\(s\) for //: 'VariableNode' and"
-                " 'VariableNode'"
+                r"unsupported operand type\(s\) for //: 'VariableNode' and "
+                "'VariableNode'"
             )
             with pytest.raises(TypeError, match=msg):
                 pd.eval(
@@ -408,9 +408,9 @@ class TestEvalNumexprPandas:
         ex = f"~(lhs {cmp1} rhs)"
 
         msg = (
-            r"only list-like( or dict-like)? objects are allowed to be"
-            r" passed to (DataFrame\.)?isin\(\), you passed a"
-            r" (\[|')float(\]|')|"
+            r"only list-like( or dict-like)? objects are allowed to be "
+            r"passed to (DataFrame\.)?isin\(\), you passed a "
+            r"(\[|')float(\]|')|"
             "argument of type 'float' is not iterable"
         )
         if is_scalar(rhs) and cmp1 in skip_these:

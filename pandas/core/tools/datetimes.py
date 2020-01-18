@@ -12,7 +12,6 @@ from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     _format_is_iso,
     _guess_datetime_format,
-    parse_time_string,
 )
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import ArrayLike
@@ -38,8 +37,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.arrays import DatetimeArray, IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimes import tz_to_dtype
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -230,9 +231,7 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
     """
     if tz is not None:
         raise ValueError(
-            "Cannot pass a tz argument when "
-            "parsing strings with timezone "
-            "information."
+            "Cannot pass a tz argument when parsing strings with timezone information."
         )
     tz_results = np.array(
         [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]
@@ -284,7 +283,6 @@ def _convert_listlike_datetimes(
     Index-like of parsed dates
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays import DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype,
         objects_to_datetime64ns,
@@ -316,8 +314,21 @@ def _convert_listlike_datetimes(
     elif unit is not None:
         if format is not None:
             raise ValueError("cannot specify both format and unit")
-        arg = getattr(arg, "values", arg)
-        result, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        arg = getattr(arg, "_values", arg)
+
+        # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
+        # because it expects an ndarray argument
+        if isinstance(arg, IntegerArray):
+            # Explicitly pass NaT mask to array_with_unit_to_datetime
+            mask = arg.isna()
+            arg = arg._ndarray_values
+        else:
+            mask = None
+
+        result, tz_parsed = tslib.array_with_unit_to_datetime(
+            arg, mask, unit, errors=errors
+        )
+
         if errors == "ignore":
             from pandas import Index
 
@@ -416,7 +427,8 @@ def _convert_listlike_datetimes(
             #  datetime objects are found without passing `utc=True`
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
-                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+                dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
+                return DatetimeIndex._simple_new(dta, name=name)
             except (ValueError, TypeError):
                 raise e
 
@@ -436,7 +448,8 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -631,7 +644,7 @@ def to_datetime(
     dtype: datetime64[ns]
 
     If a date does not meet the `timestamp limitations
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
     #timeseries-timestamp-limits>`_, passing errors='ignore'
     will return the original input instead of raising any exception.
 
@@ -803,8 +816,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
         required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            f"[year, month, day] be specified: [{required}] "
-            "is missing"
+            f"[year, month, day] be specified: [{required}] is missing"
         )
 
     # keys we don't recognize

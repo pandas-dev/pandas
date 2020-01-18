@@ -8,9 +8,9 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
 
 
 class Numeric(Base):
@@ -188,14 +188,14 @@ class TestFloat64Index(Numeric):
 
         # invalid
         msg = (
-            r"Float64Index\(\.\.\.\) must be called with a collection of"
-            r" some kind, 0\.0 was passed"
+            r"Float64Index\(\.\.\.\) must be called with a collection of "
+            r"some kind, 0\.0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(["a", "b", 0.0])
@@ -570,8 +570,8 @@ class NumericInt(Numeric):
 
     def test_cant_or_shouldnt_cast(self):
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         # can't
         data = ["foo", "bar", "baz"]
@@ -655,8 +655,8 @@ class TestInt64Index(NumericInt):
 
         # scalar raise Exception
         msg = (
-            r"Int64Index\(\.\.\.\) must be called with a collection of some"
-            " kind, 5 was passed"
+            r"Int64Index\(\.\.\.\) must be called with a collection of some "
+            "kind, 5 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Int64Index(5)
@@ -735,6 +735,12 @@ class TestInt64Index(NumericInt):
         indexer = index.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
+
+    def test_get_indexer_nan(self):
+        # GH 7820
+        result = Index([1, 2, np.nan]).get_indexer([np.nan])
+        expected = np.array([2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_intersection(self):
         index = self.create_index()

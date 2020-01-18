@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("ordered", [True, False])
@@ -111,7 +111,7 @@ class TestTake:
         if allow_fill:
             msg = "indices are out-of-bounds"
         else:
-            msg = "index 4 is out of bounds for size 3"
+            msg = "index 4 is out of bounds for( axis 0 with)? size 3"
         with pytest.raises(IndexError, match=msg):
             cat.take([4, 5], allow_fill=allow_fill)
 
@@ -177,3 +177,7 @@ class TestTake:
         cat = pd.Categorical(["a", "b", "c"])
         with tm.assert_produces_warning(FutureWarning):
             cat.take_nd([0, 1])
+
+        ci = pd.Index(cat)
+        with tm.assert_produces_warning(FutureWarning):
+            ci.take_nd([0, 1])
