@@ -37,10 +37,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.core.arrays.datetimes import tz_to_dtype
-from pandas.arrays import IntegerArray, DatetimeArray
+from pandas.arrays import DatetimeArray, IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimes import tz_to_dtype
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -283,7 +283,6 @@ def _convert_listlike_datetimes(
     Index-like of parsed dates
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays import DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype,
         objects_to_datetime64ns,
@@ -428,7 +427,7 @@ def _convert_listlike_datetimes(
             #  datetime objects are found without passing `utc=True`
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
-                dta = DatetimeArray._simple_new(values, dtype=tz_to_dtype(tz))
+                dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
                 return DatetimeIndex._simple_new(dta, name=name)
             except (ValueError, TypeError):
                 raise e
@@ -449,7 +448,7 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        dta = DatetimeArray._simple_new(result, dtype=tz_to_dtype(tz_parsed))
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
         return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
