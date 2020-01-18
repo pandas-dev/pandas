@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 
 """
-Author: tonywu1999, Date Edited: 01/17/2020
+GH #29641
 
-Python script for collecting the titles in the rst files and validating
-if they follow the capitalization convention.  Prints the titles that do not
-follow the convention. Particularly used for .rst files in the doc/source folder
+Collect the titles in the rst files and validate if they follow the proper
+capitalization convention.
 
-NOTE: Run from the root directory of pandas repository
+Prints the titles that do not follow the convention.
 
-Examples:
+Usage::
 ./scripts/validate_rst_title_capitalization.py doc/source/development/contributing.rst
 ./scripts/validate_rst_title_capitalization.py doc/source/
 
@@ -51,21 +50,25 @@ class suppress_stdout_stderr:
 
     '''
     def __init__(self):
-        # Open a pair of null files
         self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
-        # Save the actual stdout (1) and stderr (2) file descriptors.
         self.save_fds = [os.dup(1), os.dup(2)]
 
     def __enter__(self):
-        # Assign the null pointers to stdout and stderr.
+        '''
+        Assign the null pointers to stdout and stderr.
+
+        '''
         os.dup2(self.null_fds[0], 1)
         os.dup2(self.null_fds[1], 2)
 
     def __exit__(self, *_):
-        # Re-assign the real stdout/stderr back to (1) and (2)
+        '''
+        Re-assign the real stdout/stderr back to (1) and (2) and close all
+        file descriptors
+
+        '''
         os.dup2(self.save_fds[0], 1)
         os.dup2(self.save_fds[1], 2)
-        # Close all file descriptors
         for fd in self.null_fds + self.save_fds:
             os.close(fd)
 
@@ -75,7 +78,7 @@ CAPITALIZATION_EXCEPTIONS = {
     'pandas', 'Python', 'IPython', 'PyTables', 'Excel', 'JSON',
     'HTML', 'SAS', 'SQL', 'BigQuery', 'STATA', 'Interval', 'PEP8',
     'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub', 'NumPy',
-    'Apache', 'Arrow', 'Parquet', 'Triage', 'MultiIndex', 'NumFOCUS', 'sklearn-pandas'
+    'Apache', 'Arrow', 'Parquet', 'MultiIndex', 'NumFOCUS', 'sklearn-pandas'
 }
 
 # Lowercase representation of CAPITALIZATION_EXCEPTIONS
@@ -83,63 +86,73 @@ CAPITALIZATION_EXCEPTIONS_LOWER = {word.lower() for word in CAPITALIZATION_EXCEP
 
 # Dictionary of bad titles that will be printed later along with line numbers
 # Key: Document Directory, Value: Pair(Bad Title, Line Number)
-badTitleDictionary = {}
+bad_title_dict = {}
 
 # List of problematic tags that are exceptions to parent rule
-listOfMarkers = {'emphasis', 'strong', 'reference', 'literal'}
+list_of_markers = {'emphasis', 'strong', 'reference', 'literal'}
 
 # List of files that, when validated, causes the program to crash
-cannotValidate = ['doc/source/user_guide/io.rst', 'doc/source/whatsnew/v0.17.1.rst']
+cannot_validate = ['doc/source/user_guide/io.rst', 'doc/source/whatsnew/v0.17.1.rst']
 
 # Error Message:
-errMessage = 'Heading capitalization formatted incorrectly. Please correctly capitalize'
+err_msg = 'Heading capitalization formatted incorrectly. Please correctly capitalize'
 
 
-def followCapitalizationConvention(title: str) -> bool:
+def follow_capitalization_convention(title: str) -> bool:
     '''
     Algorithm to determine if a heading follows the capitalization convention
 
     This method returns true if the title follows the convention
     and false if it does not
 
+    Parameters
+    ----------
+    title : str
+        Heading string to validate
+
+    Returns
+    -------
+    bool
+        True if capitalization is correct, False if not
+
     '''
 
     # split with delimiters comma, semicolon and space, parentheses, colon, slashes
-    wordList = re.split(r'[;,/():\s]\s*', title)
+    word_list = re.split(r'[;,/():\s]\s*', title)
 
     # Edge Case: First word is an empty string
-    if (len(wordList[0]) == 0):
+    if (len(word_list[0]) == 0):
         return False
 
     # Dealing with the first word of the title
-    if wordList[0] not in CAPITALIZATION_EXCEPTIONS:
+    if word_list[0] not in CAPITALIZATION_EXCEPTIONS:
         # word is not in CAPITALIZATION_EXCEPTIONS but has different capitalization
-        if wordList[0].lower() in CAPITALIZATION_EXCEPTIONS_LOWER:
+        if word_list[0].lower() in CAPITALIZATION_EXCEPTIONS_LOWER:
             return False
         # First letter of first word must be uppercase
-        if (not wordList[0][0].isupper()):
+        if (not word_list[0][0].isupper()):
             return False
         # Remaining letters of first word must not be uppercase
-        for j in range(1, len(wordList[0])):
-            if wordList[0][j].isupper():
+        for j in range(1, len(word_list[0])):
+            if word_list[0][j].isupper():
                 return False
 
     # Remaining letters must not be uppercase letters
-    for i in range(1, len(wordList)):
-        if wordList[i] not in CAPITALIZATION_EXCEPTIONS:
+    for i in range(1, len(word_list)):
+        if word_list[i] not in CAPITALIZATION_EXCEPTIONS:
             # word is not in CAPITALIZATION_EXCEPTIONS but has different capitalization
-            if wordList[i].lower() in CAPITALIZATION_EXCEPTIONS_LOWER:
+            if word_list[i].lower() in CAPITALIZATION_EXCEPTIONS_LOWER:
                 return False
             # Remaining letters must not be uppercase
-            for j in range(len(wordList[i])):
-                if wordList[i][j].isupper():
+            for j in range(len(word_list[i])):
+                if word_list[i][j].isupper():
                     return False
 
     # Returning True if the heading follows the capitalization convention
     return True
 
 
-def findLineNumber(node: docutils.nodes) -> int:
+def find_line_number(node: docutils.nodes) -> int:
     '''
     Recursive method that finds the line number in a document for a particular node
     in the doctree
@@ -148,25 +161,45 @@ def findLineNumber(node: docutils.nodes) -> int:
     so instead, we recursively look through the parent nodes to eventually find the
     correct line number, which I determined would be node.line - 1
 
+    Parameters
+    ----------
+    node : docutils.node
+        Name of the object of the docstring to validate.
+
+    Returns
+    -------
+    int
+        The line number of the node
+
     '''
     if (node.tagname == 'document'):
         return 1
     elif (node.line is None):
-        return findLineNumber(node.parent)
+        return find_line_number(node.parent)
     else:
         return node.line - 1
 
 
-def parseRST(rstFile: str) -> docutils.nodes.document:
+def parse_RST(rst_file: str) -> docutils.nodes.document:
     '''
-    Method to parse through an rstFile and return a document tree
+    Method to parse through an rst_file and return a document tree
+
+    Parameters
+    ----------
+    rst_file : str
+        Directory address of a .rst file as a string
+
+    Returns
+    -------
+    document : docutils.nodes.document
+        Root node of the .rst file's document tree
 
     '''
-    # Create rst Parser object
+    # Initialize rst Parser object
     parser = Parser()
 
     # Open and read the .rst file and store the string of data into input
-    f = open(rstFile, "r")
+    f = open(rst_file, "r")
     input = f.read()
 
     # Set up default settings for the document tree
@@ -185,7 +218,7 @@ def parseRST(rstFile: str) -> docutils.nodes.document:
     return document
 
 
-def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[
+def find_titles_in_doctree(document: docutils.nodes.document) -> Generator[
         List[str], List[int], None]:
     '''
     Algorithm to identify particular text nodes as headings
@@ -198,7 +231,7 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[
     However, the problem occurs when we encounter text that has been either
     italicized, bolded, referenced, etc.  In these situations, the tagname of
     the parent node could be one of the following: 'emphasis', 'strong',
-    'reference', and 'literal', stored in the 'listOfMarkers' set variable.  In
+    'reference', and 'literal', stored in the 'list_of_markers' set variable.  In
     this situation, the node's grandparent would have the 'title' tagname instead.
 
     Let's see an example that can cause a problem.  The heading provided will be
@@ -218,157 +251,191 @@ def findBadTitlesInDoctree(document: docutils.nodes.document) -> Generator[
     When iterating through the nodes, we first encounter the node: 'Looking at'.
     However, this isn't the full line of the heading (Looking at pandas docs).
     We're still missing 'pandas docs'. Hence, we must store this first word into
-    a variable (myText in my function) and append this string variable with more
-    words in case we encounter text that has a parent with tagname in listOfMarkers.
+    a variable (my_text in my function) and append this string variable with more
+    words in case we encounter text that has a parent with tagname in list_of_markers.
     In this example, we have to go through two more nodes to get the full heading.
 
-    Meanwhile, when nothing has a parent with tagname in listOfMarkers, we only need to
-    access one node to find the 'Looking at the pandas docs' text.
+    Meanwhile, when nothing has a parent with tagname in list_of_markers, we only
+    need to access one node to find the 'Looking at the pandas docs' text.
 
     My algorithm adjusts for this pattern, iterating through nodes and
     identifying when headings are complete.
 
+    Parameters
+    ----------
+    document : docutils.nodes.document
+        Root node of a .rst file's document tree
+
+    Returns
+    -------
+    title_list : List[str]
+        A list of heading strings found in the document tree
+
+    line_number_list : List[int]
+        The corresponding line numbers of the headings in title_list
+
     '''
 
-    # myText will be used to construct headings and append into titleList
-    myText: str = ""
+    # my_text will be used to construct headings and append into title_list
+    my_text: str = ""
 
-    # lineno will be used to retrieve line numbers of certain headings
-    lineno: int = 0
+    # line_no will be used to retrieve line numbers of certain headings
+    line_no: int = 0
 
-    # A docutils.nodes object that stores a listOfMarkers text's grandparent node,
+    # A docutils.nodes object that stores a list_of_markers text's grandparent node,
     # which should have a tagname of title
-    markerGrandparent: docutils.nodes.Title = None
+    marker_grandparent: docutils.nodes.Title = None
 
-    # True if the most recent node encountered had a parent with a listOfMarkers tagname
-    # and a grandparent with a tagname of title
-    beforeMarker: bool = False
+    # True if the most recent node encountered had a parent with a list_of_markers
+    # tagname and a grandparent with a tagname of title
+    before_marker: bool = False
 
-    # titleList is the list of headings that is encountered in the doctree
-    titleList: List[str] = []
+    # title_list is the list of headings that is encountered in the doctree
+    title_list: List[str] = []
 
-    # List of line numbers that corresponding headings in titleList can be found at
-    lineNumberList: List[int] = []
+    # List of line numbers that corresponding headings in title_list can be found at
+    line_number_list: List[int] = []
 
     # Traverse through the nodes.Text in the document tree to construct headings
     for node in document.traverse(nodes.Text):
         # Case 1: Encounter a node with a parent tagname of title
         if (node.parent.tagname == 'title'):
-            if (beforeMarker and markerGrandparent == node.parent):
-                myText = myText + node.astext()
-                beforeMarker = False
+            if (before_marker and marker_grandparent == node.parent):
+                my_text = my_text + node.astext()
+                before_marker = False
             else:
-                if (myText != ""):
-                    titleList.append(myText)
-                    lineNumberList.append(lineno)
-                lineno = findLineNumber(node)
-                myText = node.astext()
-                beforeMarker = False
-        # Case 2: Encounter a node with parent tagname in listOfMarkers
+                if (my_text != ""):
+                    title_list.append(my_text)
+                    line_number_list.append(line_no)
+                line_no = find_line_number(node)
+                my_text = node.astext()
+                before_marker = False
+        # Case 2: Encounter a node with parent tagname in list_of_markers
         elif (node.parent.parent.tagname == 'title' and
-                node.parent.tagname in listOfMarkers):
-            lineno = findLineNumber(node)
-            myText = myText + node.astext()
-            beforeMarker = True
-            markerGrandparent = node.parent.parent
+                node.parent.tagname in list_of_markers):
+            line_no = find_line_number(node)
+            my_text = my_text + node.astext()
+            before_marker = True
+            marker_grandparent = node.parent.parent
         # Case 3: Encounter parent tagname of none of the above (Ex. 'paragraph')
         else:
-            beforeMarker = False
-            if (myText != ""):
-                titleList.append(myText)
-                lineNumberList.append(lineno)
-                myText = ""
-                lineno = 0
+            before_marker = False
+            if (my_text != ""):
+                title_list.append(my_text)
+                line_number_list.append(line_no)
+                my_text = ""
+                line_no = 0
 
     # Leftover string that hasn't been appended yet due to how the for loop works
-    if (myText != ""):
-        titleList.append(myText)
-        lineNumberList.append(lineno)
+    if (my_text != ""):
+        title_list.append(my_text)
+        line_number_list.append(line_no)
 
     # Return a list of the headings and a list of their corresponding line numbers
-    return titleList, lineNumberList
+    return title_list, line_number_list
 
 
-def fillBadTitleDictionary(rstFile: str) -> None:
+def fill_bad_title_dict(rst_file: str) -> None:
     '''
-    Method that prints all of the bad titles
-    Message: [directory of rstFile, line number of bad title, error message]
+    Method that fills up the bad_title_dict with incorrectly capitalized headings
+
+    Parameters
+    ----------
+    rst_file : str
+        Directory address of a .rst file as a string
 
     '''
 
     # Ensure file isn't one that causes the code to crash
-    if rstFile in cannotValidate:
+    if rst_file in cannot_validate:
         return
 
-    # Ensure this file doesn't already have a badtitleDictionary slot
-    if rstFile in badTitleDictionary:
+    # Ensure this file doesn't already have a bad_title_dict slot
+    if rst_file in bad_title_dict:
         return
 
-    # Parse rstFile with an RST parser
-    document = parseRST(rstFile)
+    # Parse rst_file with an RST parser
+    document = parse_RST(rst_file)
 
     # Make a list of headings along with their line numbers from document tree
-    titleList, lineNumberList = findBadTitlesInDoctree(document)
+    title_list, line_number_list = find_titles_in_doctree(document)
 
-    # Append the badTitleDictionary if the capitalization convention not followed
-    for i in range(len(titleList)):
-        if not followCapitalizationConvention(titleList[i]):
-            if rstFile not in badTitleDictionary:
-                badTitleDictionary[rstFile] = [(titleList[i], lineNumberList[i])]
+    # Append the bad_title_dict if the capitalization convention not followed
+    for i in range(len(title_list)):
+        if not follow_capitalization_convention(title_list[i]):
+            if rst_file not in bad_title_dict:
+                bad_title_dict[rst_file] = [(title_list[i], line_number_list[i])]
             else:
-                badTitleDictionary[rstFile].append((titleList[i], lineNumberList[i]))
+                bad_title_dict[rst_file].append((title_list[i], line_number_list[i]))
 
 
-def createRSTDirectoryList(source_paths: List[str]) -> List[str]:
+def find_rst_files(source_paths: List[str]) -> List[str]:
     '''
     Given the command line arguments of directory paths, this method
-    creates a list of all of the .rst file directories that these paths contain
+    yields the strings of the .rst file directories that these paths contain
+
+    Parameters
+    ----------
+    source_paths : str
+        List of directories to validate, provided through command line arguments
+
+    Yields
+    -------
+    directory_address : str
+        Directory address of a .rst files found in command line argument directories
 
     '''
-    # List of .rst file paths
-    f = []
 
     # Loop through source_paths, recursively looking for .rst files
-    for directoryAddress in source_paths:
-        if not os.path.exists(directoryAddress):
+    for directory_address in source_paths:
+        if not os.path.exists(directory_address):
             raise ValueError(
                 "Please enter a valid path, pointing to a valid file/directory."
             )
-        elif (directoryAddress.endswith(".rst")):
-            f.append(directoryAddress)
+        elif (directory_address.endswith(".rst")):
+            yield directory_address
         else:
-            for (dirpath, dirnames, filenames) in walk(directoryAddress):
+            for (dirpath, dirnames, filenames) in walk(directory_address):
                 for file in filenames:
                     if file.endswith(".rst"):
-                        f.append(os.path.join(dirpath, file))
-
-    # Return the filled up list of .rst file paths
-    return f
+                        yield os.path.join(dirpath, file)
 
 
 def main(source_paths: List[str], output_format: str) -> bool:
     '''
-    The main method to execute all commands
+    The main method to print all headings with incorrect capitalization
+
+    Parameters
+    ----------
+    source_paths : str
+        List of directories to validate, provided through command line arguments
+    output_format : str
+        Output format of the script.
+
+    Returns
+    -------
+    bool
+        True if there are headings that are printed, False if not
 
     '''
 
-    # Create a list of all RST files from command line directory list
-    directoryList = createRSTDirectoryList(source_paths)
+    # Make a list of all RST files from command line directory list
+    directory_list = find_rst_files(source_paths)
 
-    # Fill the badTitleDictionary, which contains all incorrectly capitalized headings
-    for filename in directoryList:
-        fillBadTitleDictionary(filename)
+    # Fill the bad_title_dict, which contains all incorrectly capitalized headings
+    for filename in directory_list:
+        fill_bad_title_dict(filename)
 
     # Return an exit status of 0 if there are no bad titles in the dictionary
-    if (len(badTitleDictionary) == 0):
+    if (len(bad_title_dict) == 0):
         return False
 
-    # Print badTitleDictionary Results
+    # Print bad_title_dict Results
     print()
-    for key in badTitleDictionary:
-        for line in badTitleDictionary[key]:
+    for key in bad_title_dict:
+        for line in bad_title_dict[key]:
             print(
-                key + ":" + str(line[1]) + ": " + errMessage + " \"" + line[0] + "\""
+                key + ":" + str(line[1]) + ": " + err_msg + " \"" + line[0] + "\""
             )
 
     # Exit status of 1
