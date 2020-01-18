@@ -4639,7 +4639,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         k = self._convert_scalar_indexer(key, kind="getitem")
         try:
-            return self._engine.get_value(s, k, tz=getattr(series.dtype, "tz", None))
+            loc = self._engine.get_loc(k)
+
         except KeyError as e1:
             if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
                 raise
@@ -4648,19 +4649,17 @@ class Index(IndexOpsMixin, PandasObject):
                 return libindex.get_value_at(s, key)
             except IndexError:
                 raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
             except Exception:
                 raise e1
         except TypeError:
             # e.g. "[False] is an invalid key"
-            if is_scalar(key):
-                raise IndexError(key)
-            raise InvalidIndexError(key)
+            raise IndexError(key)
+
+        else:
+            if is_scalar(loc):
+                tz = getattr(series.dtype, "tz", None)
+                return libindex.get_value_at(s, loc, tz=tz)
+            return series.iloc[loc]
 
     def set_value(self, arr, key, value):
         """
