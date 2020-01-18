@@ -177,7 +177,7 @@ class TimedeltaIndex(
         tdarr = TimedeltaArray._from_sequence(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)
+        return cls._simple_new(tdarr, name=name)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
@@ -507,4 +507,4 @@ def timedelta_range(
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
-    return TimedeltaIndex._simple_new(tdarr._data, freq=tdarr.freq, name=name)
+    return TimedeltaIndex._simple_new(tdarr, name=name)
