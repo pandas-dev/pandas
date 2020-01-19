@@ -37,6 +37,18 @@ with pytest.raises(ValueError, match="foo"):
                 ),
                 [],
             ),
+            (
+                io.StringIO(
+                    """
+with pytest.raises(
+    ValueError,
+    match="foo"
+    ):
+    pass
+""".strip()
+                ),
+                [],
+            ),
         ],
     )
     def test_good_pytest_raises(self, fd, expected):
@@ -49,9 +61,9 @@ with pytest.raises(ValueError, match="foo"):
             (
                 io.StringIO(
                     """
-    with pytest.raises(ValueError):
-        pass
-    """.strip()
+with pytest.raises(ValueError):
+    pass
+""".strip()
                 ),
                 [
                     (
@@ -67,11 +79,11 @@ with pytest.raises(ValueError, match="foo"):
             (
                 io.StringIO(
                     """
-    with pytest.raises(ValueError, match="foo"):
-        with pytest.raises(ValueError):
-            pass
+with pytest.raises(ValueError, match="foo"):
+    with pytest.raises(ValueError):
         pass
-    """.strip()
+    pass
+""".strip()
                 ),
                 [
                     (
@@ -87,11 +99,52 @@ with pytest.raises(ValueError, match="foo"):
             (
                 io.StringIO(
                     """
-    with pytest.raises(ValueError):
-        with pytest.raises(ValueError, match="foo"):
-            pass
+with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="foo"):
         pass
-    """.strip()
+    pass
+""".strip()
+                ),
+                [
+                    (
+                        1,
+                        (
+                            "Bare pytests raise have been found. "
+                            "Please pass in the argument 'match' "
+                            "as well the exception."
+                        ),
+                    ),
+                ],
+            ),
+            (
+                io.StringIO(
+                    """
+with pytest.raises(
+    ValueError
+):
+    pass
+""".strip()
+                ),
+                [
+                    (
+                        1,
+                        (
+                            "Bare pytests raise have been found. "
+                            "Please pass in the argument 'match' "
+                            "as well the exception."
+                        ),
+                    ),
+                ],
+            ),
+            (
+                io.StringIO(
+                    """
+with pytest.raises(
+    ValueError,
+    # match = "foo"
+):
+    pass
+""".strip()
                 ),
                 [
                     (
