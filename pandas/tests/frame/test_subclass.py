@@ -559,6 +559,8 @@ class TestDataFrameSubclassing:
         tm.assert_series_equal(result, expected)
 
     def test_subclassed_count(self):
+        # GH 31139
+
         df = tm.SubclassedDataFrame(
             {
                 "Person": ["John", "Myla", "Lewis", "John", "Myla"],
