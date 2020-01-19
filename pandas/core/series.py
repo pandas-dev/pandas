@@ -25,7 +25,7 @@ from pandas._config import get_option
 from pandas._libs import index as libindex, lib, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -4102,8 +4102,7 @@ Name: Max Speed, dtype: float64
             errors=errors,
         )
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(generic.NDFrame.fillna.__doc__)
+    @doc(generic.NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
