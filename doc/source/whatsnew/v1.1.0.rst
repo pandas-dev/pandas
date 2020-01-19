@@ -28,6 +28,8 @@ For example:
    ser_monotonic = pd.Series(np.arange(30), index=pi)
    shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
    ser = ser_monotonic[shuffler]
+   ser
+
    ser["2014"]
    ser.loc["May 2015"]
 

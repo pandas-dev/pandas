@@ -1981,6 +1981,9 @@ As with ``DatetimeIndex``, the endpoints will be included in the result. The exa
 
    dfp['2013-01-01 10H':'2013-01-01 11H']
 
+As of version 1.1.0, this works with non-monotonic ``PeriodIndex`` indexes.
+
+
 Frequency conversion and resampling with PeriodIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The frequency of ``Period`` and ``PeriodIndex`` can be converted via the ``asfreq``
