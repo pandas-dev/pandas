@@ -96,6 +96,7 @@ _index_doc_kwargs = dict(
     duplicated="np.ndarray",
 )
 _index_shared_docs = dict()
+str_t = str
 
 str_t = str
 
@@ -461,11 +462,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
-            # Index._data must always be an ndarray.
-            # This is no-copy for when _values is an ndarray,
-            # which should be always at this point.
-            values = np.asarray(values._values)
+        assert isinstance(values, np.ndarray), type(values)
 
         result = object.__new__(cls)
         result._data = values
@@ -511,6 +508,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self.values
+
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         if not len(values) and "dtype" not in kwargs:
@@ -2966,7 +2964,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def get_indexer(
+        self, target, method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
         if tolerance is not None:
@@ -3023,14 +3023,16 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
-    def _get_fill_indexer(self, target, method, limit=None, tolerance=None):
+    def _get_fill_indexer(
+        self, target: "Index", method: str_t, limit=None, tolerance=None
+    ) -> np.ndarray:
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
-            method = (
+            engine_method = (
                 self._engine.get_pad_indexer
                 if method == "pad"
                 else self._engine.get_backfill_indexer
             )
-            indexer = method(target._ndarray_values, limit)
+            indexer = engine_method(target._ndarray_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None:
@@ -3039,7 +3041,9 @@ class Index(IndexOpsMixin, PandasObject):
             )
         return indexer
 
-    def _get_fill_indexer_searchsorted(self, target, method, limit=None):
+    def _get_fill_indexer_searchsorted(
+        self, target: "Index", method: str_t, limit=None
+    ) -> np.ndarray:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
         indexes and non-monotonic targets.
@@ -3070,7 +3074,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer[indexer == len(self)] = -1
         return indexer
 
-    def _get_nearest_indexer(self, target, limit, tolerance):
+    def _get_nearest_indexer(self, target: "Index", limit, tolerance) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -3093,7 +3097,9 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
         return indexer
 
-    def _filter_indexer_tolerance(self, target, indexer, tolerance):
+    def _filter_indexer_tolerance(
+        self, target: "Index", indexer: np.ndarray, tolerance
+    ) -> np.ndarray:
         distance = abs(self.values[indexer] - target)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
@@ -4564,7 +4570,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise NotImplementedError(f"Not supported for type {type(self).__name__}")
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         """
         Return the integer indices that would sort the index.
 
@@ -4619,36 +4625,34 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
     def get_value(self, series, key):
 
+        if not is_scalar(key):
+            # if key is not a scalar, directly raise an error (the code below
+            # would convert to numpy arrays and raise later any way) - GH29926
+            raise InvalidIndexError(key)
+
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         # Things like `Series._get_value` (via .at) pass the EA directly here.
         s = extract_array(series, extract_numpy=True)
         if isinstance(s, ExtensionArray):
-            if is_scalar(key):
-                # GH 20882, 21257
-                # First try to convert the key to a location
-                # If that fails, raise a KeyError if an integer
-                # index, otherwise, see if key is an integer, and
-                # try that
-                try:
-                    iloc = self.get_loc(key)
-                    return s[iloc]
-                except KeyError:
-                    if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                        raise
-                    elif is_integer(key):
-                        return s[key]
-            else:
-                # if key is not a scalar, directly raise an error (the code below
-                # would convert to numpy arrays and raise later any way) - GH29926
-                raise InvalidIndexError(key)
+            # GH 20882, 21257
+            # First try to convert the key to a location
+            # If that fails, raise a KeyError if an integer
+            # index, otherwise, see if key is an integer, and
+            # try that
+            try:
+                iloc = self.get_loc(key)
+                return s[iloc]
+            except KeyError:
+                if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+                    raise
+                elif is_integer(key):
+                    return s[key]
 
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
-
-        k = self._convert_scalar_indexer(k, kind="getitem")
+        k = self._convert_scalar_indexer(key, kind="getitem")
         try:
-            return self._engine.get_value(s, k, tz=getattr(series.dtype, "tz", None))
+            loc = self._engine.get_loc(k)
+
         except KeyError as e1:
             if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
                 raise
@@ -4657,19 +4661,17 @@ class Index(IndexOpsMixin, PandasObject):
                 return libindex.get_value_at(s, key)
             except IndexError:
                 raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
             except Exception:
                 raise e1
         except TypeError:
             # e.g. "[False] is an invalid key"
-            if is_scalar(key):
-                raise IndexError(key)
-            raise InvalidIndexError(key)
+            raise IndexError(key)
+
+        else:
+            if is_scalar(loc):
+                tz = getattr(series.dtype, "tz", None)
+                return libindex.get_value_at(s, loc, tz=tz)
+            return series.iloc[loc]
 
     def set_value(self, arr, key, value):
         """
@@ -5050,7 +5052,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(self, label, side, kind) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
