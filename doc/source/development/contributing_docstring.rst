@@ -993,7 +993,7 @@ You can substitute and append in one shot with something like
        ...
 
 where ``template`` may come from a module-level ``_shared_docs`` dictionary
-mapping function names to docstrings. Wherever possible, we prefer using 
+mapping function names to docstrings. Wherever possible, we prefer using
 ``doc``, since the docstring-writing processes is slightly closer to normal.
 
 See ``pandas.core.generic.NDFrame.fillna`` for an example template, and
