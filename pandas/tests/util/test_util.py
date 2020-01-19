@@ -81,11 +81,11 @@ def test_rng_context():
 def test_external_error_raised():
     # Raising an external error message
     with tm.external_error_raised(TypeError):
-        pytest.approx()
+        raise TypeError("Should not check this error message, so it will pass")
 
     # Note: Should be the only place in the codebase with
     # "pytest.raises(Exception, match=None)"
     # (Except pandas._testing.external_error_raised)
     with pytest.raises(TypeError, match=None):
         with tm.external_error_raised(ValueError):
-            pytest.approx()
+            raise TypeError("Checking that we catch only the specified Exception")
