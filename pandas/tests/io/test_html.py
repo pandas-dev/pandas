@@ -373,32 +373,6 @@ class TestReadHtml:
         zz = [df.iloc[0, 0][0:4] for df in dfs]
         assert sorted(zz) == sorted(["Repo", "What"])
 
-    @pytest.mark.slow
-    def test_thousands_macau_stats(self, datapath):
-        all_non_nan_table_index = -2
-        macau_data = datapath("io", "data", "html", "macau.html")
-        dfs = self.read_html(macau_data, index_col=0, attrs={"class": "style1"})
-        df = dfs[all_non_nan_table_index]
-
-        assert not any(s.isna().any() for _, s in df.items())
-
-    @pytest.mark.slow
-    def test_thousands_macau_index_col(self, datapath, request):
-        # https://github.com/pandas-dev/pandas/issues/29622
-        # This tests fails for bs4 >= 4.8.0 - so handle xfail accordingly
-        if self.read_html.keywords.get("flavor") == "bs4" and td.safe_import(
-            "bs4", "4.8.0"
-        ):
-            reason = "fails for bs4 version >= 4.8.0"
-            request.node.add_marker(pytest.mark.xfail(reason=reason))
-
-        all_non_nan_table_index = -2
-        macau_data = datapath("io", "data", "html", "macau.html")
-        dfs = self.read_html(macau_data, index_col=0, header=0)
-        df = dfs[all_non_nan_table_index]
-
-        assert not any(s.isna().any() for _, s in df.items())
-
     def test_empty_tables(self):
         """
         Make sure that read_html ignores empty tables.
@@ -570,23 +544,6 @@ class TestReadHtml:
         expected = DataFrame([["text", 1944]], columns=("S", "I"))
 
         tm.assert_frame_equal(result, expected)
-
-    def test_nyse_wsj_commas_table(self, datapath):
-        data = datapath("io", "data", "html", "nyse_wsj.html")
-        df = self.read_html(data, index_col=0, header=0, attrs={"class": "mdcTable"})[0]
-
-        expected = Index(
-            [
-                "Issue(Roll over for charts and headlines)",
-                "Volume",
-                "Price",
-                "Chg",
-                "% Chg",
-            ]
-        )
-        nrows = 100
-        assert df.shape[0] == nrows
-        tm.assert_index_equal(df.columns, expected)
 
     @pytest.mark.slow
     def test_banklist_header(self, datapath):
@@ -893,18 +850,6 @@ class TestReadHtml:
         )
         newdf = DataFrame({"datetime": raw_dates})
         tm.assert_frame_equal(newdf, res[0])
-
-    def test_computer_sales_page(self, datapath):
-        data = datapath("io", "data", "html", "computer_sales_page.html")
-        msg = (
-            r"Passed header=\[0,1\] are too many "
-            r"rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            self.read_html(data, header=[0, 1])
-
-        data = datapath("io", "data", "html", "computer_sales_page.html")
-        assert self.read_html(data, header=[1, 2])
 
     def test_wikipedia_states_table(self, datapath):
         data = datapath("io", "data", "html", "wikipedia_states.html")
