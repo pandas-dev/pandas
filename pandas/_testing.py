@@ -2774,14 +2774,7 @@ def external_error_raised(
     -------
     Callable
         Regular `pytest.raises` function with `match` equal to `None`.
-
-    Raises
-    ------
-    AssertionError
-        When `expected_exception` is not a subclass of `Exception`.
     """
-    assert issubclass(
-        expected_exception, Exception
-    ), "The recived value is not an `Exception`."
+    import pytest
 
     return pytest.raises(expected_exception, match=None)

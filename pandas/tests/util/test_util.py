@@ -76,3 +76,16 @@ def test_rng_context():
         with tm.RNGContext(1):
             assert np.random.randn() == expected1
         assert np.random.randn() == expected0
+
+
+def test_external_error_raised():
+    # Raising an external error message
+    with tm.external_error_raised(TypeError):
+        pytest.approx()
+
+    # Note: Should be the only place in the codebase with
+    # "pytest.raises(Exception, match=None)"
+    # (Except pandas._testing.test_external_error_raised)
+    with pytest.raises(TypeError, match=None):
+        with tm.external_error_raised(ValueError):
+            pytest.approx()
