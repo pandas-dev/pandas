@@ -1,6 +1,7 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for object dtype
+import datetime
 from decimal import Decimal
 import operator
 
@@ -323,3 +324,35 @@ class TestArithmetic:
 
         with pytest.raises(TypeError):
             np.array([True, pd.Timestamp.now()]) - index
+
+    def test_index_ops_defer_to_unknown_subclasses(self):
+        # https://github.com/pandas-dev/pandas/issues/31109
+        class MyIndex(pd.Index):
+
+            _calls: int
+
+            @classmethod
+            def _simple_new(cls, values, name=None, dtype=None):
+                result = object.__new__(cls)
+                result._data = values
+                result._index_data = values
+                result._name = name
+                result._calls = 0
+
+                return result._reset_identity()
+
+            def __add__(self, other):
+                self._calls += 1
+                return self._simple_new(self._index_data + other.to_list())
+
+            def __radd__(self, other):
+                return self.__add__(other)
+
+        values = np.array(
+            [datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)], dtype=object
+        )
+        a = MyIndex._simple_new(values)
+        b = pd.timedelta_range("1D", periods=2, freq="D")
+        result = b + a
+        assert isinstance(result, MyIndex)
+        assert a._calls == 1
