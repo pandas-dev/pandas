@@ -429,6 +429,9 @@ def _convert_by(by):
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+    if columns is None:
+        raise TypeError("pivot() missing 1 required argument: 'columns'")
+
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -581,6 +584,8 @@ def crosstab(
     from pandas import DataFrame
 
     df = DataFrame(data, index=common_idx)
+    original_df_cols = df.columns
+
     if values is None:
         df["__dummy__"] = 0
         kwargs = {"aggfunc": len, "fill_value": 0}
@@ -589,7 +594,7 @@ def crosstab(
         kwargs = {"aggfunc": aggfunc}
 
     table = df.pivot_table(
-        "__dummy__",
+        ["__dummy__"],
         index=rownames,
         columns=colnames,
         margins=margins,
@@ -597,6 +602,12 @@ def crosstab(
         dropna=dropna,
         **kwargs,
     )
+
+    # GH18321, after pivoting, an extra top level of column index of `__dummy__` is
+    # created, and this extra level should not be included in the further steps
+    if not table.empty:
+        cols_diff = df.columns.difference(original_df_cols)[0]
+        table = table[cols_diff]
 
     # Post-process
     if normalize is not False:
