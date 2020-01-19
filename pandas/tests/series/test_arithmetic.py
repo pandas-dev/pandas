@@ -3,10 +3,11 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 import pandas as pd
 from pandas import Series
-from pandas.core.indexes.period import IncompatibleFrequency
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _permute(obj):
@@ -45,6 +46,22 @@ class TestSeriesFlexArithmetic:
             result = rop(series, other)
             expected = alt(other, series)
             tm.assert_almost_equal(result, expected)
+
+    def test_flex_method_subclass_metadata_preservation(self, all_arithmetic_operators):
+        # GH 13208
+        class MySeries(Series):
+            _metadata = ["x"]
+
+            @property
+            def _constructor(self):
+                return MySeries
+
+        opname = all_arithmetic_operators
+        op = getattr(Series, opname)
+        m = MySeries([1, 2, 3], name="test")
+        m.x = 42
+        result = op(m, 1)
+        assert result.x == 42
 
 
 class TestSeriesArithmetic:
@@ -170,6 +187,14 @@ class TestSeriesComparison:
         ser = Series(tdi).rename(names[1])
         result = op(ser, tdi)
         assert result.name == names[2]
+
+        # interval dtype
+        if op in [operator.eq, operator.ne]:
+            # interval dtype comparisons not yet implemented
+            ii = pd.interval_range(start=0, periods=5, name=names[0])
+            ser = Series(ii).rename(names[1])
+            result = op(ser, ii)
+            assert result.name == names[2]
 
         # categorical
         if op in [operator.eq, operator.ne]:

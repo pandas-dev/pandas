@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs import index as libindex, lib
@@ -38,6 +40,9 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.ops import get_op_result_name
 
+if TYPE_CHECKING:
+    from pandas import Series
+
 _num_index_shared_docs = dict()
 
 
@@ -52,6 +57,7 @@ class NumericIndex(Index):
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
+        name = maybe_extract_name(name, data, cls)
 
         # Coerce to ndarray if not already ndarray or Index
         if not isinstance(data, (np.ndarray, Index)):
@@ -73,7 +79,11 @@ class NumericIndex(Index):
         else:
             subarr = data
 
-        name = maybe_extract_name(name, data, cls)
+        if subarr.ndim > 1:
+            # GH#13601, GH#20285, GH#27125
+            raise ValueError("Index data must be 1-dimensional")
+
+        subarr = np.asarray(subarr)
         return cls._simple_new(subarr, name=name)
 
     @classmethod
@@ -95,7 +105,7 @@ class NumericIndex(Index):
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
     def _maybe_cast_slice_bound(self, label, side, kind):
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
@@ -156,7 +166,7 @@ class NumericIndex(Index):
         return False
 
     @Appender(Index.insert.__doc__)
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         # treat NA values as nans:
         if is_scalar(item) and isna(item):
             item = self._na_value
@@ -256,7 +266,7 @@ class Int64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # don't coerce ilocs to integers
         if kind != "iloc":
@@ -313,7 +323,7 @@ class UInt64Index(IntegerIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # don't coerce ilocs to integers
         if kind != "iloc":
@@ -400,7 +410,7 @@ class Float64Index(NumericIndex):
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
             return self._validate_indexer("positional", key, kind)
@@ -434,17 +444,18 @@ class Float64Index(NumericIndex):
         )
         return formatter.get_result_as_array()
 
-    def get_value(self, series, key):
+    def get_value(self, series: "Series", key):
         """
         We always want to get an index value, never a value.
         """
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = com.values_from_object(key)
-        loc = self.get_loc(k)
-        new_values = com.values_from_object(series)[loc]
+        loc = self.get_loc(key)
+        if not is_scalar(loc):
+            return series.iloc[loc]
 
+        new_values = series._values[loc]
         return new_values
 
     def equals(self, other) -> bool:
@@ -473,34 +484,22 @@ class Float64Index(NumericIndex):
         if super().__contains__(other):
             return True
 
-        try:
-            # if other is a sequence this throws a ValueError
-            return np.isnan(other) and self.hasnans
-        except ValueError:
-            try:
-                return len(other) <= 1 and other.item() in self
-            except AttributeError:
-                return len(other) <= 1 and other in self
-            except TypeError:
-                pass
-        except TypeError:
-            pass
-
-        return False
+        return is_float(other) and np.isnan(other) and self.hasnans
 
     @Appender(_index_shared_docs["get_loc"])
     def get_loc(self, key, method=None, tolerance=None):
-        try:
-            if np.all(np.isnan(key)) or is_bool(key):
-                nan_idxs = self._nan_idxs
-                try:
-                    return nan_idxs.item()
-                except ValueError:
-                    if not len(nan_idxs):
-                        raise KeyError(key)
-                    return nan_idxs
-        except (TypeError, NotImplementedError):
-            pass
+        if is_bool(key):
+            # Catch this to avoid accidentally casting to 1.0
+            raise KeyError(key)
+
+        if is_float(key) and np.isnan(key):
+            nan_idxs = self._nan_idxs
+            if not len(nan_idxs):
+                raise KeyError(key)
+            elif len(nan_idxs) == 1:
+                return nan_idxs[0]
+            return nan_idxs
+
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @cache_readonly

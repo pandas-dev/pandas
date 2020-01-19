@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import date, datetime, timedelta
 from itertools import product
 
@@ -16,9 +15,9 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.pivot import crosstab, pivot_table
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -782,6 +781,15 @@ class TestPivotTable:
         expected = DataFrame(data=data, index=index, columns=columns, dtype="object")
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_columns_none_raise_error(self):
+        # GH 30924
+        df = pd.DataFrame(
+            {"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]}
+        )
+        msg = r"pivot\(\) missing 1 required argument: 'columns'"
+        with pytest.raises(TypeError, match=msg):
+            df.pivot(index="col1", values="col3")
+
     @pytest.mark.xfail(
         reason="MultiIndexed unstack with tuple names fails with KeyError GH#19966"
     )
@@ -897,12 +905,6 @@ class TestPivotTable:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
-        # no rows
-        rtable = self.data.pivot_table(
-            columns=["AA", "BB"], margins=True, aggfunc=np.mean
-        )
-        assert isinstance(rtable, Series)
-
         table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
@@ -951,6 +953,20 @@ class TestPivotTable:
         )
 
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
+    def test_pivot_table_multiindex_only(self, cols):
+        # GH 17038
+        df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
+
+        result = df2.pivot_table(values="v", columns=cols)
+        expected = DataFrame(
+            [[4, 5, 6]],
+            columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
+            index=Index(["v"]),
+        )
+
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
@@ -1044,7 +1060,7 @@ class TestPivotTable:
         assert pivoted.columns.is_monotonic
 
     def test_pivot_complex_aggfunc(self):
-        f = OrderedDict([("D", ["std"]), ("E", ["sum"])])
+        f = {"D": ["std"], "E": ["sum"]}
         expected = self.data.groupby(["A", "B"]).agg(f).unstack("B")
         result = self.data.pivot_table(index="A", columns="B", aggfunc=f)
 
@@ -1966,6 +1982,31 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_empty_aggfunc(self):
+        # GH 9186
+        df = pd.DataFrame(
+            {
+                "A": [2, 2, 3, 3, 2],
+                "id": [5, 6, 7, 8, 9],
+                "C": ["p", "q", "q", "p", "q"],
+                "D": [None, None, None, None, None],
+            }
+        )
+        result = df.pivot_table(index="A", columns="D", values="id", aggfunc=np.size)
+        expected = pd.DataFrame()
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_no_column_raises(self):
+        # GH 10326
+        def agg(l):
+            return np.mean(l)
+
+        foo = pd.DataFrame(
+            {"X": [0, 0, 1, 1], "Y": [0, 1, 0, 1], "Z": [10, 20, 30, 40]}
+        )
+        with pytest.raises(KeyError, match="notpresent"):
+            foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
+
 
 class TestCrosstab:
     def setup_method(self, method):
@@ -2523,6 +2564,19 @@ class TestCrosstab:
         expected = pd.Series(1, index=mi).unstack(1, fill_value=0)
 
         result = pd.crosstab(s1, s2)
+        tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_both_tuple_names(self):
+        # GH 18321
+        s1 = pd.Series(range(3), name=("a", "b"))
+        s2 = pd.Series(range(3), name=("c", "d"))
+
+        expected = pd.DataFrame(
+            np.eye(3, dtype="int64"),
+            index=pd.Index(range(3), name=("a", "b")),
+            columns=pd.Index(range(3), name=("c", "d")),
+        )
+        result = crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_unsorted_order(self):

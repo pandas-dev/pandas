@@ -9,10 +9,9 @@ from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 from pandas._typing import Ordered
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCDateOffset, ABCIndexClass
-
-from .base import ExtensionDtype
-from .inference import is_bool, is_list_like
+from pandas.core.dtypes.inference import is_bool, is_list_like
 
 str_type = str
 
@@ -436,12 +435,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return hash(self) == hash(other)
 
     def __repr__(self) -> str_type:
-        tpl = "CategoricalDtype(categories={data}ordered={ordered})"
         if self.categories is None:
             data = "None, "
         else:
             data = self.categories._format_data(name=type(self).__name__)
-        return tpl.format(data=data, ordered=self.ordered)
+        return f"CategoricalDtype(categories={data}ordered={self.ordered})"
 
     @staticmethod
     def _hash_categories(categories, ordered: Ordered = True) -> int:
@@ -882,7 +880,11 @@ class PeriodDtype(PandasExtensionDtype):
                 return cls(freq=string)
             except ValueError:
                 pass
-        raise TypeError(f"Cannot construct a 'PeriodDtype' from '{string}'")
+        if isinstance(string, str):
+            msg = f"Cannot construct a 'PeriodDtype' from '{string}'"
+        else:
+            msg = f"'construct_from_string' expects a string, got {type(string)}"
+        raise TypeError(msg)
 
     def __str__(self) -> str_type:
         return self.name
@@ -946,6 +948,26 @@ class PeriodDtype(PandasExtensionDtype):
 
         return PeriodArray
 
+    def __from_arrow__(self, array):
+        """Construct PeriodArray from pyarrow Array/ChunkedArray."""
+        import pyarrow
+        from pandas.core.arrays import PeriodArray
+        from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            data, mask = pyarrow_array_to_numpy_and_mask(arr, dtype="int64")
+            parr = PeriodArray(data.copy(), freq=self.freq, copy=False)
+            parr[~mask] = NaT
+            results.append(parr)
+
+        return PeriodArray._concat_same_type(results)
+
 
 @register_extension_dtype
 class IntervalDtype(PandasExtensionDtype):
@@ -974,7 +996,7 @@ class IntervalDtype(PandasExtensionDtype):
     """
 
     name = "interval"
-    kind: Optional[str_type] = None
+    kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
     num = 103
@@ -1117,3 +1139,22 @@ class IntervalDtype(PandasExtensionDtype):
             else:
                 return False
         return super().is_dtype(dtype)
+
+    def __from_arrow__(self, array):
+        """Construct IntervalArray from pyarrow Array/ChunkedArray."""
+        import pyarrow
+        from pandas.core.arrays import IntervalArray
+
+        if isinstance(array, pyarrow.Array):
+            chunks = [array]
+        else:
+            chunks = array.chunks
+
+        results = []
+        for arr in chunks:
+            left = np.asarray(arr.storage.field("left"), dtype=self.subtype)
+            right = np.asarray(arr.storage.field("right"), dtype=self.subtype)
+            iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
+            results.append(iarr)
+
+        return IntervalArray._concat_same_type(results)

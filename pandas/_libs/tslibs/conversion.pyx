@@ -29,7 +29,7 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare)
+    get_timezone, maybe_get_tz, tz_compare, treat_tz_as_dateutil)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -98,6 +98,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         npy_datetimestruct dts
 
     shape = (<object>arr).shape
+
+    if (<object>arr).dtype.byteorder == ">":
+        # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
+        dtype = arr.dtype
+        arr = arr.astype(dtype.newbyteorder("<"))
 
     ivalues = arr.view(np.int64).ravel()
 
@@ -200,31 +205,6 @@ def datetime_to_datetime64(object[:] values):
             raise TypeError(f'Unrecognized value type: {type(val)}')
 
     return result, inferred_tz
-
-
-cdef inline maybe_datetimelike_to_i8(object val):
-    """
-    Try to convert to a nanosecond timestamp.  Fall back to returning the
-    input value.
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    val : int64 timestamp or original input
-    """
-    cdef:
-        npy_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            return convert_datetime_to_tsobject(val, None).value
-        return val
 
 
 # ----------------------------------------------------------------------
@@ -382,6 +362,14 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
+        # GH 24329 When datetime is ambiguous,
+        # pydatetime_to_dt64 doesn't take DST into account
+        # but with dateutil timezone, get_utcoffset does
+        # so we need to correct for it
+        if treat_tz_as_dateutil(ts.tzinfo):
+            if ts.tzinfo.is_ambiguous(ts):
+                dst_offset = ts.tzinfo.dst(ts)
+                obj.value += int(dst_offset.total_seconds() * 1e9)
         obj.tzinfo = ts.tzinfo
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):

@@ -7,7 +7,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -125,7 +125,7 @@ class Generic:
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = self._construct(shape=4)
-        msg = "The truth value of a {} is ambiguous".format(self._typ.__name__)
+        msg = f"The truth value of a {self._typ.__name__} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -203,9 +203,9 @@ class Generic:
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        msg = "compound dtypes are not implemented in the {} constructor".format(
-            self._typ.__name__
-        )
+        msg = "compound dtypes are not implemented"
+        f"in the {self._typ.__name__} constructor"
+
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
@@ -549,9 +549,6 @@ class Generic:
                 super(DataFrame, df).drop("a", axis=1, inplace=value)
 
             with pytest.raises(ValueError):
-                super(DataFrame, df).sort_index(inplace=value)
-
-            with pytest.raises(ValueError):
                 super(DataFrame, df)._consolidate(inplace=value)
 
             with pytest.raises(ValueError):
@@ -819,6 +816,18 @@ class TestNDFrame:
             msg = "the 'mode' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
                 obj.take(indices, mode="clip")
+
+    def test_depr_take_kwarg_is_copy(self):
+        # GH 27357
+        df = DataFrame({"A": [1, 2, 3]})
+        msg = (
+            "is_copy is deprecated and will be removed in a future version. "
+            "take will always return a copy in the future."
+        )
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.take([0, 1], is_copy=True)
+
+        assert w[0].message.args[0] == msg
 
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])

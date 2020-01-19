@@ -15,7 +15,7 @@ from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
 import pandas.io.html
@@ -383,7 +383,15 @@ class TestReadHtml:
         assert not any(s.isna().any() for _, s in df.items())
 
     @pytest.mark.slow
-    def test_thousands_macau_index_col(self, datapath):
+    def test_thousands_macau_index_col(self, datapath, request):
+        # https://github.com/pandas-dev/pandas/issues/29622
+        # This tests fails for bs4 >= 4.8.0 - so handle xfail accordingly
+        if self.read_html.keywords.get("flavor") == "bs4" and td.safe_import(
+            "bs4", "4.8.0"
+        ):
+            reason = "fails for bs4 version >= 4.8.0"
+            request.node.add_marker(pytest.mark.xfail(reason=reason))
+
         all_non_nan_table_index = -2
         macau_data = datapath("io", "data", "html", "macau.html")
         dfs = self.read_html(macau_data, index_col=0, header=0)
@@ -1150,9 +1158,9 @@ class TestReadHtml:
             assert len(dfs) == 1  # Should not parse hidden table
 
     def test_encode(self, html_encoding_file):
-        _, encoding = os.path.splitext(os.path.basename(html_encoding_file))[0].split(
-            "_"
-        )
+        base_path = os.path.basename(html_encoding_file)
+        root = os.path.splitext(base_path)[0]
+        _, encoding = root.split("_")
 
         try:
             with open(html_encoding_file, "rb") as fobj:
@@ -1175,7 +1183,7 @@ class TestReadHtml:
             if is_platform_windows():
                 if "16" in encoding or "32" in encoding:
                     pytest.skip()
-                raise
+            raise
 
     def test_parse_failure_unseekable(self):
         # Issue #17975

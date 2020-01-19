@@ -49,11 +49,12 @@ setuptools_kwargs = {
 try:
     import Cython
 
-    ver = Cython.__version__
+    _CYTHON_VERSION = Cython.__version__
     from Cython.Build import cythonize
 
-    _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
+    _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)
 except ImportError:
+    _CYTHON_VERSION = None
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
@@ -355,7 +356,7 @@ class CheckSDist(sdist_class):
                     sourcefile = pyxfile[:-3] + extension
                     msg = (
                         f"{extension}-source file '{sourcefile}' not found.\n"
-                        f"Run 'setup.py cython' before sdist."
+                        "Run 'setup.py cython' before sdist."
                     )
                     assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
@@ -411,15 +412,14 @@ class DummyBuildSrc(Command):
 
 
 cmdclass.update({"clean": CleanCommand, "build": build})
+cmdclass["build_ext"] = CheckingBuildExt
 
 if cython:
     suffix = ".pyx"
-    cmdclass["build_ext"] = CheckingBuildExt
     cmdclass["cython"] = CythonCommand
 else:
     suffix = ".c"
     cmdclass["build_src"] = DummyBuildSrc
-    cmdclass["build_ext"] = CheckingBuildExt
 
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
@@ -506,6 +506,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
 
     elif not cython:
         # GH#28836 raise a helfpul error message
+        if _CYTHON_VERSION:
+            raise RuntimeError(
+                f"Cannot cythonize with old Cython version ({_CYTHON_VERSION} "
+                f"installed, needs {min_cython_ver})"
+            )
         raise RuntimeError("Cannot cythonize without Cython installed.")
 
     numpy_incl = pkg_resources.resource_filename("numpy", "core/include")
@@ -525,6 +530,11 @@ def maybe_cythonize(extensions, *args, **kwargs):
         nthreads = parsed.parallel
     elif parsed.j:
         nthreads = parsed.j
+
+    # GH#30356 Cythonize doesn't support parallel on Windows
+    if is_platform_windows() and nthreads > 0:
+        print("Parallel build for cythonize ignored on Windows")
+        nthreads = 0
 
     kwargs["nthreads"] = nthreads
     build_ext.render_templates(_pxifiles)
@@ -591,6 +601,7 @@ ext_data = {
     },
     "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
+    "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
     "_libs.properties": {"pyxfile": "_libs/properties"},
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},

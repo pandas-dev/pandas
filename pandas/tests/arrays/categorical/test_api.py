@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
+import pandas._testing as tm
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalAPI:
@@ -87,8 +87,8 @@ class TestCategoricalAPI:
     def test_rename_categories_wrong_length_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"])
         msg = (
-            "new categories need to have the same number of items as the"
-            " old categories!"
+            "new categories need to have the same number of items as the "
+            "old categories!"
         )
         with pytest.raises(ValueError, match=msg):
             cat.rename_categories(new_categories)

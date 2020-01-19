@@ -198,6 +198,7 @@ def union_indexes(indexes, sort=True) -> Index:
         result = indexes[0]
 
         if hasattr(result, "union_many"):
+            # DatetimeIndex
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
