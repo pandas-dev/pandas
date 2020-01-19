@@ -194,12 +194,11 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     """
     if not is_scalar(value):
         raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
-    msg = "Wrong type {} for value {}"
     try:
         new_value = int(value)
         assert new_value == value
     except (TypeError, ValueError, AssertionError):
-        raise TypeError(msg.format(type(value), value))
+        raise TypeError(f"Wrong type {type(value)} for value {value}")
     return new_value
 
 

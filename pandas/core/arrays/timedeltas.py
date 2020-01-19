@@ -43,8 +43,6 @@ import pandas.core.common as com
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
-_BAD_DTYPE = "dtype {dtype} cannot be converted to timedelta64[ns]"
-
 
 def _is_convertible_to_td(key):
     return isinstance(key, (Tick, timedelta, np.timedelta64, str))
@@ -1064,7 +1062,7 @@ def _validate_td64_dtype(dtype):
         raise ValueError(msg)
 
     if not is_dtype_equal(dtype, _TD_DTYPE):
-        raise ValueError(_BAD_DTYPE.format(dtype=dtype))
+        raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
 
     return dtype
 

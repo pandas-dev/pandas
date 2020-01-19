@@ -13,26 +13,45 @@ cnp.import_array()
 cdef extern from "numpy/npy_math.h":
     float64_t NAN "NPY_NAN"
 
-
 from pandas._libs.khash cimport (
     khiter_t,
-
-    kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str, kh_resize_str,
-
-    kh_put_strbox, kh_get_strbox, kh_init_strbox,
-
-    kh_int64_t, kh_init_int64, kh_resize_int64, kh_destroy_int64,
-    kh_get_int64, kh_exist_int64, kh_put_int64,
-
-    kh_float64_t, kh_exist_float64, kh_put_float64, kh_init_float64,
-    kh_get_float64, kh_destroy_float64, kh_resize_float64,
-
-    kh_resize_uint64, kh_exist_uint64, kh_destroy_uint64, kh_put_uint64,
-    kh_get_uint64, kh_init_uint64,
-
-    kh_destroy_pymap, kh_exist_pymap, kh_init_pymap, kh_get_pymap,
-    kh_put_pymap, kh_resize_pymap)
+    kh_str_t,
+    kh_init_str,
+    kh_put_str,
+    kh_exist_str,
+    kh_get_str,
+    kh_destroy_str,
+    kh_resize_str,
+    kh_put_strbox,
+    kh_get_strbox,
+    kh_init_strbox,
+    kh_int64_t,
+    kh_init_int64,
+    kh_resize_int64,
+    kh_destroy_int64,
+    kh_get_int64,
+    kh_exist_int64,
+    kh_put_int64,
+    kh_float64_t,
+    kh_exist_float64,
+    kh_put_float64,
+    kh_init_float64,
+    kh_get_float64,
+    kh_destroy_float64,
+    kh_resize_float64,
+    kh_resize_uint64,
+    kh_exist_uint64,
+    kh_destroy_uint64,
+    kh_put_uint64,
+    kh_get_uint64,
+    kh_init_uint64,
+    kh_destroy_pymap,
+    kh_exist_pymap,
+    kh_init_pymap,
+    kh_get_pymap,
+    kh_put_pymap,
+    kh_resize_pymap,
+)
 
 
 cimport pandas._libs.util as util
@@ -63,8 +82,9 @@ cdef class Factorizer:
     def get_count(self):
         return self.count
 
-    def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1,
-                  na_value=None):
+    def factorize(
+        self, ndarray[object] values, sort=False, na_sentinel=-1, na_value=None
+    ):
         """
         Factorize values with nans replaced by na_sentinel
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)

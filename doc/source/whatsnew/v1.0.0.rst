@@ -159,14 +159,14 @@ You can use the alias ``"boolean"`` as well.
 
 .. _whatsnew_100.numba_rolling_apply:
 
-Using Numba in ``rolling.apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using Numba in ``rolling.apply`` and ``expanding.apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` that allows the user to execute the
-routine using `Numba <https://numba.pydata.org/>`__ instead of Cython. Using the Numba engine
-can yield significant performance gains if the apply function can operate on numpy arrays and
+We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` and :meth:`~core.window.expanding.Expanding.apply`
+that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
+Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
 the data set is larger (1 million rows or greater). For more details, see
-:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`)
+:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
 
 .. _whatsnew_100.custom_window:
 
@@ -218,15 +218,13 @@ Other enhancements
   now preserve those data types with pyarrow >= 0.16.0 (:issue:`20612`, :issue:`28371`).
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
-- The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue:`30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
-- Added new writer for exporting Stata dta files in version 118, ``StataWriter118``.  This format supports exporting strings containing Unicode characters (:issue:`23573`)
+- Added new writer for exporting Stata dta files in versions 118 and 119, ``StataWriterUTF8``.  These files formats support exporting strings containing Unicode characters. Format 119 supports data sets with more than 32,767 variables (:issue:`23573`, :issue:`30959`)
 - :meth:`Series.map` now accepts ``collections.abc.Mapping`` subclasses as a mapper (:issue:`29733`)
-- The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30296`)
 - Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
 - :meth:`DataFrame.to_pickle` and :func:`read_pickle` now accept URL (:issue:`30163`)
@@ -485,6 +483,25 @@ Use :meth:`arrays.IntegerArray.to_numpy` with an explicit ``na_value`` instead.
 
    a.to_numpy(dtype="float", na_value=np.nan)
 
+**Reductions can return ``pd.NA``**
+
+When performing a reduction such as a sum with ``skipna=False``, the result
+will now be ``pd.NA`` instead of ``np.nan`` in presence of missing values
+(:issue:`30958`).
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+    >>> pd.Series(a).sum(skipna=False)
+    nan
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.Series(a).sum(skipna=False)
+
 **value_counts returns a nullable integer dtype**
 
 :meth:`Series.value_counts` with a nullable integer dtype now returns a nullable
@@ -707,6 +724,8 @@ Deprecations
 - ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
 - The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
 - Support for multi-dimensional indexing (e.g. ``index[:, None]``) on a :class:`Index` is deprecated and will be removed in a future version, convert to a numpy array before indexing instead (:issue:`30588`)
+- The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
+- The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30610`)
 
 **Selecting Columns from a Grouped DataFrame**
 
@@ -1177,3 +1196,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v0.25.3..v1.0.0rc0

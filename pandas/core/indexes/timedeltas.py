@@ -177,12 +177,13 @@ class TimedeltaIndex(
         tdarr = TimedeltaArray._from_sequence(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)
+        return cls._simple_new(tdarr, name=name)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
+
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)
         else:
@@ -310,13 +311,13 @@ class TimedeltaIndex(
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
         label : object
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         if isinstance(label, str):
             parsed = Timedelta(label)
@@ -347,24 +348,13 @@ class TimedeltaIndex(
     @Substitution(klass="TimedeltaIndex")
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, (np.ndarray, Index)):
-            if not type(self._data)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
-            value = type(self._data)(value)
-            self._data._check_compatible_with(value)
-
-        elif isinstance(value, self._data._recognized_scalars):
-            self._data._check_compatible_with(value)
-            value = self._data._scalar_type(value)
-
-        elif not isinstance(value, TimedeltaArray):
+        if isinstance(value, str):
             raise TypeError(
                 "searchsorted requires compatible dtype or scalar, "
                 f"not {type(value).__name__}"
             )
+        if isinstance(value, Index):
+            value = value._data
 
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
@@ -420,7 +410,8 @@ class TimedeltaIndex(
             new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_i8s, freq=freq)
+            tda = type(self._data)._simple_new(new_i8s, freq=freq)
+            return self._shallow_copy(tda)
         except (AttributeError, TypeError):
 
             # fall back to object index
@@ -507,4 +498,4 @@ def timedelta_range(
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
-    return TimedeltaIndex._simple_new(tdarr._data, freq=tdarr.freq, name=name)
+    return TimedeltaIndex._simple_new(tdarr, name=name)
