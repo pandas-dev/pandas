@@ -126,8 +126,9 @@ class Ops:
                     err = AttributeError
                     if issubclass(type(o), DatetimeIndexOpsMixin):
                         err = TypeError
+                        msg="The object cannot be datatimelike"
 
-                    with pytest.raises(err):
+                    with pytest.raises(err,match=msg):
                         getattr(o, op)
 
     @pytest.mark.parametrize("klass", [Series, DataFrame])
@@ -211,9 +212,10 @@ class TestIndexOps(Ops):
                 if is_datetime64_dtype(o) or is_datetime64tz_dtype(o):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
-                    with pytest.raises(TypeError):
+                    msg="The dtype cannot be datetime64 or datetime64tz"
+                    with pytest.raises(TypeError,match=msg):
                         None > o
-                    with pytest.raises(TypeError):
+                    with pytest.raises(TypeError,match=msg):
                         o > None
                 else:
                     result = None > o

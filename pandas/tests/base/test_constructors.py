@@ -53,13 +53,15 @@ class TestPandasDelegate:
 
         delegate = self.Delegate(self.Delegator())
 
-        with pytest.raises(TypeError):
+        msg="The delegate method has not been overridden"
+
+        with pytest.raises(TypeError, match=msg):
             delegate.foo
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             delegate.foo = 5
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             delegate.foo()
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
@@ -85,8 +87,8 @@ class TestNoNewAttributesMixin:
         t._freeze()
         assert "__frozen" in dir(t)
         assert getattr(t, "__frozen")
-
-        with pytest.raises(AttributeError):
+        msg="No new attribute found"
+        with pytest.raises(AttributeError, match=msg):
             t.b = "test"
 
         assert not hasattr(t, "b")
@@ -129,7 +131,8 @@ class TestConstruction:
         # datetime64[non-ns] raise error, other cases result in object dtype
         # and preserve original data
         if a.dtype.kind == "M":
-            with pytest.raises(pd.errors.OutOfBoundsDatetime):
+            msg="The datatime object is out of bound"
+            with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
                 klass(a)
         else:
             result = klass(a)
@@ -138,5 +141,5 @@ class TestConstruction:
 
         # Explicit dtype specified
         # Forced conversion fails for all -> all cases raise error
-        with pytest.raises(pd.errors.OutOfBoundsDatetime):
+        with pytest.raises(pd.errors.OutOfBoundsDatetime,match=msg):
             klass(a, dtype="datetime64[ns]")
