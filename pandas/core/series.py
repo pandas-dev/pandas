@@ -178,6 +178,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _name: Optional[Hashable]
     _metadata: List[str] = ["name"]
+    _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -4486,7 +4487,6 @@ Name: Max Speed, dtype: float64
     index: "Index" = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
-    generic.NDFrame._internal_names_set.add("index")
 
     # ----------------------------------------------------------------------
     # Accessor Methods

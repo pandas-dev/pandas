@@ -686,7 +686,8 @@ Other API changes
 - When testing pandas, the new minimum required version of pytest is 5.0.1 (:issue:`29664`)
 - :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
 - Added ``<NA>`` to the list of default NA values for :meth:`read_csv` (:issue:`30821`)
-
+- a ``TypeError`` is now raised if attempting to call :meth:`DataFrame.swaplevels` and the axis is not
+  a :class:`MultiIndex`. Previously a ``AttributeError`` was raised (:issue:`31126`)
 
 .. _whatsnew_100.api.documentation:
 

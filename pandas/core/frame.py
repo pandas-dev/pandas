@@ -396,6 +396,7 @@ class DataFrame(NDFrame):
     2  7  8  9
     """
 
+    _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
 
     @property
@@ -5292,6 +5293,10 @@ class DataFrame(NDFrame):
         result = self.copy()
 
         axis = self._get_axis_number(axis)
+
+        if not isinstance(result._get_axis(axis), ABCMultiIndex):  # pragma: no cover
+            raise TypeError("Can only swap levels on a hierarchical axis.")
+
         if axis == 0:
             assert isinstance(result.index, ABCMultiIndex)
             result.index = result.index.swaplevel(i, j)
@@ -8497,11 +8502,9 @@ Wild         185.0
     index: "Index" = properties.AxisProperty(
         axis=1, doc="The index (row labels) of the DataFrame."
     )
-    NDFrame._internal_names_set.add("index")
     columns: "Index" = properties.AxisProperty(
         axis=0, doc="The column labels of the DataFrame."
     )
-    NDFrame._internal_names_set.add("columns")
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
