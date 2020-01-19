@@ -126,9 +126,9 @@ class Ops:
                     err = AttributeError
                     if issubclass(type(o), DatetimeIndexOpsMixin):
                         err = TypeError
-                        msg="The object cannot be datatimelike"
+                        msg= "The object cannot be datatimelike"
 
-                    with pytest.raises(err,match=msg):
+                    with pytest.raises(err, match=msg):
                         getattr(o, op)
 
     @pytest.mark.parametrize("klass", [Series, DataFrame])
@@ -212,10 +212,10 @@ class TestIndexOps(Ops):
                 if is_datetime64_dtype(o) or is_datetime64tz_dtype(o):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
-                    msg="The dtype cannot be datetime64 or datetime64tz"
-                    with pytest.raises(TypeError,match=msg):
+                    msg= "The dtype cannot be datetime64 or datetime64tz"
+                    with pytest.raises(TypeError, match=msg):
                         None > o
-                    with pytest.raises(TypeError,match=msg):
+                    with pytest.raises(TypeError, match=msg):
                         o > None
                 else:
                     result = None > o
@@ -237,7 +237,8 @@ class TestIndexOps(Ops):
             for p in ["flags", "strides", "itemsize", "base", "data"]:
                 assert not hasattr(o, p)
 
-            with pytest.raises(ValueError):
+            msg="Ndarray not compatible"
+            with pytest.raises(ValueError,match=msg):
                 o.item()  # len > 1
 
             assert o.ndim == 1
@@ -440,7 +441,8 @@ class TestIndexOps(Ops):
         s = klass(s_values)
 
         # bins
-        with pytest.raises(TypeError):
+        msg="No value counts for the corresponding object type"
+        with pytest.raises(TypeError,match=msg):
             s.value_counts(bins=1)
 
         s1 = Series([1, 1, 2, 3])
@@ -859,7 +861,8 @@ class TestIndexOps(Ops):
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
-            with pytest.raises(ValueError):
+            msg="Boolean(True/False) argument needed but not provided"
+            with pytest.raises(ValueError,match=msg):
                 self.int_series.drop_duplicates(inplace=value)
 
     def test_getitem(self):
@@ -872,9 +875,10 @@ class TestIndexOps(Ops):
 
             assert i[-1] == i[9]
 
-            with pytest.raises(IndexError):
+            msg="Index out of bounds"
+            with pytest.raises(IndexError,match=msg):
                 i[20]
-            with pytest.raises(IndexError):
+            with pytest.raises(IndexError),match=msg:
                 s.iloc[20]
 
     @pytest.mark.parametrize("indexer_klass", [list, pd.Index])
