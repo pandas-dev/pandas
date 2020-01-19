@@ -303,7 +303,7 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 Out-of-core
 -------------
 
-`Blaze <http://blaze.pydata.org/>`__
+`Blaze <https://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various

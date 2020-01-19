@@ -264,7 +264,7 @@ horizontal and cumulative histograms can be drawn by
    plt.close('all')
 
 See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
-`matplotlib hist documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
+`matplotlib hist documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
 
 
 The existing interface ``DataFrame.hist`` to plot histogram still can be used.
@@ -370,7 +370,7 @@ For example, horizontal and custom-positioned boxplot can be drawn by
 
 
 See the :meth:`boxplot <matplotlib.axes.Axes.boxplot>` method and the
-`matplotlib boxplot documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
+`matplotlib boxplot documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
 
 
 The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
@@ -591,7 +591,7 @@ bubble chart using a column of the ``DataFrame`` as the bubble size.
    plt.close('all')
 
 See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
-`matplotlib scatter documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
+`matplotlib scatter documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
 
 .. _visualization.hexbin:
 
@@ -651,7 +651,7 @@ given by column ``z``. The bins are aggregated with NumPy's ``max`` function.
    plt.close('all')
 
 See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
-`matplotlib hexbin documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
+`matplotlib hexbin documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
 
 .. _visualization.pie:
 
@@ -749,7 +749,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    @savefig series_pie_plot_semi.png
    series.plot.pie(figsize=(6, 6))
 
-See the `matplotlib pie documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
+See the `matplotlib pie documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
 
 .. ipython:: python
     :suppress:
@@ -1267,7 +1267,7 @@ tick locator methods, it is useful to call the automatic
 date tick adjustment from matplotlib for figures whose ticklabels overlap.
 
 See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
-`matplotlib documentation <http://matplotlib.org/users/recipes.html#fixing-common-date-annoyances>`__ for more.
+`matplotlib documentation <https://matplotlib.org/users/recipes.html#fixing-common-date-annoyances>`__ for more.
 
 Subplots
 ~~~~~~~~
@@ -1476,7 +1476,7 @@ as seen in the example below.
 There also exists a helper function ``pandas.plotting.table``, which creates a
 table from :class:`DataFrame` or :class:`Series`, and adds it to an
 ``matplotlib.Axes`` instance. This function can accept keywords which the
-matplotlib `table <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ has.
+matplotlib `table <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ has.
 
 .. ipython:: python
 
@@ -1494,7 +1494,7 @@ matplotlib `table <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.
 
    plt.close('all')
 
-**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documentation <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
+**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documentation <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
 
 .. _visualization.colormaps:
 
@@ -1504,7 +1504,7 @@ Colormaps
 A potential issue when plotting a large number of columns is that it can be
 difficult to distinguish some series due to repetition in the default colors. To
 remedy this, ``DataFrame`` plotting supports the use of the ``colormap`` argument,
-which accepts either a Matplotlib `colormap <http://matplotlib.org/api/cm_api.html>`__
+which accepts either a Matplotlib `colormap <https://matplotlib.org/api/cm_api.html>`__
 or a string that is a name of a colormap registered with Matplotlib. A
 visualization of the default matplotlib colormaps is available `here
 <https://matplotlib.org/examples/color/colormaps_reference.html>`__.

@@ -58,7 +58,7 @@ series in the DataFrame, also excluding NA/null values.
     is not guaranteed to be positive semi-definite. This could lead to
     estimated correlations having absolute values which are greater than one,
     and/or a non-invertible covariance matrix. See `Estimation of covariance
-    matrices <http://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
+    matrices <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
     for more details.
 
 .. ipython:: python
@@ -346,7 +346,7 @@ if installed as an optional dependency. The apply aggregation can be executed us
 ``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
 Numba will be applied in potentially two routines:
 
-1. If ``func`` is a standard Python function, the engine will `JIT <http://numba.pydata.org/numba-doc/latest/user/overview.html>`__
+1. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__
 the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 
 2. The engine will JIT the for loop where the apply function is applied to each window.
@@ -1064,5 +1064,5 @@ are scaled by debiasing factors
 
 (For :math:`w_i = 1`, this reduces to the usual :math:`N / (N - 1)` factor,
 with :math:`N = t + 1`.)
-See `Weighted Sample Variance <http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
+See `Weighted Sample Variance <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
 on Wikipedia for further details.

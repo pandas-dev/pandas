@@ -467,9 +467,9 @@ at the new values.
    interp_s = ser.reindex(new_index).interpolate(method='pchip')
    interp_s[49:51]
 
-.. _scipy: http://www.scipy.org
-.. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _scipy: https://www.scipy.org
+.. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
+.. _guide: https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
 .. _missing_data.interp_limits:
 

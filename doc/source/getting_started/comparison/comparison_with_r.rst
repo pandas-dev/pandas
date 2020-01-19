@@ -6,9 +6,9 @@ Comparison with R / R libraries
 *******************************
 
 Since ``pandas`` aims to provide a lot of the data manipulation and analysis
-functionality that people use `R <http://www.r-project.org/>`__ for, this page
+functionality that people use `R <https://www.r-project.org/>`__ for, this page
 was started to provide a more detailed look at the `R language
-<http://en.wikipedia.org/wiki/R_(programming_language)>`__ and its many third
+<https://en.wikipedia.org/wiki/R_(programming_language)>`__ and its many third
 party libraries as they relate to ``pandas``. In comparisons with R and CRAN
 libraries, we care about the following things:
 
@@ -517,7 +517,7 @@ For more details and examples see :ref:`categorical introduction <categorical>` 
 
 
 .. |c| replace:: ``c``
-.. _c: http://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html
+.. _c: https://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html
 
 .. |aggregate| replace:: ``aggregate``
 .. _aggregate: http://finzi.psych.upenn.edu/R/library/stats/html/aggregate.html
