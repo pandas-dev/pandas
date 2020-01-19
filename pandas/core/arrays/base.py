@@ -530,7 +530,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         if len(self) == 0:
-            raise ValueError("zero-size array does not support argmin")
+            raise ValueError("attempt to get argmin of an empty sequence")
 
         return self.argsort()[0]
 
@@ -550,7 +550,7 @@ class ExtensionArray:
         DataFrame.min : Return the minimum values in a DataFrame.
         """
         if len(self) == 0:
-            raise ValueError("zero-size array does not support min")
+            raise ValueError("attempt to get min of an empty sequence")
 
         min_idx = self.argmin()
         return self[min_idx]
@@ -570,7 +570,7 @@ class ExtensionArray:
         """
 
         if len(self) == 0:
-            raise ValueError("zero-size array does not support argmax")
+            raise ValueError("attempt to get argmax of an empty sequence")
 
         no_nan = self.isna().sum()
         return self.argsort()[-1 - no_nan]
@@ -591,7 +591,7 @@ class ExtensionArray:
         DataFrame.max : Return the maximum values in a DataFrame.
         """
         if len(self) == 0:
-            raise ValueError("zero-size array does not support max")
+            raise ValueError("attempt to get max of an empty sequence")
 
         max_idx = self.argmax()
         return self[max_idx]
