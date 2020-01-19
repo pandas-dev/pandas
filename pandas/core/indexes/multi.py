@@ -1235,6 +1235,9 @@ class MultiIndex(Index):
     def _get_grouper_for_level(self, mapper, level):
         indexer = self.codes[level]
         level_index = self.levels[level]
+        # break references back to ourself so that setting the name
+        # on the output of a groupby doesn't reflect back here.
+        level_index = level_index.copy()
 
         if mapper is not None:
             # Handle group mapping function and return

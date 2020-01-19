@@ -752,3 +752,21 @@ def test_apply_series_return_dataframe_groups():
         ["17661101"], index=pd.DatetimeIndex(["2015-02-24"], name="day"), name="userId"
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_multi_level_name():
+    # https://github.com/pandas-dev/pandas/issues/31068
+    df = pd.DataFrame(
+        {
+            "A": np.arange(10),
+            "B": [1, 2] * 5,
+            "C": list(range(10)),
+            "D": list(range(10)),
+        }
+    ).set_index(["A", "B"])
+    result = df.groupby("B").apply(lambda x: x.sum())
+    expected = pd.DataFrame(
+        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
+    )
+    tm.assert_frame_equal(result, expected)
+    assert df.index.names == ["A", "B"]
