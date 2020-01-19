@@ -3103,21 +3103,6 @@ class MultiIndex(Index):
         -------
         indexer : a sorted Int64Index indexer of self ordered as seq
         """
-        # If the index is lexsorted and the list_like label in seq are sorted
-        # then we do not need to sort
-        if self.is_lexsorted():
-            need_sort = False
-            for i, k in enumerate(seq):
-                if is_list_like(k):
-                    if not need_sort:
-                        k_codes = self.levels[i].get_indexer(k)
-                        k_codes = k_codes[k_codes >= 0]  # Filter absent keys
-                        # True if the given codes are not ordered
-                        need_sort = (k_codes[:-1] > k_codes[1:]).any()
-            # Bail out if both index and seq are sorted
-            if not need_sort:
-                return indexer
-
         n = len(self)
         keys: Tuple[np.ndarray, ...] = tuple()
         # For each level of the sequence in seq, map the level codes with the
