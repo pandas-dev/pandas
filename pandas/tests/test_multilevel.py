@@ -2535,47 +2535,28 @@ class TestSorted(Base):
         expected = s.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)
 
-    def test_multiindex_loc_order(self):
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            (["b", "a"], [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            (["a", "b"], [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [1, 2]), [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [2, 1]), [["a", "a", "b", "b"], [2, 1, 2, 1]]),
+            ((["b", "a"], [2, 1]), [["b", "b", "a", "a"], [2, 1, 2, 1]]),
+            ((["b", "a"], [1, 2]), [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            ((["c", "a"], [2, 1]), [["c", "a", "a"], [1, 2, 1]]),
+        ],
+    )
+    @pytest.mark.parametrize("dim", ["index", "columns"])
+    def test_multilevel_index_loc_order(self, dim, keys, expected):
         # GH 22797
         # Try to respect order of keys given for MultiIndex.loc
-        df = pd.DataFrame(
-            np.arange(12).reshape((4, 3)),
-            index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
-            columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
-        )
-
-        res = df.loc[["b", "a"], :]
-        exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [1, 2, 1, 2]])
-        tm.assert_index_equal(res.index, exp_index)
-
-        res = df.loc[["a", "b"], :]
-        exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]])
-        tm.assert_index_equal(res.index, exp_index)
-
-        res = df.loc[(["a", "b"], [1, 2]), :]
-        exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]])
-        tm.assert_index_equal(res.index, exp_index)
-
-        res = df.loc[(["a", "b"], [2, 1]), :]
-        exp_index = pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [2, 1, 2, 1]])
-        tm.assert_index_equal(res.index, exp_index)
-
-        res = df.loc[(["b", "a"], [2, 1]), :]
-        exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [2, 1, 2, 1]])
-        tm.assert_index_equal(res.index, exp_index)
-
-        res = df.loc[(["b", "a"], [1, 2]), :]
-        exp_index = pd.MultiIndex.from_arrays([["b", "b", "a", "a"], [1, 2, 1, 2]])
-        tm.assert_index_equal(res.index, exp_index)
-
-        res = df.loc[:, ["Colorado", "Ohio"]]
-        exp_columns = pd.MultiIndex.from_arrays(
-            [["Colorado", "Ohio", "Ohio"], ["Green", "Green", "Red"]]
-        )
-        tm.assert_index_equal(res.columns, exp_columns)
-
-        res = df.loc[:, (["Colorado", "Ohio"], ["Red", "Green"])]
-        exp_columns = pd.MultiIndex.from_arrays(
-            [["Colorado", "Ohio", "Ohio"], ["Green", "Red", "Green"]]
-        )
-        tm.assert_index_equal(res.columns, exp_columns)
+        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
+        df = pd.DataFrame(np.arange(25).reshape(5, 5), **kwargs,)
+        exp_index = MultiIndex.from_arrays(expected)
+        if dim == "index":
+            res = df.loc[keys, :]
+            tm.assert_index_equal(res.index, exp_index)
+        elif dim == "columns":
+            res = df.loc[:, keys]
+            tm.assert_index_equal(res.columns, exp_index)
