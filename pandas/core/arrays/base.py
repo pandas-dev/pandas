@@ -176,6 +176,9 @@ class ExtensionArray:
        types present.
 
     See :ref:`extending.extension.ufunc` for more.
+
+    By default, ExtensionArrays are not hashable.  Immutable subclasses may
+    override this behavior.
     """
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
