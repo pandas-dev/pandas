@@ -18,7 +18,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
--
+- Add :meth:`ExtensionArray.argmax`, :meth:`ExtensionArray.max`, :meth:`ExtensionArray.argmin` and :meth:`ExtensionArray.min` (:issue:`24382`)
 -
 
 

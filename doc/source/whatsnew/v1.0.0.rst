@@ -228,7 +228,6 @@ Other enhancements
 - Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
 - :meth:`DataFrame.to_pickle` and :func:`read_pickle` now accept URL (:issue:`30163`)
-- Add :meth:`ExtensionArray.argmax`, :meth:`ExtensionArray.max`, :meth:`ExtensionArray.argmin` and :meth:`ExtensionArray.min` (:issue:`24382`)
 
 
 Build Changes
