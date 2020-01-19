@@ -441,87 +441,78 @@ class TestEvalNumexprPandas:
     def ex(self, op, var_name="lhs"):
         return f"{op}{var_name}"
 
-    def test_frame_invert(self):
+    @pytest.mark.parametrize(
+        "lhs",
+        [
+            DataFrame(randn(5, 2)),
+            DataFrame(randint(5, size=(5, 2))),
+            DataFrame(rand(5, 2) > 0.5),
+            DataFrame({"b": ["a", 1, 2.0], "c": rand(3) > 0.5}),
+        ],
+    )
+    def test_frame_invert(self, lhs):
         expr = self.ex("~")
+        dtype = lhs.T.dtypes[0]
 
-        # ~ ##
-        # frame
-        # float always raises
-        lhs = DataFrame(randn(5, 2))
-        if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        error_type = None
+        is_engine_numexpr = self.engine == "numexpr"
 
-        # int raises on numexpr
-        lhs = DataFrame(randint(5, size=(5, 2)))
-        if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+        if dtype == "float64":
+            error_type = NotImplementedError if is_engine_numexpr else TypeError
+        elif dtype == "object":
+            error_type = ValueError if is_engine_numexpr else TypeError
+        elif error_type is not None:
+            with pytest.raises(error_type):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
+        elif dtype == "int64":
+            if is_engine_numexpr:
+                with pytest.raises(NotImplementedError):
+                    result = pd.eval(expr, engine=self.engine, parser=self.parser)
+            else:
+                expect = ~lhs
+                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                tm.assert_frame_equal(expect, result)
+        elif dtype == "bool":
             expect = ~lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
             tm.assert_frame_equal(expect, result)
 
-        # bool always works
-        lhs = DataFrame(rand(5, 2) > 0.5)
-        expect = ~lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_frame_equal(expect, result)
-
-        # object raises
-        lhs = DataFrame({"b": ["a", 1, 2.0], "c": rand(3) > 0.5})
-        if self.engine == "numexpr":
-            with pytest.raises(ValueError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-
-    def test_series_invert(self):
+    @pytest.mark.parametrize(
+        "lhs",
+        [
+            Series(randn(5)),
+            Series(randint(5, size=5)),
+            Series(rand(5) > 0.5),
+            Series(["a", 1, 2.0]),
+        ],
+    )
+    def test_series_invert(self, lhs):
         # ~ ####
         expr = self.ex("~")
+        dtype = lhs.dtype
 
-        # series
-        # float raises
-        lhs = Series(randn(5))
-        if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        error_type = None
+        is_engine_numexpr = self.engine == "numexpr"
 
-        # int raises on numexpr
-        lhs = Series(randint(5, size=5))
-        if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+        if dtype == "float64":
+            error_type = NotImplementedError if is_engine_numexpr else TypeError
+        elif dtype == "object":
+            error_type = ValueError if is_engine_numexpr else TypeError
+        elif error_type is not None:
+            with pytest.raises(error_type):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
+        elif dtype == "int64":
+            if is_engine_numexpr:
+                with pytest.raises(NotImplementedError):
+                    result = pd.eval(expr, engine=self.engine, parser=self.parser)
+            else:
+                expect = ~lhs
+                result = pd.eval(expr, engine=self.engine, parser=self.parser)
+                tm.assert_series_equal(expect, result)
+        elif dtype == "bool":
             expect = ~lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
             tm.assert_series_equal(expect, result)
-
-        # bool
-        lhs = Series(rand(5) > 0.5)
-        expect = ~lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_series_equal(expect, result)
-
-        # float
-        # int
-        # bool
-
-        # object
-        lhs = Series(["a", 1, 2.0])
-        if self.engine == "numexpr":
-            with pytest.raises(ValueError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_frame_negate(self):
         expr = self.ex("-")
