@@ -65,7 +65,7 @@ bad_title_dict = {}
 err_msg = "Heading capitalization formatted incorrectly. Please correctly capitalize"
 
 
-def follow_capitalization_convention(title: str) -> bool:
+def is_following_capitalization_convention(title: str) -> bool:
     """
     Algorithm to determine if a heading follows the capitalization convention
 
@@ -84,7 +84,10 @@ def follow_capitalization_convention(title: str) -> bool:
 
     """
 
-    # split with delimiters comma, semicolon and space, parentheses, colon, slashes
+    # Remove https link if present in heading
+    title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", title)
+
+    # Split with delimiters comma, semicolon and space, parentheses, colon, slashes
     word_list = re.split(r"[;,-/():\s]\s*", title)
 
     # Edge Case: First word is an empty string
@@ -148,10 +151,9 @@ def findTitles(rst_file: str) -> Generator[List[str], List[int], None]:
     # List of line numbers that corresponding headings in title_list can be found at
     line_number_list: List[int] = []
 
-    # Open and read the .rst file and store the string of data into input
-    f = open(rst_file, "r")
-    input = f.read().split("\n")
-    f.close()
+    # Open and read the .rst file and store the string of data into lines
+    with open(rst_file, "r") as file_obj:
+        lines = file_obj.read().split("\n")
 
     # Regular expressions that denote a title beforehand
     regex = {
@@ -167,20 +169,20 @@ def findTitles(rst_file: str) -> Generator[List[str], List[int], None]:
     # '*`_' markers are removed from original string text.
     table = str.maketrans("", "", "*`_")
 
-    # Loop through input lines, appending if they are considered headings
-    for lineno in range(1, len(input)):
-        if len(input[lineno]) != 0 and len(input[lineno - 1]) != 0:
+    # Loop through lines lines, appending if they are considered headings
+    for lineno in range(1, len(lines)):
+        if len(lines[lineno]) != 0 and len(lines[lineno - 1]) != 0:
             for key in regex:
-                match = re.search(regex[key], input[lineno])
+                match = re.search(regex[key], lines[lineno])
                 if match is not None:
                     if lineno >= 2:
-                        if input[lineno] == input[lineno - 2]:
-                            if len(input[lineno]) == len(input[lineno - 1]):
-                                title_list.append(input[lineno - 1].translate(table))
+                        if lines[lineno] == lines[lineno - 2]:
+                            if len(lines[lineno]) == len(lines[lineno - 1]):
+                                title_list.append(lines[lineno - 1].translate(table))
                                 line_number_list.append(lineno)
                             break
-                    if len(input[lineno]) >= len(input[lineno - 1]):
-                        title_list.append(input[lineno - 1].translate(table))
+                    if len(lines[lineno]) >= len(lines[lineno - 1]):
+                        title_list.append(lines[lineno - 1].translate(table))
                         line_number_list.append(lineno)
 
     return title_list, line_number_list
@@ -206,14 +208,14 @@ def fill_bad_title_dict(rst_file: str) -> None:
 
     # Append the bad_title_dict if the capitalization convention not followed
     for i in range(len(title_list)):
-        if not follow_capitalization_convention(title_list[i]):
+        if not is_following_capitalization_convention(title_list[i]):
             if rst_file not in bad_title_dict:
                 bad_title_dict[rst_file] = [(title_list[i], line_number_list[i])]
             else:
                 bad_title_dict[rst_file].append((title_list[i], line_number_list[i]))
 
 
-def find_rst_files(source_paths: List[str]) -> List[str]:
+def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
     """
     Given the command line arguments of directory paths, this method
     yields the strings of the .rst file directories that these paths contain
@@ -269,7 +271,6 @@ def main(source_paths: List[str], output_format: str) -> bool:
     directory_list = find_rst_files(source_paths)
 
     # Fill the bad_title_dict, which contains all incorrectly capitalized headings
-    # with suppress_stdout_stderr():
     for filename in directory_list:
         fill_bad_title_dict(filename)
 
