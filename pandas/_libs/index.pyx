@@ -213,7 +213,8 @@ cdef class IndexEngine:
         return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
-        cdef object is_unique
+        cdef:
+            bint is_unique
         try:
             values = self._get_index_values()
             self.monotonic_inc, self.monotonic_dec, is_unique = \
@@ -236,10 +237,10 @@ cdef class IndexEngine:
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
-    def get_backfill_indexer(self, other, limit=None):
+    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         return algos.backfill(self._get_index_values(), other, limit=limit)
 
-    def get_pad_indexer(self, other, limit=None):
+    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         return algos.pad(self._get_index_values(), other, limit=limit)
 
     cdef _make_hash_table(self, Py_ssize_t n):
@@ -477,13 +478,13 @@ cdef class DatetimeEngine(Int64Engine):
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
-    def get_pad_indexer(self, other, limit=None):
+    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.pad(self._get_index_values(), other, limit=limit)
 
-    def get_backfill_indexer(self, other, limit=None):
+    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
@@ -506,16 +507,13 @@ cdef class PeriodEngine(Int64Engine):
     cdef _get_index_values(self):
         return super(PeriodEngine, self).vgetter().view("i8")
 
-    cdef void _call_map_locations(self, values):
-        # super(...) pattern doesn't seem to work with `cdef`
-        Int64Engine._call_map_locations(self, values.view('i8'))
-
     cdef _call_monotonic(self, values):
         # super(...) pattern doesn't seem to work with `cdef`
         return Int64Engine._call_monotonic(self, values.view('i8'))
 
     def get_indexer(self, values):
-        cdef ndarray[int64_t, ndim=1] ordinals
+        cdef:
+            ndarray[int64_t, ndim=1] ordinals
 
         super(PeriodEngine, self)._ensure_mapping_populated()
 
@@ -524,14 +522,14 @@ cdef class PeriodEngine(Int64Engine):
 
         return self.mapping.lookup(ordinals)
 
-    def get_pad_indexer(self, other, limit=None):
+    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
         return algos.pad(self._get_index_values(),
                          np.asarray(ordinal), limit=limit)
 
-    def get_backfill_indexer(self, other, limit=None):
+    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 

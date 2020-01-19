@@ -169,8 +169,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         self._dtype = PeriodDtype(freq)
 
     @classmethod
-    def _simple_new(cls, values, freq=None, **kwargs):
+    def _simple_new(cls, values: np.ndarray, freq=None, **kwargs):
         # alias for PeriodArray.__init__
+        assert isinstance(values, np.ndarray) and values.dtype == "i8"
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
