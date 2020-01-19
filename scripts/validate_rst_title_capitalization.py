@@ -413,10 +413,12 @@ def main(source_paths: List[str], output_format: str) -> bool:
 
     Returns
     -------
-    bool
+    is_failed : bool
         True if there are headings that are printed, False if not
 
     '''
+
+    is_failed : bool = False
 
     # Make a list of all RST files from command line directory list
     directory_list = find_rst_files(source_paths)
@@ -428,7 +430,7 @@ def main(source_paths: List[str], output_format: str) -> bool:
 
     # Return an exit status of 0 if there are no bad titles in the dictionary
     if (len(bad_title_dict) == 0):
-        return False
+        return is_failed
 
     # Print bad_title_dict Results
     print()
@@ -438,8 +440,8 @@ def main(source_paths: List[str], output_format: str) -> bool:
                 key + ":" + str(line[1]) + ": " + err_msg + " \"" + line[0] + "\""
             )
 
-    # Exit status of 1
-    return True
+    # Exit status of 0
+    return is_failed
 
 
 if __name__ == "__main__":
