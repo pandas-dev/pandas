@@ -214,7 +214,7 @@ cdef class IndexEngine:
 
     cdef inline _do_monotonic_check(self):
         cdef:
-             bint is_unique
+            bint is_unique
         try:
             values = self._get_index_values()
             self.monotonic_inc, self.monotonic_dec, is_unique = \
