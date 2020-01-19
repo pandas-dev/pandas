@@ -129,7 +129,7 @@ bar2,12,13,14,15
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "feather", Exception, "feather"),
+            (pd.read_feather, "pyarrow", Exception, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -165,7 +165,7 @@ bar2,12,13,14,15
             (pd.read_table, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "feather", Exception, "feather"),
+            (pd.read_feather, "pyarrow", Exception, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -212,7 +212,7 @@ bar2,12,13,14,15
             (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
             (
                 pd.read_feather,
-                "feather",
+                "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
             ),
             (
@@ -249,7 +249,7 @@ bar2,12,13,14,15
         [
             ("to_csv", {}, "os"),
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
-            ("to_feather", {}, "feather"),
+            ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
