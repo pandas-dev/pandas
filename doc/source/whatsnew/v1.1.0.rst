@@ -161,7 +161,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-
+- Bug in :meth:`Dataframe.loc` when used with a :class:`MultiIndex`. The returned values were not in the same order as the given inputs (:issue:`22797`)
 -
 -
 
