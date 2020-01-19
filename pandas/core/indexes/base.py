@@ -4643,7 +4643,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Assumes that `series.index is self`
         """
-        if is_scalar(loc):
+        if is_integer(loc):
             if isinstance(series._values, np.ndarray):
                 # Since we have an ndarray and not DatetimeArray, we dont
                 #  have to worry about a tz.
