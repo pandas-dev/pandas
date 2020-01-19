@@ -7811,7 +7811,7 @@ Wild         185.0
 
         # GH #423
         if len(frame._get_axis(axis)) == 0:
-            result = Series(0, index=frame._get_agg_axis(axis))
+            result = frame._constructor_sliced(0, index=frame._get_agg_axis(axis))
         else:
             if frame._is_mixed_type or frame._data.any_extension_types:
                 # the or any_extension_types is really only hit for single-
@@ -7821,7 +7821,9 @@ Wild         185.0
                 # GH13407
                 series_counts = notna(frame).sum(axis=axis)
                 counts = series_counts.values
-                result = Series(counts, index=frame._get_agg_axis(axis))
+                result = frame._constructor_sliced(
+                    counts, index=frame._get_agg_axis(axis)
+                )
 
         return result.astype("int64")
 
@@ -7860,7 +7862,7 @@ Wild         185.0
         level_codes = ensure_int64(count_axis.codes[level])
         counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=0)
 
-        result = DataFrame(counts, index=level_index, columns=agg_axis)
+        result = frame._constructor(counts, index=level_index, columns=agg_axis)
 
         if axis == 1:
             # Undo our earlier transpose
