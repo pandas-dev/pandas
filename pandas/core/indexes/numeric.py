@@ -231,6 +231,8 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
+    _default_dtype: np.dtype
+
     def __contains__(self, key) -> bool:
         """
         Check if key is a float and has a decimal. If it has, return False.
@@ -243,26 +245,17 @@ class IntegerIndex(NumericIndex):
         except (OverflowError, TypeError, ValueError):
             return False
 
-
-class Int64Index(IntegerIndex):
-    __doc__ = _num_index_shared_docs["class_descr"] % _int64_descr_args
-
-    _typ = "int64index"
-    _can_hold_na = False
-    _engine_type = libindex.Int64Engine
-    _default_dtype = np.int64
-
     @property
     def inferred_type(self) -> str:
         """
-        Always 'integer' for ``Int64Index``
+        Always 'integer' for ``Int64Index`` and ``UInt64Index``
         """
         return "integer"
 
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
-        return self.values.view("i8")
+        return self.values.view(self._default_dtype)
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -272,6 +265,15 @@ class Int64Index(IntegerIndex):
         if kind != "iloc":
             key = self._maybe_cast_indexer(key)
         return super()._convert_scalar_indexer(key, kind=kind)
+
+
+class Int64Index(IntegerIndex):
+    __doc__ = _num_index_shared_docs["class_descr"] % _int64_descr_args
+
+    _typ = "int64index"
+    _can_hold_na = False
+    _engine_type = libindex.Int64Engine
+    _default_dtype = np.dtype(np.int64)
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
@@ -307,28 +309,7 @@ class UInt64Index(IntegerIndex):
     _typ = "uint64index"
     _can_hold_na = False
     _engine_type = libindex.UInt64Engine
-    _default_dtype = np.uint64
-
-    @property
-    def inferred_type(self) -> str:
-        """
-        Always 'integer' for ``UInt64Index``
-        """
-        return "integer"
-
-    @property
-    def asi8(self) -> np.ndarray:
-        # do not cache or you'll create a memory leak
-        return self.values.view("u8")
-
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        # don't coerce ilocs to integers
-        if kind != "iloc":
-            key = self._maybe_cast_indexer(key)
-        return super()._convert_scalar_indexer(key, kind=kind)
+    _default_dtype = np.dtype(np.uint64)
 
     @Appender(_index_shared_docs["_convert_arr_indexer"])
     def _convert_arr_indexer(self, keyarr):
