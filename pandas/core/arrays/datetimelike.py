@@ -1301,14 +1301,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif is_object_dtype(other):
             from pandas import Index
 
-            if type(other) is Index:
-                # e.g. Array/Index of DateOffset objects
+            if isinstance(other, Index) and type(other) is not Index:
                 # We deliberately check for other being exactly an Index, rather
                 # than a subclass, to let Index subclasses take control of binary
                 # operations. See https://github.com/pandas-dev/pandas/issues/31109
-                result = self._addsub_object_array(other, operator.add)
-            else:
                 return NotImplemented
+            else:
+                # e.g. Array/Index of DateOffset objects
+                result = self._addsub_object_array(other, operator.add)
         elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
             # DatetimeIndex, ndarray[datetime64]
             return self._add_datetime_arraylike(other)
@@ -1364,14 +1364,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif is_object_dtype(other):
             from pandas import Index
 
-            if type(other) is Index:
-                # e.g. Array/Index of DateOffset objects
+            if isinstance(other, Index) and type(other) is not Index:
                 # We deliberately check for other being exactly an Index, rather
                 # than a subclass, to let Index subclasses take control of binary
                 # operations. See https://github.com/pandas-dev/pandas/issues/31109
-                result = self._addsub_object_array(other, operator.sub)
-            else:
                 return NotImplemented
+            else:
+                # e.g. Array/Index of DateOffset objects
+                result = self._addsub_object_array(other, operator.sub)
         elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
             # DatetimeIndex, ndarray[datetime64]
             result = self._sub_datetime_arraylike(other)
