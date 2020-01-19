@@ -85,7 +85,7 @@ def test_external_error_raised():
 
     # Note: Should be the only place in the codebase with
     # "pytest.raises(Exception, match=None)"
-    # (Except pandas._testing.test_external_error_raised)
+    # (Except pandas._testing.external_error_raised)
     with pytest.raises(TypeError, match=None):
         with tm.external_error_raised(ValueError):
             pytest.approx()
