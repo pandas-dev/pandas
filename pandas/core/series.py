@@ -2462,7 +2462,7 @@ Name: Max Speed, dtype: float64
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False) -> "Series":
+    def append(self, to_append, ignore_index=False, verify_integrity=False):
         """
         Concatenate two or more Series.
 
