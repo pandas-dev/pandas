@@ -520,34 +520,34 @@ For more details and examples see :ref:`categorical introduction <categorical>` 
 .. _c: https://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html
 
 .. |aggregate| replace:: ``aggregate``
-.. _aggregate: http://finzi.psych.upenn.edu/R/library/stats/html/aggregate.html
+.. _aggregate: https://stat.ethz.ch/R-manual/R-patched/library/stats/html/aggregate.html
 
 .. |match| replace:: ``match`` / ``%in%``
-.. _match: http://finzi.psych.upenn.edu/R/library/base/html/match.html
+.. _match: https://stat.ethz.ch/R-manual/R-patched/library/base/html/match.html
 
 .. |tapply| replace:: ``tapply``
-.. _tapply: http://finzi.psych.upenn.edu/R/library/base/html/tapply.html
+.. _tapply: https://stat.ethz.ch/R-manual/R-patched/library/base/html/tapply.html
 
 .. |with| replace:: ``with``
-.. _with: http://finzi.psych.upenn.edu/R/library/base/html/with.html
+.. _with: https://stat.ethz.ch/R-manual/R-patched/library/base/html/with.html
 
 .. |subset| replace:: ``subset``
-.. _subset: http://finzi.psych.upenn.edu/R/library/base/html/subset.html
+.. _subset: https://stat.ethz.ch/R-manual/R-patched/library/base/html/subset.html
 
 .. |ddply| replace:: ``ddply``
-.. _ddply: http://www.inside-r.org/packages/cran/plyr/docs/ddply
+.. _ddply: https://cran.r-project.org/web/packages/plyr/plyr.pdf#Rfn.ddply.1
 
 .. |meltarray| replace:: ``melt.array``
-.. _meltarray: http://www.inside-r.org/packages/cran/reshape2/docs/melt.array
+.. _meltarray: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.array.1
 
 .. |meltlist| replace:: ``melt.list``
-.. meltlist: http://www.inside-r.org/packages/cran/reshape2/docs/melt.list
+.. meltlist: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.list.1
 
 .. |meltdf| replace:: ``melt.data.frame``
-.. meltdf: http://www.inside-r.org/packages/cran/reshape2/docs/melt.data.frame
+.. meltdf: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.data.frame.1
 
 .. |cast| replace:: ``cast``
-.. cast: http://www.inside-r.org/packages/cran/reshape2/docs/cast
+.. cast: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.cast.1
 
 .. |factor| replace:: ``factor``
 .. _factor: https://stat.ethz.ch/R-manual/R-devel/library/base/html/factor.html

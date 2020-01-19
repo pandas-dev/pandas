@@ -695,7 +695,7 @@ def rstjinja(app, docname, source):
     """
     Render our pages as a jinja template for fancy templating goodness.
     """
-    # http://ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
+    # https://www.ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
     # Make sure we're outputting HTML
     if app.builder.format != "html":
         return

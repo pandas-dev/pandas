@@ -99,7 +99,7 @@ Video tutorials
 Various tutorials
 -----------------
 
-* `Wes McKinney's (pandas BDFL) blog <http://blog.wesmckinney.com/>`_
+* `Wes McKinney's (pandas BDFL) blog <https://wesmckinney.com/archives.html>`_
 * `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
 * `Statistical Data Analysis in Python, tutorial videos, by Christopher Fonnesbeck from SciPy 2013 <https://conference.scipy.org/scipy2013/tutorial_detail.php?id=109>`_
 * `Financial analysis in Python, by Thomas Wiecki <https://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_

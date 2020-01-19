@@ -49,7 +49,7 @@ Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
 
 A full list of the packages available as part of the
 `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution
-`can be found here <http://docs.continuum.io/anaconda/pkg-docs.html>`__.
+`can be found here <https://docs.continuum.io/anaconda/packages/pkg-docs/>`__.
 
 Another advantage to installing Anaconda is that you don't need
 admin rights to install it. Anaconda can install in the user's home directory,
@@ -204,9 +204,9 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                 1.13.3
+`NumPy <https://www.numpy.org>`__                                1.13.3
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.6.1
-`pytz <http://pytz.sourceforge.net/>`__                          2017.2
+`pytz <https://pypi.org/project/pytz/>`__                        2017.2
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
