@@ -64,14 +64,12 @@ class TestSeriesAppend:
     def test_append_dataframe_raises(self):
         # GH 30975
         df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
-        li = [df.B, df]
 
         msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
         with pytest.raises(TypeError, match=msg):
             df.A.append(df)
-        msg = "to_append should be a Series or list/tuple of Series, got list"
         with pytest.raises(TypeError, match=msg):
-            df.A.append(li)
+            df.A.append([df])
 
 
 class TestSeriesAppendWithDatetimeIndex:

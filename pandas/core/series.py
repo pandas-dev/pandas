@@ -2540,16 +2540,14 @@ Name: Max Speed, dtype: float64
         else:
             to_concat = [self, to_append]
         for x in to_concat[1:]:
-            if isinstance(x, (pd.DataFrame,)):
+            if isinstance(x, ABCDataFrame):
                 msg = (
                     f"to_append should be a Series or list/tuple of Series, "
-                    f"got {type(to_append).__name__}"
+                    f"got {type(x).__name__}"
                 )
                 raise TypeError(msg)
-        return self._ensure_type(
-            concat(
-                to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
-            )
+        return concat(
+            to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
 
     def _binop(self, other, func, level=None, fill_value=None):
