@@ -635,8 +635,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             result = result.set_levels(new_lev, level=i)
             result = result.set_codes(new_lev.get_indexer_for(cur_val), level=i)
     else:
-        # when both keys_levs and orig are Index, the result will have the levels and codes
-        # are lexicographically sorted, so need to reorder it
+        # when both keys_levs and orig are Index, the result will have the levels and
+        # codes are lexicographically sorted, so need to reorder it
         if not (isinstance(keys_levs, MultiIndex) or isinstance(orig, MultiIndex)):
             for i, new_lev in zip(range(result.nlevels), [keys_levs, orig]):
                 cur_val = result.get_level_values(i)
