@@ -24,10 +24,34 @@ from typing import Generator, List
 
 # Keynames that would not follow capitalization convention
 CAPITALIZATION_EXCEPTIONS = {
-    'pandas', 'Python', 'IPython', 'PyTables', 'Excel', 'JSON',
-    'HTML', 'SAS', 'SQL', 'BigQuery', 'STATA', 'Interval', 'PEP8',
-    'Period', 'Series', 'Index', 'DataFrame', 'C', 'Git', 'GitHub', 'NumPy',
-    'Apache', 'Arrow', 'Parquet', 'MultiIndex', 'NumFOCUS', 'sklearn-pandas'
+    "pandas",
+    "Python",
+    "IPython",
+    "PyTables",
+    "Excel",
+    "JSON",
+    "HTML",
+    "SAS",
+    "SQL",
+    "BigQuery",
+    "STATA",
+    "Interval",
+    "PEP8",
+    "Period",
+    "Series",
+    "Index",
+    "DataFrame",
+    "C",
+    "Git",
+    "GitHub",
+    "NumPy",
+    "Apache",
+    "Arrow",
+    "Parquet",
+    "MultiIndex",
+    "NumFOCUS",
+    "sklearn",
+    "Docker",
 }
 
 # Lowercase representation of CAPITALIZATION_EXCEPTIONS
@@ -38,11 +62,11 @@ CAPITALIZATION_EXCEPTIONS_LOWER = {word.lower() for word in CAPITALIZATION_EXCEP
 bad_title_dict = {}
 
 # Error Message:
-err_msg = 'Heading capitalization formatted incorrectly. Please correctly capitalize'
+err_msg = "Heading capitalization formatted incorrectly. Please correctly capitalize"
 
 
 def follow_capitalization_convention(title: str) -> bool:
-    '''
+    """
     Algorithm to determine if a heading follows the capitalization convention
 
     This method returns true if the title follows the convention
@@ -58,13 +82,13 @@ def follow_capitalization_convention(title: str) -> bool:
     bool
         True if capitalization is correct, False if not
 
-    '''
+    """
 
     # split with delimiters comma, semicolon and space, parentheses, colon, slashes
-    word_list = re.split(r'[;,/():\s]\s*', title)
+    word_list = re.split(r"[;,-/():\s]\s*", title)
 
     # Edge Case: First word is an empty string
-    if (len(word_list[0]) == 0):
+    if len(word_list[0]) == 0:
         return False
 
     # Dealing with the first word of the title
@@ -73,7 +97,7 @@ def follow_capitalization_convention(title: str) -> bool:
         if word_list[0].lower() in CAPITALIZATION_EXCEPTIONS_LOWER:
             return False
         # First letter of first word must be uppercase
-        if (not word_list[0][0].isupper()):
+        if not word_list[0][0].isupper():
             return False
         # Remaining letters of first word must not be uppercase
         for j in range(1, len(word_list[0])):
@@ -96,7 +120,7 @@ def follow_capitalization_convention(title: str) -> bool:
 
 
 def findTitles(rst_file: str) -> Generator[List[str], List[int], None]:
-    '''
+    """
     Algorithm to identify particular text that should be considered headings in an
     RST file
 
@@ -116,7 +140,7 @@ def findTitles(rst_file: str) -> Generator[List[str], List[int], None]:
     line_number_list : List[int]
         The corresponding line numbers of the headings in title_list
 
-    '''
+    """
 
     # title_list is the list of headings that is encountered in the doctree
     title_list: List[str] = []
@@ -126,31 +150,36 @@ def findTitles(rst_file: str) -> Generator[List[str], List[int], None]:
 
     # Open and read the .rst file and store the string of data into input
     f = open(rst_file, "r")
-    input = f.read().split('\n')
+    input = f.read().split("\n")
+    f.close()
 
     # Regular expressions that denote a title beforehand
     regex = {
-        '*': r'^(?:\*{1})*$', '=': r'^(?:={1})*$', '-': r'^(?:-{1})*$',
-        '^': r'^(?:\^{1})*$', '~': r'^(?:~{1})*$', '#': r'^(?:#{1})*$',
-        '"': r'^(?:"{1})*$'
+        "*": r"^(?:\*{1})*$",
+        "=": r"^(?:={1})*$",
+        "-": r"^(?:-{1})*$",
+        "^": r"^(?:\^{1})*$",
+        "~": r"^(?:~{1})*$",
+        "#": r"^(?:#{1})*$",
+        '"': r'^(?:"{1})*$',
     }
 
     # '*`_' markers are removed from original string text.
-    table = str.maketrans("", "", '*`_')
+    table = str.maketrans("", "", "*`_")
 
     # Loop through input lines, appending if they are considered headings
     for lineno in range(1, len(input)):
-        if (len(input[lineno]) != 0 and len(input[lineno - 1]) != 0):
+        if len(input[lineno]) != 0 and len(input[lineno - 1]) != 0:
             for key in regex:
                 match = re.search(regex[key], input[lineno])
-                if (match is not None):
-                    if (lineno >= 2):
-                        if (input[lineno] == input[lineno - 2]):
-                            if (len(input[lineno]) == len(input[lineno - 1])):
+                if match is not None:
+                    if lineno >= 2:
+                        if input[lineno] == input[lineno - 2]:
+                            if len(input[lineno]) == len(input[lineno - 1]):
                                 title_list.append(input[lineno - 1].translate(table))
                                 line_number_list.append(lineno)
                             break
-                    if (len(input[lineno]) >= len(input[lineno - 1])):
+                    if len(input[lineno]) >= len(input[lineno - 1]):
                         title_list.append(input[lineno - 1].translate(table))
                         line_number_list.append(lineno)
 
@@ -158,7 +187,7 @@ def findTitles(rst_file: str) -> Generator[List[str], List[int], None]:
 
 
 def fill_bad_title_dict(rst_file: str) -> None:
-    '''
+    """
     Method that fills up the bad_title_dict with incorrectly capitalized headings
 
     Parameters
@@ -166,7 +195,7 @@ def fill_bad_title_dict(rst_file: str) -> None:
     rst_file : str
         Directory address of a .rst file as a string
 
-    '''
+    """
 
     # Ensure this file doesn't already have a bad_title_dict slot
     if rst_file in bad_title_dict:
@@ -185,7 +214,7 @@ def fill_bad_title_dict(rst_file: str) -> None:
 
 
 def find_rst_files(source_paths: List[str]) -> List[str]:
-    '''
+    """
     Given the command line arguments of directory paths, this method
     yields the strings of the .rst file directories that these paths contain
 
@@ -199,7 +228,7 @@ def find_rst_files(source_paths: List[str]) -> List[str]:
     directory_address : str
         Directory address of a .rst files found in command line argument directories
 
-    '''
+    """
 
     # Loop through source_paths, recursively looking for .rst files
     for directory_address in source_paths:
@@ -207,7 +236,7 @@ def find_rst_files(source_paths: List[str]) -> List[str]:
             raise ValueError(
                 "Please enter a valid path, pointing to a valid file/directory."
             )
-        elif (directory_address.endswith(".rst")):
+        elif directory_address.endswith(".rst"):
             yield directory_address
         else:
             for (dirpath, dirnames, filenames) in walk(directory_address):
@@ -217,7 +246,7 @@ def find_rst_files(source_paths: List[str]) -> List[str]:
 
 
 def main(source_paths: List[str], output_format: str) -> bool:
-    '''
+    """
     The main method to print all headings with incorrect capitalization
 
     Parameters
@@ -232,9 +261,9 @@ def main(source_paths: List[str], output_format: str) -> bool:
     is_failed : bool
         True if there are headings that are printed, False if not
 
-    '''
+    """
 
-    is_failed : bool = False
+    is_failed: bool = False
 
     # Make a list of all RST files from command line directory list
     directory_list = find_rst_files(source_paths)
@@ -245,23 +274,21 @@ def main(source_paths: List[str], output_format: str) -> bool:
         fill_bad_title_dict(filename)
 
     # Return an exit status of 0 if there are no bad titles in the dictionary
-    if (len(bad_title_dict) == 0):
+    if len(bad_title_dict) == 0:
         return is_failed
 
     # Print bad_title_dict Results
-    print()
+    is_failed = True
     for key in bad_title_dict:
         for line in bad_title_dict[key]:
-            print(
-                key + ":" + str(line[1]) + ": " + err_msg + " \"" + line[0] + "\""
-            )
+            print(key + ":" + str(line[1]) + ": " + err_msg + ' "' + line[0] + '"')
 
     # Exit status of 0
     return is_failed
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Validate heading capitalization')
+    parser = argparse.ArgumentParser(description="Validate heading capitalization")
 
     parser.add_argument(
         "paths", nargs="+", default=".", help="Source paths of file/directory to check."
