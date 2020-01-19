@@ -348,7 +348,6 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
-        msg = r"PeriodIndex\._simple_new does not accept floats"
         with pytest.raises(AssertionError, match="<class "):
             pd.PeriodIndex._simple_new(floats, freq="M")
 
