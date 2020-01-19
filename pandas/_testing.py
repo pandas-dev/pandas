@@ -2768,7 +2768,7 @@ def external_error_raised(
     Parameters
     ----------
     expected_exception : Exception
-        Exected error to raise.
+        Expected error to raise.
 
     Returns
     -------
