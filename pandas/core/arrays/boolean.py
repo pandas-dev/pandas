@@ -289,7 +289,9 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
         def map_string(s):
-            if s in ["True", "true", "1"]:
+            if isna(s):
+                return s
+            elif s in ["True", "true", "1"]:
                 return True
             elif s in ["False", "false", "0"]:
                 return False
