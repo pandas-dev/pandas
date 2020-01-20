@@ -18,6 +18,7 @@ Enhancements
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
 -
 -
 
