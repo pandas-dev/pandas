@@ -29,6 +29,7 @@ programming language.
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
+                <img src="../_static/index_getting_started.svg" class="card-img-top" alt="getting started with pandas action icon" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">Getting started</h5>
                     <p class="card-text">New to <em>pandas</em>? Check out the getting started guides. They
@@ -46,6 +47,7 @@ programming language.
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
+                <img src="../_static/index_user_guide.svg" class="card-img-top" alt="pandas user guide action icon" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">User guide</h5>
                     <p class="card-text">The user guide provides in-depth information on the
@@ -62,6 +64,7 @@ programming language.
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
+                <img src="../_static/index_api.svg" class="card-img-top" alt="api of pandas action icon" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">API reference</h5>
                     <p class="card-text">The reference guide contains a detailed overview of
@@ -80,6 +83,7 @@ programming language.
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
+                <img src="../_static/index_contribute.svg" class="card-img-top" alt="contribute to pandas action icon" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">Developer guide</h5>
                     <p class="card-text">Saw a typo in the documentation? Want to improve
