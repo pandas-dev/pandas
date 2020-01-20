@@ -72,9 +72,10 @@ cdef class IndexEngine:
         self.over_size_threshold = n >= _SIZE_CUTOFF
         self.clear_mapping()
 
-    def __contains__(self, object val):
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
         self._ensure_mapping_populated()
-        hash(val)
         return val in self.mapping
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
@@ -424,7 +425,9 @@ cdef class DatetimeEngine(Int64Engine):
             raise TypeError(scalar)
         return scalar.value
 
-    def __contains__(self, object val):
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
         cdef:
             int64_t loc, conv
 
@@ -724,7 +727,9 @@ cdef class BaseMultiIndexCodesEngine:
 
         return indexer
 
-    def __contains__(self, object val):
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
         # Default __contains__ looks in the underlying mapping, which in this
         # case only contains integer representations.
         try:
