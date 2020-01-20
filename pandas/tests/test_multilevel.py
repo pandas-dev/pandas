@@ -2173,7 +2173,7 @@ class TestSorted(Base):
                         name="l1",
                         dtype="category",
                     ),
-                    pd.Int64Index([0, 1], dtype="int64", name="l2"),
+                    [0, 1],
                 ],
                 codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
                 names=["l1", "l2"],
