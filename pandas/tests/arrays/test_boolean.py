@@ -1,4 +1,3 @@
-import io
 import operator
 
 import numpy as np
