@@ -11,6 +11,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
 import bz2
+import datetime
 import glob
 import gzip
 import os
@@ -487,3 +488,22 @@ def test_pickle_s3url_roundtrip(monkeypatch, mockurl):
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)
         tm.assert_frame_equal(df, result)
+
+
+class MyTz(datetime.tzinfo):
+    def __init__(self):
+        pass
+
+
+def test_read_pickle_with_subclass():
+    # GH 12163
+    expected = pd.Series(dtype=object), MyTz()
+
+    with tm.ensure_clean() as path:
+        with open(path, "wb") as f:
+            pickle.dump(expected, f)
+
+        result = pd.read_pickle(path)
+
+    tm.assert_series_equal(result[0], expected[0])
+    assert isinstance(result[1], MyTz)
