@@ -424,8 +424,8 @@ class TestDataFrameReshape:
         # When mixed types are passed and the ints are not level
         # names, raise
         msg = (
-            "level should contain all level names or all level numbers, not"
-            " a mixture of the two"
+            "level should contain all level names or all level numbers, not "
+            "a mixture of the two"
         )
         with pytest.raises(ValueError, match=msg):
             df2.stack(level=["animal", 0])

@@ -146,8 +146,8 @@ bar2,12,13,14,15
         msg3 = "Expected object or value"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist:"
-            fr" '.+does_not_exist\.{fn_ext}'"
+            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            fr"'.+does_not_exist\.{fn_ext}'"
         )
         msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (
@@ -186,8 +186,8 @@ bar2,12,13,14,15
         msg3 = "Unexpected character found when decoding 'false'"
         msg4 = "path_or_buf needs to be a string file path or file-like"
         msg5 = (
-            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist:"
-            fr" '.+does_not_exist\.{fn_ext}'"
+            fr"\[Errno 2\] File .+does_not_exist\.{fn_ext} does not exist: "
+            fr"'.+does_not_exist\.{fn_ext}'"
         )
         msg6 = fr"\[Errno 2\] 没有那个文件或目录: '.+does_not_exist\.{fn_ext}'"
         msg7 = (

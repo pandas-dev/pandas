@@ -357,7 +357,7 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        msg = "index -5 is out of bounds for size 3"
+        msg = "index -5 is out of bounds for( axis 0 with)? size 3"
         with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
@@ -409,8 +409,8 @@ class TestIndexing:
             idx0.get_loc(1.1)
 
         msg = (
-            r"'PeriodIndex\(\['2017-09-01', '2017-09-02', '2017-09-03'\],"
-            r" dtype='period\[D\]', freq='D'\)' is an invalid key"
+            r"'PeriodIndex\(\['2017-09-01', '2017-09-02', '2017-09-03'\], "
+            r"dtype='period\[D\]', freq='D'\)' is an invalid key"
         )
         with pytest.raises(TypeError, match=msg):
             idx0.get_loc(idx0)
@@ -434,8 +434,8 @@ class TestIndexing:
             idx1.get_loc(1.1)
 
         msg = (
-            r"'PeriodIndex\(\['2017-09-02', '2017-09-02', '2017-09-03'\],"
-            r" dtype='period\[D\]', freq='D'\)' is an invalid key"
+            r"'PeriodIndex\(\['2017-09-02', '2017-09-02', '2017-09-03'\], "
+            r"dtype='period\[D\]', freq='D'\)' is an invalid key"
         )
         with pytest.raises(TypeError, match=msg):
             idx1.get_loc(idx1)
@@ -450,6 +450,28 @@ class TestIndexing:
         assert idx2.get_loc(str(p1)) == expected_idx2_p1
         tm.assert_numpy_array_equal(idx2.get_loc(p2), expected_idx2_p2)
         tm.assert_numpy_array_equal(idx2.get_loc(str(p2)), expected_idx2_p2)
+
+    def test_get_loc_integer(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        with pytest.raises(KeyError, match="16801"):
+            pi.get_loc(16801)
+
+        pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
+        with pytest.raises(KeyError, match="46"):
+            pi2.get_loc(46)
+
+    def test_get_value_integer(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        ser = pd.Series(range(3), index=pi)
+        with pytest.raises(IndexError, match="is out of bounds for axis 0 with size 3"):
+            pi.get_value(ser, 16801)
+
+        pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
+        ser2 = pd.Series(range(3), index=pi2)
+        with pytest.raises(IndexError, match="is out of bounds for axis 0 with size 3"):
+            pi2.get_value(ser2, 46)
 
     def test_is_monotonic_increasing(self):
         # GH 17717

@@ -81,8 +81,8 @@ class TestFancy(Base):
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
         msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
+            r"Buffer has wrong number of dimensions \(expected 1, "
+            r"got 3\)|"
             "Cannot index with multidimensional key|"
             r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
             "Index data must be 1-dimensional"
@@ -134,8 +134,8 @@ class TestFancy(Base):
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
         msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
+            r"Buffer has wrong number of dimensions \(expected 1, "
+            r"got 3\)|"
             "'pandas._libs.interval.IntervalTree' object has no attribute "
             "'set_value'|"  # AttributeError
             "unhashable type: 'numpy.ndarray'|"  # TypeError

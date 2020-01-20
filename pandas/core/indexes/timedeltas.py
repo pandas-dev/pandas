@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, index as libindex
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
@@ -16,12 +16,11 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
-from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
@@ -177,12 +176,13 @@ class TimedeltaIndex(
         tdarr = TimedeltaArray._from_sequence(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        return cls._simple_new(tdarr._data, freq=tdarr.freq, name=name)
+        return cls._simple_new(tdarr, name=name)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
+
         if not isinstance(values, TimedeltaArray):
             values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)
         else:
@@ -237,29 +237,22 @@ class TimedeltaIndex(
         know what you're doing
         """
 
-        if _is_convertible_to_td(key):
+        if isinstance(key, str):
+            try:
+                key = Timedelta(key)
+            except ValueError:
+                raise KeyError(key)
+
+        if isinstance(key, self._data._recognized_scalars) or key is NaT:
             key = Timedelta(key)
             return self.get_value_maybe_box(series, key)
 
-        try:
-            value = Index.get_value(self, series, key)
-        except KeyError:
-            try:
-                loc = self._get_string_slice(key)
-                return series[loc]
-            except (TypeError, ValueError, KeyError):
-                pass
-
-            try:
-                return self.get_value_maybe_box(series, key)
-            except (TypeError, ValueError, KeyError):
-                raise KeyError(key)
-        else:
-            return com.maybe_box(self, value, series, key)
+        value = Index.get_value(self, series, key)
+        return com.maybe_box(self, value, series, key)
 
     def get_value_maybe_box(self, series, key: Timedelta):
-        values = self._engine.get_value(com.values_from_object(series), key)
-        return com.maybe_box(self, values, series, key)
+        loc = self.get_loc(key)
+        return self._get_values_for_loc(series, loc)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -288,19 +281,7 @@ class TimedeltaIndex(
             key = Timedelta(key)
             return Index.get_loc(self, key, method, tolerance)
 
-        try:
-            return Index.get_loc(self, key, method, tolerance)
-        except (KeyError, ValueError, TypeError):
-            try:
-                return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError):
-                pass
-
-            try:
-                stamp = Timedelta(key)
-                return Index.get_loc(self, stamp, method, tolerance)
-            except (KeyError, ValueError):
-                raise KeyError(key)
+        return Index.get_loc(self, key, method, tolerance)
 
     def _maybe_cast_slice_bound(self, label, side, kind):
         """
@@ -310,13 +291,13 @@ class TimedeltaIndex(
         ----------
         label : object
         side : {'left', 'right'}
-        kind : {'ix', 'loc', 'getitem'}
+        kind : {'loc', 'getitem'} or None
 
         Returns
         -------
         label : object
         """
-        assert kind in ["ix", "loc", "getitem", None]
+        assert kind in ["loc", "getitem", None]
 
         if isinstance(label, str):
             parsed = Timedelta(label)
@@ -330,43 +311,11 @@ class TimedeltaIndex(
 
         return label
 
-    def _get_string_slice(self, key):
-        if is_integer(key) or is_float(key) or key is NaT:
-            self._invalid_indexer("slice", key)
-        loc = self._partial_td_slice(key)
-        return loc
-
-    def _partial_td_slice(self, key):
-
+    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+        # TODO: Check for non-True use_lhs/use_rhs
+        assert isinstance(key, str), type(key)
         # given a key, try to figure out a location for a partial slice
-        if not isinstance(key, str):
-            return key
-
         raise NotImplementedError
-
-    @Substitution(klass="TimedeltaIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, (np.ndarray, Index)):
-            if not type(self._data)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
-            value = type(self._data)(value)
-            self._data._check_compatible_with(value)
-
-        elif isinstance(value, self._data._recognized_scalars):
-            self._data._check_compatible_with(value)
-            value = self._data._scalar_type(value)
-
-        elif not isinstance(value, TimedeltaArray):
-            raise TypeError(
-                "searchsorted requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
-            )
-
-        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
@@ -374,61 +323,6 @@ class TimedeltaIndex(
     @property
     def inferred_type(self) -> str:
         return "timedelta64"
-
-    def insert(self, loc, item):
-        """
-        Make new Index inserting new item at location
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-            If not either a Python datetime or a numpy integer-like, returned
-            Index dtype will be object rather than datetime.
-
-        Returns
-        -------
-        new_index : Index
-        """
-        # try to convert if possible
-        if isinstance(item, self._data._recognized_scalars):
-            item = self._data._scalar_type(item)
-        elif is_valid_nat_for_dtype(item, self.dtype):
-            # GH 18295
-            item = self._na_value
-        elif is_scalar(item) and isna(item):
-            # i.e. datetime64("NaT")
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            )
-
-        freq = None
-        if isinstance(item, self._data._scalar_type) or item is NaT:
-            self._data._check_compatible_with(item, setitem=True)
-
-            # check freq can be preserved on edge cases
-            if self.size and self.freq is not None:
-                if item is NaT:
-                    pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
-                    freq = self.freq
-                elif (loc == len(self)) and item - self.freq == self[-1]:
-                    freq = self.freq
-            item = item.asm8
-
-        try:
-            new_i8s = np.concatenate(
-                (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
-            )
-            return self._shallow_copy(new_i8s, freq=freq)
-        except (AttributeError, TypeError):
-
-            # fall back to object index
-            if isinstance(item, str):
-                return self.astype(object).insert(loc, item)
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            )
 
 
 TimedeltaIndex._add_logical_methods_disabled()
@@ -507,4 +401,4 @@ def timedelta_range(
 
     freq, freq_infer = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)
-    return TimedeltaIndex._simple_new(tdarr._data, freq=tdarr.freq, name=name)
+    return TimedeltaIndex._simple_new(tdarr, name=name)

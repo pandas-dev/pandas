@@ -967,6 +967,15 @@ class TestSeriesConstructors:
         expected = Series(pd.Timestamp(arg)).dt.tz_localize("CET")
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_datetime64_bigendian(self):
+        # GH#30976
+        ms = np.datetime64(1, "ms")
+        arr = np.array([np.datetime64(1, "ms")], dtype=">M8[ms]")
+
+        result = Series(arr)
+        expected = Series([Timestamp(ms)])
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("interval_constructor", [IntervalIndex, IntervalArray])
     def test_construction_interval(self, interval_constructor):
         # construction from interval & array of intervals
