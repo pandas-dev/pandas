@@ -286,6 +286,19 @@ class BooleanArray(BaseMaskedArray):
         values, mask = coerce_to_array(scalars, copy=copy)
         return BooleanArray(values, mask)
 
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        def map_string(s):
+            if s in ["True", "true", "1"]:
+                return True
+            elif s in ["False", "false", "0"]:
+                return False
+            else:
+                return s
+
+        scalars = [map_string(x) for x in strings]
+        return cls._from_sequence(scalars, dtype, copy)
+
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         data = self._data.astype("int8")
         data[self._mask] = -1
