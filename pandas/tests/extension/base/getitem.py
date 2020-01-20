@@ -160,6 +160,38 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError):
             s[mask]
 
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_getitem_integer_array(self, data, idx):
+        result = data[idx]
+        assert len(result) == 3
+        assert isinstance(result, type(data))
+        expected = data.take([0, 1, 2])
+        self.assert_extension_array_equal(result, expected)
+
+        expected = pd.Series(expected)
+        result = pd.Series(data)[idx]
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2, pd.NA], pd.array([0, 1, 2, pd.NA], dtype="Int64")],
+        ids=["list", "integer-array"],
+    )
+    def test_getitem_integer_with_missing_raises(self, data, idx):
+        msg = "Cannot index with an integer indexer containing NA values"
+        with pytest.raises(ValueError, match=msg):
+            data[idx]
+
+        # TODO this raises KeyError about labels not found (it tries label-based)
+        # import pandas._testing as tm
+        # s = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+        # with pytest.raises(ValueError, match=msg):
+        #    s[idx]
+
     def test_getitem_slice(self, data):
         # getitem[slice] should return an array
         result = data[slice(0)]  # empty

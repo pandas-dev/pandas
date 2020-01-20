@@ -5,7 +5,12 @@ import numpy as np
 
 from pandas._typing import AnyArrayLike
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_integer_dtype,
+    is_list_like,
+)
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 # -----------------------------------------------------------
@@ -307,3 +312,62 @@ def check_bool_array_indexer(array: AnyArrayLike, mask: AnyArrayLike) -> np.ndar
     if len(result) != len(array):
         raise IndexError(f"Item wrong length {len(result)} instead of {len(array)}.")
     return result
+
+
+def check_array_indexer(array, indexer) -> np.ndarray:
+    """
+    Check if `indexer` is a valid array indexer for `array`.
+
+    `array` and `indexer` are checked to have the same length, and the
+    dtype is validated. If it is an integer or boolean ExtensionArray, it is
+    checked if there are missing values present, and it is converted to
+    the appropriate numpy array.
+
+    .. versionadded:: 1.0.0
+
+    Parameters
+    ----------
+    array : array
+        The array that's being indexed (only used for the length).
+    indexer : array-like
+        The array-like that's used to index.
+
+    Returns
+    -------
+    numpy.ndarray
+        The validated indexer.
+
+    Raises
+    ------
+    IndexError
+        When the lengths don't match.
+    ValueError
+        When `indexer` cannot be converted to a numpy ndarray.
+
+    """
+    import pandas as pd
+
+    if not is_array_like(indexer):
+        indexer = pd.array(indexer)
+    dtype = indexer.dtype
+    if is_bool_dtype(dtype):
+        try:
+            indexer = np.asarray(indexer, dtype=bool)
+        except ValueError:
+            raise ValueError("Cannot mask with a boolean indexer containing NA values")
+
+        # GH26658
+        if len(indexer) != len(array):
+            raise IndexError(
+                f"Item wrong length {len(indexer)} instead of {len(array)}."
+            )
+
+    elif is_integer_dtype(dtype):
+        try:
+            indexer = np.asarray(indexer, dtype=int)
+        except ValueError:
+            raise ValueError(
+                "Cannot index with an integer indexer containing NA values"
+            )
+
+    return indexer

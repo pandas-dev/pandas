@@ -29,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_dtype_equal,
     is_integer,
+    is_list_like,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -43,6 +44,7 @@ from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import sanitize_array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -767,6 +769,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     key = key.to_dense()
                 else:
                     key = np.asarray(key)
+
+            if is_list_like(key):
+                key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self, key)
