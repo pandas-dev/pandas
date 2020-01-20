@@ -1,3 +1,8 @@
+"""
+aggregation.py contains utility functions to handle multiple named and lambda
+kwarg aggregations in groupby and DataFrame/Series aggregation
+"""
+
 from collections import defaultdict
 from functools import partial
 from typing import Any, DefaultDict, List, Sequence, Tuple
@@ -6,12 +11,6 @@ from pandas.core.dtypes.common import is_dict_like, is_list_like
 
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-
-
-"""
-aggregation.py contains utility functions to handle multiple named and lambda
-kwarg aggregations in groupby and DataFrame/Series aggregation
-"""
 
 
 def is_multi_agg_with_relabel(**kwargs) -> bool:
