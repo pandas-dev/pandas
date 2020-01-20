@@ -865,7 +865,7 @@ cdef class _Timedelta(timedelta):
         """
         # GH 31043
         # Round down to microseconds to avoid confusing tzinfo.utcoffset
-        return (self.value - self.value % 1000) / 1e9
+        return (self.value - self.value % 1000) / 1000000000
 
     def view(self, dtype):
         """
