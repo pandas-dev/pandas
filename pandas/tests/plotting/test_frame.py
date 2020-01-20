@@ -538,12 +538,7 @@ class TestDataFramePlots(TestPlotBase):
             ax_datetime_no_tz.get_lines()[0].get_data()[1]
             == testdata["datetime_no_tz"].values
         ).all()
-        # FutureWarning: Converting timezone-aware DatetimeArray to timezone-naive
-        # ndarray with 'datetime64[ns]' dtype. In the future, this will return an
-        # ndarray with 'object' dtype where each element is a 'pandas.Timestamp' with
-        # the correct 'tz'.
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
+        ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
         assert (
             ax_datetime_all_tz.get_lines()[0].get_data()[1]
             == testdata["datetime_all_tz"].values
