@@ -53,10 +53,7 @@ cdef class {{name}}Engine(IndexEngine):
             ndarray[{{ctype}}] values
             int count = 0
 
-        {{if name not in {'Float64', 'Float32'} }}
-        if not util.is_integer_object(val):
-            raise KeyError(val)
-        {{endif}}
+        self._check_type(val)
 
         # A view is needed for some subclasses, such as PeriodEngine:
         values = self._get_index_values().view('{{dtype}}')
