@@ -56,11 +56,11 @@ class TestPandasDelegate:
         msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
             delegate.foo
-        
+
         msg = "The property foo cannot be set"
         with pytest.raises(TypeError, match=msg):
             delegate.foo = 5
-        
+
         msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
             delegate.foo()
