@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Dict, FrozenSet, Hashable, Optional, Union
+from typing import Any, Dict, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -4144,7 +4144,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             return key in self._engine
@@ -4902,7 +4902,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
         return algos.isin(self, values)
 
-    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
+    def _get_string_slice(self, key: str_t, use_lhs: bool = True, use_rhs: bool = True):
         # this is for partial string indexing,
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
