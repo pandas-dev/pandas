@@ -864,9 +864,9 @@ cdef class _Timedelta(timedelta):
         Total duration of timedelta in seconds (to microsecond precision).
         """
         # GH 31043
-        # Round down to microseconds to avoid confusing tzinfo.utcoffset
-        # use casts to make sure precision isn't lost
-        return np.float64(int(self.value - self.value % 1000) / 1000000000)
+        # Microseconds precision to avoid confusing tzinfo.utcoffset
+        return ((self.days * 86400 + self.seconds) * 10**6 +
+                self.microseconds) / 10**6
 
     def view(self, dtype):
         """
