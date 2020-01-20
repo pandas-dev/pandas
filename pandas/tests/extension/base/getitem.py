@@ -152,7 +152,9 @@ class BaseGetitemTests(BaseExtensionTests):
     def test_getitem_boolean_array_mask_raises(self, data):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
-        with pytest.raises(ValueError):
+
+        msg = "Cannot mask with a boolean indexer containing NA values"
+        with pytest.raises(ValueError, match=msg):
             data[mask]
 
         s = pd.Series(data)
