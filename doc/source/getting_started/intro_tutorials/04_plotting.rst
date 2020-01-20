@@ -6,11 +6,6 @@
 
     import pandas as pd
     import matplotlib.pyplot as plt
-    # use the pandas main colors
-    import matplotlib as mpl
-    mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["#150458",
-                                                        "#FFCA00",
-                                                        "#E70488"])
 
 .. raw:: html
 
