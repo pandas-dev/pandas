@@ -45,7 +45,8 @@ in respectively Paris, Antwerp and London.
     air_quality.head()
 
 .. note::
-    The usage of the ``index_col`` and ``parse_dates`` parameters of the ``read_csv`` function to define the first (0th) column as index of the resulting DataFrame and convert the dates in the column to datetime objects, respectively.
+    The usage of the ``index_col`` and ``parse_dates`` parameters of the ``read_csv`` function to define the first (0th) column as
+    index of the resulting ``DataFrame`` and convert the dates in the column to :class:`Timestamp` objects, respectively.
 
 .. raw:: html
 
@@ -71,7 +72,7 @@ I want a quick visual check of the data.
     @savefig 04_airqual_quick.png
     air_quality.plot()
 
-With a DataFrame, pandas creates by default one line plot for each of
+With a ``DataFrame``, pandas creates by default one line plot for each of
 the columns with numeric data.
 
 .. raw:: html
@@ -84,7 +85,7 @@ the columns with numeric data.
     <ul class="task-bullet">
         <li>
 
-I want to plot only the columns of the data table with the data  from Paris.
+I want to plot only the columns of the data table with the data from Paris.
 
 .. ipython:: python
 
@@ -92,8 +93,8 @@ I want to plot only the columns of the data table with the data  from Paris.
     air_quality["station_paris"].plot()
 
 To plot a specific column, use the selection method of the
-:ref:`subset data tutorial <10min_tut_03_subset>` in combination with the ``plot``
-method. Hence, the ``plot`` method works on both ``Series`` and
+:ref:`subset data tutorial <10min_tut_03_subset>` in combination with the :meth:`~DataFrame.plot`
+method. Hence, the :meth:`~DataFrame.plot` method works on both ``Series`` and
 ``DataFrame``.
 
 .. raw:: html
@@ -134,8 +135,8 @@ standard Python to get an overview of the available plot methods:
     jupyter notebook, use the TAB button to get an overview of the available
     methods, for example ``air_quality.plot.`` + TAB.
 
-One of the options is ``box``, which refers to a
-`boxplot <https://en.wikipedia.org/wiki/Box_plot>`__. Also the ``box``
+One of the options is :meth:`DataFrame.plot.box`, which refers to a
+`boxplot <https://en.wikipedia.org/wiki/Box_plot>`__. The ``box``
 method is applicable on the air quality example data:
 
 .. ipython:: python
@@ -148,7 +149,7 @@ method is applicable on the air quality example data:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For an introduction to the other plot methods, see :ref:`visualization.other`.
+For an introduction to plots other than the default line plot, see the user guide section about :ref:`supported plot styles <visualization.other>`.
 
 .. raw:: html
 
@@ -167,7 +168,7 @@ I want each of the columns in a separate subplot.
     axs = air_quality.plot.area(figsize=(12, 4), subplots=True)
 
 Separate subplots for each of the data columns is supported by the ``subplots`` argument
-of the plot functions. The builtin options available in each of the pandas plot
+of the ``plot`` functions. The builtin options available in each of the pandas plot
 functions that are worthwhile to have a look.
 
 .. raw:: html
@@ -180,7 +181,7 @@ functions that are worthwhile to have a look.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Some more formatting options of the pandas plot functionalities are explained in :ref:`visualization.formatting`.
+Some more formatting options are explained in the user guide section on :ref:`plot formatting <visualization.formatting>`.
 
 .. raw:: html
 
@@ -215,7 +216,7 @@ I want to further customize, extend or save the resulting plot.
 Each of the plot objects created by pandas are a
 `matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
 plenty of options to customize plots, making the link between pandas and
-matplotlib explicit enables all the power of matplotlib to the plot.
+Matplotlib explicit enables all the power of matplotlib to the plot.
 This strategy is applied in the previous example:
 
 ::
@@ -230,10 +231,10 @@ This strategy is applied in the previous example:
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  The ``.plot`` methods are applicable on both Series and DataFrames
+-  The ``.plot.*`` methods are applicable on both Series and DataFrames
 -  By default, each of the columns is plotted as a different element
    (line, boxplot,…)
--  Any plot created by pandas is a matplotlib object.
+-  Any plot created by pandas is a Matplotlib object.
 
 .. raw:: html
 
@@ -244,7 +245,7 @@ This strategy is applied in the previous example:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Further details about indexing is provided in :ref:`visualization`.
+A full overview of plotting in pandas is provided in the :ref:`visualization pages <visualization>`.
 
 .. raw:: html
 

@@ -67,8 +67,8 @@ I want to analyse the titanic passenger data, available as a CSV file.
 
     titanic = pd.read_csv("data/titanic.csv")
 
-pandas provides the ``read_csv`` function to read data stored as a csv
-file into a pandas ``DataFrame``. Pandas supports many different file
+pandas provides the :func:`read_csv` function to read data stored as a csv
+file into a pandas ``DataFrame``. pandas supports many different file
 formats or data sources out of the box (csv, excel, sql, json, parquet,
 …), each of them with the prefix ``read_*``.
 
@@ -96,7 +96,7 @@ I want to see the first 8 rows of a pandas DataFrame.
 
     titanic.head(8)
 
-To see the first N rows of a ``DataFrame``, use the ``head`` method with
+To see the first N rows of a ``DataFrame``, use the :meth:`~DataFrame.head` method with
 the required number of rows (in this case 8) as argument.
 
 .. raw:: html
@@ -106,8 +106,8 @@ the required number of rows (in this case 8) as argument.
 
 .. note::
 
-    Interested in the last N rows instead? Pandas also provides a
-    ``tail`` method. For example, ``titanic.tail(10)`` will return the last
+    Interested in the last N rows instead? pandas also provides a
+    :meth:`~DataFrame.tail` method. For example, ``titanic.tail(10)`` will return the last
     10 rows of the DataFrame.
 
 A check on how pandas interpreted each of the column data types can be
@@ -127,8 +127,7 @@ strings (``object``).
     of ``DataFrame`` or ``Series`` do not need brackets. Attributes
     represent a characteristic of a ``DataFrame``/``Series``, whereas a
     method (which requires brackets) *do* something with the
-    ``DataFrame``/``Series`` as introduced in the `first
-    tutorial <./1_table_oriented.ipynb>`__.
+    ``DataFrame``/``Series`` as introduced in the :ref:`first tutorial <10min_tut_01_tableoriented>`.
 
 .. raw:: html
 
@@ -142,7 +141,7 @@ My colleague requested the titanic data as a spreadsheet.
     titanic.to_excel('titanic.xlsx', sheet_name='passengers', index=False)
 
 Whereas ``read_*`` functions are used to read data to pandas, the
-``to_*`` methods are used to store data. The ``to_excel`` method stores
+``to_*`` methods are used to store data. The :meth:`~DataFrame.to_excel` method stores
 the data as an excel file. In the example here, the ``sheet_name`` is
 named *passengers* instead of the default *Sheet1*. By setting
 ``index=False`` the row index labels are not saved in the spreadsheet.
@@ -152,8 +151,8 @@ named *passengers* instead of the default *Sheet1*. By setting
         </li>
     </ul>
 
-The equivalent read function ``read_excel`` would reload the data to a
-DataFrame:
+The equivalent read function :meth:`~DataFrame.to_excel` will reload the data to a
+``DataFrame``:
 
 .. ipython:: python
 
@@ -181,10 +180,10 @@ I’m interested in a technical summary of a ``DataFrame``
     titanic.info()
 
 
-The method ``info`` provides a lot of technical information about the
+The method :meth:`~DataFrame.info` provides technical information about a
 ``DataFrame``, so let’s explain the output in more detail:
 
--  It is indeed a ``DataFrame``.
+-  It is indeed a :class:`DataFrame`.
 -  There are 891 entries, i.e. 891 rows.
 -  Each row has a row label (aka the ``index``) with values ranging from
    0 to 890.
@@ -226,7 +225,7 @@ The method ``info`` provides a lot of technical information about the
     <div class="d-flex flex-row bg-light gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For a complete overview of the input and output possibilites from and to pandas, see :ref:`io`
+For a complete overview of the input and output possibilites from and to pandas, see the user guide section about :ref:`reader and writer functions <io>`.
 
 .. raw:: html
 

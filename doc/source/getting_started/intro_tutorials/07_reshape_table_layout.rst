@@ -144,7 +144,7 @@ I want to sort the titanic data according to the cabin class and age in descendi
 
     titanic.sort_values(by=['Pclass', 'Age'], ascending=False).head()
 
-With ``sort_values``, the rows in the table are sorted according to the
+With :meth:`Series.sort_values`, the rows in the table are sorted according to the
 defined column(s). The index will follow the row order.
 
 .. raw:: html
@@ -157,7 +157,7 @@ defined column(s). The index will follow the row order.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More details about sorting of tables is provided in :ref:`basics.sorting`.
+More details about sorting of tables is provided in the using guide section on :ref:`sorting data <basics.sorting>`.
 
 .. raw:: html
 
@@ -196,7 +196,7 @@ I want the values for the three stations as separate columns next to each other
 
     no2_subset.pivot(columns="location", values="value")
 
-The ``pivot`` function is purely reshaping of the data: a single value
+The :meth:`~pandas.pivot_table` function is purely reshaping of the data: a single value
 for each index/column combination is required.
 
 .. raw:: html
@@ -226,7 +226,7 @@ series at the same time:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For more information about ``pivot``, see :ref:`reshaping.reshaping`.
+For more information about :meth:`~DataFrame.pivot`, see the user guide section on :ref:`pivoting DataFrame objects <reshaping.reshaping>`.
 
 .. raw:: html
 
@@ -250,9 +250,9 @@ I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of 
     air_quality.pivot_table(values="value", index="location",
                             columns="parameter", aggfunc="mean")
 
-In the case of ``pivot``, the data is only rearranged. When multiple
+In the case of :meth:`~DataFrame.pivot`, the data is only rearranged. When multiple
 values need to be aggregated (in this specific case, the values on
-different time steps) ``pivot_table`` can be used, providing an
+different time steps) :meth:`~DataFrame.pivot_table` can be used, providing an
 aggregation function (e.g. mean) on how to combine these values.
 
 .. raw:: html
@@ -275,16 +275,15 @@ the ``margin`` parameter to ``True``:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For more information about ``pivot_table``, see :ref:`reshaping.pivot`.
-
+For more information about :meth:`~DataFrame.pivot_table`, see the user guide section on :ref:`pivot tables <reshaping.pivot>`.
 
 .. raw:: html
 
    </div>
 
 .. note::
-    If case you are wondering, ``pivot_table`` is indeed directly linked
-    to ``groupby``. The same result can be derived by grouping on both
+    If case you are wondering, :meth:`~DataFrame.pivot_table` is indeed directly linked
+    to :meth:`~DataFrame.groupby`. The same result can be derived by grouping on both
     ``parameter`` and ``location``:
 
     ::
@@ -296,7 +295,7 @@ For more information about ``pivot_table``, see :ref:`reshaping.pivot`.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Have a look at ``groupby`` in combination with ``unstack`` at :ref:`reshaping.combine_with_groupby`.
+Have a look at :meth:`~DataFrame.groupby` in combination with :meth:`~DataFrame.unstack` at the user guide section on :ref:`combining stats and groupby <reshaping.combine_with_groupby>`.
 
 .. raw:: html
 
@@ -328,7 +327,7 @@ I want to collect all air quality :math:`NO_2` measurements in a single column (
     no_2 = no2_pivoted.melt(id_vars="date.utc")
     no_2.head()
 
-The ``melt`` method on a ``DataFrame`` converts the data table from wide
+The :func:`pandas.melt` method on a ``DataFrame`` converts the data table from wide
 format to long format. The column headers become the variable names in a
 newly created column.
 
@@ -337,12 +336,12 @@ newly created column.
         </li>
     </ul>
 
-The solution is the short version on how to apply ``melt``. The method
+The solution is the short version on how to apply :func:`pandas.melt`. The method
 will *melt* all columns NOT mentioned in ``id_vars`` together into two
 columns: A columns with the column header names and a column with the
 values itself. The latter column gets by default the name ``value``.
 
-The ``melt`` method can be defined in more detail:
+The :func:`pandas.melt` method can be defined in more detail:
 
 .. ipython:: python
 
@@ -372,7 +371,7 @@ are defined by ``id_vars`` and ``value_vars``.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Conversion from wide to long format with ``melt`` is explained in :ref:`reshaping.melt`.
+Conversion from wide to long format with :func:`pandas.melt` is explained in the user guide section on :ref:`reshaping by melt <reshaping.melt>`.
 
 .. raw:: html
 
@@ -398,7 +397,7 @@ Conversion from wide to long format with ``melt`` is explained in :ref:`reshapin
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on reshaping and pivoting is provided in :ref:`reshaping`.
+A full overview is available in the user guide on the pages about :ref:`reshaping and pivoting <reshaping>`.
 
 .. raw:: html
 

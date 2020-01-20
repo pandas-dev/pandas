@@ -2,7 +2,7 @@
 
 {{ header }}
 
-What kind of data does Pandas handle?
+What kind of data does pandas handle?
 =====================================
 
 .. raw:: html
@@ -58,7 +58,7 @@ the values in each list as rows of the ``DataFrame``.
         </li>
     </ul>
 
-A ``DataFrame`` is a 2-dimensional data structure that can store data of
+A :class:`DataFrame` is a 2-dimensional data structure that can store data of
 different types (including characters, integers, floating point values,
 categorical data and more) in columns. It is similar to a spreadsheet, a
 SQL table or the ``data.frame`` in R.
@@ -92,8 +92,8 @@ I’m just interested in working with the data in the column ``Age``
 
     df["Age"]
 
-When selecting a single column of a pandas ``DataFrame``, the result is
-a pandas ``Series``. To select the column, use the column label in
+When selecting a single column of a pandas :class:`DataFrame`, the result is
+a pandas :class:`Series`. To select the column, use the column label in
 between square brackets ``[]``.
 
 .. raw:: html
@@ -146,7 +146,7 @@ Or to the ``Series``:
     </ul>
 
 As illustrated by the ``max()`` method, you can *do* things with a
-``DataFrame`` or ``Series``. Pandas provides a lot of functionalities,
+``DataFrame`` or ``Series``. pandas provides a lot of functionalities,
 each of them a *method* you can apply to a ``DataFrame`` or ``Series``.
 As methods are functions, do not forget to use parentheses ``()``.
 
@@ -161,9 +161,9 @@ I’m interested in some basic statistics of the numerical data of my data table
 
     df.describe()
 
-The ``describe`` method provides quick overview of the numerical data in
+The :func:`~DataFrame.describe` method provides a quick overview of the numerical data in
 a ``DataFrame``. As the ``Name`` and ``Sex`` columns are textual data,
-these are by default not taken into account by the ``describe`` method.
+these are by default not taken into account by the :func:`~DataFrame.describe` method.
 
 .. raw:: html
 
@@ -171,7 +171,7 @@ these are by default not taken into account by the ``describe`` method.
     </ul>
 
 Many pandas operations return a ``DataFrame`` or a ``Series``. The
-``describe`` method is an example of a pandas operation returning a
+:func:`~DataFrame.describe` method is an example of a pandas operation returning a
 pandas ``Series``.
 
 .. raw:: html
@@ -179,7 +179,7 @@ pandas ``Series``.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Check more options on ``describe`` in the user guide at :ref:`basics.describe`
+Check more options on ``describe`` in the user guide section about :ref:`aggregations with describe <basics.describe>`
 
 .. raw:: html
 
@@ -211,7 +211,7 @@ Check more options on ``describe`` in the user guide at :ref:`basics.describe`
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-A more extended introduction to ``DataFrame`` and ``Series`` is provided in :ref:`dsintro`.
+A more extended explanation to ``DataFrame`` and ``Series`` is provided in the :ref:`introduction to data structures <dsintro>`.
 
 .. raw:: html
 

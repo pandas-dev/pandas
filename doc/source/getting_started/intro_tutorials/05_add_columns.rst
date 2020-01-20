@@ -130,7 +130,7 @@ I want to rename the data columns to the corresponding station identifiers used 
 
     air_quality_renamed.head()
 
-The ``rename`` function can be used for both row labels and column
+The :meth:`~DataFrame.rename` function can be used for both row labels and column
 labels. Provide a dictionary with the keys the current names and the
 values the new names to update the corresponding names.
 
@@ -153,7 +153,7 @@ lowercase letters can be done using a function as well:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Further details about column or row label renaming is provided in :ref:`basics.rename`.
+Details about column or row label renaming is provided in the user guide section on :ref:`renaming labels <basics.rename>`.
 
 .. raw:: html
 
@@ -179,7 +179,7 @@ Further details about column or row label renaming is provided in :ref:`basics.r
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Further details about column addition and deletion is provided in :ref:`basics.dataframe.sel_add_del`.
+The user guide contains a separate section on :ref:`column addition and deletion <basics.dataframe.sel_add_del>`.
 
 .. raw:: html
 

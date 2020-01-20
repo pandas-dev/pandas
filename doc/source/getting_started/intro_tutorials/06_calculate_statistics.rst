@@ -118,7 +118,7 @@ same time. Remember the ``describe`` function from :ref:`first tutorial <10min_t
 
 Instead of the predefined statistics, specific combinations of
 aggregating statistics for given columns can be defined using the
-``agg`` method:
+:func:`DataFrame.agg` method:
 
 .. ipython:: python
 
@@ -130,7 +130,7 @@ aggregating statistics for given columns can be defined using the
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Further details about descriptive statistics is provided in :ref:`basics.stats`.
+Details about descriptive statistics are provided in the user guide section on :ref:`descriptive statistics <basics.stats>`.
 
 .. raw:: html
 
@@ -156,7 +156,7 @@ What is the average age for male versus female titanic passengers?
 
 As our interest is the average age for each gender, a subselection on
 these two columns is made first: ``titanic[["Sex", "Age"]]``. Next, the
-``groupby`` method is applied on the ``Sex`` column to make a group per
+:meth:`~DataFrame.groupby` method is applied on the ``Sex`` column to make a group per
 category. The average age *for each gender* is calculated and
 returned.
 
@@ -216,7 +216,7 @@ What is the mean ticket fare price for each of the sex and cabin class combinati
     titanic.groupby(["Sex", "Pclass"])["Fare"].mean()
 
 Grouping can be done by multiple columns at the same time. Provide the
-column names as a list to the ``groupby`` method.
+column names as a list to the :meth:`~DataFrame.groupby` method.
 
 .. raw:: html
 
@@ -228,7 +228,7 @@ column names as a list to the ``groupby`` method.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on groupby and the split-apply-combine approach is provided in :ref:`groupby`.
+A full description on the split-apply-combine approach is provided in the user guide section on :ref:`groupby operations <groupby>`.
 
 .. raw:: html
 
@@ -251,7 +251,7 @@ What is the number of passengers in each of the cabin classes?
 
     titanic["Pclass"].value_counts()
 
-The ``value_counts`` function counts the number of records for each
+The :meth:`~Series.value_counts` method counts the number of records for each
 category in a column.
 
 .. raw:: html
@@ -278,7 +278,7 @@ within each group:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For more information about ``value_counts``, see :ref:`basics.discretization`.
+The user guide has a dedicated section on ``value_counts`` , see page on :ref:`discretization <basics.discretization>`.
 
 .. raw:: html
 
@@ -303,7 +303,7 @@ For more information about ``value_counts``, see :ref:`basics.discretization`.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on groupby and the split-apply-combine approach is provided in :ref:`groupby`.
+A full description on the split-apply-combine approach is provided in the user guide pages about :ref:`groupby operations <groupby>`.
 
 .. raw:: html
 

@@ -87,8 +87,8 @@ name of the column of interest.
         </li>
     </ul>
 
-Each column in a ``DataFrame`` is a ``Series``. As a single column is
-selected, the returned object is a pandas ``Series``. We can verify this
+Each column in a :class:`DataFrame` is a :class:`Series`. As a single column is
+selected, the returned object is a pandas :class:`DataFrame`. We can verify this
 by checking the type of the output:
 
 .. ipython:: python
@@ -101,7 +101,7 @@ And have a look at the ``shape`` of the output:
 
     titanic["Age"].shape
 
-``shape`` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parantheses for attributes) of a
+:attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parantheses for attributes) of a
 pandas ``Series`` and ``DataFrame`` containing the number of rows and
 columns: *(nrows, ncolumns)*. A pandas Series is 1-dimensional and only
 the number of rows is returned.
@@ -150,7 +150,7 @@ The selection returned a ``DataFrame`` with 891 rows and 2 columns. Remember, a
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For basic information on indexing, see :ref:`indexing.basics`
+For basic information on indexing, see the user guide section on :ref:`indexing and selecting data <indexing.basics>`.
 
 .. raw:: html
 
@@ -219,7 +219,7 @@ I’m interested in the titanic passengers from cabin class 2 and 3.
     class_23 = titanic[titanic["Pclass"].isin([2, 3])]
     class_23.head()
 
-Similar to the conditional expression, the ``isin`` conditional function
+Similar to the conditional expression, the :func:`~Series.isin` conditional function
 returns a ``True`` for each row the values are in the provided list. To
 filter the rows based on such a function, use the conditional function
 inside the selection brackets ``[]``. In this case, the condition inside
@@ -251,7 +251,7 @@ operator:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Conditional (boolean) indexing, see :ref:`indexing.boolean`. Specific information on ``isin``, see :ref:`indexing.basics.indexing_isin`.
+See the dedicated section in the user guide about :ref:`boolean indexing <indexing.boolean>` or about the :ref:`isin function <indexing.basics.indexing_isin>`.
 
 .. raw:: html
 
@@ -269,7 +269,7 @@ I want to work with passenger data for which the age is known.
     age_no_na = titanic[titanic["Age"].notna()]
     age_no_na.head()
 
-The ``notna`` conditional function returns a ``True`` for each row the
+The :meth:`~Series.notna` conditional function returns a ``True`` for each row the
 values are not an ``Null`` value. As such, this can be combined with the
 selection brackets ``[]`` to filter the data table.
 
@@ -290,7 +290,7 @@ the same values. One way to verify is to check if the shape has changed:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For more dedicated functions on missing values, see :ref:`missing-data`
+For more dedicated functions on missing values, see the user guide section about :ref:`handling missing data <missing_data>`.
 
 .. raw:: html
 
@@ -368,7 +368,7 @@ the name ``anonymous`` to the first 3 elements of the third column:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For more detailed description on selecting subsets of a data table, see :ref:`indexing.choice`
+See the user guide section on :ref:`different choices for indexing <indexing.choice>` to get more insight in the usage of ``loc`` and ``iloc``.
 
 .. raw:: html
 
@@ -398,7 +398,7 @@ For more detailed description on selecting subsets of a data table, see :ref:`in
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Further details about indexing is provided in :ref:`indexing`
+A full overview about indexing is provided in the user guide pages on :ref:`indexing and selecting data <indexing>`.
 
 .. raw:: html
 

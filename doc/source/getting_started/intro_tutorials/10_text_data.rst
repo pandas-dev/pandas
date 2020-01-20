@@ -100,7 +100,7 @@ Create a new column ``Surname`` that contains the surname of the Passengers by e
 
     titanic["Name"].str.split(",")
 
-Using the ``split`` method, each of the values is returned as a list of
+Using the :meth:`Series.str.split` method, each of the values is returned as a list of
 2 elements. The first element is the part before the comma and the
 second element the part after the comma.
 
@@ -110,7 +110,7 @@ second element the part after the comma.
     titanic["Surname"]
 
 As we are only interested in the first part representing the surname
-(element 0), we can again use the ``str`` accessor and apply ``get`` to
+(element 0), we can again use the ``str`` accessor and apply :meth:`Series.str.get` to
 extract the relevant part. Indeed, these string functions can be
 concatenated to combine multiple functions at once!
 
@@ -124,7 +124,7 @@ concatenated to combine multiple functions at once!
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on extracting parts of strings is available in :ref:`text.split`.
+More information on extracting parts of strings is available in the user guide section on :ref:`splitting and replacing strings <text.split>`.
 
 .. raw:: html
 
@@ -147,7 +147,7 @@ Extract the passenger data about the Countess on board of the Titanic.
 
 (*Interested in her story? See*\ `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\ *!*)
 
-The string method ``contains`` checks for each of the values in the
+The string method :meth:`Series.str.contains` checks for each of the values in the
 column ``Name`` if the string contains the word ``Countess`` and returns
 for each of the values ``True`` (``Countess`` is part of the name) of
 ``False`` (``Countess`` is notpart of the name). This output can be used
@@ -162,7 +162,7 @@ only 1 Countess on the Titanic, we get one row as a result.
 
 .. note::
     More powerful extractions on strings is supported, as the
-    ``contains`` and ``extract`` methods accepts `regular
+    :meth:`Series.str.contains` and :meth:`Series.str.extract` methods accepts `regular
     expressions <https://docs.python.org/3/library/re.html>`__, but out of
     scope of this tutorial.
 
@@ -171,7 +171,7 @@ only 1 Countess on the Titanic, we get one row as a result.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on extracting parts of strings is available in :ref:`text.extract`.
+More information on extracting parts of strings is available in the user guide section on :ref:`string matching and extracting <text.extract>`.
 
 .. raw:: html
 
@@ -190,7 +190,7 @@ Which passenger of the titanic has the longest name?
 
 To get the longest name we first have to get the lenghts of each of the
 names in the ``Name`` column. By using pandas string methods, the
-``len`` function is applied to each of the names individually
+:meth:`Series.str.len` function is applied to each of the names individually
 (element-wise).
 
 .. ipython:: python
@@ -199,7 +199,7 @@ names in the ``Name`` column. By using pandas string methods, the
 
 Next, we need to get the corresponding location, preferably the index
 label, in the table for which the name length is the largest. The
-``idxmax`` method does exactly that. It is not a string method and is
+:meth:`~Series.idxmax`` method does exactly that. It is not a string method and is
 applied to integers, so no ``str`` is used.
 
 .. ipython:: python
@@ -228,7 +228,7 @@ In the ‘Sex’ columns, replace values of ‘male’ by ‘M’ and all ‘fem
                                                    "female": "F"})
     titanic["Sex_short"]
 
-Whereas ``replace`` is not a string method, it provides a convenient way
+Whereas :meth:`~Series.replace` is not a string method, it provides a convenient way
 to use mappings or vocabularies to translate certain values. It requires
 a ``dictionary`` to define the mapping ``{from : to}``.
 
@@ -238,7 +238,7 @@ a ``dictionary`` to define the mapping ``{from : to}``.
     </ul>
 
 .. warning::
-    There is also a ``str.replace`` methods available to replace a
+    There is also a :meth:`~Series.str.replace` methods available to replace a
     specific set of characters. However, when having a mapping of multiple
     values, this would become:
 
@@ -271,7 +271,7 @@ a ``dictionary`` to define the mapping ``{from : to}``.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on string methods is given in :ref:`text`.
+A full overview is provided in the user guide pages on :ref:`working with text data <text>`.
 
 .. raw:: html
 

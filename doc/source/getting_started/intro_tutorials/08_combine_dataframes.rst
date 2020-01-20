@@ -109,7 +109,7 @@ I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tabl
     air_quality = pd.concat([air_quality_pm25, air_quality_no2], axis=0)
     air_quality.head()
 
-The ``concat`` function performs concatenation operations of multiple
+The :func:`~pandas.concat` function performs concatenation operations of multiple
 tables along one of the axis (row-wise or column-wise).
 
 .. raw:: html
@@ -178,7 +178,7 @@ index. For example:
         <div class="d-flex flex-row  gs-torefguide">
             <span class="badge badge-info">To user guide</span>
 
-    Feel free to dive into the world of multi-indexing at :ref:`advanced`.
+    Feel free to dive into the world of multi-indexing at the user guide section on :ref:`advanced indexing <advanced>`.
 
     .. raw:: html
 
@@ -191,8 +191,8 @@ index. For example:
 
 More options on table concatenation (row and column
 wise) and how ``concat`` can be used to define the logic (union or
-intersection) of the indexes on the other axes is provided at
-:ref:`merging.concat`.
+intersection) of the indexes on the other axes is provided at the section on
+:ref:`object concatenation <merging.concat>`.
 
 .. raw:: html
 
@@ -237,7 +237,7 @@ Add the station coordinates, provided by the stations metadata table, to the cor
                            how='left', on='location')
     air_quality.head()
 
-Using the ``merge`` function, for each of the rows in the
+Using the :meth:`~pandas.merge` function, for each of the rows in the
 ``air_quality`` table, the corresponding coordinates are added from the
 ``air_quality_stations_coord`` table. Both tables have the column
 ``location`` in common which is used as a key to combine the
@@ -291,10 +291,10 @@ between the two tables.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Pandas supports also innPandas supports also inner, outer, and right joins.
-More information on join/merge of tables is provided in
-:ref:`merging.join`. Or have a look to the
-:ref:`comparison with SQL<compare_with_sql.join>`.
+pandas supports also inner, outer, and right joins.
+More information on join/merge of tables is provided in the user guide section on
+:ref:`database style merging of tables <merging.join>`. Or have a look at the
+:ref:`comparison with SQL<compare_with_sql.join>` page.
 
 .. raw:: html
 
@@ -319,7 +319,7 @@ More information on join/merge of tables is provided in
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-The user guide provides more information on combining together data tables, see :ref:`merging`.
+See the user guide for a full description of the various :ref:`facilities to combine data tables <merging>`.
 
 .. raw:: html
 

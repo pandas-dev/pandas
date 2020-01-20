@@ -66,7 +66,7 @@ Using pandas datetime properties
     <ul class="task-bullet">
         <li>
 
-I want to work with the dates in the column ‘datetime’ as datetime objects instead of plain text
+I want to work with the dates in the column ``datetime`` as datetime objects instead of plain text
 
 .. ipython:: python
 
@@ -78,7 +78,7 @@ provide any datetime operations (e.g. extract the year, day of the
 week,…). By applying the ``to_datetime`` function, pandas interprets the
 strings and convert these to datetime (i.e. ``datetime64[ns, UTC]``)
 objects. In pandas we call these datetime objects similar to
-``datetime.datetime`` from the standard library a ``Timestamp``.
+``datetime.datetime`` from the standard library a :class:`pandas.Timestamp`.
 
 .. raw:: html
 
@@ -87,7 +87,7 @@ objects. In pandas we call these datetime objects similar to
 
 .. note::
     As many data sets do contain datetime information in one of
-    the columns, pandas input function like ``read_csv`` and ``read_json``
+    the columns, pandas input function like :func:`pandas.read_csv` and :func:`pandas.read_json`
     can do the transformation to dates when reading the data using the
     ``parse_dates`` parameter with a list of the columns to read as
     Timestamp:
@@ -96,7 +96,7 @@ objects. In pandas we call these datetime objects similar to
 
         pd.read_csv("../data/air_quality_no2_long.csv", parse_dates=["datetime"])
 
-Why are these ``Timestamp`` objects useful. Let’s illustrate the added
+Why are these :class:`pandas.Timestamp` objects useful. Let’s illustrate the added
 value with some example cases.
 
    What is the start and end date of the time series data set working
@@ -106,7 +106,7 @@ value with some example cases.
 
     air_quality["datetime"].min(), air_quality["datetime"].max()
 
-Using ``Timestamp`` for datetimes enable us to calculate with date
+Using :class:`pandas.Timestamp` for datetimes enable us to calculate with date
 information and make them comparable. Hence, we can use this to get the
 length of our time series:
 
@@ -114,7 +114,7 @@ length of our time series:
 
     air_quality["datetime"].max() - air_quality["datetime"].min()
 
-The result is a ``Timedelta`` object, similar to ``datetime.timedelta``
+The result is a :class:`pandas.Timedelta` object, similar to ``datetime.timedelta``
 from the standard Python library and defining a time duration.
 
 .. raw:: html
@@ -122,7 +122,7 @@ from the standard Python library and defining a time duration.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-The main time related concepts of pandas are explained in :ref:`timeseries.overview`.
+The different time concepts supported by pandas are explained in the user guide section on :ref:`time related concepts <timeseries.overview>`.
 
 .. raw:: html
 
@@ -133,7 +133,7 @@ The main time related concepts of pandas are explained in :ref:`timeseries.overv
     <ul class="task-bullet">
         <li>
 
-I want to add a new column to the dataframe containing only the month of the measurement
+I want to add a new column to the ``DataFrame`` containing only the month of the measurement
 
 .. ipython:: python
 
@@ -155,10 +155,9 @@ accessible by the ``dt`` accessor.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-An overview of the existing properties is given in
-:ref:`timeseries.components`. More details about the ``dt`` accessor
-to return datetime like properties for the values of the Series are
-provided in :ref:`basics.dt_accessors`.
+An overview of the existing date properties is given in the
+:ref:`time and date components overview table <timeseries.components>`. More details about the ``dt`` accessor
+to return datetime like properties is explained in a dedicated section on the  :ref:`dt accessor <basics.dt_accessors>`.
 
 .. raw:: html
 
@@ -227,7 +226,7 @@ Datetime as index
 ~~~~~~~~~~~~~~~~~
 
 In the :ref:`tutorial on reshaping <10min_tut_07_reshape>`,
-``pivot`` was introduced to reshape the data table with each of the
+:meth:`~pandas.pivot` was introduced to reshape the data table with each of the
 measurements locations as a separate column:
 
 .. ipython:: python
@@ -276,7 +275,7 @@ By providing a **string that parses to a datetime**, a specific subset of the da
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on the ``DatetimeIndex`` and the slicing by using strings is provided in :ref:`timeseries.datetimeindex`.
+More information on the ``DatetimeIndex`` and the slicing by using strings is provided in the section on :ref:`time series indexing <timeseries.datetimeindex>`.
 
 .. raw:: html
 
@@ -298,7 +297,7 @@ Aggregate the current hourly time series values to the monthly maximum value in 
     monthly_max
 
 A very powerful method on time series data with a datetime index, is the
-ability to ``resample`` time series to another frequency (e.g.,
+ability to :meth:`~Series.resample` time series to another frequency (e.g.,
 converting secondly data into 5-minutely data).
 
 .. raw:: html
@@ -306,7 +305,7 @@ converting secondly data into 5-minutely data).
         </li>
     </ul>
 
-The ``resample`` method is similar to a groupby operation:
+The :meth:`~Series.resample` method is similar to a groupby operation:
 
 -  it provides a time-based grouping, by using a string (e.g. ``M``,
    ``5H``,…) that defines the target frequency
@@ -317,7 +316,7 @@ The ``resample`` method is similar to a groupby operation:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-An overview of the aliases used to define time series frequencies (alos called *offset aliases*) is given in :ref:`timeseries.offset_aliases`.
+An overview of the aliases used to define time series frequencies is given in the :ref:`offset aliases overview table <timeseries.offset_aliases>`.
 
 .. raw:: html
 
@@ -351,7 +350,7 @@ Make a plot of the daily median :math:`NO_2` value in each of the stations.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More details on the power of time series ``resampling`` is provided in :ref:`timeseries.resampling`.
+More details on the power of time series ``resampling`` is provided in the user gudie section on :ref:`resampling <timeseries.resampling>`.
 
 .. raw:: html
 
@@ -380,7 +379,7 @@ More details on the power of time series ``resampling`` is provided in :ref:`tim
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-More information on time series and date functionalities is given in :ref:`timeseries`.
+A full overview on time series is given in the pages on :ref:`time series and date functionality <timeseries>`.
 
 .. raw:: html
 
