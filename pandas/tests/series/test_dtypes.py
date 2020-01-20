@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from importlib import reload
+from itertools import product
 import string
 import sys
 
@@ -488,72 +489,240 @@ class TestSeriesDtypes:
         s2 = s.astype(temp_dtype).reindex(new_index).astype(new_dtype)
         tm.assert_series_equal(s1, s2)
 
+    # The answerdict has keys that have 4 tuples, corresponding to the arguments
+    # infer_objects, convert_string, convert_integer, convert_boolean
+    # This allows all 16 possible combinations to be tested.  Since common
+    # combinations expect the same answer, this provides an easy way to list
+    # all the possibilities
     @pytest.mark.parametrize(
-        "data, maindtype, newdtype, nonullabledtype",
+        "data, maindtype, answerdict",
         [
-            ([1, 2, 3], np.dtype("int32"), "Int32", np.dtype("int32")),
-            ([1, 2, 3], np.dtype("int64"), "Int64", np.dtype("int64")),
-            (["x", "y", "z"], np.dtype("O"), pd.StringDtype(), np.dtype("O")),
-            ([True, False, np.nan], np.dtype("O"), pd.BooleanDtype(), np.dtype("O")),
-            (["h", "i", np.nan], np.dtype("O"), pd.StringDtype(), np.dtype("O")),
-            ([10, np.nan, 20], np.dtype("float"), pd.Int64Dtype(), np.dtype("float")),
+            (
+                [1, 2, 3],
+                np.dtype("int32"),
+                {
+                    ((True, False), (True, False), (True,), (True, False)): "Int32",
+                    ((True, False), (True, False), (False,), (True, False)): np.dtype(
+                        "int32"
+                    ),
+                },
+            ),
+            (
+                [1, 2, 3],
+                np.dtype("int64"),
+                {
+                    ((True, False), (True, False), (True,), (True, False)): "Int64",
+                    ((True, False), (True, False), (False,), (True, False)): np.dtype(
+                        "int64"
+                    ),
+                },
+            ),
+            (
+                ["x", "y", "z"],
+                np.dtype("O"),
+                {
+                    (
+                        (True, False),
+                        (True,),
+                        (True, False),
+                        (True, False),
+                    ): pd.StringDtype(),
+                    ((True, False), (False,), (True, False), (True, False)): np.dtype(
+                        "O"
+                    ),
+                },
+            ),
+            (
+                [True, False, np.nan],
+                np.dtype("O"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True,),
+                    ): pd.BooleanDtype(),
+                    ((True, False), (True, False), (True, False), (False,)): np.dtype(
+                        "O"
+                    ),
+                },
+            ),
+            (
+                ["h", "i", np.nan],
+                np.dtype("O"),
+                {
+                    (
+                        (True, False),
+                        (True,),
+                        (True, False),
+                        (True, False),
+                    ): pd.StringDtype(),
+                    ((True, False), (False,), (True, False), (True, False)): np.dtype(
+                        "O"
+                    ),
+                },
+            ),
+            (
+                [10, np.nan, 20],
+                np.dtype("float"),
+                {
+                    ((True, False), (True, False), (True,), (True, False)): "Int64",
+                    ((True, False), (True, False), (False,), (True, False)): np.dtype(
+                        "float"
+                    ),
+                },
+            ),
             (
                 [np.nan, 100.5, 200],
                 np.dtype("float"),
-                np.dtype("float"),
-                np.dtype("float"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): np.dtype("float"),
+                },
             ),
-            ([3, 4, 5], "Int8", "Int8", "Int8"),
-            ([[1, 2], [3, 4], [5]], None, np.dtype("O"), np.dtype("O")),
-            ([4, 5, 6], np.dtype("uint32"), "UInt32", np.dtype("uint32")),
-            ([-10, 12, 13], np.dtype("i1"), "Int8", np.dtype("i1")),
-            ([1, 2.0], object, "Int64", np.dtype("float")),
+            (
+                [3, 4, 5],
+                "Int8",
+                {((True, False), (True, False), (True, False), (True, False)): "Int8"},
+            ),
+            (
+                [[1, 2], [3, 4], [5]],
+                None,
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): np.dtype("O"),
+                },
+            ),
+            (
+                [4, 5, 6],
+                np.dtype("uint32"),
+                {
+                    ((True, False), (True, False), (True,), (True, False)): "UInt32",
+                    ((True, False), (True, False), (False,), (True, False)): np.dtype(
+                        "uint32"
+                    ),
+                },
+            ),
+            (
+                [-10, 12, 13],
+                np.dtype("i1"),
+                {
+                    ((True, False), (True, False), (True,), (True, False)): "Int8",
+                    ((True, False), (True, False), (False,), (True, False)): np.dtype(
+                        "i1"
+                    ),
+                },
+            ),
+            (
+                [1, 2.0],
+                object,
+                {
+                    ((True, False), (True, False), (True,), (True, False)): "Int64",
+                    ((True,), (True, False), (False,), (True, False)): np.dtype(
+                        "float"
+                    ),
+                    ((False,), (True, False), (False,), (True, False)): np.dtype(
+                        "object"
+                    ),
+                },
+            ),
             (
                 ["a", "b"],
                 pd.CategoricalDtype(),
-                pd.CategoricalDtype(),
-                pd.CategoricalDtype(),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): pd.CategoricalDtype(),
+                },
             ),
             (
                 pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
                 pd.DatetimeTZDtype(tz="UTC"),
-                pd.DatetimeTZDtype(tz="UTC"),
-                pd.DatetimeTZDtype(tz="UTC"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): pd.DatetimeTZDtype(tz="UTC"),
+                },
             ),
             (
                 pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
                 "datetime64[ns]",
-                np.dtype("datetime64[ns]"),
-                np.dtype("datetime64[ns]"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): np.dtype("datetime64[ns]"),
+                },
+            ),
+            (
+                pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+                object,
+                {
+                    ((True,), (True, False), (True, False), (True, False),): np.dtype(
+                        "datetime64[ns]"
+                    ),
+                    ((False,), (True, False), (True, False), (True, False),): np.dtype(
+                        "O"
+                    ),
+                },
             ),
             (
                 pd.period_range("1/1/2011", freq="M", periods=3),
                 None,
-                pd.PeriodDtype("M"),
-                pd.PeriodDtype("M"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): pd.PeriodDtype("M"),
+                },
             ),
             (
                 pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
                 None,
-                pd.IntervalDtype("int64"),
-                pd.IntervalDtype("int64"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): pd.IntervalDtype("int64"),
+                },
             ),
         ],
     )
-    def test_convert_dtypes(self, data, maindtype, newdtype, nonullabledtype):
+    @pytest.mark.parametrize("params", product(*[(True, False)] * 4))
+    def test_convert_dtypes(self, data, maindtype, params, answerdict):
         if maindtype is not None:
             series = pd.Series(data, dtype=maindtype)
         else:
             series = pd.Series(data)
-        for (as_nullable, expected_dtype) in zip(
-            [True, False], [newdtype, nonullabledtype]
-        ):
-            ns = series.convert_dtypes(use_nullable_dtypes=as_nullable)
-            expected = pd.Series(series.values, dtype=expected_dtype)
-            tm.assert_series_equal(ns, expected)
+        answers = {k: a for (kk, a) in answerdict.items() for k in product(*kk)}
 
-            # Test that it is a copy
-            copy = series.copy(deep=True)
-            ns[ns.notna()] = np.nan
-            # Make sure original not changed
-            tm.assert_series_equal(series, copy)
+        ns = series.convert_dtypes(*params)
+        expected_dtype = answers[tuple(params)]
+        expected = pd.Series(series.values, dtype=expected_dtype)
+        tm.assert_series_equal(ns, expected)
+
+        # Test that it is a copy
+        copy = series.copy(deep=True)
+        ns[ns.notna()] = np.nan
+        # Make sure original not changed
+        tm.assert_series_equal(series, copy)

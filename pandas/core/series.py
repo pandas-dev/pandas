@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
@@ -43,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -4310,7 +4312,11 @@ Name: Max Speed, dtype: float64
     # Convert to types that support pd.NA
 
     def _convert_dtypes(
-        self: ABCSeries, use_nullable_dtypes: bool = True, convert_integer: bool = True
+        self: ABCSeries,
+        infer_objects: bool = True,
+        convert_string: bool = True,
+        convert_integer: bool = True,
+        convert_boolean: bool = True,
     ) -> ABCSeries:
         """
         Convert objects to best possible type, and optionally,
@@ -4318,68 +4324,75 @@ Name: Max Speed, dtype: float64
 
         Parameters
         ----------
-        use_nullable_dtypes : bool, default True
-            Whether conversion to types supporting ``pd.NA`` should be attempted.
+        infer_objects : bool, default True
+            Whether object dtypes should be converted to the best possible types.
+        convert_string : bool, default True
+            Whether object dtypes should be converted to ``StringDtype()``.
         convert_integer : bool, default True
-            If ``use_nullable_dtypes`` is True, Whether ``int`` types should be
-            converted to integer extension types. (Ignored if ``use_nullable_dtypes`
-            is False)
+            Whether, if possible, conversion can be done to integer extension types.
+        convert_boolean : bool, defaults True
+            Whether object dtypes should be converted to ``BooleanDtypes()``.
 
         Returns
         -------
         Series
             copy of Series with new (or existing) dtype
         """
-        result = self.infer_objects()
-        if use_nullable_dtypes:
-            result = result._as_nullable_dtype(convert_integer)
+        input_series = self
+        if infer_objects:
+            input_series = input_series.infer_objects()
+            if is_object_dtype(input_series):
+                input_series = input_series.copy(deep=True)
+
+        if convert_string or convert_integer or convert_boolean:
+            try:
+                inferred_dtype = lib.infer_dtype(input_series)
+            except ValueError:
+                inferred_dtype = input_series.dtype
+            if not convert_string and is_string_dtype(inferred_dtype):
+                inferred_dtype = input_series.dtype
+
+            if convert_integer:
+                target_int_dtype = "Int64"
+
+                if isinstance(inferred_dtype, str) and (
+                    inferred_dtype == "mixed-integer"
+                    or inferred_dtype == "mixed-integer-float"
+                ):
+                    inferred_dtype = target_int_dtype
+                if is_integer_dtype(
+                    input_series.dtype
+                ) and not is_extension_array_dtype(input_series.dtype):
+                    inferred_dtype = _dtypes.get(
+                        input_series.dtype.name, target_int_dtype
+                    )
+                if not is_integer_dtype(input_series.dtype) and is_numeric_dtype(
+                    input_series.dtype
+                ):
+                    inferred_dtype = target_int_dtype
+
+            else:
+                if is_integer_dtype(inferred_dtype):
+                    inferred_dtype = input_series.dtype
+
+            if convert_boolean:
+                if is_bool_dtype(input_series.dtype) and not is_extension_array_dtype(
+                    input_series.dtype
+                ):
+                    inferred_dtype = "boolean"
+            else:
+                if isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
+                    inferred_dtype = input_series.dtype
+
+            try:
+                result = input_series.astype(inferred_dtype)
+            except TypeError:
+                result = input_series.copy()
         else:
-            if is_object_dtype(result):
-                result = result.copy(deep=True)
-        return result
+            result = input_series
 
-    def _as_nullable_dtype(self: ABCSeries, convert_integer: bool = True) -> ABCSeries:
-        """
-        Convert columns of DataFrame or a Series to types supporting ``pd.NA``.
-        Parameters
-        ----------
-        convert_integer : bool, default True
-            Whether ``int`` types should be converted to integer extension types
-        Returns
-        -------
-        converted : same type as input object
-        """
-        target_int_dtype = "Int64"
-
-        try:
-            inferred_dtype = lib.infer_dtype(self)
-        except ValueError:
-            inferred_dtype = self.dtype
-
-        # If an object, try to convert to an integer, string or boolean
-        # extension type, otherwise leave it alone
-        if is_object_dtype(self.dtype):
-            if (
-                inferred_dtype == "mixed-integer"
-                or inferred_dtype == "mixed-integer-float"
-            ):
-                inferred_dtype = target_int_dtype
-            elif inferred_dtype not in {"string", "boolean", "integer"}:
-                inferred_dtype = self.dtype
-
-        # If an integer, then match the size based on the registry
-        elif is_integer_dtype(self.dtype):
-            if convert_integer and not is_extension_array_dtype(self.dtype):
-                inferred_dtype = _dtypes.get(self.dtype.name, target_int_dtype)
-
-        # If it's not integer and numeric try to make it an integer
-        elif is_numeric_dtype(self.dtype):
-            inferred_dtype = target_int_dtype
-
-        try:
-            result = self.astype(inferred_dtype)
-        except TypeError:
-            result = self.copy()
+        if not any([infer_objects, convert_string, convert_integer, convert_boolean]):
+            result = input_series.copy(deep=True)
 
         return result
 

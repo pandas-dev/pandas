@@ -5802,33 +5802,37 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def convert_dtypes(
         self: FrameOrSeries,
-        use_nullable_dtypes: bool_t = True,
+        infer_objects: bool_t = True,
+        convert_string: bool_t = True,
         convert_integer: bool_t = True,
+        convert_boolean: bool_t = True,
     ) -> FrameOrSeries:
         """
         Convert columns to best possible dtypes, optionally using dtypes supporting
         ``pd.NA``.
 
-        For object-dtyped columns, use the inference rules as during normal
-        Series/DataFrame construction.  Then, if possible, convert to ``StringDtype``,
-        ``BooleanDtype`` or an appropriate integer extension type, otherwise leave as
-        ``object``.
+        For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
+        rules as during normal Series/DataFrame construction.  Then, if possible, 
+        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer extension
+        type, otherwise leave as ``object``.
 
         If the dtype is integer, convert to an appropriate integer extension type.
 
         If the dtype is numeric, and consists of all integers, convert to an
         appropriate integer extension type.
 
-        .. versionadded:: 1.0.0
+        .. versionadded:: 1.1.0
 
         Parameters
         ----------
-        use_nullable_dtypes : bool, default True
-            Whether conversion to types supporting ``pd.NA`` should be attempted.
+        infer_objects : bool, default True
+            Whether object dtypes should be converted to the best possible types.
+        convert_string : bool, default True
+            Whether object dtypes should be converted to ``StringDtype()``.
         convert_integer : bool, default True
-            If ``use_nullable_dtypes`` is True, Whether ``int`` types should be
-            converted to integer extension types. (Ignored if ``use_nullable_dtypes``
-            is False)
+            Whether, if possible, conversion can be done to integer extension types.
+        convert_boolean : bool, defaults True
+            Whether object dtypes should be converted to ``BooleanDtypes()``.
 
         Returns
         -------
@@ -5838,6 +5842,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         See Also
         --------
         infer_objects : infer dtypes of objects.
+        to_datetime : Convert argument to datetime.
+        to_timedelta : Convert argument to timedelta.
+        to_numeric : Convert argument to a numeric type.
 
         Examples
         --------
@@ -5897,10 +5904,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: string
         """
         if self.ndim == 1:
-            return self._convert_dtypes(use_nullable_dtypes, convert_integer)
+            return self._convert_dtypes(
+                infer_objects, convert_string, convert_integer, convert_boolean
+            )
         else:
             results = [
-                col._convert_dtypes(use_nullable_dtypes, convert_integer)
+                col._convert_dtypes(
+                    infer_objects, convert_string, convert_integer, convert_boolean
+                )
                 for col_name, col in self.items()
             ]
             result = pd.concat(results, axis=1, copy=False)

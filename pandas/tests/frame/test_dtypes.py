@@ -1084,7 +1084,7 @@ class TestDataFrameDataTypes:
                 "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
             }
         )
-        result = df.convert_dtypes(True, convert_integer)
+        result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=expected),

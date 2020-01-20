@@ -228,7 +228,6 @@ Other enhancements
 - Added an experimental :attr:`~DataFrame.attrs` for storing global metadata about a dataset (:issue:`29062`)
 - :meth:`Timestamp.fromisocalendar` is now compatible with python 3.8 and above (:issue:`28115`)
 - :meth:`DataFrame.to_pickle` and :func:`read_pickle` now accept URL (:issue:`30163`)
-- Added :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes_dtypes` to make it easier to use ``pd.NA``. See :ref:`here <missing_data.NA.conversion>` for a description. (:issue:`29752`)
 
 
 Build Changes
