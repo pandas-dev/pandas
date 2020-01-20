@@ -322,22 +322,33 @@ class TestPeriodIndex:
 
     def test_constructor_simple_new(self):
         idx = period_range("2007-01", name="p", periods=2, freq="M")
-        result = idx._simple_new(idx, name="p", freq=idx.freq)
+
+        with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
+            idx._simple_new(idx, name="p", freq=idx.freq)
+
+        result = idx._simple_new(idx._data, name="p", freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
-        result = idx._simple_new(idx.astype("i8"), name="p", freq=idx.freq)
+        with pytest.raises(AssertionError):
+            # Need ndarray, not Int64Index
+            type(idx._data)._simple_new(idx.astype("i8"), freq=idx.freq)
+
+        arr = type(idx._data)._simple_new(idx.asi8, freq=idx.freq)
+        result = idx._simple_new(arr, name="p")
         tm.assert_index_equal(result, idx)
 
     def test_constructor_simple_new_empty(self):
         # GH13079
         idx = PeriodIndex([], freq="M", name="p")
-        result = idx._simple_new(idx, name="p", freq="M")
+        with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
+            idx._simple_new(idx, name="p", freq="M")
+
+        result = idx._simple_new(idx._data, name="p", freq="M")
         tm.assert_index_equal(result, idx)
 
     @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
-        msg = r"PeriodIndex\._simple_new does not accept floats"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(AssertionError, match="<class "):
             pd.PeriodIndex._simple_new(floats, freq="M")
 
         msg = "PeriodIndex does not allow floating point in construction"
