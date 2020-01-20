@@ -2151,7 +2151,7 @@ class TestSorted(Base):
         # GH 15058
         df = DataFrame(
             {
-                "a": np.arange(6),
+                "a": range(6),
                 "l1": pd.Categorical(
                     ["a", "a", "b", "b", "c", "c"],
                     categories=["c", "a", "b"],
