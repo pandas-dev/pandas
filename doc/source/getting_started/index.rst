@@ -463,7 +463,7 @@ Multiple tables can be concatenated both column wise as row wise and database-li
                         </span>
                         <span class="badge gs-badge-link">
 
-:ref:`To user guide <reshaping>`
+:ref:`To user guide <merging>`
 
 .. raw:: html
 
@@ -473,6 +473,91 @@ Multiple tables can be concatenated both column wise as row wise and database-li
             </div> 
         </div>
 
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseNine"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How to handle time series data?
+                    </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_09_timeseries>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseNine" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+Pandas has great support for time series and has an extensive set of tools for working with dates, times, and time-indexed data. 
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_09_timeseries>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <timeseries>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div>
+
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseTen"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How to manipulate textual data?
+                    </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_10_text>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseTen" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+Data sets do not only contain numerical data. Pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_10_text>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <timeseries>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div>
 
     </div> 
     </div>
