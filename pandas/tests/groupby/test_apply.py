@@ -777,15 +777,14 @@ def test_apply_series_return_dataframe_groups():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_multi_level_name():
+@pytest.mark.parametrize("category", [False, True])
+def test_apply_multi_level_name(category):
     # https://github.com/pandas-dev/pandas/issues/31068
+    b = [1, 2] * 5
+    if category:
+        b = pd.Categorical(b, categories=[1, 2, 3])
     df = pd.DataFrame(
-        {
-            "A": np.arange(10),
-            "B": [1, 2] * 5,
-            "C": list(range(10)),
-            "D": list(range(10)),
-        }
+        {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
     result = df.groupby("B").apply(lambda x: x.sum())
     expected = pd.DataFrame(
