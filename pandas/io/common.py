@@ -7,18 +7,7 @@ from io import BufferedIOBase, BytesIO
 import mmap
 import os
 import pathlib
-from typing import (
-    IO,
-    Any,
-    AnyStr,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Type, Union
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
