@@ -286,6 +286,53 @@ corresponding to your data.
             </div> 
         </div>
 
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseFive"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How to create new columns derived from existing columns?
+                    </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_05_columns>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseFive" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+There is no need to loop over all rows of your data table to do calculations, data manipulations on a column work elementwise. 
+Adding a column to a :class:`DataFrame` based on existing data in other columns is straightforward.
+
+.. image:: ../../_static/schemas/05_newcolumn_2.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_05_columns>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <visualization>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div>
+
 
 
 
