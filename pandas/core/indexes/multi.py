@@ -1,6 +1,6 @@
 import datetime
 from sys import getsizeof
-from typing import Hashable, List, Optional, Sequence, Union
+from typing import Any, Hashable, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -973,7 +973,7 @@ class MultiIndex(Index):
         return self._shallow_copy(values, **kwargs)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             self.get_loc(key)
@@ -2016,7 +2016,7 @@ class MultiIndex(Index):
         except (TypeError, IndexError):
             return Index(new_tuples)
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         return self.values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
@@ -3138,7 +3138,7 @@ class MultiIndex(Index):
 
         return True
 
-    def equal_levels(self, other):
+    def equal_levels(self, other) -> bool:
         """
         Return True if the levels of both MultiIndex objects are the same
 
@@ -3338,7 +3338,7 @@ class MultiIndex(Index):
             result_names = self.names if self.names == other.names else None
         return other, result_names
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new MultiIndex inserting new item at location
 
