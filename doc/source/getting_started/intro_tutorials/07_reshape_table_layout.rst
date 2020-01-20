@@ -173,7 +173,8 @@ called ``no2_subset``
 
 .. ipython:: python
 
-    no2 = air_quality[air_quality["parameter"] == "no2"]  # filter for no2 data only
+    # filter for no2 data only
+    no2 = air_quality[air_quality["parameter"] == "no2"]
 
 .. ipython:: python
 

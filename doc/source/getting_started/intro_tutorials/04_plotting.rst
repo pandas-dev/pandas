@@ -131,9 +131,8 @@ standard Python to get an overview of the available plot methods:
 
 .. ipython:: python
 
-    [method_name for method_name in dir(air_quality.plot) \
-        if not method_name.startswith("_")
-    ]
+    [method_name for method_name in dir(air_quality.plot)
+        if not method_name.startswith("_")]
 
 .. note::
     In many development environments as well as ipython and
