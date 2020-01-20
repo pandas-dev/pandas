@@ -1,4 +1,5 @@
-"""Core eval alignment algorithms
+"""
+Core eval alignment algorithms.
 """
 
 from functools import partial, wraps

@@ -45,12 +45,9 @@ def set_use_numexpr(v=True):
 
     # choose what we are going to do
     global _evaluate, _where
-    if not _USE_NUMEXPR:
-        _evaluate = _evaluate_standard
-        _where = _where_standard
-    else:
-        _evaluate = _evaluate_numexpr
-        _where = _where_numexpr
+
+    _evaluate = _evaluate_numexpr if _USE_NUMEXPR else _evaluate_standard
+    _where = _where_numexpr if _USE_NUMEXPR else _where_standard
 
 
 def set_numexpr_threads(n=None):
@@ -63,7 +60,9 @@ def set_numexpr_threads(n=None):
 
 
 def _evaluate_standard(op, op_str, a, b):
-    """ standard evaluation """
+    """
+    Standard evaluation.
+    """
     if _TEST_MODE:
         _store_test_result(False)
     with np.errstate(all="ignore"):
@@ -176,7 +175,7 @@ def _bool_arith_check(
         if op_str in unsupported:
             warnings.warn(
                 f"evaluating in Python space because the {repr(op_str)} "
-                f"operator is not supported by numexpr for "
+                "operator is not supported by numexpr for "
                 f"the bool dtype, use {repr(unsupported[op_str])} instead"
             )
             return False
@@ -202,7 +201,6 @@ def evaluate(op, op_str, a, b, use_numexpr=True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
-
     use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
     if use_numexpr:
         return _evaluate(op, op_str, a, b)
@@ -221,10 +219,7 @@ def where(cond, a, b, use_numexpr=True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
-
-    if use_numexpr:
-        return _where(cond, a, b)
-    return _where_standard(cond, a, b)
+    return _where(cond, a, b) if use_numexpr else _where_standard(cond, a, b)
 
 
 def set_test_mode(v=True):
