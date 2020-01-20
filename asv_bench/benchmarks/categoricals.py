@@ -3,7 +3,8 @@ import warnings
 import numpy as np
 
 import pandas as pd
-import pandas._testing as tm
+
+from .pandas_vb_common import tm
 
 try:
     from pandas.api.types import union_categoricals

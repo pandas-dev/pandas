@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Convert the conda environment.yml to the pip requirements-dev.txt,
 or check that they have the same packages (for the CI)
@@ -92,7 +92,7 @@ def main(conda_fname, pip_fname, compare=False):
     fname = os.path.split(conda_fname)[1]
     header = (
         f"# This file is auto-generated from {fname}, do not modify.\n"
-        "# See that file for comments about the need/usage of each depdendency.\n\n"
+        "# See that file for comments about the need/usage of each dependency.\n\n"
     )
     pip_content = header + "\n".join(pip_deps)
 
@@ -132,8 +132,7 @@ if __name__ == "__main__":
         )
         if args.azure:
             msg = (
-                "##vso[task.logissue type=error;"
-                f"sourcepath=requirements-dev.txt]{msg}"
+                f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
             )
         sys.stderr.write(msg)
     sys.exit(res)

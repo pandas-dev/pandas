@@ -9,7 +9,7 @@ from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas.util._validators import validate_bool_kwarg
 
-from .common import (
+from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
     _POSSIBLY_CAST_DTYPES,
@@ -42,8 +42,13 @@ from .common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from .dtypes import DatetimeTZDtype, ExtensionDtype, IntervalDtype, PeriodDtype
-from .generic import (
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
+from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeArray,
     ABCDatetimeIndex,
@@ -51,8 +56,8 @@ from .generic import (
     ABCPeriodIndex,
     ABCSeries,
 )
-from .inference import is_list_like
-from .missing import isna, notna
+from pandas.core.dtypes.inference import is_list_like
+from pandas.core.dtypes.missing import isna, notna
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -665,7 +670,7 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
 
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr, skipna=False)
-    if inferred in ["string", "bytes", "unicode", "mixed", "mixed-integer"]:
+    if inferred in ["string", "bytes", "mixed", "mixed-integer"]:
         return (np.object_, arr)
 
     arr = np.asarray(arr)

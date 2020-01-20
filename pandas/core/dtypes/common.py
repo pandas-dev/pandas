@@ -173,6 +173,8 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
         # error: Unexpected keyword argument "casting" for "astype"
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
     except TypeError:
+        if is_extension_array_dtype(arr.dtype):
+            return arr.to_numpy(dtype="float64", na_value=np.nan)
         return arr.astype("float64", copy=copy)
 
 
@@ -194,12 +196,11 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     """
     if not is_scalar(value):
         raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
-    msg = "Wrong type {} for value {}"
     try:
         new_value = int(value)
         assert new_value == value
     except (TypeError, ValueError, AssertionError):
-        raise TypeError(msg.format(type(value), value))
+        raise TypeError(f"Wrong type {type(value)} for value {value}")
     return new_value
 
 

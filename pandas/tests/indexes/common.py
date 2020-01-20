@@ -37,8 +37,8 @@ class Base:
     def test_pickle_compat_construction(self):
         # need an object to create with
         msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some"
-            r" kind, None was passed|"
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            r"kind, None was passed|"
             r"__new__\(\) missing 1 required positional argument: 'data'|"
             r"__new__\(\) takes at least 2 arguments \(1 given\)"
         )
@@ -875,3 +875,19 @@ class Base:
         nrefs_pre = len(gc.get_referrers(index))
         index._engine
         assert len(gc.get_referrers(index)) == nrefs_pre
+
+    def test_getitem_2d_deprecated(self):
+        # GH#30588
+        idx = self.create_index()
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            res = idx[:, None]
+
+        assert isinstance(res, np.ndarray), type(res)
+
+    def test_contains_requires_hashable_raises(self):
+        idx = self.create_index()
+        with pytest.raises(TypeError, match="unhashable type"):
+            [] in idx
+
+        with pytest.raises(TypeError):
+            {} in idx._engine

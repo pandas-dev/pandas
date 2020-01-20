@@ -219,8 +219,8 @@ class TestLoc(Base):
 
         # raise a KeyError?
         msg = (
-            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
@@ -236,8 +236,8 @@ class TestLoc(Base):
             s.loc[-1]
 
         msg = (
-            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-1, -2]]
@@ -252,8 +252,8 @@ class TestLoc(Base):
 
         s["a"] = 2
         msg = (
-            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-2]]
@@ -268,8 +268,8 @@ class TestLoc(Base):
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[3], :]

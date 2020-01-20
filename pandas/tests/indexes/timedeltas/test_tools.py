@@ -73,8 +73,7 @@ class TestTimedeltas:
 
         # time not supported ATM
         msg = (
-            "Value must be Timedelta, string, integer, float, timedelta or"
-            " convertible"
+            "Value must be Timedelta, string, integer, float, timedelta or convertible"
         )
         with pytest.raises(ValueError, match=msg):
             to_timedelta(time(second=1))

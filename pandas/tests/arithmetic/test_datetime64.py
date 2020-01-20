@@ -27,7 +27,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import _to_M8
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -341,7 +340,7 @@ class TestDatetimeIndexComparisons:
     def test_comparators(self, op):
         index = tm.makeDateIndex(100)
         element = index[len(index) // 2]
-        element = _to_M8(element)
+        element = Timestamp(element).to_datetime64()
 
         arr = np.array(index)
         arr_result = op(arr, element)

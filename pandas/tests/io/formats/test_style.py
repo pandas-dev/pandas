@@ -530,20 +530,17 @@ class TestStyler:
             (1, 0): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 2): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (2, 0): [
                 "width: 10em",
@@ -572,8 +569,7 @@ class TestStyler:
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (0, 2): [
                 "width: 10em",

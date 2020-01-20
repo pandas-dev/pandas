@@ -1,4 +1,3 @@
-import operator
 from typing import Any, List
 import warnings
 
@@ -9,7 +8,6 @@ from pandas._config import get_option
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike
-import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -29,7 +27,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import ExtensionIndex, make_wrapped_comparison_op
+from pandas.core.indexes.extension import ExtensionIndex
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -190,13 +188,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # Constructors
 
     def __new__(
-        cls,
-        data=None,
-        categories=None,
-        ordered=None,
-        dtype=None,
-        copy=False,
-        name=None,
+        cls, data=None, categories=None, ordered=None, dtype=None, copy=False, name=None
     ):
 
         dtype = CategoricalDtype._from_values_or_dtype(data, categories, ordered, dtype)
@@ -388,17 +380,20 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
+        # We use _shallow_copy rather than the Index implementation
+        #  (which uses _constructor) in order to preserve dtype.
         return self._shallow_copy(result, name=name)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
         if is_scalar(key) and isna(key):
             return self.hasnans
 
+        hash(key)
         return contains(self, key, container=self._engine)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
@@ -414,7 +409,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
-        return super().astype(dtype=dtype, copy=copy)
+        return Index.astype(self, dtype=dtype, copy=copy)
 
     @cache_readonly
     def _isnan(self):
@@ -433,19 +428,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         # `self` is not passed into the lambda.
         codes = self.codes
         return self._engine_type(lambda: codes, len(self))
-
-    # introspection
-    @cache_readonly
-    def is_unique(self) -> bool:
-        return self._engine.is_unique
-
-    @property
-    def is_monotonic_increasing(self):
-        return self._engine.is_monotonic_increasing
-
-    @property
-    def is_monotonic_decreasing(self) -> bool:
-        return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
     def unique(self, level=None):
@@ -522,8 +504,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         Any
             The element of the series at the position indicated by the key
         """
+        k = key
         try:
-            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind="getitem")
             indexer = self.get_loc(k)
             return series.take([indexer])[0]
@@ -817,7 +799,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """
         return self._create_from_codes(np.delete(self.codes, loc))
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values
@@ -862,24 +844,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-
-        def _make_compare(op):
-            opname = f"__{op.__name__}__"
-
-            _evaluate_compare = make_wrapped_comparison_op(opname)
-
-            return compat.set_function_name(_evaluate_compare, opname, cls)
-
-        cls.__eq__ = _make_compare(operator.eq)
-        cls.__ne__ = _make_compare(operator.ne)
-        cls.__lt__ = _make_compare(operator.lt)
-        cls.__gt__ = _make_compare(operator.gt)
-        cls.__le__ = _make_compare(operator.le)
-        cls.__ge__ = _make_compare(operator.ge)
-
     def _delegate_property_get(self, name, *args, **kwargs):
         """ method delegation to the ._values """
         prop = getattr(self._values, name)
@@ -899,4 +863,3 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
-CategoricalIndex._add_comparison_methods()

@@ -18,9 +18,7 @@ from pandas._libs.tslibs import (
     timezones,
     tzconversion,
 )
-import pandas.compat as compat
 from pandas.errors import PerformanceWarning
-from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _INT64_DTYPE,
@@ -33,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_float_dtype,
-    is_list_like,
     is_object_dtype,
     is_period_dtype,
     is_string_dtype,
@@ -44,13 +41,10 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
-from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
 from pandas.tseries.offsets import Day, Tick
@@ -74,22 +68,6 @@ def tz_to_dtype(tz):
         return _NS_DTYPE
     else:
         return DatetimeTZDtype(tz=tz)
-
-
-def _to_M8(key, tz=None):
-    """
-    Timestamp-like => dt64
-    """
-    if not isinstance(key, Timestamp):
-        # this also converts strings
-        key = Timestamp(key)
-        if key.tzinfo is not None and tz is not None:
-            # Don't tz_localize(None) if key is already tz-aware
-            key = key.tz_convert(tz)
-        else:
-            key = key.tz_localize(tz)
-
-    return np.int64(conversion.pydt_to_i8(key)).view(_NS_DTYPE)
 
 
 def _field_accessor(name, field, docstring=None):
@@ -130,81 +108,6 @@ def _field_accessor(name, field, docstring=None):
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
-
-
-def _dt_array_cmp(cls, op):
-    """
-    Wrap comparison operations to convert datetime-like to datetime64
-    """
-    opname = f"__{op.__name__}__"
-    nat_result = opname == "__ne__"
-
-    @unpack_zerodim_and_defer(opname)
-    def wrapper(self, other):
-
-        if isinstance(other, str):
-            try:
-                # GH#18435 strings get a pass from tzawareness compat
-                other = self._scalar_from_string(other)
-            except ValueError:
-                # string that cannot be parsed to Timestamp
-                return invalid_comparison(self, other, op)
-
-        if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
-            self._assert_tzawareness_compat(other)
-
-            other_i8 = other.value
-
-            result = op(self.view("i8"), other_i8)
-            if isna(other):
-                result.fill(nat_result)
-
-        elif not is_list_like(other):
-            return invalid_comparison(self, other, op)
-
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
-
-        else:
-            if isinstance(other, list):
-                other = np.array(other)
-
-            if not isinstance(other, (np.ndarray, cls)):
-                # Following Timestamp convention, __eq__ is all-False
-                # and __ne__ is all True, others raise TypeError.
-                return invalid_comparison(self, other, op)
-
-            if is_object_dtype(other):
-                # We have to use comp_method_OBJECT_ARRAY instead of numpy
-                #  comparison otherwise it would fail to raise when
-                #  comparing tz-aware and tz-naive
-                with np.errstate(all="ignore"):
-                    result = ops.comp_method_OBJECT_ARRAY(
-                        op, self.astype(object), other
-                    )
-                o_mask = isna(other)
-
-            elif not cls._is_recognized_dtype(other.dtype):
-                # e.g. is_timedelta64_dtype(other)
-                return invalid_comparison(self, other, op)
-
-            else:
-                self._assert_tzawareness_compat(other)
-                other = type(self)._from_sequence(other)
-
-                result = op(self.view("i8"), other.view("i8"))
-                o_mask = other._isnan
-
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self._hasnans:
-            result[self._isnan] = nat_result
-
-        return result
-
-    return compat.set_function_name(wrapper, opname, cls)
 
 
 class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps):
@@ -325,17 +228,16 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
                     raise TypeError(msg)
             elif values.tz:
                 dtype = values.dtype
-            # freq = validate_values_freq(values, freq)
+
             if freq is None:
                 freq = values.freq
             values = values._data
 
         if not isinstance(values, np.ndarray):
-            msg = (
+            raise ValueError(
                 f"Unexpected type '{type(values).__name__}'. 'values' must be "
                 "a DatetimeArray ndarray, or Series or Index containing one of those."
             )
-            raise ValueError(msg)
         if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
 
@@ -346,20 +248,18 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             values = values.view(_NS_DTYPE)
 
         if values.dtype != _NS_DTYPE:
-            msg = (
-                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
-                f" Got {values.dtype} instead."
+            raise ValueError(
+                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'. "
+                f"Got {values.dtype} instead."
             )
-            raise ValueError(msg)
 
         dtype = _validate_dt64_dtype(dtype)
 
         if freq == "infer":
-            msg = (
+            raise ValueError(
                 "Frequency inference not allowed in DatetimeArray.__init__. "
                 "Use 'pd.array()' instead."
             )
-            raise ValueError(msg)
 
         if copy:
             values = values.copy()
@@ -643,7 +543,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         if dtype is None and self.tz:
             # The default for tz-aware is object, to preserve tz info
             dtype = object
@@ -700,20 +600,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             return self.to_period(freq=dtype.freq)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
 
-    # ----------------------------------------------------------------
-    # ExtensionArray Interface
-
-    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
-    def _validate_fill_value(self, fill_value):
-        if isna(fill_value):
-            fill_value = iNaT
-        elif isinstance(fill_value, (datetime, np.datetime64)):
-            self._assert_tzawareness_compat(fill_value)
-            fill_value = Timestamp(fill_value).value
-        else:
-            raise ValueError(f"'fill_value' should be a Timestamp. Got '{fill_value}'.")
-        return fill_value
-
     # -----------------------------------------------------------------
     # Rendering Methods
 
@@ -728,8 +614,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     # -----------------------------------------------------------------
     # Comparison Methods
-
-    _create_comparison_method = classmethod(_dt_array_cmp)
 
     def _has_same_tz(self, other):
         zzone = self._timezone
@@ -1780,9 +1664,6 @@ default 'raise'
             )
             / 24.0
         )
-
-
-DatetimeArray._add_comparison_ops()
 
 
 # -------------------------------------------------------------------

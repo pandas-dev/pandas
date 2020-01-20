@@ -54,8 +54,7 @@ def melt(
             if not missing.empty:
                 raise KeyError(
                     "The following 'id_vars' are not present "
-                    "in the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    f"in the DataFrame: {list(missing)}"
                 )
     else:
         id_vars = []
@@ -76,8 +75,7 @@ def melt(
             if not missing.empty:
                 raise KeyError(
                     "The following 'value_vars' are not present in "
-                    "the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    f"the DataFrame: {list(missing)}"
                 )
         frame = frame.loc[:, id_vars + value_vars]
     else:

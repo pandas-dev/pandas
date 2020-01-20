@@ -6,6 +6,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.arrays import SparseArray
 
 UNARY_UFUNCS = [np.positive, np.floor, np.exp]
 BINARY_UFUNCS = [np.add, np.logaddexp]  # dunder op
@@ -33,7 +34,7 @@ def test_unary_ufunc(ufunc, sparse):
     array = np.random.randint(0, 10, 10, dtype="int64")
     array[::2] = 0
     if sparse:
-        array = pd.arrays.SparseArray(array, dtype=pd.SparseDtype("int64", 0))
+        array = SparseArray(array, dtype=pd.SparseDtype("int64", 0))
 
     index = list(string.ascii_letters[:10])
     name = "name"
@@ -51,8 +52,8 @@ def test_binary_ufunc_with_array(flip, sparse, ufunc, arrays_for_binary_ufunc):
     # Test that ufunc(Series(a), array) == Series(ufunc(a, b))
     a1, a2 = arrays_for_binary_ufunc
     if sparse:
-        a1 = pd.arrays.SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
-        a2 = pd.arrays.SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
+        a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
+        a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
     name = "name"  # op(Series, array) preserves the name.
     series = pd.Series(a1, name=name)
@@ -79,8 +80,8 @@ def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
     #   * ufunc(Index, Series) dispatches to Series (returns a Series)
     a1, a2 = arrays_for_binary_ufunc
     if sparse:
-        a1 = pd.arrays.SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
-        a2 = pd.arrays.SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
+        a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
+        a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
     name = "name"  # op(Series, array) preserves the name.
     series = pd.Series(a1, name=name)
@@ -110,8 +111,8 @@ def test_binary_ufunc_with_series(
     #   with alignment between the indices
     a1, a2 = arrays_for_binary_ufunc
     if sparse:
-        a1 = pd.arrays.SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
-        a2 = pd.arrays.SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
+        a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
+        a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
     name = "name"  # op(Series, array) preserves the name.
     series = pd.Series(a1, name=name)
@@ -149,7 +150,7 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     #   * ufunc(Series, scalar) == ufunc(scalar, Series)
     array, _ = arrays_for_binary_ufunc
     if sparse:
-        array = pd.arrays.SparseArray(array)
+        array = SparseArray(array)
     other = 2
     series = pd.Series(array, name="name")
 
@@ -183,8 +184,8 @@ def test_multiple_ouput_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_
     a2[a2 == 0] = 1
 
     if sparse:
-        a1 = pd.arrays.SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
-        a2 = pd.arrays.SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
+        a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
+        a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
     s1 = pd.Series(a1)
     s2 = pd.Series(a2)
@@ -209,7 +210,7 @@ def test_multiple_ouput_ufunc(sparse, arrays_for_binary_ufunc):
     array, _ = arrays_for_binary_ufunc
 
     if sparse:
-        array = pd.arrays.SparseArray(array)
+        array = SparseArray(array)
 
     series = pd.Series(array, name="name")
     result = np.modf(series)

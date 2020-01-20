@@ -188,14 +188,14 @@ class TestFloat64Index(Numeric):
 
         # invalid
         msg = (
-            r"Float64Index\(\.\.\.\) must be called with a collection of"
-            r" some kind, 0\.0 was passed"
+            r"Float64Index\(\.\.\.\) must be called with a collection of "
+            r"some kind, 0\.0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(["a", "b", 0.0])
@@ -389,7 +389,8 @@ class TestFloat64Index(Numeric):
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(KeyError, match=r"^\[nan\]$"):
+        with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
+            # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
     def test_contains_nans(self):
@@ -570,8 +571,8 @@ class NumericInt(Numeric):
 
     def test_cant_or_shouldnt_cast(self):
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         # can't
         data = ["foo", "bar", "baz"]
@@ -655,8 +656,8 @@ class TestInt64Index(NumericInt):
 
         # scalar raise Exception
         msg = (
-            r"Int64Index\(\.\.\.\) must be called with a collection of some"
-            " kind, 5 was passed"
+            r"Int64Index\(\.\.\.\) must be called with a collection of some "
+            "kind, 5 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Int64Index(5)

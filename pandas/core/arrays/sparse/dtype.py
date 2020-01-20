@@ -175,7 +175,7 @@ class SparseDtype(ExtensionDtype):
         -------
         type
         """
-        from .array import SparseArray
+        from pandas.core.arrays.sparse.array import SparseArray
 
         return SparseArray
 

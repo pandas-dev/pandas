@@ -39,9 +39,7 @@ def _assert_not_almost_equal(a, b, **kwargs):
     """
     try:
         tm.assert_almost_equal(a, b, **kwargs)
-        msg = (
-            "{a} and {b} were approximately equal when they shouldn't have been"
-        ).format(a=a, b=b)
+        msg = f"{a} and {b} were approximately equal when they shouldn't have been"
         pytest.fail(msg=msg)
     except AssertionError:
         pass
@@ -248,13 +246,12 @@ def test_assert_almost_equal_value_mismatch():
     [(np.array([1]), 1, "ndarray", "int"), (1, np.array([1]), "int", "ndarray")],
 )
 def test_assert_almost_equal_class_mismatch(a, b, klass1, klass2):
-    msg = """numpy array are different
+
+    msg = f"""numpy array are different
 
 numpy array classes are different
 \\[left\\]:  {klass1}
-\\[right\\]: {klass2}""".format(
-        klass1=klass1, klass2=klass2
-    )
+\\[right\\]: {klass2}"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(a, b)

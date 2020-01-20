@@ -146,6 +146,17 @@ requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
+Using a Docker Container
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of manually setting up a development environment, you can use Docker to
+automatically create the environment with just several commands. Pandas provides a `DockerFile`
+in the root directory to build a Docker image with a full pandas development environment.
+
+Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
+a popular free IDE, using the `.devcontainer.json` file.
+See https://code.visualstudio.com/docs/remote/containers for details.
+
 .. _contributing.dev_c:
 
 Installing a C compiler
@@ -354,9 +365,9 @@ About the *pandas* documentation
 --------------------------------
 
 The documentation is written in **reStructuredText**, which is almost like writing
-in plain English, and built using `Sphinx <http://sphinx.pocoo.org/>`__. The
+in plain English, and built using `Sphinx <http://www.sphinx-doc.org/en/master/>`__. The
 Sphinx Documentation has an excellent `introduction to reST
-<http://sphinx.pocoo.org/rest.html>`__. Review the Sphinx docs to perform more
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`__. Review the Sphinx docs to perform more
 complex changes to the documentation as well.
 
 Some other important things to know about the docs:
@@ -635,6 +646,8 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
+.. _contributing.code-formatting:
+
 Python (PEP8 / black)
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -656,19 +669,8 @@ apply ``black`` as you edit files.
 You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
 with the pandas codebase.
 
-Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
-to automatically run ``black`` and ``flake8`` when you make a git commit. This
-can be done by installing ``pre-commit``::
-
-   pip install pre-commit
-
-and then running::
-
-   pre-commit install
-
-from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
-each time you commit changes. You can skip these checks with
-``git commit --no-verify``.
+If you wish to run these checks automatically, we encourage you to use
+:ref:`pre-commits <contributing.pre-commit>` instead.
 
 One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
 command will catch any stylistic errors in your changes specifically, but
@@ -676,7 +678,7 @@ be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
 unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
-run this command, though it will take longer::
+run this command, though it may take longer::
 
    git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
@@ -693,6 +695,8 @@ behaviour as follows::
 
 This will get all the files being changed by the PR (and ending with ``.py``),
 and run ``flake8`` on them, one after the other.
+
+Note that these commands can be run analogously with ``black``.
 
 .. _contributing.import-formatting:
 
@@ -715,7 +719,6 @@ A summary of our current import sections ( in order ):
 * Local application/library specific imports
 
 Imports are alphabetically sorted within these sections.
-
 
 As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
@@ -740,7 +743,36 @@ to automatically format imports correctly. This will modify your local copy of t
 
 The `--recursive` flag can be passed to sort all files in a directory.
 
+Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
+
+    git diff upstream/master --name-only -- "*.py" | xargs -r isort
+
+Where similar caveats apply if you are on OSX or Windows.
+
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+
+.. _contributing.pre-commit:
+
+Pre-Commit
+~~~~~~~~~~
+
+You can run many of these styling checks manually as we have described above. However,
+we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
+to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+    pip install pre-commit
+
+and then running::
+
+    pre-commit install
+
+from the root of the pandas repository. Now all of the styling checks will be
+run each time you commit changes without your needing to run each one manually.
+In addition, using this pre-commit hook will also allow you to more easily
+remain up-to-date with our code checks as they change.
+
+Note that if needed, you can skip these checks with ``git commit --no-verify``.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1504,3 +1536,19 @@ The branch will still exist on GitHub, so to delete it there do::
     git push origin --delete shiny-new-feature
 
 .. _Gitter: https://gitter.im/pydata/pandas
+
+
+Tips for a successful Pull Request
+==================================
+
+If you have made it to the `Review your code`_ phase, one of the core contributors may
+take a look. Please note however that a handful of people are responsible for reviewing
+all of the contributions, which can often lead to bottlenecks.
+
+To improve the chances of your pull request being reviewed, you should:
+
+- **Reference an open issue** for non-trivial changes to clarify the PR's purpose
+- **Ensure you have appropriate tests**. These should be the first part of any PR
+- **Keep your pull requests as simple as possible**. Larger PRs take longer to review
+- **Ensure that CI is in a green state**. Reviewers may not even look otherwise
+- **Keep** `Updating your pull request`_, either by request or every few days
