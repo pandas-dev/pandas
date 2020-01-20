@@ -1,6 +1,5 @@
 """
-Module for applying conditional formatting to
-DataFrames and Series.
+Module for applying conditional formatting to DataFrames and Series.
 """
 
 from collections import defaultdict
@@ -8,7 +7,17 @@ from contextlib import contextmanager
 import copy
 from functools import partial
 from itertools import product
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 from uuid import uuid1
 
 import numpy as np
@@ -16,6 +25,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
+from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
@@ -24,6 +34,7 @@ from pandas.core.dtypes.common import is_float
 import pandas as pd
 from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
 from pandas.core.generic import _shared_docs
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
@@ -41,7 +52,7 @@ except ImportError:
 
 
 @contextmanager
-def _mpl(func):
+def _mpl(func: Callable):
     if has_mpl:
         yield plt, colors
     else:
@@ -125,13 +136,13 @@ class Styler:
 
     def __init__(
         self,
-        data,
-        precision=None,
-        table_styles=None,
-        uuid=None,
-        caption=None,
-        table_attributes=None,
-        cell_ids=True,
+        data: FrameOrSeriesUnion,
+        precision: Optional[int] = None,
+        table_styles: Optional[List[Dict[str, List[Tuple[str, str]]]]] = None,
+        uuid: Optional[str] = None,
+        caption: Optional[str] = None,
+        table_attributes: Optional[str] = None,
+        cell_ids: bool = True,
         na_rep: Optional[str] = None,
     ):
         self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
@@ -175,7 +186,7 @@ class Styler:
             Tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: default_display_func)
 
-    def _repr_html_(self):
+    def _repr_html_(self) -> str:
         """
         Hooks into Jupyter notebook rich display system.
         """
@@ -196,22 +207,22 @@ class Styler:
     def to_excel(
         self,
         excel_writer,
-        sheet_name="Sheet1",
-        na_rep="",
-        float_format=None,
-        columns=None,
-        header=True,
-        index=True,
-        index_label=None,
-        startrow=0,
-        startcol=0,
-        engine=None,
-        merge_cells=True,
-        encoding=None,
-        inf_rep="inf",
-        verbose=True,
-        freeze_panes=None,
-    ):
+        sheet_name: str = "Sheet1",
+        na_rep: str = "",
+        float_format: Optional[str] = None,
+        columns: Optional[Sequence[Label]] = None,
+        header: Union[Sequence[Label], bool] = True,
+        index: bool = True,
+        index_label: Optional[Union[Label, Sequence[Label]]] = None,
+        startrow: int = 0,
+        startcol: int = 0,
+        engine: Optional[str] = None,
+        merge_cells: bool = True,
+        encoding: Optional[str] = None,
+        inf_rep: str = "inf",
+        verbose: bool = True,
+        freeze_panes: Optional[Tuple[int, int]] = None,
+    ) -> None:
 
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -423,7 +434,7 @@ class Styler:
             table_attributes=table_attr,
         )
 
-    def format(self, formatter, subset=None, na_rep: Optional[str] = None):
+    def format(self, formatter, subset=None, na_rep: Optional[str] = None) -> "Styler":
         """
         Format the text display value of cells.
 
@@ -496,7 +507,7 @@ class Styler:
                 self._display_funcs[(i, j)] = formatter
         return self
 
-    def render(self, **kwargs):
+    def render(self, **kwargs) -> str:
         """
         Render the built up styles to HTML.
 
@@ -545,16 +556,18 @@ class Styler:
         d.update(kwargs)
         return self.template.render(**d)
 
-    def _update_ctx(self, attrs):
+    def _update_ctx(self, attrs: DataFrame) -> None:
         """
         Update the state of the Styler.
 
         Collects a mapping of {index_label: ['<property>: <value>']}.
 
-        attrs : Series or DataFrame
-        should contain strings of '<property>: <value>;<prop2>: <val2>'
-        Whitespace shouldn't matter and the final trailing ';' shouldn't
-        matter.
+        Parameters
+        ----------
+        attrs : DataFrame
+            should contain strings of '<property>: <value>;<prop2>: <val2>'
+            Whitespace shouldn't matter and the final trailing ';' shouldn't
+            matter.
         """
         for row_label, v in attrs.iterrows():
             for col_label, col in v.items():
@@ -563,7 +576,7 @@ class Styler:
                 for pair in col.rstrip(";").split(";"):
                     self.ctx[(i, j)].append(pair)
 
-    def _copy(self, deepcopy=False):
+    def _copy(self, deepcopy: bool = False) -> "Styler":
         styler = Styler(
             self.data,
             precision=self.precision,
@@ -580,16 +593,16 @@ class Styler:
             styler._todo = self._todo
         return styler
 
-    def __copy__(self):
+    def __copy__(self) -> "Styler":
         """
         Deep copy by default.
         """
         return self._copy(deepcopy=False)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> "Styler":
         return self._copy(deepcopy=True)
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Reset the styler, removing any previously applied styles.
 
@@ -612,7 +625,13 @@ class Styler:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _apply(self, func, axis=0, subset=None, **kwargs):
+    def _apply(
+        self,
+        func: Callable[..., "Styler"],
+        axis: Optional[Axis] = 0,
+        subset=None,
+        **kwargs,
+    ) -> "Styler":
         subset = slice(None) if subset is None else subset
         subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
@@ -645,7 +664,13 @@ class Styler:
         self._update_ctx(result)
         return self
 
-    def apply(self, func, axis=0, subset=None, **kwargs):
+    def apply(
+        self,
+        func: Callable[..., "Styler"],
+        axis: Optional[Axis] = 0,
+        subset=None,
+        **kwargs,
+    ) -> "Styler":
         """
         Apply a function column-wise, row-wise, or table-wise.
 
@@ -696,7 +721,7 @@ class Styler:
         )
         return self
 
-    def _applymap(self, func, subset=None, **kwargs):
+    def _applymap(self, func: Callable, subset=None, **kwargs) -> "Styler":
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
@@ -705,7 +730,7 @@ class Styler:
         self._update_ctx(result)
         return self
 
-    def applymap(self, func, subset=None, **kwargs):
+    def applymap(self, func: Callable, subset=None, **kwargs) -> "Styler":
         """
         Apply a function elementwise.
 
@@ -734,7 +759,14 @@ class Styler:
         )
         return self
 
-    def where(self, cond, value, other=None, subset=None, **kwargs):
+    def where(
+        self,
+        cond: Callable,
+        value: str,
+        other: Optional[str] = None,
+        subset=None,
+        **kwargs,
+    ) -> "Styler":
         """
         Apply a function elementwise.
 
@@ -773,7 +805,7 @@ class Styler:
             lambda val: value if cond(val) else other, subset=subset, **kwargs
         )
 
-    def set_precision(self, precision):
+    def set_precision(self, precision: int) -> "Styler":
         """
         Set the precision used to render.
 
@@ -788,7 +820,7 @@ class Styler:
         self.precision = precision
         return self
 
-    def set_table_attributes(self, attributes):
+    def set_table_attributes(self, attributes: str) -> "Styler":
         """
         Set the table attributes.
 
@@ -812,7 +844,7 @@ class Styler:
         self.table_attributes = attributes
         return self
 
-    def export(self):
+    def export(self) -> List[Tuple[Callable, Tuple, Dict]]:
         """
         Export the styles to applied to the current Styler.
 
@@ -828,7 +860,7 @@ class Styler:
         """
         return self._todo
 
-    def use(self, styles):
+    def use(self, styles: List[Tuple[Callable, Tuple, Dict]]) -> "Styler":
         """
         Set the styles on the current Styler.
 
@@ -850,7 +882,7 @@ class Styler:
         self._todo.extend(styles)
         return self
 
-    def set_uuid(self, uuid):
+    def set_uuid(self, uuid: str) -> "Styler":
         """
         Set the uuid for a Styler.
 
@@ -865,7 +897,7 @@ class Styler:
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption):
+    def set_caption(self, caption: str) -> "Styler":
         """
         Set the caption on a Styler.
 
@@ -880,7 +912,7 @@ class Styler:
         self.caption = caption
         return self
 
-    def set_table_styles(self, table_styles):
+    def set_table_styles(self, table_styles) -> "Styler":
         """
         Set the table styles on a Styler.
 
@@ -927,7 +959,7 @@ class Styler:
         self.na_rep = na_rep
         return self
 
-    def hide_index(self):
+    def hide_index(self) -> "Styler":
         """
         Hide any indices from rendering.
 
@@ -940,7 +972,7 @@ class Styler:
         self.hidden_index = True
         return self
 
-    def hide_columns(self, subset):
+    def hide_columns(self, subset) -> "Styler":
         """
         Hide columns from rendering.
 
@@ -966,10 +998,10 @@ class Styler:
     # -----------------------------------------------------------------------
 
     @staticmethod
-    def _highlight_null(v, null_color):
+    def _highlight_null(v, null_color: str) -> str:
         return f"background-color: {null_color}" if pd.isna(v) else ""
 
-    def highlight_null(self, null_color="red"):
+    def highlight_null(self, null_color: str = "red") -> "Styler":
         """
         Shade the background ``null_color`` for missing values.
 
@@ -987,14 +1019,14 @@ class Styler:
     def background_gradient(
         self,
         cmap="PuBu",
-        low=0,
-        high=0,
-        axis=0,
+        low: float = 0,
+        high: float = 0,
+        axis: Optional[Axis] = 0,
         subset=None,
-        text_color_threshold=0.408,
+        text_color_threshold: float = 0.408,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
-    ):
+    ) -> "Styler":
         """
         Color the background in a gradient style.
 
@@ -1069,9 +1101,9 @@ class Styler:
     def _background_gradient(
         s,
         cmap="PuBu",
-        low=0,
-        high=0,
-        text_color_threshold=0.408,
+        low: float = 0,
+        high: float = 0,
+        text_color_threshold: float = 0.408,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
     ):
@@ -1095,7 +1127,7 @@ class Styler:
             # https://github.com/matplotlib/matplotlib/issues/5427
             rgbas = plt.cm.get_cmap(cmap)(norm(s.to_numpy(dtype=float)))
 
-            def relative_luminance(rgba):
+            def relative_luminance(rgba) -> float:
                 """
                 Calculate relative luminance of a color.
 
@@ -1117,7 +1149,7 @@ class Styler:
                 )
                 return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-            def css(rgba):
+            def css(rgba) -> str:
                 dark = relative_luminance(rgba) < text_color_threshold
                 text_color = "#f1f1f1" if dark else "#000000"
                 return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
@@ -1131,7 +1163,7 @@ class Styler:
                     columns=s.columns,
                 )
 
-    def set_properties(self, subset=None, **kwargs):
+    def set_properties(self, subset=None, **kwargs) -> "Styler":
         """
         Method to set one or more non-data dependent properties or each cell.
 
@@ -1157,7 +1189,14 @@ class Styler:
         return self.applymap(f, subset=subset)
 
     @staticmethod
-    def _bar(s, align, colors, width=100, vmin=None, vmax=None):
+    def _bar(
+        s,
+        align: str,
+        colors: List[str],
+        width: float = 100,
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+    ):
         """
         Draw bar chart in dataframe cells.
         """
@@ -1175,7 +1214,7 @@ class Styler:
         normed = width * (s.to_numpy(dtype=float) - smin) / (smax - smin + 1e-12)
         zero = -width * smin / (smax - smin + 1e-12)
 
-        def css_bar(start, end, color):
+        def css_bar(start: float, end: float, color: str) -> str:
             """
             Generate CSS code to draw a bar from start to end.
             """
@@ -1212,13 +1251,13 @@ class Styler:
     def bar(
         self,
         subset=None,
-        axis=0,
+        axis: Optional[Axis] = 0,
         color="#d65f5f",
-        width=100,
-        align="left",
-        vmin=None,
-        vmax=None,
-    ):
+        width: float = 100,
+        align: str = "left",
+        vmin: Optional[float] = None,
+        vmax: Optional[float] = None,
+    ) -> "Styler":
         """
         Draw bar chart in the cell backgrounds.
 
@@ -1293,7 +1332,9 @@ class Styler:
 
         return self
 
-    def highlight_max(self, subset=None, color="yellow", axis=0):
+    def highlight_max(
+        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+    ) -> "Styler":
         """
         Highlight the maximum by shading the background.
 
@@ -1313,7 +1354,9 @@ class Styler:
         """
         return self._highlight_handler(subset=subset, color=color, axis=axis, max_=True)
 
-    def highlight_min(self, subset=None, color="yellow", axis=0):
+    def highlight_min(
+        self, subset=None, color: str = "yellow", axis: Optional[Axis] = 0
+    ) -> "Styler":
         """
         Highlight the minimum by shading the background.
 
@@ -1335,7 +1378,13 @@ class Styler:
             subset=subset, color=color, axis=axis, max_=False
         )
 
-    def _highlight_handler(self, subset=None, color="yellow", axis=None, max_=True):
+    def _highlight_handler(
+        self,
+        subset=None,
+        color: str = "yellow",
+        axis: Optional[Axis] = None,
+        max_: bool = True,
+    ) -> "Styler":
         subset = _non_reducing_slice(_maybe_numeric_slice(self.data, subset))
         self.apply(
             self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
@@ -1343,7 +1392,9 @@ class Styler:
         return self
 
     @staticmethod
-    def _highlight_extrema(data, color="yellow", max_=True):
+    def _highlight_extrema(
+        data: FrameOrSeries, color: str = "yellow", max_: bool = True
+    ):
         """
         Highlight the min or max in a Series or DataFrame.
         """
@@ -1388,7 +1439,7 @@ class Styler:
 
         return MyStyler
 
-    def pipe(self, func, *args, **kwargs):
+    def pipe(self, func: Callable, *args, **kwargs):
         """
         Apply ``func(self, *args, **kwargs)``, and return the result.
 
@@ -1460,7 +1511,7 @@ class Styler:
         return com.pipe(self, func, *args, **kwargs)
 
 
-def _is_visible(idx_row, idx_col, lengths):
+def _is_visible(idx_row, idx_col, lengths) -> bool:
     """
     Index -> {(idx_row, idx_col): bool}).
     """
@@ -1510,7 +1561,9 @@ def _get_level_lengths(index, hidden_elements=None):
     return non_zero_lengths
 
 
-def _maybe_wrap_formatter(formatter, na_rep: Optional[str]):
+def _maybe_wrap_formatter(
+    formatter: Union[Callable, str], na_rep: Optional[str]
+) -> Callable:
     if isinstance(formatter, str):
         formatter_func = lambda x: formatter.format(x)
     elif callable(formatter):
