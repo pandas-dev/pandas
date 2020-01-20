@@ -427,6 +427,52 @@ from long to wide format. With aggregations built-in, a pivot table is created w
             </div> 
         </div>
 
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseEight"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How to combine data from multiple tables?
+                    </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_08_combine>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseEight" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+Multiple tables can be concatenated both column wise as row wise and database-like join/merge operations are provided to combine multiple tables of data.
+
+.. image:: ../../_static/schemas/08_concat_row.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_08_combine>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <reshaping>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div>
+
 
     </div> 
     </div>
