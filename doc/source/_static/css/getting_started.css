@@ -24,8 +24,8 @@
   font-size: 12px;
 }
 
-.gs-data .btn {  
- background-color: grey; 
+.gs-data .btn {
+ background-color: grey;
  border: none;
 }
 
@@ -116,7 +116,7 @@ ul.task-bullet > li:before {
     background-color: #130654;
     border-radius: 50%;
     background-size:100%;
-    background-image:url('../question_mark_noback.svg'); 
+    background-image:url('../question_mark_noback.svg');
   }
 
 ul.task-bullet > li {
@@ -157,12 +157,12 @@ ul.task-bullet > li > p:first-child {
   color: #150458;
   font-size: 1.1rem;
   font-weight: bold;
-  padding: 1rem 1rem 0rem 1rem; 
+  padding: 1rem 1rem 0rem 1rem;
 }
 
 .install-card .card-footer {
   border: none;
-  background-color:white; 
+  background-color:white;
 }
 
 .install-card pre {
