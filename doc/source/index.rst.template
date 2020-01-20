@@ -12,16 +12,16 @@ pandas documentation
 
 **Download documentation**: `PDF Version <pandas.pdf>`__ | `Zipped HTML <pandas.zip>`__
 
+**Useful links**:
+`Binary Installers <https://pypi.org/project/pandas>`__ |
+`Source Repository <https://github.com/pandas-dev/pandas>`__ |
+`Issues & Ideas <https://github.com/pandas-dev/pandas/issues>`__ |
+`Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ |
+`Mailing List <https://groups.google.com/forum/#!forum/pydata>`__
+
 :mod:`pandas` is an open source, BSD-licensed library providing high-performance,
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
-
-----------------------------------
-How the documentation is organized
-----------------------------------
-
-Pandas has a lot of documentation. A high-level overview of how it’s organized will help you know where to look for certain things:
-
 
 .. raw:: html
 
@@ -29,15 +29,15 @@ Pandas has a lot of documentation. A high-level overview of how it’s organized
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                Getting started
                 <div class="card-body flex-fill">
-                    <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>data.frame</code> data structure and multiple packages,
-                        such as <a href="https://www.tidyverse.org/">tidyverse</a> use and extend <code>data.frame</code>s for convenient data handling
-                        functionalities similar to pandas.</p>
+                    <h5 class="card-title">Getting started</h5>
+                    <p class="card-text">New to <em>pandas</em>? Check out the getting started guides. They
+                    contain a first introduction to some of the main <em>pandas</em> concepts. Furthermore,
+                    it contains an overview of community provided tutorials.</p>
 
 .. container:: custom-button
 
-    :ref:`Learn more <compare_with_r>`
+    :ref:`To the getting started guides<getting_started>`
 
 .. raw:: html
 
@@ -46,82 +46,58 @@ Pandas has a lot of documentation. A high-level overview of how it’s organized
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                <img src="../_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72">
                 <div class="card-body flex-fill">
-                    <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>,...?
-                    Most of these SQL manipulations do have equivalents in pandas.</p>
+                    <h5 class="card-title">User guide</h5>
+                    <p class="card-text">The user guide provides in-depth information on the
+                    key concepts of pandas with useful background information and explanation.</p>
 
 .. container:: custom-button
 
-    :ref:`Learn more <compare_with_sql>`
+    :ref:`To the user guide<user_guide>`
 
 .. raw:: html
 
-                    </div>
-                    </div>
                 </div>
-                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
-                    <img src="../_static/logo_stata.svg" class="card-img-top" alt="STATA logo" height="52">
-                    <div class="card-body flex-fill">
-                        <p class="card-text">The <code>data set</code> included in the
-                            <a href="https://en.wikipedia.org/wiki/Stata">STATA</a> statistical software suite corresponds
-                            to the pandas <code>data.frame</code>. Many of the operations known from STATA have an equivalent
-                            in pandas.</p>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">API reference</h5>
+                    <p class="card-text">The reference guide contains a detailed overview of
+                    all functionalities in the pandas API. The reference describes how
+                    the methods work and which parameters can be used. It assumes that you
+                    have an understanding of the key concepts.</p>
 
 .. container:: custom-button
 
-    :ref:`Learn more <compare_with_stata>`
+    :ref:`To the reference guide<api>`
 
 .. raw:: html
 
-                    </div>
-                    </div>
                 </div>
-                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
-                    <img src="../_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52">
-                    <div class="card-body flex-fill">
-                        <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite
-                            also provides the <code>data set</code> corresponding to the pandas <code>data.frame</code>.
-                            Also vectorized operations, filtering, string processing operations,... from SAS have similar
-                            functions in pandas.</p>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">Developer guide</h5>
+                    <p class="card-text">Saw a typo in the documentation? Want to improve
+                    existing functionalities? The contributing guidelines will guide
+                    you through the process of setting up a development environment.</p>
 
 .. container:: custom-button
 
-    :ref:`Learn more <compare_with_sas>`
+    :ref:`To the development guide<development>`
 
 .. raw:: html
 
-                    </div>
-                    </div>
                 </div>
+                </div>
+            </div>
         </div>
     </div>
 
-TODO -> 4 blokken (cfr. coming from)
-
-- :ref:`getting_started` contains a :ref:`_gentle_intro` first introduction to some of the main pandas core concepts. Furthermore, it contains an overview of
-:ref:`community_guides` community provided tutorials.
-- :ref:`user_guide` provides in-depth information on the key concepts of pandas with useful background information and explanation.
-- :ref:`api` contains a technical reference of the pandas API and available functionalities. The reference describes how the methods work and which parameters
-can be used. It assumes that you have an understanding of the key concepts.
-- Saw a typo in the documentation? Want to improve existing functionalities. The :ref:`development` guidelines will guide you through the process of setting up a development environment.
-
-------------
-Getting help
-------------
-
-`Issues & Ideas <https://github.com/pandas-dev/pandas/issues>`__ |
-`Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ |
-`Mailing List <https://groups.google.com/forum/#!forum/pydata>`__
-
------------------------------
-pandas documentation overview
------------------------------
-
-`Binary Installers <https://pypi.org/project/pandas>`__ |
-`Source Repository <https://github.com/pandas-dev/pandas>`__ |
 
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
