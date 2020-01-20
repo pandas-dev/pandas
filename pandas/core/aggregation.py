@@ -100,7 +100,8 @@ def _make_unique_kwarg_list(seq: List[object]) -> List[object]:
 
     Examples:
     --------
-    >>> _make_unique_kwarg_list([('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')])
+    >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
+    >>> _make_unique_kwarg_list(kwarg_list)
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
     return [
