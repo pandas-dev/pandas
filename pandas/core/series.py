@@ -28,23 +28,20 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
+from pandas.core.dtypes.cast import convert_dtypes
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
     is_bool,
-    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
-    is_integer_dtype,
     is_iterator,
     is_list_like,
-    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
-    is_string_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -66,7 +63,6 @@ from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
-from pandas.core.arrays.integer import _dtypes
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -4342,58 +4338,18 @@ Name: Max Speed, dtype: float64
         if infer_objects:
             input_series = input_series.infer_objects()
             if is_object_dtype(input_series):
-                input_series = input_series.copy(deep=True)
+                input_series = input_series.copy()
 
         if convert_string or convert_integer or convert_boolean:
-            try:
-                inferred_dtype = lib.infer_dtype(input_series)
-            except ValueError:
-                inferred_dtype = input_series.dtype
-            if not convert_string and is_string_dtype(inferred_dtype):
-                inferred_dtype = input_series.dtype
-
-            if convert_integer:
-                target_int_dtype = "Int64"
-
-                if isinstance(inferred_dtype, str) and (
-                    inferred_dtype == "mixed-integer"
-                    or inferred_dtype == "mixed-integer-float"
-                ):
-                    inferred_dtype = target_int_dtype
-                if is_integer_dtype(
-                    input_series.dtype
-                ) and not is_extension_array_dtype(input_series.dtype):
-                    inferred_dtype = _dtypes.get(
-                        input_series.dtype.name, target_int_dtype
-                    )
-                if not is_integer_dtype(input_series.dtype) and is_numeric_dtype(
-                    input_series.dtype
-                ):
-                    inferred_dtype = target_int_dtype
-
-            else:
-                if is_integer_dtype(inferred_dtype):
-                    inferred_dtype = input_series.dtype
-
-            if convert_boolean:
-                if is_bool_dtype(input_series.dtype) and not is_extension_array_dtype(
-                    input_series.dtype
-                ):
-                    inferred_dtype = "boolean"
-            else:
-                if isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
-                    inferred_dtype = input_series.dtype
-
+            inferred_dtype = convert_dtypes(
+                input_series._values, convert_string, convert_integer, convert_boolean
+            )
             try:
                 result = input_series.astype(inferred_dtype)
             except TypeError:
                 result = input_series.copy()
         else:
-            result = input_series
-
-        if not any([infer_objects, convert_string, convert_integer, convert_boolean]):
-            result = input_series.copy(deep=True)
-
+            result = input_series.copy()
         return result
 
     @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)

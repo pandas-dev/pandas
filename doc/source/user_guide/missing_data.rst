@@ -964,5 +964,8 @@ the first 10 columns.
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
    bb[bb.columns[:10]].dtypes
+
+.. ipython:: python
+
    bbn = bb.convert_dtypes()
    bbn[bbn.columns[:10]].dtypes

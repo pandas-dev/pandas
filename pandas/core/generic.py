@@ -5811,16 +5811,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Convert columns to best possible dtypes, optionally using dtypes supporting
         ``pd.NA``.
 
-        For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
-        rules as during normal Series/DataFrame construction.  Then, if possible, 
-        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer extension
-        type, otherwise leave as ``object``.
-
-        If the dtype is integer, convert to an appropriate integer extension type.
-
-        If the dtype is numeric, and consists of all integers, convert to an
-        appropriate integer extension type.
-
         .. versionadded:: 1.1.0
 
         Parameters
@@ -5841,10 +5831,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        infer_objects : infer dtypes of objects.
+        infer_objects : Infer dtypes of objects.
         to_datetime : Convert argument to datetime.
         to_timedelta : Convert argument to timedelta.
         to_numeric : Convert argument to a numeric type.
+
+        Notes
+        -----
+
+        For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
+        rules as during normal Series/DataFrame construction.  Then, if possible,
+        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer extension
+        type, otherwise leave as ``object``.
+
+        If the dtype is integer, convert to an appropriate integer extension type.
+
+        If the dtype is numeric, and consists of all integers, convert to an
+        appropriate integer extension type.
 
         Examples
         --------
@@ -5858,6 +5861,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...         "f": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
         ...     }
         ... )
+
+        Start with a DataFrame with default dtypes.
 
         >>> df
            a  b      c    d     e      f
@@ -5873,6 +5878,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         e    float64
         f    float64
         dtype: object
+
+        Convert the DataFrame to use best possible dtypes.
 
         >>> dfn = df.convert_dtypes()
         >>> dfn
@@ -5890,12 +5897,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f    float64
         dtype: object
 
+        Start with a Series of strings and missing data represented by ``np.nan``.
+
         >>> s = pd.Series(["a", "b", np.nan])
         >>> s
         0      a
         1      b
         2    NaN
         dtype: object
+
+        Obtain a Series with dtype ``StringDtype``.
 
         >>> s.convert_dtypes()
         0       a

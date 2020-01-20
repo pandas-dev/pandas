@@ -27,9 +27,14 @@ Example:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'x': ['abc', None, 'def'], 'y': [1, 2, np.nan], 'z': [True, False, True]})
+   df = pd.DataFrame({'x': ['abc', None, 'def'],
+                      'y': [1, 2, np.nan],
+                      'z': [True, False, True]})
    df
    df.dtypes
+
+.. ipython:: python
+
    converted = df.convert_dtypes()
    converted
    converted.dtypes
