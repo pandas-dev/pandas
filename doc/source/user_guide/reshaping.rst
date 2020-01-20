@@ -6,6 +6,8 @@
 Reshaping and pivot tables
 **************************
 
+.. _reshaping.reshaping:
+
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
