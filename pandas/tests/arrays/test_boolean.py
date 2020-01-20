@@ -252,7 +252,7 @@ def test_coerce_to_numpy_array():
         np.array(arr, dtype="bool")
 
 
-@pytest.mark.parametrize( "na_value", [None, np.nan, pd.NA])
+@pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
 def test_to_boolean_array_from_strings(na_value):
     result = BooleanArray._from_sequence_of_strings(["True", "False", na_value])
     expected = BooleanArray(
