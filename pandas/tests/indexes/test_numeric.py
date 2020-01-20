@@ -407,6 +407,9 @@ class TestFloat64Index(Numeric):
             expected = vals[1]
             assert isinstance(result, type(expected)) and result == expected
 
+            result = ser[1.0]
+            assert isinstance(result, type(expected)) and result == expected
+
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
         assert np.nan in i
