@@ -23,7 +23,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    ;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
@@ -2768,7 +2768,8 @@ Excel files
 
 The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
 files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``.
+can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3228,6 +3229,30 @@ OpenDocument spreadsheets match what can be done for `Excel files`_ using
 
    Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
    is not implemented.
+
+.. _io.xlsb:
+
+Binary Excel (.xlsb) files
+--------------------------
+
+.. versionadded:: 1.0.0
+
+The :func:`~pandas.read_excel` method can also read binary Excel files
+using the ``pyxlsb`` module. The semantics and features for reading
+binary Excel files mostly match what can be done for `Excel files`_ using
+``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
+in files and will return floats instead.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.xlsb', engine='pyxlsb')
+
+.. note::
+
+   Currently pandas only supports *reading* binary Excel files. Writing
+   is not implemented.
+
 
 .. _io.clipboard:
 

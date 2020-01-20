@@ -35,8 +35,9 @@ _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
 
-Support both `xls` and `xlsx` file extensions from a local filesystem or URL.
-Support an option to read a single sheet or a list of sheets.
+Supports `xls`, `xlsx`, `xlsm`, `xlsb`, and `odf` file extensions
+read from a local filesystem or URL. Supports an option to read
+a single sheet or a list of sheets.
 
 Parameters
 ----------
@@ -789,15 +790,21 @@ class ExcelFile:
         If a string or path object, expected to be a path to xls, xlsx or odf file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Acceptable values are None, ``xlrd``, ``openpyxl`` or ``odf``.
+        Acceptable values are None, ``xlrd``, ``openpyxl``,  ``odf``, or ``pyxlsb``.
         Note that ``odf`` reads tables out of OpenDocument formatted files.
     """
 
     from pandas.io.excel._odfreader import _ODFReader
     from pandas.io.excel._openpyxl import _OpenpyxlReader
     from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._pyxlsb import _PyxlsbReader
 
-    _engines = {"xlrd": _XlrdReader, "openpyxl": _OpenpyxlReader, "odf": _ODFReader}
+    _engines = {
+        "xlrd": _XlrdReader,
+        "openpyxl": _OpenpyxlReader,
+        "odf": _ODFReader,
+        "pyxlsb": _PyxlsbReader,
+    }
 
     def __init__(self, io, engine=None):
         if engine is None:

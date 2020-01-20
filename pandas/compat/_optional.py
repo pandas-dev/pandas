@@ -19,6 +19,7 @@ VERSIONS = {
     "pyarrow": "0.13.0",
     "pytables": "3.4.2",
     "pytest": "5.0.1",
+    "pyxlsb": "1.0.5",
     "s3fs": "0.3.0",
     "scipy": "0.19.0",
     "sqlalchemy": "1.1.4",
