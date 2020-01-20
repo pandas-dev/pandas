@@ -286,7 +286,7 @@ class Styler:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
 
-        cellstyle = []
+        cellstyle_map = defaultdict(list)
         head = []
 
         for r in range(n_clvls):
@@ -408,11 +408,16 @@ class Styler:
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
                     if x.count(":"):
-                        props.append(x.split(":"))
+                        props.append(tuple(x.split(":")))
                     else:
-                        props.append(["", ""])
-                cellstyle.append({"props": props, "selector": f"row{r}_col{c}"})
+                        props.append(("", ""))
+                cellstyle_map[tuple(props)].append(f"row{r}_col{c}")
             body.append(row_es)
+
+        cellstyle = [
+            {"props": list(props), "selectors": selectors}
+            for props, selectors in cellstyle_map.items()
+        ]
 
         table_attr = self.table_attributes
         use_mathjax = get_option("display.html.use_mathjax")
