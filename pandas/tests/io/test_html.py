@@ -14,7 +14,7 @@ from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
