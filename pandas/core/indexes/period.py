@@ -5,8 +5,9 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, frequencies as libfrequencies, resolution
+from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -14,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_dtype_equal,
     is_float,
-    is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -29,7 +29,6 @@ from pandas.core.arrays.period import (
     raise_on_incompatible,
     validate_dtype_freq,
 )
-from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -44,7 +43,7 @@ from pandas.core.indexes.datetimelike import (
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.datetimes import DateParseError, parse_time_string
+from pandas.core.tools.datetimes import DateParseError
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
@@ -233,24 +232,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         Parameters
         ----------
-        values : PeriodArray, PeriodIndex, Index[int64], ndarray[int64]
+        values : PeriodArray
             Values that can be converted to a PeriodArray without inference
             or coercion.
-
         """
-        # TODO: raising on floats is tested, but maybe not useful.
-        # Should the callers know not to pass floats?
-        # At the very least, I think we can ensure that lists aren't passed.
-        if isinstance(values, list):
-            values = np.asarray(values)
-        if is_float_dtype(values):
-            raise TypeError("PeriodIndex._simple_new does not accept floats.")
-        if freq:
-            freq = Period._maybe_convert_freq(freq)
-        values = PeriodArray(values, freq=freq)
+        assert isinstance(values, PeriodArray), type(values)
+        assert freq is None or freq == values.freq, (freq, values.freq)
 
-        if not isinstance(values, PeriodArray):
-            raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
         result = object.__new__(cls)
         result._data = values
         # For groupby perf. See note in indexes/base about _index_data
@@ -466,23 +454,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # TODO: should probably raise on `how` here, so we don't ignore it.
         return super().astype(dtype, copy=copy)
 
-    @Substitution(klass="PeriodIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, Period) or value is NaT:
-            self._data._check_compatible_with(value)
-        elif isinstance(value, str):
-            try:
-                value = Period(value, freq=self.freq)
-            except DateParseError:
-                raise KeyError(f"Cannot interpret '{value}' as period")
-        elif not isinstance(value, PeriodArray):
-            raise TypeError(
-                "PeriodIndex.searchsorted requires either a Period or PeriodArray"
-            )
-
-        return self._data.searchsorted(value, side=side, sorter=sorter)
-
     @property
     def is_full(self) -> bool:
         """
@@ -511,7 +482,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return series.iat[key]
 
         if isinstance(key, str):
-            asdt, parsed, reso = parse_time_string(key, self.freq)
+            asdt, reso = parse_time_string(key, self.freq)
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
 
@@ -601,7 +572,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(key, str):
             try:
-                asdt, parsed, reso = parse_time_string(key, self.freq)
+                asdt, reso = parse_time_string(key, self.freq)
                 key = asdt
             except DateParseError:
                 # A string with invalid format
@@ -659,7 +630,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                _, parsed, reso = parse_time_string(label, self.freq)
+                parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
             except ValueError:
@@ -716,7 +687,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if not self.is_monotonic:
             raise ValueError("Partial indexing only valid for ordered time series")
 
-        key, parsed, reso = parse_time_string(key, self.freq)
+        parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
         if reso in ["day", "hour", "minute", "second"] and not grp < freqn:
@@ -847,7 +818,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
-            rawarr = PeriodIndex._simple_new(rawarr, freq=self.freq, name=self.name)
+            if not isinstance(rawarr, PeriodArray):
+                rawarr = PeriodArray(rawarr, freq=self.freq)
+            rawarr = PeriodIndex._simple_new(rawarr, name=self.name)
         return rawarr
 
     def memory_usage(self, deep=False):

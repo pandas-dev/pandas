@@ -137,7 +137,13 @@ class TestArithmetic:
         ser = Series(data, dtype=dtype)
 
         ser = tm.box_expected(ser, box_with_array)
-        with pytest.raises(TypeError):
+        msg = (
+            "can only concatenate str|"
+            "did not contain a loop with signature matching types|"
+            "unsupported operand type|"
+            "must be str"
+        )
+        with pytest.raises(TypeError, match=msg):
             "foo_" + ser
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd, operator.sub, ops.rsub])
