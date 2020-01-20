@@ -252,20 +252,14 @@ def test_coerce_to_numpy_array():
         np.array(arr, dtype="bool")
 
 
-def test_to_boolean_array_from_strings():
-    result = BooleanArray._from_sequence_of_strings(["True", "False"])
-    expected = BooleanArray(np.array([True, False]), np.array([False, False]))
+@pytest.mark.parametrize( "na_value", [None, np.nan, pd.NA])
+def test_to_boolean_array_from_strings(na_value):
+    result = BooleanArray._from_sequence_of_strings(["True", "False", na_value])
+    expected = BooleanArray(
+        np.array([True, False, False]), np.array([False, False, True])
+    )
 
     tm.assert_extension_array_equal(result, expected)
-
-
-def test_boolean_from_csv():
-    input_string = "a\nTrue\nFalse\nNA\n"
-
-    result = pd.read_csv(io.StringIO(input_string), dtype="boolean")
-    expected = pd.DataFrame({"a": pd.array([True, False, None], dtype="boolean")})
-
-    tm.assert_frame_equal(result, expected)
 
 
 def test_repr():

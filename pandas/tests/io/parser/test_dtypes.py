@@ -550,3 +550,19 @@ def test_numeric_dtype(all_parsers, dtype):
 
     result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("null_string", ["NaN", "nan", "NA", "null", "NULL", ""])
+def test_boolean_dtype(all_parsers, null_string):
+    parser = all_parsers
+    data = f"a,b\nTrue,False\nTrue,{null_string}\n"
+
+    result = parser.read_csv(StringIO(data), dtype="boolean")
+    expected = pd.DataFrame(
+        {
+            "a": pd.array([True, True], dtype="boolean"),
+            "b": pd.array([False, None], dtype="boolean"),
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)
