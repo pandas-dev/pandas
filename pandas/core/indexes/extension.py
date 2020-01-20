@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
@@ -188,6 +188,7 @@ class ExtensionIndex(Index):
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
+    @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
@@ -201,6 +202,7 @@ class ExtensionIndex(Index):
         result = self._data.repeat(repeats, axis=axis)
         return self._shallow_copy(result)
 
+    @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
@@ -230,6 +232,7 @@ class ExtensionIndex(Index):
             result = result[~result.isna()]
         return self._shallow_copy(result)
 
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype) and copy is False:
             # Ensure that self.astype(self.dtype) is self
