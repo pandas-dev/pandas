@@ -36,17 +36,6 @@ def is_platform_mac():
 min_numpy_ver = "1.13.3"
 min_cython_ver = "0.29.13"  # note: sync with pyproject.toml
 
-setuptools_kwargs = {
-    "install_requires": [
-        "python-dateutil >= 2.6.1",
-        "pytz >= 2017.2",
-        f"numpy >= {min_numpy_ver}",
-    ],
-    "setup_requires": [f"numpy >= {min_numpy_ver}"],
-    "zip_safe": False,
-}
-
-
 try:
     import Cython
 
@@ -740,12 +729,16 @@ extensions.append(ujson_ext)
 # ----------------------------------------------------------------------
 
 
-# The build cache system does string matching below this point.
-# if you change something, be careful.
-
-if __name__ == "__main__":
-    # Freeze to support parallel compilation when using spawn instead of fork
-    multiprocessing.freeze_support()
+def setup_package():
+    setuptools_kwargs = {
+        "install_requires": [
+            "python-dateutil >= 2.6.1",
+            "pytz >= 2017.2",
+            f"numpy >= {min_numpy_ver}",
+        ],
+        "setup_requires": [f"numpy >= {min_numpy_ver}"],
+        "zip_safe": False,
+    }
 
     setup(
         name=DISTNAME,
@@ -778,3 +771,9 @@ if __name__ == "__main__":
         },
         **setuptools_kwargs,
     )
+
+
+if __name__ == "__main__":
+    # Freeze to support parallel compilation when using spawn instead of fork
+    multiprocessing.freeze_support()
+    setup_package()
