@@ -22,7 +22,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 This tutorial uses the titanic data set, stored as CSV. The data
 consists of the following data columns:
 
@@ -71,7 +71,7 @@ How do I select specific columns from a ``DataFrame``?
 
     <ul class="task-bullet">
         <li>
-   
+
 I’m interested in the age of the titanic passengers.
 
 .. ipython:: python
@@ -110,7 +110,7 @@ the number of rows is returned.
 
     <ul class="task-bullet">
         <li>
-   
+
 I’m interested in the age and sex of the titanic passengers.
 
 .. ipython:: python
@@ -148,13 +148,13 @@ The selection returned a ``DataFrame`` with 891 rows and 2 columns. Remember, a
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 For basic information on indexing, see :ref:`indexing.basics`
 
 .. raw:: html
 
-    </div> 
+    </div>
 
 How do I filter specific rows from a ``DataFrame``?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,7 +166,7 @@ How do I filter specific rows from a ``DataFrame``?
 
     <ul class="task-bullet">
         <li>
-   
+
 I’m interested in the passengers older than 35 years.
 
 .. ipython:: python
@@ -175,7 +175,7 @@ I’m interested in the passengers older than 35 years.
     above_35.head()
 
 To select rows based on a conditional expression, use a condition inside
-the selection brackets ``[]``. 
+the selection brackets ``[]``.
 
 .. raw:: html
 
@@ -249,13 +249,13 @@ operator:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Conditional (boolean) indexing, see :ref:`indexing.boolean`. Specific information on ``isin``, see :ref:`indexing.basics.indexing_isin`.
 
 .. raw:: html
 
-    </div> 
+    </div>
 
 .. raw:: html
 
@@ -288,8 +288,8 @@ the same values. One way to verify is to check if the shape has changed:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
-        
+        <span class="badge badge-info">To user guide</span>
+
 For more dedicated functions on missing values, see :ref:`missing-data`
 
 .. raw:: html
@@ -366,17 +366,17 @@ the name ``anonymous`` to the first 3 elements of the third column:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 For more detailed description on selecting subsets of a data table, see :ref:`indexing.choice`
 
 .. raw:: html
 
-    </div> 
+    </div>
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  When selecting subsets of data, square brackets ``[]`` are used.
@@ -396,10 +396,10 @@ For more detailed description on selecting subsets of a data table, see :ref:`in
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Further details about indexing is provided in :ref:`indexing`
 
 .. raw:: html
 
-    </div> 
+    </div>

@@ -22,7 +22,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 This tutorial uses the titanic data set, stored as CSV. The data
 consists of the following data columns:
 
@@ -72,7 +72,7 @@ Make all name characters lowercase
 
     titanic["Name"].str.lower()
 
-To make each of the strings in the ``Name`` column lowercase, select the ``Name`` column 
+To make each of the strings in the ``Name`` column lowercase, select the ``Name`` column
 (see :ref:`tutorial on selection of data <10min_tut_03_subset>`), add the ``str`` accessor and
 apply the ``lower`` method. As such, each of the strings is converted element wise.
 
@@ -81,12 +81,12 @@ apply the ``lower`` method. As such, each of the strings is converted element wi
         </li>
     </ul>
 
-Similar to datetime objects in the :ref:`time series tutorial <10min_tut_09_timeseries>` 
+Similar to datetime objects in the :ref:`time series tutorial <10min_tut_09_timeseries>`
 having a ``dt`` accessor, a number of
 specialized string methods are available when using the ``str``
 accessor. These methods have in general matching names with the
 equivalent built-in string methods for single elements, but are applied
-element-wise (remember :ref:`element wise calculations <10min_tut_05_columns>`?) 
+element-wise (remember :ref:`element wise calculations <10min_tut_05_columns>`?)
 on each of the values of the columns.
 
 .. raw:: html
@@ -122,7 +122,7 @@ concatenated to combine multiple functions at once!
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 More information on extracting parts of strings is available in :ref:`text.split`.
 
@@ -169,7 +169,7 @@ only 1 Countess on the Titanic, we get one row as a result.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 More information on extracting parts of strings is available in :ref:`text.extract`.
 
@@ -224,7 +224,7 @@ In the ‘Sex’ columns, replace values of ‘male’ by ‘M’ and all ‘fem
 
 .. ipython:: python
 
-    titanic["Sex_short"] = titanic["Sex"].replace({"male": "M", 
+    titanic["Sex_short"] = titanic["Sex"].replace({"male": "M",
                                                    "female": "F"})
     titanic["Sex_short"]
 
@@ -253,7 +253,7 @@ a ``dictionary`` to define the mapping ``{from : to}``.
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  String methods are available using the ``str`` accessor.
@@ -269,7 +269,7 @@ a ``dictionary`` to define the mapping ``{from : to}``.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 More information on string methods is given in :ref:`text`.
 

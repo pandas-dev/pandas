@@ -22,7 +22,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 For this tutorial, air quality data about :math:`NO_2` is used, made available by
 `openaq <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
@@ -40,7 +40,7 @@ Westminster* in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality_no2 = pd.read_csv("data/air_quality_no2_long.csv", 
+    air_quality_no2 = pd.read_csv("data/air_quality_no2_long.csv",
                                   parse_dates=True)
     air_quality_no2 = air_quality_no2[["date.utc", "location", "parameter", "value"]] # focus on a subset of columns
     air_quality_no2.head()
@@ -74,12 +74,12 @@ Westminster* in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality_pm25 = pd.read_csv("data/air_quality_pm25_long.csv", 
+    air_quality_pm25 = pd.read_csv("data/air_quality_pm25_long.csv",
                                    parse_dates=True)
     air_quality_pm25 = air_quality_pm25[["date.utc", "location", "parameter", "value"]] # focus on a subset of columns
     air_quality_pm25.head()
 
-.. raw:: html    
+.. raw:: html
 
         </li>
     </ul>
@@ -108,7 +108,7 @@ I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tabl
     air_quality.head()
 
 The ``concat`` function performs concatenation operations of multiple
-tables along one of the axis (row-wise or column-wise). 
+tables along one of the axis (row-wise or column-wise).
 
 .. raw:: html
 
@@ -173,7 +173,7 @@ index. For example:
     .. raw:: html
 
         <div class="d-flex flex-row  gs-torefguide">
-            <span class="badge badge-info">To user guide</span> 
+            <span class="badge badge-info">To user guide</span>
 
     Feel free to dive into the world of multi-indexing at :ref:`advanced`.
 
@@ -184,7 +184,7 @@ index. For example:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 More options on table concatenation (row and column
 wise) and how ``concat`` can be used to define the logic (union or
@@ -230,7 +230,7 @@ Add the station coordinates, provided by the stations metadata table, to the cor
 
 .. ipython:: python
 
-    air_quality = pd.merge(air_quality, stations_coord, 
+    air_quality = pd.merge(air_quality, stations_coord,
                            how='left', on='location')
     air_quality.head()
 
@@ -267,7 +267,7 @@ Add the parameter full description and name, provided by the parameters metadata
 
 .. ipython:: python
 
-    air_quality = pd.merge(air_quality, air_quality_parameters, 
+    air_quality = pd.merge(air_quality, air_quality_parameters,
                            how='left', left_on='parameter', right_on='id')
     air_quality.head()
 
@@ -286,9 +286,9 @@ between the two tables.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
-Pandas supports also innPandas supports also inner, outer, and right joins. 
+Pandas supports also innPandas supports also inner, outer, and right joins.
 More information on join/merge of tables is provided in
 :ref:`merging.join`. Or have a look to the
 :ref:`comparison with SQL<compare_with_sql.join>`.
@@ -299,7 +299,7 @@ More information on join/merge of tables is provided in
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  Multiple tables can be concatenated both column as row wise using
@@ -314,7 +314,7 @@ More information on join/merge of tables is provided in
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 The user guide provides more information on combining together data tables, see :ref:`merging`.
 

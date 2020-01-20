@@ -42,15 +42,15 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
 .. ipython:: python
 
     df = pd.DataFrame({
-        "Name": ["Braund, Mr. Owen Harris", 
-                 "Allen, Mr. William Henry", 
-                 "Bonnell, Miss. Elizabeth"], 
+        "Name": ["Braund, Mr. Owen Harris",
+                 "Allen, Mr. William Henry",
+                 "Bonnell, Miss. Elizabeth"],
         "Age": [22, 35, 58],
         "Sex": ["male", "male", "female"]}
         )
     df
 
-To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and 
+To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and
 the values in each list as rows of the ``DataFrame``.
 
 .. raw:: html
@@ -124,7 +124,7 @@ Do something with a DataFrame or Series
 
     <ul class="task-bullet">
         <li>
-   
+
 I want to know the maximum Age of the passengers
 
 We can do this on the ``DataFrame`` by selecting the ``Age`` column and
@@ -177,7 +177,7 @@ pandas ``Series``.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Check more options on ``describe`` in the user guide at :ref:`basics.describe`
 
@@ -194,7 +194,7 @@ Check more options on ``describe`` in the user guide at :ref:`basics.describe`
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  Import the package, aka ``import pandas as pd``
@@ -209,10 +209,10 @@ Check more options on ``describe`` in the user guide at :ref:`basics.describe`
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 A more extended introduction to ``DataFrame`` and ``Series`` is provided in :ref:`dsintro`.
 
 .. raw:: html
 
-    </div> 
+    </div>

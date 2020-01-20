@@ -22,7 +22,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 This tutorial uses the titanic data set, stored as CSV. The data
 consists of the following data columns:
 
@@ -55,12 +55,12 @@ How do I read and write tabular data?
 
 .. image:: ../../_static/schemas/02_io_readwrite.svg
    :align: center
-   
+
 .. raw:: html
 
     <ul class="task-bullet">
         <li>
-            
+
 I want to analyse the titanic passenger data, available as a CSV file.
 
 .. ipython:: python
@@ -133,7 +133,7 @@ strings (``object``).
 .. raw:: html
 
     <ul class="task-bullet">
-        <li> 
+        <li>
 
 My colleague requested the titanic data as a spreadsheet.
 
@@ -172,7 +172,7 @@ DataFrame:
 .. raw:: html
 
     <ul class="task-bullet">
-        <li> 
+        <li>
 
 I’m interested in a technical summary of a ``DataFrame``
 
@@ -207,7 +207,7 @@ The method ``info`` provides a lot of technical information about the
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  Getting data in to pandas from many different file formats or data
@@ -224,10 +224,10 @@ The method ``info`` provides a lot of technical information about the
 .. raw:: html
 
     <div class="d-flex flex-row bg-light gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 For a complete overview of the input and output possibilites from and to pandas, see :ref:`io`
 
 .. raw:: html
 
-    </div> 
+    </div>

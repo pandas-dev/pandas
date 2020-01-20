@@ -8,7 +8,7 @@
     import matplotlib.pyplot as plt
     # use the pandas main colors
     import matplotlib as mpl
-    mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["#150458", "#FFCA00", "#E70488"]) 
+    mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["#150458", "#FFCA00", "#E70488"])
 
 .. raw:: html
 
@@ -26,7 +26,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 For this tutorial, air quality data about :math:`NO_2` is used, made
 available by `openaq <https://openaq.org>`__ and using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
@@ -43,7 +43,7 @@ in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality = pd.read_csv("data/air_quality_no2.csv", 
+    air_quality = pd.read_csv("data/air_quality_no2.csv",
                               index_col=0, parse_dates=True)
     air_quality.head()
 
@@ -94,7 +94,7 @@ I want to plot only the columns of the data table with the data  from Paris.
     @savefig 04_airqual_paris.png
     air_quality["station_paris"].plot()
 
-To plot a specific column, use the selection method of the 
+To plot a specific column, use the selection method of the
 :ref:`subset data tutorial <10min_tut_03_subset>` in combination with the ``plot``
 method. Hence, the ``plot`` method works on both ``Series`` and
 ``DataFrame``.
@@ -114,8 +114,8 @@ I want to visually compare the :math:`N0_2` values measured in London versus Par
 .. ipython:: python
 
     @savefig 04_airqual_scatter.png
-    air_quality.plot.scatter(x="station_london", 
-                             y="station_paris", 
+    air_quality.plot.scatter(x="station_london",
+                             y="station_paris",
                              alpha=0.5)
 
 .. raw:: html
@@ -148,7 +148,7 @@ method is applicable on the air quality example data:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 For an introduction to the other plot methods, see :ref:`visualization.other`.
 
@@ -168,7 +168,7 @@ I want each of the columns in a separate subplot.
     @savefig 04_airqual_area_subplot.png
     axs = air_quality.plot.area(figsize=(12, 4), subplots=True)
 
-Separate subplots for each of the data columns is supported by the ``subplots`` argument 
+Separate subplots for each of the data columns is supported by the ``subplots`` argument
 of the plot functions. The builtin options available in each of the pandas plot
 functions that are worthwhile to have a look.
 
@@ -180,7 +180,7 @@ functions that are worthwhile to have a look.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Some more formatting options of the pandas plot functionalities are explained in :ref:`visualization.formatting`.
 
@@ -229,7 +229,7 @@ This strategy is applied in the previous example:
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  The ``.plot`` methods are applicable on both Series and DataFrames
@@ -244,7 +244,7 @@ This strategy is applied in the previous example:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Further details about indexing is provided in :ref:`visualization`.
 

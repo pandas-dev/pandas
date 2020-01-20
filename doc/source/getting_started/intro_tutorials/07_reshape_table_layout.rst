@@ -22,7 +22,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 This tutorial uses the titanic data set, stored as CSV. The data
 consists of the following data columns:
 
@@ -101,7 +101,7 @@ measurement.
 
 .. ipython:: python
 
-    air_quality = pd.read_csv("data/air_quality_long.csv", 
+    air_quality = pd.read_csv("data/air_quality_long.csv",
                               index_col="date.utc", parse_dates=True)
     air_quality.head()
 
@@ -155,7 +155,7 @@ defined column(s). The index will follow the row order.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 More details about sorting of tables is provided in :ref:`basics.sorting`.
 
@@ -216,14 +216,14 @@ series at the same time:
     no2.pivot(columns="location", values="value").plot()
 
 .. note::
-    When the ``index`` parameter is not defined, the existing 
+    When the ``index`` parameter is not defined, the existing
     index (row labels) is used.
 
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
-        
+        <span class="badge badge-info">To user guide</span>
+
 For more information about ``pivot``, see :ref:`reshaping.reshaping`.
 
 .. raw:: html
@@ -245,7 +245,7 @@ I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of 
 
 .. ipython:: python
 
-    air_quality.pivot_table(values="value", index="location", 
+    air_quality.pivot_table(values="value", index="location",
                             columns="parameter", aggfunc="mean")
 
 In the case of ``pivot``, the data is only rearranged. When multiple
@@ -264,14 +264,14 @@ the ``margin`` parameter to ``True``:
 
 .. ipython:: python
 
-    air_quality.pivot_table(values="value", index="location", 
+    air_quality.pivot_table(values="value", index="location",
                             columns="parameter", aggfunc="mean",
                             margins=True)
 
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 For more information about ``pivot_table``, see :ref:`reshaping.pivot`.
 
@@ -292,7 +292,7 @@ For more information about ``pivot_table``, see :ref:`reshaping.pivot`.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Have a look at ``groupby`` in combination with ``unstack`` at :ref:`reshaping.combine_with_groupby`.
 
@@ -326,14 +326,14 @@ I want to collect all air quality :math:`NO_2` measurements in a single column (
     no_2 = no2_pivoted.melt(id_vars="date.utc")
     no_2.head()
 
-The ``melt`` method on a ``DataFrame`` converts the data table from wide 
-format to long format. The column headers become the variable names in a 
+The ``melt`` method on a ``DataFrame`` converts the data table from wide
+format to long format. The column headers become the variable names in a
 newly created column.
 
 .. raw:: html
 
         </li>
-    </ul>    
+    </ul>
 
 The solution is the short version on how to apply ``melt``. The method
 will *melt* all columns NOT mentioned in ``id_vars`` together into two
@@ -344,7 +344,7 @@ The ``melt`` method can be defined in more detail:
 
 .. ipython:: python
 
-    no_2 = no2_pivoted.melt(id_vars="date.utc", 
+    no_2 = no2_pivoted.melt(id_vars="date.utc",
                             value_vars=["BETR801", "FR04014", "London Westminster"],
                             value_name="NO_2",
                             var_name="id_location")
@@ -366,7 +366,7 @@ are defined by ``id_vars`` and ``value_vars``.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Conversion from wide to long format with ``melt`` is explained in :ref:`reshaping.melt`.
 
@@ -376,7 +376,7 @@ Conversion from wide to long format with ``melt`` is explained in :ref:`reshapin
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  Sorting by one or more columns is supported by ``sort_values``
@@ -392,7 +392,7 @@ Conversion from wide to long format with ``melt`` is explained in :ref:`reshapin
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 More information on reshaping and pivoting is provided in :ref:`reshaping`.
 

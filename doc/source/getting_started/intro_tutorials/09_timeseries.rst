@@ -23,7 +23,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 For this tutorial, air quality data about :math:`NO_2` and Particulate
 matter less than 2.5 micrometers is used, made available by
 `openaq <https://openaq.org>`__ and downloaded using the
@@ -120,7 +120,7 @@ from the standard Python library and defining a time duration.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 The main time related concepts of pandas are explained in :ref:`timeseries.overview`.
 
@@ -131,7 +131,7 @@ The main time related concepts of pandas are explained in :ref:`timeseries.overv
 .. raw:: html
 
     <ul class="task-bullet">
-        <li>    
+        <li>
 
 I want to add a new column to the dataframe containing only the month of the measurement
 
@@ -211,7 +211,7 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
 
 Similar to the previous case, we want to calculate a given statistic
 (e.g. mean :math:`NO_2`) **for each hour of the day** and we can use the
-split-apply-combine approach again. For this case, the datetime property ``hour`` 
+split-apply-combine approach again. For this case, the datetime property ``hour``
 of pandas ``Timestamp``, which is also accessible by the ``dt`` accessor.
 
 .. raw:: html
@@ -222,7 +222,7 @@ of pandas ``Timestamp``, which is also accessible by the ``dt`` accessor.
 Datetime as index
 ~~~~~~~~~~~~~~~~~
 
-In the :ref:`tutorial on reshaping <10min_tut_07_reshape>`,   
+In the :ref:`tutorial on reshaping <10min_tut_07_reshape>`,
 ``pivot`` was introduced to reshape the data table with each of the
 measurements locations as a separate column:
 
@@ -295,7 +295,7 @@ Aggregate the current hourly time series values to the monthly maximum value in 
 
 A very powerful method on time series data with a datetime index, is the
 ability to ``resample`` time series to another frequency (e.g.,
-converting secondly data into 5-minutely data). 
+converting secondly data into 5-minutely data).
 
 .. raw:: html
 
@@ -346,7 +346,7 @@ Make a plot of the daily median :math:`NO_2` value in each of the stations.
 
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
-        
+
 More details on the power of time series ``resampling`` is provided in :ref:`timeseries.resampling`.
 
 .. raw:: html
@@ -355,7 +355,7 @@ More details on the power of time series ``resampling`` is provided in :ref:`tim
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  Valid date strings can be converted to datetime objects using
@@ -374,7 +374,7 @@ More details on the power of time series ``resampling`` is provided in :ref:`tim
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 More information on time series and date functionalities is given in :ref:`timeseries`.
 

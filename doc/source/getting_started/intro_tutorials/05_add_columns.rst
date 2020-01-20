@@ -22,7 +22,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 For this tutorial, air quality data about :math:`NO_2` is used, made
 available by `openaq <https://openaq.org>`__ and using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
@@ -39,7 +39,7 @@ in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality = pd.read_csv("data/air_quality_no2.csv", 
+    air_quality = pd.read_csv("data/air_quality_no2.csv",
                               index_col=0, parse_dates=True)
     air_quality.head()
 
@@ -99,7 +99,7 @@ I want to check the ratio of the values in Paris versus Antwerp and save the res
     air_quality.head()
 
 The calculation is again element-wise, so the ``/`` is applied *for the
-values in each row*. 
+values in each row*.
 
 .. raw:: html
 
@@ -120,7 +120,7 @@ I want to rename the data columns to the corresponding station identifiers used 
 
 .. ipython:: python
 
-    air_quality_renamed = air_quality.rename(columns = {"station_antwerp": "BETR801", 
+    air_quality_renamed = air_quality.rename(columns = {"station_antwerp": "BETR801",
                                                         "station_paris": "FR04014",
                                                         "station_london": "London Westminster"})
 
@@ -149,7 +149,7 @@ lowercase letters can be done using a function as well:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
+        <span class="badge badge-info">To user guide</span>
 
 Further details about column or row label renaming is provided in :ref:`basics.rename`.
 
@@ -159,7 +159,7 @@ Further details about column or row label renaming is provided in :ref:`basics.r
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  Create a new column by assigning the output to the DataFrame with a
@@ -176,7 +176,7 @@ Further details about column or row label renaming is provided in :ref:`basics.r
 
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
-        
+
 Further details about column addition and deletion is provided in :ref:`basics.dataframe.sel_add_del`.
 
 .. raw:: html

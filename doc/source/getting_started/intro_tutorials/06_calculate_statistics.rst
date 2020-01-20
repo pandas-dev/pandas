@@ -22,7 +22,7 @@
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
-                        
+
 This tutorial uses the titanic data set, stored as CSV. The data
 consists of the following data columns:
 
@@ -107,10 +107,10 @@ return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>
 .. raw:: html
 
         </li>
-    </ul>    
+    </ul>
 
 The aggregating statistic can be calculated for multiple columns at the
-same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>` tutorial?  
+same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>` tutorial?
 
 .. ipython:: python
 
@@ -122,7 +122,7 @@ aggregating statistics for given columns can be defined using the
 
 .. ipython:: python
 
-    titanic.agg({'Age' : ['min', 'max', 'median', 'skew'], 
+    titanic.agg({'Age' : ['min', 'max', 'median', 'skew'],
                  'Fare' : ['min', 'max', 'median', 'mean']})
 
 .. raw:: html
@@ -252,7 +252,7 @@ What is the number of passengers in each of the cabin classes?
     titanic["Pclass"].value_counts()
 
 The ``value_counts`` function counts the number of records for each
-category in a column. 
+category in a column.
 
 .. raw:: html
 
@@ -276,8 +276,8 @@ within each group:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span> 
-        
+        <span class="badge badge-info">To user guide</span>
+
 For more information about ``value_counts``, see :ref:`basics.discretization`.
 
 .. raw:: html
@@ -286,7 +286,7 @@ For more information about ``value_counts``, see :ref:`basics.discretization`.
 
 .. raw:: html
 
-    <div class="shadow gs-callout gs-callout-remember">            
+    <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
 -  Aggregation statistics can be calculated on entire columns or rows
