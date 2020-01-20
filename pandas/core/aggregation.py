@@ -95,7 +95,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
     return aggspec, columns, col_idx_order
 
 
-def _make_unique_kwarg_list(seq: List[object]) -> List[object]:
+def _make_unique_kwarg_list(seq: List[Tuple[Any, Any]]) -> List[Tuple[Any, Any]]:
     """Uniquify aggfunc name of the pairs in the order list
 
     Examples:
