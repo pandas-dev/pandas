@@ -239,6 +239,53 @@ data you need are available in Pandas.
             </div> 
         </div>
 
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseFour"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How to create plots in pandas?
+                    </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_04_plotting>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseFour" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+Pandas provides plotting your data out of the box, using the power of Matplotlib. You can pick the plot type (scatter, bar, boxplot,...) 
+corresponding to your data.
+
+.. image:: ../../_static/schemas/04_plot_overview.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_04_plotting>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <visualization>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div>
+
 
 
 
