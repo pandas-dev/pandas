@@ -664,8 +664,7 @@ def _align_method_FRAME(left, right, axis):
 
         elif right.ndim > 2:
             raise ValueError(
-                "Unable to coerce to Series/DataFrame, dim "
-                f"must be <= 2: {right.shape}"
+                f"Unable to coerce to Series/DataFrame, dim must be <= 2: {right.shape}"
             )
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):

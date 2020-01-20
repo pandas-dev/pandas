@@ -1624,6 +1624,10 @@ cdef class StringValidator(Validator):
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
 
+    cdef bint is_valid_null(self, object value) except -1:
+        # We deliberately exclude None / NaN here since StringArray uses NA
+        return value is C_NA
+
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:

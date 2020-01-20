@@ -487,8 +487,8 @@ static char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
 static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
                                      size_t *len) {
 
-    if (!PyDateTime_Check(obj)) {
-        PyErr_SetString(PyExc_TypeError, "Expected datetime object");
+    if (!PyDate_Check(obj)) {
+        PyErr_SetString(PyExc_TypeError, "Expected date object");
         return NULL;
     }
 
@@ -500,7 +500,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *obj, NPY_DATETIMEUNIT base) {
     npy_datetimestruct dts;
     int ret;
 
-    if (!PyDateTime_Check(obj)) {
+    if (!PyDate_Check(obj)) {
         // TODO: raise TypeError
     }
     PyDateTime_Date *dt = (PyDateTime_Date *)obj;
@@ -1601,8 +1601,6 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         }
 
         if (is_datetimelike) {
-            // JSON requires a string for the index so write "null"
-            // is there is a standard for this?
             if (nanosecVal == get_nat()) {
                 len = 5; // TODO: shouldn't require extra space for terminator
                 cLabel = PyObject_Malloc(len);
@@ -1652,7 +1650,6 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         memcpy(ret[i], cLabel, len + 1);
 
         if (is_datetimelike) {
-            // these were created with PyObject_Malloc so free accordingly
             PyObject_Free(cLabel);
         }
 

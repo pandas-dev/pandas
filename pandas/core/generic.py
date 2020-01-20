@@ -8,6 +8,7 @@ import pickle
 import re
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -36,6 +37,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
+    Label,
     Level,
     Renamer,
 )
@@ -100,6 +102,9 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
 from pandas.tseries.frequencies import to_offset
+
+if TYPE_CHECKING:
+    from pandas.core.resample import Resampler
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -177,7 +182,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset(["get_values", "ix"])
+    _deprecations: FrozenSet[str] = frozenset(["get_values"])
     _metadata: List[str] = []
     _is_copy = None
     _data: BlockManager
@@ -261,8 +266,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # a compound dtype
             if dtype.kind == "V":
                 raise NotImplementedError(
-                    "compound dtypes are not implemented"
-                    f" in the {type(self).__name__} constructor"
+                    "compound dtypes are not implemented "
+                    f"in the {type(self).__name__} constructor"
                 )
 
         return dtype
@@ -346,13 +351,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d.update(kwargs)
         return d
 
-    @staticmethod
-    def _construct_axes_dict_from(self, axes, **kwargs):
-        """Return an axes dictionary for the passed axes."""
-        d = {a: ax for a, ax in zip(self._AXIS_ORDERS, axes)}
-        d.update(kwargs)
-        return d
-
     def _construct_axes_from_arguments(
         self, args, kwargs, require_all: bool = False, sentinel=None
     ):
@@ -380,18 +378,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
         return axes, kwargs
-
-    @classmethod
-    def _from_axes(cls: Type[FrameOrSeries], data, axes, **kwargs) -> FrameOrSeries:
-        # for construction from BlockManager
-        if isinstance(data, BlockManager):
-            return cls(data, **kwargs)
-        else:
-            if cls._AXIS_REVERSED:
-                axes = axes[::-1]
-            d = cls._construct_axes_dict_from(cls, axes, copy=False)
-            d.update(kwargs)
-            return cls(data, **d)
 
     @classmethod
     def _get_axis_number(cls, axis):
@@ -906,25 +892,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 for i, a in enumerate(self.axes)
             )
         ]
-
-    def swaplevel(self: FrameOrSeries, i=-2, j=-1, axis=0) -> FrameOrSeries:
-        """
-        Swap levels i and j in a MultiIndex on a particular axis
-
-        Parameters
-        ----------
-        i, j : int, str (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
-
-        Returns
-        -------
-        swapped : same type as caller (new object)
-        """
-        axis = self._get_axis_number(axis)
-        result = self.copy()
-        labels = result._data.axes[axis]
-        result._data.set_axis(axis, labels.swaplevel(i, j))
-        return result
 
     # ----------------------------------------------------------------------
     # Rename
@@ -1697,8 +1664,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 multi_message = (
                     "\n"
                     "For a multi-index, the label must be a "
-                    "tuple with elements corresponding to "
-                    "each level."
+                    "tuple with elements corresponding to each level."
                 )
             else:
                 multi_message = ""
@@ -1962,9 +1928,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         object.__setattr__(self, k, v)
 
             else:
-                self._unpickle_series_compat(state)
+                raise NotImplementedError("Pre-0.12 pickles are no longer supported")
         elif len(state) == 2:
-            self._unpickle_series_compat(state)
+            raise NotImplementedError("Pre-0.12 pickles are no longer supported")
 
         self._item_cache = {}
 
@@ -3044,10 +3010,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Optional[Hashable]]] = None,
+        columns: Optional[Sequence[Label]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Optional[Hashable]]]] = None,
+        index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: Optional[Union[str, Mapping[str, str]]] = "infer",
@@ -3206,19 +3172,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return formatter.path_or_buf.getvalue()
 
         return None
-
-    # ----------------------------------------------------------------------
-    # Fancy Indexing
-
-    @classmethod
-    def _create_indexer(cls, name: str, indexer) -> None:
-        """Create an indexer like _name in the class.
-
-        Kept for compatibility with geopandas. To be removed in the future. See GH27258
-        """
-        if getattr(cls, name, None) is None:
-            _indexer = functools.partial(indexer, name)
-            setattr(cls, name, property(_indexer, doc=indexer.__doc__))
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3613,14 +3566,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._data.set(key, value)
         self._clear_item_cache()
 
-    def _set_is_copy(self, ref=None, copy: bool_t = True) -> None:
+    def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
             self._is_copy = None
         else:
-            if ref is not None:
-                self._is_copy = weakref.ref(ref)
-            else:
-                self._is_copy = None
+            assert ref is not None
+            self._is_copy = weakref.ref(ref)
 
     def _check_is_chained_assignment_possible(self) -> bool_t:
         """
@@ -4121,7 +4072,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def sort_values(
         self,
-        by=None,
         axis=0,
         ascending=True,
         inplace: bool_t = False,
@@ -4221,69 +4171,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         1   A    1    1
         """
         raise AbstractMethodError(self)
-
-    def sort_index(
-        self,
-        axis=0,
-        level=None,
-        ascending: bool_t = True,
-        inplace: bool_t = False,
-        kind: str = "quicksort",
-        na_position: str = "last",
-        sort_remaining: bool_t = True,
-        ignore_index: bool_t = False,
-    ):
-        """
-        Sort object by labels (along an axis).
-
-        Parameters
-        ----------
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis along which to sort.  The value 0 identifies the rows,
-            and 1 identifies the columns.
-        level : int or level name or list of ints or list of level names
-            If not None, sort on values in specified index level(s).
-        ascending : bool, default True
-            Sort ascending vs. descending.
-        inplace : bool, default False
-            If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See also ndarray.np.sort for more
-            information.  `mergesort` is the only stable algorithm. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
-        na_position : {'first', 'last'}, default 'last'
-            Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
-            Not implemented for MultiIndex.
-        sort_remaining : bool, default True
-            If True and sorting by level and index is multilevel, sort by other
-            levels too (in order) after sorting by specified level.
-        ignore_index : bool, default False
-            If True, the resulting axis will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.0.0
-
-        Returns
-        -------
-        sorted_obj : DataFrame or None
-            DataFrame with sorted index if inplace=False, None otherwise.
-        """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        axis = self._get_axis_number(axis)
-        axis_name = self._get_axis_name(axis)
-        labels = self._get_axis(axis)
-
-        if level is not None:
-            raise NotImplementedError("level is not implemented")
-        if inplace:
-            raise NotImplementedError("inplace is not implemented")
-
-        sort_index = labels.argsort()
-        if not ascending:
-            sort_index = sort_index[::-1]
-
-        new_axis = labels.take(sort_index)
-        return self.reindex(**{axis_name: new_axis})
 
     def reindex(self: FrameOrSeries, *args, **kwargs) -> FrameOrSeries:
         """
@@ -5367,11 +5254,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         f = lambda: self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
-    @property
-    def _is_datelike_mixed_type(self):
-        f = lambda: self._data.is_datelike_mixed_type
-        return self._protect_consolidate(f)
-
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
 
@@ -5478,11 +5360,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _values(self) -> np.ndarray:
         """internal implementation"""
-        return self.values
-
-    @property
-    def _get_values(self) -> np.ndarray:
-        # compat
         return self.values
 
     def _internal_get_values(self) -> np.ndarray:
@@ -7686,7 +7563,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         base: int = 0,
         on=None,
         level=None,
-    ):
+    ) -> "Resampler":
         """
         Resample time-series data.
 
@@ -7951,10 +7828,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-04     36      90
         """
 
-        from pandas.core.resample import resample
+        from pandas.core.resample import get_resampler
 
         axis = self._get_axis_number(axis)
-        return resample(
+        return get_resampler(
             self,
             freq=rule,
             label=label,
@@ -8991,11 +8868,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 new_data = self._data.copy()
                 new_data.axes[block_axis] = index.shift(periods)
             elif orig_freq is not None:
-                msg = (
-                    f"Given freq {freq.rule_code} does not match"
-                    f" PeriodIndex freq {orig_freq.rule_code}"
+                raise ValueError(
+                    f"Given freq {freq.rule_code} does not match "
+                    f"PeriodIndex freq {orig_freq.rule_code}"
                 )
-                raise ValueError(msg)
         else:
             new_data = self._data.copy()
             new_data.axes[block_axis] = index.shift(periods, freq)
