@@ -53,14 +53,15 @@ class TestPandasDelegate:
 
         delegate = self.Delegate(self.Delegator())
 
-        msg = "You cannot access the property"
-
+        msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
             delegate.foo
-
+        
+        msg = "The property foo cannot be set"
         with pytest.raises(TypeError, match=msg):
             delegate.foo = 5
-
+        
+        msg = "You cannot access the property foo"
         with pytest.raises(TypeError, match=msg):
             delegate.foo()
 
@@ -141,5 +142,6 @@ class TestConstruction:
 
         # Explicit dtype specified
         # Forced conversion fails for all -> all cases raise error
+        msg = "Out of bounds"
         with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
             klass(a, dtype="datetime64[ns]")

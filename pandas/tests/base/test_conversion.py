@@ -303,7 +303,7 @@ def test_array(array, attr, index_or_series):
 
 def test_array_multiindex_raises():
     idx = pd.MultiIndex.from_product([["A"], ["a", "b"]])
-    msg = "The array is multiindex and has no single backing array"
+    msg = "MultiIndex has no single backing array"
     with pytest.raises(ValueError, match=msg):
         idx.array
 

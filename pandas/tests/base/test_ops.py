@@ -211,7 +211,7 @@ class TestIndexOps(Ops):
                 if is_datetime64_dtype(o) or is_datetime64tz_dtype(o):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
-                    msg = "The dtype cannot be datetime64 or datetime64tz"
+                    msg = "Invalid comparison"
                     with pytest.raises(TypeError, match=msg):
                         None > o
                     with pytest.raises(TypeError, match=msg):
@@ -236,7 +236,7 @@ class TestIndexOps(Ops):
             for p in ["flags", "strides", "itemsize", "base", "data"]:
                 assert not hasattr(o, p)
 
-            msg = "Ndarray not compatible"
+            msg = "can only convert an array of size 1 to a Python scalar"
             with pytest.raises(ValueError, match=msg):
                 o.item()  # len > 1
 
@@ -440,7 +440,7 @@ class TestIndexOps(Ops):
         s = klass(s_values)
 
         # bins
-        msg = "No value counts for the corresponding object type"
+        msg = "bins argument only works with numeric data"
         with pytest.raises(TypeError, match=msg):
             s.value_counts(bins=1)
 
@@ -860,7 +860,7 @@ class TestIndexOps(Ops):
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
-            msg = "Boolean(True/False) argument needed but not provided"
+            msg = "expected type bool"
             with pytest.raises(ValueError, match=msg):
                 self.int_series.drop_duplicates(inplace=value)
 
@@ -874,9 +874,10 @@ class TestIndexOps(Ops):
 
             assert i[-1] == i[9]
 
-            msg = "Index out of bounds"
+            msg = "index 20 is out of bounds for axis 0 with size 10"
             with pytest.raises(IndexError, match=msg):
                 i[20]
+            msg = "single positional indexer is out-of-bounds"
             with pytest.raises(IndexError, match=msg):
                 s.iloc[20]
 
