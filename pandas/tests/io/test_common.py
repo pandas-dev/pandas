@@ -129,7 +129,7 @@ bar2,12,13,14,15
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", Exception, "feather"),
+            (pd.read_feather, "pyarrow", IOError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -154,12 +154,12 @@ bar2,12,13,14,15
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = (
-            fr"Failed to open local file '.+does_not_exist\.{fn_ext}',"
+            fr"Failed to open local file .+does_not_exist\.{fn_ext}.?,"
             fr" error: No such file or directory"
         )
 
-        with pytest.raises(
-            error_class, match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})"
+        with pytest.raises(error_class, match=
+            fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})"
         ):
             reader(path)
 
@@ -170,7 +170,7 @@ bar2,12,13,14,15
             (pd.read_table, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", Exception, "feather"),
+            (pd.read_feather, "pyarrow", IOError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -199,12 +199,12 @@ bar2,12,13,14,15
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = (
-            fr"Failed to open local file '.+does_not_exist\.{fn_ext}',"
+            fr"Failed to open local file .+does_not_exist\.{fn_ext}.?,"
             fr" error: No such file or directory"
         )
 
-        with pytest.raises(
-            error_class, match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})"
+        with pytest.raises(error_class, match=
+            fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})"
         ):
             reader(path)
 
