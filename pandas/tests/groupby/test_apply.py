@@ -467,6 +467,29 @@ def test_apply_without_copy():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("test_series", [True, False])
+def test_apply_with_duplicated_non_sorted_axis(test_series):
+    # GH 30667
+    df = pd.DataFrame(
+        [["x", "p"], ["x", "p"], ["x", "o"]], columns=["X", "Y"], index=[1, 2, 2]
+    )
+    if test_series:
+        ser = df.set_index("Y")["X"]
+        result = ser.groupby(level=0).apply(lambda x: x)
+
+        # not expecting the order to remain the same for duplicated axis
+        result = result.sort_index()
+        expected = ser.sort_index()
+        tm.assert_series_equal(result, expected)
+    else:
+        result = df.groupby("Y").apply(lambda x: x)
+
+        # not expecting the order to remain the same for duplicated axis
+        result = result.sort_values("Y")
+        expected = df.sort_values("Y")
+        tm.assert_frame_equal(result, expected)
+
+
 def test_apply_corner_cases():
     # #535, can't use sliding iterator
 
@@ -752,3 +775,20 @@ def test_apply_series_return_dataframe_groups():
         ["17661101"], index=pd.DatetimeIndex(["2015-02-24"], name="day"), name="userId"
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("category", [False, True])
+def test_apply_multi_level_name(category):
+    # https://github.com/pandas-dev/pandas/issues/31068
+    b = [1, 2] * 5
+    if category:
+        b = pd.Categorical(b, categories=[1, 2, 3])
+    df = pd.DataFrame(
+        {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
+    ).set_index(["A", "B"])
+    result = df.groupby("B").apply(lambda x: x.sum())
+    expected = pd.DataFrame(
+        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
+    )
+    tm.assert_frame_equal(result, expected)
+    assert df.index.names == ["A", "B"]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # copyright 2013, y-p @ github
 """
 Search the git history for all commits touching a named method

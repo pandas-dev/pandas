@@ -80,7 +80,7 @@ class SharedTests:
         np.random.shuffle(data)
 
         arr = self.array_cls._simple_new(data, freq="D")
-        idx = self.index_cls(arr)
+        idx = self.index_cls._simple_new(arr)
 
         takers = [1, 4, 94]
         result = arr.take(takers)
@@ -98,7 +98,6 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
         arr = self.array_cls._simple_new(data, freq="D")
-        idx = self.index_cls(arr)
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=None)
         assert result[0] is pd.NaT
