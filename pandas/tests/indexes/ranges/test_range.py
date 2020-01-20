@@ -1,15 +1,13 @@
-from datetime import datetime, timedelta
-
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series
-import pandas.util.testing as tm
+from pandas import Float64Index, Index, Int64Index, RangeIndex
+import pandas._testing as tm
 
-from .test_numeric import Numeric
+from ..test_numeric import Numeric
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -45,151 +43,6 @@ class TestRangeIndex(Numeric):
         with pytest.raises(ValueError, match="^Length"):
             index.names = ["roger", "harold"]
 
-    @pytest.mark.parametrize("name", [None, "foo"])
-    @pytest.mark.parametrize(
-        "args, kwargs, start, stop, step",
-        [
-            ((5,), dict(), 0, 5, 1),
-            ((1, 5), dict(), 1, 5, 1),
-            ((1, 5, 2), dict(), 1, 5, 2),
-            ((0,), dict(), 0, 0, 1),
-            ((0, 0), dict(), 0, 0, 1),
-            (tuple(), dict(start=0), 0, 0, 1),
-            (tuple(), dict(stop=0), 0, 0, 1),
-        ],
-    )
-    def test_constructor(self, args, kwargs, start, stop, step, name):
-        result = RangeIndex(*args, name=name, **kwargs)
-        expected = Index(np.arange(start, stop, step, dtype=np.int64), name=name)
-        assert isinstance(result, RangeIndex)
-        assert result.name is name
-        assert result._range == range(start, stop, step)
-        tm.assert_index_equal(result, expected)
-
-    def test_constructor_invalid_args(self):
-        msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
-        with pytest.raises(TypeError, match=msg):
-            RangeIndex()
-
-        with pytest.raises(TypeError, match=msg):
-            RangeIndex(name="Foo")
-
-        # invalid args
-        for i in [
-            Index(["a", "b"]),
-            Series(["a", "b"]),
-            np.array(["a", "b"]),
-            [],
-            "foo",
-            datetime(2000, 1, 1, 0, 0),
-            np.arange(0, 10),
-            np.array([1]),
-            [1],
-        ]:
-            with pytest.raises(TypeError):
-                RangeIndex(i)
-
-        # we don't allow on a bare Index
-        msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some "
-            r"kind, 0 was passed"
-        )
-        with pytest.raises(TypeError, match=msg):
-            Index(0, 1000)
-
-    def test_constructor_same(self):
-
-        # pass thru w and w/o copy
-        index = RangeIndex(1, 5, 2)
-        result = RangeIndex(index, copy=False)
-        assert result.identical(index)
-
-        result = RangeIndex(index, copy=True)
-        tm.assert_index_equal(result, index, exact=True)
-
-        result = RangeIndex(index)
-        tm.assert_index_equal(result, index, exact=True)
-
-        with pytest.raises(
-            ValueError,
-            match="Incorrect `dtype` passed: expected signed integer, received float64",
-        ):
-            RangeIndex(index, dtype="float64")
-
-    def test_constructor_range(self):
-
-        msg = "Value needs to be a scalar value, was type <class 'range'>"
-        with pytest.raises(TypeError, match=msg):
-            result = RangeIndex(range(1, 5, 2))
-
-        result = RangeIndex.from_range(range(1, 5, 2))
-        expected = RangeIndex(1, 5, 2)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = RangeIndex.from_range(range(5, 6))
-        expected = RangeIndex(5, 6, 1)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # an invalid range
-        result = RangeIndex.from_range(range(5, 1))
-        expected = RangeIndex(0, 0, 1)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = RangeIndex.from_range(range(5))
-        expected = RangeIndex(0, 5, 1)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        result = Index(range(1, 5, 2))
-        expected = RangeIndex(1, 5, 2)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        with pytest.raises(
-            ValueError,
-            match="Incorrect `dtype` passed: expected signed integer, received float64",
-        ):
-            Index(range(1, 5, 2), dtype="float64")
-        msg = r"^from_range\(\) got an unexpected keyword argument"
-        with pytest.raises(TypeError, match=msg):
-            pd.RangeIndex.from_range(range(10), copy=True)
-
-    def test_constructor_name(self):
-        # GH12288
-        orig = RangeIndex(10)
-        orig.name = "original"
-
-        copy = RangeIndex(orig)
-        copy.name = "copy"
-
-        assert orig.name == "original"
-        assert copy.name == "copy"
-
-        new = Index(copy)
-        assert new.name == "copy"
-
-        new.name = "new"
-        assert orig.name == "original"
-        assert copy.name == "copy"
-        assert new.name == "new"
-
-    def test_constructor_corner(self):
-        arr = np.array([1, 2, 3, 4], dtype=object)
-        index = RangeIndex(1, 5)
-        assert index.values.dtype == np.int64
-        tm.assert_index_equal(index, Index(arr))
-
-        # non-int raise Exception
-        with pytest.raises(TypeError):
-            RangeIndex("1", "10", "1")
-        with pytest.raises(TypeError):
-            RangeIndex(1.1, 10.2, 1.3)
-
-        # invalid passed type
-        with pytest.raises(
-            ValueError,
-            match="Incorrect `dtype` passed: expected signed integer, received float64",
-        ):
-            RangeIndex(1, 5, dtype="float64")
-
     @pytest.mark.parametrize(
         "index, start, stop, step",
         [
@@ -209,7 +62,7 @@ class TestRangeIndex(Numeric):
     def test_deprecated_start_stop_step_attrs(self, attr_name):
         # GH 26581
         idx = self.create_index()
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             getattr(idx, attr_name)
 
     def test_copy(self):
@@ -609,176 +462,6 @@ class TestRangeIndex(Numeric):
         joined = index.join(index, how=join_type)
         assert index is joined
 
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_intersection(self, sort):
-        # intersect with Int64Index
-        index = self.create_index()
-        other = Index(np.arange(1, 6))
-        result = index.intersection(other, sort=sort)
-        expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
-
-        result = other.intersection(index, sort=sort)
-        expected = Index(
-            np.sort(np.asarray(np.intersect1d(index.values, other.values)))
-        )
-        tm.assert_index_equal(result, expected)
-
-        # intersect with increasing RangeIndex
-        other = RangeIndex(1, 6)
-        result = index.intersection(other, sort=sort)
-        expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
-
-        # intersect with decreasing RangeIndex
-        other = RangeIndex(5, 0, -1)
-        result = index.intersection(other, sort=sort)
-        expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
-
-        # reversed (GH 17296)
-        result = other.intersection(index, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-        # GH 17296: intersect two decreasing RangeIndexes
-        first = RangeIndex(10, -2, -2)
-        other = RangeIndex(5, -4, -1)
-        expected = first.astype(int).intersection(other.astype(int), sort=sort)
-        result = first.intersection(other, sort=sort).astype(int)
-        tm.assert_index_equal(result, expected)
-
-        # reversed
-        result = other.intersection(first, sort=sort).astype(int)
-        tm.assert_index_equal(result, expected)
-
-        index = RangeIndex(5)
-
-        # intersect of non-overlapping indices
-        other = RangeIndex(5, 10, 1)
-        result = index.intersection(other, sort=sort)
-        expected = RangeIndex(0, 0, 1)
-        tm.assert_index_equal(result, expected)
-
-        other = RangeIndex(-1, -5, -1)
-        result = index.intersection(other, sort=sort)
-        expected = RangeIndex(0, 0, 1)
-        tm.assert_index_equal(result, expected)
-
-        # intersection of empty indices
-        other = RangeIndex(0, 0, 1)
-        result = index.intersection(other, sort=sort)
-        expected = RangeIndex(0, 0, 1)
-        tm.assert_index_equal(result, expected)
-
-        result = other.intersection(index, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-        # intersection of non-overlapping values based on start value and gcd
-        index = RangeIndex(1, 10, 2)
-        other = RangeIndex(0, 10, 4)
-        result = index.intersection(other, sort=sort)
-        expected = RangeIndex(0, 0, 1)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("sort", [False, None])
-    def test_union_noncomparable(self, sort):
-        # corner case, non-Int64Index
-        index = self.create_index()
-        other = Index([datetime.now() + timedelta(i) for i in range(4)], dtype=object)
-        result = index.union(other, sort=sort)
-        expected = Index(np.concatenate((index, other)))
-        tm.assert_index_equal(result, expected)
-
-        result = other.union(index, sort=sort)
-        expected = Index(np.concatenate((other, index)))
-        tm.assert_index_equal(result, expected)
-
-    @pytest.fixture(
-        params=[
-            (RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1), RI(0, 10, 1)),
-            (RI(0, 10, 1), RI(5, 20, 1), RI(0, 20, 1), I64(range(20))),
-            (RI(0, 10, 1), RI(10, 20, 1), RI(0, 20, 1), I64(range(20))),
-            (RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1), RI(0, -10, -1)),
-            (RI(0, -10, -1), RI(-10, -20, -1), RI(-19, 1, 1), I64(range(0, -20, -1))),
-            (
-                RI(0, 10, 2),
-                RI(1, 10, 2),
-                RI(0, 10, 1),
-                I64(list(range(0, 10, 2)) + list(range(1, 10, 2))),
-            ),
-            (
-                RI(0, 11, 2),
-                RI(1, 12, 2),
-                RI(0, 12, 1),
-                I64(list(range(0, 11, 2)) + list(range(1, 12, 2))),
-            ),
-            (
-                RI(0, 21, 4),
-                RI(-2, 24, 4),
-                RI(-2, 24, 2),
-                I64(list(range(0, 21, 4)) + list(range(-2, 24, 4))),
-            ),
-            (
-                RI(0, -20, -2),
-                RI(-1, -21, -2),
-                RI(-19, 1, 1),
-                I64(list(range(0, -20, -2)) + list(range(-1, -21, -2))),
-            ),
-            (RI(0, 100, 5), RI(0, 100, 20), RI(0, 100, 5), I64(range(0, 100, 5))),
-            (
-                RI(0, -100, -5),
-                RI(5, -100, -20),
-                RI(-95, 10, 5),
-                I64(list(range(0, -100, -5)) + [5]),
-            ),
-            (
-                RI(0, -11, -1),
-                RI(1, -12, -4),
-                RI(-11, 2, 1),
-                I64(list(range(0, -11, -1)) + [1, -11]),
-            ),
-            (RI(0), RI(0), RI(0), RI(0)),
-            (RI(0, -10, -2), RI(0), RI(0, -10, -2), RI(0, -10, -2)),
-            (RI(0, 100, 2), RI(100, 150, 200), RI(0, 102, 2), I64(range(0, 102, 2))),
-            (
-                RI(0, -100, -2),
-                RI(-100, 50, 102),
-                RI(-100, 4, 2),
-                I64(list(range(0, -100, -2)) + [-100, 2]),
-            ),
-            (
-                RI(0, -100, -1),
-                RI(0, -50, -3),
-                RI(-99, 1, 1),
-                I64(list(range(0, -100, -1))),
-            ),
-            (RI(0, 1, 1), RI(5, 6, 10), RI(0, 6, 5), I64([0, 5])),
-            (RI(0, 10, 5), RI(-5, -6, -20), RI(-5, 10, 5), I64([0, 5, -5])),
-            (RI(0, 3, 1), RI(4, 5, 1), I64([0, 1, 2, 4]), I64([0, 1, 2, 4])),
-            (RI(0, 10, 1), I64([]), RI(0, 10, 1), RI(0, 10, 1)),
-            (RI(0), I64([1, 5, 6]), I64([1, 5, 6]), I64([1, 5, 6])),
-        ]
-    )
-    def unions(self, request):
-        """Inputs and expected outputs for RangeIndex.union tests"""
-
-        return request.param
-
-    def test_union_sorted(self, unions):
-
-        idx1, idx2, expected_sorted, expected_notsorted = unions
-
-        res1 = idx1.union(idx2, sort=None)
-        tm.assert_index_equal(res1, expected_sorted, exact=True)
-
-        res1 = idx1.union(idx2, sort=False)
-        tm.assert_index_equal(res1, expected_notsorted, exact=True)
-
-        res2 = idx2.union(idx1, sort=None)
-        res3 = idx1._int64index.union(idx2, sort=None)
-        tm.assert_index_equal(res2, expected_sorted, exact=True)
-        tm.assert_index_equal(res3, expected_sorted)
-
     def test_nbytes(self):
 
         # memory savings vs int index
@@ -1052,8 +735,9 @@ class TestRangeIndex(Numeric):
 
         assert "_engine" not in idx._cache
 
-        # The engine is still required for lookup of a different dtype scalar:
+        # Different types of scalars can be excluded immediately, no need to
+        #  use the _engine
         with pytest.raises(KeyError, match="'a'"):
-            assert idx.get_loc("a") == -1
+            idx.get_loc("a")
 
-        assert "_engine" in idx._cache
+        assert "_engine" not in idx._cache

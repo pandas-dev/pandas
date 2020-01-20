@@ -2,10 +2,12 @@ from textwrap import dedent
 
 import numpy as np
 
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 test_frame = DataFrame(
     {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
@@ -13,17 +15,18 @@ test_frame = DataFrame(
 )
 
 
-def test_tab_complete_ipython6_warning(ip):
+@async_mark()
+async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
     code = dedent(
         """\
-    import pandas.util.testing as tm
+    import pandas._testing as tm
     s = tm.makeTimeSeries()
     rs = s.resample("D")
     """
     )
-    ip.run_code(code)
+    await ip.run_code(code)
 
     with tm.assert_produces_warning(None):
         with provisionalcompleter("ignore"):

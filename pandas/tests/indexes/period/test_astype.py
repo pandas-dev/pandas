@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestPeriodIndexAsType:

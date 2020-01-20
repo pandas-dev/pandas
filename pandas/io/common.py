@@ -1,25 +1,13 @@
 """Common IO api utilities"""
 
 import bz2
-import codecs
-from collections.abc import Iterator
+from collections import abc
 import gzip
 from io import BufferedIOBase, BytesIO
 import mmap
 import os
 import pathlib
-from typing import (
-    IO,
-    Any,
-    AnyStr,
-    BinaryIO,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
@@ -90,8 +78,7 @@ def _expand_user(
 def validate_header_arg(header) -> None:
     if isinstance(header, bool):
         raise TypeError(
-            "Passing a bool to header is invalid. "
-            "Use header=None for no header or "
+            "Passing a bool to header is invalid. Use header=None for no header or "
             "header=int or list-like of ints to specify "
             "the row(s) making up the column names"
         )
@@ -419,8 +406,8 @@ def get_handle(
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
                     raise ValueError(
-                        "Multiple files found in ZIP file."
-                        f" Only one file per ZIP: {zip_names}"
+                        "Multiple files found in ZIP file. "
+                        f"Only one file per ZIP: {zip_names}"
                     )
 
         # XZ Compression
@@ -503,7 +490,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore
         return self.fp is None
 
 
-class _MMapWrapper(Iterator):
+class _MMapWrapper(abc.Iterator):
     """
     Wrapper for the Python's mmap class so that it can be properly read in
     by Python's csv.reader class.
@@ -538,24 +525,3 @@ class _MMapWrapper(Iterator):
         if newline == "":
             raise StopIteration
         return newline
-
-
-class UTF8Recoder(Iterator):
-    """
-    Iterator that reads an encoded stream and re-encodes the input to UTF-8
-    """
-
-    def __init__(self, f: BinaryIO, encoding: str):
-        self.reader = codecs.getreader(encoding)(f)
-
-    def read(self, bytes: int = -1) -> bytes:
-        return self.reader.read(bytes).encode("utf-8")
-
-    def readline(self) -> bytes:
-        return self.reader.readline().encode("utf-8")
-
-    def __next__(self) -> bytes:
-        return next(self.reader).encode("utf-8")
-
-    def close(self):
-        self.reader.close()

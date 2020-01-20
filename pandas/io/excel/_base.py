@@ -41,7 +41,7 @@ Support an option to read a single sheet or a list of sheets.
 
 Parameters
 ----------
-io : str, ExcelFile, xlrd.Book, path object or file-like object
+io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
     URL schemes include http, ftp, s3, and file. For file URLs, a host is
     expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -298,9 +298,7 @@ def read_excel(
 
     for arg in ("sheet", "sheetname", "parse_cols"):
         if arg in kwds:
-            raise TypeError(
-                "read_excel() got an unexpected keyword argument `{}`".format(arg)
-            )
+            raise TypeError(f"read_excel() got an unexpected keyword argument `{arg}`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
@@ -353,6 +351,8 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
             self.book = self.load_workbook(filepath_or_buffer)
         elif isinstance(filepath_or_buffer, str):
             self.book = self.load_workbook(filepath_or_buffer)
+        elif isinstance(filepath_or_buffer, bytes):
+            self.book = self.load_workbook(BytesIO(filepath_or_buffer))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -430,7 +430,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
         for asheetname in sheets:
             if verbose:
-                print("Reading sheet {sheet}".format(sheet=asheetname))
+                print(f"Reading sheet {asheetname}")
 
             if isinstance(asheetname, str):
                 sheet = self.get_sheet_by_name(asheetname)
@@ -529,8 +529,10 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
 
 class ExcelWriter(metaclass=abc.ABCMeta):
     """
-    Class for writing DataFrame objects into excel sheets, default is to use
-    xlwt for xls, openpyxl for xlsx.  See DataFrame.to_excel for typical usage.
+    Class for writing DataFrame objects into excel sheets.
+
+    Default is to use xlwt for xls, openpyxl for xlsx.
+    See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
@@ -544,7 +546,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
         Format string for datetime objects written into Excel files.
-        (e.g. 'YYYY-MM-DD HH:MM:SS')
+        (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append).
 
@@ -623,11 +625,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option("io.excel.{ext}.writer".format(ext=ext))
+                    engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = _get_default_writer(ext)
                 except KeyError:
-                    raise ValueError("No engine for filetype: '{ext}'".format(ext=ext))
+                    raise ValueError(f"No engine for filetype: '{ext}'")
             cls = get_writer(engine)
 
         return object.__new__(cls)
@@ -758,9 +760,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if ext.startswith("."):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = "Invalid extension for engine '{engine}': '{ext}'".format(
-                engine=pprint_thing(cls.engine), ext=pprint_thing(ext)
-            )
+            msg = "Invalid extension for engine"
+            f"'{pprint_thing(cls.engine)}': '{pprint_thing(ext)}'"
             raise ValueError(msg)
         else:
             return True
@@ -808,7 +809,7 @@ class ExcelFile:
                 FutureWarning,
             )
         if engine not in self._engines:
-            raise ValueError("Unknown engine: {engine}".format(engine=engine))
+            raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
         # could be a str, ExcelFile, Book, etc.

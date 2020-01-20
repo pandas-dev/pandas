@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import CategoricalDtype, DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameToRecords:
@@ -74,7 +74,7 @@ class TestDataFrameToRecords:
         tm.assert_almost_equal(result, expected)
 
     def test_to_records_with_unicode_column_names(self):
-        # xref GH#2407
+        # xref issue: https://github.com/numpy/numpy/issues/2407
         # Issue GH#11879. to_records used to raise an exception when used
         # with column names containing non-ascii characters in Python 2
         result = DataFrame(data={"accented_name_é": [1.0]}).to_records()
@@ -235,7 +235,7 @@ class TestDataFrameToRecords:
             # Check that bad types raise
             (
                 dict(index=False, column_dtypes={"A": "int32", "B": "foo"}),
-                (TypeError, 'data type "foo" not understood'),
+                (TypeError, "data type [\"']foo[\"'] not understood"),
             ),
         ],
     )
@@ -326,7 +326,7 @@ class TestDataFrameToRecords:
             def __getitem__(self, key):
                 return self.d.__getitem__(key)
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return key in self.d
 
             def keys(self):

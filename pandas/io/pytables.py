@@ -58,7 +58,7 @@ from pandas import (
     concat,
     isna,
 )
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
 from pandas.core.indexes.api import ensure_index
@@ -413,8 +413,8 @@ def read_hdf(
             for group_to_check in groups[1:]:
                 if not _is_metadata_of(group_to_check, candidate_only_group):
                     raise ValueError(
-                        "key must be provided when HDF5 file "
-                        "contains multiple datasets."
+                        "key must be provided when HDF5 "
+                        "file contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
         return store.select(
@@ -1018,7 +1018,7 @@ class HDFStore:
         data_columns : list, default None
             List of columns to create as data columns, or True to
             use all columns. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
         dropna   : bool, default False, do not write an ALL nan row to
@@ -1138,7 +1138,7 @@ class HDFStore:
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         min_itemsize : dict of columns that specify minimum string sizes
         nan_rep      : string to use as string nan representation
         chunksize    : size to chunk the writing
@@ -1215,9 +1215,8 @@ class HDFStore:
         """
         if axes is not None:
             raise TypeError(
-                "axes is currently not accepted as a parameter to"
-                " append_to_multiple; you can create the "
-                "tables independently instead"
+                "axes is currently not accepted as a parameter to append_to_multiple; "
+                "you can create the tables independently instead"
             )
 
         if not isinstance(d, dict):
@@ -1241,8 +1240,7 @@ class HDFStore:
             if v is None:
                 if remain_key is not None:
                     raise ValueError(
-                        "append_to_multiple can only have one value in d that "
-                        "is None"
+                        "append_to_multiple can only have one value in d that is None"
                     )
                 remain_key = k
             else:
@@ -1459,7 +1457,7 @@ class HDFStore:
                 data = self.select(k)
                 if isinstance(s, Table):
 
-                    index: Union[bool, list] = False
+                    index: Union[bool, List[str]] = False
                     if propindexes:
                         index = [a.name for a in s.axes if a.is_indexed]
                     new_store.append(
@@ -2314,8 +2312,7 @@ class DataCol(IndexCol):
             existing_dtype = getattr(self.attrs, self.dtype_attr, None)
             if existing_dtype is not None and existing_dtype != self.dtype:
                 raise ValueError(
-                    "appended items dtype do not match existing "
-                    "items dtype in table!"
+                    "appended items dtype do not match existing items dtype in table!"
                 )
 
     def convert(self, values: np.ndarray, nan_rep, encoding: str, errors: str):
@@ -2659,7 +2656,8 @@ class GenericFixed(Fixed):
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values.values, name=None, freq=freq)
+                dta = DatetimeArray._simple_new(values.values, freq=freq)
+                result = DatetimeIndex._simple_new(dta, name=None)
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
@@ -2668,7 +2666,8 @@ class GenericFixed(Fixed):
         elif klass == PeriodIndex:
 
             def f(values, freq=None, tz=None):
-                return PeriodIndex._simple_new(values, name=None, freq=freq)
+                parr = PeriodArray._simple_new(values, freq=freq)
+                return PeriodIndex._simple_new(parr, name=None)
 
             return f
 
@@ -2681,14 +2680,12 @@ class GenericFixed(Fixed):
         if columns is not None:
             raise TypeError(
                 "cannot pass a column specification when reading "
-                "a Fixed format store. this store must be "
-                "selected in its entirety"
+                "a Fixed format store. this store must be selected in its entirety"
             )
         if where is not None:
             raise TypeError(
                 "cannot pass a where specification when reading "
-                "from a Fixed format store. this store must be "
-                "selected in its entirety"
+                "from a Fixed format store. this store must be selected in its entirety"
             )
 
     @property
@@ -2909,8 +2906,7 @@ class GenericFixed(Fixed):
 
         if is_categorical_dtype(value):
             raise NotImplementedError(
-                "Cannot store a category dtype in "
-                "a HDF5 dataset that uses format="
+                "Cannot store a category dtype in a HDF5 dataset that uses format="
                 '"fixed". Use format="table".'
             )
         if not empty_array:
@@ -3145,15 +3141,25 @@ class Table(Fixed):
     info: Dict
 
     def __init__(
-        self, parent: HDFStore, group: "Node", encoding=None, errors: str = "strict"
+        self,
+        parent: HDFStore,
+        group: "Node",
+        encoding=None,
+        errors: str = "strict",
+        index_axes=None,
+        non_index_axes=None,
+        values_axes=None,
+        data_columns=None,
+        info=None,
+        nan_rep=None,
     ):
         super().__init__(parent, group, encoding=encoding, errors=errors)
-        self.index_axes = []
-        self.non_index_axes = []
-        self.values_axes = []
-        self.data_columns = []
-        self.info = dict()
-        self.nan_rep = None
+        self.index_axes = index_axes or []
+        self.non_index_axes = non_index_axes or []
+        self.values_axes = values_axes or []
+        self.data_columns = data_columns or []
+        self.info = info or dict()
+        self.nan_rep = nan_rep
 
     @property
     def table_type_short(self) -> str:
@@ -3287,7 +3293,7 @@ class Table(Fixed):
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
 
-        # mypy doesnt recognize DataFrame._AXIS_NAMES, so we re-write it here
+        # mypy doesn't recognize DataFrame._AXIS_NAMES, so we re-write it here
         axis_names = {0: "index", 1: "columns"}
 
         # compute the values_axes queryables
@@ -3538,9 +3544,8 @@ class Table(Fixed):
                 if not v.is_indexed:
                     if v.type.startswith("complex"):
                         raise TypeError(
-                            "Columns containing complex values can be stored "
-                            "but cannot"
-                            " be indexed when using table format. Either use "
+                            "Columns containing complex values can be stored but "
+                            "cannot be indexed when using table format. Either use "
                             "fixed format, set index=False, or do not include "
                             "the columns containing complex values to "
                             "data_columns when initializing the table."
@@ -3635,23 +3640,28 @@ class Table(Fixed):
         data_columns=None,
         min_itemsize=None,
     ):
-        """ create and return the axes
-        legacy tables create an indexable column, indexable index,
-        non-indexable fields
+        """
+        Create and return the axes.
 
-            Parameters
-            ----------
-            axes: a list of the axes in order to create (names or numbers of
-                the axes)
-            obj : the object to create axes on
-            validate: validate the obj against an existing object already
-                written
-            min_itemsize: a dict of the min size for a column in bytes
-            nan_rep : a values to use for string column nan_rep
-            encoding : the encoding for string values
-            data_columns : a list of columns that we want to create separate to
-                allow indexing (or True will force all columns)
+        Parameters
+        ----------
+        axes: list or None
+            The names or numbers of the axes to create.
+        obj : DataFrame
+            The object to create axes on.
+        validate: bool, default True
+            Whether to validate the obj against an existing object already written.
+        nan_rep :
+            A value to use for string column nan_rep.
+        data_columns : List[str], True, or None, default None
+            Specify the columns that we want to create to allow indexing on.
 
+            * True : Use all available columns.
+            * None : Use no columns.
+            * List[str] : Use the specified columns.
+
+        min_itemsize: Dict[str, int] or None, default None
+            The min itemsize for a column in bytes.
         """
 
         if not isinstance(obj, DataFrame):
@@ -3670,15 +3680,15 @@ class Table(Fixed):
 
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
-            existing_table = self.copy()
+            table_exists = True
             axes = [a.axis for a in self.index_axes]
-            data_columns = self.data_columns
+            data_columns = list(self.data_columns)
             nan_rep = self.nan_rep
-            new_info = self.info
             # TODO: do we always have validate=True here?
         else:
-            existing_table = None
-            new_info = self.info
+            table_exists = False
+
+        new_info = self.info
 
         assert self.ndim == 2  # with next check, we must have len(axes) == 1
         # currently support on ndim-1 axes
@@ -3700,9 +3710,9 @@ class Table(Fixed):
         a = obj.axes[idx]
         # we might be able to change the axes on the appending data if necessary
         append_axis = list(a)
-        if existing_table is not None:
+        if table_exists:
             indexer = len(new_non_index_axes)  # i.e. 0
-            exist_axis = existing_table.non_index_axes[indexer][1]
+            exist_axis = self.non_index_axes[indexer][1]
             if not array_equivalent(np.array(append_axis), np.array(exist_axis)):
 
                 # ahah! -> reindex
@@ -3721,8 +3731,8 @@ class Table(Fixed):
         # Now we can construct our new index axis
         idx = axes[0]
         a = obj.axes[idx]
-        index_name = obj._AXIS_NAMES[idx]
-        new_index = _convert_index(index_name, a, self.encoding, self.errors)
+        axis_name = obj._AXIS_NAMES[idx]
+        new_index = _convert_index(axis_name, a, self.encoding, self.errors)
         new_index.axis = idx
 
         # Because we are always 2D, there is only one new_index, so
@@ -3749,9 +3759,11 @@ class Table(Fixed):
         data_columns = self.validate_data_columns(
             data_columns, min_itemsize, new_non_index_axes
         )
+
         block_obj = self.get_object(obj, transposed)._consolidate()
+
         blocks, blk_items = self._get_blocks_and_items(
-            block_obj, existing_table, new_non_index_axes, data_columns
+            block_obj, table_exists, new_non_index_axes, self.values_axes, data_columns
         )
 
         # add my values
@@ -3772,13 +3784,15 @@ class Table(Fixed):
 
             # make sure that we match up the existing columns
             # if we have an existing table
-            if existing_table is not None and validate:
+            existing_col: Optional[DataCol]
+
+            if table_exists and validate:
                 try:
-                    existing_col = existing_table.values_axes[i]
+                    existing_col = self.values_axes[i]
                 except (IndexError, KeyError):
                     raise ValueError(
                         f"Incompatible appended table [{blocks}]"
-                        f"with existing table [{existing_table.values_axes}]"
+                        f"with existing table [{self.values_axes}]"
                     )
             else:
                 existing_col = None
@@ -3827,22 +3841,34 @@ class Table(Fixed):
 
             j += 1
 
-        self.nan_rep = nan_rep
-        self.data_columns = [col.name for col in vaxes if col.is_data_indexable]
-        self.values_axes = vaxes
-        self.index_axes = new_index_axes
-        self.non_index_axes = new_non_index_axes
+        dcs = [col.name for col in vaxes if col.is_data_indexable]
 
-        # validate our min_itemsize
-        self.validate_min_itemsize(min_itemsize)
+        new_table = type(self)(
+            parent=self.parent,
+            group=self.group,
+            encoding=self.encoding,
+            errors=self.errors,
+            index_axes=new_index_axes,
+            non_index_axes=new_non_index_axes,
+            values_axes=vaxes,
+            data_columns=dcs,
+            info=new_info,
+            nan_rep=nan_rep,
+        )
+        if hasattr(self, "levels"):
+            # TODO: get this into constructor, only for appropriate subclass
+            new_table.levels = self.levels
 
-        # validate the axes if we have an existing table
-        if validate:
-            self.validate(existing_table)
+        new_table.validate_min_itemsize(min_itemsize)
+
+        if validate and table_exists:
+            new_table.validate(self)
+
+        return new_table
 
     @staticmethod
     def _get_blocks_and_items(
-        block_obj, existing_table, new_non_index_axes, data_columns
+        block_obj, table_exists, new_non_index_axes, values_axes, data_columns
     ):
         # Helper to clarify non-state-altering parts of _create_axes
 
@@ -3864,15 +3890,15 @@ class Table(Fixed):
                 blocks.extend(mgr.blocks)
                 blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
-        # reorder the blocks in the same order as the existing_table if we can
-        if existing_table is not None:
+        # reorder the blocks in the same order as the existing table if we can
+        if table_exists:
             by_items = {
                 tuple(b_items.tolist()): (b, b_items)
                 for b, b_items in zip(blocks, blk_items)
             }
             new_blocks = []
             new_blk_items = []
-            for ea in existing_table.values_axes:
+            for ea in values_axes:
                 items = tuple(ea.values)
                 try:
                     b, b_items = by_items.pop(items)
@@ -4103,7 +4129,7 @@ class AppendableTable(Table):
             self._handle.remove_node(self.group, "table")
 
         # create the axes
-        self._create_axes(
+        table = self._create_axes(
             axes=axes,
             obj=obj,
             validate=append,
@@ -4112,13 +4138,13 @@ class AppendableTable(Table):
             data_columns=data_columns,
         )
 
-        for a in self.axes:
+        for a in table.axes:
             a.validate_names()
 
-        if not self.is_exists:
+        if not table.is_exists:
 
             # create the table
-            options = self.create_description(
+            options = table.create_description(
                 complib=complib,
                 complevel=complevel,
                 fletcher32=fletcher32,
@@ -4126,20 +4152,20 @@ class AppendableTable(Table):
             )
 
             # set the table attributes
-            self.set_attrs()
+            table.set_attrs()
 
             # create the table
-            self._handle.create_table(self.group, **options)
+            table._handle.create_table(table.group, **options)
 
         # update my info
-        self.attrs.info = self.info
+        table.attrs.info = table.info
 
         # validate the axes and set the kinds
-        for a in self.axes:
-            a.validate_and_set(self, append)
+        for a in table.axes:
+            a.validate_and_set(table, append)
 
         # add the rows
-        self.write_data(chunksize, dropna=dropna)
+        table.write_data(chunksize, dropna=dropna)
 
     def write_data(self, chunksize: Optional[int], dropna: bool = False):
         """ we form the data into a 2-d including indexes,values,mask
@@ -4962,7 +4988,7 @@ def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
     if data.dtype.kind in ["m", "M"]:
         data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
-        #  doing that doesnt seem to break anything.  why?
+        #  doing that doesn't seem to break anything.  why?
 
     elif isinstance(data, PeriodIndex):
         data = data.asi8

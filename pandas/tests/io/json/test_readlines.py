@@ -4,7 +4,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, read_json
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader
 
@@ -56,7 +56,7 @@ def test_to_jsonl():
     # GH15096: escaped characters in columns and data
     df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
     result = df.to_json(orient="records", lines=True)
-    expected = '{"a\\\\":"foo\\\\","b":"bar"}\n' '{"a\\\\":"foo\\"","b":"bar"}'
+    expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}'
     assert result == expected
     tm.assert_frame_equal(read_json(result, lines=True), df)
 

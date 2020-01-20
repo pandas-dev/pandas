@@ -13,7 +13,7 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
-from collections.abc import Iterator
+from collections import abc
 from datetime import datetime
 import struct
 
@@ -37,7 +37,7 @@ class _column:
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
-class SAS7BDATReader(Iterator):
+class SAS7BDATReader(abc.Iterator):
     """
     Read SAS files in SAS7BDAT format.
 
@@ -170,7 +170,7 @@ class SAS7BDATReader(Iterator):
         if buf in const.encoding_names:
             self.file_encoding = const.encoding_names[buf]
         else:
-            self.file_encoding = "unknown (code={name!s})".format(name=buf)
+            self.file_encoding = f"unknown (code={buf})"
 
         # Get platform information
         buf = self._read_bytes(const.platform_offset, const.platform_length)
@@ -294,8 +294,8 @@ class SAS7BDATReader(Iterator):
             buf = self._path_or_buf.read(length)
             if len(buf) < length:
                 self.close()
-                msg = "Unable to read {:d} bytes from file position {:d}."
-                raise ValueError(msg.format(length, offset))
+                msg = f"Unable to read {length:d} bytes from file position {offset:d}."
+                raise ValueError(msg)
             return buf
         else:
             if offset + length > len(self._cached_page):
@@ -458,12 +458,8 @@ class SAS7BDATReader(Iterator):
         self.column_count = self._read_int(offset, int_len)
         if self.col_count_p1 + self.col_count_p2 != self.column_count:
             print(
-                "Warning: column count mismatch ({p1} + {p2} != "
-                "{column_count})\n".format(
-                    p1=self.col_count_p1,
-                    p2=self.col_count_p2,
-                    column_count=self.column_count,
-                )
+                f"Warning: column count mismatch ({self.col_count_p1} + "
+                f"{self.col_count_p2} != {self.column_count})\n"
             )
 
     # Unknown purpose
@@ -673,8 +669,11 @@ class SAS7BDATReader(Iterator):
             return True
         elif len(self._cached_page) != self._page_length:
             self.close()
-            msg = "failed to read complete page from file (read {:d} of {:d} bytes)"
-            raise ValueError(msg.format(len(self._cached_page), self._page_length))
+            msg = (
+                "failed to read complete page from file (read "
+                f"{len(self._cached_page):d} of {self._page_length:d} bytes)"
+            )
+            raise ValueError(msg)
 
         self._read_page_header()
         page_type = self._current_page_type
@@ -726,8 +725,6 @@ class SAS7BDATReader(Iterator):
                 js += 1
             else:
                 self.close()
-                raise ValueError(
-                    "unknown column type {type}".format(type=self._column_types[j])
-                )
+                raise ValueError(f"unknown column type {self._column_types[j]}")
 
         return rslt

@@ -3,7 +3,7 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_astype(idx):

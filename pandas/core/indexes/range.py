@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Optional, Union
+from typing import Any, Optional
 import warnings
 
 import numpy as np
@@ -14,6 +14,7 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
+    is_float,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -26,11 +27,13 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 from pandas.io.formats.printing import pprint_thing
+
+_empty_range = range(0)
 
 
 class RangeIndex(Int64Index):
@@ -85,10 +88,10 @@ class RangeIndex(Int64Index):
     ):
 
         cls._validate_dtype(dtype)
+        name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
         if isinstance(start, RangeIndex):
-            name = start.name if name is None else name
             start = start._range
             return cls._simple_new(start, dtype=dtype, name=name)
 
@@ -111,7 +114,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(rng, dtype=dtype, name=name)
 
     @classmethod
-    def from_range(cls, data, name=None, dtype=None):
+    def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
         """
         Create RangeIndex from a range object.
 
@@ -129,15 +132,10 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None):
+    def _simple_new(cls, values: range, name=None, dtype=None) -> "RangeIndex":
         result = object.__new__(cls)
 
-        # handle passed None, non-integers
-        if values is None:
-            # empty
-            values = range(0, 0, 1)
-        elif not isinstance(values, range):
-            return Index(values, dtype=dtype, name=name)
+        assert isinstance(values, range)
 
         result._range = values
         result.name = name
@@ -225,7 +223,7 @@ class RangeIndex(Int64Index):
         """
         warnings.warn(
             self._deprecation_message.format("_start", "start"),
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         return self.start
@@ -248,7 +246,7 @@ class RangeIndex(Int64Index):
         # GH 25710
         warnings.warn(
             self._deprecation_message.format("_stop", "stop"),
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         return self.stop
@@ -272,7 +270,7 @@ class RangeIndex(Int64Index):
         # GH 25710
         warnings.warn(
             self._deprecation_message.format("_step", "step"),
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
         return self.step
@@ -334,7 +332,7 @@ class RangeIndex(Int64Index):
     def has_duplicates(self) -> bool:
         return False
 
-    def __contains__(self, key: Union[int, np.integer]) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             key = ensure_python_int(key)
@@ -344,12 +342,14 @@ class RangeIndex(Int64Index):
 
     @Appender(_index_shared_docs["get_loc"])
     def get_loc(self, key, method=None, tolerance=None):
-        if is_integer(key) and method is None and tolerance is None:
-            new_key = int(key)
-            try:
-                return self._range.index(new_key)
-            except ValueError:
-                raise KeyError(key)
+        if method is None and tolerance is None:
+            if is_integer(key) or (is_float(key) and key.is_integer()):
+                new_key = int(key)
+                try:
+                    return self._range.index(new_key)
+                except ValueError:
+                    raise KeyError(key)
+            raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
     @Appender(_index_shared_docs["get_indexer"])
@@ -421,7 +421,7 @@ class RangeIndex(Int64Index):
         nv.validate_max(args, kwargs)
         return self._minmax("max")
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         """
         Returns the indices that would sort the index and its
         underlying data.
@@ -441,7 +441,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -479,7 +479,7 @@ class RangeIndex(Int64Index):
             return super().intersection(other, sort=sort)
 
         if not len(self) or not len(other):
-            return self._simple_new(None)
+            return self._simple_new(_empty_range)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range
@@ -489,7 +489,7 @@ class RangeIndex(Int64Index):
         int_low = max(first.start, second.start)
         int_high = min(first.stop, second.stop)
         if int_high <= int_low:
-            return self._simple_new(None)
+            return self._simple_new(_empty_range)
 
         # Method hint: linear Diophantine equation
         # solve intersection problem
@@ -499,7 +499,7 @@ class RangeIndex(Int64Index):
 
         # check whether element sets intersect
         if (first.start - second.start) % gcd:
-            return self._simple_new(None)
+            return self._simple_new(_empty_range)
 
         # calculate parameters for the RangeIndex describing the
         # intersection disregarding the lower bounds

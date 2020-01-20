@@ -72,9 +72,9 @@ cdef class IntIndex(SparseIndex):
         """
 
         if self.npoints > self.length:
-            msg = (f"Too many indices. Expected "
-                   f"{self.length} but found {self.npoints}")
-            raise ValueError(msg)
+            raise ValueError(
+                f"Too many indices. Expected {self.length} but found {self.npoints}"
+            )
 
         # Indices are vacuously ordered and non-negative
         # if the sequence of indices is empty.

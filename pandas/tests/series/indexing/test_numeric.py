@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_get():
@@ -261,8 +261,8 @@ def test_setitem_float_labels():
 def test_slice_float_get_set(datetime_series):
     msg = (
         r"cannot do slice indexing on <class 'pandas\.core\.indexes"
-        r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\]"
-        r" of <class 'float'>"
+        r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\] "
+        r"of <class 'float'>"
     )
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
         datetime_series[4.0:10.0]

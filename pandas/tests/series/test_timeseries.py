@@ -21,7 +21,7 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd
 
@@ -75,69 +75,6 @@ class TestTimeSeries:
         expected = Series(index=index, dtype=object).asfreq("H")
         result = Series([3], index=index.copy()).asfreq("H")
         tm.assert_index_equal(expected.index, result.index)
-
-    def test_pct_change(self, datetime_series):
-        rs = datetime_series.pct_change(fill_method=None)
-        tm.assert_series_equal(rs, datetime_series / datetime_series.shift(1) - 1)
-
-        rs = datetime_series.pct_change(2)
-        filled = datetime_series.fillna(method="pad")
-        tm.assert_series_equal(rs, filled / filled.shift(2) - 1)
-
-        rs = datetime_series.pct_change(fill_method="bfill", limit=1)
-        filled = datetime_series.fillna(method="bfill", limit=1)
-        tm.assert_series_equal(rs, filled / filled.shift(1) - 1)
-
-        rs = datetime_series.pct_change(freq="5D")
-        filled = datetime_series.fillna(method="pad")
-        tm.assert_series_equal(
-            rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
-        )
-
-    def test_pct_change_with_duplicate_axis(self):
-        # GH 28664
-        common_idx = date_range("2019-11-14", periods=5, freq="D")
-        result = Series(range(5), common_idx).pct_change(freq="B")
-
-        # the reason that the expected should be like this is documented at PR 28681
-        expected = Series([np.NaN, np.inf, np.NaN, np.NaN, 3.0], common_idx)
-
-        tm.assert_series_equal(result, expected)
-
-    def test_pct_change_shift_over_nas(self):
-        s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
-
-        chg = s.pct_change()
-        expected = Series([np.nan, 0.5, 0.0, 2.5 / 1.5 - 1, 0.2])
-        tm.assert_series_equal(chg, expected)
-
-    @pytest.mark.parametrize(
-        "freq, periods, fill_method, limit",
-        [
-            ("5B", 5, None, None),
-            ("3B", 3, None, None),
-            ("3B", 3, "bfill", None),
-            ("7B", 7, "pad", 1),
-            ("7B", 7, "bfill", 3),
-            ("14B", 14, None, None),
-        ],
-    )
-    def test_pct_change_periods_freq(
-        self, freq, periods, fill_method, limit, datetime_series
-    ):
-        # GH 7292
-        rs_freq = datetime_series.pct_change(
-            freq=freq, fill_method=fill_method, limit=limit
-        )
-        rs_periods = datetime_series.pct_change(
-            periods, fill_method=fill_method, limit=limit
-        )
-        tm.assert_series_equal(rs_freq, rs_periods)
-
-        empty_ts = Series(index=datetime_series.index, dtype=object)
-        rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
-        rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
-        tm.assert_series_equal(rs_freq, rs_periods)
 
     def test_autocorr(self, datetime_series):
         # Just run the function
@@ -200,7 +137,9 @@ class TestTimeSeries:
         assert ts.last_valid_index().freq == ts.index.freq
 
     def test_mpl_compat_hack(self, datetime_series):
-        result = datetime_series[:, np.newaxis]
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            # GH#30588 multi-dimensional indexing deprecated
+            result = datetime_series[:, np.newaxis]
         expected = datetime_series.values[:, np.newaxis]
         tm.assert_almost_equal(result, expected)
 
@@ -564,10 +503,7 @@ class TestTimeSeries:
     def test_between_time_types(self):
         # GH11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        msg = (
-            r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\]"
-            " to a time"
-        )
+        msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
         with pytest.raises(ValueError, match=msg):
             rng.indexer_between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
@@ -794,14 +730,12 @@ class TestTimeSeries:
         # This shouldn't produce a warning.
         ser = pd.Series(pd.date_range("2000", periods=2))
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser)
+        result = np.asarray(ser)
 
         tm.assert_numpy_array_equal(result, expected)
 
         # optionally, object
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser, dtype=object)
+        result = np.asarray(ser, dtype=object)
 
         expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
@@ -810,15 +744,12 @@ class TestTimeSeries:
         tz = "US/Central"
         ser = pd.Series(pd.date_range("2000", periods=2, tz=tz))
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
-        # We warn by default and return an ndarray[M8[ns]]
-        with tm.assert_produces_warning(FutureWarning):
-            result = np.asarray(ser)
+        result = np.asarray(ser, dtype="datetime64[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
         # Old behavior with no warning
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser, dtype="M8[ns]")
+        result = np.asarray(ser, dtype="M8[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -826,7 +757,6 @@ class TestTimeSeries:
         expected = np.array(
             [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
         )
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser, dtype=object)
+        result = np.asarray(ser, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)

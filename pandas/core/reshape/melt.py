@@ -51,9 +51,8 @@ def melt(
             missing = Index(com.flatten(id_vars)).difference(cols)
             if not missing.empty:
                 raise KeyError(
-                    "The following 'id_vars' are not present"
-                    " in the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    "The following 'id_vars' are not present "
+                    f"in the DataFrame: {list(missing)}"
                 )
     else:
         id_vars = []
@@ -73,9 +72,8 @@ def melt(
             missing = Index(com.flatten(value_vars)).difference(cols)
             if not missing.empty:
                 raise KeyError(
-                    "The following 'value_vars' are not present in"
-                    " the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    "The following 'value_vars' are not present in "
+                    f"the DataFrame: {list(missing)}"
                 )
         frame = frame.loc[:, id_vars + value_vars]
     else:
@@ -192,7 +190,9 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
+def wide_to_long(
+    df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
+) -> DataFrame:
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 

@@ -273,6 +273,8 @@ Metadata
 
 :attr:`DataFrame.attrs` is a dictionary for storing global metadata for this DataFrame.
 
+.. warning:: ``DataFrame.attrs`` is considered experimental and may change without warning.
+
 .. autosummary::
    :toctree: api/
 
@@ -361,4 +363,5 @@ Serialization / IO / conversion
    DataFrame.to_records
    DataFrame.to_string
    DataFrame.to_clipboard
+   DataFrame.to_markdown
    DataFrame.style
