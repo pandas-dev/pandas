@@ -1049,7 +1049,9 @@ def convert_dtypes(
         try:
             inferred_dtype = lib.infer_dtype(input_array)
         except ValueError:
+            # Required to catch due to Period.  Can remove once GH 23553 is fixed
             inferred_dtype = input_array.dtype
+
         if not convert_string and is_string_dtype(inferred_dtype):
             inferred_dtype = input_array.dtype
 
