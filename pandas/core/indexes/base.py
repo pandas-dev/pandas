@@ -68,7 +68,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -4627,48 +4626,40 @@ class Index(IndexOpsMixin, PandasObject):
             # would convert to numpy arrays and raise later any way) - GH29926
             raise InvalidIndexError(key)
 
-        # if we have something that is Index-like, then
-        # use this, e.g. DatetimeIndex
-        # Things like `Series._get_value` (via .at) pass the EA directly here.
-        s = extract_array(series, extract_numpy=True)
-        if isinstance(s, ExtensionArray):
+        try:
             # GH 20882, 21257
             # First try to convert the key to a location
             # If that fails, raise a KeyError if an integer
             # index, otherwise, see if key is an integer, and
             # try that
-            try:
-                iloc = self.get_loc(key)
-                return s[iloc]
-            except KeyError:
-                if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                    raise
-                elif is_integer(key):
-                    return s[key]
-
-        k = self._convert_scalar_indexer(key, kind="getitem")
-        try:
-            loc = self._engine.get_loc(k)
-
-        except KeyError as e1:
+            loc = self._engine.get_loc(key)
+        except KeyError:
             if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
                 raise
-
-            try:
-                return libindex.get_value_at(s, key)
-            except IndexError:
+            elif is_integer(key):
+                # If the Index cannot hold integer, then this is unambiguously
+                #  a locational lookup.
+                loc = key
+            else:
                 raise
-            except Exception:
-                raise e1
-        except TypeError:
-            # e.g. "[False] is an invalid key"
-            raise IndexError(key)
 
-        else:
-            if is_scalar(loc):
-                tz = getattr(series.dtype, "tz", None)
-                return libindex.get_value_at(s, loc, tz=tz)
-            return series.iloc[loc]
+        return self._get_values_for_loc(series, loc)
+
+    def _get_values_for_loc(self, series, loc):
+        """
+        Do a positional lookup on the given Series, returning either a scalar
+        or a Series.
+
+        Assumes that `series.index is self`
+        """
+        if is_integer(loc):
+            if isinstance(series._values, np.ndarray):
+                # Since we have an ndarray and not DatetimeArray, we dont
+                #  have to worry about a tz.
+                return libindex.get_value_at(series._values, loc, tz=None)
+            return series._values[loc]
+
+        return series.iloc[loc]
 
     def set_value(self, arr, key, value):
         """
