@@ -305,7 +305,7 @@ corresponding to your data.
             <div id="collapseFive" class="collapse" data-parent="#accordion"> 
                 <div class="card-body"> 
 
-There is no need to loop over all rows of your data table to do calculations, data manipulations on a column work elementwise. 
+There is no need to loop over all rows of your data table to do calculations. Data manipulations on a column work elementwise. 
 Adding a column to a :class:`DataFrame` based on existing data in other columns is straightforward.
 
 .. image:: ../../_static/schemas/05_newcolumn_2.svg
@@ -323,7 +323,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
                         </span>
                         <span class="badge gs-badge-link">
 
-:ref:`To user guide <visualization>`
+:ref:`To user guide <basics.dataframe.sel_add_del>`
 
 .. raw:: html
 
@@ -333,7 +333,52 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
             </div> 
         </div>
 
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseSix"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How to calculate summary statistics?
+                    </div>
+                    <span class="badge gs-badge-link">
 
+:ref:`Straight to tutorial...<10min_tut_06_stats>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseSix" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+Basic statistics (mean, median, min, max, counts...) are easily calculable. These statistics can be applied on the entire 
+data set, a sliding window of the data or grouped by categories. The latter is also known as the split-apply-combine approach.
+
+.. image:: ../../_static/schemas/06_groupby.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_06_stats>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <groupby>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div>
 
 
     </div> 
