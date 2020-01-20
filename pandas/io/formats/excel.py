@@ -1,13 +1,16 @@
-"""Utilities for conversion to writer-agnostic Excel representation
+"""
+Utilities for conversion to writer-agnostic Excel representation.
 """
 
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, Optional, Sequence, Union
 import warnings
 
 import numpy as np
+
+from pandas._typing import Label
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
@@ -371,10 +374,10 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: Optional[str] = None,
-        cols: Optional[Sequence] = None,
-        header: Union[bool, List[str]] = True,
+        cols: Optional[Sequence[Label]] = None,
+        header: Union[Sequence[Label], bool] = True,
         index: bool = True,
-        index_label: Union[str, Sequence, None] = None,
+        index_label: Optional[Union[Label, Sequence[Label]]] = None,
         merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Optional[Callable] = None,
