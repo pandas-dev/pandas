@@ -1101,7 +1101,7 @@ def test_constructor_before_dst_switch():
     # nonexistent time
     epoch = 1552211999999999872
     ts = Timestamp(epoch, tz="dateutil/US/Pacific")
-    delta = ts - datetime.utcfromtimestamp(0)
+    delta = ts.replace(tzinfo=None) - datetime.utcfromtimestamp(0)
     assert delta.total_seconds() < 1552183200
     expected = timedelta(seconds=0)
     result = ts.tz.dst(ts)
