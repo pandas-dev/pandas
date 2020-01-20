@@ -393,6 +393,20 @@ class TestFloat64Index(Numeric):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
+    def test_get_value_datetimelike(self):
+        # If we have datetime64 or timedelta64 values, make sure they are
+        #  wrappped correctly
+        dti = pd.date_range("2016-01-01", periods=3)
+        tdi = dti - dti
+
+        for vals in [dti, tdi]:
+            ser = pd.Series(vals)
+            ser.index = ser.index.astype("float64")
+
+            result = ser.index.get_value(ser, 1.0)
+            expected = vals[1]
+            assert isinstance(result, type(expected)) and result == expected
+
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
         assert np.nan in i
