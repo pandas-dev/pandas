@@ -385,11 +385,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self._shallow_copy(result, name=name)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
         if is_scalar(key) and isna(key):
             return self.hasnans
 
+        hash(key)
         return contains(self, key, container=self._engine)
 
     def __array__(self, dtype=None) -> np.ndarray:

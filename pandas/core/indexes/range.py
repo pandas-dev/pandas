@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Optional, Union
+from typing import Any, Optional
 import warnings
 
 import numpy as np
@@ -332,7 +332,7 @@ class RangeIndex(Int64Index):
     def has_duplicates(self) -> bool:
         return False
 
-    def __contains__(self, key: Union[int, np.integer]) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             key = ensure_python_int(key)

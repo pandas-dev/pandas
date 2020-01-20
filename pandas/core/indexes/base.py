@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Dict, FrozenSet, Hashable, Optional, Union
+from typing import Any, Dict, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -4144,7 +4144,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             return key in self._engine

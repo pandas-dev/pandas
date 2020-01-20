@@ -1,6 +1,6 @@
 import datetime
 from sys import getsizeof
-from typing import Hashable, List, Optional, Sequence, Union
+from typing import Any, Hashable, List, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -973,7 +973,7 @@ class MultiIndex(Index):
         return self._shallow_copy(values, **kwargs)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             self.get_loc(key)
