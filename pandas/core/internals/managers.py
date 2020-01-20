@@ -279,30 +279,7 @@ class BlockManager(PandasObject):
                 unpickle_block(b["values"], b["mgr_locs"]) for b in state["blocks"]
             )
         else:
-            # discard anything after 3rd, support beta pickling format for a
-            # little while longer
-            ax_arrays, bvalues, bitems = state[:3]
-
-            self.axes = [ensure_index(ax) for ax in ax_arrays]
-
-            if len(bitems) == 1 and self.axes[0].equals(bitems[0]):
-                # This is a workaround for pre-0.14.1 pickles that didn't
-                # support unpickling multi-block frames/panels with non-unique
-                # columns/items, because given a manager with items ["a", "b",
-                # "a"] there's no way of knowing which block's "a" is where.
-                #
-                # Single-block case can be supported under the assumption that
-                # block items corresponded to manager items 1-to-1.
-                all_mgr_locs = [slice(0, len(bitems[0]))]
-            else:
-                all_mgr_locs = [
-                    self.axes[0].get_indexer(blk_items) for blk_items in bitems
-                ]
-
-            self.blocks = tuple(
-                unpickle_block(values, mgr_locs)
-                for values, mgr_locs in zip(bvalues, all_mgr_locs)
-            )
+            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()
 
@@ -670,12 +647,6 @@ class BlockManager(PandasObject):
         return all(block.is_numeric for block in self.blocks)
 
     @property
-    def is_datelike_mixed_type(self):
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
-        return any(block.is_datelike for block in self.blocks)
-
-    @property
     def any_extension_types(self):
         """Whether any of the blocks in this manager are extension blocks"""
         return any(block.is_extension for block in self.blocks)
@@ -795,16 +766,14 @@ class BlockManager(PandasObject):
         res.axes = new_axes
         return res
 
-    def as_array(self, transpose=False, items=None):
-        """Convert the blockmanager data into an numpy array.
+    def as_array(self, transpose: bool = False) -> np.ndarray:
+        """
+        Convert the blockmanager data into an numpy array.
 
         Parameters
         ----------
         transpose : boolean, default False
             If True, transpose the return array
-        items : list of strings or None
-            Names of block items that will be included in the returned
-            array. ``None`` means that all block items will be used
 
         Returns
         -------
@@ -814,10 +783,7 @@ class BlockManager(PandasObject):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose() if transpose else arr
 
-        if items is not None:
-            mgr = self.reindex_axis(items, axis=0)
-        else:
-            mgr = self
+        mgr = self
 
         if self._is_single_block and mgr.blocks[0].is_datetimetz:
             # TODO(Block.get_values): Make DatetimeTZBlock.get_values
@@ -1341,7 +1307,7 @@ class BlockManager(PandasObject):
                     # only one item and each mgr loc is a copy of that single
                     # item.
                     for mgr_loc in mgr_locs:
-                        newblk = blk.copy(deep=True)
+                        newblk = blk.copy(deep=False)
                         newblk.mgr_locs = slice(mgr_loc, mgr_loc + 1)
                         blocks.append(newblk)
 
@@ -1560,9 +1526,11 @@ class SingleBlockManager(BlockManager):
         return np.array([self._block.dtype])
 
     def external_values(self):
+        """The array that Series.values returns"""
         return self._block.external_values()
 
     def internal_values(self):
+        """The array that Series._values returns"""
         return self._block.internal_values()
 
     def get_values(self):

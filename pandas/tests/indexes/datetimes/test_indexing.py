@@ -86,7 +86,9 @@ class TestGetItem:
 
     def test_dti_business_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END)
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
@@ -110,7 +112,9 @@ class TestGetItem:
 
     def test_dti_custom_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END, freq="C")
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
@@ -617,17 +621,21 @@ class TestDatetimeIndex:
         # specifically make sure we have test for np.datetime64 key
         dti = pd.date_range("2016-01-01", periods=3)
 
-        arr = np.arange(6, 8)
+        arr = np.arange(6, 9)
+        ser = pd.Series(arr, index=dti)
 
         key = dti[1]
 
-        result = dti.get_value(arr, key)
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            dti.get_value(arr, key)
+
+        result = dti.get_value(ser, key)
         assert result == 7
 
-        result = dti.get_value(arr, key.to_pydatetime())
+        result = dti.get_value(ser, key.to_pydatetime())
         assert result == 7
 
-        result = dti.get_value(arr, key.to_datetime64())
+        result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
 
     def test_get_loc(self):

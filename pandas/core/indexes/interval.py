@@ -259,6 +259,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         closed : Any
             Ignored.
         """
+        assert isinstance(array, IntervalArray), type(array)
+
         result = IntervalMixin.__new__(cls)
         result._data = array
         result.name = name
@@ -372,7 +374,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         right = self._maybe_convert_i8(self.right)
         return IntervalTree(left, right, closed=self.closed)
 
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         """
         return a boolean if this key is IN the index
         We *only* accept an Interval
@@ -385,6 +387,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         -------
         bool
         """
+        hash(key)
         if not isinstance(key, Interval):
             return False
 
@@ -403,10 +406,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         """
         Return the IntervalIndex's data as an IntervalArray.
         """
-        return self._data
-
-    @cache_readonly
-    def _values(self):
         return self._data
 
     def __array_wrap__(self, result, context=None):
@@ -437,22 +436,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         # so return the bytes here
         return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)
 
-    @cache_readonly
-    def is_monotonic(self) -> bool:
-        """
-        Return True if the IntervalIndex is monotonic increasing (only equal or
-        increasing values), else False
-        """
-        return self.is_monotonic_increasing
-
-    @cache_readonly
-    def is_monotonic_increasing(self) -> bool:
-        """
-        Return True if the IntervalIndex is monotonic increasing (only equal or
-        increasing values), else False
-        """
-        return self._engine.is_monotonic_increasing
-
+    # IntervalTree doesn't have a is_monotonic_decreasing, so have to override
+    #  the Index implemenation
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """
@@ -486,7 +471,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return True
 
     @property
-    def is_overlapping(self):
+    def is_overlapping(self) -> bool:
         """
         Return True if the IntervalIndex has overlapping intervals, else False.
 
@@ -580,7 +565,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if self.is_overlapping and len(indexer):
             raise ValueError("cannot reindex from an overlapping axis")
 
-    def _needs_i8_conversion(self, key):
+    def _needs_i8_conversion(self, key) -> bool:
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
         Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
@@ -1054,7 +1039,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         return np.lexsort((self.right, self.left))
 
     def equals(self, other) -> bool:
@@ -1069,7 +1054,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if not isinstance(other, IntervalIndex):
             if not is_interval_dtype(other):
                 return False
-            other = Index(getattr(other, ".values", other))
+            other = Index(other)
 
         return (
             self.left.equals(other.left)

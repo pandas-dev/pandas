@@ -71,7 +71,9 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        new_index = index[None, :]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
@@ -245,7 +247,7 @@ class TestIndex(Base):
             def __init__(self, array):
                 self.array = array
 
-            def __array__(self, dtype=None):
+            def __array__(self, dtype=None) -> np.ndarray:
                 return self.array
 
         expected = pd.Index(array)
@@ -1913,7 +1915,12 @@ class TestIndex(Base):
         values = np.random.randn(100)
         value = index[67]
 
-        tm.assert_almost_equal(index.get_value(values, value), values[67])
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            # Index.get_value requires a Series, not an ndarray
+            index.get_value(values, value)
+
+        result = index.get_value(Series(values, index=values), value)
+        tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -2784,9 +2791,35 @@ def test_shape_of_invalid_index():
     # about this). However, as long as this is not solved in general,this test ensures
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
-    a = np.arange(8).reshape(2, 2, 2)
-    idx = pd.Index(a)
-    assert idx.shape == a.shape
-
     idx = pd.Index([0, 1, 2, 3])
-    assert idx[:, None].shape == (4, 1)
+    with tm.assert_produces_warning(DeprecationWarning):
+        # GH#30588 multi-dimensional indexing deprecated
+        assert idx[:, None].shape == (4, 1)
+
+
+def test_validate_1d_input():
+    # GH#27125 check that we do not have >1-dimensional input
+    msg = "Index data must be 1-dimensional"
+
+    arr = np.arange(8).reshape(2, 2, 2)
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(arr)
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Float64Index(arr.astype(np.float64))
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Int64Index(arr.astype(np.int64))
+
+    with pytest.raises(ValueError, match=msg):
+        pd.UInt64Index(arr.astype(np.uint64))
+
+    df = pd.DataFrame(arr.reshape(4, 2))
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(df)
+
+    # GH#13601 trying to assign a multi-dimensional array to an index is not
+    #  allowed
+    ser = pd.Series(0, range(4))
+    with pytest.raises(ValueError, match=msg):
+        ser.index = np.array([[2, 3]] * 4)

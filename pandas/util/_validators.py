@@ -297,7 +297,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
             "arguments to remove any ambiguity. In the future, using "
             "positional arguments for 'index' or 'columns' will raise "
-            " a 'TypeError'."
+            "a 'TypeError'."
         )
         warnings.warn(msg.format(method_name=method_name), FutureWarning, stacklevel=4)
         out[data._AXIS_NAMES[0]] = args[0]
