@@ -7,7 +7,7 @@ from pandas._libs import index as libindex
 from pandas._libs.tslibs import NaT, frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -29,7 +29,6 @@ from pandas.core.arrays.period import (
     raise_on_incompatible,
     validate_dtype_freq,
 )
-from pandas.core.base import _shared_docs
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -454,11 +453,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         # TODO: should probably raise on `how` here, so we don't ignore it.
         return super().astype(dtype, copy=copy)
-
-    @Substitution(klass="PeriodIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @property
     def is_full(self) -> bool:
