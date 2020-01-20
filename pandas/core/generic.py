@@ -30,7 +30,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import NaT, Timestamp, iNaT, lib, properties
+from pandas._libs import Timestamp, iNaT, lib, properties
 from pandas._typing import (
     Axis,
     Dtype,
@@ -9640,18 +9640,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         def describe_timestamp_1d(data):
             # GH-30164
-            tz = data.dt.tz
-            asint = data.dropna().values.view("i8")
-            is_empty = asint.shape[0] == 0
             stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
             d = (
-                [
-                    asint.shape[0],
-                    Timestamp(asint.mean(), tz=tz) if not is_empty else NaT,
-                    Timestamp(asint.min(), tz=tz) if not is_empty else NaT,
-                ]
+                [data.count(), data.mean(), data.min()]
                 + data.quantile(percentiles).tolist()
-                + [Timestamp(asint.max(), tz=tz) if not is_empty else NaT]
+                + [data.max()]
             )
             return pd.Series(d, index=stat_index, name=data.name)
 
