@@ -521,6 +521,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             key = check_array_indexer(self, key)
 
         if com.is_bool_indexer(key):
+            # can still have object dtype
+            key = np.asarray(key, dtype=bool)
             if key.all():
                 key = slice(0, None, None)
             else:

@@ -2001,12 +2001,12 @@ class Categorical(ExtensionArray, PandasObject):
             else:
                 return self.categories[i]
 
-        if is_list_like(key):
+        if is_list_like(key) and not isinstance(key, tuple):
             key = check_array_indexer(self, key)
 
         result = self._codes[key]
         if result.ndim > 1:
-            return result
+            raise IndexError("Cannot user indexer with multiple dimensions")
         return self._constructor(result, dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):
