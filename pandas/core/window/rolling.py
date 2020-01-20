@@ -1203,7 +1203,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs["apply"] = dedent(
         r"""
-    The %(name)s function's apply function.
+    Apply an arbitrary function to each %(name)s window.
 
     Parameters
     ----------

@@ -583,12 +583,10 @@ class SelectionMixin:
 class ShallowMixin:
     _attributes: List[str] = []
 
-    def _shallow_copy(self, obj=None, **kwargs):
+    def _shallow_copy(self, obj, **kwargs):
         """
         return a new object with the replacement attributes
         """
-        if obj is None:
-            obj = self._selected_obj.copy()
 
         if isinstance(obj, self._constructor):
             obj = obj.obj

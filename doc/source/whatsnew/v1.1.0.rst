@@ -59,7 +59,8 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :class:`Timestamp` where constructing :class:`Timestamp` from ambiguous epoch time and calling constructor again changed :meth:`Timestamp.value` property (:issue:`24329`)
+- :meth:`DatetimeArray.searchsorted`, :meth:`TimedeltaArray.searchsorted`, :meth:`PeriodArray.searchsorted` not recognizing non-pandas scalars and incorrectly raising ``ValueError`` instead of ``TypeError`` (:issue:`30950`)
 -
 
 Timedelta
@@ -82,7 +83,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-
+- Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
 -
 -
 
@@ -101,7 +102,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-
+- Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
 -
 -
 
@@ -132,15 +133,16 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
--
-
+- Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 
 Reshaping
 ^^^^^^^^^
 
 -
--
+- Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Fix incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
+- Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
+
 
 Sparse
 ^^^^^^

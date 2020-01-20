@@ -421,8 +421,7 @@ class MilliSecondLocator(dates.DateLocator):
         if estimate > self.MAXTICKS * 2:
             raise RuntimeError(
                 "MillisecondLocator estimated to generate "
-                f"{estimate:d} ticks from {dmin} to {dmax}: "
-                "exceeds Locator.MAXTICKS"
+                f"{estimate:d} ticks from {dmin} to {dmax}: exceeds Locator.MAXTICKS"
                 f"* 2 ({self.MAXTICKS * 2:d}) "
             )
 

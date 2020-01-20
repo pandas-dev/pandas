@@ -389,9 +389,8 @@ def validate_resampler_func(method: str, args, kwargs) -> None:
     if len(args) + len(kwargs) > 0:
         if method in RESAMPLER_NUMPY_OPS:
             raise UnsupportedFunctionCall(
-                f"numpy operations are not "
-                f"valid with resample. Use "
-                f".resample(...).{method}() instead"
+                "numpy operations are not valid with resample. "
+                f"Use .resample(...).{method}() instead"
             )
         else:
             raise TypeError("too many arguments passed in")

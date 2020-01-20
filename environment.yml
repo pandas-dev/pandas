@@ -27,7 +27,6 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - sphinx
-  - numpydoc>=0.9.0
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -105,3 +104,4 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - pip:
     - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+    - git+https://github.com/numpy/numpydoc
