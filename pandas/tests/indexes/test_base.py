@@ -1915,7 +1915,12 @@ class TestIndex(Base):
         values = np.random.randn(100)
         value = index[67]
 
-        tm.assert_almost_equal(index.get_value(values, value), values[67])
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            # Index.get_value requires a Series, not an ndarray
+            index.get_value(values, value)
+
+        result = index.get_value(Series(values, index=values), value)
+        tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
