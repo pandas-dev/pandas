@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, Sequence
+from typing import Any, DefaultDict, List, Sequence, Tuple
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -8,15 +8,24 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index
 
 
+"""
+aggregation.py contains utility functions to handle multiple named and lambda
+kwarg aggregations in groupby and DataFrame/Series aggregation
+"""
+
+
 def is_multi_agg_with_relabel(**kwargs) -> bool:
     """
     Check whether kwargs passed to .agg look like multi-agg with relabeling.
+
     Parameters
     ----------
     **kwargs : dict
+
     Returns
     -------
     bool
+
     Examples
     --------
     >>> is_multi_agg_with_relabel(a='max')
@@ -32,14 +41,16 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
     )
 
 
-def normalize_keyword_aggregation(kwargs):
+def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[int]]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
     to the old Dict[str, List[scalar]]].
+
     Parameters
     ----------
     kwargs : dict
+
     Returns
     -------
     aggspec : dict
@@ -48,6 +59,7 @@ def normalize_keyword_aggregation(kwargs):
         The user-provided keys.
     col_idx_order : List[int]
         List of columns indices.
+
     Examples
     --------
     >>> normalize_keyword_aggregation({'output': ('input', 'sum')})
@@ -84,8 +96,9 @@ def normalize_keyword_aggregation(kwargs):
     return aggspec, columns, col_idx_order
 
 
-def _make_unique(seq):
+def _make_unique_kwarg_list(seq: List[tuple]) -> List[tuple]:
     """Uniquify aggfunc name of the pairs in the order list
+
     Examples:
     --------
     >>> _make_unique([('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')])
@@ -109,14 +122,17 @@ def _make_unique(seq):
 def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     """
     Possibly mangle a list of aggfuncs.
+
     Parameters
     ----------
     aggfuncs : Sequence
+
     Returns
     -------
     mangled: list-like
         A new AggSpec sequence, where lambdas have been converted
         to have unique names.
+
     Notes
     -----
     If just one aggfunc is passed, the name will not be mangled.
@@ -139,6 +155,7 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
 def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     """
     Make new lambdas with unique names.
+
     Parameters
     ----------
     agg_spec : Any
@@ -146,10 +163,12 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
         Non-dict-like `agg_spec` are pass through as is.
         For dict-like `agg_spec` a new spec is returned
         with name-mangled lambdas.
+
     Returns
     -------
     mangled : Any
         Same type as the input.
+
     Examples
     --------
     >>> maybe_mangle_lambdas('sum')
