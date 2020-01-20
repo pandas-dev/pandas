@@ -498,12 +498,7 @@ class MyTz(datetime.tzinfo):
 def test_read_pickle_with_subclass():
     # GH 12163
     expected = pd.Series(dtype=object), MyTz()
-
-    with tm.ensure_clean() as path:
-        with open(path, "wb") as f:
-            pickle.dump(expected, f)
-
-        result = pd.read_pickle(path)
+    result = tm.round_trip_pickle(expected)
 
     tm.assert_series_equal(result[0], expected[0])
     assert isinstance(result[1], MyTz)
