@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
-from pandas._typing import FrameOrSeries, Label
+from pandas._typing import FrameOrSeriesUnion, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -2464,7 +2464,7 @@ Name: Max Speed, dtype: float64
 
     def append(
         self, to_append, ignore_index=False, verify_integrity=False
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeriesUnion:
         """
         Concatenate two or more Series.
 
