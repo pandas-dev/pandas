@@ -8,7 +8,9 @@
     import matplotlib.pyplot as plt
     # use the pandas main colors
     import matplotlib as mpl
-    mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["#150458", "#FFCA00", "#E70488"])
+    mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["#150458",
+                                                        "#FFCA00",
+                                                        "#E70488"])
 
 .. raw:: html
 
@@ -129,7 +131,9 @@ standard Python to get an overview of the available plot methods:
 
 .. ipython:: python
 
-    [method_name for method_name in dir(air_quality.plot) if not method_name.startswith("_") ]
+    [method_name for method_name in dir(air_quality.plot) \
+        if not method_name.startswith("_")
+    ]
 
 .. note::
     In many development environments as well as ipython and

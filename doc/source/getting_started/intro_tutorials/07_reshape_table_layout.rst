@@ -173,11 +173,12 @@ called ``no2_subset``
 
 .. ipython:: python
 
-    no2 = air_quality[air_quality["parameter"] == "no2"] # filter for no2 data only
+    no2 = air_quality[air_quality["parameter"] == "no2"]  # filter for no2 data only
 
 .. ipython:: python
 
-    no2_subset = no2.sort_index().groupby(["location"]).head(2) # use 2 measurements (head) for each location (groupby)
+    # use 2 measurements (head) for each location (groupby)
+    no2_subset = no2.sort_index().groupby(["location"]).head(2)
     no2_subset
 
 .. image:: ../../_static/schemas/07_pivot.svg

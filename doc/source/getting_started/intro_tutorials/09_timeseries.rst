@@ -211,7 +211,7 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
                                                               ax=axs)
     plt.xlabel("Hour of the day");  # custom x label using matplotlib
     @savefig 09_bar_chart.png
-    plt.ylabel("$NO_2\;(µg/m^3)$");
+    plt.ylabel("$NO_2 (µg/m^3)$");
 
 Similar to the previous case, we want to calculate a given statistic
 (e.g. mean :math:`NO_2`) **for each hour of the day** and we can use the

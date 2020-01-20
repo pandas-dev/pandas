@@ -95,7 +95,8 @@ I want to check the ratio of the values in Paris versus Antwerp and save the res
 
 .. ipython:: python
 
-    air_quality["ratio_paris_antwerp"] = air_quality["station_paris"] / air_quality["station_antwerp"]
+    air_quality["ratio_paris_antwerp"] = \
+        air_quality["station_paris"] / air_quality["station_antwerp"]
     air_quality.head()
 
 The calculation is again element-wise, so the ``/`` is applied *for the
@@ -120,9 +121,10 @@ I want to rename the data columns to the corresponding station identifiers used 
 
 .. ipython:: python
 
-    air_quality_renamed = air_quality.rename(columns = {"station_antwerp": "BETR801",
-                                                        "station_paris": "FR04014",
-                                                        "station_london": "London Westminster"})
+    air_quality_renamed = air_quality.rename(
+        columns={"station_antwerp": "BETR801",
+                 "station_paris": "FR04014",
+                 "station_london": "London Westminster"})
 
 .. ipython:: python
 
@@ -143,7 +145,7 @@ lowercase letters can be done using a function as well:
 
 .. ipython:: python
 
-    air_quality_renamed = air_quality_renamed.rename(columns = str.lower)
+    air_quality_renamed = air_quality_renamed.rename(columns=str.lower)
     air_quality_renamed.head()
 
 .. raw:: html

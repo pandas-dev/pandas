@@ -43,11 +43,11 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
 
     df = pd.DataFrame({
         "Name": ["Braund, Mr. Owen Harris",
-                 "Allen, Mr. William Henry",
-                 "Bonnell, Miss. Elizabeth"],
+                "Allen, Mr. William Henry",
+                "Bonnell, Miss. Elizabeth"],
         "Age": [22, 35, 58],
         "Sex": ["male", "male", "female"]}
-        )
+                     )
     df
 
 To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and
@@ -111,7 +111,7 @@ You can create a ``Series`` from scratch as well:
 
 .. ipython:: python
 
-    ages = pd.Series([22, 35, 58], name = "Age")
+    ages = pd.Series([22, 35, 58], name="Age")
     ages
 
 A pandas ``Series`` has no column labels, as it is just a single column
