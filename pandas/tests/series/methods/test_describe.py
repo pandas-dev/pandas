@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas import Series, Timestamp, date_range
+from pandas import Period, Series, Timedelta, Timestamp, date_range
 import pandas._testing as tm
 
 
@@ -26,6 +26,36 @@ class TestSeriesDescribe:
         result = s.describe()
         expected = Series(
             [5, 4, "a", 2], name="str_data", index=["count", "unique", "top", "freq"]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series(
+            [
+                Timedelta("1 days"),
+                Timedelta("2 days"),
+                Timedelta("3 days"),
+                Timedelta("4 days"),
+                Timedelta("5 days"),
+            ],
+            name="timedelta_data",
+        )
+        result = s.describe()
+        expected = Series(
+            [5, s[2], s.std(), s[0], s[1], s[2], s[3], s[4]],
+            name="timedelta_data",
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series(
+            [Period("2020-01", "M"), Period("2020-01", "M"), Period("2019-12", "M")],
+            name="period_data",
+        )
+        result = s.describe()
+        expected = Series(
+            [3, 2, s[0], 2],
+            name="period_data",
+            index=["count", "unique", "top", "freq"],
         )
         tm.assert_series_equal(result, expected)
 
@@ -57,13 +87,14 @@ class TestSeriesDescribe:
         expected = Series(
             [
                 5,
-                5,
-                s.value_counts().index[0],
-                1,
+                Timestamp(2018, 1, 3).tz_localize(tz),
                 start.tz_localize(tz),
+                s[1],
+                s[2],
+                s[3],
                 end.tz_localize(tz),
             ],
             name=name,
-            index=["count", "unique", "top", "freq", "first", "last"],
+            index=["count", "mean", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)

@@ -22,6 +22,17 @@ Other enhancements
 -
 -
 
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
+  will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
