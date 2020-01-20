@@ -36,13 +36,9 @@ def _assert_not_series_equal(a, b, **kwargs):
     kwargs : dict
         The arguments passed to `tm.assert_series_equal`.
     """
-    try:
+    msg = "The two Series were equal when they shouldn't have been"
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(a, b, **kwargs)
-        msg = "The two Series were equal when they shouldn't have been"
-
-        pytest.fail(msg=msg)
-    except AssertionError:
-        pass
 
 
 def _assert_not_series_equal_both(a, b, **kwargs):
