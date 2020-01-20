@@ -22,6 +22,83 @@ How the documentation is organized
 
 Pandas has a lot of documentation. A high-level overview of how it’s organized will help you know where to look for certain things:
 
+
+.. raw:: html
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                Getting started
+                <div class="card-body flex-fill">
+                    <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>data.frame</code> data structure and multiple packages,
+                        such as <a href="https://www.tidyverse.org/">tidyverse</a> use and extend <code>data.frame</code>s for convenient data handling
+                        functionalities similar to pandas.</p>
+
+.. container:: custom-button
+
+    :ref:`Learn more <compare_with_r>`
+
+.. raw:: html
+
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="../_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72">
+                <div class="card-body flex-fill">
+                    <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>,...?
+                    Most of these SQL manipulations do have equivalents in pandas.</p>
+
+.. container:: custom-button
+
+    :ref:`Learn more <compare_with_sql>`
+
+.. raw:: html
+
+                    </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                    <div class="card text-center intro-card shadow">
+                    <img src="../_static/logo_stata.svg" class="card-img-top" alt="STATA logo" height="52">
+                    <div class="card-body flex-fill">
+                        <p class="card-text">The <code>data set</code> included in the
+                            <a href="https://en.wikipedia.org/wiki/Stata">STATA</a> statistical software suite corresponds
+                            to the pandas <code>data.frame</code>. Many of the operations known from STATA have an equivalent
+                            in pandas.</p>
+
+.. container:: custom-button
+
+    :ref:`Learn more <compare_with_stata>`
+
+.. raw:: html
+
+                    </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                    <div class="card text-center intro-card shadow">
+                    <img src="../_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52">
+                    <div class="card-body flex-fill">
+                        <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite
+                            also provides the <code>data set</code> corresponding to the pandas <code>data.frame</code>.
+                            Also vectorized operations, filtering, string processing operations,... from SAS have similar
+                            functions in pandas.</p>
+
+.. container:: custom-button
+
+    :ref:`Learn more <compare_with_sas>`
+
+.. raw:: html
+
+                    </div>
+                    </div>
+                </div>
+        </div>
+    </div>
+
 TODO -> 4 blokken (cfr. coming from)
 
 - :ref:`getting_started` contains a :ref:`_gentle_intro` first introduction to some of the main pandas core concepts. Furthermore, it contains an overview of
