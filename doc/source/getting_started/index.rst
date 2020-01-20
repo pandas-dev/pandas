@@ -352,7 +352,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
             <div id="collapseSix" class="collapse" data-parent="#accordion"> 
                 <div class="card-body"> 
 
-Basic statistics (mean, median, min, max, counts...) are easily calculable. These statistics can be applied on the entire 
+Basic statistics (mean, median, min, max, counts...) are easily calculable. These or custom aggregations can be applied on the entire 
 data set, a sliding window of the data or grouped by categories. The latter is also known as the split-apply-combine approach.
 
 .. image:: ../../_static/schemas/06_groupby.svg
@@ -371,6 +371,53 @@ data set, a sliding window of the data or grouped by categories. The latter is a
                         <span class="badge gs-badge-link">
 
 :ref:`To user guide <groupby>`
+
+.. raw:: html
+
+                        </span>
+                    </div>
+                </div> 
+            </div> 
+        </div>
+
+        <div class="card tutorial-card"> 
+            <div class="card-header collapsed card-link" data-toggle="collapse" data-target="#collapseSeven"> 
+                <div class="d-flex flex-row tutorial-card-header-1">
+                    <div class="d-flex flex-row tutorial-card-header-2">
+                        <button class="btn btn-dark btn-sm"></button>
+                        How to reshape the layout of tables?
+                    </div>
+                    <span class="badge gs-badge-link">
+
+:ref:`Straight to tutorial...<10min_tut_07_reshape>`
+
+.. raw:: html                    
+                    
+                    </span>
+                </div>        
+            </div> 
+            <div id="collapseSix" class="collapse" data-parent="#accordion"> 
+                <div class="card-body"> 
+
+Change the structure of your data table in multiple ways. You can :func:`~pandas.melt` your data table from wide to long/tidy form or :func:`~pandas.pivot` 
+from long to wide format. With aggregations built-in, a pivot table is created with a sinlge command.
+
+.. image:: ../../_static/schemas/07_melt.svg
+   :align: center
+
+.. raw:: html
+
+                    <div class="d-flex flex-row">
+                        <span class="badge gs-badge-link">
+
+:ref:`To introduction tutorial <10min_tut_07_reshape>`
+
+.. raw:: html
+
+                        </span>
+                        <span class="badge gs-badge-link">
+
+:ref:`To user guide <reshaping>`
 
 .. raw:: html
 
