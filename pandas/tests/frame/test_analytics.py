@@ -823,6 +823,16 @@ class TestDataFrameAnalytics:
         bools.sum(1)
         bools.sum(0)
 
+    def test_sum_mixed_datetime(self):
+        # GH#30886
+        df = pd.DataFrame(
+            {"A": pd.date_range("2000", periods=4), "B": [1, 2, 3, 4]}
+        ).reindex([2, 3, 4])
+        result = df.sum()
+
+        expected = pd.Series({"B": 7.0})
+        tm.assert_series_equal(result, expected)
+
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
         the_mean = float_string_frame.mean(axis=0)

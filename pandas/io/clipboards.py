@@ -69,8 +69,7 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
         kwargs["engine"] = "python"
     elif len(sep) > 1 and kwargs.get("engine") == "c":
         warnings.warn(
-            "read_clipboard with regex separator does not work "
-            "properly with c engine"
+            "read_clipboard with regex separator does not work properly with c engine"
         )
 
     return read_csv(StringIO(text), sep=sep, **kwargs)

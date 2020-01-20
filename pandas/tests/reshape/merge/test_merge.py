@@ -201,8 +201,8 @@ class TestMerge:
             merge(self.left, self.right, right_index=True)
 
         msg = (
-            'Can only pass argument "on" OR "left_on" and "right_on", not'
-            " a combination of both"
+            'Can only pass argument "on" OR "left_on" and "right_on", not '
+            "a combination of both"
         )
         with pytest.raises(pd.errors.MergeError, match=msg):
             merge(self.left, self.left, left_on="key", on="key")
@@ -1013,10 +1013,9 @@ class TestMerge:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
             msg = (
-                "Cannot use `indicator=True` option when data contains a"
-                " column named {}|"
-                "Cannot use name of an existing column for indicator"
-                " column"
+                "Cannot use `indicator=True` option when data contains a "
+                "column named {}|"
+                "Cannot use name of an existing column for indicator column"
             ).format(i)
             with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
@@ -1235,8 +1234,8 @@ class TestMerge:
         )
 
         msg = (
-            "Merge keys are not unique in either left or right dataset;"
-            " not a one-to-one merge"
+            "Merge keys are not unique in either left or right dataset; "
+            "not a one-to-one merge"
         )
         with pytest.raises(MergeError, match=msg):
             merge(left, right, on="a", validate="1:1")

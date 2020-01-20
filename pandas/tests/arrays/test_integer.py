@@ -363,24 +363,26 @@ class TestArithmeticOps(BaseOpsUtil):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_pow_scalar(self):
-        a = pd.array([0, 1, None, 2], dtype="Int64")
+        a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
         result = a ** 0
-        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** 1
-        expected = pd.array([0, 1, None, 2], dtype="Int64")
+        expected = pd.array([-1, 0, 1, None, 2], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** pd.NA
-        expected = pd.array([None, 1, None, None], dtype="Int64")
+        expected = pd.array([None, None, 1, None, None], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** np.nan
-        expected = np.array([np.nan, 1, np.nan, np.nan], dtype="float64")
+        expected = np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64")
         tm.assert_numpy_array_equal(result, expected)
 
         # reversed
+        a = a[1:]  # Can't raise integers to negative powers.
+
         result = 0 ** a
         expected = pd.array([1, 0, None, 0], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
@@ -1037,6 +1039,17 @@ def test_stat_method(pandasmethname, kwargs):
     pandasmeth = getattr(s2, pandasmethname)
     expected = pandasmeth(**kwargs)
     assert expected == result
+
+
+def test_value_counts_na():
+    arr = pd.array([1, 2, 1, pd.NA], dtype="Int64")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([2, 1, 1], index=[1, 2, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
 
 
 # TODO(jreback) - these need testing / are broken
