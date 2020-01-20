@@ -288,7 +288,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], dtype: Optional[str] = None, copy: bool = False
+        cls, strings: List[str], dtype=None, copy: bool = False
     ):
         def map_string(s):
             if isna(s):
