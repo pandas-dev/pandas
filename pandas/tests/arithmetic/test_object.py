@@ -325,7 +325,23 @@ class TestArithmetic:
         with pytest.raises(TypeError):
             np.array([True, pd.Timestamp.now()]) - index
 
-    def test_index_ops_defer_to_unknown_subclasses(self):
+    @pytest.mark.parametrize(
+        "other",
+        [
+            [datetime.timedelta(1), datetime.timedelta(2)],
+            [datetime.datetime(2000, 1, 1), datetime.datetime(2000, 1, 2)],
+            [pd.Period("2000"), pd.Period("2001")],
+            pytest.param(
+                [0, 1], marks=pytest.mark.xfail(reason="Expected is unknown.")
+            ),
+            pytest.param(
+                [0.0, 1.0], marks=pytest.mark.xfail(reason="Expected is unknown.")
+            ),
+            ["a", "b"],
+        ],
+        ids=["timedelta", "datetime", "period", "int", "float", "object"],
+    )
+    def test_index_ops_defer_to_unknown_subclasses(self, other):
         # https://github.com/pandas-dev/pandas/issues/31109
         class MyIndex(pd.Index):
 
@@ -343,7 +359,7 @@ class TestArithmetic:
 
             def __add__(self, other):
                 self._calls += 1
-                return self._simple_new(self._index_data + other.to_list())
+                return self._simple_new(self._index_data)
 
             def __radd__(self, other):
                 return self.__add__(other)
@@ -352,7 +368,7 @@ class TestArithmetic:
             [datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)], dtype=object
         )
         a = MyIndex._simple_new(values)
-        b = pd.timedelta_range("1D", periods=2, freq="D")
-        result = b + a
+        other = pd.Index(other)
+        result = other + a
         assert isinstance(result, MyIndex)
         assert a._calls == 1
