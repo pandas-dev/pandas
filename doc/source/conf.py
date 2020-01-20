@@ -231,7 +231,7 @@ html_logo = "../../web/pandas/static/img/pandas.svg"
 html_static_path = ["_static"]
 
 html_css_files = [
-    'css/getting_started.css',
+    "css/getting_started.css",
 ]
 
 # The name of an image file (within the static path) to use as favicon of the

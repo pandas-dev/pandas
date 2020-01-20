@@ -47,7 +47,7 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
                  "Bonnell, Miss. Elizabeth"],
         "Age": [22, 35, 58],
         "Sex": ["male", "male", "female"]}
-        )
+    )
     df
 
 To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and
