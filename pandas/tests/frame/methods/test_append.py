@@ -50,6 +50,10 @@ class TestDataFrameAppend:
         )
         tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
+        msg = "Can only append a dict if ignore_index=True"
+        with pytest.raises(TypeError, match=msg):
+            df.append(series.to_dict())
+
         # can append when name set
         row = df.loc[4]
         row.name = 5
