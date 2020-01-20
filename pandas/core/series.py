@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex, lib, reshape, tslibs
-from pandas._typing import Label
+from pandas._typing import Label, FrameOrSeriesUnion
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -2462,7 +2462,9 @@ Name: Max Speed, dtype: float64
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False):
+    def append(
+        self, to_append, ignore_index=False, verify_integrity=False
+    ) -> FrameOrSeriesUnion:
         """
         Concatenate two or more Series.
 
@@ -2539,13 +2541,6 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
-        for x in to_concat[1:]:
-            if isinstance(x, ABCDataFrame):
-                msg = (
-                    f"to_append should be a Series or list/tuple of Series, "
-                    f"got {type(x).__name__}"
-                )
-                raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
