@@ -70,6 +70,7 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
+from pandas.core.generic import NDFrame
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -4102,7 +4103,7 @@ Name: Max Speed, dtype: float64
             errors=errors,
         )
 
-    @doc(generic.NDFrame.fillna, **_shared_doc_kwargs)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
