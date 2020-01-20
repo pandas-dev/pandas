@@ -396,7 +396,7 @@ data set, a sliding window of the data or grouped by categories. The latter is a
                     </span>
                 </div>        
             </div> 
-            <div id="collapseSix" class="collapse" data-parent="#accordion"> 
+            <div id="collapseSeven" class="collapse" data-parent="#accordion"> 
                 <div class="card-body"> 
 
 Change the structure of your data table in multiple ways. You can :func:`~pandas.melt` your data table from wide to long/tidy form or :func:`~pandas.pivot` 
