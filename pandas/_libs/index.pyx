@@ -167,6 +167,15 @@ cdef class IndexEngine:
             int count
 
         indexer = self._get_index_values() == val
+        return self._unpack_bool_indexer(indexer, val)
+
+    cdef _unpack_bool_indexer(self,
+                              ndarray[uint8_t, ndim=1, cast=True] indexer,
+                              object val):
+        cdef:
+            ndarray[intp_t, ndim=1] found
+            int count
+
         found = np.where(indexer)[0]
         count = len(found)
 
@@ -648,7 +657,10 @@ cdef class BaseMultiIndexCodesEngine:
         # integers representing labels: we will use its get_loc and get_indexer
         self._base.__init__(self, lambda: lab_ints, len(lab_ints))
 
-    def _extract_level_codes(self, object target, object method=None):
+    def _codes_to_ints(self, codes):
+        raise NotImplementedError("Implemented by subclass")
+
+    def _extract_level_codes(self, object target):
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.

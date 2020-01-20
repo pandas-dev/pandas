@@ -10,24 +10,26 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, dtype, ctype, hashtable_name, hashtable_dtype
-dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
-          ('Float32', 'float32', 'float32_t', 'Float64', 'float64'),
-          ('Int64', 'int64', 'int64_t', 'Int64', 'int64'),
-          ('Int32', 'int32', 'int32_t', 'Int64', 'int64'),
-          ('Int16', 'int16', 'int16_t', 'Int64', 'int64'),
-          ('Int8', 'int8', 'int8_t', 'Int64', 'int64'),
-          ('UInt64', 'uint64', 'uint64_t', 'UInt64', 'uint64'),
-          ('UInt32', 'uint32', 'uint32_t', 'UInt64', 'uint64'),
-          ('UInt16', 'uint16', 'uint16_t', 'UInt64', 'uint64'),
-          ('UInt8', 'uint8', 'uint8_t', 'UInt64', 'uint64'),
+# name, dtype, hashtable_name
+dtypes = [('Float64', 'float64', 'Float64'),
+          ('Float32', 'float32', 'Float64'),
+          ('Int64', 'int64', 'Int64'),
+          ('Int32', 'int32', 'Int64'),
+          ('Int16', 'int16', 'Int64'),
+          ('Int8', 'int8', 'Int64'),
+          ('UInt64', 'uint64', 'UInt64'),
+          ('UInt32', 'uint32', 'UInt64'),
+          ('UInt16', 'uint16', 'UInt64'),
+          ('UInt8', 'uint8', 'UInt64'),
           ]
 }}
 
-{{for name, dtype, ctype, hashtable_name, hashtable_dtype in dtypes}}
+{{for name, dtype, hashtable_name in dtypes}}
 
 
 cdef class {{name}}Engine(IndexEngine):
+    # constructor-caller is responsible for ensuring that vgetter()
+    #  returns an ndarray with dtype {{dtype}}_t
 
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.{{hashtable_name}}HashTable(n)
@@ -41,22 +43,18 @@ cdef class {{name}}Engine(IndexEngine):
     cdef void _call_map_locations(self, values):
         # self.mapping is of type {{hashtable_name}}HashTable,
         # so convert dtype of values
-        self.mapping.map_locations(algos.ensure_{{hashtable_dtype}}(values))
-
-    cdef _get_index_values(self):
-        return algos.ensure_{{dtype}}(self.vgetter())
+        self.mapping.map_locations(algos.ensure_{{hashtable_name.lower()}}(values))
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
             ndarray[intp_t, ndim=1] found
-            ndarray[{{ctype}}] values
+            ndarray[{{dtype}}_t, ndim=1] values
             int count = 0
 
         self._check_type(val)
 
-        # A view is needed for some subclasses, such as PeriodEngine:
-        values = self._get_index_values().view('{{dtype}}')
+        values = self._get_index_values()
         try:
             with warnings.catch_warnings():
                 # e.g. if values is float64 and `val` is a str, suppress warning
@@ -67,14 +65,6 @@ cdef class {{name}}Engine(IndexEngine):
             #  when trying to cast it to ndarray
             raise KeyError(val)
 
-        found = np.where(indexer)[0]
-        count = len(found)
-
-        if count > 1:
-            return indexer
-        if count == 1:
-            return int(found[0])
-
-        raise KeyError(val)
+        return self._unpack_bool_indexer(indexer, val)
 
 {{endfor}}
