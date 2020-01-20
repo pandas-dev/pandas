@@ -123,11 +123,10 @@ class Ops:
 
                     # an object that is datetimelike will raise a TypeError,
                     # otherwise an AttributeError
+                    msg = "The object cannot be datetimelike"
                     err = AttributeError
                     if issubclass(type(o), DatetimeIndexOpsMixin):
                         err = TypeError
-                        msg = "The object cannot be datatimelike"
-
                     with pytest.raises(err, match=msg):
                         getattr(o, op)
 

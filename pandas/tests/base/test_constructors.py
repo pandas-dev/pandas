@@ -53,7 +53,7 @@ class TestPandasDelegate:
 
         delegate = self.Delegate(self.Delegator())
 
-        msg = "The delegate method has not been overridden"
+        msg = "You cannot access the property"
 
         with pytest.raises(TypeError, match=msg):
             delegate.foo
@@ -87,7 +87,7 @@ class TestNoNewAttributesMixin:
         t._freeze()
         assert "__frozen" in dir(t)
         assert getattr(t, "__frozen")
-        msg = "No new attribute found"
+        msg = "You cannot add any new attribute"
         with pytest.raises(AttributeError, match=msg):
             t.b = "test"
 
@@ -131,7 +131,7 @@ class TestConstruction:
         # datetime64[non-ns] raise error, other cases result in object dtype
         # and preserve original data
         if a.dtype.kind == "M":
-            msg = "The datatime object is out of bound"
+            msg = "Out of bounds"
             with pytest.raises(pd.errors.OutOfBoundsDatetime, match=msg):
                 klass(a)
         else:
