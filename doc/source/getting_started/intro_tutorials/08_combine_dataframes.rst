@@ -302,7 +302,7 @@ More information on join/merge of tables is provided in
     <div class="shadow gs-callout gs-callout-remember">            
         <h4>REMEMBER</h4>
 
--  Mulitple tables can be concatentated both column as row wise using
+-  Multiple tables can be concatenated both column as row wise using
    the ``concat`` function.
 -  For database-like merging/joining of tables, use the ``merge``
    function.
