@@ -173,7 +173,8 @@ What is the average :math:`NO_2` concentration for each day of the week for each
 
 .. ipython:: python
 
-    air_quality.groupby([air_quality["datetime"].dt.weekday, "location"])["value"].mean()
+    air_quality.groupby(
+        [air_quality["datetime"].dt.weekday, "location"])["value"].mean()
 
 Remember the split-apply-combine pattern provided by ``groupby`` from the
 :ref:`tutorial on statistics calculation <10min_tut_06_stats>`?
@@ -204,10 +205,13 @@ Plot the typical :math:`NO_2` pattern during the day of our time series of all s
 .. ipython:: python
 
     fig, axs = plt.subplots(figsize=(12, 4))
-    air_quality.groupby(air_quality["datetime"].dt.hour)["value"].mean().plot(kind='bar', rot=0, ax=axs)
-    plt.xlabel("Hour of the day"); # custom label for the x-axis using matplotlib
+    air_quality.groupby(
+        air_quality["datetime"].dt.hour)["value"].mean().plot(kind='bar',
+                                                              rot=0,
+                                                              ax=axs)
+    plt.xlabel("Hour of the day");  # custom x label using matplotlib
     @savefig 09_bar_chart.png
-    plt.ylabel("$NO_2\ (µg/m^3)$");
+    plt.ylabel("$NO_2\;(µg/m^3)$");
 
 Similar to the previous case, we want to calculate a given statistic
 (e.g. mean :math:`NO_2`) **for each hour of the day** and we can use the
@@ -258,7 +262,7 @@ Create a plot of the :math:`NO_2` values in the different stations from the 20th
 .. ipython:: python
 
     @savefig 09_time_section.png
-    no_2["2019-05-20" : "2019-05-21"].plot();
+    no_2["2019-05-20":"2019-05-21"].plot();
 
 By providing a **string that parses to a datetime**, a specific subset of the data can be selected on a ``DatetimeIndex``.
 

@@ -42,7 +42,8 @@ Westminster* in respectively Paris, Antwerp and London.
 
     air_quality_no2 = pd.read_csv("data/air_quality_no2_long.csv",
                                   parse_dates=True)
-    air_quality_no2 = air_quality_no2[["date.utc", "location", "parameter", "value"]] # focus on a subset of columns
+    air_quality_no2 = air_quality_no2[["date.utc", "location",
+                                       "parameter", "value"]]
     air_quality_no2.head()
 
 .. raw:: html
@@ -76,7 +77,8 @@ Westminster* in respectively Paris, Antwerp and London.
 
     air_quality_pm25 = pd.read_csv("data/air_quality_pm25_long.csv",
                                    parse_dates=True)
-    air_quality_pm25 = air_quality_pm25[["date.utc", "location", "parameter", "value"]] # focus on a subset of columns
+    air_quality_pm25 = air_quality_pm25[["date.utc", "location",
+                                         "parameter", "value"]]
     air_quality_pm25.head()
 
 .. raw:: html
@@ -153,7 +155,8 @@ index. For example:
 
 .. ipython:: python
 
-    air_quality_ = pd.concat([air_quality_pm25, air_quality_no2], keys=["PM25", "NO2"])
+    air_quality_ = pd.concat([air_quality_pm25, air_quality_no2],
+                             keys=["PM25", "NO2"])
 
 .. ipython:: python
 

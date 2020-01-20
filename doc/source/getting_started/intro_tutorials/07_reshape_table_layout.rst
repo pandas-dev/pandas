@@ -345,7 +345,9 @@ The ``melt`` method can be defined in more detail:
 .. ipython:: python
 
     no_2 = no2_pivoted.melt(id_vars="date.utc",
-                            value_vars=["BETR801", "FR04014", "London Westminster"],
+                            value_vars=["BETR801",
+                                        "FR04014",
+                                        "London Westminster"],
                             value_name="NO_2",
                             var_name="id_location")
     no_2.head()
