@@ -456,10 +456,10 @@ class TestEvalNumexprPandas:
 
         is_engine_numexpr = self.engine == "numexpr"
 
-        if dtype in ["float64", "object"]:
+        if dtype in ["float", "object"]:
             pytest.skip(f"dtype of '{dtype}' will always raise.")
-        elif dtype == "int64" and is_engine_numexpr:
-            pytest.skip("'numexpr' will raise with dtype of 'int64'")
+        elif dtype == "int" and is_engine_numexpr:
+            pytest.skip("'numexpr' will raise with dtype of 'int'")
 
         expect = ~lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -483,16 +483,16 @@ class TestEvalNumexprPandas:
         if dtype == "bool":
             pytest.skip("dtype of 'bool' will not raise.")
 
-        elif dtype == "int64" and (not is_engine_numexpr):
+        elif dtype == "int" and (not is_engine_numexpr):
             pytest.skip(
-                "engine diffrent than 'numexpr' will not raise with dtype of 'int64'."
+                "engine diffrent than 'numexpr' will not raise with dtype of 'int'."
             )
 
         error_type = None
 
-        if dtype == "float64":
+        if dtype == "float":
             error_type = NotImplementedError if is_engine_numexpr else TypeError
-        elif dtype == "int64":
+        elif dtype == "int":
             error_type = NotImplementedError
         elif dtype == "object":
             error_type = ValueError if is_engine_numexpr else TypeError
@@ -515,10 +515,10 @@ class TestEvalNumexprPandas:
 
         is_engine_numexpr = self.engine == "numexpr"
 
-        if dtype in ["float64", "object"]:
+        if dtype in ["float", "object"]:
             pytest.skip(f"dtype of '{dtype}' will always raise.")
-        elif dtype == "int64" and is_engine_numexpr:
-            pytest.skip("'numexpr' will raise with dtype of 'int64'")
+        elif dtype == "int" and is_engine_numexpr:
+            pytest.skip("'numexpr' will raise with dtype of 'int'")
 
         expect = ~lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -542,16 +542,16 @@ class TestEvalNumexprPandas:
         if dtype == "bool":
             pytest.skip("dtype of 'bool' will not raise.")
 
-        elif dtype == "int64" and (not is_engine_numexpr):
+        elif dtype == "int" and (not is_engine_numexpr):
             pytest.skip(
-                "engine diffrent than 'numexpr' will not raise with dtype of 'int64'."
+                "engine diffrent than 'numexpr' will not raise with dtype of 'int'."
             )
 
         error_type = None
 
-        if dtype == "float64":
+        if dtype == "float":
             error_type = NotImplementedError if is_engine_numexpr else TypeError
-        elif dtype == "int64":
+        elif dtype == "int":
             error_type = NotImplementedError
         elif dtype == "object":
             error_type = ValueError if is_engine_numexpr else TypeError
