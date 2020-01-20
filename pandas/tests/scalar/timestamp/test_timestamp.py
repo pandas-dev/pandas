@@ -1092,3 +1092,15 @@ def test_constructor_ambigous_dst():
     expected = ts.value
     result = Timestamp(ts).value
     assert result == expected
+
+
+def test_constructor_before_dst_switch():
+    # GH 31043
+    # Make sure that calling Timestamp constructor
+    # on time just before DST switch doesn't lead to
+    # nonexistent time
+    epoch = 1552211999999999872
+    ts = Timestamp(epoch, tz="dateutil/US/Pacific")
+    expected = timedelta(seconds=0)
+    result = ts.tz.dst(ts)
+    assert result == expected
