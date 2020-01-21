@@ -684,7 +684,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return sub_idx._searchsorted_monotonic(label, side)
 
     def get_loc(
-        self, key: Any, method: Optional[str] = None, tolerance=None
+        self, key, method: Optional[str] = None, tolerance=None
     ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
@@ -816,12 +816,13 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             # (non-overlapping so get_loc guarantees scalar of KeyError)
             indexer = []
             for key in target_as_index:
-                if isinstance(key, tuple) and len(key) == 2:
-                    key = Interval(key)
                 try:
                     loc = self.get_loc(key)
                 except KeyError:
                     loc = -1
+                except InvalidIndexError:
+                    # i.e. non-scalar key
+                    raise TypeError(key)
                 indexer.append(loc)
 
         return ensure_platform_int(indexer)
@@ -885,7 +886,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return self.get_indexer(target, **kwargs)
 
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
-    def get_value(self, series: "Series", key: Any) -> Any:
+    def get_value(self, series: "Series", key):
         loc = self.get_loc(key)
         return series.iloc[loc]
 
