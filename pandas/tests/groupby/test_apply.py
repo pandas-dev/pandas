@@ -775,3 +775,39 @@ def test_apply_series_return_dataframe_groups():
         ["17661101"], index=pd.DatetimeIndex(["2015-02-24"], name="day"), name="userId"
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("category", [False, True])
+def test_apply_multi_level_name(category):
+    # https://github.com/pandas-dev/pandas/issues/31068
+    b = [1, 2] * 5
+    if category:
+        b = pd.Categorical(b, categories=[1, 2, 3])
+    df = pd.DataFrame(
+        {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
+    ).set_index(["A", "B"])
+    result = df.groupby("B").apply(lambda x: x.sum())
+    expected = pd.DataFrame(
+        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
+    )
+    tm.assert_frame_equal(result, expected)
+    assert df.index.names == ["A", "B"]
+
+
+def test_groupby_apply_datetime_result_dtypes():
+    # GH 14849
+    data = pd.DataFrame.from_records(
+        [
+            (pd.Timestamp(2016, 1, 1), "red", "dark", 1, "8"),
+            (pd.Timestamp(2015, 1, 1), "green", "stormy", 2, "9"),
+            (pd.Timestamp(2014, 1, 1), "blue", "bright", 3, "10"),
+            (pd.Timestamp(2013, 1, 1), "blue", "calm", 4, "potato"),
+        ],
+        columns=["observation", "color", "mood", "intensity", "score"],
+    )
+    result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
+    expected = Series(
+        [np.dtype("datetime64[ns]"), np.object, np.object, np.int64, np.object],
+        index=["observation", "color", "mood", "intensity", "score"],
+    )
+    tm.assert_series_equal(result, expected)
