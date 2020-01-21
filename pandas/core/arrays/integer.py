@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
 from pandas.core.ops import invalid_comparison
@@ -301,19 +301,19 @@ class IntegerArray(BaseMaskedArray):
     >>> int_array = pd.array([1, None, 3], dtype=pd.Int32Dtype())
     >>> int_array
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: Int32
 
     String aliases for the dtypes are also available. They are capitalized.
 
     >>> pd.array([1, None, 3], dtype='Int32')
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: Int32
 
     >>> pd.array([1, None, 3], dtype='UInt16')
     <IntegerArray>
-    [1, NaN, 3]
+    [1, <NA>, 3]
     Length: 3, dtype: UInt16
     """
 
@@ -467,55 +467,6 @@ class IntegerArray(BaseMaskedArray):
         """
         return self._data
 
-    def value_counts(self, dropna=True):
-        """
-        Returns a Series containing counts of each category.
-
-        Every category will have an entry, even those with a count of 0.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaN.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-
-        """
-
-        from pandas import Index, Series
-
-        # compute counts on the data with no nans
-        data = self._data[~self._mask]
-        value_counts = Index(data).value_counts()
-        array = value_counts.values
-
-        # TODO(extension)
-        # if we have allow Index to hold an ExtensionArray
-        # this is easier
-        index = value_counts.index.astype(object)
-
-        # if we want nans, count the mask
-        if not dropna:
-
-            # TODO(extension)
-            # appending to an Index *always* infers
-            # w/o passing the dtype
-            array = np.append(array, [self._mask.sum()])
-            index = Index(
-                np.concatenate(
-                    [index.values, np.array([self.dtype.na_value], dtype=object)]
-                ),
-                dtype=object,
-            )
-
-        return Series(array, index=index)
-
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
         # use masked algorithms, rather than object-dtype / np.nan.
@@ -598,13 +549,15 @@ class IntegerArray(BaseMaskedArray):
         mask = self._mask
 
         # coerce to a nan-aware float if needed
-        if mask.any():
-            data = self._data.astype("float64")
-            # We explicitly use NaN within reductions.
-            data[mask] = np.nan
+        # (we explicitly use NaN within reductions)
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
 
         # if we have a boolean op, don't coerce
         if name in ["any", "all"]:
@@ -612,7 +565,7 @@ class IntegerArray(BaseMaskedArray):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ["sum", "min", "max", "prod"] and notna(result):
+        elif name in ["sum", "min", "max", "prod"]:
             int_result = int(result)
             if int_result == result:
                 result = int_result

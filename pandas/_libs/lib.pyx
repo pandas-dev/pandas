@@ -19,7 +19,7 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM,
+from numpy cimport (ndarray, PyArray_Check, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t, float32_t, float64_t,
@@ -524,8 +524,11 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
-            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            if PyArray_Check(x) and PyArray_Check(y):
+                if not array_equivalent_object(x, y):
+                    return False
+            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
@@ -1620,6 +1623,10 @@ cdef class StringValidator(Validator):
 
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
+
+    cdef bint is_valid_null(self, object value) except -1:
+        # We deliberately exclude None / NaN here since StringArray uses NA
+        return value is C_NA
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):

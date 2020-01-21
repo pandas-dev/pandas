@@ -472,8 +472,19 @@ class TestStyler:
 
         result = s._translate()["cellstyle"]
         expected = [
-            {"props": [["color", " red"]], "selector": "row0_col0"},
-            {"props": [["", ""]], "selector": "row1_col0"},
+            {"props": [("color", " red")], "selectors": ["row0_col0"]},
+            {"props": [("", "")], "selectors": ["row1_col0"]},
+        ]
+        assert result == expected
+
+    def test_duplicate(self):
+        df = pd.DataFrame({"A": [1, 0]})
+        s = df.style
+        s.ctx = {(0, 0): ["color: red"], (1, 0): ["color: red"]}
+
+        result = s._translate()["cellstyle"]
+        expected = [
+            {"props": [("color", " red")], "selectors": ["row0_col0", "row1_col0"]}
         ]
         assert result == expected
 
@@ -530,20 +541,17 @@ class TestStyler:
             (1, 0): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 2): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (2, 0): [
                 "width: 10em",
@@ -572,8 +580,7 @@ class TestStyler:
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (0, 2): [
                 "width: 10em",

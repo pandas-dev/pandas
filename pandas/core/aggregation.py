@@ -1,66 +1,35 @@
+"""
+aggregation.py contains utility functions to handle multiple named and lambda
+kwarg aggregations in groupby and DataFrame/Series aggregation
+"""
+
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, Sequence
+from typing import Any, DefaultDict, List, Sequence, Tuple
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
-from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-
-
-def reconstruct_func(func, *args, **kwargs):
-    """
-    This is the internal function to reconstruct func given if there is relabeling
-    or not. And also normalize the keyword to get new order of columns;
-
-    If relabeling is True, will return relabeling, reconstructed func, column
-    names, and the reconstructed order of columns.
-    If relabeling is False, the columns and order will be None.
-    """
-    relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-    if relabeling:
-        func, columns, order = normalize_keyword_aggregation(kwargs)
-
-    elif isinstance(func, list) and len(func) > len(set(func)):
-
-        # GH 28426 will raise error if duplicated function names are used and
-        # there is no reassigned name
-        raise SpecificationError(
-            "Function names must be unique if there is no new column names assigned"
-        )
-    elif func is None:
-        # nicer error message
-        raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-    func = maybe_mangle_lambdas(func)
-    if not relabeling:
-        columns = None
-        order = None
-
-    return relabeling, func, columns, order
 
 
 def is_multi_agg_with_relabel(**kwargs) -> bool:
     """
     Check whether kwargs passed to .agg look like multi-agg with relabeling.
-
     Parameters
     ----------
     **kwargs : dict
-
     Returns
     -------
     bool
-
     Examples
     --------
-    >>> _is_multi_agg_with_relabel(a='max')
+    >>> is_multi_agg_with_relabel(a='max')
     False
-    >>> _is_multi_agg_with_relabel(a_max=('a', 'max'),
+    >>> is_multi_agg_with_relabel(a_max=('a', 'max'),
     ...                            a_min=('a', 'min'))
     True
-    >>> _is_multi_agg_with_relabel()
+    >>> is_multi_agg_with_relabel()
     False
     """
     return all(isinstance(v, tuple) and len(v) == 2 for v in kwargs.values()) and (
@@ -68,17 +37,14 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
     )
 
 
-def normalize_keyword_aggregation(kwargs):
+def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[int]]:
     """
     Normalize user-provided "named aggregation" kwargs.
-
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
     to the old Dict[str, List[scalar]]].
-
     Parameters
     ----------
     kwargs : dict
-
     Returns
     -------
     aggspec : dict
@@ -87,10 +53,9 @@ def normalize_keyword_aggregation(kwargs):
         The user-provided keys.
     col_idx_order : List[int]
         List of columns indices.
-
     Examples
     --------
-    >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
+    >>> normalize_keyword_aggregation({'output': ('input', 'sum')})
     ({'input': ['sum']}, ('output',), [('input', 'sum')])
     """
     # Normalize the aggregation functions as Mapping[column, List[func]],
@@ -107,7 +72,7 @@ def normalize_keyword_aggregation(kwargs):
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
     # uniquify aggfunc name if duplicated in order list
-    uniquified_order = _make_unique(order)
+    uniquified_order = _make_unique_kwarg_list(order)
 
     # GH 25719, due to aggspec will change the order of assigned columns in aggregation
     # uniquified_aggspec will store uniquified order list and will compare it with order
@@ -117,19 +82,21 @@ def normalize_keyword_aggregation(kwargs):
         for column, aggfuncs in aggspec.items()
         for aggfunc in aggfuncs
     ]
-    uniquified_aggspec = _make_unique(aggspec_order)
+    uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
     # get the new indice of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
     return aggspec, columns, col_idx_order
 
 
-def _make_unique(seq):
+def _make_unique_kwarg_list(
+    seq: Sequence[Tuple[Any, Any]]
+) -> Sequence[Tuple[Any, Any]]:
     """Uniquify aggfunc name of the pairs in the order list
-
     Examples:
     --------
-    >>> _make_unique([('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')])
+    >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
+    >>> _make_unique_kwarg_list(kwarg_list)
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
     return [
@@ -150,17 +117,14 @@ def _make_unique(seq):
 def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     """
     Possibly mangle a list of aggfuncs.
-
     Parameters
     ----------
     aggfuncs : Sequence
-
     Returns
     -------
     mangled: list-like
         A new AggSpec sequence, where lambdas have been converted
         to have unique names.
-
     Notes
     -----
     If just one aggfunc is passed, the name will not be mangled.
@@ -183,7 +147,6 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
 def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     """
     Make new lambdas with unique names.
-
     Parameters
     ----------
     agg_spec : Any
@@ -191,18 +154,15 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
         Non-dict-like `agg_spec` are pass through as is.
         For dict-like `agg_spec` a new spec is returned
         with name-mangled lambdas.
-
     Returns
     -------
     mangled : Any
         Same type as the input.
-
     Examples
     --------
-    >>> _maybe_mangle_lambdas('sum')
+    >>> maybe_mangle_lambdas('sum')
     'sum'
-
-    >>> _maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
+    >>> maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
     [<function __main__.<lambda_0>,
      <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
     """

@@ -35,8 +35,7 @@ except ImportError as e:  # pragma: no cover
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --inplace --force' to build "
-        "the C extensions first."
+        "'python setup.py build_ext --inplace --force' to build the C extensions first."
     )
 
 from pandas._config import (
@@ -198,8 +197,7 @@ if pandas.compat.PY37:
 
             warnings.warn(
                 "The Panel class is removed from pandas. Accessing it "
-                "from the top-level namespace will also be removed in "
-                "the next version",
+                "from the top-level namespace will also be removed in the next version",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -238,8 +236,7 @@ if pandas.compat.PY37:
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
                 f"The {name} class is removed from pandas. Accessing it from "
-                "the top-level namespace will also be removed in the next "
-                "version",
+                "the top-level namespace will also be removed in the next version",
                 FutureWarning,
                 stacklevel=2,
             )

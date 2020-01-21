@@ -44,8 +44,8 @@ def test_getitem_boolean_empty():
     # invalid because of the boolean indexer
     # that's empty or not-aligned
     msg = (
-        r"Unalignable boolean Series provided as indexer \(index of"
-        r" the boolean Series and of the indexed object do not match"
+        r"Unalignable boolean Series provided as indexer \(index of "
+        r"the boolean Series and of the indexed object do not match"
     )
     with pytest.raises(IndexingError, match=msg):
         s[Series([], dtype=bool)]
@@ -89,8 +89,8 @@ def test_getitem_setitem_boolean_corner(datetime_series):
     # these used to raise...??
 
     msg = (
-        r"Unalignable boolean Series provided as indexer \(index of"
-        r" the boolean Series and of the indexed object do not match"
+        r"Unalignable boolean Series provided as indexer \(index of "
+        r"the boolean Series and of the indexed object do not match"
     )
     with pytest.raises(IndexingError, match=msg):
         ts[mask_shifted]
@@ -285,8 +285,8 @@ def test_where_error():
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
     msg = (
-        "NumPy boolean array indexing assignment cannot assign 0 input"
-        " values to the 1 output values where the mask is true"
+        "NumPy boolean array indexing assignment cannot assign 0 input "
+        "values to the 1 output values where the mask is true"
     )
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []

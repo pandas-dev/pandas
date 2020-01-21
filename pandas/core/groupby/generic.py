@@ -51,7 +51,11 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
 
-from pandas.core.aggregation import maybe_mangle_lambdas, reconstruct_func
+from pandas.core.aggregation import (
+    is_multi_agg_with_relabel,
+    maybe_mangle_lambdas,
+    normalize_keyword_aggregation,
+)
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
@@ -917,9 +921,24 @@ class DataFrameGroupBy(GroupBy):
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
 
-        relabeling, func, columns, order = reconstruct_func(func, *args, **kwargs)
+        relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
         if relabeling:
+            func, columns, order = normalize_keyword_aggregation(kwargs)
+
             kwargs = {}
+        elif isinstance(func, list) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            # there is no reassigned name
+            raise SpecificationError(
+                "Function names must be unique if there is no new column "
+                "names assigned"
+            )
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+        func = maybe_mangle_lambdas(func)
 
         result, how = self._aggregate(func, *args, **kwargs)
         if how is None:

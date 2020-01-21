@@ -1854,9 +1854,9 @@ class TestDataFrameConstructors:
             # No NaN found -> error
             if len(indexer) == 0:
                 msg = (
-                    "cannot do label indexing on"
-                    r" <class 'pandas\.core\.indexes\.range\.RangeIndex'>"
-                    r" with these indexers \[nan\] of <class 'float'>"
+                    "cannot do label indexing on "
+                    r"<class 'pandas\.core\.indexes\.range\.RangeIndex'> "
+                    r"with these indexers \[nan\] of <class 'float'>"
                 )
                 with pytest.raises(TypeError, match=msg):
                     df.loc[:, np.nan]
@@ -2431,6 +2431,24 @@ class TestDataFrameConstructors:
         tup = v, v
         result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
         expected = DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))
+        tm.assert_frame_equal(result, expected)
+
+    def test_construct_with_two_categoricalindex_series(self):
+        # GH 14600
+        s1 = pd.Series(
+            [39, 6, 4], index=pd.CategoricalIndex(["female", "male", "unknown"])
+        )
+        s2 = pd.Series(
+            [2, 152, 2, 242, 150],
+            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
+        )
+        result = pd.DataFrame([s1, s2])
+        expected = pd.DataFrame(
+            np.array(
+                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
+            ),
+            columns=["f", "female", "m", "male", "unknown"],
+        )
         tm.assert_frame_equal(result, expected)
 
 
