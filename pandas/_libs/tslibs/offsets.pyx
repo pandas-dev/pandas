@@ -472,8 +472,10 @@ class _BaseOffset:
             nint = int(n)
         except (ValueError, TypeError):
             raise TypeError(f'`n` argument must be an integer, got {type(n)}')
-        if n != nint:
-            raise ValueError(f'`n` argument must be an integer, got {n}')
+        if n != nint or n == 0:
+            raise ValueError(
+                f'`n` argument must be an nonzero integer, got {n}'
+                )
         return nint
 
     def __setstate__(self, state):
