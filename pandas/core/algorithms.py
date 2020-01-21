@@ -1813,7 +1813,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0):
+def diff(arr, n: int, axis: int = 0, stacklevel=3):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1825,6 +1825,8 @@ def diff(arr, n: int, axis: int = 0):
         number of periods
     axis : int
         axis to shift on
+    stacklevel : int
+        The stacklevel for the lost dtype warning.
 
     Returns
     -------
@@ -1847,7 +1849,17 @@ def diff(arr, n: int, axis: int = 0):
         dtype = arr.dtype
 
     if is_extension_array_dtype(dtype):
-        return op(arr, arr.shift(n))
+        if hasattr(arr, f"__{op.__name__}__"):
+            return op(arr, arr.shift(n))
+        else:
+            warn(
+                "dtype lost in 'algorithms.diff'. In the future this will raise a "
+                "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
+            arr = com.values_from_object(arr)
+            dtype = arr.dtype
 
     is_timedelta = False
     is_bool = False

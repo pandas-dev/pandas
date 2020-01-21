@@ -1280,7 +1280,11 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
-        new_values = algos.diff(self.values, n, axis=axis)
+        if axis and self.values.ndim == 1:
+            # Handle 1D EAs within a 2D Block
+            axis = 0
+        new_values = algos.diff(self.values, n, axis=axis, stacklevel=6)
+        new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods, axis=0, fill_value=None):
@@ -1971,13 +1975,6 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     Used by PeriodArray and IntervalArray to ensure that
     Series[T].values is an ndarray of objects.
     """
-
-    def diff(self, n: int, axis: int = 1) -> List["Block"]:
-        # Block.shape vs. Block.values.shape mismatch
-        # Do the op, get the object-dtype ndarray, and reshape
-        # to put into an ObjectBlock
-        new_values = _block_shape(algos.diff(self.values, n, axis=axis), ndim=self.ndim)
-        return [self.make_block(values=new_values)]
 
     def external_values(self):
         return self.values.astype(object)
