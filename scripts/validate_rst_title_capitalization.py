@@ -47,13 +47,12 @@ CAPITALIZATION_EXCEPTIONS = {
     "Docker",
 }
 
-CAP_EXCEPTIONS_DICT = {
-    word.lower(): word for word in CAPITALIZATION_EXCEPTIONS
-}
+CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
 
 bad_title_dict = {}
 
 err_msg = "Heading capitalization formatted incorrectly. Please correctly capitalize"
+
 
 def correct_title_capitalization(title: str) -> str:
     """
@@ -71,7 +70,7 @@ def correct_title_capitalization(title: str) -> str:
 
     """
 
-    correct_title : str = title.capitalize()
+    correct_title: str = title.capitalize()
 
     removed_https_title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", correct_title)
 
@@ -80,7 +79,7 @@ def correct_title_capitalization(title: str) -> str:
     for word in word_list:
         if word.lower() in CAP_EXCEPTIONS_DICT:
             correct_title = re.sub(
-                r'\b' + word + r'\b', CAP_EXCEPTIONS_DICT[word.lower()], correct_title
+                r"\b" + word + r"\b", CAP_EXCEPTIONS_DICT[word.lower()], correct_title
             )
 
     return correct_title
@@ -104,7 +103,7 @@ def is_following_capitalization_convention(title: str) -> bool:
 
     correct_title = correct_title_capitalization(title)
 
-    if (title != correct_title):
+    if title != correct_title:
         return False
     else:
         return True
@@ -240,7 +239,7 @@ def main(source_paths: List[str], output_format: str) -> bool:
     for filename in directory_list:
         fill_bad_title_dict(filename)
 
-    if (len(bad_title_dict) == 0):
+    if len(bad_title_dict) == 0:
         return number_of_errors
 
     for key in bad_title_dict:
