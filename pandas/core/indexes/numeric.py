@@ -347,7 +347,7 @@ class UInt64Index(IntegerIndex):
 
     def _is_compatible_with_other(self, other):
         return super()._is_compatible_with_other(other) or all(
-            isinstance(type(obj), (ABCUInt64Index, ABCFloat64Index))
+            isinstance(obj, (ABCUInt64Index, ABCFloat64Index))
             for obj in [self, other]
         )
 
@@ -497,7 +497,7 @@ class Float64Index(NumericIndex):
     def _is_compatible_with_other(self, other):
         return super()._is_compatible_with_other(other) or all(
             isinstance(
-                type(obj),
+                obj,
                 (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
             )
             for obj in [self, other]
