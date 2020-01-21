@@ -293,9 +293,9 @@ class BooleanArray(BaseMaskedArray):
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "true", "1"]:
+            elif s in ["True", "TRUE", "true"]:
                 return True
-            elif s in ["False", "false", "0"]:
+            elif s in ["False", "FALSE", "false"]:
                 return False
             else:
                 return s
