@@ -528,6 +528,10 @@ class BlockManager(PandasObject):
             [make_block(values, ndim=1, placement=np.arange(len(values)))], axes[0]
         )
 
+    def __invert__(self):
+        new_blocks = [~blk for blk in self.blocks]
+        return type(self)(new_blocks, axes=self.axes)
+
     def isna(self, func):
         return self.apply("apply", func=func)
 
@@ -1602,6 +1606,9 @@ class SingleBlockManager(BlockManager):
 
         mgr = SingleBlockManager(new_block, new_axis)
         return mgr
+
+    def __invert__(self):
+        return type(self)(~self._block, self.axes)
 
 
 # --------------------------------------------------------------------
