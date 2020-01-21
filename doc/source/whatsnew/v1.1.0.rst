@@ -49,9 +49,21 @@ See :ref:`here <missing_data.NA.conversion>` for a description. (:issue:`29752`)
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
 -
 -
 
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
+  will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -91,7 +103,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`Timestamp` where constructing :class:`Timestamp` from ambiguous epoch time and calling constructor again changed :meth:`Timestamp.value` property (:issue:`24329`)
--
+- :meth:`DatetimeArray.searchsorted`, :meth:`TimedeltaArray.searchsorted`, :meth:`PeriodArray.searchsorted` not recognizing non-pandas scalars and incorrectly raising ``ValueError`` instead of ``TypeError`` (:issue:`30950`)
 -
 
 Timedelta
@@ -133,7 +145,7 @@ Interval
 
 Indexing
 ^^^^^^^^
-
+- Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
 -
 -
 
@@ -164,15 +176,18 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
--
-
+- Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 
 Reshaping
 ^^^^^^^^^
 
 -
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` can take tuple names in MultiIndexed data (:issue:`19966`)
+- Bug in :meth:`DataFrame.pivot_table` when ``margin`` is ``True`` and only ``column`` is defined (:issue:`31016`)
+- Fix incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
+- Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
+
 
 Sparse
 ^^^^^^
@@ -189,7 +204,8 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
+  instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 -
 
 .. ---------------------------------------------------------------------------
