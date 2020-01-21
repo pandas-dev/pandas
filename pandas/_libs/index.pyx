@@ -26,19 +26,13 @@ from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
-cdef int64_t NPY_NAT = util.get_nat()
-
 
 cdef inline bint is_definitely_invalid_key(object val):
-    if isinstance(val, tuple):
-        try:
-            hash(val)
-        except TypeError:
-            return True
-
-    # we have a _data, means we are a NDFrame
-    return (isinstance(val, slice) or util.is_array(val)
-            or isinstance(val, list) or hasattr(val, '_data'))
+    try:
+        hash(val)
+    except TypeError:
+        return True
+    return False
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
@@ -455,7 +449,7 @@ cdef class DatetimeEngine(Int64Engine):
         cdef:
             int64_t loc
         if is_definitely_invalid_key(val):
-            raise TypeError
+            raise TypeError(f"'{val}' is an invalid key")
 
         try:
             conv = self._unbox_scalar(val)
