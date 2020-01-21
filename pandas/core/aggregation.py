@@ -16,12 +16,15 @@ from pandas.core.indexes.api import Index
 def is_multi_agg_with_relabel(**kwargs) -> bool:
     """
     Check whether kwargs passed to .agg look like multi-agg with relabeling.
+
     Parameters
     ----------
     **kwargs : dict
+
     Returns
     -------
     bool
+
     Examples
     --------
     >>> is_multi_agg_with_relabel(a='max')
@@ -42,9 +45,11 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
     to the old Dict[str, List[scalar]]].
+
     Parameters
     ----------
     kwargs : dict
+
     Returns
     -------
     aggspec : dict
@@ -53,6 +58,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
         The user-provided keys.
     col_idx_order : List[int]
         List of columns indices.
+
     Examples
     --------
     >>> normalize_keyword_aggregation({'output': ('input', 'sum')})
@@ -93,6 +99,7 @@ def _make_unique_kwarg_list(
     seq: Sequence[Tuple[Any, Any]]
 ) -> Sequence[Tuple[Any, Any]]:
     """Uniquify aggfunc name of the pairs in the order list
+
     Examples:
     --------
     >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
@@ -117,14 +124,17 @@ def _make_unique_kwarg_list(
 def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     """
     Possibly mangle a list of aggfuncs.
+
     Parameters
     ----------
     aggfuncs : Sequence
+
     Returns
     -------
     mangled: list-like
         A new AggSpec sequence, where lambdas have been converted
         to have unique names.
+
     Notes
     -----
     If just one aggfunc is passed, the name will not be mangled.
@@ -147,6 +157,7 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
 def maybe_mangle_lambdas(agg_spec: Any) -> Any:
     """
     Make new lambdas with unique names.
+
     Parameters
     ----------
     agg_spec : Any
@@ -154,10 +165,12 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
         Non-dict-like `agg_spec` are pass through as is.
         For dict-like `agg_spec` a new spec is returned
         with name-mangled lambdas.
+
     Returns
     -------
     mangled : Any
         Same type as the input.
+
     Examples
     --------
     >>> maybe_mangle_lambdas('sum')
