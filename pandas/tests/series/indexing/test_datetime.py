@@ -73,6 +73,8 @@ def test_dti_snap(name, tz):
     expected = expected.repeat([3, 4])
     tm.assert_index_equal(result, expected)
     assert result.tz == expected.tz
+    assert result.freq is None
+    assert expected.freq is None
 
     result = dti.snap(freq="B")
 
@@ -80,6 +82,8 @@ def test_dti_snap(name, tz):
     expected = expected.repeat([1, 1, 1, 2, 2])
     tm.assert_index_equal(result, expected)
     assert result.tz == expected.tz
+    assert result.freq is None
+    assert expected.freq is None
 
 
 def test_dti_reset_index_round_trip():
