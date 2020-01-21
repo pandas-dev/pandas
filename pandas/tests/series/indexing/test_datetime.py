@@ -718,16 +718,6 @@ def test_nat_operations():
     assert s.max() == exp
 
 
-@pytest.mark.parametrize("method", ["round", "floor", "ceil"])
-@pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
-def test_round_nat(method, freq):
-    # GH14940
-    s = Series([pd.NaT])
-    expected = Series(pd.NaT)
-    round_method = getattr(s.dt, method)
-    tm.assert_series_equal(round_method(freq), expected)
-
-
 def test_setitem_tuple_with_datetimetz():
     # GH 20441
     arr = date_range("2017", periods=4, tz="US/Eastern")
