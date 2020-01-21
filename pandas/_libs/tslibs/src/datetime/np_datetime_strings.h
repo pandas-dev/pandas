@@ -85,7 +85,7 @@ make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
  *
  * Mutates outlen to provide size of (non-NULL terminated) string.
  *
- * Returns NULL on error.
+ * Currently has no error handling
  */
 int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr,
                             size_t *outlen);
