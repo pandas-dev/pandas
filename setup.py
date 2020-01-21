@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Parts of this file were taken from the pyzmq project
@@ -240,6 +240,7 @@ class CleanCommand(Command):
             pjoin(ujson_python, "ujson.c"),
             pjoin(ujson_python, "objToJSON.c"),
             pjoin(ujson_python, "JSONtoObj.c"),
+            pjoin(ujson_python, "date_conversions.c"),
             pjoin(ujson_lib, "ultrajsonenc.c"),
             pjoin(ujson_lib, "ultrajsondec.c"),
             pjoin(util, "move.c"),
@@ -356,7 +357,7 @@ class CheckSDist(sdist_class):
                     sourcefile = pyxfile[:-3] + extension
                     msg = (
                         f"{extension}-source file '{sourcefile}' not found.\n"
-                        f"Run 'setup.py cython' before sdist."
+                        "Run 'setup.py cython' before sdist."
                     )
                     assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
@@ -412,15 +413,14 @@ class DummyBuildSrc(Command):
 
 
 cmdclass.update({"clean": CleanCommand, "build": build})
+cmdclass["build_ext"] = CheckingBuildExt
 
 if cython:
     suffix = ".pyx"
-    cmdclass["build_ext"] = CheckingBuildExt
     cmdclass["cython"] = CythonCommand
 else:
     suffix = ".c"
     cmdclass["build_src"] = DummyBuildSrc
-    cmdclass["build_ext"] = CheckingBuildExt
 
 # ----------------------------------------------------------------------
 # Preparation of compiler arguments
@@ -715,11 +715,15 @@ if suffix == ".pyx":
 
 ujson_ext = Extension(
     "pandas._libs.json",
-    depends=["pandas/_libs/src/ujson/lib/ultrajson.h"],
+    depends=[
+        "pandas/_libs/src/ujson/lib/ultrajson.h",
+        "pandas/_libs/src/ujson/python/date_conversions.h",
+    ],
     sources=(
         [
             "pandas/_libs/src/ujson/python/ujson.c",
             "pandas/_libs/src/ujson/python/objToJSON.c",
+            "pandas/_libs/src/ujson/python/date_conversions.c",
             "pandas/_libs/src/ujson/python/JSONtoObj.c",
             "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",

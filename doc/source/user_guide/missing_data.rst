@@ -825,13 +825,10 @@ For example, ``pd.NA`` propagates in arithmetic operations, similarly to
 There are a few special cases when the result is known, even when one of the
 operands is ``NA``.
 
+.. ipython:: python
 
-================ ======
-Operation        Result
-================ ======
-``pd.NA ** 0``   0
-``1 ** pd.NA``   1
-================ ======
+   pd.NA ** 0
+   1 ** pd.NA
 
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
