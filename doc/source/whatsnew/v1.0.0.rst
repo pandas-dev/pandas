@@ -1018,7 +1018,7 @@ Numeric
 - Bug in :meth:`DataFrame.round` where a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`IntervalIndex` columns would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` when there are duplicated indices (:issue:`30463`)
 - Bug in :class:`DataFrame` cumulative operations (e.g. cumsum, cummax) incorrect casting to object-dtype (:issue:`19296`)
-- Bug in dtypes being lost in ``DataFrame.__invert__`` with mixed dtypes (:issue:``)
+- Bug in dtypes being lost in ``DataFrame.__invert__`` with mixed dtypes (:issue:`31183`)
 
 Conversion
 ^^^^^^^^^^
