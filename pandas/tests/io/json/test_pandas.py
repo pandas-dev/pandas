@@ -1640,7 +1640,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         with tm.assert_produces_warning(FutureWarning):
             result = read_json(expected.to_json(), numpy=True)
             tm.assert_frame_equal(result, expected)
-    
+
     def test_frame_int_overflow(self):
         # GH 30320
         encoded_json = json.dumps([{"col": "31900441201190696999"}, {"col": "Text"}])
