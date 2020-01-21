@@ -1,7 +1,7 @@
 from numpy.random import randn
 
 from pandas import DataFrame, MultiIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestMultiIndexSetOps:

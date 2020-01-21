@@ -5,8 +5,8 @@ from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import Index, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import Timestamp
-import pandas.util.testing as tm
 
 
 class TestSeriesQuantile:

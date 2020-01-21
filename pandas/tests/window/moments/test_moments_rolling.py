@@ -10,9 +10,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna, notna
+import pandas._testing as tm
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base, ConsistencyBase
-import pandas.util.testing as tm
 
 import pandas.tseries.offsets as offsets
 
@@ -1128,8 +1128,8 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # GH3155
         # don't blow the stack
         msg = (
-            "arguments to moment function must be of type"
-            " np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type "
+            "np.ndarray/Series/DataFrame"
         )
         with pytest.raises(TypeError, match=msg):
             _flex_binary_moment(5, 6, None)

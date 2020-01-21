@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameAppend:
@@ -49,6 +49,10 @@ class TestDataFrameAppend:
             DataFrame({0: series[::-1][:3]}).T, ignore_index=True, sort=True
         )
         tm.assert_frame_equal(result, expected.loc[:, result.columns])
+
+        msg = "Can only append a dict if ignore_index=True"
+        with pytest.raises(TypeError, match=msg):
+            df.append(series.to_dict())
 
         # can append when name set
         row = df.loc[4]

@@ -17,7 +17,7 @@ from pandas import (
     offsets,
     period_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 
@@ -223,8 +223,8 @@ class TestPeriodIndex(DatetimeLike):
         i1 = period_range(start=start, end=end_intv)
 
         msg = (
-            "Of the three parameters: start, end, and periods, exactly two"
-            " must be specified"
+            "Of the three parameters: start, end, and periods, exactly two "
+            "must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             period_range(start=start)
@@ -427,8 +427,8 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_periods_number_check(self):
         msg = (
-            "Of the three parameters: start, end, and periods, exactly two"
-            " must be specified"
+            "Of the three parameters: start, end, and periods, exactly two "
+            "must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             period_range("2011-1-1", "2012-1-1", "B")
@@ -451,7 +451,7 @@ class TestPeriodIndex(DatetimeLike):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
         ts = Series(np.random.randn(len(idx)), index=idx)
 
-        result = ts[2007]
+        result = ts["2007"]
         expected = ts[1:3]
         tm.assert_series_equal(result, expected)
         result[:] = 1
@@ -461,8 +461,8 @@ class TestPeriodIndex(DatetimeLike):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
         ts = Series(np.random.randn(len(idx)), index=idx)
 
-        result = ts[2007]
-        expected = ts[idx == 2007]
+        result = ts["2007"]
+        expected = ts[idx == "2007"]
         tm.assert_series_equal(result, expected)
 
     def test_index_unique(self):

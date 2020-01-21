@@ -3,13 +3,14 @@
 
 from collections import defaultdict
 import copy
-from typing import DefaultDict, Dict, List, Optional, Union
+from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
 from pandas.util._decorators import deprecate
 
+import pandas as pd
 from pandas import DataFrame
 
 
@@ -229,13 +230,22 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js, spec):
-        result = js
+    def _pull_field(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
+        result = js  # type: ignore
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
         else:
             result = result[spec]
+
+        if not isinstance(result, Iterable):
+            if pd.isnull(result):
+                result = []  # type: ignore
+            else:
+                raise TypeError(
+                    f"{js} has non iterable value {result} for path {spec}. "
+                    "Must be iterable or null."
+                )
 
         return result
 
@@ -307,8 +317,7 @@ def _json_normalize(
                                 meta_val = np.nan
                             else:
                                 raise KeyError(
-                                    "Try running with "
-                                    "errors='ignore' as key "
+                                    "Try running with errors='ignore' as key "
                                     f"{e} is not always present"
                                 )
                     meta_vals[key].append(meta_val)

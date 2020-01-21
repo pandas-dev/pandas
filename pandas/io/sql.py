@@ -782,7 +782,8 @@ class SQLTable(PandasObject):
 
             cols = [self.table.c[n] for n in columns]
             if self.index is not None:
-                [cols.insert(0, self.table.c[idx]) for idx in self.index[::-1]]
+                for idx in self.index[::-1]:
+                    cols.insert(0, self.table.c[idx])
             sql_select = select(cols)
         else:
             sql_select = self.table.select()
@@ -976,8 +977,7 @@ class SQLTable(PandasObject):
         if col_type == "timedelta64":
             warnings.warn(
                 "the 'timedelta' type is not supported, and will be "
-                "written as integer values (ns frequency) to the "
-                "database.",
+                "written as integer values (ns frequency) to the database.",
                 UserWarning,
                 stacklevel=8,
             )
@@ -1393,7 +1393,7 @@ def _get_unicode_name(name):
 
 
 def _get_valid_sqlite_name(name):
-    # See http://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
+    # See https://stackoverflow.com/questions/6514274/how-do-you-escape-strings\
     # -for-sqlite-table-column-names-in-python
     # Ensure the string can be encoded as UTF-8.
     # Ensure the string does not include any NUL characters.
@@ -1412,8 +1412,7 @@ def _get_valid_sqlite_name(name):
 
 _SAFE_NAMES_WARNING = (
     "The spaces in these column names will not be changed. "
-    "In pandas versions < 0.14, spaces were converted to "
-    "underscores."
+    "In pandas versions < 0.14, spaces were converted to underscores."
 )
 
 
@@ -1447,7 +1446,8 @@ class SQLiteTable(SQLTable):
         escape = _get_valid_sqlite_name
 
         if self.index is not None:
-            [names.insert(0, idx) for idx in self.index[::-1]]
+            for idx in self.index[::-1]:
+                names.insert(0, idx)
 
         bracketed_names = [escape(column) for column in names]
         col_names = ",".join(bracketed_names)
@@ -1526,8 +1526,7 @@ class SQLiteTable(SQLTable):
         if col_type == "timedelta64":
             warnings.warn(
                 "the 'timedelta' type is not supported, and will be "
-                "written as integer values (ns frequency) to the "
-                "database.",
+                "written as integer values (ns frequency) to the database.",
                 UserWarning,
                 stacklevel=8,
             )

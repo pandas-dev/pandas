@@ -17,9 +17,9 @@ from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
+import pandas._testing as tm
 from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
@@ -1161,6 +1161,15 @@ class TestDataFramePlots(TestPlotBase):
         # GH 6951
         axes = df.plot(x="x", y="y", kind="scatter", subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+
+    def test_raise_error_on_datetime_time_data(self):
+        # GH 8113, datetime.time type is not supported by matplotlib in scatter
+        df = pd.DataFrame(np.random.randn(10), columns=["a"])
+        df["dtime"] = pd.date_range(start="2014-01-01", freq="h", periods=10).time
+        msg = "must be a string or a number, not 'datetime.time'"
+
+        with pytest.raises(TypeError, match=msg):
+            df.plot(kind="scatter", x="dtime", y="a")
 
     def test_scatterplot_datetime_data(self):
         # GH 30391
@@ -3261,6 +3270,34 @@ class TestDataFramePlots(TestPlotBase):
         df = pd.DataFrame(["a", "b", "c"])
         with pytest.raises(TypeError):
             df.plot()
+
+    def test_missing_markers_legend(self):
+        # 14958
+        df = pd.DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"])
+        ax = df.plot(y=["A"], marker="x", linestyle="solid")
+        df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)
+        df.plot(y=["C"], marker="<", linestyle="dotted", ax=ax)
+
+        self._check_legend_labels(ax, labels=["A", "B", "C"])
+        self._check_legend_marker(ax, expected_markers=["x", "o", "<"])
+
+    def test_missing_markers_legend_using_style(self):
+        # 14563
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5, 6],
+                "B": [2, 4, 1, 3, 2, 4],
+                "C": [3, 3, 2, 6, 4, 2],
+                "X": [1, 2, 3, 4, 5, 6],
+            }
+        )
+
+        fig, ax = self.plt.subplots()
+        for kind in "ABC":
+            df.plot("X", kind, label=kind, ax=ax, style=".")
+
+        self._check_legend_labels(ax, labels=["A", "B", "C"])
+        self._check_legend_marker(ax, expected_markers=[".", ".", "."])
 
 
 def _generate_4_axes_via_gridspec():

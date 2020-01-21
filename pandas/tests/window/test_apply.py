@@ -4,7 +4,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])

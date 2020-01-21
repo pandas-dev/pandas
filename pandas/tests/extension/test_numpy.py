@@ -4,8 +4,8 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p16
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
-import pandas.util.testing as tm
 
 from . import base
 
