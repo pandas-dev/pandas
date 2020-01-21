@@ -116,3 +116,29 @@ npy_datetime PyDateTimeToEpoch(PyDateTime_Date *dt, NPY_DATETIMEUNIT base) {
     npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
     return NpyDateTimeToEpoch(npy_dt, base);
 }
+
+/* Converts the int64_t representation of a duration to ISO; mutates len */
+char *int64ToIsoDuration(int64_t value, size_t *len) {
+    pandas_timedeltastruct tds;
+    int ret_code;
+
+    pandas_timedelta_to_timedeltastruct(value, NPY_FR_ns, &tds);
+
+    // Max theoretical length of ISO Duration with 64 bit day
+    // as the largest unit is 70 characters + 1 for a null terminator
+    char *result = PyObject_Malloc(71);
+    if (result == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    ret_code = make_iso_8601_timedelta(&tds, result, len);
+    if (ret_code == -1) {
+        PyErr_SetString(PyExc_ValueError,
+                        "Could not convert timedelta value to string");
+        PyObject_Free(result);
+        return NULL;
+    }
+
+    return result;
+}

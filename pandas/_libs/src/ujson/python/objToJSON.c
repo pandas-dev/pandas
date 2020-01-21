@@ -348,37 +348,17 @@ static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
     return (char *)PyUnicode_AsUTF8AndSize(_obj, (Py_ssize_t *)_outLen);
 }
 
-/* Converts the int64_t representation of a duration to ISO; mutates len */
-static char *int64ToIsoDuration(int64_t value, size_t *len) {
-    pandas_timedeltastruct tds;
-    int ret_code;
-
-    pandas_timedelta_to_timedeltastruct(value, NPY_FR_ns, &tds);
-
-    // Max theoretical length of ISO Duration with 64 bit day
-    // as the largest unit is 70 characters + 1 for a null terminator
-    char *result = PyObject_Malloc(71);
-    if (result == NULL) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-
-    ret_code = make_iso_8601_timedelta(&tds, result, len);
-    if (ret_code == -1) {
-        PyErr_SetString(PyExc_ValueError,
-                        "Could not convert timedelta value to string");
-        PyObject_Free(result);
-        return NULL;
-    }
-
-    return result;
-}
-
 /* JSON callback. returns a char* and mutates the pointer to *len */
 static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
                                       JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
     return int64ToIso(GET_TC(tc)->longValue, base, len);
+}
+
+/* JSON callback. returns a char* and mutates the pointer to *len */
+static char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
+                                       JSONTypeContext *tc, size_t *len) {
+    return int64ToIsoDuration(GET_TC(tc)->longValue, len);
 }
 
 /* JSON callback */
@@ -1469,7 +1449,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                                  1000000000LL; // nanoseconds per second
                 } else {
                     // datetime.* objects don't follow above rules
-                    nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
+                    nanosecVal =
+                        PyDateTimeToEpoch((PyDateTime_Date *)item, NPY_FR_ns);
                 }
             }
         }
@@ -1700,7 +1681,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             PRINTMARK();
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue = PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
+            GET_TC(tc)->longValue =
+                PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1726,7 +1708,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             PRINTMARK();
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue = PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
+            GET_TC(tc)->longValue =
+                PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1739,8 +1722,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
         }
 
-        GET_TC(tc)->longValue = value;
-
         PRINTMARK();
         if (value == get_nat()) {
             PRINTMARK();
@@ -1751,7 +1732,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             tc->type = JT_UTF8;
         } else {
             unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            if (scaleNanosecToUnit(&(GET_TC(tc)->longValue), unit) != 0) {
+            if (scaleNanosecToUnit(&value, unit) != 0) {
                 // TODO: Add some kind of error handling here
             }
 
@@ -1764,6 +1745,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
             tc->type = JT_LONG;
         }
+        GET_TC(tc)->longValue = value;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         PRINTMARK();
