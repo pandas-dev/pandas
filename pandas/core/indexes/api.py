@@ -153,9 +153,7 @@ def _get_combined_index(
 
     # GH 29879
     if copy:
-        # No need for deep copy. The underlying data of Indexes are
-        # considered immutable so they can be shared
-        index = index.copy(deep=False)
+        index = index.copy()
 
     return index
 
