@@ -552,18 +552,36 @@ def test_numeric_dtype(all_parsers, dtype):
     tm.assert_frame_equal(expected, result)
 
 
-@pytest.mark.parametrize("na_string", ["NaN", "nan", "NA", "null", "NULL", ""])
-@pytest.mark.parametrize("true_string", ["True", "TRUE", "true"])
-@pytest.mark.parametrize("false_string", ["False", "FALSE", "false"])
-def test_boolean_dtype(all_parsers, na_string, true_string, false_string):
+def test_boolean_dtype(all_parsers):
     parser = all_parsers
-    data = f"a,b\n{true_string},{false_string}\nTrue,{na_string}\n"
+    data = "\n".join(
+        [
+            "a",
+            "True",
+            "TRUE",
+            "true",
+            "False",
+            "FALSE",
+            "false",
+            "NaN",
+            "nan",
+            "NA",
+            "null",
+            "NULL",
+        ]
+    )
+
+    assert all([s in data for s in ["True", "TRUE", "true"]])
+    assert all([s in data for s in ["False", "FALSE", "false"]])
+    assert all([s in data for s in ["NaN", "nan", "NA", "null", "NULL"]])
 
     result = parser.read_csv(StringIO(data), dtype="boolean")
     expected = pd.DataFrame(
         {
-            "a": pd.array([True, True], dtype="boolean"),
-            "b": pd.array([False, None], dtype="boolean"),
+            "a": pd.array(
+                [True, True, True, False, False, False, None, None, None, None, None],
+                dtype="boolean",
+            )
         }
     )
 
