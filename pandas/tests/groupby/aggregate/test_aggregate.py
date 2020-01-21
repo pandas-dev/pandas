@@ -245,43 +245,11 @@ def test_agg_multiple_functions_same_name(df):
     result = df.resample("3D").agg(
         {"A": [functools.partial(np.std, ddof=0), functools.partial(np.std, ddof=1)]}
     )
-    expected_index = pd.DatetimeIndex(
-        [
-            "2000-01-03",
-            "2000-01-06",
-            "2000-01-09",
-            "2000-01-12",
-            "2000-01-15",
-            "2000-01-18",
-            "2000-01-21",
-            "2000-01-24",
-            "2000-01-27",
-            "2000-01-30",
-            "2000-02-02",
-            "2000-02-05",
-            "2000-02-08",
-            "2000-02-11",
-        ],
-        dtype="datetime64[ns]",
-        freq="3D",
-    )
+    expected_index = pd.date_range("2000-01-03", "2000-02-11", freq="3D")
     expected_columns = pd.MultiIndex.from_tuples([("A", "std"), ("A", "std")])
-    expected_values = [
-        [1.03497007, 1.26757429],
-        [0.96918813, 1.37063899],
-        [2.02317523, 2.86120185],
-        [0.44121013, 0.54036984],
-        [0.0, np.nan],
-        [0.80503606, 0.98596379],
-        [0.0, np.nan],
-        [0.3954067, 0.48427232],
-        [0.27030073, 0.38226296],
-        [1.12267144, 1.58769718],
-        [0.18796289, 0.23020659],
-        [0.0, np.nan],
-        [0.3540029, 0.43356324],
-        [0.0, np.nan],
-    ]
+    expected_values = np.array(
+        [df.resample("3D").A.std(ddof=i).values for i in range(2)]
+    ).T
     expected = pd.DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
