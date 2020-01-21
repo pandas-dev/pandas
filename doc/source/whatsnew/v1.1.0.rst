@@ -133,7 +133,8 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug in :meth:`Rolling.count` and :meth:`Expanding.count` argument ``min_periods`` ignored (:issue:`26996`)
+-
+-
 
 Reshaping
 ^^^^^^^^^

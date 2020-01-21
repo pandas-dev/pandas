@@ -428,8 +428,36 @@ def test_min_periods1():
     tm.assert_series_equal(result, expected)
 
 
-def test_rolling_count_with_min_periods():
+@pytest.mark.parametrize("test_series", [True, False])
+def test_rolling_count_with_min_periods(test_series):
     # GH 26996
-    result = Series(range(5)).rolling(3, min_periods=3).count()
-    expected = Series([np.nan, np.nan, 3.0, 3.0, 3.0])
-    tm.assert_series_equal(result, expected)
+    if test_series:
+        result = Series(range(5)).rolling(3, min_periods=3).count()
+        expected = Series([np.nan, np.nan, 3.0, 3.0, 3.0])
+        tm.assert_series_equal(result, expected)
+    else:
+        result = DataFrame(range(5)).rolling(3, min_periods=3).count()
+        expected = DataFrame([np.nan, np.nan, 3.0, 3.0, 3.0])
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+def test_rolling_count_default_min_periods_with_null_values(test_series):
+    # GH 26996
+    # We need rolling count to have default min_periods=0,
+    # as the method is meant to count how many non-null values,
+    # we want to by default produce a valid count even if
+    # there are very few valid entries in the window
+    values = [1, 2, 3, np.nan, 4, 5, 6]
+    expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
+
+    if test_series:
+        ser = Series(values)
+        result = ser.rolling(3).count()
+        expected = Series(expected_counts)
+        tm.assert_series_equal(result, expected)
+    else:
+        df = DataFrame(values)
+        result = df.rolling(3).count()
+        expected = DataFrame(expected_counts)
+        tm.assert_frame_equal(result, expected)
