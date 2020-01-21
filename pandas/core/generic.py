@@ -5795,6 +5795,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         If the dtype is numeric, and consists of all integers, convert to an
         appropriate integer extension type.
 
+        In the future, as new dtypes are added that support ``pd.NA``, the results
+        of this method will change to support those new dtypes.
+
         Examples
         --------
         >>> df = pd.DataFrame(
