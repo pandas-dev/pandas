@@ -1186,13 +1186,10 @@ class _Rolling_and_Expanding(_Rolling):
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
 
-        # We set the default value min_periods to be 0 because count method
-        # is meant to count NAs, we don't want it by default requires all
-        # values in the window to be valid to produce a valid count
-        min_periods = 0 if self.min_periods is None else self.min_periods
-
-        # this is required as window is mutate above
-        min_periods = min(min_periods, window)
+        min_periods = self.min_periods
+        if min_periods is not None and not self.center:
+            # this is required as window is mutated above
+            min_periods = min(min_periods, window)
 
         results = []
         for b in blocks:
@@ -1665,7 +1662,11 @@ class _Rolling_and_Expanding(_Rolling):
             mean = lambda x: x.rolling(
                 window, self.min_periods, center=self.center
             ).mean(**kwargs)
-            count = (X + Y).rolling(window=window, center=self.center).count(**kwargs)
+            count = (
+                (X + Y)
+                .rolling(window=window, min_periods=0, center=self.center)
+                .count(**kwargs)
+            )
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
