@@ -729,11 +729,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        # list-like are invalid labels for II but in some cases may work, e.g
-        # single element array of comparable type, so guard against them early
-        if is_list_like(key):
-            raise KeyError(key)
-
         if isinstance(key, Interval):
             if self.closed != key.closed:
                 raise KeyError(key)
@@ -891,25 +886,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
     def get_value(self, series: "Series", key: Any) -> Any:
-
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
-
-        if com.is_bool_indexer(key):
-            loc = key
-        elif is_list_like(key):
-            if self.is_overlapping:
-                loc, missing = self.get_indexer_non_unique(key)
-                if len(missing):
-                    raise KeyError
-            else:
-                loc = self.get_indexer(key)
-        elif isinstance(key, slice):
-            if not (key.step is None or key.step == 1):
-                raise ValueError("cannot support not-default step in a slice")
-            loc = self._convert_slice_indexer(key, kind="getitem")
-        else:
-            loc = self.get_loc(key)
+        loc = self.get_loc(key)
         return series.iloc[loc]
 
     def _convert_slice_indexer(self, key: slice, kind=None):
