@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Tuple, Type
 import warnings
 
 import numpy as np
