@@ -240,6 +240,7 @@ class CleanCommand(Command):
             pjoin(ujson_python, "ujson.c"),
             pjoin(ujson_python, "objToJSON.c"),
             pjoin(ujson_python, "JSONtoObj.c"),
+            pjoin(ujson_python, "date_conversions.c"),
             pjoin(ujson_lib, "ultrajsonenc.c"),
             pjoin(ujson_lib, "ultrajsondec.c"),
             pjoin(util, "move.c"),
@@ -714,11 +715,15 @@ if suffix == ".pyx":
 
 ujson_ext = Extension(
     "pandas._libs.json",
-    depends=["pandas/_libs/src/ujson/lib/ultrajson.h"],
+    depends=[
+        "pandas/_libs/src/ujson/lib/ultrajson.h",
+        "pandas/_libs/src/ujson/python/date_conversions.h",
+    ],
     sources=(
         [
             "pandas/_libs/src/ujson/python/ujson.c",
             "pandas/_libs/src/ujson/python/objToJSON.c",
+            "pandas/_libs/src/ujson/python/date_conversions.c",
             "pandas/_libs/src/ujson/python/JSONtoObj.c",
             "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
             "pandas/_libs/src/ujson/lib/ultrajsondec.c",
