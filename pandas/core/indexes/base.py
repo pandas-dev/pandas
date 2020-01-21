@@ -51,7 +51,6 @@ from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCDataFrame,
     ABCDatetimeIndex,
-    ABCIndexClass,
     ABCIntervalIndex,
     ABCMultiIndex,
     ABCPandasArray,
@@ -95,8 +94,6 @@ _index_doc_kwargs = dict(
     duplicated="np.ndarray",
 )
 _index_shared_docs = dict()
-str_t = str
-
 str_t = str
 
 
