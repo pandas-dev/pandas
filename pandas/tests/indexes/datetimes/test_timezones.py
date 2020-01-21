@@ -7,6 +7,7 @@ from distutils.version import LooseVersion
 import dateutil
 from dateutil.tz import gettz, tzlocal
 import numpy as np
+from pkg_resources import get_distribution
 import pytest
 import pytz
 
@@ -587,7 +588,8 @@ class TestDatetimeIndexTimezones:
                 "shift_backward",
                 "2019-03-10 01:00",
                 marks=pytest.mark.xfail(
-                    LooseVersion(dateutil.__version__) < LooseVersion("2.7.0"),
+                    LooseVersion(get_distribution("python-dateutil").version)
+                    < LooseVersion("2.7.0"),
                     reason="GH 31043",
                 ),
             ),
