@@ -1026,23 +1026,23 @@ def convert_dtypes(
     convert_boolean: bool = True,
 ):
     """
-        Convert objects to best possible type, and optionally,
-        to types supporting ``pd.NA``.
+    Convert objects to best possible type, and optionally,
+    to types supporting ``pd.NA``.
 
-        Parameters
-        ----------
-        input_array : ExtensionArray or PandasArray
-        convert_string : bool, default True
-            Whether object dtypes should be converted to ``StringDtype()``.
-        convert_integer : bool, default True
-            Whether, if possible, conversion can be done to integer extension types.
-        convert_boolean : bool, defaults True
-            Whether object dtypes should be converted to ``BooleanDtypes()``.
+    Parameters
+    ----------
+    input_array : ExtensionArray or PandasArray
+    convert_string : bool, default True
+        Whether object dtypes should be converted to ``StringDtype()``.
+    convert_integer : bool, default True
+        Whether, if possible, conversion can be done to integer extension types.
+    convert_boolean : bool, defaults True
+        Whether object dtypes should be converted to ``BooleanDtypes()``.
 
-        Returns
-        -------
-        Array
-            new dtype
+    Returns
+    -------
+    dtype
+        new dtype
     """
 
     if convert_string or convert_integer or convert_boolean:

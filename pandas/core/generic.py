@@ -5749,8 +5749,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         convert_boolean: bool_t = True,
     ) -> FrameOrSeries:
         """
-        Convert columns to best possible dtypes, optionally using dtypes supporting
-        ``pd.NA``.
+        Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
 
         .. versionadded:: 1.1.0
 
@@ -5779,6 +5778,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Notes
         -----
+
+        By default, ``convert_dtypes`` will attempt to convert a Series (or each
+        Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
+        ``convert_string``, ``convert_integer``, and ``convert_boolean``, it is
+        possible to turn off individual conversions to ``StringDtype``, the integer
+        extension types or ``BooleanDtype``, respectively.
 
         For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
         rules as during normal Series/DataFrame construction.  Then, if possible,
