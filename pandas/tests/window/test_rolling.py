@@ -344,7 +344,7 @@ class TestRolling(Base):
         else:
             expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})
 
-        result = df.rolling(2, axis=axis_frame).count()
+        result = df.rolling(2, axis=axis_frame, min_periods=0).count()
         tm.assert_frame_equal(result, expected)
 
     def test_readonly_array(self):
@@ -469,7 +469,7 @@ def test_rolling_count_default_min_periods_with_null_values(test_series):
     # we want to by default produce a valid count even if
     # there are very few valid entries in the window
     values = [1, 2, 3, np.nan, 4, 5, 6]
-    expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
+    expected_counts = [np.nan, np.nan, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     if test_series:
         ser = Series(values)
