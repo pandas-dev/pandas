@@ -92,6 +92,16 @@ class TestTimedeltas:
             to_timedelta(["1 day", "bar", "1 min"], errors="coerce"),
         )
 
+        # GH#10720
+        invalid_data = "some_nonesense"
+        expected_msg = (
+            "unit abbreviation w/o a number. "
+            "You can coerce to NaT by passing errors='coerce'"
+        )
+
+        with pytest.raises(ValueError, match=expected_msg):
+            pd.to_timedelta(invalid_data, errors="raise")
+
         # gh-13613: these should not error because errors='ignore'
         invalid_data = "apple"
         assert invalid_data == to_timedelta(invalid_data, errors="ignore")
@@ -109,16 +119,6 @@ class TestTimedeltas:
         tm.assert_series_equal(
             invalid_data, to_timedelta(invalid_data, errors="ignore")
         )
-
-        # GH#10720
-        invalid_data = "some_nonesense"
-        expected_msg = (
-            "unit abbreviation w/o a number. "
-            "You can coerce to NaT by passing errors='coerce'"
-        )
-
-        with pytest.raises(ValueError, match=expected_msg):
-            to_timedelta(invalid_data, errors="raise")
 
     def test_to_timedelta_via_apply(self):
         # GH 5458
