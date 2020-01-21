@@ -1976,8 +1976,7 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
         # Block.shape vs. Block.values.shape mismatch
         # Do the op, get the object-dtype ndarray, and reshape
         # to put into an ObjectBlock
-        new_values = algos.diff(self.values, n, axis=axis)
-        new_values = np.atleast_2d(new_values)
+        new_values = _block_shape(algos.diff(self.values, n, axis=axis), ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
     def external_values(self):
