@@ -336,6 +336,80 @@ class TestDataFrameReshape:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_unstack_tuplename_in_multiindex(self):
+        # GH 19966
+        idx = pd.MultiIndex.from_product(
+            [["a", "b", "c"], [1, 2, 3]], names=[("A", "a"), ("B", "b")]
+        )
+        df = pd.DataFrame({"d": [1] * 9, "e": [2] * 9}, index=idx)
+        result = df.unstack(("A", "a"))
+
+        expected = pd.DataFrame(
+            [[1, 1, 1, 2, 2, 2], [1, 1, 1, 2, 2, 2], [1, 1, 1, 2, 2, 2]],
+            columns=pd.MultiIndex.from_tuples(
+                [
+                    ("d", "a"),
+                    ("d", "b"),
+                    ("d", "c"),
+                    ("e", "a"),
+                    ("e", "b"),
+                    ("e", "c"),
+                ],
+                names=[None, ("A", "a")],
+            ),
+            index=pd.Index([1, 2, 3], name=("B", "b")),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "unstack_idx, expected_values, expected_index, expected_columns",
+        [
+            (
+                ("A", "a"),
+                [[1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2]],
+                pd.MultiIndex.from_tuples(
+                    [(1, 3), (1, 4), (2, 3), (2, 4)], names=["B", "C"]
+                ),
+                pd.MultiIndex.from_tuples(
+                    [("d", "a"), ("d", "b"), ("e", "a"), ("e", "b")],
+                    names=[None, ("A", "a")],
+                ),
+            ),
+            (
+                (("A", "a"), "B"),
+                [[1, 1, 1, 1, 2, 2, 2, 2], [1, 1, 1, 1, 2, 2, 2, 2]],
+                pd.Index([3, 4], name="C"),
+                pd.MultiIndex.from_tuples(
+                    [
+                        ("d", "a", 1),
+                        ("d", "a", 2),
+                        ("d", "b", 1),
+                        ("d", "b", 2),
+                        ("e", "a", 1),
+                        ("e", "a", 2),
+                        ("e", "b", 1),
+                        ("e", "b", 2),
+                    ],
+                    names=[None, ("A", "a"), "B"],
+                ),
+            ),
+        ],
+    )
+    def test_unstack_mixed_type_name_in_multiindex(
+        self, unstack_idx, expected_values, expected_index, expected_columns
+    ):
+        # GH 19966
+        idx = pd.MultiIndex.from_product(
+            [["a", "b"], [1, 2], [3, 4]], names=[("A", "a"), "B", "C"]
+        )
+        df = pd.DataFrame({"d": [1] * 8, "e": [2] * 8}, index=idx)
+        result = df.unstack(unstack_idx)
+
+        expected = pd.DataFrame(
+            expected_values, columns=expected_columns, index=expected_index,
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_unstack_preserve_dtypes(self):
         # Checks fix for #11847
         df = pd.DataFrame(

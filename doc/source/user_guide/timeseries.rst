@@ -1951,6 +1951,10 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+PeriodIndex now supports partial string slicing with non-monotonic indexes.
+
+.. versionadded:: 1.1.0
+
 You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
 .. ipython:: python
@@ -1980,8 +1984,6 @@ As with ``DatetimeIndex``, the endpoints will be included in the result. The exa
 .. ipython:: python
 
    dfp['2013-01-01 10H':'2013-01-01 11H']
-
-As of version 1.1.0, this works with non-monotonic ``PeriodIndex`` indexes.
 
 
 Frequency conversion and resampling with PeriodIndex
