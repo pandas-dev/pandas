@@ -280,6 +280,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             and not self.dtypes.apply(is_extension_array_dtype).any()
             # Disallow complex_internals since libreduction shortcut
             #  cannot handle MultiIndex
+            and not self.dtypes.apply(lambda x: x.kind in ["m", "M"]).any()
             and not isinstance(self.agg_axis, ABCMultiIndex)
         ):
 

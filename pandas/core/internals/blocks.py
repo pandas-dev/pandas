@@ -12,6 +12,7 @@ from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -2112,6 +2113,13 @@ class DatetimeLikeBlockMixin:
             return result.reshape(self.values.shape)
         return self.values
 
+    def internal_values(self):
+        return self._ea_values
+
+    @cache_readonly
+    def _ea_values(self):
+        return self._holder(self.values)
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
@@ -2148,6 +2156,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             values = values._data
 
         assert isinstance(values, np.ndarray), type(values)
+        assert values.dtype == _NS_DTYPE, values.dtype
         return values
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise"):
@@ -2242,6 +2251,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_datetimetz = True
     is_extension = True
 
+    internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
