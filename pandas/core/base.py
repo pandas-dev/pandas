@@ -1088,7 +1088,14 @@ class IndexOpsMixin:
         return bool(isna(self).any())
 
     def _reduce(
-        self, op, name: str, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
         """ perform the reduction type operation if we can """
         func = getattr(self, name, None)
