@@ -403,6 +403,13 @@ class TestCommon(Base):
             else:
                 assert result == expected_localize
 
+    def test_zero_offset(self, offset_types):
+        offset_s = self._get_offset(offset_types)
+        with pytest.raises(
+            ValueError, match="`n` argument must be an nonzero integer, got 0"
+        ):
+            0 * offset_s
+
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np_datetime64_compat("2011-01-01 09:00Z")
@@ -849,19 +856,6 @@ class TestBusinessDay(Base):
                 datetime(2008, 1, 7): datetime(2008, 1, 3),
                 datetime(2008, 1, 8): datetime(2008, 1, 4),
                 datetime(2008, 1, 9): datetime(2008, 1, 7),
-            },
-        )
-    )
-
-    apply_cases.append(
-        (
-            BDay(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 4): datetime(2008, 1, 4),
-                datetime(2008, 1, 5): datetime(2008, 1, 7),
-                datetime(2008, 1, 6): datetime(2008, 1, 7),
-                datetime(2008, 1, 7): datetime(2008, 1, 7),
             },
         )
     )
@@ -2741,19 +2735,6 @@ class TestCustomBusinessDay(Base):
         )
     )
 
-    apply_cases.append(
-        (
-            CDay(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 4): datetime(2008, 1, 4),
-                datetime(2008, 1, 5): datetime(2008, 1, 7),
-                datetime(2008, 1, 6): datetime(2008, 1, 7),
-                datetime(2008, 1, 7): datetime(2008, 1, 7),
-            },
-        )
-    )
-
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -2973,16 +2954,6 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         )
     )
 
-    apply_cases.append(
-        (
-            CBMonthEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 31),
-                datetime(2008, 2, 7): datetime(2008, 2, 29),
-            },
-        )
-    )
-
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -3122,16 +3093,6 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         )
     )
 
-    apply_cases.append(
-        (
-            CBMonthBegin(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 7): datetime(2008, 2, 1),
-            },
-        )
-    )
-
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -3229,21 +3190,6 @@ class TestWeek(Base):
         )
     )
 
-    # n=0 -> roll forward. Mon
-    offset_cases.append(
-        (
-            Week(0, weekday=0),
-            {
-                datetime(2007, 12, 31): datetime(2007, 12, 31),
-                datetime(2008, 1, 4): datetime(2008, 1, 7),
-                datetime(2008, 1, 5): datetime(2008, 1, 7),
-                datetime(2008, 1, 6): datetime(2008, 1, 7),
-                datetime(2008, 1, 7): datetime(2008, 1, 7),
-            },
-        )
-    )
-
-    # n=0 -> roll forward. Mon
     offset_cases.append(
         (
             Week(-2, weekday=1),
@@ -3542,36 +3488,6 @@ class TestSemiMonthEnd(Base):
 
     offset_cases.append(
         (
-            SemiMonthEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 15),
-                datetime(2008, 1, 16): datetime(2008, 1, 31),
-                datetime(2008, 1, 15): datetime(2008, 1, 15),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2006, 12, 29): datetime(2006, 12, 31),
-                datetime(2006, 12, 31): datetime(2006, 12, 31),
-                datetime(2007, 1, 1): datetime(2007, 1, 15),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            SemiMonthEnd(0, day_of_month=16),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 16),
-                datetime(2008, 1, 16): datetime(2008, 1, 16),
-                datetime(2008, 1, 15): datetime(2008, 1, 16),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2006, 12, 29): datetime(2006, 12, 31),
-                datetime(2006, 12, 31): datetime(2006, 12, 31),
-                datetime(2007, 1, 1): datetime(2007, 1, 16),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             SemiMonthEnd(2),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
@@ -3795,37 +3711,6 @@ class TestSemiMonthBegin(Base):
                 datetime(2007, 1, 1): datetime(2007, 1, 20),
                 datetime(2006, 12, 1): datetime(2006, 12, 20),
                 datetime(2006, 12, 15): datetime(2006, 12, 20),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            SemiMonthBegin(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 16): datetime(2008, 2, 1),
-                datetime(2008, 1, 15): datetime(2008, 1, 15),
-                datetime(2008, 1, 31): datetime(2008, 2, 1),
-                datetime(2006, 12, 29): datetime(2007, 1, 1),
-                datetime(2006, 12, 2): datetime(2006, 12, 15),
-                datetime(2007, 1, 1): datetime(2007, 1, 1),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            SemiMonthBegin(0, day_of_month=16),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 16): datetime(2008, 1, 16),
-                datetime(2008, 1, 15): datetime(2008, 1, 16),
-                datetime(2008, 1, 31): datetime(2008, 2, 1),
-                datetime(2006, 12, 29): datetime(2007, 1, 1),
-                datetime(2006, 12, 31): datetime(2007, 1, 1),
-                datetime(2007, 1, 5): datetime(2007, 1, 16),
-                datetime(2007, 1, 1): datetime(2007, 1, 1),
             },
         )
     )
