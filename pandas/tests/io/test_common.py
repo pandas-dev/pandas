@@ -158,10 +158,10 @@ bar2,12,13,14,15
             fr" error: No such file or directory"
         )
 
-        with pytest.raises(error_class,
-                           match=(fr"({msg1}|{msg2}|{msg3}|{msg4}"
-                                  fr"|{msg5}|{msg6}|{msg7}|{msg8})")
-                           ):
+        with pytest.raises(
+            error_class,
+            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+        ):
             reader(path)
 
     @pytest.mark.parametrize(
@@ -204,10 +204,10 @@ bar2,12,13,14,15
             fr" error: No such file or directory"
         )
 
-        with pytest.raises(error_class,
-                           match=(fr"({msg1}|{msg2}|{msg3}|{msg4}"
-                                  fr"|{msg5}|{msg6}|{msg7}|{msg8})")
-                           ):
+        with pytest.raises(
+            error_class,
+            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+        ):
             reader(path)
 
     @pytest.mark.parametrize(
