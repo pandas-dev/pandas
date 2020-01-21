@@ -568,6 +568,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if isinstance(key, str):
             try:
+                return self._get_string_slice(key)
+            except (TypeError, KeyError, ValueError, OverflowError):
+                pass
+
+            try:
                 asdt, reso = parse_time_string(key, self.freq)
                 key = asdt
             except DateParseError:
@@ -648,10 +653,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         # TODO: Check for non-True use_lhs/use_rhs
-        raw = key
-        if not self.is_monotonic:
-            raise ValueError("Partial indexing only valid for ordered time series")
-
         parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
@@ -660,18 +661,35 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             # TODO: we used to also check for
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
-            raise TypeError(key)
+            raise ValueError(key)
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        if len(self):
-            if t2 < self.min() or t1 > self.max():
-                raise KeyError(raw)
+        i8vals = self.asi8
 
-        # Use asi8 searchsorted to avoid overhead of re-validating inputs
-        return slice(
-            self.asi8.searchsorted(t1.ordinal, side="left"),
-            self.asi8.searchsorted(t2.ordinal, side="right"),
-        )
+        if self.is_monotonic:
+
+            # we are out of range
+            if len(self) and (
+                (use_lhs and t1 < self[0] and t2 < self[0])
+                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+            ):
+                raise KeyError(key)
+
+            # TODO: does this depend on being monotonic _increasing_?
+            #  If so, DTI will also be affected.
+
+            # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating Periods
+            left = i8vals.searchsorted(t1.ordinal, side="left") if use_lhs else None
+            right = i8vals.searchsorted(t2.ordinal, side="right") if use_rhs else None
+            return slice(left, right)
+
+        else:
+            lhs_mask = (i8vals >= t1.ordinal) if use_lhs else True
+            rhs_mask = (i8vals <= t2.ordinal) if use_rhs else True
+
+            # try to find a the dates
+            return (lhs_mask & rhs_mask).nonzero()[0]
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)

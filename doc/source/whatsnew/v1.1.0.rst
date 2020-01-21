@@ -13,6 +13,27 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.period_index_partial_string_slicing:
+
+Nonmonotonic PeriodIndex Partial String Slicing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
+
+For example:
+
+.. ipython:: python
+
+   dti = pd.date_range("2014-01-01", periods=30, freq="30D")
+   pi = dti.to_period("D")
+   ser_monotonic = pd.Series(np.arange(30), index=pi)
+   shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
+   ser = ser_monotonic[shuffler]
+   ser
+
+.. ipython:: python
+   ser["2014"]
+   ser.loc["May 2015"]
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
