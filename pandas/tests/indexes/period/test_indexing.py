@@ -524,6 +524,7 @@ class TestIndexing:
             assert p in idx0
             assert str(p) in idx0
 
+        # GH#31172
         # Higher-resolution period-like are _not_ considered as contained
         key = "2017-09-01 00:00:01"
         assert key not in idx0
