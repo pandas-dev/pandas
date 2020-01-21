@@ -338,7 +338,8 @@ Make a plot of the daily median :math:`NO_2` value in each of the stations.
 
 .. ipython:: python
 
-    no_2.resample("D").mean().plot(style="-o", figsize=(10, 5))
+    @savefig 09_resample_mean.png
+    no_2.resample("D").mean().plot(style="-o", figsize=(10, 5));
 
 .. raw:: html
 
