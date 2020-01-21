@@ -96,7 +96,7 @@ def masked_arith_op(x, y, op):
     else:
         if not is_scalar(y):
             raise TypeError(
-                f"Cannot broadcast np.ndarray with operand of type {type(y)}"
+                f"Cannot broadcast np.ndarray with operand of type { type(y) }"
             )
 
         # mask is only meaningful for x
