@@ -872,6 +872,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
+            elif self.index.is_interval():
+                # TODO: will this incorrectly include object Index holding Intervals?
+                indexer = self.index.get_indexer_for(key)
+                return self.iloc[indexer]
             else:
                 return self._get_values(key)
         elif key_type == "boolean":
