@@ -180,6 +180,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         except Exception:
             return self.astype(object).map(mapper)
 
+    def argsort(self, *args, **kwargs) -> np.ndarray:
+        return np.argsort(self._data)
+
     def sort_values(self, return_indexer=False, ascending=True):
         """
         Return sorted copy of Index.
@@ -191,10 +194,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            # NB: using asi8 instead of _ndarray_values matters in numpy 1.18
-            #  because the treatment of NaT has been changed to put NaT last
-            #  instead of first.
-            sorted_values = np.sort(self.asi8)
+            sorted_values = np.sort(self._ndarray_values)
 
             freq = self.freq
             if freq is not None and not is_period_dtype(self):

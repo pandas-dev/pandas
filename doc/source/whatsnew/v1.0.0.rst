@@ -246,6 +246,44 @@ source, you should no longer need to install Cython into your build environment 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_100.api_breaking.nat_sort:
+
+Changed sort position for ``NaT``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:attr:`NaT` will now sort at the *end* rather than the beginning in sorting functions (:issue:`29884`).
+This matches the behavior in NumPy 1.18 and newer, which makes the ``NaT`` behavior consistent
+with other missing values like :attr:`numpy.nan`.
+
+.. ipython:: python
+
+   values = pd.Index(['2001', 'NaT', '2000'], dtype='datetime64[ns]')
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> values.sort_values()
+   DatetimeIndex(['NaT', '2000-01-01', '2001-01-01'], dtype='datetime64[ns]', freq=None)
+
+   >>> values.argsort()
+   array([1, 2, 0])
+
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   values.sort_values()
+   values.argsort()
+
+This affects all sorting functions on indexes, Series, DataFrames, and arrays.
+
+
+.. note::
+
+   This change was made between pandas 1.0.0rc0 and pandas 1.0.0.
+
 .. _whatsnew_100.api_breaking.MultiIndex._names:
 
 Avoid using names from ``MultiIndex.levels``
