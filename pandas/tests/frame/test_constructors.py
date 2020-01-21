@@ -412,6 +412,12 @@ class TestDataFrameConstructors:
         expected = DataFrame(data=d, columns=list("ba"))
         tm.assert_frame_equal(frame, expected)
 
+    def test_constructor_dict_nan_key_and_columns(self):
+        # GH 16894
+        result = pd.DataFrame({np.nan: [1, 2], 2: [2, 3]}, columns=[np.nan, 2])
+        expected = pd.DataFrame([[1, 2], [2, 3]], columns=[np.nan, 2])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_multi_index(self):
         # GH 4078
         # construction error with mi and all-nan frame
