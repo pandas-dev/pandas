@@ -1280,10 +1280,9 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
-        if axis and self.values.ndim == 1:
-            # Handle 1D EAs within a 2D Block
-            axis = 0
-        new_values = algos.diff(self.values, n, axis=axis, stacklevel=6)
+        new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
+        # We use block_shape for ExtensionBlock subclasses, which may call here
+        # via a super.
         new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
@@ -1863,6 +1862,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values=values.fillna(value=fill_value, method=method, limit=limit),
             placement=self.mgr_locs,
         )
+
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
+        if axis == 1:
+            # we are by definition 1D.
+            axis = 0
+        return super().diff(n, axis)
 
     def shift(
         self,
