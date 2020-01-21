@@ -588,7 +588,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 if grp == freqn:
                     key = Period(asdt, freq=self.freq)
                     loc = self.get_loc(key, method=method, tolerance=tolerance)
-                    # TODO: or better just to let fall through?
                     return loc
                 elif method is None:
                     raise KeyError(key)
