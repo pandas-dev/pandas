@@ -857,7 +857,7 @@ class TestReadHtml:
         assert os.path.getsize(data), f"{repr(data)} is an empty file"
         result = self.read_html(data, "Arizona", header=1)[0]
         assert result.shape == (60, 12)
-        assert 'Unnamed' in result.columns[-1]
+        assert "Unnamed" in result.columns[-1]
         assert result["sq mi"].dtype == np.dtype("float64")
         assert np.allclose(result.loc[0, "sq mi"], 665384.04)
 
@@ -865,7 +865,7 @@ class TestReadHtml:
         data = datapath("io", "data", "html", "wikipedia_states.html")
         result = self.read_html(data, "Arizona", index_col=0)[0]
         assert result.shape == (60, 11)
-        assert 'Unnamed' in result.columns[-1][1]
+        assert "Unnamed" in result.columns[-1][1]
         assert result.columns.nlevels == 2
         assert np.allclose(result.loc["Alaska", ("Total area[2]", "sq mi")], 665384.04)
 
