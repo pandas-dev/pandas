@@ -6,7 +6,6 @@ from datetime import date, datetime, time, timedelta, tzinfo
 import dateutil
 from dateutil.tz import gettz, tzlocal
 import numpy as np
-from packaging.version import parse as parse_version
 import pytest
 import pytz
 
@@ -586,10 +585,6 @@ class TestDatetimeIndexTimezones:
                 "dateutil/US/Pacific",
                 "shift_backward",
                 "2019-03-10 01:00",
-                marks=pytest.mark.xfail(
-                    parse_version(dateutil.__version__) < parse_version("2.7.0"),
-                    reason="GH 31043",
-                ),
             ),
             ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
         ],
