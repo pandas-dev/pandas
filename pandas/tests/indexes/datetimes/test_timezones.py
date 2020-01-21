@@ -6,6 +6,7 @@ from datetime import date, datetime, time, timedelta, tzinfo
 import dateutil
 from dateutil.tz import gettz, tzlocal
 import numpy as np
+from packaging.version import parse as parse_version
 import pytest
 import pytz
 
@@ -582,6 +583,37 @@ class TestDatetimeIndexTimezones:
             ["dateutil/US/Pacific", "shift_forward", "2019-03-10 03:00"],
             ["US/Pacific", "shift_backward", "2019-03-10 01:00"],
             ["dateutil/US/Pacific", "shift_backward", "2019-03-10 01:00"],
+            ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
+        ],
+    )
+    def test_dti_construction_nonexistent_endpoint(self, tz, option, expected):
+        # construction with an nonexistent end-point
+
+        with pytest.raises(pytz.NonExistentTimeError):
+            date_range(
+                "2019-03-10 00:00", "2019-03-10 02:00", tz="US/Pacific", freq="H"
+            )
+
+        times = date_range(
+            "2019-03-10 00:00", "2019-03-10 02:00", freq="H", tz=tz, nonexistent=option
+        )
+        assert times[-1] == Timestamp(expected, tz=tz, freq="H")
+
+    @pytest.mark.parametrize(
+        "tz, option, expected",
+        [
+            ["US/Pacific", "shift_forward", "2019-03-10 03:00"],
+            ["dateutil/US/Pacific", "shift_forward", "2019-03-10 03:00"],
+            ["US/Pacific", "shift_backward", "2019-03-10 01:00"],
+            pytest.param(
+                "dateutil/US/Pacific",
+                "shift_backward",
+                "2019-03-10 01:00",
+                marks=pytest.mark.xfail(
+                    parse_version(dateutil.__version__) < parse_version("2.7.0"),
+                    reason="GH 31043",
+                ),
+            ),
             ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
         ],
     )

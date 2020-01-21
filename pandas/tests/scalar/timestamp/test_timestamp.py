@@ -1094,8 +1094,9 @@ def test_constructor_ambigous_dst():
     result = Timestamp(ts).value
     assert result == expected
 
-@pytest.mark.skipif(
-    parse_version(dateutil.__version__) < parse_version('2.7.0'),
+
+@pytest.mark.xfail(
+    parse_version(dateutil.__version__) < parse_version("2.7.0"),
     reason="dateutil moved to Timedelta.total_seconds() in 2.7.0",
 )
 @pytest.mark.parametrize("epoch", [1552211999999999872, 1552211999999999999])
