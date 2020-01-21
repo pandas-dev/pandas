@@ -123,7 +123,7 @@ class Ops:
 
                     # an object that is datetimelike will raise a TypeError,
                     # otherwise an AttributeError
-                    msg = "object has no attribute 'year'"
+                    msg = "no attribute"
                     err = AttributeError
                     if issubclass(type(o), DatetimeIndexOpsMixin):
                         err = TypeError
