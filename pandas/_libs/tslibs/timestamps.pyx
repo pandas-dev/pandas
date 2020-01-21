@@ -393,6 +393,8 @@ class Timestamp(_Timestamp):
 
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
+        # checking verbosely, because cython doesn't optimize
+        # list comprehensions (as of cython 0.29.x)
         if (isinstance(ts_input, Timestamp) and freq is None and
                 tz is None and unit is None and year is None and
                 month is None and day is None and hour is None and
