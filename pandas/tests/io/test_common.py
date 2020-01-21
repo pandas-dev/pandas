@@ -154,8 +154,8 @@ bar2,12,13,14,15
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = (
-            fr"Failed to open local file .+does_not_exist\.{fn_ext}.?,"
-            fr" error: No such file or directory"
+            fr"Failed to open local file.+does_not_exist\.{fn_ext}.?,"
+            fr" error: .*"
         )
 
         with pytest.raises(
@@ -200,8 +200,8 @@ bar2,12,13,14,15
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = (
-            fr"Failed to open local file .+does_not_exist\.{fn_ext}.?,"
-            fr" error: No such file or directory"
+            fr"Failed to open local file.+does_not_exist\.{fn_ext}.?,"
+            fr" error: .*"
         )
 
         with pytest.raises(
