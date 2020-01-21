@@ -9,8 +9,40 @@ from typing import Any, DefaultDict, List, Sequence, Tuple
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
+
+
+def reconstruct_func(func, *args, **kwargs):
+    """
+    This is the internal function to reconstruct func given if there is relabeling
+    or not. And also normalize the keyword to get new order of columns;
+    If relabeling is True, will return relabeling, reconstructed func, column
+    names, and the reconstructed order of columns.
+    If relabeling is False, the columns and order will be None.
+    """
+    relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
+    if relabeling:
+        func, columns, order = normalize_keyword_aggregation(kwargs)
+
+    elif isinstance(func, list) and len(func) > len(set(func)):
+
+        # GH 28426 will raise error if duplicated function names are used and
+        # there is no reassigned name
+        raise SpecificationError(
+            "Function names must be unique if there is no new column " "names assigned"
+        )
+    elif func is None:
+        # nicer error message
+        raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+    func = maybe_mangle_lambdas(func)
+    if not relabeling:
+        columns = None
+        order = None
+
+    return relabeling, func, columns, order
 
 
 def is_multi_agg_with_relabel(**kwargs) -> bool:
