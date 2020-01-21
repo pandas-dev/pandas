@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -289,24 +290,27 @@ def test_getitem_setitem_datetimeindex():
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)
 
-    # repeat all the above with naive datetimes
-    result = ts[datetime(1990, 1, 1, 4)]
-    expected = ts[4]
-    assert result == expected
+    # But we do not give datetimes a pass on tzawareness compat
+    # TODO: do the same with Timestamps and dt64
+    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    naive = datetime(1990, 1, 1, 4)
+    with pytest.raises(KeyError, match=re.escape(repr(naive))):
+        ts[naive]
 
     result = ts.copy()
-    result[datetime(1990, 1, 1, 4)] = 0
-    result[datetime(1990, 1, 1, 4)] = ts[4]
-    tm.assert_series_equal(result, ts)
+    with pytest.raises(TypeError, match=msg):
+        result[datetime(1990, 1, 1, 4)] = 0
+    with pytest.raises(TypeError, match=msg):
+        result[datetime(1990, 1, 1, 4)] = ts[4]
 
-    result = ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
-    expected = ts[4:8]
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(TypeError, match=msg):
+        ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
 
     result = ts.copy()
-    result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
-    result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
-    tm.assert_series_equal(result, ts)
+    with pytest.raises(TypeError, match=msg):
+        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
+    with pytest.raises(TypeError, match=msg):
+        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
 
     lb = datetime(1990, 1, 1, 4)
     rb = datetime(1990, 1, 1, 7)

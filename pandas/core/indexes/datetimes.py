@@ -719,12 +719,19 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
     def _maybe_cast_for_get_loc(self, key):
         # needed to localize naive datetimes
-        key = Timestamp(key)
-        if key.tzinfo is None:
-            key = key.tz_localize(self.tz)
+        stamp = Timestamp(key)
+        if not isinstance(key, str):
+            # strings get a pass on tzawareness compat, see GH#????
+            try:
+                self._data._check_compatible_with(stamp)
+            except TypeError:
+                raise KeyError(key)
+
+        if stamp.tzinfo is None:
+            stamp = stamp.tz_localize(self.tz)
         else:
-            key = key.tz_convert(self.tz)
-        return key
+            stamp = stamp.tz_convert(self.tz)
+        return stamp
 
     def _maybe_cast_slice_bound(self, label, side, kind):
         """
