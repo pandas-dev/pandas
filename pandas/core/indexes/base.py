@@ -4,6 +4,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Dict,
     FrozenSet,
     Hashable,
@@ -287,6 +288,16 @@ class Index(IndexOpsMixin, PandasObject):
     _accessors = {"str"}
 
     str = CachedAccessor("str", StringMethods)
+
+    # --------------------------------------------------------------------
+    # Type declarations for Generated Arithmetic, Comparison, and Unary Methods
+
+    __eq__: Callable
+    __ne__: Callable
+    __lt__: Callable
+    __gt__: Callable
+    __le__: Callable
+    __ge__: Callable
 
     # --------------------------------------------------------------------
     # Constructors

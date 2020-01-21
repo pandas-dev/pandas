@@ -1964,9 +1964,11 @@ class DataFrame(NDFrame):
                 raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
-            from pandas.io.stata import StataWriter117 as statawriter
+            # error: Name 'statawriter' already defined (possibly by an import)
+            from pandas.io.stata import StataWriter117 as statawriter  # type: ignore
         else:  # versions 118 and 119
-            from pandas.io.stata import StataWriterUTF8 as statawriter
+            # error: Name 'statawriter' already defined (possibly by an import)
+            from pandas.io.stata import StataWriterUTF8 as statawriter  # type: ignore
 
         kwargs = {}
         if version is None or version >= 117:
@@ -8124,6 +8126,7 @@ Wild         185.0
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)
+        assert not isinstance(indices, int)  # needed for mypy
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))
@@ -8162,6 +8165,7 @@ Wild         185.0
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
+        assert not isinstance(indices, int)  # needed for mypy
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return Series(result, index=self._get_agg_axis(axis))

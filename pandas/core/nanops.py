@@ -899,7 +899,7 @@ def nanargmax(
     axis: Optional[int] = None,
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
-) -> int:
+) -> Union[int, np.ndarray]:
     """
     Parameters
     ----------
@@ -911,8 +911,10 @@ def nanargmax(
 
     Returns
     -------
-    result : int
-        The index of max value in specified axis or -1 in the NA case
+    int or ndarray of ints
+        The index of max value in specified axis or -1 in the NA case. By default,
+        the index is into the flattened array, otherwise along the specified axis.
+        This has the same shape as values.shape with the dimension along axis removed.
 
     Examples
     --------
