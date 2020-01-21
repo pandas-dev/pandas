@@ -686,8 +686,7 @@ def _group_ohlc(floating[:, :] out,
         raise ValueError('Output array must have 4 columns')
 
     if K > 1:
-        raise NotImplementedError("Argument 'values' must have only "
-                                  "one dimension")
+        raise NotImplementedError("Argument 'values' must have only one dimension")
     out[:] = np.nan
 
     with nogil:
@@ -791,7 +790,7 @@ def group_quantile(ndarray[float64_t] out,
                 out[i] = NaN
             else:
                 # Calculate where to retrieve the desired value
-                # Casting to int will intentionaly truncate result
+                # Casting to int will intentionally truncate result
                 idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
 
                 val = values[sort_arr[idx]]

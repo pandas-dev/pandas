@@ -52,7 +52,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     black --version
 
     MSG='Checking black formatting' ; echo $MSG
-	black . --check
+    black . --check
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
@@ -100,11 +100,19 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of not concatenated strings' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_string_concatenation.py --format="[error]{source_path}:{line_number}:{msg}" .
+    else
+        $BASE_DIR/scripts/validate_string_concatenation.py .
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "isort --version-number"
     isort --version-number
 
     # Imports - Check formatting using isort see setup.cfg for settings
-    MSG='Check import format using isort ' ; echo $MSG
+    MSG='Check import format using isort' ; echo $MSG
     ISORT_CMD="isort --recursive --check-only pandas asv_bench"
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
@@ -122,13 +130,18 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # Check for imports from collections.abc instead of `from collections import abc`
     MSG='Check for non-standard imports' ; echo $MSG
     invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from collections.abc import" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from numpy import nan" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Checks for test suite
-    # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
-    invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    # Check for imports from pandas._testing instead of `import pandas._testing as tm`
+    invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
     invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -195,12 +208,20 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} '!r}' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of xrange instead of range' ; echo $MSG
+    invgrep -R --include=*.{py,pyx} 'xrange' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
@@ -277,8 +298,11 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests arrays/string_.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/string_.py
+    MSG='Doctests arrays'; echo $MSG
+    pytest -q --doctest-modules \
+        pandas/core/arrays/string_.py \
+        pandas/core/arrays/integer.py \
+        pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays/boolean.py' ; echo $MSG
@@ -290,8 +314,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA01, SA02, SA03, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA01,SA02,SA03,SA05
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA02, SA03, SA05)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03,SA05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

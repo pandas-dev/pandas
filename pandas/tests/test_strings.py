@@ -8,8 +8,8 @@ import pytest
 from pandas._libs import lib
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
+import pandas._testing as tm
 import pandas.core.strings as strings
-import pandas.util.testing as tm
 
 
 def assert_series_or_index_equal(left, right):
@@ -1825,7 +1825,7 @@ class TestStringMethods:
 
     def test_empty_str_methods(self):
         empty_str = empty = Series(dtype=object)
-        empty_int = Series(dtype=int)
+        empty_int = Series(dtype="int64")
         empty_bool = Series(dtype=bool)
         empty_bytes = Series(dtype=object)
 
@@ -3392,8 +3392,8 @@ class TestStringMethods:
         encodeBase = Series(["a", "b", "a\x9d"])
 
         msg = (
-            r"'charmap' codec can't encode character '\\x9d' in position 1:"
-            " character maps to <undefined>"
+            r"'charmap' codec can't encode character '\\x9d' in position 1: "
+            "character maps to <undefined>"
         )
         with pytest.raises(UnicodeEncodeError, match=msg):
             encodeBase.str.encode("cp1252")
@@ -3406,8 +3406,8 @@ class TestStringMethods:
         decodeBase = Series([b"a", b"b", b"a\x9d"])
 
         msg = (
-            "'charmap' codec can't decode byte 0x9d in position 1:"
-            " character maps to <undefined>"
+            "'charmap' codec can't decode byte 0x9d in position 1: "
+            "character maps to <undefined>"
         )
         with pytest.raises(UnicodeDecodeError, match=msg):
             decodeBase.str.decode("cp1252")
@@ -3521,9 +3521,15 @@ def test_string_array(any_string_method):
 
     if isinstance(expected, Series):
         if expected.dtype == "object" and lib.is_string_array(
-            expected.values, skipna=True
+            expected.dropna().values,
         ):
             assert result.dtype == "string"
+            result = result.astype(object)
+
+        elif expected.dtype == "object" and lib.is_bool_array(
+            expected.values, skipna=True
+        ):
+            assert result.dtype == "boolean"
             result = result.astype(object)
 
         elif expected.dtype == "float" and expected.isna().any():
@@ -3551,3 +3557,34 @@ def test_string_array_numeric_integer_array(method, expected):
     result = getattr(s.str, method)("a")
     expected = Series(expected, dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("isdigit", [False, None, True]),
+        ("isalpha", [True, None, False]),
+        ("isalnum", [True, None, True]),
+        ("isdigit", [False, None, True]),
+    ],
+)
+def test_string_array_boolean_array(method, expected):
+    s = Series(["a", None, "1"], dtype="string")
+    result = getattr(s.str, method)()
+    expected = Series(expected, dtype="boolean")
+    tm.assert_series_equal(result, expected)
+
+
+def test_string_array_extract():
+    # https://github.com/pandas-dev/pandas/issues/30969
+    # Only expand=False & multiple groups was failing
+    a = Series(["a1", "b2", "cc"], dtype="string")
+    b = Series(["a1", "b2", "cc"], dtype="object")
+    pat = r"(\w)(\d)"
+
+    result = a.str.extract(pat, expand=False)
+    expected = b.str.extract(pat, expand=False)
+    assert all(result.dtypes == "string")
+
+    result = result.astype(object)
+    tm.assert_equal(result, expected)

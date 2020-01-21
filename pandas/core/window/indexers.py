@@ -32,7 +32,7 @@ window
 
 
 class BaseIndexer:
-    """Base class for window bounds calculations"""
+    """Base class for window bounds calculations."""
 
     def __init__(
         self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs,

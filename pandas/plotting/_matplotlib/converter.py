@@ -421,8 +421,7 @@ class MilliSecondLocator(dates.DateLocator):
         if estimate > self.MAXTICKS * 2:
             raise RuntimeError(
                 "MillisecondLocator estimated to generate "
-                f"{estimate:d} ticks from {dmin} to {dmax}: "
-                "exceeds Locator.MAXTICKS"
+                f"{estimate:d} ticks from {dmin} to {dmax}: exceeds Locator.MAXTICKS"
                 f"* 2 ({self.MAXTICKS * 2:d}) "
             )
 
@@ -1097,6 +1096,8 @@ class TimeSeries_DateFormatter(Formatter):
             return ""
         else:
             fmt = self.formatdict.pop(x, "")
+            if isinstance(fmt, np.bytes_):
+                fmt = fmt.decode("utf-8")
             return Period(ordinal=int(x), freq=self.freq).strftime(fmt)
 
 

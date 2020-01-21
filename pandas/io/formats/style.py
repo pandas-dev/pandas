@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._config import get_option
 
+from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import Appender
 
@@ -255,7 +256,7 @@ class Styler:
         BLANK_VALUE = ""
 
         def format_attr(pair):
-            return "{key}={value}".format(**pair)
+            return f"{pair['key']}={pair['value']}"
 
         # for sparsifying a MultiIndex
         idx_lengths = _get_level_lengths(self.index)
@@ -1272,9 +1273,9 @@ class Styler:
             color = [color[0], color[0]]
         elif len(color) > 2:
             raise ValueError(
-                "`color` must be string or a list-like"
-                " of length 2: [`color_neg`, `color_pos`]"
-                " (eg: color=['#d65f5f', '#5fba7d'])"
+                "`color` must be string or a list-like "
+                "of length 2: [`color_neg`, `color_pos`] "
+                "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
         subset = _maybe_numeric_slice(self.data, subset)
@@ -1475,8 +1476,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, initial_position): span
     """
-    sentinel = object()
-    levels = index.format(sparsify=sentinel, adjoin=False, names=False)
+    levels = index.format(sparsify=lib.no_default, adjoin=False, names=False)
 
     if hidden_elements is None:
         hidden_elements = []
@@ -1492,10 +1492,10 @@ def _get_level_lengths(index, hidden_elements=None):
         for j, row in enumerate(lvl):
             if not get_option("display.multi_sparse"):
                 lengths[(i, j)] = 1
-            elif (row != sentinel) and (j not in hidden_elements):
+            elif (row is not lib.no_default) and (j not in hidden_elements):
                 last_label = j
                 lengths[(i, last_label)] = 1
-            elif row != sentinel:
+            elif row is not lib.no_default:
                 # even if its hidden, keep track of it in case
                 # length >1 and later elements are visible
                 last_label = j

@@ -2,8 +2,9 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+from functools import partial
 import operator
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -51,10 +52,10 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         if isinstance(y, (ABCSeries, ABCIndex)):
             y = y.values
 
-        result = libops.vec_compare(x, y, op)
+        result = libops.vec_compare(x.ravel(), y, op)
     else:
-        result = libops.scalar_compare(x, y, op)
-    return result
+        result = libops.scalar_compare(x.ravel(), y, op)
+    return result.reshape(x.shape)
 
 
 def masked_arith_op(x, y, op):
@@ -237,15 +238,15 @@ def comparison_op(
     elif is_scalar(rvalues) and isna(rvalues):
         # numpy does not like comparisons vs None
         if op is operator.ne:
-            res_values = np.ones(len(lvalues), dtype=bool)
+            res_values = np.ones(lvalues.shape, dtype=bool)
         else:
-            res_values = np.zeros(len(lvalues), dtype=bool)
+            res_values = np.zeros(lvalues.shape, dtype=bool)
 
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = "__{op}__".format(op=op.__name__)
+        op_name = f"__{op.__name__}__"
         method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
             res_values = method(rvalues)
@@ -253,9 +254,8 @@ def comparison_op(
         if res_values is NotImplemented:
             res_values = invalid_comparison(lvalues, rvalues, op)
         if is_scalar(res_values):
-            raise TypeError(
-                "Could not compare {typ} type with Series".format(typ=type(rvalues))
-            )
+            typ = type(rvalues)
+            raise TypeError(f"Could not compare {typ} type with Series")
 
     return res_values
 
@@ -292,11 +292,10 @@ def na_logical_op(x: np.ndarray, y, op):
                 OverflowError,
                 NotImplementedError,
             ):
+                typ = type(y).__name__
                 raise TypeError(
-                    "Cannot perform '{op}' with a dtyped [{dtype}] array "
-                    "and scalar of type [{typ}]".format(
-                        op=op.__name__, dtype=x.dtype, typ=type(y).__name__
-                    )
+                    f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
+                    f"and scalar of type [{typ}]"
                 )
 
     return result
@@ -367,3 +366,27 @@ def logical_op(
         res_values = filler(res_values)  # type: ignore
 
     return res_values
+
+
+def get_array_op(op, str_rep: Optional[str] = None):
+    """
+    Return a binary array operation corresponding to the given operator op.
+
+    Parameters
+    ----------
+    op : function
+        Binary operator from operator or roperator module.
+    str_rep : str or None, default None
+        str_rep to pass to arithmetic_op
+
+    Returns
+    -------
+    function
+    """
+    op_name = op.__name__.strip("_")
+    if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
+        return partial(comparison_op, op=op)
+    elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
+        return partial(logical_op, op=op)
+    else:
+        return partial(arithmetic_op, op=op, str_rep=str_rep)

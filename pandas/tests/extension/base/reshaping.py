@@ -94,6 +94,19 @@ class BaseReshapingTests(BaseExtensionTests):
         result = pd.concat([df1["A"], df2["B"]], axis=1)
         self.assert_frame_equal(result, expected)
 
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
+        # GH 20756
+        df1 = pd.DataFrame({"A": data[:3]})
+        df2 = pd.DataFrame({"B": data[3:7]})
+        expected = pd.DataFrame(
+            {
+                "A": data._from_sequence(list(data[:3]) + [na_value], dtype=data.dtype),
+                "B": data[3:7],
+            }
+        )
+        result = pd.concat([df1, df2], axis=1, copy=False)
+        self.assert_frame_equal(result, expected)
+
     def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
@@ -295,3 +308,19 @@ class BaseReshapingTests(BaseExtensionTests):
         # Check that we have a view, not a copy
         result[0] = result[1]
         assert data[0] == data[1]
+
+    def test_transpose(self, data):
+        df = pd.DataFrame({"A": data[:4], "B": data[:4]}, index=["a", "b", "c", "d"])
+        result = df.T
+        expected = pd.DataFrame(
+            {
+                "a": type(data)._from_sequence([data[0]] * 2, dtype=data.dtype),
+                "b": type(data)._from_sequence([data[1]] * 2, dtype=data.dtype),
+                "c": type(data)._from_sequence([data[2]] * 2, dtype=data.dtype),
+                "d": type(data)._from_sequence([data[3]] * 2, dtype=data.dtype),
+            },
+            index=["A", "B"],
+        )
+        self.assert_frame_equal(result, expected)
+        self.assert_frame_equal(np.transpose(np.transpose(df)), df)
+        self.assert_frame_equal(np.transpose(np.transpose(df[["A"]])), df[["A"]])

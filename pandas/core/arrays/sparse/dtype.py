@@ -5,6 +5,8 @@ from typing import Any, Tuple
 
 import numpy as np
 
+from pandas._typing import Dtype
+
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -16,8 +18,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
-
-from pandas._typing import Dtype
 
 
 @register_extension_dtype
@@ -64,7 +64,7 @@ class SparseDtype(ExtensionDtype):
     # hash(nan) is (sometimes?) 0.
     _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
 
-    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
+    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None):
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
@@ -175,7 +175,7 @@ class SparseDtype(ExtensionDtype):
         -------
         type
         """
-        from .array import SparseArray
+        from pandas.core.arrays.sparse.array import SparseArray
 
         return SparseArray
 
@@ -290,7 +290,7 @@ class SparseDtype(ExtensionDtype):
         Returns
         -------
         SparseDtype
-            A new SparseDtype with the corret `dtype` and fill value
+            A new SparseDtype with the correct `dtype` and fill value
             for that `dtype`.
 
         Raises

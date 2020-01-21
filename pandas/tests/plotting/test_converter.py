@@ -10,7 +10,7 @@ import pandas._config.config as cf
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,
@@ -66,10 +66,9 @@ class TestRegistration:
 
         # Set to the "warn" state, in case this isn't the first test run
         register_matplotlib_converters()
-        with tm.assert_produces_warning(None) as w:
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            # GH#30588 DeprecationWarning from 2D indexing
             ax.plot(s.index, s.values)
-
-        assert len(w) == 0
 
     def test_pandas_plots_register(self):
         pytest.importorskip("matplotlib.pyplot")
@@ -84,7 +83,7 @@ class TestRegistration:
         units = pytest.importorskip("matplotlib.units")
 
         # Can't make any assertion about the start state.
-        # We we check that toggling converters off remvoes it, and toggling it
+        # We we check that toggling converters off removes it, and toggling it
         # on restores it.
 
         with cf.option_context("plotting.matplotlib.register_converters", True):
@@ -101,18 +100,15 @@ class TestRegistration:
 
         # Test without registering first, no warning
         with ctx:
-            with tm.assert_produces_warning(None) as w:
+            # GH#30588 DeprecationWarning from 2D indexing on Index
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 ax.plot(s.index, s.values)
-
-        assert len(w) == 0
 
         # Now test with registering
         register_matplotlib_converters()
         with ctx:
-            with tm.assert_produces_warning(None) as w:
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 ax.plot(s.index, s.values)
-
-        assert len(w) == 0
 
     def test_registry_resets(self):
         units = pytest.importorskip("matplotlib.units")

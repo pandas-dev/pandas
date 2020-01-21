@@ -47,25 +47,14 @@ class StringDtype(ExtensionDtype):
     StringDtype
     """
 
+    name = "string"
+
     #: StringDtype.na_value uses pandas.NA
     na_value = libmissing.NA
 
     @property
     def type(self) -> Type:
         return str
-
-    @property
-    def name(self) -> str:
-        """
-        The alias for StringDtype is ``'string'``.
-        """
-        return "string"
-
-    @classmethod
-    def construct_from_string(cls, string: str) -> ExtensionDtype:
-        if string == "string":
-            return cls()
-        return super().construct_from_string(string)
 
     @classmethod
     def construct_array_type(cls) -> "Type[StringArray]":
@@ -86,7 +75,7 @@ class StringDtype(ExtensionDtype):
 
         results = []
         for arr in chunks:
-            # using _from_sequence to ensure None is convered to np.nan
+            # using _from_sequence to ensure None is converted to NA
             str_arr = StringArray._from_sequence(np.array(arr))
             results.append(str_arr)
 
@@ -104,9 +93,6 @@ class StringArray(PandasArray):
        StringArray is considered experimental. The implementation and
        parts of the API may change without warning.
 
-       In particular, the NA value used may change to no longer be
-       ``numpy.nan``.
-
     Parameters
     ----------
     values : array-like
@@ -115,8 +101,11 @@ class StringArray(PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings. This may
-           change without warning in the future.
+           where the elements are Python strings or :attr:`pandas.NA`.
+           This may change without warning in the future. Use
+           :meth:`pandas.array` with ``dtype="string"`` for a stable way of
+           creating a `StringArray` from any sequence.
+
     copy : bool, default False
         Whether to copy the array of data.
 
@@ -130,6 +119,8 @@ class StringArray(PandasArray):
 
     See Also
     --------
+    array
+        The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
         a StringArray.
@@ -142,7 +133,7 @@ class StringArray(PandasArray):
     --------
     >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string")
     <StringArray>
-    ['This is', 'some text', NA, 'data.']
+    ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
     Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
@@ -153,11 +144,11 @@ class StringArray(PandasArray):
     ...
     ValueError: StringArray requires an object-dtype ndarray of strings.
 
-    For comparision methods, this returns a :class:`pandas.BooleanArray`
+    For comparison methods, this returns a :class:`pandas.BooleanArray`
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
-    [True, NA, False]
+    [True, <NA>, False]
     Length: 3, dtype: boolean
     """
 
@@ -176,12 +167,10 @@ class StringArray(PandasArray):
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError(
-                "StringArray requires a sequence of strings or missing values."
-            )
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
-                "StringArray requires a sequence of strings. Got "
+                "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
 
@@ -189,12 +178,22 @@ class StringArray(PandasArray):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if dtype:
             assert dtype == "string"
-        result = super()._from_sequence(scalars, dtype=object, copy=copy)
+
+        result = np.asarray(scalars, dtype="object")
+        if copy and result is scalars:
+            result = result.copy()
+
         # Standardize all missing-like values to NA
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
-        result[result.isna()] = StringDtype.na_value
-        return result
+        na_values = isna(result)
+        if na_values.any():
+            if result is scalars:
+                # force a copy now, if we haven't already
+                result = result.copy()
+            result[na_values] = StringDtype.na_value
+
+        return cls(result)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
@@ -208,7 +207,10 @@ class StringArray(PandasArray):
 
         if type is None:
             type = pa.string()
-        return pa.array(self._ndarray, type=type, from_pandas=True)
+
+        values = self._ndarray.copy()
+        values[self.isna()] = None
+        return pa.array(values, type=type, from_pandas=True)
 
     def _values_for_factorize(self):
         arr = self._ndarray.copy()
@@ -261,7 +263,7 @@ class StringArray(PandasArray):
     def value_counts(self, dropna=False):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna)
+        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
     # Overrride parent because we have different return types.
     @classmethod

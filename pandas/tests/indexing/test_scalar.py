@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.indexing.common import Base
-import pandas.util.testing as tm
 
 
 class TestScalar(Base):
@@ -132,8 +132,8 @@ class TestScalar(Base):
         result = s.at["a"]
         assert result == 1
         msg = (
-            "At based indexing on an non-integer index can only have"
-            " non-integer indexers"
+            "At based indexing on an non-integer index can only have "
+            "non-integer indexers"
         )
         with pytest.raises(ValueError, match=msg):
             s.at[0]

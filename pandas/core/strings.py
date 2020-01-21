@@ -2,13 +2,15 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
+import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
+from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -32,7 +34,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import ArrayLike, Dtype
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
 import pandas.core.common as com
@@ -113,17 +114,20 @@ def cat_safe(list_of_columns: List, sep: str):
                 raise TypeError(
                     "Concatenation requires list-likes containing only "
                     "strings (or missing values). Offending values found in "
-                    "column {}".format(dtype)
+                    f"column {dtype}"
                 ) from None
     return result
 
 
-def _na_map(f, arr, na_result=np.nan, dtype=object):
-    # should really _check_ for NA
+def _na_map(f, arr, na_result=None, dtype=object):
     if is_extension_array_dtype(arr.dtype):
+        if na_result is None:
+            na_result = libmissing.NA
         # just StringDtype
         arr = extract_array(arr)
         return _map_stringarray(f, arr, na_value=na_result, dtype=dtype)
+    if na_result is None:
+        na_result = np.nan
     return _map_object(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
@@ -142,7 +146,7 @@ def _map_stringarray(
         The value to use for missing values. By default, this is
         the original value (NA).
     dtype : Dtype
-        The result dtype to use. Specifying this aviods an intermediate
+        The result dtype to use. Specifying this avoids an intermediate
         object-dtype allocation.
 
     Returns
@@ -152,14 +156,20 @@ def _map_stringarray(
         an ndarray.
 
     """
-    from pandas.arrays import IntegerArray, StringArray
+    from pandas.arrays import IntegerArray, StringArray, BooleanArray
 
     mask = isna(arr)
 
     assert isinstance(arr, StringArray)
     arr = np.asarray(arr)
 
-    if is_integer_dtype(dtype):
+    if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+        constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+        if is_integer_dtype(dtype):
+            constructor = IntegerArray
+        else:
+            constructor = BooleanArray
+
         na_value_is_na = isna(na_value)
         if na_value_is_na:
             na_value = 1
@@ -169,13 +179,13 @@ def _map_stringarray(
             mask.view("uint8"),
             convert=False,
             na_value=na_value,
-            dtype=np.dtype("int64"),
+            dtype=np.dtype(dtype),
         )
 
         if not na_value_is_na:
             mask[:] = False
 
-        return IntegerArray(result, mask)
+        return constructor(result, mask)
 
     elif is_string_dtype(dtype) and not is_object_dtype(dtype):
         # i.e. StringDtype
@@ -183,7 +193,6 @@ def _map_stringarray(
             arr, func, mask.view("uint8"), convert=False, na_value=na_value
         )
         return StringArray(result)
-    # TODO: BooleanArray
     else:
         # This is when the result type is object. We reach this when
         # -> We know the result type is truly object (e.g. .encode returns bytes
@@ -299,7 +308,7 @@ def str_count(arr, pat, flags=0):
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
@@ -433,8 +442,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         if regex.groups > 0:
             warnings.warn(
-                "This pattern has match groups. To actually get the"
-                " groups, use str.extract.",
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
                 UserWarning,
                 stacklevel=3,
             )
@@ -875,11 +884,12 @@ def _str_extract_noexpand(arr, pat, flags=0):
         if arr.empty:
             result = DataFrame(columns=columns, dtype=object)
         else:
+            dtype = _result_dtype(arr)
             result = DataFrame(
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,
-                dtype=object,
+                dtype=dtype,
             )
     return result, name
 
@@ -1350,8 +1360,8 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     """
 
     if not isinstance(sub, str):
-        msg = "expected a string object, not {0}"
-        raise TypeError(msg.format(type(sub).__name__))
+        msg = f"expected a string object, not {type(sub).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         method = "find"
@@ -1365,13 +1375,13 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_index(arr, sub, start=0, end=None, side="left"):
     if not isinstance(sub, str):
-        msg = "expected a string object, not {0}"
-        raise TypeError(msg.format(type(sub).__name__))
+        msg = f"expected a string object, not {type(sub).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         method = "index"
@@ -1385,7 +1395,7 @@ def str_index(arr, sub, start=0, end=None, side="left"):
     else:
         f = lambda x: getattr(x, method)(sub, start, end)
 
-    return _na_map(f, arr, dtype=int)
+    return _na_map(f, arr, dtype="int64")
 
 
 def str_pad(arr, width, side="left", fillchar=" "):
@@ -1442,15 +1452,15 @@ def str_pad(arr, width, side="left", fillchar=" "):
     dtype: object
     """
     if not isinstance(fillchar, str):
-        msg = "fillchar must be a character, not {0}"
-        raise TypeError(msg.format(type(fillchar).__name__))
+        msg = f"fillchar must be a character, not {type(fillchar).__name__}"
+        raise TypeError(msg)
 
     if len(fillchar) != 1:
         raise TypeError("fillchar must be a character, not str")
 
     if not is_integer(width):
-        msg = "width must be of integer type, not {0}"
-        raise TypeError(msg.format(type(width).__name__))
+        msg = f"width must be of integer type, not {type(width).__name__}"
+        raise TypeError(msg)
 
     if side == "left":
         f = lambda x: x.rjust(width, fillchar)
@@ -3210,7 +3220,7 @@ class StringMethods(NoNewAttributesMixin):
         len,
         docstring=_shared_docs["len"],
         forbidden_types=None,
-        dtype=int,
+        dtype="int64",
         returns_string=False,
     )
 

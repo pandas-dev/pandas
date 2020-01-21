@@ -32,8 +32,7 @@ def get_engine(engine: str) -> "BaseImpl":
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
-            "pyarrow or fastparquet is required for parquet "
-            "support"
+            "pyarrow or fastparquet is required for parquet support"
         )
 
     if engine == "pyarrow":
@@ -46,13 +45,13 @@ def get_engine(engine: str) -> "BaseImpl":
 
 class BaseImpl:
     @staticmethod
-    def validate_dataframe(df):
+    def validate_dataframe(df: DataFrame):
 
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "unicode", "empty"}:
+        if df.columns.inferred_type not in {"string", "empty"}:
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
@@ -62,7 +61,7 @@ class BaseImpl:
         if not valid_names:
             raise ValueError("Index level names must be strings")
 
-    def write(self, df, path, compression, **kwargs):
+    def write(self, df: DataFrame, path, compression, **kwargs):
         raise AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs):
@@ -76,11 +75,14 @@ class PyArrowImpl(BaseImpl):
         )
         import pyarrow.parquet
 
+        # import utils to register the pyarrow extension types
+        import pandas.core.arrays._arrow_utils  # noqa
+
         self.api = pyarrow
 
     def write(
         self,
-        df,
+        df: DataFrame,
         path,
         compression="snappy",
         coerce_timestamps="ms",
@@ -137,7 +139,13 @@ class FastParquetImpl(BaseImpl):
         self.api = fastparquet
 
     def write(
-        self, df, path, compression="snappy", index=None, partition_cols=None, **kwargs
+        self,
+        df: DataFrame,
+        path,
+        compression="snappy",
+        index=None,
+        partition_cols=None,
+        **kwargs,
     ):
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
@@ -147,8 +155,7 @@ class FastParquetImpl(BaseImpl):
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(
                 "Cannot use both partition_on and "
-                "partition_cols. Use partition_cols for "
-                "partitioning data"
+                "partition_cols. Use partition_cols for partitioning data"
             )
         elif "partition_on" in kwargs:
             partition_cols = kwargs.pop("partition_on")
@@ -196,9 +203,9 @@ class FastParquetImpl(BaseImpl):
 
 
 def to_parquet(
-    df,
+    df: DataFrame,
     path,
-    engine="auto",
+    engine: str = "auto",
     compression="snappy",
     index: Optional[bool] = None,
     partition_cols=None,
@@ -209,6 +216,7 @@ def to_parquet(
 
     Parameters
     ----------
+    df : DataFrame
     path : str
         File path or Root Directory path. Will be used as Root Directory path
         while writing a partitioned dataset.
@@ -255,7 +263,7 @@ def to_parquet(
     )
 
 
-def read_parquet(path, engine="auto", columns=None, **kwargs):
+def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
