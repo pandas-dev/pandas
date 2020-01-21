@@ -8,6 +8,7 @@ import unicodedata
 import dateutil
 from dateutil.tz import tzutc
 import numpy as np
+from packaging.version import parse as parse_version
 import pytest
 import pytz
 from pytz import timezone, utc
@@ -1093,16 +1094,21 @@ def test_constructor_ambigous_dst():
     result = Timestamp(ts).value
     assert result == expected
 
-
-def test_constructor_before_dst_switch():
+@pytest.mark.skipif(
+    parse_version(dateutil.__version__) < parse_version('2.7.0'),
+    reason="dateutil moved to Timedelta.total_seconds() in 2.7.0",
+)
+@pytest.mark.parametrize("epoch", [1552211999999999872, 1552211999999999999])
+def test_constructor_before_dst_switch(epoch):
     # GH 31043
     # Make sure that calling Timestamp constructor
     # on time just before DST switch doesn't lead to
-    # nonexistent time
-    epoch = 1552211999999999872
+    # nonexistent time or value change
+    # Works only with dateutil >= 2.7.0 as dateutil overrid
+    # pandas.Timedelta.total_seconds with
+    # datetime.timedelta.total_seconds before
     ts = Timestamp(epoch, tz="dateutil/US/Pacific")
-    delta = ts.replace(tzinfo=None) - datetime.utcfromtimestamp(0)
-    assert 1552183199.99 < delta.total_seconds() < 1552183200
-    expected = timedelta(seconds=0)
     result = ts.tz.dst(ts)
+    expected = timedelta(seconds=0)
+    assert ts.value == epoch
     assert result == expected
