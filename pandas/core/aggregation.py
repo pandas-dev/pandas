@@ -23,7 +23,7 @@ def reconstruct_func(func, *args, **kwargs):
     If relabeling is False, the columns and order will be None.
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-    columns: Optional[List[int]] = None
+    columns: Optional[List[str]] = None
     order: Optional[List[int]] = None
 
     if relabeling:
