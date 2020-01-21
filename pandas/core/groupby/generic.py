@@ -311,7 +311,7 @@ class SeriesGroupBy(GroupBy):
 
             arg = zip(columns, arg)
 
-        results = {}
+        results: Mapping[base.OutputKey, Union[Series, DataFrame]] = {}
         for idx, (name, func) in enumerate(arg):
             obj = self
 
@@ -326,10 +326,7 @@ class SeriesGroupBy(GroupBy):
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             return {key.label: value for key, value in results.items()}
-
-        if results:
-            return DataFrame(self._wrap_aggregated_output(results), columns=columns)
-        return DataFrame(columns=columns)
+        return DataFrame(self._wrap_aggregated_output(results), columns=columns)
 
     def _wrap_series_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index
@@ -360,8 +357,10 @@ class SeriesGroupBy(GroupBy):
         if len(output) > 1:
             result = DataFrame(indexed_output, index=index)
             result.columns = columns
-        else:
+        elif not columns.empty:
             result = Series(indexed_output[0], index=index, name=columns[0])
+        else:
+            result = DataFrame()
 
         return result
 
