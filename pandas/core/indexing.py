@@ -2232,7 +2232,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     else:
         if is_sparse(result):
             result = result.to_dense()
-        result = check_array_indexer(index, result)
+        result = np.asarray(check_array_indexer(index, result), dtype=bool)
 
     return result
 

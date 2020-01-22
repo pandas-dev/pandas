@@ -262,8 +262,8 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
 
     Parameters
     ----------
-    array : array
-        The array that's being indexed (only used for the length).
+    array : array-like
+        The array that is being indexed (only used for the length).
     indexer : array-like or list-like
         The array-like that's used to index.
 
