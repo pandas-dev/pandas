@@ -23,7 +23,7 @@ from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
 from pandas.core.indexers import (
-    check_bool_array_indexer,
+    check_array_indexer,
     is_list_like_indexer,
     length_of_indexer,
 )
@@ -2232,7 +2232,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     else:
         if is_sparse(result):
             result = result.to_dense()
-        result = check_bool_array_indexer(index, result)
+        result = check_array_indexer(index, result)
 
     return result
 
