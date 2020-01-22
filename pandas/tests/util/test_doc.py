@@ -3,8 +3,8 @@ from textwrap import dedent
 from pandas.util._decorators import doc
 
 
-@doc(method="cummax", operation="maximum")
-def cummax(whatever):
+@doc(method="cumsum", operation="sum")
+def cumsum(whatever):
     """
     This is the {method} method.
 
@@ -12,44 +12,44 @@ def cummax(whatever):
     """
 
 
-@doc(cummax, method="cummin", operation="minimum")
-def cummin(whatever):
+@doc(cumsum, method="cummax", operation="maximum")
+def cummax(whatever):
     pass
 
 
-@doc(cummin, method="cumsum", operation="sum")
-def cumsum(whatever):
+@doc(cummax, method="cummin", operation="minimum")
+def cummin(whatever):
     pass
 
 
 def test_docstring_formatting():
     docstr = dedent(
         """
-    This is the cummax method.
+        This is the cumsum method.
 
-    It computes the cumulative maximum.
-    """
+        It computes the cumulative sum.
+        """
     )
-    assert cummax.__doc__ == docstr
+    assert cumsum.__doc__ == docstr
 
 
 def test_doc_template_from_func():
     docstr = dedent(
         """
-    This is the cummin method.
+        This is the cummax method.
 
-    It computes the cumulative minimum.
-    """
+        It computes the cumulative maximum.
+        """
     )
-    assert cummin.__doc__ == docstr
+    assert cummax.__doc__ == docstr
 
 
 def test_inherit_doc_template():
     docstr = dedent(
         """
-    This is the cumsum method.
+        This is the cummin method.
 
-    It computes the cumulative sum.
-    """
+        It computes the cumulative minimum.
+        """
     )
-    assert cumsum.__doc__ == docstr
+    assert cummin.__doc__ == docstr
