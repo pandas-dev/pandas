@@ -191,7 +191,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self._ndarray_values)
+            values = self._data
+            sorted_values = values[values.argsort()]
 
             freq = self.freq
             if freq is not None and not is_period_dtype(self):
