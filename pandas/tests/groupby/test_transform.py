@@ -317,8 +317,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-@pytest.mark.parametrize("func", ["fillna", "ffill", "bfill", "shift", "cumsum"])
-def test_transform_non_reduction_func(func):
+def test_transform_transformation_func(transformation_func):
     # GH 30918
     df = DataFrame(
         {
@@ -326,20 +325,20 @@ def test_transform_non_reduction_func(func):
             "B": [1, 2, np.nan, 3, 3, np.nan, 4],
         }
     )
-    expected = {
-        "fillna": [1.0, 2, 0, 3, 3, 0, 4],
-        "ffill": [1.0, 2, 2, 3, 3, 3, 4],
-        "bfill": [1, 2, 3, 3, 3, np.nan, 4],
-        "shift": [np.nan, 1, 2, np.nan, np.nan, 3, np.nan],
-        "cumsum": [1, 3, np.nan, 6, 3, np.nan, 4],
-    }
-    expected = DataFrame(expected[func], columns=["B"])
-    grouped = df.groupby("A")
 
-    if func == "fillna":
-        result = grouped.transform(func, value=0)
+    if transformation_func in ["pad", "backfill", "tshift", "corrwith", "cumcount"]:
+        # These transformation functions are not yet covered in this test
+        return
+    elif transformation_func == "fillna":
+        test_op = lambda x: x.transform("fillna", value=0)
+        mock_op = lambda x: x.fillna(value=0)
     else:
-        result = grouped.transform(func)
+        test_op = lambda x: x.transform(transformation_func)
+        mock_op = lambda x: getattr(x, transformation_func)()
+
+    result = test_op(df.groupby("A"))
+    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
+    expected = concat([mock_op(g) for g in groups])
 
     tm.assert_frame_equal(result, expected)
 
