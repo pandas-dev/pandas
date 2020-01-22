@@ -703,7 +703,9 @@ def assert_index_equal(
     # metadata comparison
     if check_names:
         assert_attr_equal("names", left, right, obj=obj)
-    if isinstance(left, pd.PeriodIndex) or isinstance(right, pd.PeriodIndex):
+
+    freq_classes = (pd.PeriodIndex, pd.DatetimeIndex, pd.TimedeltaIndex)
+    if isinstance(left, freq_classes) or isinstance(right, freq_classes):
         assert_attr_equal("freq", left, right, obj=obj)
     if isinstance(left, pd.IntervalIndex) or isinstance(right, pd.IntervalIndex):
         assert_interval_array_equal(left.values, right.values)
@@ -742,8 +744,9 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
             raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
-def assert_attr_equal(attr, left, right, obj="Attributes"):
-    """checks attributes are equal. Both objects must have attribute.
+def assert_attr_equal(attr: str, left, right, obj="Attributes"):
+    """
+    Check attributes are equal. Both objects must have attribute.
 
     Parameters
     ----------

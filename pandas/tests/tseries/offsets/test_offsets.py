@@ -3501,7 +3501,7 @@ class TestSemiMonthEnd(Base):
 
         # ensure generating a range with DatetimeIndex gives same result
         result = date_range(start=dates[0], end=dates[-1], freq="SM")
-        exp = DatetimeIndex(dates)
+        exp = DatetimeIndex(dates, freq="SM")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
@@ -3760,7 +3760,7 @@ class TestSemiMonthBegin(Base):
 
         # ensure generating a range with DatetimeIndex gives same result
         result = date_range(start=dates[0], end=dates[-1], freq="SMS")
-        exp = DatetimeIndex(dates)
+        exp = DatetimeIndex(dates, freq="SMS")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
