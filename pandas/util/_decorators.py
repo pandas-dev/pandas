@@ -252,7 +252,17 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable:
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
-    This decorator should be robust even if func.__doc__ is None.
+    This decorator is robust even if func.__doc__ is None. This decorator will
+    add a variable "_docstr_template" to the wrapped function to save original
+    docstring template for potential usage.
+
+    Parameters
+    ----------
+    *args : str or callable
+        The string / docstring / docstring template to be appended in order
+        after default docstring under function.
+    **kwags : str
+        The string which would be used to format docstring template.
     """
 
     def decorator(func: Callable) -> Callable:
