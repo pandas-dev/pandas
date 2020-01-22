@@ -66,11 +66,11 @@ def correct_title_capitalization(title: str) -> str:
     Returns
     -------
     correct_title : str
-        Correctly capitalized title
+        Correctly capitalized heading
 
     """
 
-    correct_title: str = title.capitalize()
+    correct_title: str = re.sub(r"^\W*", "", title).capitalize()
 
     removed_https_title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", correct_title)
 
@@ -87,7 +87,7 @@ def correct_title_capitalization(title: str) -> str:
 
 def is_following_capitalization_convention(title: str) -> bool:
     """
-    Algorithm to determine if a title is capitalized correctly
+    Function to return if a given title is capitalized correctly
 
     Parameters
     ----------
@@ -244,8 +244,10 @@ def main(source_paths: List[str], output_format: str) -> bool:
 
     for key in bad_title_dict:
         for line in bad_title_dict[key]:
-            correct_title = correct_title_capitalization(line[0])
-            print(f'{key}:{line[1]}:{err_msg} "{line[0]}" to "{correct_title}"')
+            print(
+                f"""{key}:{line[1]}:{err_msg} "{line[0]}" to "{
+                correct_title_capitalization(line[0])}" """
+            )
             number_of_errors += 1
 
     return number_of_errors
