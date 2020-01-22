@@ -1053,7 +1053,7 @@ class HDFStore:
             dropna=dropna,
             data_columns=data_columns,
             encoding=encoding,
-            errors=errors
+            errors=errors,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
