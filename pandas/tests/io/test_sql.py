@@ -226,8 +226,10 @@ class MySQLMixIn(MixInBase):
     def _close_conn(self):
         from pymysql.err import Error
 
-        with pytest.raises(Error):
+        try:
             self.conn.close()
+        except Error:
+            pass
 
 
 class SQLiteMixIn(MixInBase):
@@ -536,12 +538,13 @@ class PandasSQLTest:
 
         # Make sure when transaction is rolled back, no rows get inserted
         ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
-
-        with pytest.raises(DummyException):
+        try:
             with self.pandasSQL.run_transaction() as trans:
                 trans.execute(ins_sql)
                 raise DummyException("error")
-
+        except DummyException:
+            # ignore raised exception
+            pass
         res = self.pandasSQL.read_query("SELECT * FROM test_trans")
         assert len(res) == 0
 
