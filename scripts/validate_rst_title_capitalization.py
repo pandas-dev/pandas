@@ -49,8 +49,6 @@ CAPITALIZATION_EXCEPTIONS = {
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
 
-bad_title_dict = {}
-
 err_msg = "Heading capitalization formatted incorrectly. Please correctly capitalize"
 
 
@@ -79,34 +77,10 @@ def correct_title_capitalization(title: str) -> str:
     for word in word_list:
         if word.lower() in CAP_EXCEPTIONS_DICT:
             correct_title = re.sub(
-                r"\b" + word + r"\b", CAP_EXCEPTIONS_DICT[word.lower()], correct_title
+                rf"\b{word}\b", CAP_EXCEPTIONS_DICT[word.lower()], correct_title
             )
 
     return correct_title
-
-
-def is_following_capitalization_convention(title: str) -> bool:
-    """
-    Function to return if a given title is capitalized correctly
-
-    Parameters
-    ----------
-    title : str
-        Heading string to validate
-
-    Returns
-    -------
-    bool
-        True if title capitalized correctly, False if not
-
-    """
-
-    correct_title = correct_title_capitalization(title)
-
-    if title != correct_title:
-        return False
-    else:
-        return True
 
 
 def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
@@ -161,28 +135,6 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
                         yield lines[line_no - 1].translate(table), line_no
 
 
-def fill_bad_title_dict(rst_file: str) -> None:
-    """
-    Method that fills up the bad_title_dict with incorrectly capitalized headings
-
-    Parameters
-    ----------
-    rst_file : str
-        Directory address of a .rst file as a string
-
-    """
-
-    if rst_file in bad_title_dict:
-        return
-
-    for title, line_number in find_titles(rst_file):
-        if not is_following_capitalization_convention(title):
-            if rst_file not in bad_title_dict:
-                bad_title_dict[rst_file] = [(title, line_number)]
-            else:
-                bad_title_dict[rst_file].append((title, line_number))
-
-
 def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
     """
     Given the command line arguments of directory paths, this method
@@ -234,21 +186,14 @@ def main(source_paths: List[str], output_format: str) -> bool:
 
     number_of_errors: int = 0
 
-    directory_list = find_rst_files(source_paths)
-
-    for filename in directory_list:
-        fill_bad_title_dict(filename)
-
-    if len(bad_title_dict) == 0:
-        return number_of_errors
-
-    for key in bad_title_dict:
-        for line in bad_title_dict[key]:
-            print(
-                f"""{key}:{line[1]}:{err_msg} "{line[0]}" to "{
-                correct_title_capitalization(line[0])}" """
-            )
-            number_of_errors += 1
+    for filename in find_rst_files(source_paths):
+        for title, line_number in find_titles(filename):
+            if title != correct_title_capitalization(title):
+                print(
+                    f"""{filename}:{line_number}:{err_msg} "{title}" to "{
+                    correct_title_capitalization(title)}" """
+                )
+                number_of_errors += 1
 
     return number_of_errors
 
