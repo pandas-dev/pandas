@@ -36,7 +36,7 @@ class TestCommon:
         for level in "wrong", ["wrong"]:
             with pytest.raises(
                 KeyError,
-                match=r"'Requested level \(wrong\) does not match index name \(None\)'",
+                match=r"'Requested level \(wrong\) does not match index name \(.*\)'",
             ):
                 indices.droplevel(level)
 

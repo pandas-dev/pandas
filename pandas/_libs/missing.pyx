@@ -287,6 +287,27 @@ cdef inline bint is_null_period(v):
     return checknull_with_nat(v)
 
 
+def is_matching_na(left, right) -> bool:
+    """
+    Check if two NA-like scalars represent the same type of NA.
+    """
+    if left is None:
+        return right is None
+    if left is C_NA:
+        return right is C_NA
+    if left is NaT:
+        return right is NaT
+    if util.is_nan(left):
+        if not util.is_nan(right):
+            return False
+        if util.is_float_object(left):
+            return util.is_float_object(right)
+        if util.is_complex_object(left):
+            return util.is_complex_object(right)
+        raise NotImplementedError(left, right)
+    raise NotImplementedError(left, right)
+
+
 # -----------------------------------------------------------------------------
 # Implementation of NA singleton
 

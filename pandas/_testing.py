@@ -21,6 +21,7 @@ from pandas._config.localization import (  # noqa:F401
     set_locale,
 )
 
+from pandas._libs.lib import no_default
 import pandas._libs.testing as _testing
 from pandas._typing import FilePathOrBuffer, FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
@@ -1575,6 +1576,30 @@ def getCols(k):
     return string.ascii_uppercase[:k]
 
 
+def make_any_name():
+    """
+    Return a random hashable object.
+    """
+    return np.random.choice(
+        [
+            None,
+            "a",
+            "foobar" * 100,
+            1,
+            2.0,
+            np.float64(3),
+            np.nan,
+            pd.NaT,
+            pd.NA,
+            pd.Timestamp.now(),
+            pd.Timestamp.now("UTC"),
+            pd.Timedelta(minutes=45678),
+            pd.Timedelta(minutes=45678).to_timedelta64(),
+            pd.Timedelta(minutes=45678).to_pytimedelta(),
+        ]
+    )
+
+
 # make index
 def makeStringIndex(k=10, name=None):
     return Index(rands_array(nchars=10, size=k), name=name)
@@ -1623,17 +1648,23 @@ def makeFloatIndex(k=10, name=None):
     return Index(values * (10 ** np.random.randint(0, 9)), name=name)
 
 
-def makeDateIndex(k=10, freq="B", name=None, **kwargs):
+def makeDateIndex(k=10, freq="B", name=no_default, **kwargs):
+    if name is no_default:
+        name = make_any_name()
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
+def makeTimedeltaIndex(k=10, freq="D", name=no_default, **kwargs):
+    if name is no_default:
+        name = make_any_name()
     return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
 
 
-def makePeriodIndex(k=10, name=None, **kwargs):
+def makePeriodIndex(k=10, name=no_default, **kwargs):
+    if name is no_default:
+        name = make_any_name()
     dt = datetime(2000, 1, 1)
     dr = pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
     return dr

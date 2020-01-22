@@ -6,7 +6,12 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, index as libindex, lib
+from pandas._libs import (
+    algos as libalgos,
+    index as libindex,
+    lib,
+    missing as libmissing,
+)
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
@@ -4333,16 +4338,29 @@ class Index(IndexOpsMixin, PandasObject):
             If two Index objects have equal elements and same type True,
             otherwise False.
         """
-        return (
-            self.equals(other)
-            and all(
-                (
-                    getattr(self, c, None) == getattr(other, c, None)
-                    for c in self._comparables
-                )
-            )
-            and type(self) == type(other)
-        )
+        if type(self) != type(other):
+            return False
+        if not self.equals(other):
+            return False
+        for attr in self._comparables:
+            left = getattr(self, attr)
+            right = getattr(other, attr)
+            if is_scalar(left) and isna(left):
+                # We have to avoid pd.NA raising TypeError when checking equality
+                if not libmissing.is_matching_na(left, right):
+                    return False
+                continue
+            elif is_scalar(right) and isna(right):
+                return False
+            else:
+                try:
+                    if not left == right:
+                        return False
+                except TypeError:
+                    # Timestamp tzawareness compat, Period freq compat
+                    return False
+
+        return True
 
     def asof(self, label):
         """

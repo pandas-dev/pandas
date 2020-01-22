@@ -300,7 +300,7 @@ class Base:
             return
 
         index_type = type(indices)
-        result = index_type(indices.values, copy=True, **init_kwargs)
+        result = index_type(indices.values, copy=True, name=indices.name, **init_kwargs)
         tm.assert_index_equal(indices, result)
         tm.assert_numpy_array_equal(
             indices._ndarray_values, result._ndarray_values, check_same="copy"

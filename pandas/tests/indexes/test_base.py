@@ -1082,7 +1082,7 @@ class TestIndex(Base):
         index = getattr(tm, attr)(10)
         expected = Index([1] * 10)
         result = index.map(lambda x: 1)
-        tm.assert_index_equal(expected, result)
+        tm.assert_index_equal(expected, result, check_names=False)
 
     def test_map_tseries_indices_accsr_return_index(self):
         date_index = tm.makeDateIndex(24, freq="h", name="hourly")
@@ -1126,7 +1126,7 @@ class TestIndex(Base):
             expected = Index(np.arange(len(indices), 0, -1))
 
         result = indices.map(mapper(expected, indices))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_names=False)
 
     @pytest.mark.parametrize(
         "mapper",

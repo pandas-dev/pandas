@@ -339,7 +339,9 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)
         idx = ax.get_lines()[0].get_xdata()
-        tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
+        tm.assert_index_equal(
+            bts.index.to_period(), PeriodIndex(idx, name=bts.index.name)
+        )
 
     @pytest.mark.slow
     def test_axis_limits(self):
@@ -692,8 +694,8 @@ class TestTSPlot(TestPlotBase):
 
         ax2 = s2.plot(style="g", ax=ax)
         lines = ax2.get_lines()
-        idx1 = PeriodIndex(lines[0].get_xdata())
-        idx2 = PeriodIndex(lines[1].get_xdata())
+        idx1 = PeriodIndex(lines[0].get_xdata(), name=s1.index.name)
+        idx2 = PeriodIndex(lines[1].get_xdata(), name=s2.index.name)
 
         tm.assert_index_equal(idx1, s1.index.to_period("B"))
         tm.assert_index_equal(idx2, s2.index.to_period("B"))

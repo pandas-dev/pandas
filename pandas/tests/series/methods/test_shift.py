@@ -209,7 +209,9 @@ class TestShift:
         tm.assert_series_equal(shifted, shifted2)
 
         inferred_ts = Series(
-            datetime_series.values, Index(np.asarray(datetime_series.index)), name="ts"
+            datetime_series.values,
+            Index(np.asarray(datetime_series.index), name=datetime_series.index.name),
+            name="ts",
         )
         shifted = inferred_ts.tshift(1)
         unshifted = shifted.tshift(-1)
