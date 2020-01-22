@@ -795,3 +795,11 @@ def test_to_numpy_extra(array):
     assert result[0] == result[1]
 
     tm.assert_equal(array, original)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]", "Period[D]"])
+def test_argsort(dtype):
+    a = pd.array([2001, pd.NaT, 2000], dtype=dtype)
+    result = a.argsort()
+    expected = np.array([2, 0, 1])
+    tm.assert_numpy_array_equal(result, expected)

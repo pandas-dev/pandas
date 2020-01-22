@@ -180,9 +180,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         except Exception:
             return self.astype(object).map(mapper)
 
-    def argsort(self, *args, **kwargs) -> np.ndarray:
-        return np.argsort(self._data)
-
     def sort_values(self, return_indexer=False, ascending=True):
         """
         Return sorted copy of Index.
@@ -223,6 +220,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return ExtensionIndex.take(
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
+
+    def argsort(self, *args, **kwargs) -> np.ndarray:
+        return np.argsort(self._data, *args, **kwargs)
 
     @Appender(_shared_docs["searchsorted"])
     def searchsorted(self, value, side="left", sorter=None):

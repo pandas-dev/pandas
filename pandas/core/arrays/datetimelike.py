@@ -710,7 +710,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return cls(values, dtype=original.dtype)
 
     def _values_for_argsort(self):
-        return self._data
+        return self._data.view("M8[ns]")
 
     # ------------------------------------------------------------------
     # Additional array methods
