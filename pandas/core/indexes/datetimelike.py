@@ -192,7 +192,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             return sorted_index, _as
         else:
             values = self._data
-            sorted_values = values[values.argsort()]
+            sorted_values = values[values.argsort()].asi8
 
             freq = self.freq
             if freq is not None and not is_period_dtype(self):
