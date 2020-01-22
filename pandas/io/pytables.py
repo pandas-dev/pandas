@@ -2472,6 +2472,7 @@ class Fixed:
         """
 
     pandas_kind: str
+    format_type: str = "fixed"  # GH#30962 needed by dask
     obj_type: Type[Union[DataFrame, Series]]
     ndim: int
     encoding: str
@@ -3129,6 +3130,7 @@ class Table(Fixed):
         """
 
     pandas_kind = "wide_table"
+    format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
     levels = 1
     is_table = True
