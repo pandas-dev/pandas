@@ -2006,7 +2006,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         result = self._codes[key]
         if result.ndim > 1:
-            raise IndexError("Cannot user indexer with multiple dimensions")
+            from pandas.core.indexes.base import deprecate_ndim_indexing
+
+            deprecate_ndim_indexing(result)
+            return result
         return self._constructor(result, dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):

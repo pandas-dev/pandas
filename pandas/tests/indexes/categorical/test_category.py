@@ -975,10 +975,3 @@ class TestCategoricalIndex(Base):
             ci.values._codes = ci.values._codes.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
-
-    def test_getitem_2d_deprecated(self):
-        # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
-        idx = self.create_index()
-        msg = "Cannot user indexer with multiple dimensions"
-        with pytest.raises(IndexError, match=msg):
-            idx[:, None]
