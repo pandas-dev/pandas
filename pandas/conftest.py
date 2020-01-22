@@ -867,6 +867,15 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
         ),
     )
 
+@pytest.fixture
+def datetime_series():
+    """
+    Fixture for Series of floats with DatetimeIndex
+    """
+    s = tm.makeTimeSeries()
+    s.name = "ts"
+    return s
+
 
 @pytest.fixture
 def float_frame():

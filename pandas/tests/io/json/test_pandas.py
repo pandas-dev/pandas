@@ -42,12 +42,9 @@ def assert_json_roundtrip_equal(result, expected, orient):
 
 @pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
-    @pytest.fixture(scope="function", autouse=True)
-    def setup(self, datapath):
-        self.dirpath = datapath("io", "json", "data")
-
-        self.ts = tm.makeTimeSeries()
-        self.ts.name = "ts"
+    @pytest.fixture(autouse=True)
+    def setup(self, datapath, monkeypatch):
+        monkeypatch.chdir(datapath("io", "json", "data"))
 
         self.series = tm.makeStringSeries()
         self.series.name = "series"
@@ -66,10 +63,6 @@ class TestPandasContainer:
         self.categorical = _cat_frame.copy()
 
         yield
-
-        del self.dirpath
-
-        del self.ts
 
         del self.series
 
@@ -474,12 +467,12 @@ class TestPandasContainer:
         df["modified"] = df["date"]
         df.iloc[1, df.columns.get_loc("modified")] = pd.NaT
 
-        v12_json = os.path.join(self.dirpath, "tsframe_v012.json")
+        v12_json = os.path.join("tsframe_v012.json")
         df_unser = pd.read_json(v12_json)
         tm.assert_frame_equal(df, df_unser)
 
         df_iso = df.drop(["modified"], axis=1)
-        v12_iso_json = os.path.join(self.dirpath, "tsframe_iso_v012.json")
+        v12_iso_json = os.path.join("tsframe_iso_v012.json")
         df_unser_iso = pd.read_json(v12_iso_json)
         tm.assert_frame_equal(df_iso, df_unser_iso)
 
@@ -681,10 +674,10 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_timeseries(self, orient, numpy):
-        data = self.ts.to_json(orient=orient)
+    def test_series_roundtrip_timeseries(self, orient, numpy, datetime_series):
+        data = datetime_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
-        expected = self.ts.copy()
+        expected = datetime_series.copy()
 
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
@@ -773,7 +766,7 @@ class TestPandasContainer:
                 df.to_json(path)
                 read_json(path)
 
-    def test_axis_dates(self):
+    def test_axis_dates(self, datetime_series):
 
         # frame
         json = self.tsframe.to_json()
@@ -781,12 +774,12 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, self.tsframe)
 
         # series
-        json = self.ts.to_json()
+        json = datetime_series.to_json()
         result = read_json(json, typ="series")
-        tm.assert_series_equal(result, self.ts, check_names=False)
+        tm.assert_series_equal(result, datetime_series, check_names=False)
         assert result.name is None
 
-    def test_convert_dates(self):
+    def test_convert_dates(self, datetime_series):
 
         # frame
         df = self.tsframe.copy()
@@ -806,7 +799,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected)
 
         # series
-        ts = Series(Timestamp("20130101"), index=self.ts.index)
+        ts = Series(Timestamp("20130101"), index=datetime_series.index)
         json = ts.to_json()
         result = read_json(json, typ="series")
         tm.assert_series_equal(result, ts)
@@ -901,8 +894,8 @@ class TestPandasContainer:
             ("20130101 20:43:42.123456789", "ns"),
         ],
     )
-    def test_date_format_series(self, date, date_unit):
-        ts = Series(Timestamp(date), index=self.ts.index)
+    def test_date_format_series(self, date, date_unit, datetime_series):
+        ts = Series(Timestamp(date), index=datetime_series.index)
         ts.iloc[1] = pd.NaT
         ts.iloc[5] = pd.NaT
         if date_unit:
@@ -915,8 +908,8 @@ class TestPandasContainer:
         expected = expected.dt.tz_localize("UTC")
         tm.assert_series_equal(result, expected)
 
-    def test_date_format_series_raises(self):
-        ts = Series(Timestamp("20130101 20:43:42.123"), index=self.ts.index)
+    def test_date_format_series_raises(self, datetime_series):
+        ts = Series(Timestamp("20130101 20:43:42.123"), index=datetime_series.index)
         msg = "Invalid value 'foo' for option 'date_unit'"
         with pytest.raises(ValueError, match=msg):
             ts.to_json(date_format="iso", date_unit="foo")
