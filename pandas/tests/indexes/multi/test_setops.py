@@ -110,6 +110,17 @@ def test_symmetric_difference(idx, sort):
         first.symmetric_difference([1, 2, 3], sort=sort)
 
 
+def test_multiindex_symmetric_difference():
+    # GH 13490
+    idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
+    result = idx ^ idx
+    assert result.names == idx.names
+
+    idx2 = idx.copy().rename(["A", "B"])
+    result = idx ^ idx2
+    assert result.names == [None, None]
+
+
 def test_empty(idx):
     # GH 15270
     assert not idx.empty

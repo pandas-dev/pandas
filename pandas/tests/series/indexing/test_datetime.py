@@ -49,39 +49,6 @@ def test_fancy_setitem():
     assert (s[48:54] == -3).all()
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
-@pytest.mark.parametrize("tz", [None, "Asia/Shanghai", "Europe/Berlin"])
-@pytest.mark.parametrize("name", [None, "my_dti"])
-def test_dti_snap(name, tz):
-    dti = DatetimeIndex(
-        [
-            "1/1/2002",
-            "1/2/2002",
-            "1/3/2002",
-            "1/4/2002",
-            "1/5/2002",
-            "1/6/2002",
-            "1/7/2002",
-        ],
-        name=name,
-        tz=tz,
-        freq="D",
-    )
-
-    result = dti.snap(freq="W-MON")
-    expected = date_range("12/31/2001", "1/7/2002", name=name, tz=tz, freq="w-mon")
-    expected = expected.repeat([3, 4])
-    tm.assert_index_equal(result, expected)
-    assert result.tz == expected.tz
-
-    result = dti.snap(freq="B")
-
-    expected = date_range("1/1/2002", "1/7/2002", name=name, tz=tz, freq="b")
-    expected = expected.repeat([1, 1, 1, 2, 2])
-    tm.assert_index_equal(result, expected)
-    assert result.tz == expected.tz
-
-
 def test_dti_reset_index_round_trip():
     dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")
     d1 = DataFrame({"v": np.random.rand(len(dti))}, index=dti)
@@ -749,16 +716,6 @@ def test_nat_operations():
     assert s.median() == exp
     assert s.min() == exp
     assert s.max() == exp
-
-
-@pytest.mark.parametrize("method", ["round", "floor", "ceil"])
-@pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
-def test_round_nat(method, freq):
-    # GH14940
-    s = Series([pd.NaT])
-    expected = Series(pd.NaT)
-    round_method = getattr(s.dt, method)
-    tm.assert_series_equal(round_method(freq), expected)
 
 
 def test_setitem_tuple_with_datetimetz():
