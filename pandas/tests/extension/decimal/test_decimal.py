@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 from .array import DecimalArray, DecimalDtype, make_data, to_decimal
 
@@ -145,7 +145,7 @@ class TestMissing(BaseDecimal, base.BaseMissingTests):
 class Reduce:
     def check_reduce(self, s, op_name, skipna):
 
-        if skipna or op_name in ["median", "skew", "kurt"]:
+        if op_name in ["median", "skew", "kurt"]:
             with pytest.raises(NotImplementedError):
                 getattr(s, op_name)(skipna=skipna)
 
@@ -478,3 +478,38 @@ def test_groupby_agg_ea_method(monkeypatch):
     s = pd.Series(DecimalArray(data))
     result = s.groupby(np.array([0, 0, 0, 1, 1])).agg(lambda x: x.values.my_sum())
     tm.assert_series_equal(result, expected, check_names=False)
+
+
+def test_indexing_no_materialize(monkeypatch):
+    # See https://github.com/pandas-dev/pandas/issues/29708
+    # Ensure that indexing operations do not materialize (convert to a numpy
+    # array) the ExtensionArray unnecessary
+
+    def DecimalArray__array__(self, dtype=None):
+        raise Exception("tried to convert a DecimalArray to a numpy array")
+
+    monkeypatch.setattr(DecimalArray, "__array__", DecimalArray__array__, raising=False)
+
+    data = make_data()
+    s = pd.Series(DecimalArray(data))
+    df = pd.DataFrame({"a": s, "b": range(len(s))})
+
+    # ensure the following operations do not raise an error
+    s[s > 0.5]
+    df[s > 0.5]
+    s.at[0]
+    df.at[0, "a"]
+
+
+def test_to_numpy_keyword():
+    # test the extra keyword
+    values = [decimal.Decimal("1.1111"), decimal.Decimal("2.2222")]
+    expected = np.array(
+        [decimal.Decimal("1.11"), decimal.Decimal("2.22")], dtype="object"
+    )
+    a = pd.array(values, dtype="decimal")
+    result = a.to_numpy(decimals=2)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = pd.Series(a).to_numpy(decimals=2)
+    tm.assert_numpy_array_equal(result, expected)

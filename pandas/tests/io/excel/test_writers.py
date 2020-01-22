@@ -6,12 +6,11 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
 import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, get_option, set_option
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.excel import (
     ExcelFile,
@@ -253,7 +252,7 @@ class TestRoundTrip:
             res = pd.read_excel(pth, parse_dates=["date_strings"], index_col=0)
             tm.assert_frame_equal(df, res)
 
-            date_parser = lambda x: pd.datetime.strptime(x, "%m/%d/%Y")
+            date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
             res = pd.read_excel(
                 pth, parse_dates=["date_strings"], date_parser=date_parser, index_col=0
             )
@@ -810,6 +809,7 @@ class TestExcelWriter:
             )
             tm.assert_frame_equal(result, expected)
 
+    # FIXME: dont leave commented-out
     # def test_to_excel_header_styling_xls(self, engine, ext):
 
     #     import StringIO
@@ -1010,12 +1010,8 @@ class TestExcelWriter:
         # see gh-10982
         write_frame = DataFrame({"A": [1, 1, 1], "B": [2, 2, 2]})
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(KeyError, match="Not all names specified"):
             write_frame.to_excel(path, "test1", columns=["B", "C"])
-
-        expected = write_frame.reindex(columns=["B", "C"])
-        read_frame = pd.read_excel(path, "test1", index_col=0)
-        tm.assert_frame_equal(expected, read_frame)
 
         with pytest.raises(
             KeyError, match="'passes columns are not ALL present dataframe'"
@@ -1262,7 +1258,6 @@ class TestExcelWriterEngineTests:
 
 @td.skip_if_no("xlrd")
 @td.skip_if_no("openpyxl")
-@pytest.mark.skipif(not PY36, reason="requires fspath")
 class TestFSPath:
     def test_excelfile_fspath(self):
         with tm.ensure_clean("foo.xlsx") as path:

@@ -753,28 +753,51 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 Tablewise function application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``DataFrames`` and ``Series`` can of course just be passed into functions.
+``DataFrames`` and ``Series`` can be passed into functions.
 However, if the function needs to be called in a chain, consider using the :meth:`~DataFrame.pipe` method.
-Compare the following
 
-.. code-block:: python
+First some setup:
 
-   # f, g, and h are functions taking and returning ``DataFrames``
-   >>> f(g(h(df), arg1=1), arg2=2, arg3=3)
+.. ipython:: python
 
-with the equivalent
+    def extract_city_name(df):
+        """
+        Chicago, IL -> Chicago for city_name column
+        """
+        df['city_name'] = df['city_and_code'].str.split(",").str.get(0)
+        return df
 
-.. code-block:: python
+    def add_country_name(df, country_name=None):
+        """
+        Chicago -> Chicago-US for city_name column
+        """
+        col = 'city_name'
+        df['city_and_country'] = df[col] + country_name
+        return df
 
-   >>> (df.pipe(h)
-   ...    .pipe(g, arg1=1)
-   ...    .pipe(f, arg2=2, arg3=3))
+    df_p = pd.DataFrame({'city_and_code': ['Chicago, IL']})
+
+
+``extract_city_name`` and ``add_country_name`` are functions taking and returning ``DataFrames``.
+
+Now compare the following:
+
+.. ipython:: python
+
+    add_country_name(extract_city_name(df_p), country_name='US')
+
+Is equivalent to:
+
+.. ipython:: python
+
+    (df_p.pipe(extract_city_name)
+         .pipe(add_country_name, country_name="US"))
 
 Pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions
 in method chains, alongside pandas' methods.
 
-In the example above, the functions ``f``, ``g``, and ``h`` each expected the ``DataFrame`` as the first positional argument.
+In the example above, the functions ``extract_city_name`` and ``add_country_name`` each expected a ``DataFrame`` as the first positional argument.
 What if the function you wish to apply takes its data as, say, the second argument?
 In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 ``.pipe`` will route the ``DataFrame`` to the argument specified in the tuple.
@@ -1914,20 +1937,36 @@ See :ref:`extending.extension-types` for how to write your own extension that
 works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
 libraries that have implemented an extension.
 
-The following table lists all of pandas extension types. See the respective
+The following table lists all of pandas extension types. For methods requiring ``dtype``
+arguments, strings can be specified as indicated. See the respective
 documentation sections for more on each type.
 
-=================== ========================= ================== ============================= =============================
-Kind of Data        Data Type                 Scalar             Array                         Documentation
-=================== ========================= ================== ============================= =============================
-tz-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
-Categorical         :class:`CategoricalDtype` (none)             :class:`Categorical`          :ref:`categorical`
-period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
-sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
-intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
-nullable integer    :class:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
-Strings             :class:`StringDtype`      :class:`str`       :class:`arrays.StringArray`   :ref:`text`
-=================== ========================= ================== ============================= =============================
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| Kind of Data      | Data Type                 | Scalar             | Array                         | String Aliases                          | Documentation                 |
++===================+===========================+====================+===============================+=========================================+===============================+
+| tz-aware datetime | :class:`DatetimeTZDtype`  | :class:`Timestamp` | :class:`arrays.DatetimeArray` | ``'datetime64[ns, <tz>]'``              | :ref:`timeseries.timezone`    |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| Categorical       | :class:`CategoricalDtype` | (none)             | :class:`Categorical`          | ``'category'``                          | :ref:`categorical`            |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| period            | :class:`PeriodDtype`      | :class:`Period`    | :class:`arrays.PeriodArray`   | ``'period[<freq>]'``,                   | :ref:`timeseries.periods`     |
+| (time spans)      |                           |                    |                               | ``'Period[<freq>]'``                    |                               |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| sparse            | :class:`SparseDtype`      | (none)             | :class:`arrays.SparseArray`   | ``'Sparse'``, ``'Sparse[int]'``,        | :ref:`sparse`                 |
+|                   |                           |                    |                               | ``'Sparse[float]'``                     |                               |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| intervals         | :class:`IntervalDtype`    | :class:`Interval`  | :class:`arrays.IntervalArray` | ``'interval'``, ``'Interval'``,         | :ref:`advanced.intervalindex` |
+|                   |                           |                    |                               | ``'Interval[<numpy_dtype>]'``,          |                               |
+|                   |                           |                    |                               | ``'Interval[datetime64[ns, <tz>]]'``,   |                               |
+|                   |                           |                    |                               | ``'Interval[timedelta64[<freq>]]'``     |                               |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| nullable integer  + :class:`Int64Dtype`, ...  | (none)             | :class:`arrays.IntegerArray`  | ``'Int8'``, ``'Int16'``, ``'Int32'``,   | :ref:`integer_na`             |
+|                   |                           |                    |                               | ``'Int64'``, ``'UInt8'``, ``'UInt16'``, |                               |
+|                   |                           |                    |                               | ``'UInt32'``, ``'UInt64'``              |                               |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| Strings           | :class:`StringDtype`      | :class:`str`       | :class:`arrays.StringArray`   | ``'string'``                            | :ref:`text`                   |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
+| Boolean (with NA) | :class:`BooleanDtype`     | :class:`bool`      | :class:`arrays.BooleanArray`  | ``'boolean'``                           | :ref:`api.arrays.bool`        |
++-------------------+---------------------------+--------------------+-------------------------------+-----------------------------------------+-------------------------------+
 
 Pandas has two ways to store strings.
 
@@ -1982,7 +2021,7 @@ The number of columns of each type in a ``DataFrame`` can be found by calling
 
 Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
-or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore,
+or a passed ``Series``), then it will be preserved in DataFrame operations. Furthermore,
 different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
 .. ipython:: python

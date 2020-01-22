@@ -34,6 +34,8 @@ Standard moving window functions
    Rolling.quantile
    Window.mean
    Window.sum
+   Window.var
+   Window.std
 
 .. _api.functions_expanding:
 
@@ -72,3 +74,14 @@ Exponentially-weighted moving window functions
    EWM.var
    EWM.corr
    EWM.cov
+
+Window Indexer
+--------------
+.. currentmodule:: pandas
+
+Base class for defining custom window boundaries.
+
+.. autosummary::
+   :toctree: api/
+
+   api.indexers.BaseIndexer

@@ -7,7 +7,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -33,6 +33,7 @@ class Generic:
             if is_scalar(value):
                 if value == "empty":
                     arr = None
+                    dtype = np.float64
 
                     # remove the info axis
                     kwargs.pop(self._typ._info_axis_name, None)
@@ -124,7 +125,7 @@ class Generic:
         # GH 4633
         # look at the boolean/nonzero behavior for objects
         obj = self._construct(shape=4)
-        msg = "The truth value of a {} is ambiguous".format(self._typ.__name__)
+        msg = f"The truth value of a {self._typ.__name__} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -202,9 +203,9 @@ class Generic:
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        msg = "compound dtypes are not implemented in the {} constructor".format(
-            self._typ.__name__
-        )
+        msg = "compound dtypes are not implemented"
+        f"in the {self._typ.__name__} constructor"
+
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
@@ -322,6 +323,7 @@ class Generic:
             self._compare(
                 o.sample(n=4, random_state=seed), o.sample(n=4, random_state=seed)
             )
+
             self._compare(
                 o.sample(frac=0.7, random_state=seed),
                 o.sample(frac=0.7, random_state=seed),
@@ -335,6 +337,15 @@ class Generic:
             self._compare(
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
                 o.sample(frac=0.7, random_state=np.random.RandomState(test)),
+            )
+
+            self._compare(
+                o.sample(
+                    frac=2, replace=True, random_state=np.random.RandomState(test)
+                ),
+                o.sample(
+                    frac=2, replace=True, random_state=np.random.RandomState(test)
+                ),
             )
 
             os1, os2 = [], []
@@ -423,6 +434,17 @@ class Generic:
         weights_with_None = [None] * 10
         weights_with_None[5] = 0.5
         self._compare(o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
+
+    def test_sample_upsampling_without_replacement(self):
+        # GH27451
+
+        df = pd.DataFrame({"A": list("abc")})
+        msg = (
+            "Replace has to be set to `True` when "
+            "upsampling the population `frac` > 1."
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.sample(frac=2, replace=False)
 
     def test_size_compat(self):
         # GH8846
@@ -525,9 +547,6 @@ class Generic:
 
             with pytest.raises(ValueError):
                 super(DataFrame, df).drop("a", axis=1, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).sort_index(inplace=value)
 
             with pytest.raises(ValueError):
                 super(DataFrame, df)._consolidate(inplace=value)
@@ -711,13 +730,10 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(), df["A"])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
-        empty_series = Series([], name="five")
+        empty_series = Series([], name="five", dtype=np.float64)
         empty_frame = DataFrame([empty_series])
-
-        [
-            tm.assert_series_equal(empty_series, higher_dim.squeeze())
-            for higher_dim in [empty_series, empty_frame]
-        ]
+        tm.assert_series_equal(empty_series, empty_series.squeeze())
+        tm.assert_series_equal(empty_series, empty_frame.squeeze())
 
         # axis argument
         df = tm.makeTimeDataFrame(nper=1).iloc[:, :1]
@@ -801,6 +817,18 @@ class TestNDFrame:
             with pytest.raises(ValueError, match=msg):
                 obj.take(indices, mode="clip")
 
+    def test_depr_take_kwarg_is_copy(self):
+        # GH 27357
+        df = DataFrame({"A": [1, 2, 3]})
+        msg = (
+            "is_copy is deprecated and will be removed in a future version. "
+            "take will always return a copy in the future."
+        )
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.take([0, 1], is_copy=True)
+
+        assert w[0].message.args[0] == msg
+
     def test_equals(self):
         s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
         s2 = s1.copy()
@@ -877,10 +905,10 @@ class TestNDFrame:
         # GH 8437
         a = pd.Series([False, np.nan])
         b = pd.Series([False, np.nan])
-        c = pd.Series(index=range(2))
-        d = pd.Series(index=range(2))
-        e = pd.Series(index=range(2))
-        f = pd.Series(index=range(2))
+        c = pd.Series(index=range(2), dtype=object)
+        d = c.copy()
+        e = c.copy()
+        f = c.copy()
         c[:-1] = d[:-1] = e[0] = f[0] = False
         assert a.equals(a)
         assert a.equals(b)
@@ -919,7 +947,7 @@ class TestNDFrame:
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
-        obj = box()
+        obj = box(dtype=object)
         values = (
             list(box._AXIS_NAMES.keys())
             + list(box._AXIS_NUMBERS.keys())
@@ -929,23 +957,3 @@ class TestNDFrame:
             assert obj._get_axis_number(v) == box._get_axis_number(v)
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
-
-    def test_deprecated_to_dense(self):
-        # GH 26557: DEPR
-        # Deprecated 0.25.0
-
-        df = pd.DataFrame({"A": [1, 2, 3]})
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.to_dense()
-        tm.assert_frame_equal(result, df)
-
-        ser = pd.Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.to_dense()
-        tm.assert_series_equal(result, ser)
-
-    def test_deprecated_get_dtype_counts(self):
-        # GH 18262
-        df = DataFrame([1])
-        with tm.assert_produces_warning(FutureWarning):
-            df.get_dtype_counts()

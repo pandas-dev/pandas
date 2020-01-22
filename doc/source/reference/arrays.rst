@@ -12,7 +12,8 @@ For most data types, pandas uses NumPy arrays as the concrete
 objects contained with a :class:`Index`, :class:`Series`, or
 :class:`DataFrame`.
 
-For some data types, pandas extends NumPy's type system.
+For some data types, pandas extends NumPy's type system. String aliases for these types
+can be found at :ref:`basics.dtypes`.
 
 =================== ========================= ================== =============================
 Kind of Data        Pandas Data Type          Scalar             Array
@@ -25,6 +26,7 @@ Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.array
 Categorical         :class:`CategoricalDtype` (none)             :ref:`api.arrays.categorical`
 Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
 Strings             :class:`StringDtype`      :class:`str`       :ref:`api.arrays.string`
+Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`      :ref:`api.arrays.bool`
 =================== ========================= ================== =============================
 
 Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
@@ -442,13 +444,13 @@ Sparse data
 -----------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
-be stored efficiently as a :class:`SparseArray`.
+be stored efficiently as a :class:`arrays.SparseArray`.
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   SparseArray
+   arrays.SparseArray
 
 .. autosummary::
    :toctree: api/
@@ -483,6 +485,28 @@ we recommend using :class:`StringDtype` (with the alias ``"string"``).
 
 The ``Series.str`` accessor is available for ``Series`` backed by a :class:`arrays.StringArray`.
 See :ref:`api.series.str` for more.
+
+
+.. _api.arrays.bool:
+
+Boolean data with missing values
+--------------------------------
+
+The boolean dtype (with the alias ``"boolean"``) provides support for storing
+boolean data (True, False values) with missing values, which is not possible
+with a bool :class:`numpy.ndarray`.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   arrays.BooleanArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   BooleanDtype
 
 
 .. Dtype attributes which are manually listed in their docstrings: including

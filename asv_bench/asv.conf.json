@@ -7,7 +7,7 @@
     "project": "pandas",
 
     // The project's homepage
-    "project_url": "http://pandas.pydata.org/",
+    "project_url": "https://pandas.pydata.org/",
 
     // The URL of the source code repository for the project being
     // benchmarked
@@ -43,6 +43,7 @@
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],
+        "numba": [],
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "tables": [null, ""],
@@ -122,5 +123,8 @@
         ".*": "0409521665"
     },
     "regression_thresholds": {
-    }
+    },
+    "build_command":
+    ["python setup.py build -j4",
+     "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"],
 }

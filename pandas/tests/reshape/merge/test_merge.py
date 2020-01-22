@@ -25,10 +25,10 @@ from pandas import (
     TimedeltaIndex,
     UInt64Index,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
-import pandas.util.testing as tm
 
 N = 50
 NGROUPS = 8
@@ -201,8 +201,8 @@ class TestMerge:
             merge(self.left, self.right, right_index=True)
 
         msg = (
-            'Can only pass argument "on" OR "left_on" and "right_on", not'
-            " a combination of both"
+            'Can only pass argument "on" OR "left_on" and "right_on", not '
+            "a combination of both"
         )
         with pytest.raises(pd.errors.MergeError, match=msg):
             merge(self.left, self.left, left_on="key", on="key")
@@ -744,7 +744,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo', 'foo'\]," r" dtype='object'\)"
+        msg = r"Data columns not unique: Index\(\['foo', 'foo'\], dtype='object'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -860,7 +860,7 @@ class TestMerge:
     def test_merge_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range("2016-01-01", periods=16, freq="M")
-        df = DataFrame([i for i in range(len(index))], index=index, columns=["pnum"])
+        df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
         df2 = concat([df, df])
         result = df.merge(df2, left_index=True, right_index=True, how="inner")
         expected = DataFrame(
@@ -1013,10 +1013,9 @@ class TestMerge:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
             msg = (
-                "Cannot use `indicator=True` option when data contains a"
-                " column named {}|"
-                "Cannot use name of an existing column for indicator"
-                " column"
+                "Cannot use `indicator=True` option when data contains a "
+                "column named {}|"
+                "Cannot use name of an existing column for indicator column"
             ).format(i)
             with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
@@ -1235,8 +1234,8 @@ class TestMerge:
         )
 
         msg = (
-            "Merge keys are not unique in either left or right dataset;"
-            " not a one-to-one merge"
+            "Merge keys are not unique in either left or right dataset; "
+            "not a one-to-one merge"
         )
         with pytest.raises(MergeError, match=msg):
             merge(left, right, on="a", validate="1:1")

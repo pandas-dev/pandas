@@ -554,6 +554,27 @@ index.
 Both ``rename`` and ``rename_axis`` support specifying a dictionary,
 ``Series`` or a mapping function to map labels/names to new values.
 
+When working with an ``Index`` object directly, rather than via a ``DataFrame``,
+:meth:`Index.set_names` can be used to change the names.
+
+.. ipython:: python
+
+   mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   mi.names
+
+   mi2 = mi.rename("new name", level=0)
+   mi2
+
+
+You cannot set the names of the MultiIndex via a level.
+
+.. ipython:: python
+   :okexcept:
+
+   mi.levels[0].name = "name via level"
+
+Use :meth:`Index.set_names` instead.
+
 Sorting a ``MultiIndex``
 ------------------------
 

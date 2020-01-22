@@ -9,12 +9,12 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import DateOffset
 
@@ -43,7 +43,13 @@ class TestTSPlot(TestPlotBase):
     def teardown_method(self, method):
         tm.close()
 
+    # Ignore warning
+    # ```
+    # Converting to PeriodArray/Index representation will drop timezone information.
+    # ```
+    # which occurs for UTC-like timezones.
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:msg:UserWarning")
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173
         tz = tz_aware_fixture
@@ -99,32 +105,11 @@ class TestTSPlot(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df["A"].plot()
 
-    def test_tsplot_deprecated(self):
-        from pandas.tseries.plotting import tsplot
-
-        _, ax = self.plt.subplots()
-        ts = tm.makeTimeSeries()
-
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(ts, self.plt.Axes.plot, ax=ax)
-
     @pytest.mark.slow
     def test_tsplot(self):
 
-        from pandas.tseries.plotting import tsplot
-
         _, ax = self.plt.subplots()
         ts = tm.makeTimeSeries()
-
-        def f(*args, **kwds):
-            with tm.assert_produces_warning(FutureWarning):
-                return tsplot(s, self.plt.Axes.plot, *args, **kwds)
-
-        for s in self.period_ser:
-            _check_plot_works(f, s.index.freq, ax=ax, series=s)
-
-        for s in self.datetime_ser:
-            _check_plot_works(f, s.index.freq.rule_code, ax=ax, series=s)
 
         for s in self.period_ser:
             _check_plot_works(s.plot, ax=ax)
@@ -142,8 +127,8 @@ class TestTSPlot(TestPlotBase):
         ts = tm.makeTimeSeries()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
-            "keyword argument. Please use one or the other or pass 'style'"
-            " without a color symbol"
+            "keyword argument. Please use one or the other or pass 'style' "
+            "without a color symbol"
         )
         with pytest.raises(ValueError, match=msg):
             ts.plot(style="b-", color="#000099")
@@ -193,17 +178,6 @@ class TestTSPlot(TestPlotBase):
         daily.plot(ax=ax)
         check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
         tm.close()
-
-        # tsplot
-        from pandas.tseries.plotting import tsplot
-
-        _, ax = self.plt.subplots()
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(annual, self.plt.Axes.plot, ax=ax)
-        check_format_of_first_point(ax, "t = 2014  y = 1.000000")
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(daily, self.plt.Axes.plot, ax=ax)
-        check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
 
     @pytest.mark.slow
     def test_line_plot_period_series(self):
@@ -892,16 +866,6 @@ class TestTSPlot(TestPlotBase):
         for l in ax.get_lines():
             assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
 
-        _, ax = self.plt.subplots()
-        from pandas.tseries.plotting import tsplot
-
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(high, self.plt.Axes.plot, ax=ax)
-        with tm.assert_produces_warning(FutureWarning):
-            lines = tsplot(low, self.plt.Axes.plot, ax=ax)
-        for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-
     @pytest.mark.slow
     def test_from_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
@@ -925,21 +889,6 @@ class TestTSPlot(TestPlotBase):
             else:
                 tm.assert_numpy_array_equal(xdata, expected_h)
         tm.close()
-
-        _, ax = self.plt.subplots()
-        from pandas.tseries.plotting import tsplot
-
-        with tm.assert_produces_warning(FutureWarning):
-            tsplot(low, self.plt.Axes.plot, ax=ax)
-        with tm.assert_produces_warning(FutureWarning):
-            lines = tsplot(high, self.plt.Axes.plot, ax=ax)
-        for l in lines:
-            assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-            xdata = l.get_xdata(orig=False)
-            if len(xdata) == 12:  # idxl lines
-                tm.assert_numpy_array_equal(xdata, expected_l)
-            else:
-                tm.assert_numpy_array_equal(xdata, expected_h)
 
     @pytest.mark.slow
     def test_from_resampling_area_line_mixed(self):
@@ -1409,7 +1358,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_narrow(self):
 
-        expected_labels = ["00:00:00.0000000{:0>2d}".format(i) for i in np.arange(10)]
+        expected_labels = [f"00:00:00.0000000{i:0>2d}" for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")
         df = DataFrame(np.random.randn(len(rng), 3), rng)

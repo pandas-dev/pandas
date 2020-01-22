@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
 
@@ -107,23 +107,6 @@ class TestFeather:
         # Some versions raise ValueError, others raise ArrowInvalid.
         self.check_error_on_write(df, Exception)
 
-    def test_rw_nthreads(self):
-        df = pd.DataFrame({"A": np.arange(100000)})
-        expected_warning = (
-            "the 'nthreads' keyword is deprecated, use 'use_threads' instead"
-        )
-        # TODO: make the warning work with check_stacklevel=True
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            self.check_round_trip(df, nthreads=2)
-        # we have an extra FutureWarning because of #GH23752
-        assert any(expected_warning in str(x) for x in w)
-
-        # TODO: make the warning work with check_stacklevel=True
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            self.check_round_trip(df, nthreads=1)
-        # we have an extra FutureWarnings because of #GH23752
-        assert any(expected_warning in str(x) for x in w)
-
     def test_rw_use_threads(self):
         df = pd.DataFrame({"A": np.arange(100000)})
         self.check_round_trip(df, use_threads=True)
@@ -153,7 +136,7 @@ class TestFeather:
 
         # column multi-index
         df.index = [0, 1, 2]
-        df.columns = (pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),)
+        df.columns = pd.MultiIndex.from_tuples([("a", 1)])
         self.check_error_on_write(df, ValueError)
 
     def test_path_pathlib(self):

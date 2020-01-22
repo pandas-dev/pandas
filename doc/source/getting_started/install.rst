@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.5.3 and above, 3.6, 3.7, and 3.8.
+Officially Python 3.6.1 and above, 3.7, and 3.8.
 
 Installing pandas
 -----------------
@@ -140,7 +140,7 @@ Installing with ActivePython
 Installation instructions for
 `ActivePython <https://www.activestate.com/activepython>`__ can be found
 `here <https://www.activestate.com/activepython/downloads>`__. Versions
-2.7 and 3.5 include pandas.
+2.7, 3.5 and 3.6 include pandas.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -177,7 +177,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://docs.pytest.org/en/latest/>`__ >= 4.0.2 and `Hypothesis
+<http://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
@@ -218,7 +218,7 @@ Recommended dependencies
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.6.2 or higher.
 
-* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
+* `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.2.1 or higher.
 
@@ -234,7 +234,8 @@ Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 Pandas has many optional dependencies that are only used for specific methods.
-For example, :func:`pandas.read_hdf` requires the ``pytables`` package. If the
+For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
+:meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
@@ -249,27 +250,30 @@ PyTables                  3.4.2              HDF5-based reading / writing
 SQLAlchemy                1.1.4              SQL support for databases other than sqlite
 SciPy                     0.19.0             Miscellaneous statistical functions
 XLsxWriter                0.9.8              Excel writing
-blosc                                        Compression for msgpack
-fastparquet               0.2.1              Parquet reading / writing
+blosc                                        Compression for HDF5
+fastparquet               0.3.2              Parquet reading / writing
 gcsfs                     0.2.2              Google Cloud Storage access
 html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
 lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
 matplotlib                2.2.2              Visualization
-openpyxl                  2.4.8              Reading / writing for xlsx files
+numba                     0.46.0             Alternative execution engine for rolling operations
+openpyxl                  2.5.7              Reading / writing for xlsx files
 pandas-gbq                0.8.0              Google Big Query access
 psycopg2                                     PostgreSQL engine for sqlalchemy
-pyarrow                   0.9.0              Parquet and feather reading / writing
+pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
 pytables                  3.4.2              HDF5 reading / writing
+pyxlsb                    1.0.5              Reading for xlsb files
 qtpy                                         Clipboard I/O
-s3fs                      0.0.8              Amazon S3 access
+s3fs                      0.3.0              Amazon S3 access
+tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
 xarray                    0.8.2              pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
 xlrd                      1.1.0              Excel reading
 xlwt                      1.2.0              Excel writing
 xsel                                         Clipboard I/O on linux
-zlib                                         Compression for msgpack
+zlib                                         Compression for HDF5
 ========================= ================== =============================================================
 
 .. _optional_html:
@@ -301,3 +305,4 @@ top-level :func:`~pandas.read_html` function:
 .. _html5lib: https://github.com/html5lib/html5lib-python
 .. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
 .. _lxml: http://lxml.de
+.. _tabulate: https://github.com/astanin/python-tabulate

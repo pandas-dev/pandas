@@ -1,14 +1,12 @@
-from collections import OrderedDict
-
 import numpy as np
 from numpy.random import randn
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -194,6 +192,27 @@ class TestMergeMulti:
         merge_right_left = merge_right_left[merged_left_right.columns]
 
         tm.assert_frame_equal(merged_left_right, merge_right_left)
+
+    def test_merge_multiple_cols_with_mixed_cols_index(self):
+        # GH29522
+        s = pd.Series(
+            range(6),
+            pd.MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
+            name="Amount",
+        )
+        df = pd.DataFrame(
+            {"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0}
+        )
+        result = pd.merge(df, s.reset_index(), on=["lev1", "lev2"])
+        expected = pd.DataFrame(
+            {
+                "lev1": list("AAABBB"),
+                "lev2": [1, 2, 3, 1, 2, 3],
+                "col": [0] * 6,
+                "Amount": range(6),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_compress_group_combinations(self):
 
@@ -453,17 +472,13 @@ class TestMergeMulti:
         if klass is not None:
             on_vector = klass(on_vector)
 
-        expected = DataFrame(
-            OrderedDict([("a", [1, 2, 3]), ("key_1", [2016, 2017, 2018])])
-        )
+        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            OrderedDict(
-                [("key_0", [2016, 2017, 2018]), ("a_x", [1, 2, 3]), ("a_y", [1, 2, 3])]
-            )
+            {"key_0": [2016, 2017, 2018], "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
         )
 
         result = df.merge(df, on=[df.index.year], how="inner")
@@ -767,17 +782,13 @@ class TestJoinMultiMulti:
         if box is not None:
             on_vector = box(on_vector)
 
-        expected = DataFrame(
-            OrderedDict([("a", [1, 2, 3]), ("key_1", [2016, 2017, 2018])])
-        )
+        expected = DataFrame({"a": [1, 2, 3], "key_1": [2016, 2017, 2018]})
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            OrderedDict(
-                [("key_0", [2016, 2017, 2018]), ("a_x", [1, 2, 3]), ("a_y", [1, 2, 3])]
-            )
+            {"key_0": [2016, 2017, 2018], "a_x": [1, 2, 3], "a_y": [1, 2, 3]}
         )
 
         result = df.merge(df, on=[df.index.year], how="inner")
@@ -805,5 +816,24 @@ class TestJoinMultiMulti:
         expected = pd.merge(
             left.reset_index(), right.reset_index(), on=["key"], how="inner"
         ).set_index(["key", "X", "Y"])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_join_multi_wrong_order(self):
+        # GH 25760
+        # GH 28956
+
+        midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+        midx3 = pd.MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
+
+        left = pd.DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
+        right = pd.DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
+
+        result = left.join(right)
+
+        expected = pd.DataFrame(
+            index=midx1,
+            data={"x": [10, 20, 30, 40], "y": ["fing", "foo", "bar", np.nan]},
+        )
 
         tm.assert_frame_equal(result, expected)

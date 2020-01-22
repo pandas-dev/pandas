@@ -8,14 +8,14 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
+    MultiIndex,
     Series,
     date_range,
     option_context,
     period_range,
     timedelta_range,
 )
-from pandas.core.index import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesRepr:
@@ -62,7 +62,7 @@ class TestSeriesRepr:
         s.name = None
         assert "Name:" not in repr(s)
 
-        s = Series(index=date_range("20010101", "20020101"), name="test")
+        s = Series(index=date_range("20010101", "20020101"), name="test", dtype=object)
         assert "Name: test" in repr(s)
 
     def test_repr(self, datetime_series, string_series, object_series):
@@ -75,7 +75,7 @@ class TestSeriesRepr:
         str(Series(tm.randn(1000), index=np.arange(1000, 0, step=-1)))
 
         # empty
-        str(Series())
+        str(Series(dtype=object))
 
         # with NaNs
         string_series[5:7] = np.NaN
@@ -227,7 +227,7 @@ class TestCategoricalRepr:
             name = "San Sebastián"
             state = "PR"
 
-            def __repr__(self):
+            def __repr__(self) -> str:
                 return self.name + ", " + self.state
 
         cat = pd.Categorical([County() for _ in range(61)])

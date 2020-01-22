@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
@@ -16,7 +15,7 @@ from pandas import (
     Series,
     qcut,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names):
@@ -498,10 +497,10 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
         aggr[aggr.isna()] = "missing"
     if not all(label == aggr):
         msg = (
-            "Labels and aggregation results not consistently sorted\n"
-            + "for (ordered={}, observed={}, sort={})\n"
-            + "Result:\n{}"
-        ).format(ordered, observed, sort, result)
+            f"Labels and aggregation results not consistently sorted\n"
+            + "for (ordered={ordered}, observed={observed}, sort={sort})\n"
+            + "Result:\n{result}"
+        )
         assert False, msg
 
 
@@ -781,16 +780,32 @@ def test_categorical_no_compress():
     tm.assert_numpy_array_equal(result, exp)
 
 
+def test_groupby_empty_with_category():
+    # GH-9614
+    # test fix for when group by on None resulted in
+    # coercion of dtype categorical -> float
+    df = pd.DataFrame(
+        {"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])}
+    )
+    result = df.groupby("A").first()["B"]
+    expected = pd.Series(
+        pd.Categorical([], categories=["test", "train"]),
+        index=pd.Series([], dtype="object", name="A"),
+        name="B",
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_sort():
 
-    # http://stackoverflow.com/questions/23814368/sorting-pandas-
+    # https://stackoverflow.com/questions/23814368/sorting-pandas-
     #        categorical-labels-after-groupby
     # This should result in a properly sorted Series so that the plot
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
     df = DataFrame({"value": np.random.randint(0, 10000, 100)})
-    labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+    labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
     df = df.sort_values(by=["value"], ascending=True)
@@ -1111,7 +1126,7 @@ def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     index = MultiIndex.from_frame(
         DataFrame(
             {"A": ["foo", "foo", "bar", "bar"], "B": ["one", "two", "one", "three"]},
-            **kwargs
+            **kwargs,
         )
     )
     expected = Series(data=[1, 3, 2, 4], index=index, name="C")
@@ -1188,7 +1203,7 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
     # GH 24880
     expected = Series(data=data, index=index, name="C")
     result = df_cat.groupby(["A", "B"], observed=observed)["C"].apply(
-        lambda x: OrderedDict([("min", x.min()), ("max", x.max())])
+        lambda x: {"min": x.min(), "max": x.max()}
     )
     tm.assert_series_equal(result, expected)
 
@@ -1236,3 +1251,94 @@ def test_get_nonexistent_category():
                 {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
             )
         )
+
+
+def test_series_groupby_on_2_categoricals_unobserved(
+    reduction_func: str, observed: bool
+):
+    # GH 17605
+
+    if reduction_func == "ngroup":
+        pytest.skip("ngroup is not truly a reduction")
+
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABCD")),
+            "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABCD")),
+            "value": [0.1] * 4,
+        }
+    )
+    args = {"nth": [0]}.get(reduction_func, [])
+
+    expected_length = 4 if observed else 16
+
+    series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
+    agg = getattr(series_groupby, reduction_func)
+    result = agg(*args)
+
+    assert len(result) == expected_length
+
+
+@pytest.mark.parametrize(
+    "func, zero_or_nan",
+    [
+        ("all", np.NaN),
+        ("any", np.NaN),
+        ("count", 0),
+        ("first", np.NaN),
+        ("idxmax", np.NaN),
+        ("idxmin", np.NaN),
+        ("last", np.NaN),
+        ("mad", np.NaN),
+        ("max", np.NaN),
+        ("mean", np.NaN),
+        ("median", np.NaN),
+        ("min", np.NaN),
+        ("nth", np.NaN),
+        ("nunique", 0),
+        ("prod", np.NaN),
+        ("quantile", np.NaN),
+        ("sem", np.NaN),
+        ("size", 0),
+        ("skew", np.NaN),
+        ("std", np.NaN),
+        ("sum", np.NaN),
+        ("var", np.NaN),
+    ],
+)
+def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(func, zero_or_nan):
+    # GH 17605
+    # Tests whether the unobserved categories in the result contain 0 or NaN
+    df = pd.DataFrame(
+        {
+            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABC")),
+            "value": [0.1] * 4,
+        }
+    )
+    unobserved = [tuple("AC"), tuple("BC"), tuple("CA"), tuple("CB"), tuple("CC")]
+    args = {"nth": [0]}.get(func, [])
+
+    series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
+    agg = getattr(series_groupby, func)
+    result = agg(*args)
+
+    for idx in unobserved:
+        val = result.loc[idx]
+        assert (pd.isna(zero_or_nan) and pd.isna(val)) or (val == zero_or_nan)
+
+    # If we expect unobserved values to be zero, we also expect the dtype to be int
+    if zero_or_nan == 0:
+        assert np.issubdtype(result.dtype, np.integer)
+
+
+def test_series_groupby_categorical_aggregation_getitem():
+    # GH 8870
+    d = {"foo": [10, 8, 4, 1], "bar": [10, 20, 30, 40], "baz": ["d", "c", "d", "c"]}
+    df = pd.DataFrame(d)
+    cat = pd.cut(df["foo"], np.linspace(0, 20, 5))
+    df["range"] = cat
+    groups = df.groupby(["range", "baz"], as_index=True, sort=True)
+    result = groups["foo"].agg("mean")
+    expected = groups.agg("mean")["foo"]
+    tm.assert_series_equal(result, expected)

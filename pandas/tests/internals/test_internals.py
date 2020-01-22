@@ -1,10 +1,8 @@
 from collections import OrderedDict
 from datetime import date, datetime
-from distutils.version import LooseVersion
 import itertools
 import operator
 import re
-import sys
 
 import numpy as np
 import pytest
@@ -12,22 +10,11 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    SparseArray,
-)
+from pandas import Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series
+import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
 from pandas.core.internals import BlockManager, SingleBlockManager, make_block
-import pandas.util.testing as tm
-
-# in 3.6.1 a c-api slicing function changed, see src/compat_helper.h
-PY361 = LooseVersion(sys.version) >= LooseVersion("3.6.1")
 
 
 @pytest.fixture
@@ -139,7 +126,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         arr = values.sp_values.view()
         arr += num_offset - 1
     else:
-        raise ValueError('Unsupported typestr: "%s"' % typestr)
+        raise ValueError(f'Unsupported typestr: "{typestr}"')
 
     return make_block(values, placement=placement, ndim=len(shape))
 
@@ -310,14 +297,9 @@ class TestBlock:
         assert (newb.values[1] == 1).all()
 
         newb = self.fblock.copy()
-        with pytest.raises(Exception):
-            newb.delete(3)
 
-    def test_make_block_same_class(self):
-        # issue 19431
-        block = create_block("M8[ns, US/Eastern]", [3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            block.make_block_same_class(block.values, dtype=block.values.dtype)
+        with pytest.raises(IndexError, match=None):
+            newb.delete(3)
 
 
 class TestDatetimeBlock:
@@ -340,7 +322,12 @@ class TestDatetimeBlock:
 
         val = date(2010, 10, 10)
         assert not block._can_hold_element(val)
-        with pytest.raises(TypeError):
+
+        msg = (
+            "'value' should be a 'Timestamp', 'NaT', "
+            "or array of those. Got 'date' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
             arr[0] = val
 
 
@@ -369,7 +356,10 @@ class TestBlockManager:
         blocks[1].mgr_locs = np.array([0])
 
         # test trying to create block manager with overlapping ref locs
-        with pytest.raises(AssertionError):
+
+        msg = "Gaps in blk ref_locs"
+
+        with pytest.raises(AssertionError, match=msg):
             BlockManager(blocks, axes)
 
         blocks[0].mgr_locs = np.array([0])
@@ -827,7 +817,11 @@ class TestBlockManager:
         bm1 = create_mgr("a,b,c: i8-1; d,e,f: i8-2")
 
         for value in invalid_values:
-            with pytest.raises(ValueError):
+            msg = (
+                'For argument "inplace" expected type bool, '
+                f"received type {type(value).__name__}."
+            )
+            with pytest.raises(ValueError, match=msg):
                 bm1.replace_list([1], [2], inplace=value)
 
 
@@ -1046,9 +1040,11 @@ class TestBlockPlacement:
         assert len(BlockPlacement(slice(1, 0, -1))) == 1
 
     def test_zero_step_raises(self):
-        with pytest.raises(ValueError):
+        msg = "slice step cannot be zero"
+
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement(slice(1, 1, 0))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement(slice(1, 2, 0))
 
     def test_unbounded_slice_raises(self):
@@ -1096,10 +1092,6 @@ class TestBlockPlacement:
 
         assert_as_slice_equals([2, 1], slice(2, 0, -1))
 
-        if not PY361:
-            assert_as_slice_equals([2, 1, 0], slice(2, None, -1))
-            assert_as_slice_equals([100, 0], slice(100, None, -100))
-
     def test_not_slice_like_arrays(self):
         def assert_not_slice_like(arr):
             assert not BlockPlacement(arr).is_slice_like
@@ -1119,10 +1111,6 @@ class TestBlockPlacement:
         assert list(BlockPlacement(slice(0, 0))) == []
         assert list(BlockPlacement(slice(3, 0))) == []
 
-        if not PY361:
-            assert list(BlockPlacement(slice(3, 0, -1))) == [3, 2, 1]
-            assert list(BlockPlacement(slice(3, None, -1))) == [3, 2, 1, 0]
-
     def test_slice_to_array_conversion(self):
         def assert_as_array_equals(slc, asarray):
             tm.assert_numpy_array_equal(
@@ -1134,10 +1122,6 @@ class TestBlockPlacement:
         assert_as_array_equals(slice(3, 0), [])
 
         assert_as_array_equals(slice(3, 0, -1), [3, 2, 1])
-
-        if not PY361:
-            assert_as_array_equals(slice(3, None, -1), [3, 2, 1, 0])
-            assert_as_array_equals(slice(31, None, -10), [31, 21, 11, 1])
 
     def test_blockplacement_add(self):
         bpl = BlockPlacement(slice(0, 5))
@@ -1163,18 +1147,12 @@ class TestBlockPlacement:
         assert_add_equals(slice(1, 4), -1, [0, 1, 2])
         assert_add_equals([1, 2, 4], -1, [0, 1, 3])
 
-        with pytest.raises(ValueError):
+        msg = "iadd causes length change"
+
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement(slice(1, 4)).add(-10)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             BlockPlacement([1, 2, 4]).add(-10)
-
-        if not PY361:
-            assert_add_equals(slice(3, 0, -1), -1, [2, 1, 0])
-            assert_add_equals(slice(2, None, -1), 0, [2, 1, 0])
-            assert_add_equals(slice(2, None, -1), 10, [12, 11, 10])
-
-            with pytest.raises(ValueError):
-                BlockPlacement(slice(2, None, -1)).add(-1)
 
 
 class DummyElement:
@@ -1185,10 +1163,10 @@ class DummyElement:
     def __array__(self):
         return np.array(self.value, dtype=self.dtype)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "DummyElement({}, {})".format(self.value, self.dtype)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def astype(self, dtype, copy=False):
@@ -1239,7 +1217,7 @@ class TestCanHoldElement:
             (operator.pow, "bool"),
         }
         if (op, dtype) in skip:
-            pytest.skip("Invalid combination {},{}".format(op, dtype))
+            pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
         s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
@@ -1255,7 +1233,17 @@ class TestCanHoldElement:
         }
 
         if (op, dtype) in invalid:
-            with pytest.raises(TypeError):
+            msg = (
+                None
+                if (dtype == "<M8[ns]" and op == operator.add)
+                or (dtype == "<m8[ns]" and op == operator.mul)
+                else (
+                    f"cannot perform __{op.__name__}__ with this "
+                    "index type: (DatetimeArray|TimedeltaArray)"
+                )
+            )
+
+            with pytest.raises(TypeError, match=msg):
                 op(s, e.value)
         else:
             # FIXME: Since dispatching to Series, this test no longer
@@ -1280,13 +1268,6 @@ def test_holder(typestr, holder):
     assert blk._holder is holder
 
 
-def test_deprecated_fastpath():
-    # GH#19265
-    values = np.random.rand(3, 3)
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        make_block(values, placement=np.arange(3), fastpath=True)
-
-
 def test_validate_ndim():
     values = np.array([1.0, 2.0])
     placement = slice(2)
@@ -1306,7 +1287,7 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array():
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.array([1, 2])
+    arr = pd.arrays.PandasArray(np.array([1, 2]))
 
     # PandasArray, no dtype
     result = make_block(arr, slice(len(arr)))
@@ -1322,3 +1303,10 @@ def test_make_block_no_pandas_array():
     result = make_block(arr.to_numpy(), slice(len(arr)), dtype=arr.dtype)
     assert result.is_integer is True
     assert result.is_extension is False
+
+
+def test_dataframe_not_equal():
+    # see GH28839
+    df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
+    df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
+    assert df1.equals(df2) is False

@@ -3,12 +3,9 @@ import json
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
+from pandas import DataFrame, Index, json_normalize
+import pandas._testing as tm
 
-from pandas import DataFrame, Index
-import pandas.util.testing as tm
-
-from pandas.io.json import json_normalize
 from pandas.io.json._normalize import nested_to_record
 
 
@@ -382,7 +379,7 @@ class TestJSONNormalize:
             },
         ]
         expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "max_level,expected",
@@ -465,6 +462,30 @@ class TestJSONNormalize:
         # They should be the same.
         tm.assert_frame_equal(df1, df2)
 
+    def test_nonetype_record_path(self, nulls_fixture):
+        # see gh-30148
+        # should not raise TypeError
+        result = json_normalize(
+            [
+                {"state": "Texas", "info": nulls_fixture},
+                {"state": "Florida", "info": [{"i": 2}]},
+            ],
+            record_path=["info"],
+        )
+        expected = DataFrame({"i": 2}, index=[0])
+        tm.assert_equal(result, expected)
+
+    def test_non_interable_record_path_errors(self):
+        # see gh-30148
+        test_input = {"state": "Texas", "info": 1}
+        test_path = "info"
+        msg = (
+            f"{test_input} has non iterable value 1 for path {test_path}. "
+            "Must be iterable or null."
+        )
+        with pytest.raises(TypeError, match=msg):
+            json_normalize([test_input], record_path=[test_path])
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
@@ -524,7 +545,7 @@ class TestNestedToRecord:
         columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
@@ -700,3 +721,10 @@ class TestNestedToRecord:
         ]
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
+
+    def test_deprecated_import(self):
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.io.json import json_normalize
+
+            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
+            json_normalize(recs)

@@ -8,9 +8,9 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
 
 
 class Numeric(Base):
@@ -167,18 +167,35 @@ class TestFloat64Index(Numeric):
         result = Index(np.array([np.nan]))
         assert pd.isna(result.values).all()
 
+    @pytest.mark.parametrize(
+        "index, dtype",
+        [
+            (pd.Int64Index, "float64"),
+            (pd.UInt64Index, "categorical"),
+            (pd.Float64Index, "datetime64"),
+            (pd.RangeIndex, "float64"),
+        ],
+    )
+    def test_invalid_dtype(self, index, dtype):
+        # GH 29539
+        with pytest.raises(
+            ValueError,
+            match=rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}",
+        ):
+            index([1, 2, 3], dtype=dtype)
+
     def test_constructor_invalid(self):
 
         # invalid
         msg = (
-            r"Float64Index\(\.\.\.\) must be called with a collection of"
-            r" some kind, 0\.0 was passed"
+            r"Float64Index\(\.\.\.\) must be called with a collection of "
+            r"some kind, 0\.0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(["a", "b", 0.0])
@@ -245,9 +262,9 @@ class TestFloat64Index(Numeric):
         # invalid
         for dtype in ["M8[ns]", "m8[ns]"]:
             msg = (
-                "Cannot convert Float64Index to dtype {}; integer values"
-                " are required for conversion"
-            ).format(pandas_dtype(dtype))
+                f"Cannot convert Float64Index to dtype {pandas_dtype(dtype)}; "
+                f"integer values are required for conversion"
+            )
             with pytest.raises(TypeError, match=re.escape(msg)):
                 i.astype(dtype)
 
@@ -372,7 +389,8 @@ class TestFloat64Index(Numeric):
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(KeyError, match=r"^\[nan\]$"):
+        with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
+            # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
     def test_contains_nans(self):
@@ -553,8 +571,8 @@ class NumericInt(Numeric):
 
     def test_cant_or_shouldnt_cast(self):
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         # can't
         data = ["foo", "bar", "baz"]
@@ -588,7 +606,7 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, expected)
 
         name = self._holder.__name__
-        msg = "Unable to fill values because {name} cannot contain NA".format(name=name)
+        msg = f"Unable to fill values because {name} cannot contain NA"
 
         # fill_value=True
         with pytest.raises(ValueError, match=msg):
@@ -638,8 +656,8 @@ class TestInt64Index(NumericInt):
 
         # scalar raise Exception
         msg = (
-            r"Int64Index\(\.\.\.\) must be called with a collection of some"
-            " kind, 5 was passed"
+            r"Int64Index\(\.\.\.\) must be called with a collection of some "
+            "kind, 5 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Int64Index(5)
@@ -718,6 +736,12 @@ class TestInt64Index(NumericInt):
         indexer = index.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
+
+    def test_get_indexer_nan(self):
+        # GH 7820
+        result = Index([1, 2, np.nan]).get_indexer([np.nan])
+        expected = np.array([2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_intersection(self):
         index = self.create_index()
@@ -942,6 +966,11 @@ class TestUInt64Index(NumericInt):
 
         idx = Index([-1, 2 ** 63], dtype=object)
         res = Index(np.array([-1, 2 ** 63], dtype=object))
+        tm.assert_index_equal(res, idx)
+
+        # https://github.com/pandas-dev/pandas/issues/29526
+        idx = UInt64Index([1, 2 ** 63 + 1], dtype=np.uint64)
+        res = Index([1, 2 ** 63 + 1], dtype=np.uint64)
         tm.assert_index_equal(res, idx)
 
     def test_get_indexer(self, index_large):
@@ -1187,3 +1216,29 @@ def test_range_float_union_dtype():
 
     result = other.union(index)
     tm.assert_index_equal(result, expected)
+
+
+def test_uint_index_does_not_convert_to_float64():
+    # https://github.com/pandas-dev/pandas/issues/28279
+    # https://github.com/pandas-dev/pandas/issues/28023
+    series = pd.Series(
+        [0, 1, 2, 3, 4, 5],
+        index=[
+            7606741985629028552,
+            17876870360202815256,
+            17876870360202815256,
+            13106359306506049338,
+            8991270399732411471,
+            8991270399732411472,
+        ],
+    )
+
+    result = series.loc[[7606741985629028552, 17876870360202815256]]
+
+    expected = UInt64Index(
+        [7606741985629028552, 17876870360202815256, 17876870360202815256],
+        dtype="uint64",
+    )
+    tm.assert_index_equal(result.index, expected)
+
+    tm.assert_equal(result, series[:3])

@@ -45,12 +45,9 @@ def set_use_numexpr(v=True):
 
     # choose what we are going to do
     global _evaluate, _where
-    if not _USE_NUMEXPR:
-        _evaluate = _evaluate_standard
-        _where = _where_standard
-    else:
-        _evaluate = _evaluate_numexpr
-        _where = _where_numexpr
+
+    _evaluate = _evaluate_numexpr if _USE_NUMEXPR else _evaluate_standard
+    _where = _where_numexpr if _USE_NUMEXPR else _where_standard
 
 
 def set_numexpr_threads(n=None):
@@ -62,9 +59,10 @@ def set_numexpr_threads(n=None):
         ne.set_num_threads(n)
 
 
-def _evaluate_standard(op, op_str, a, b, reversed=False):
-    """ standard evaluation """
-    # `reversed` kwarg is included for compatibility with _evaluate_numexpr
+def _evaluate_standard(op, op_str, a, b):
+    """
+    Standard evaluation.
+    """
     if _TEST_MODE:
         _store_test_result(False)
     with np.errstate(all="ignore"):
@@ -97,11 +95,12 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, reversed=False):
+def _evaluate_numexpr(op, op_str, a, b):
     result = None
 
     if _can_use_numexpr(op, op_str, a, b, "evaluate"):
-        if reversed:
+        is_reversed = op.__name__.strip("_").startswith("r")
+        if is_reversed:
             # we were originally called by a reversed op method
             a, b = b, a
 
@@ -109,7 +108,7 @@ def _evaluate_numexpr(op, op_str, a, b, reversed=False):
         b_value = getattr(b, "values", b)
 
         result = ne.evaluate(
-            "a_value {op} b_value".format(op=op_str),
+            f"a_value {op_str} b_value",
             local_dict={"a_value": a_value, "b_value": b_value},
             casting="safe",
         )
@@ -175,22 +174,20 @@ def _bool_arith_check(
     if _has_bool_dtype(a) and _has_bool_dtype(b):
         if op_str in unsupported:
             warnings.warn(
-                "evaluating in Python space because the {op!r} "
+                f"evaluating in Python space because the {repr(op_str)} "
                 "operator is not supported by numexpr for "
-                "the bool dtype, use {alt_op!r} instead".format(
-                    op=op_str, alt_op=unsupported[op_str]
-                )
+                f"the bool dtype, use {repr(unsupported[op_str])} instead"
             )
             return False
 
         if op_str in not_allowed:
             raise NotImplementedError(
-                "operator {op!r} not implemented for bool dtypes".format(op=op_str)
+                f"operator {repr(op_str)} not implemented for bool dtypes"
             )
     return True
 
 
-def evaluate(op, op_str, a, b, use_numexpr=True, reversed=False):
+def evaluate(op, op_str, a, b, use_numexpr=True):
     """
     Evaluate and return the expression of the op on a and b.
 
@@ -203,12 +200,10 @@ def evaluate(op, op_str, a, b, use_numexpr=True, reversed=False):
     b : right operand
     use_numexpr : bool, default True
         Whether to try to use numexpr.
-    reversed : bool, default False
     """
-
     use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
     if use_numexpr:
-        return _evaluate(op, op_str, a, b, reversed=reversed)
+        return _evaluate(op, op_str, a, b)
     return _evaluate_standard(op, op_str, a, b)
 
 
@@ -224,10 +219,7 @@ def where(cond, a, b, use_numexpr=True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
-
-    if use_numexpr:
-        return _where(cond, a, b)
-    return _where_standard(cond, a, b)
+    return _where(cond, a, b) if use_numexpr else _where_standard(cond, a, b)
 
 
 def set_test_mode(v=True):

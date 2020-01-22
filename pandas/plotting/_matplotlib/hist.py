@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -29,7 +27,7 @@ class HistPlot(LinePlot):
             values = np.ravel(values)
             values = values[~isna(values)]
 
-            hist, self.bins = np.histogram(
+            _, self.bins = np.histogram(
                 values,
                 bins=self.bins,
                 range=self.kwds.get("range", None),
@@ -49,7 +47,7 @@ class HistPlot(LinePlot):
         bottom=0,
         column_num=0,
         stacking_id=None,
-        **kwds
+        **kwds,
     ):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
@@ -145,7 +143,7 @@ class KdePlot(HistPlot):
         ind=None,
         column_num=None,
         stacking_id=None,
-        **kwds
+        **kwds,
     ):
         from scipy.stats import gaussian_kde
 
@@ -177,17 +175,15 @@ def _grouped_plot(
     layout=None,
     rot=0,
     ax=None,
-    **kwargs
+    **kwargs,
 ):
 
     if figsize == "default":
         # allowed to specify mpl default with 'default'
-        warnings.warn(
-            "figsize='default' is deprecated. Specify figure size by tuple instead",
-            FutureWarning,
-            stacklevel=5,
+        raise ValueError(
+            "figsize='default' is no longer supported. "
+            "Specify figure size by tuple instead"
         )
-        figsize = None
 
     grouped = data.groupby(by)
     if column is not None:
@@ -226,7 +222,7 @@ def _grouped_hist(
     xrot=None,
     ylabelsize=None,
     yrot=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Grouped histogram
@@ -254,7 +250,8 @@ def _grouped_hist(
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
-    xrot = xrot or rot
+    if xrot is None:
+        xrot = rot
 
     fig, axes = _grouped_plot(
         plot_group,
@@ -290,7 +287,7 @@ def hist_series(
     yrot=None,
     figsize=None,
     bins=10,
-    **kwds
+    **kwds,
 ):
     import matplotlib.pyplot as plt
 
@@ -321,8 +318,7 @@ def hist_series(
         if "figure" in kwds:
             raise ValueError(
                 "Cannot pass 'figure' when using the "
-                "'by' argument, since a new 'Figure' instance "
-                "will be created"
+                "'by' argument, since a new 'Figure' instance will be created"
             )
         axes = _grouped_hist(
             self,
@@ -335,7 +331,7 @@ def hist_series(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
-            **kwds
+            **kwds,
         )
 
     if hasattr(axes, "ndim"):
@@ -359,7 +355,7 @@ def hist_frame(
     figsize=None,
     layout=None,
     bins=10,
-    **kwds
+    **kwds,
 ):
     if by is not None:
         axes = _grouped_hist(
@@ -377,7 +373,7 @@ def hist_frame(
             xrot=xrot,
             ylabelsize=ylabelsize,
             yrot=yrot,
-            **kwds
+            **kwds,
         )
         return axes
 

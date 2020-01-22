@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
@@ -10,8 +9,9 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+import pandas._testing as tm
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 def test_repr():
@@ -55,8 +55,9 @@ def test_basic(dtype):
     # complex agg
     agged = grouped.aggregate([np.mean, np.std])
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        agged = grouped.aggregate({"one": np.mean, "two": np.std})
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped.aggregate({"one": np.mean, "two": np.std})
 
     group_constants = {0: 10, 1: 20, 2: 30}
     agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
@@ -452,9 +453,9 @@ def test_frame_set_name_single(df):
     result = grouped["C"].agg([np.mean, np.std])
     assert result.index.name == "A"
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped["C"].agg({"foo": np.mean, "bar": np.std})
-    assert result.index.name == "A"
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"foo": np.mean, "bar": np.std})
 
 
 def test_multi_func(df):
@@ -587,6 +588,20 @@ def test_groupby_multiple_columns(df, op):
     tm.assert_series_equal(result, expected)
 
 
+def test_as_index_select_column():
+    # GH 5764
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    result = df.groupby("A", as_index=False)["B"].get_group(1)
+    expected = pd.Series([2, 4], name="B")
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
+    expected = pd.Series(
+        [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_as_index_agg(df):
     grouped = df.groupby("A", as_index=False)
 
@@ -596,18 +611,16 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
 
     grouped = df.groupby("A", as_index=True)
-    expected3 = grouped["C"].sum()
-    expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result3 = grouped["C"].agg({"Q": np.sum})
-    tm.assert_frame_equal(result3, expected3)
+    msg = r"nested renamer is not supported"
+    with pytest.raises(SpecificationError, match=msg):
+        grouped["C"].agg({"Q": np.sum})
 
     # multi-key
 
@@ -617,7 +630,7 @@ def test_groupby_as_index_agg(df):
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg(OrderedDict([["C", np.mean], ["D", np.sum]]))
+    result2 = grouped.agg({"C": np.mean, "D": np.sum})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -772,7 +785,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = r"unsupported operand type\(s\) for \+: 'Timestamp'"
+    msg = "reduction operation 'sum' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -922,7 +935,7 @@ def test_mutate_groups():
             + ["c"] * 2
             + ["d"] * 2
             + ["e"] * 2,
-            "cat3": ["g{}".format(x) for x in range(1, 15)],
+            "cat3": [f"g{x}" for x in range(1, 15)],
             "val": np.random.randint(100, size=14),
         }
     )
@@ -1703,13 +1716,20 @@ def test_group_shift_with_fill_value():
     tm.assert_frame_equal(result, expected)
 
 
+def test_group_shift_lose_timezone():
+    # GH 30134
+    now_dt = pd.Timestamp.utcnow()
+    df = DataFrame({"a": [1, 1], "date": now_dt})
+    result = df.groupby("a").shift(0).iloc[0]
+    expected = Series({"date": now_dt}, name=result.name)
+    tm.assert_series_equal(result, expected)
+
+
 def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
         {
-            "eventDate": pd.date_range(
-                pd.datetime.today(), periods=20, freq="M"
-            ).tolist(),
+            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )
@@ -1734,34 +1754,23 @@ def test_empty_dataframe_groupby():
     tm.assert_frame_equal(result, expected)
 
 
-def test_tuple_warns():
+def test_tuple_as_grouping():
     # https://github.com/pandas-dev/pandas/issues/18314
     df = pd.DataFrame(
         {
-            ("a", "b"): [1, 1, 2, 2],
-            "a": [1, 1, 1, 2],
-            "b": [1, 2, 2, 2],
+            ("a", "b"): [1, 1, 1, 1],
+            "a": [2, 2, 2, 2],
+            "b": [2, 2, 2, 2],
             "c": [1, 1, 1, 1],
         }
     )
-    with tm.assert_produces_warning(FutureWarning) as w:
-        df[["a", "b", "c"]].groupby(("a", "b")).c.mean()
 
-    assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+    with pytest.raises(KeyError):
+        df[["a", "b", "c"]].groupby(("a", "b"))
 
-    with tm.assert_produces_warning(None):
-        df.groupby(("a", "b")).c.mean()
-
-
-def test_tuple_warns_unhashable():
-    # https://github.com/pandas-dev/pandas/issues/18314
-    business_dates = date_range(start="4/1/2014", end="6/30/2014", freq="B")
-    df = DataFrame(1, index=business_dates, columns=["a", "b"])
-
-    with tm.assert_produces_warning(FutureWarning) as w:
-        df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
-
-    assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+    result = df.groupby(("a", "b"))["c"].sum()
+    expected = pd.Series([4], name="c", index=pd.Index([1], name=("a", "b")))
+    tm.assert_series_equal(result, expected)
 
 
 def test_tuple_correct_keyerror():
@@ -1943,6 +1952,13 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
+def test_ffill_missing_arguments():
+    # GH 14955
+    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
+    with pytest.raises(ValueError, match="Must specify a fill"):
+        df.groupby("b").fillna()
+
+
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -1951,3 +1967,73 @@ def test_groupby_only_none_group():
     expected = pd.Series([np.nan], name="x")
 
     tm.assert_series_equal(actual, expected)
+
+
+def test_groupby_duplicate_index():
+    # GH#29189 the groupby call here used to raise
+    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    gb = ser.groupby(level=0)
+
+    result = gb.mean()
+    expected = pd.Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+def test_bool_aggs_dup_column_labels(bool_agg_func):
+    # 21668
+    df = pd.DataFrame([[True, True]], columns=["a", "a"])
+    grp_by = df.groupby([0])
+    result = getattr(grp_by, bool_agg_func)()
+
+    expected = df
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+)
+def test_dup_labels_output_shape(groupby_func, idx):
+    if groupby_func in {"size", "ngroup", "cumcount"}:
+        pytest.skip("Not applicable")
+
+    df = pd.DataFrame([[1, 1]], columns=idx)
+    grp_by = df.groupby([0])
+
+    args = []
+    if groupby_func in {"fillna", "nth"}:
+        args.append(0)
+    elif groupby_func == "corrwith":
+        args.append(df)
+    elif groupby_func == "tshift":
+        df.index = [pd.Timestamp("today")]
+        args.extend([1, "D"])
+
+    result = getattr(grp_by, groupby_func)(*args)
+
+    assert result.shape == (1, 2)
+    tm.assert_index_equal(result.columns, idx)
+
+
+def test_groupby_crash_on_nunique(axis):
+    # Fix following 30253
+    df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
+
+    axis_number = df._get_axis_number(axis)
+    if not axis_number:
+        df = df.T
+
+    result = df.groupby(axis=axis_number, level=0).nunique()
+
+    expected = pd.DataFrame({"A": [1, 2], "D": [1, 1]})
+    if not axis_number:
+        expected = expected.T
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_list_level():
+    # GH 9790
+    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
+    result = expected.groupby(level=[0]).mean()
+    tm.assert_frame_equal(result, expected)

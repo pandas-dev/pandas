@@ -49,7 +49,6 @@ public functions related to data types in pandas.
 
         api/pandas.DataFrame.blocks
         api/pandas.DataFrame.as_matrix
-        api/pandas.DataFrame.ix
         api/pandas.Index.asi8
         api/pandas.Index.data
         api/pandas.Index.flags
@@ -60,7 +59,6 @@ public functions related to data types in pandas.
         api/pandas.Series.asobject
         api/pandas.Series.blocks
         api/pandas.Series.from_array
-        api/pandas.Series.ix
         api/pandas.Series.imag
         api/pandas.Series.real
 

@@ -15,10 +15,10 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -313,10 +313,7 @@ class TestDataFrameBlockInternals:
         column = df.columns[0]
 
         # use the default copy=True, change a column
-
-        # deprecated 0.21.0
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            blocks = df.as_blocks()
+        blocks = df._to_dict_of_blocks(copy=True)
         for dtype, _df in blocks.items():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
@@ -330,10 +327,7 @@ class TestDataFrameBlockInternals:
         column = df.columns[0]
 
         # use the copy=False, change a column
-
-        # deprecated 0.21.0
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            blocks = df.as_blocks(copy=False)
+        blocks = df._to_dict_of_blocks(copy=False)
         for dtype, _df in blocks.items():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
@@ -591,10 +585,6 @@ starting,ending,measure
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
-        # uncommenting these makes the results match
-        # for col in xrange(100, 200):
-        #    wasCol[col] = 1
-        #    df[col] = np.nan
 
         for i, dt in enumerate(df.index):
             for col in range(100, 200):
@@ -621,12 +611,12 @@ starting,ending,measure
     def test_add_column_with_pandas_array(self):
         # GH 26390
         df = pd.DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-        df["c"] = pd.array([1, 2, None, 3])
+        df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
         df2 = pd.DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": ["a", "b", "c", "d"],
-                "c": pd.array([1, 2, None, 3]),
+                "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
             }
         )
         assert type(df["c"]._data.blocks[0]) == ObjectBlock

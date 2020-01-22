@@ -1,6 +1,6 @@
 # flake8: noqa
 
-from .common import (
+from pandas.core.dtypes.common import (
     is_array_like,
     is_bool,
     is_bool_dtype,
@@ -12,7 +12,6 @@ from .common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetimetz,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -32,7 +31,6 @@ from .common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
-    is_period,
     is_period_dtype,
     is_re,
     is_re_compilable,

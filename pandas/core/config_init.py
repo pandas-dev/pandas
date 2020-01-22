@@ -300,14 +300,15 @@ def table_schema_cb(key):
     _enable_data_resource_formatter(cf.get_option(key))
 
 
-def is_terminal():
+def is_terminal() -> bool:
     """
     Detect if Python is running in a terminal.
 
     Returns True if Python is running in a terminal or False if not.
     """
     try:
-        ip = get_ipython()
+        # error: Name 'get_ipython' is not defined
+        ip = get_ipython()  # type: ignore
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:
@@ -478,6 +479,7 @@ _xls_options = ["xlrd"]
 _xlsm_options = ["xlrd", "openpyxl"]
 _xlsx_options = ["xlrd", "openpyxl"]
 _ods_options = ["odf"]
+_xlsb_options = ["pyxlsb"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -514,6 +516,13 @@ with cf.config_prefix("io.excel.ods"):
         validator=str,
     )
 
+with cf.config_prefix("io.excel.xlsb"):
+    cf.register_option(
+        "reader",
+        "auto",
+        reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
+        validator=str,
+    )
 
 # Set up the io.excel specific writer configuration.
 writer_engine_doc = """

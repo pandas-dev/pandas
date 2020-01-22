@@ -1,5 +1,6 @@
 from functools import partial
 import itertools
+from typing import List
 
 import numpy as np
 
@@ -25,7 +26,7 @@ from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import extract_array
 from pandas.core.frame import DataFrame
-from pandas.core.index import Index, MultiIndex
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -88,7 +89,7 @@ class _Unstacker:
 
     def __init__(
         self,
-        values,
+        values: np.ndarray,
         index,
         level=-1,
         value_columns=None,
@@ -230,11 +231,9 @@ class _Unstacker:
         if needs_i8_conversion(values):
             sorted_values = sorted_values.view("i8")
             new_values = new_values.view("i8")
-            name = "int64"
         elif is_bool_dtype(values):
             sorted_values = sorted_values.astype("object")
             new_values = new_values.astype("object")
-            name = "object"
         else:
             sorted_values = sorted_values.astype(name, copy=False)
 
@@ -318,6 +317,10 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
+    # GH 19966 Make sure if MultiIndexed index has tuple name, they will be
+    # recognised as a whole
+    if clocs in index.names:
+        clocs = [clocs]
     clocs = [index._get_level_number(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
@@ -359,7 +362,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
             result = data
             for i in range(len(clocs)):
                 val = clocs[i]
-                result = result.unstack(val)
+                result = result.unstack(val, fill_value=fill_value)
                 clocs = [v if i > v else v - 1 for v in clocs]
 
             return result
@@ -757,7 +760,7 @@ def get_dummies(
     sparse=False,
     drop_first=False,
     dtype=None,
-):
+) -> "DataFrame":
     """
     Convert categorical variable into dummy/indicator variables.
 
@@ -901,7 +904,7 @@ def get_dummies(
 
         if data_to_encode.shape == data.shape:
             # Encoding the entire df, do not prepend any dropped columns
-            with_dummies = []
+            with_dummies: List[DataFrame] = []
         elif columns is not None:
             # Encoding only cols specified in columns. Get all cols not in
             # columns to prepend to result.
@@ -958,7 +961,7 @@ def _get_dummies_1d(
     if is_object_dtype(dtype):
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
-    def get_empty_frame(data):
+    def get_empty_frame(data) -> DataFrame:
         if isinstance(data, Series):
             index = data.index
         else:
@@ -985,7 +988,7 @@ def _get_dummies_1d(
     else:
 
         # PY2 embedded unicode, gh-22084
-        def _make_col_name(prefix, prefix_sep, level):
+        def _make_col_name(prefix, prefix_sep, level) -> str:
             fstr = "{prefix}{prefix_sep}{level}"
             return fstr.format(prefix=prefix, prefix_sep=prefix_sep, level=level)
 

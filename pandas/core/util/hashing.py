@@ -2,6 +2,7 @@
 data hash pandas / numpy objects
 """
 import itertools
+from typing import Optional
 
 import numpy as np
 
@@ -58,7 +59,7 @@ def hash_pandas_object(
     obj,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key: str = _default_hash_key,
+    hash_key: Optional[str] = _default_hash_key,
     categorize: bool = True,
 ):
     """
@@ -67,11 +68,11 @@ def hash_pandas_object(
     Parameters
     ----------
     index : bool, default True
-        include the index in the hash (if Series/DataFrame)
+        Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
-        encoding for data & key when strings
+        Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
-        hash_key for string key to encode
+        Hash_key for string key to encode.
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
@@ -82,14 +83,18 @@ def hash_pandas_object(
     """
     from pandas import Series
 
+    if hash_key is None:
+        hash_key = _default_hash_key
+
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
-    if isinstance(obj, ABCIndexClass):
+    elif isinstance(obj, ABCIndexClass):
         h = hash_array(obj.values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
         h = Series(h, index=obj, dtype="uint64", copy=False)
+
     elif isinstance(obj, ABCSeries):
         h = hash_array(obj.values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
@@ -133,7 +138,7 @@ def hash_pandas_object(
 
         h = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
-        raise TypeError("Unexpected type for hashing %s" % type(obj))
+        raise TypeError(f"Unexpected type for hashing {type(obj)}")
     return h
 
 
@@ -253,9 +258,9 @@ def hash_array(
     ----------
     vals : ndarray, Categorical
     encoding : str, default 'utf8'
-        encoding for data & key when strings
+        Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
-        hash_key for string key to encode
+        Hash_key for string key to encode.
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.

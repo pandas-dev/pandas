@@ -11,8 +11,8 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
-from pandas.compat import PY36
 from pandas.compat.numpy import np_datetime64_compat
+from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.generic import ABCIndex
@@ -33,16 +33,17 @@ from pandas import (
     isna,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
-from pandas.core.index import (
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
     _get_combined_index,
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
-import pandas.util.testing as tm
 
 
 class TestIndex(Base):
@@ -70,7 +71,9 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        new_index = index[None, :]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
@@ -100,6 +103,7 @@ class TestIndex(Base):
         arr[0] = "SOMEBIGLONGSTRING"
         assert new_index[0] != "SOMEBIGLONGSTRING"
 
+        # FIXME: dont leave commented-out
         # what to do here?
         # arr = np.array(5.)
         # pytest.raises(Exception, arr.view, Index)
@@ -107,8 +111,8 @@ class TestIndex(Base):
     def test_constructor_corner(self):
         # corner case
         msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some"
-            " kind, 0 was passed"
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            "kind, 0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Index(0)
@@ -243,7 +247,7 @@ class TestIndex(Base):
             def __init__(self, array):
                 self.array = array
 
-            def __array__(self, dtype=None):
+            def __array__(self, dtype=None) -> np.ndarray:
                 return self.array
 
         expected = pd.Index(array)
@@ -355,6 +359,11 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
+    def test_constructor_wrong_kwargs(self):
+        # GH #19348
+        with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
+            Index([], foo="bar")
+
     @pytest.mark.parametrize(
         "vals",
         [
@@ -453,9 +462,9 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    @pytest.mark.parametrize("attr, utc", [["values", False], ["asi8", True]])
+    @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc, klass):
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
         # .asi8 produces integers, so these are considered epoch timestamps
@@ -466,30 +475,27 @@ class TestIndex(Base):
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        if (
-            tz_naive_fixture
-            and attr == "asi8"
-            and str(tz_naive_fixture) not in ("UTC", "tzutc()", "UTC+00:00")
-        ):
-            ex_warn = FutureWarning
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
-            ex_warn = None
-
-        # stacklevel is checked elsewhere. We don't do it here since
-        # Index will have an frame, throwing off the expected.
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
             result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(arg).astype(dtype)
+        else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+        else:
             result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        with tm.assert_produces_warning(ex_warn, check_stacklevel=False):
+        if attr == "asi8":
+            result = pd.DatetimeIndex(list(arg)).astype(dtype)
+        else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
@@ -507,7 +513,7 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.parametrize("value", [[], iter([]), (x for x in [])])
+    @pytest.mark.parametrize("value", [[], iter([]), (_ for _ in [])])
     @pytest.mark.parametrize(
         "klass",
         [
@@ -530,7 +536,7 @@ class TestIndex(Base):
         [
             (PeriodIndex([], freq="B"), PeriodIndex),
             (PeriodIndex(iter([]), freq="B"), PeriodIndex),
-            (PeriodIndex((x for x in []), freq="B"), PeriodIndex),
+            (PeriodIndex((_ for _ in []), freq="B"), PeriodIndex),
             (RangeIndex(step=1), pd.RangeIndex),
             (MultiIndex(levels=[[1, 2], ["blue", "red"]], codes=[[], []]), MultiIndex),
         ],
@@ -730,7 +736,7 @@ class TestIndex(Base):
         assert first_value == x[Timestamp(expected_ts)]
 
     def test_booleanindex(self, index):
-        bool_index = np.repeat(True, len(index)).astype(bool)
+        bool_index = np.ones(len(index), dtype=bool)
         bool_index[5:30:2] = False
 
         sub_index = index[bool_index]
@@ -752,7 +758,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
-        empty_index = index.__class__([])
+        empty_index = type(index)([])
 
         assert index[[]].identical(empty_index)
         assert index[empty_arr].identical(empty_index)
@@ -762,7 +768,7 @@ class TestIndex(Base):
         # pd.DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
         empty_farr = np.array([], dtype=np.float_)
-        empty_index = index.__class__([])
+        empty_index = type(index)([])
 
         assert index[[]].identical(empty_index)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
@@ -1385,13 +1391,6 @@ class TestIndex(Base):
         assert "~:{range}:0" in result
         assert "{other}%s" in result
 
-    # GH18217
-    def test_summary_deprecated(self):
-        ind = Index(["{other}%s", "~:{range}:0"], name="A")
-
-        with tm.assert_produces_warning(FutureWarning):
-            ind.summary()
-
     def test_format(self, indices):
         self._check_method_works(Index.format, indices)
 
@@ -1616,11 +1615,7 @@ class TestIndex(Base):
     def test_get_loc_raises_bad_label(self, method):
         index = pd.Index([0, 1, 2])
         if method:
-            # Messages vary across versions
-            if PY36:
-                msg = "not supported between"
-            else:
-                msg = "unorderable types"
+            msg = "not supported between"
         else:
             msg = "invalid key"
 
@@ -1737,22 +1732,22 @@ class TestIndex(Base):
         "in_slice,expected",
         [
             (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),
-            (pd.IndexSlice["b"::-1], "b"),
-            (pd.IndexSlice[:"b":-1], "yxdcb"),
-            (pd.IndexSlice[:"y":-1], "y"),
-            (pd.IndexSlice["y"::-1], "yxdcb"),
-            (pd.IndexSlice["y"::-4], "yb"),
+            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore
+            (pd.IndexSlice["b"::-1], "b"),  # type: ignore
+            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore
+            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore
             # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),
-            (pd.IndexSlice[:"a":-2], "ydb"),
-            (pd.IndexSlice["z"::-1], "yxdcb"),
-            (pd.IndexSlice["z"::-3], "yc"),
-            (pd.IndexSlice["m"::-1], "dcb"),
-            (pd.IndexSlice[:"m":-1], "yx"),
-            (pd.IndexSlice["a":"a":-1], ""),
-            (pd.IndexSlice["z":"z":-1], ""),
-            (pd.IndexSlice["m":"m":-1], ""),
+            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore
+            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore
+            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore
+            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore
+            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore
+            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore
+            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore
+            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore
         ],
     )
     def test_slice_locs_negative_step(self, in_slice, expected):
@@ -1837,7 +1832,7 @@ class TestIndex(Base):
             tm.assert_index_equal(result, expected)
 
         removed = index.drop(to_drop[1])
-        msg = r"\"\[{}\] not found in axis\"".format(re.escape(to_drop[1].__repr__()))
+        msg = fr"\"\[{re.escape(to_drop[1].__repr__())}\] not found in axis\""
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
@@ -1920,7 +1915,12 @@ class TestIndex(Base):
         values = np.random.randn(100)
         value = index[67]
 
-        tm.assert_almost_equal(index.get_value(values, value), values[67])
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            # Index.get_value requires a Series, not an ndarray
+            index.get_value(values, value)
+
+        result = index.get_value(Series(values, index=values), value)
+        tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -2005,14 +2005,14 @@ class TestIndex(Base):
         index = indices
         if isinstance(index, MultiIndex):
             index = index.rename(["foo", "bar"])
-            msg = "'Level {} not found'"
+            msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")
-            msg = r"Requested level \({}\) does not match index name \(foo\)"
-        with pytest.raises(KeyError, match=msg.format(label)):
+            msg = fr"Requested level \({label}\) does not match index name \(foo\)"
+        with pytest.raises(KeyError, match=msg):
             index.isin([], level=label)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         index = Index(["a", "b"])
@@ -2405,27 +2405,25 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    def test_get_duplicates_deprecated(self):
-        index = pd.Index([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            index.get_duplicates()
-
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
-    def test_deprecated_contains(self, indices):
-        # deprecated for all types except IntervalIndex
-        warning = FutureWarning if not isinstance(indices, pd.IntervalIndex) else None
-        with tm.assert_produces_warning(warning):
+    def test_contains_method_removed(self, indices):
+        # GH#30103 method removed for all types except IntervalIndex
+        if isinstance(indices, pd.IntervalIndex):
             indices.contains(1)
+        else:
+            with pytest.raises(AttributeError):
+                indices.contains(1)
 
 
 class TestMixedIntIndex(Base):
@@ -2444,29 +2442,21 @@ class TestMixedIntIndex(Base):
 
     def test_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                index.argsort()
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                index.argsort()
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            index.argsort()
 
     def test_numpy_argsort(self):
         index = self.create_index()
-        if PY36:
-            with pytest.raises(TypeError, match="'>|<' not supported"):
-                np.argsort(index)
-        else:
-            with pytest.raises(TypeError, match="unorderable types"):
-                np.argsort(index)
+        with pytest.raises(TypeError, match="'>|<' not supported"):
+            np.argsort(index)
 
     def test_copy_name(self):
         # Check that "name" argument passed at initialization is honoured
         # GH12309
         index = self.create_index()
 
-        first = index.__class__(index, copy=True, name="mario")
-        second = first.__class__(first, copy=False)
+        first = type(index)(index, copy=True, name="mario")
+        second = type(first)(first, copy=False)
 
         # Even though "copy=False", we want a new object.
         assert first is not second
@@ -2768,7 +2758,7 @@ def test_generated_op_names(opname, indices):
         # pd.Index.__rsub__ does not exist; though the method does exist
         # for subclasses.  see GH#19723
         return
-    opname = "__{name}__".format(name=opname)
+    opname = f"__{opname}__"
     method = getattr(indices, opname)
     assert method.__name__ == opname
 
@@ -2781,32 +2771,18 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
 
 
 def test_deprecated_fastpath():
+    msg = "[Uu]nexpected keyword argument"
+    with pytest.raises(TypeError, match=msg):
+        pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
+    with pytest.raises(TypeError, match=msg):
+        pd.Int64Index(np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True)
 
-    expected = pd.Index(["a", "b"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
 
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.Int64Index(
-            np.array([1, 2, 3], dtype="int64"), name="test", fastpath=True
-        )
-
-    expected = pd.Index([1, 2, 3], name="test", dtype="int64")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.RangeIndex(0, 5, 2, name="test", fastpath=True)
-
-    expected = pd.RangeIndex(0, 5, 2, name="test")
-    tm.assert_index_equal(idx, expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        idx = pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
-
-    expected = pd.CategoricalIndex(["a", "b", "c"], name="test")
-    tm.assert_index_equal(idx, expected)
+    with pytest.raises(TypeError, match=msg):
+        pd.CategoricalIndex(["a", "b", "c"], name="test", fastpath=True)
 
 
 def test_shape_of_invalid_index():
@@ -2815,9 +2791,35 @@ def test_shape_of_invalid_index():
     # about this). However, as long as this is not solved in general,this test ensures
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
-    a = np.arange(8).reshape(2, 2, 2)
-    idx = pd.Index(a)
-    assert idx.shape == a.shape
-
     idx = pd.Index([0, 1, 2, 3])
-    assert idx[:, None].shape == (4, 1)
+    with tm.assert_produces_warning(DeprecationWarning):
+        # GH#30588 multi-dimensional indexing deprecated
+        assert idx[:, None].shape == (4, 1)
+
+
+def test_validate_1d_input():
+    # GH#27125 check that we do not have >1-dimensional input
+    msg = "Index data must be 1-dimensional"
+
+    arr = np.arange(8).reshape(2, 2, 2)
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(arr)
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Float64Index(arr.astype(np.float64))
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Int64Index(arr.astype(np.int64))
+
+    with pytest.raises(ValueError, match=msg):
+        pd.UInt64Index(arr.astype(np.uint64))
+
+    df = pd.DataFrame(arr.reshape(4, 2))
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(df)
+
+    # GH#13601 trying to assign a multi-dimensional array to an index is not
+    #  allowed
+    ser = pd.Series(0, range(4))
+    with pytest.raises(ValueError, match=msg):
+        ser.index = np.array([[2, 3]] * 4)

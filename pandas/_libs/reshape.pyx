@@ -28,7 +28,7 @@ def unstack(reshape_t[:, :] values, uint8_t[:] mask,
             Py_ssize_t stride, Py_ssize_t length, Py_ssize_t width,
             reshape_t[:, :] new_values, uint8_t[:, :] new_mask):
     """
-    transform long sorted_values to wide new_values
+    Transform long values to wide new_values.
 
     Parameters
     ----------

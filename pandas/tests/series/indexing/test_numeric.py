@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_get():
@@ -86,8 +86,7 @@ def test_get():
                 1764.0,
                 1849.0,
                 1936.0,
-            ],
-            dtype="object",
+            ]
         ),
     )
 
@@ -124,12 +123,10 @@ def test_get_nan_multiple():
     s = pd.Float64Index(range(10)).to_series()
 
     idx = [2, 30]
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        tm.assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
+    assert s.get(idx) is None
 
     idx = [2, np.nan]
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        tm.assert_series_equal(s.get(idx), Series([2, np.nan], index=idx))
+    assert s.get(idx) is None
 
     # GH 17295 - all missing keys
     idx = [20, 30]
@@ -153,7 +150,7 @@ def test_delitem():
     tm.assert_series_equal(s, expected)
 
     # empty
-    s = Series()
+    s = Series(dtype=object)
 
     with pytest.raises(KeyError, match=r"^0$"):
         del s[0]
@@ -264,8 +261,8 @@ def test_setitem_float_labels():
 def test_slice_float_get_set(datetime_series):
     msg = (
         r"cannot do slice indexing on <class 'pandas\.core\.indexes"
-        r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\]"
-        r" of <class 'float'>"
+        r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\] "
+        r"of <class 'float'>"
     )
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
         datetime_series[4.0:10.0]
