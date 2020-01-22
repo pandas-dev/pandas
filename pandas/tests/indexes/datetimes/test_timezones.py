@@ -7,11 +7,11 @@ from distutils.version import LooseVersion
 import dateutil
 from dateutil.tz import gettz, tzlocal
 import numpy as np
-from pkg_resources import get_distribution
 import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
+from pandas.compat._optional import _get_version
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -588,8 +588,7 @@ class TestDatetimeIndexTimezones:
                 "shift_backward",
                 "2019-03-10 01:00",
                 marks=pytest.mark.xfail(
-                    LooseVersion(get_distribution("python-dateutil").version)
-                    < LooseVersion("2.7.0"),
+                    LooseVersion(_get_version(dateutil)) < LooseVersion("2.7.0"),
                     reason="GH 31043",
                 ),
             ),

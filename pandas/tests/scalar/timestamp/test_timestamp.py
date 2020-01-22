@@ -9,7 +9,6 @@ import unicodedata
 import dateutil
 from dateutil.tz import tzutc
 import numpy as np
-from pkg_resources import get_distribution
 import pytest
 import pytz
 from pytz import timezone, utc
@@ -1097,7 +1096,7 @@ def test_constructor_ambigous_dst():
 
 
 @pytest.mark.xfail(
-    LooseVersion(get_distribution("python-dateutil").version) < LooseVersion("2.7.0"),
+    LooseVersion(compat._optional._get_version(dateutil)) < LooseVersion("2.7.0"),
     reason="dateutil moved to Timedelta.total_seconds() in 2.7.0",
 )
 @pytest.mark.parametrize("epoch", [1552211999999999872, 1552211999999999999])
