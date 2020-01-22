@@ -609,7 +609,7 @@ class IndexOpsMixin:
 
     @property
     def _values(self) -> Union[ExtensionArray, np.ndarray]:
-        # must e defined here as a property for mypy
+        # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
     def transpose(self, *args, **kwargs):
@@ -639,7 +639,7 @@ class IndexOpsMixin:
 
     def __len__(self) -> int:
         # We need this defined here for mypy
-        return len(self._values)
+        raise AbstractMethodError(self)
 
     @property
     def ndim(self) -> int:
