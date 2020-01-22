@@ -37,6 +37,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
+    Label,
     Level,
     Renamer,
 )
@@ -558,7 +559,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Assign desired index to given axis.
 
-        Indexes for column or row labels can be changed by assigning
+        Indexes for%(extended_summary_sub)s row labels can be changed by assigning
         a list-like or Index.
 
         .. versionchanged:: 0.21.0
@@ -573,9 +574,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         labels : list-like, Index
             The values for the new index.
 
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to update. The value 0 identifies the rows, and 1
-            identifies the columns.
+        axis : %(axes_single_arg)s, default 0
+            The axis to update. The value 0 identifies the rows%(axis_description_sub)s.
 
         inplace : bool, default False
             Whether to return a new %(klass)s instance.
@@ -583,57 +583,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         renamed : %(klass)s or None
-            An object of same type as caller if inplace=False, None otherwise.
+            An object of type %(klass)s if inplace=False, None otherwise.
 
         See Also
         --------
-        DataFrame.rename_axis : Alter the name of the index or columns.
+        %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
 
         Examples
         --------
-        **Series**
-
-        >>> s = pd.Series([1, 2, 3])
-        >>> s
-        0    1
-        1    2
-        2    3
-        dtype: int64
-
-        >>> s.set_axis(['a', 'b', 'c'], axis=0)
-        a    1
-        b    2
-        c    3
-        dtype: int64
-
-        **DataFrame**
-
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-
-        Change the row labels.
-
-        >>> df.set_axis(['a', 'b', 'c'], axis='index')
-           A  B
-        a  1  4
-        b  2  5
-        c  3  6
-
-        Change the column labels.
-
-        >>> df.set_axis(['I', 'II'], axis='columns')
-           I  II
-        0  1   4
-        1  2   5
-        2  3   6
-
-        Now, update the labels inplace.
-
-        >>> df.set_axis(['i', 'ii'], axis='columns', inplace=True)
-        >>> df
-           i  ii
-        0  1   4
-        1  2   5
-        2  3   6
         """
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
@@ -1927,9 +1884,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                         object.__setattr__(self, k, v)
 
             else:
-                self._unpickle_series_compat(state)
+                raise NotImplementedError("Pre-0.12 pickles are no longer supported")
         elif len(state) == 2:
-            self._unpickle_series_compat(state)
+            raise NotImplementedError("Pre-0.12 pickles are no longer supported")
 
         self._item_cache = {}
 
@@ -3009,10 +2966,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: Optional[str] = None,
-        columns: Optional[Sequence[Optional[Hashable]]] = None,
+        columns: Optional[Sequence[Label]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Optional[Hashable]]]] = None,
+        index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: Optional[Union[str, Mapping[str, str]]] = "infer",
@@ -3171,19 +3128,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return formatter.path_or_buf.getvalue()
 
         return None
-
-    # ----------------------------------------------------------------------
-    # Fancy Indexing
-
-    @classmethod
-    def _create_indexer(cls, name: str, indexer) -> None:
-        """Create an indexer like _name in the class.
-
-        Kept for compatibility with geopandas. To be removed in the future. See GH27258
-        """
-        if getattr(cls, name, None) is None:
-            _indexer = functools.partial(indexer, name)
-            setattr(cls, name, property(_indexer, doc=indexer.__doc__))
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3578,14 +3522,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._data.set(key, value)
         self._clear_item_cache()
 
-    def _set_is_copy(self, ref=None, copy: bool_t = True) -> None:
+    def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
             self._is_copy = None
         else:
-            if ref is not None:
-                self._is_copy = weakref.ref(ref)
-            else:
-                self._is_copy = None
+            assert ref is not None
+            self._is_copy = weakref.ref(ref)
 
     def _check_is_chained_assignment_possible(self) -> bool_t:
         """
@@ -9625,26 +9567,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
-
-                if is_datetime64_any_dtype(data):
-                    tz = data.dt.tz
-                    asint = data.dropna().values.view("i8")
-                    top = Timestamp(top)
-                    if top.tzinfo is not None and tz is not None:
-                        # Don't tz_localize(None) if key is already tz-aware
-                        top = top.tz_convert(tz)
-                    else:
-                        top = top.tz_localize(tz)
-                    names += ["top", "freq", "first", "last"]
-                    result += [
-                        top,
-                        freq,
-                        Timestamp(asint.min(), tz=tz),
-                        Timestamp(asint.max(), tz=tz),
-                    ]
-                else:
-                    names += ["top", "freq"]
-                    result += [top, freq]
+                names += ["top", "freq"]
+                result += [top, freq]
 
             # If the DataFrame is empty, set 'top' and 'freq' to None
             # to maintain output shape consistency
@@ -9655,11 +9579,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             return pd.Series(result, index=names, name=data.name, dtype=dtype)
 
+        def describe_timestamp_1d(data):
+            # GH-30164
+            stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
+            d = (
+                [data.count(), data.mean(), data.min()]
+                + data.quantile(percentiles).tolist()
+                + [data.max()]
+            )
+            return pd.Series(d, index=stat_index, name=data.name)
+
         def describe_1d(data):
             if is_bool_dtype(data):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
+            elif is_datetime64_any_dtype(data):
+                return describe_timestamp_1d(data)
             elif is_timedelta64_dtype(data):
                 return describe_numeric_1d(data)
             else:

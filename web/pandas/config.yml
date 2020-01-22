@@ -99,30 +99,50 @@ maintainers:
   - Wes McKinney
   - Jeff Reback
   - Joris Van den Bossche
-partners:
+sponsors:
   active:
   - name: "NumFOCUS"
     url: https://numfocus.org/
     logo: /static/img/partners/numfocus.svg
+    kind: numfocus
   - name: "Anaconda"
     url: https://www.anaconda.com/
     logo: /static/img/partners/anaconda.svg
-    employs: "Tom Augspurger, Brock Mendel"
+    kind: partner
+    description: "Tom Augspurger, Brock Mendel"
   - name: "Two Sigma"
     url: https://www.twosigma.com/
     logo: /static/img/partners/two_sigma.svg
-    employs: "Phillip Cloud, Jeff Reback"
+    kind: partner
+    description: "Phillip Cloud, Jeff Reback"
   - name: "RStudio"
     url: https://www.rstudio.com/
     logo: /static/img/partners/r_studio.svg
-    employs: "Wes McKinney"
+    kind: partner
+    description: "Wes McKinney"
   - name: "Ursa Labs"
     url: https://ursalabs.org/
     logo: /static/img/partners/ursa_labs.svg
-    employs: "Wes McKinney, Joris Van den Bossche"
+    kind: partner
+    description: "Wes McKinney, Joris Van den Bossche"
   - name: "Tidelift"
     url: https://tidelift.com
     logo: /static/img/partners/tidelift.svg
+    kind: regular
+    description: "<i>pandas</i> is part of the <a href=\"https://tidelift.com/subscription/pkg/pypi-pandas?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme\">Tidelift subscription</a>. You can support pandas by becoming a Tidelift subscriber."
+  - name: "Chan Zuckerberg Initiative"
+    url: https://chanzuckerberg.com/
+    logo: /static/img/partners/czi.svg
+    kind: regular
+    description: "<i>pandas</i> is funded by the Essential Open Source Software for Science program of the Chan Zuckerberg Initiative. The funding is used for general maintainance, improve extension types, and a efficient string type."
+  inkind:  # not included in active so they don't appear in the home page
+  - name: "OVH"
+    url: https://us.ovhcloud.com/
+    description: "Website and documentation hosting."
+  - name: "Indeed"
+    url: https://opensource.indeedeng.io/
+    description: "<i>pandas</i> logo design"
   past:
   - name: "Paris-Saclay Center for Data Science"
     url: https://www.datascience-paris-saclay.fr/
+    kind: partner

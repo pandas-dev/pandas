@@ -935,6 +935,8 @@ def test_astype_nansafe():
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
+# np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
+@pytest.mark.filterwarnings("ignore:invalid value encountered in sign")
 def test_ufuncs_single_int(ufunc):
     a = integer_array([1, 2, -3, np.nan])
     result = ufunc(a)
