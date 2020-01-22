@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -461,7 +461,8 @@ class Float64Index(NumericIndex):
         except (TypeError, ValueError):
             return False
 
-    def __contains__(self, other) -> bool:
+    def __contains__(self, other: Any) -> bool:
+        hash(other)
         if super().__contains__(other):
             return True
 

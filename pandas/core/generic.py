@@ -559,7 +559,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Assign desired index to given axis.
 
-        Indexes for column or row labels can be changed by assigning
+        Indexes for%(extended_summary_sub)s row labels can be changed by assigning
         a list-like or Index.
 
         .. versionchanged:: 0.21.0
@@ -574,9 +574,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         labels : list-like, Index
             The values for the new index.
 
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to update. The value 0 identifies the rows, and 1
-            identifies the columns.
+        axis : %(axes_single_arg)s, default 0
+            The axis to update. The value 0 identifies the rows%(axis_description_sub)s.
 
         inplace : bool, default False
             Whether to return a new %(klass)s instance.
@@ -584,57 +583,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         renamed : %(klass)s or None
-            An object of same type as caller if inplace=False, None otherwise.
+            An object of type %(klass)s if inplace=False, None otherwise.
 
         See Also
         --------
-        DataFrame.rename_axis : Alter the name of the index or columns.
+        %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
 
         Examples
         --------
-        **Series**
-
-        >>> s = pd.Series([1, 2, 3])
-        >>> s
-        0    1
-        1    2
-        2    3
-        dtype: int64
-
-        >>> s.set_axis(['a', 'b', 'c'], axis=0)
-        a    1
-        b    2
-        c    3
-        dtype: int64
-
-        **DataFrame**
-
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-
-        Change the row labels.
-
-        >>> df.set_axis(['a', 'b', 'c'], axis='index')
-           A  B
-        a  1  4
-        b  2  5
-        c  3  6
-
-        Change the column labels.
-
-        >>> df.set_axis(['I', 'II'], axis='columns')
-           I  II
-        0  1   4
-        1  2   5
-        2  3   6
-
-        Now, update the labels inplace.
-
-        >>> df.set_axis(['i', 'ii'], axis='columns', inplace=True)
-        >>> df
-           i  ii
-        0  1   4
-        1  2   5
-        2  3   6
         """
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
@@ -9611,26 +9567,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             dtype = None
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
-
-                if is_datetime64_any_dtype(data):
-                    tz = data.dt.tz
-                    asint = data.dropna().values.view("i8")
-                    top = Timestamp(top)
-                    if top.tzinfo is not None and tz is not None:
-                        # Don't tz_localize(None) if key is already tz-aware
-                        top = top.tz_convert(tz)
-                    else:
-                        top = top.tz_localize(tz)
-                    names += ["top", "freq", "first", "last"]
-                    result += [
-                        top,
-                        freq,
-                        Timestamp(asint.min(), tz=tz),
-                        Timestamp(asint.max(), tz=tz),
-                    ]
-                else:
-                    names += ["top", "freq"]
-                    result += [top, freq]
+                names += ["top", "freq"]
+                result += [top, freq]
 
             # If the DataFrame is empty, set 'top' and 'freq' to None
             # to maintain output shape consistency
@@ -9641,11 +9579,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             return pd.Series(result, index=names, name=data.name, dtype=dtype)
 
+        def describe_timestamp_1d(data):
+            # GH-30164
+            stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
+            d = (
+                [data.count(), data.mean(), data.min()]
+                + data.quantile(percentiles).tolist()
+                + [data.max()]
+            )
+            return pd.Series(d, index=stat_index, name=data.name)
+
         def describe_1d(data):
             if is_bool_dtype(data):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
                 return describe_numeric_1d(data)
+            elif is_datetime64_any_dtype(data):
+                return describe_timestamp_1d(data)
             elif is_timedelta64_dtype(data):
                 return describe_numeric_1d(data)
             else:

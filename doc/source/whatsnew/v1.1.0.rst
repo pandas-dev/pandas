@@ -13,14 +13,47 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_110.period_index_partial_string_slicing:
+
+Nonmonotonic PeriodIndex Partial String Slicing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
+
+For example:
+
+.. ipython:: python
+
+   dti = pd.date_range("2014-01-01", periods=30, freq="30D")
+   pi = dti.to_period("D")
+   ser_monotonic = pd.Series(np.arange(30), index=pi)
+   shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
+   ser = ser_monotonic[shuffler]
+   ser
+
+.. ipython:: python
+   ser["2014"]
+   ser.loc["May 2015"]
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
 -
 -
 
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
+  will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -133,18 +166,18 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
--
-
+- Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 
 Reshaping
 ^^^^^^^^^
 
 -
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` can take tuple names in MultiIndexed data (:issue:`19966`)
+- Bug in :meth:`DataFrame.pivot_table` when ``margin`` is ``True`` and only ``column`` is defined (:issue:`31016`)
 - Fix incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
 - Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
-
+- Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
 
 Sparse
 ^^^^^^
@@ -161,7 +194,8 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
+  instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 -
 
 .. ---------------------------------------------------------------------------
