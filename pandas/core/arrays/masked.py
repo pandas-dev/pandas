@@ -50,9 +50,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     def __len__(self) -> int:
         return len(self._data)
 
-    def to_numpy(
-        self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default,
-    ):
+    def to_numpy(self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default):
         """
         Convert to a NumPy Array.
 

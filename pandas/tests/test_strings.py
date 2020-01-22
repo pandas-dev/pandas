@@ -3520,9 +3520,7 @@ def test_string_array(any_string_method):
     result = getattr(b.str, method_name)(*args, **kwargs)
 
     if isinstance(expected, Series):
-        if expected.dtype == "object" and lib.is_string_array(
-            expected.dropna().values,
-        ):
+        if expected.dtype == "object" and lib.is_string_array(expected.dropna().values):
             assert result.dtype == "string"
             result = result.astype(object)
 

@@ -182,10 +182,10 @@ skip_if_windows_python_3 = pytest.mark.skipif(
     is_platform_windows(), reason="not used on win32"
 )
 skip_if_has_locale = pytest.mark.skipif(
-    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}",
+    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
 skip_if_not_us_locale = pytest.mark.skipif(
-    _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}",
+    _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"

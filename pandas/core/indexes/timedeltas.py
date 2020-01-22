@@ -69,9 +69,7 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     typ="method",
     overwrite=True,
 )
-class TimedeltaIndex(
-    DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin,
-):
+class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects.

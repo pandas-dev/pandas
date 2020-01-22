@@ -82,14 +82,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {
-    "eq",
-    "ne",
-    "lt",
-    "gt",
-    "le",
-    "ge",
-}
+COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities

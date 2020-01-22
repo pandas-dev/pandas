@@ -140,8 +140,7 @@ class CSSToExcelConverter:
         return {
             side: {
                 "style": self._border_style(
-                    props.get(f"border-{side}-style"),
-                    props.get(f"border-{side}-width"),
+                    props.get(f"border-{side}-style"), props.get(f"border-{side}-width")
                 ),
                 "color": self.color_to_excel(props.get(f"border-{side}-color")),
             }

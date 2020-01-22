@@ -170,7 +170,7 @@ class Base:
             tm.assert_almost_equal(result, expected)
 
     def check_result(
-        self, method1, key1, method2, key2, typs=None, axes=None, fails=None,
+        self, method1, key1, method2, key2, typs=None, axes=None, fails=None
     ):
         def _eq(axis, obj, key1, key2):
             """ compare equal for these 2 keys """

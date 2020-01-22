@@ -270,6 +270,7 @@ def to_hdf(
             min_itemsize=min_itemsize,
             nan_rep=nan_rep,
             data_columns=data_columns,
+            dropna=dropna,
             errors=errors,
             encoding=encoding,
         )
@@ -995,6 +996,7 @@ class HDFStore:
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
         data_columns: Optional[List[str]] = None,
+        dropna: Optional[bool] = False,
         encoding=None,
         errors: str = "strict",
     ):
@@ -1048,6 +1050,7 @@ class HDFStore:
             complevel=complevel,
             min_itemsize=min_itemsize,
             nan_rep=nan_rep,
+            dropna=dropna,
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
@@ -2858,7 +2861,7 @@ class GenericFixed(Fixed):
         # If the index was an empty array write_array_empty() will
         # have written a sentinel. Here we relace it with the original.
         if "shape" in node._v_attrs and np.prod(node._v_attrs.shape) == 0:
-            data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type,)
+            data = np.empty(node._v_attrs.shape, dtype=node._v_attrs.value_type)
         kind = _ensure_decoded(node._v_attrs.kind)
         name = None
 
@@ -3600,10 +3603,7 @@ class Table(Fixed):
         for a in self.axes:
             a.set_info(self.info)
             res = a.convert(
-                values,
-                nan_rep=self.nan_rep,
-                encoding=self.encoding,
-                errors=self.errors,
+                values, nan_rep=self.nan_rep, encoding=self.encoding, errors=self.errors
             )
             results.append(res)
 
@@ -4029,7 +4029,7 @@ class Table(Fixed):
         return d
 
     def read_coordinates(
-        self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None
     ):
         """select coordinates (row numbers) from a table; return the
         coordinates object
@@ -4296,7 +4296,7 @@ class AppendableTable(Table):
             self.table.flush()
 
     def delete(
-        self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
+        self, where=None, start: Optional[int] = None, stop: Optional[int] = None
     ):
 
         # delete all rows (and return the nrows)
@@ -4727,7 +4727,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     if inferred_type == "date":
         converted = np.asarray([v.toordinal() for v in values], dtype=np.int32)
         return IndexCol(
-            name, converted, "date", _tables().Time32Col(), index_name=index_name,
+            name, converted, "date", _tables().Time32Col(), index_name=index_name
         )
     elif inferred_type == "string":
 
@@ -4743,13 +4743,13 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
 
     elif inferred_type in ["integer", "floating"]:
         return IndexCol(
-            name, values=converted, kind=kind, typ=atom, index_name=index_name,
+            name, values=converted, kind=kind, typ=atom, index_name=index_name
         )
     else:
         assert isinstance(converted, np.ndarray) and converted.dtype == object
         assert kind == "object", kind
         atom = _tables().ObjectAtom()
-        return IndexCol(name, converted, kind, atom, index_name=index_name,)
+        return IndexCol(name, converted, kind, atom, index_name=index_name)
 
 
 def _unconvert_index(

@@ -113,7 +113,7 @@ def test_contains_with_missing_value():
 @pytest.mark.parametrize(
     "labels,expected,level",
     [
-        ([("b", np.nan)], np.array([False, False, True]), None,),
+        ([("b", np.nan)], np.array([False, False, True]), None),
         ([np.nan, "a"], np.array([True, True, False]), 0),
         (["d", np.nan], np.array([False, True, True]), 1),
     ],

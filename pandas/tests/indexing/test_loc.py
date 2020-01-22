@@ -116,7 +116,7 @@ class TestLoc(Base):
         self.check_result("loc", "f", "ix", "f", typs=["floats"], fails=KeyError)
         self.check_result("loc", "f", "loc", "f", typs=["floats"], fails=KeyError)
         self.check_result(
-            "loc", 20, "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
+            "loc", 20, "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError
         )
         self.check_result("loc", 20, "loc", 20, typs=["labels"], fails=TypeError)
         self.check_result("loc", 20, "loc", 20, typs=["ts"], axes=0, fails=TypeError)
@@ -129,7 +129,7 @@ class TestLoc(Base):
 
     def test_loc_getitem_label_list_with_missing(self):
         self.check_result(
-            "loc", [0, 1, 2], "loc", [0, 1, 2], typs=["empty"], fails=KeyError,
+            "loc", [0, 1, 2], "loc", [0, 1, 2], typs=["empty"], fails=KeyError
         )
         self.check_result(
             "loc",
