@@ -79,7 +79,7 @@ def cat_core(list_of_columns: List, sep: str):
         return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    arr_with_sep = np.asarray(list_with_sep)
+    arr_with_sep = np.asarray(list_with_sep, dtype=object)
     return np.sum(arr_with_sep, axis=0)
 
 

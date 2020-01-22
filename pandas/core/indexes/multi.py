@@ -2058,7 +2058,7 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                codes = com.index_labels_to_array(codes)
+                codes = com.index_labels_to_array(codes, dtype=object)
             except ValueError:
                 pass
 
