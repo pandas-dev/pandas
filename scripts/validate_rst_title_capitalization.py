@@ -180,7 +180,7 @@ def main(source_paths: List[str], output_format: str) -> bool:
     Returns
     -------
     number_of_errors : int
-        True if there are headings that are printed, False if not
+        Number of incorrect headings found overall
 
     """
 
@@ -208,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}:{heading}",
+        default="{source_path}:{line_number}:{msg}:{heading}:{correct_heading}",
         help="Output format of incorrectly capitalized titles",
     )
 
