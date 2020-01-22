@@ -140,7 +140,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
-- Bug in reduction methods not returning subclassed data type effecting all numeric and boolean reduction methods. (:issue:`25596`)
+- Bug effecting all numeric and boolean reduction methods not returning subclassed data type. (:issue:`25596`)
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
 
 Sparse
