@@ -517,7 +517,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 return self._box_func(val)
             return type(self)(val, dtype=self.dtype)
 
-        if is_list_like(key):
+        if is_list_like(key) and not isinstance(key, tuple):
             key = check_array_indexer(self, key)
 
         if com.is_bool_indexer(key):
