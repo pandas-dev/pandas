@@ -1182,22 +1182,13 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj = self._create_blocks()
-
-        window = self._get_window()
-        window = min(window, len(obj)) if not self.center else window
-
-        min_periods = self.min_periods
-        if min_periods is not None and not self.center:
-            # this is required as window is mutated above
-            min_periods = min(min_periods, window)
-
         results = []
         for b in blocks:
             result = b.notna().astype(int)
             result = self._constructor(
                 result,
-                window=window,
-                min_periods=min_periods,
+                window=self._get_window(),
+                min_periods=self.min_periods,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,
