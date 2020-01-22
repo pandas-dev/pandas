@@ -562,9 +562,6 @@ class TestReaders:
 
     @tm.network
     def test_read_from_http_url(self, read_ext):
-        if pd.read_excel.keywords["engine"] == "pyxlsb":
-            pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
-
         url = (
             "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
             "pandas/tests/io/data/excel/test1" + read_ext
