@@ -51,3 +51,4 @@ dependencies:
     - coverage
     - pandas-datareader
     - python-dateutil
+    - pyxlsb
