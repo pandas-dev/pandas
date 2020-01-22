@@ -12,6 +12,22 @@ def cumsum(whatever):
     """
 
 
+@doc(
+    cumsum,
+    """
+    Examples
+    --------
+
+    >>> cumavg([1, 2, 3])
+    2
+    """,
+    method="cumavg",
+    operation="average",
+)
+def cumavg(whatever):
+    pass
+
+
 @doc(cumsum, method="cummax", operation="maximum")
 def cummax(whatever):
     pass
@@ -31,6 +47,23 @@ def test_docstring_formatting():
         """
     )
     assert cumsum.__doc__ == docstr
+
+
+def test_docstring_appending():
+    docstr = dedent(
+        """
+        This is the cumavg method.
+
+        It computes the cumulative average.
+
+        Examples
+        --------
+
+        >>> cumavg([1, 2, 3])
+        2
+        """
+    )
+    assert cumavg.__doc__ == docstr
 
 
 def test_doc_template_from_func():
