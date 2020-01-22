@@ -1112,5 +1112,5 @@ def test_constructor_before_dst_switch(epoch):
     ts = Timestamp(epoch, tz="dateutil/US/Pacific")
     result = ts.tz.dst(ts)
     expected = timedelta(seconds=0)
-    assert Timestamp(ts).value == epoch
+    assert ts.value == epoch
     assert result == expected
