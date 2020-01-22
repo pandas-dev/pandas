@@ -1853,7 +1853,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
             return op(arr, arr.shift(n))
         else:
             warn(
-                "dtype lost in 'algorithms.diff'. In the future this will raise a "
+                "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
                 stacklevel=stacklevel,
