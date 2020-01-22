@@ -46,13 +46,6 @@ class TestPandasContainer:
     def setup(self, datapath, monkeypatch):
         monkeypatch.chdir(datapath("io", "json", "data"))
 
-        self.series = tm.makeStringSeries()
-        self.series.name = "series"
-
-        self.objSeries = tm.makeObjectSeries()
-        self.objSeries.name = "objects"
-
-        self.empty_series = Series([], index=[], dtype=np.float64)
         self.empty_frame = DataFrame()
 
         self.frame = _frame.copy()
@@ -64,11 +57,6 @@ class TestPandasContainer:
 
         yield
 
-        del self.series
-
-        del self.objSeries
-
-        del self.empty_series
         del self.empty_frame
 
         del self.frame
@@ -627,14 +615,14 @@ class TestPandasContainer:
         unser = read_json(s.to_json(orient="records"), orient="records", typ="series")
         tm.assert_numpy_array_equal(s.values, unser.values)
 
-    def test_series_default_orient(self):
-        assert self.series.to_json() == self.series.to_json(orient="index")
+    def test_series_default_orient(self, string_series):
+        assert string_series.to_json() == string_series.to_json(orient="index")
 
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_simple(self, orient, numpy):
-        data = self.series.to_json(orient=orient)
+    def test_series_roundtrip_simple(self, orient, numpy, string_series):
+        data = string_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
-        expected = self.series.copy()
+        expected = string_series.copy()
 
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
@@ -645,12 +633,12 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("dtype", [False, None])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_object(self, orient, numpy, dtype):
-        data = self.objSeries.to_json(orient=orient)
+    def test_series_roundtrip_object(self, orient, numpy, dtype, object_series):
+        data = object_series.to_json(orient=orient)
         result = pd.read_json(
             data, typ="series", orient=orient, numpy=numpy, dtype=dtype
         )
-        expected = self.objSeries.copy()
+        expected = object_series.copy()
 
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
@@ -660,10 +648,10 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_empty(self, orient, numpy):
-        data = self.empty_series.to_json(orient=orient)
+    def test_series_roundtrip_empty(self, orient, numpy, empty_series):
+        data = empty_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
-        expected = self.empty_series.copy()
+        expected = empty_series.copy()
 
         # TODO: see what causes inconsistency
         if orient in ("values", "records"):
