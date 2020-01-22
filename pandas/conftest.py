@@ -882,6 +882,7 @@ def datetime_series():
     s.name = "ts"
     return s
 
+
 @pytest.fixture
 def string_series():
     """
