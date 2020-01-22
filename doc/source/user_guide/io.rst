@@ -39,11 +39,6 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
-.. note::
-   For examples that use the ``StringIO`` class, make sure you import it
-   according to your Python version, i.e. ``from StringIO import StringIO`` for
-   Python 2 and ``from io import StringIO`` for Python 3.
-
 .. _io.read_csv_table:
 
 CSV & text files
@@ -915,9 +910,7 @@ data columns:
 .. note::
 
    When passing a dict as the `parse_dates` argument, the order of
-   the columns prepended is not guaranteed, because `dict` objects do not impose
-   an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
-   instead of a regular `dict` if this matters to you. Because of this, when using a
+   the columns prepended is not guaranteed. Because of this, when using a
    dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
    specify `index_col` as a column label rather then as an index on the resulting frame.
 
@@ -2453,7 +2446,7 @@ Specify a number of rows to skip:
 
    dfs = pd.read_html(url, skiprows=0)
 
-Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
+Specify a number of rows to skip using a list (``range`` works
 as well):
 
 .. code-block:: python
@@ -3124,11 +3117,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 .. code-block:: python
 
-   # Safe import for either Python 2.x or 3.x
-   try:
-       from io import BytesIO
-   except ImportError:
-       from cStringIO import StringIO as BytesIO
+   from io import BytesIO
 
    bio = BytesIO()
 
