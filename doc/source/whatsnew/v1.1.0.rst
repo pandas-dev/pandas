@@ -17,6 +17,7 @@ Enhancements
 
 Nonmonotonic PeriodIndex Partial String Slicing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 :class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
 
 For example:
@@ -31,6 +32,7 @@ For example:
    ser
 
 .. ipython:: python
+
    ser["2014"]
    ser.loc["May 2015"]
 
