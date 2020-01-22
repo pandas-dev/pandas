@@ -1416,19 +1416,18 @@ class DataFrameGroupBy(GroupBy):
             # cythonized transformation or canned "reduction+broadcast"
             return getattr(self, func)(*args, **kwargs)
 
-        # If func is a reduction, we need to broadcast the
-        # result to the whole group. Compute func result
-        # and deal with possible broadcasting below.
-        result = getattr(self, func)(*args, **kwargs)
+        # GH 30918
+        # Use _transform_fast only when we know func is an aggregation
+        if func in base.reduction_kernels:
+            # If func is a reduction, we need to broadcast the
+            # result to the whole group. Compute func result
+            # and deal with possible broadcasting below.
+            result = getattr(self, func)(*args, **kwargs)
 
-        if (
-            isinstance(result, DataFrame)
-            and result.columns.equals(self._obj_with_exclusions.columns)
-            and result.index.equals(self.grouper.result_index)
-        ):
-            # GH 30918
-            # Call _transform_fast only when we know func is an aggregation
-            return self._transform_fast(result, func)
+            if isinstance(result, DataFrame) and result.columns.equals(
+                self._obj_with_exclusions.columns
+            ):
+                return self._transform_fast(result, func)
 
         return self._transform_general(func, *args, **kwargs)
 

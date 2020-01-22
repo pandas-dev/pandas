@@ -317,16 +317,30 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_fillna():
+@pytest.mark.parametrize("func", ["fillna", "ffill", "bfill", "shift", "cumsum"])
+def test_transform_non_reduction_func(func):
     # GH 30918
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
             "B": [1, 2, np.nan, 3, 3, np.nan, 4],
         }
     )
-    result = df.groupby("A").transform("fillna", value=9)
-    expected = df[["B"]].fillna(value=9)
+    expected = {
+        "fillna": [1.0, 2, 0, 3, 3, 0, 4],
+        "ffill": [1.0, 2, 2, 3, 3, 3, 4],
+        "bfill": [1, 2, 3, 3, 3, np.nan, 4],
+        "shift": [np.nan, 1, 2, np.nan, np.nan, 3, np.nan],
+        "cumsum": [1, 3, np.nan, 6, 3, np.nan, 4],
+    }
+    expected = DataFrame(expected[func], columns=["B"])
+    grouped = df.groupby("A")
+
+    if func == "fillna":
+        result = grouped.transform(func, value=0)
+    else:
+        result = grouped.transform(func)
+
     tm.assert_frame_equal(result, expected)
 
 
