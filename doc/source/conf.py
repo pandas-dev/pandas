@@ -408,7 +408,9 @@ if pattern is None:
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-        "statsmodels": ("http://www.statsmodels.org/devel/", None),
+        # statsmodels inventory pinned to 10.2 for now, see
+        # https://github.com/pandas-dev/pandas/issues/31212
+        "statsmodels": ("http://www.statsmodels.org/v0.10.2/", None),
     }
 
 # extlinks alias
