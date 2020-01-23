@@ -922,7 +922,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     return ret
 
 
-@deprecate_nonkeyword_arguments(version="1.4")
+@deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io,
     match=".+",
