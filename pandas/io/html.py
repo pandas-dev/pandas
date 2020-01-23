@@ -11,6 +11,7 @@ import re
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError, EmptyDataError
+from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -921,6 +922,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     return ret
 
 
+@deprecate_nonkeyword_arguments(version="1.4")
 def read_html(
     io,
     match=".+",
