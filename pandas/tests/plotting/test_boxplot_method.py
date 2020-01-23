@@ -203,6 +203,24 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
 
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1", lw=5)}
+        result = df.boxplot(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
+        assert result[expected][0].get_lw() == 5
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
