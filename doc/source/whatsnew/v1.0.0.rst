@@ -311,12 +311,9 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 
 *pandas 1.0.0*
 
-.. ipython:: python
-
+.. code-block:: python
     left_df.merge(right_df, left_index=True, right_index=True, how="right")
-      colors   hats
-    1    red  small
-    0   blue    big
+
 
 
 
