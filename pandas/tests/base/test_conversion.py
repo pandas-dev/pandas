@@ -303,7 +303,8 @@ def test_array(array, attr, index_or_series):
 
 def test_array_multiindex_raises():
     idx = pd.MultiIndex.from_product([["A"], ["a", "b"]])
-    with pytest.raises(ValueError, match="MultiIndex"):
+    msg = "MultiIndex has no single backing array"
+    with pytest.raises(ValueError, match=msg):
         idx.array
 
 
@@ -429,11 +430,11 @@ def test_to_numpy_na_value_numpy_dtype(container, values, dtype, na_value, expec
 def test_to_numpy_kwargs_raises():
     # numpy
     s = pd.Series([1, 2, 3])
-    match = r"to_numpy\(\) got an unexpected keyword argument 'foo'"
-    with pytest.raises(TypeError, match=match):
+    msg = r"to_numpy\(\) got an unexpected keyword argument 'foo'"
+    with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 
     # extension
     s = pd.Series([1, 2, 3], dtype="Int64")
-    with pytest.raises(TypeError, match=match):
+    with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
