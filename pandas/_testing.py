@@ -589,6 +589,7 @@ def assert_index_equal(
     check_less_precise: Union[bool, int] = False,
     check_exact: bool = True,
     check_categorical: bool = True,
+    check_freq: bool = True,
     obj: str = "Index",
 ) -> None:
     """
@@ -612,6 +613,8 @@ def assert_index_equal(
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_freq : bool, default True
+        Whether to check the freq attribute on DatetimeIndex/TimedeltaIndex.
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -705,7 +708,9 @@ def assert_index_equal(
         assert_attr_equal("names", left, right, obj=obj)
 
     freq_classes = (pd.PeriodIndex, pd.DatetimeIndex, pd.TimedeltaIndex)
-    if isinstance(left, freq_classes) or isinstance(right, freq_classes):
+    if check_freq and (
+        isinstance(left, freq_classes) or isinstance(right, freq_classes)
+    ):
         assert_attr_equal("freq", left, right, obj=obj)
     if isinstance(left, pd.IntervalIndex) or isinstance(right, pd.IntervalIndex):
         assert_interval_array_equal(left.values, right.values)
@@ -879,8 +884,13 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_index_equal(left.left, right.left, exact=exact, obj=f"{obj}.left")
-    assert_index_equal(left.right, right.right, exact=exact, obj=f"{obj}.left")
+    # TODO: re-enable check_freq?
+    assert_index_equal(
+        left.left, right.left, exact=exact, obj=f"{obj}.left", check_freq=False
+    )
+    assert_index_equal(
+        left.right, right.right, exact=exact, obj=f"{obj}.left", check_freq=False
+    )
     assert_attr_equal("closed", left, right, obj=obj)
 
 
@@ -1073,6 +1083,7 @@ def assert_series_equal(
     check_exact=False,
     check_datetimelike_compat=False,
     check_categorical=True,
+    check_freq: bool = True,
     obj="Series",
 ):
     """
@@ -1107,6 +1118,8 @@ def assert_series_equal(
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_freq : bool, default True
+        Whether to check the freq attribute on a DatetimeIndex/TimedeltaIndex
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1137,6 +1150,7 @@ def assert_series_equal(
         check_less_precise=check_less_precise,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_freq=check_freq,
         obj=f"{obj}.index",
     )
 

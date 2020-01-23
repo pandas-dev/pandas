@@ -443,7 +443,7 @@ class Base:
         cond = [False] + [True] * len(i[1:])
         expected = pd.Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
         result = i.where(klass(cond))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize("case", [0.5, "xxx"])
     @pytest.mark.parametrize(

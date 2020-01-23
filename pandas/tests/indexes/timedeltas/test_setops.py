@@ -186,7 +186,7 @@ class TestTimedeltaIndex:
                 TimedeltaIndex(["2 hour", "5 hour", "5 hour", "1 hour"], name="other"),
                 TimedeltaIndex(["1 hour", "2 hour"], name=None),
             ),
-            # reveresed index
+            # reversed index
             (
                 TimedeltaIndex(["1 hour", "2 hour", "4 hour", "3 hour"], name="idx")[
                     ::-1
@@ -202,10 +202,11 @@ class TestTimedeltaIndex:
         result = base.intersection(rng, sort=sort)
         if sort is None:
             expected = expected.sort_values()
+            expected._set_freq("infer")
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        # if reveresed order, frequency is still the same
+        # if reversed order, frequency is still the same
         if all(base == rng[::-1]) and sort is None:
             assert isinstance(result.freq, Hour)
         else:

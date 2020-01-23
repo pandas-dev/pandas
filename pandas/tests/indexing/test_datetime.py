@@ -145,7 +145,11 @@ class TestDatetimeIndex:
 
         for sel in (index, list(index)):
             # getitem
-            tm.assert_series_equal(ser[sel], ser)
+
+            # list(index) loses the freq
+            check_freq = True if sel is index else False
+
+            tm.assert_series_equal(ser[sel], ser, check_freq=check_freq)
 
             # setitem
             result = ser.copy()
@@ -154,7 +158,7 @@ class TestDatetimeIndex:
             tm.assert_series_equal(result, expected)
 
             # .loc getitem
-            tm.assert_series_equal(ser.loc[sel], ser)
+            tm.assert_series_equal(ser.loc[sel], ser, check_freq=check_freq)
 
             # .loc setitem
             result = ser.copy()
@@ -222,6 +226,7 @@ class TestDatetimeIndex:
         # GH 11497
 
         idx = date_range("2011-01-01", "2011-01-02", freq="D", name="idx")
+        idx._set_freq(None)
         ser = Series([0.1, 0.2], index=idx, name="s")
 
         result = ser.loc[[Timestamp("2011-01-01"), Timestamp("2011-01-02")]]

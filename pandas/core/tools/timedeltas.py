@@ -10,7 +10,7 @@ from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
+from pandas.core.arrays.timedeltas import TimedeltaArray, sequence_to_td64ns
 
 
 def to_timedelta(arg, unit="ns", errors="raise"):
@@ -136,7 +136,9 @@ def _convert_listlike(arg, unit="ns", errors="raise", name=None):
         arg = np.array(list(arg), dtype=object)
 
     try:
-        value = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+        value, inferred_freq = sequence_to_td64ns(
+            arg, unit=unit, errors=errors, copy=False
+        )
     except ValueError:
         if errors == "ignore":
             return arg
@@ -152,5 +154,6 @@ def _convert_listlike(arg, unit="ns", errors="raise", name=None):
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(value, unit="ns", name=name)
+    tda = TimedeltaArray._simple_new(value, freq=inferred_freq)
+    value = TimedeltaIndex(tda, name=name)
     return value

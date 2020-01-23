@@ -781,7 +781,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            return self._shallow_copy(dates, freq=None)
         else:
             left, right = other, self
 
