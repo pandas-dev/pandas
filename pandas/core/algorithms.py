@@ -1858,7 +1858,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
                 FutureWarning,
                 stacklevel=stacklevel,
             )
-            arr = com.values_from_object(arr)
+            arr = np.asarray(arr)
             dtype = arr.dtype
 
     is_timedelta = False
