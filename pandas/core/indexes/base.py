@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Dict, FrozenSet, Hashable, Optional, Union
+from typing import Any, Dict, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -50,7 +50,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCDataFrame,
-    ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCIndexClass,
     ABCIntervalIndex,
@@ -69,7 +68,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
@@ -97,6 +95,7 @@ _index_doc_kwargs = dict(
     duplicated="np.ndarray",
 )
 _index_shared_docs = dict()
+str_t = str
 
 
 def _make_comparison_op(op, cls):
@@ -460,11 +459,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
-            # Index._data must always be an ndarray.
-            # This is no-copy for when _values is an ndarray,
-            # which should be always at this point.
-            values = np.asarray(values._values)
+        assert isinstance(values, np.ndarray), type(values)
 
         result = object.__new__(cls)
         result._data = values
@@ -510,6 +505,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self.values
+
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         if not len(values) and "dtype" not in kwargs:
@@ -517,10 +513,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # _simple_new expects an the type of self._data
         values = getattr(values, "_values", values)
-        if isinstance(values, ABCDatetimeArray):
-            # `self.values` returns `self` for tz-aware, so we need to unwrap
-            #  more specifically
-            values = values.asi8
 
         return self._simple_new(values, **attributes)
 
@@ -2967,7 +2959,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
+    def get_indexer(
+        self, target, method=None, limit=None, tolerance=None
+    ) -> np.ndarray:
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
         if tolerance is not None:
@@ -3024,14 +3018,16 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
-    def _get_fill_indexer(self, target, method, limit=None, tolerance=None):
+    def _get_fill_indexer(
+        self, target: "Index", method: str_t, limit=None, tolerance=None
+    ) -> np.ndarray:
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
-            method = (
+            engine_method = (
                 self._engine.get_pad_indexer
                 if method == "pad"
                 else self._engine.get_backfill_indexer
             )
-            indexer = method(target._ndarray_values, limit)
+            indexer = engine_method(target._ndarray_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None:
@@ -3040,7 +3036,9 @@ class Index(IndexOpsMixin, PandasObject):
             )
         return indexer
 
-    def _get_fill_indexer_searchsorted(self, target, method, limit=None):
+    def _get_fill_indexer_searchsorted(
+        self, target: "Index", method: str_t, limit=None
+    ) -> np.ndarray:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
         indexes and non-monotonic targets.
@@ -3071,7 +3069,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer[indexer == len(self)] = -1
         return indexer
 
-    def _get_nearest_indexer(self, target, limit, tolerance):
+    def _get_nearest_indexer(self, target: "Index", limit, tolerance) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -3094,7 +3092,9 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
         return indexer
 
-    def _filter_indexer_tolerance(self, target, indexer, tolerance):
+    def _filter_indexer_tolerance(
+        self, target: "Index", indexer: np.ndarray, tolerance
+    ) -> np.ndarray:
         distance = abs(self.values[indexer] - target)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
@@ -3129,7 +3129,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if kind in ["getitem"] and is_float(key):
                 if not self.is_floating():
-                    return self._invalid_indexer("label", key)
+                    self._invalid_indexer("label", key)
 
             elif kind in ["loc"] and is_float(key):
 
@@ -4154,7 +4154,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             return key in self._engine
@@ -4576,7 +4576,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         raise NotImplementedError(f"Not supported for type {type(self).__name__}")
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         """
         Return the integer indices that would sort the index.
 
@@ -4631,57 +4631,45 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
     def get_value(self, series, key):
 
-        # if we have something that is Index-like, then
-        # use this, e.g. DatetimeIndex
-        # Things like `Series._get_value` (via .at) pass the EA directly here.
-        s = extract_array(series, extract_numpy=True)
-        if isinstance(s, ExtensionArray):
-            if is_scalar(key):
-                # GH 20882, 21257
-                # First try to convert the key to a location
-                # If that fails, raise a KeyError if an integer
-                # index, otherwise, see if key is an integer, and
-                # try that
-                try:
-                    iloc = self.get_loc(key)
-                    return s[iloc]
-                except KeyError:
-                    if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
-                        raise
-                    elif is_integer(key):
-                        return s[key]
-            else:
-                # if key is not a scalar, directly raise an error (the code below
-                # would convert to numpy arrays and raise later any way) - GH29926
-                raise InvalidIndexError(key)
+        if not is_scalar(key):
+            # if key is not a scalar, directly raise an error (the code below
+            # would convert to numpy arrays and raise later any way) - GH29926
+            raise InvalidIndexError(key)
 
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
-
-        k = self._convert_scalar_indexer(k, kind="getitem")
         try:
-            return self._engine.get_value(s, k, tz=getattr(series.dtype, "tz", None))
-        except KeyError as e1:
+            # GH 20882, 21257
+            # First try to convert the key to a location
+            # If that fails, raise a KeyError if an integer
+            # index, otherwise, see if key is an integer, and
+            # try that
+            loc = self._engine.get_loc(key)
+        except KeyError:
             if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
                 raise
-
-            try:
-                return libindex.get_value_at(s, key)
-            except IndexError:
+            elif is_integer(key):
+                # If the Index cannot hold integer, then this is unambiguously
+                #  a locational lookup.
+                loc = key
+            else:
                 raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:
-                raise e1
-        except TypeError:
-            # e.g. "[False] is an invalid key"
-            if is_scalar(key):
-                raise IndexError(key)
-            raise InvalidIndexError(key)
+
+        return self._get_values_for_loc(series, loc)
+
+    def _get_values_for_loc(self, series, loc):
+        """
+        Do a positional lookup on the given Series, returning either a scalar
+        or a Series.
+
+        Assumes that `series.index is self`
+        """
+        if is_integer(loc):
+            if isinstance(series._values, np.ndarray):
+                # Since we have an ndarray and not DatetimeArray, we dont
+                #  have to worry about a tz.
+                return libindex.get_value_at(series._values, loc, tz=None)
+            return series._values[loc]
+
+        return series.iloc[loc]
 
     def set_value(self, arr, key, value):
         """
@@ -4924,7 +4912,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
         return algos.isin(self, values)
 
-    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
+    def _get_string_slice(self, key: str_t, use_lhs: bool = True, use_rhs: bool = True):
         # this is for partial string indexing,
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
@@ -5062,7 +5050,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side, kind):
+    def get_slice_bound(self, label, side, kind) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -5227,7 +5215,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._shallow_copy(np.delete(self._data, loc))
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location.
 
