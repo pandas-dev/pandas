@@ -36,10 +36,9 @@ def test_exception_importable(exc):
 def test_catch_oob():
     from pandas import errors
 
-    try:
+    msg = "Out of bounds nanosecond timestamp: 1500-01-01 00:00:00"
+    with pytest.raises(errors.OutOfBoundsDatetime, match=msg):
         pd.Timestamp("15000101")
-    except errors.OutOfBoundsDatetime:
-        pass
 
 
 class Foo:
