@@ -647,7 +647,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
         if isinstance(key, time):
             locs = self.indexer_at_time(key)
-            return series._take_with_set_copy(locs)
+            return series._take_with_is_copy(locs)
 
         if isinstance(key, str):
             try:
