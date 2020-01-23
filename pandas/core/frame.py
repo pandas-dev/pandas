@@ -106,7 +106,7 @@ from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.multi import maybe_droplevels
+from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -5063,6 +5063,121 @@ class DataFrame(NDFrame):
             return self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
+
+    def value_counts(
+        self,
+        subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
+    ):
+        """
+        Return a Series containing counts of unique rows in the DataFrame.
+        .. versionadded:: 1.0.0
+        The returned Series will have a MultiIndex with one level per input
+        column.
+        By default, rows that contain any NaN value are omitted from the
+        results.
+        By default, the resulting series will be in descending order so that the
+        first element is the most frequently-occurring row.
+        Parameters
+        ----------
+        subset : list-like, default self.columns
+            Columns to use when counting unique combinations.
+        normalize : boolean, default False
+            Return proportions rather than frequencies.
+        sort : boolean, default True
+            Sort by frequencies.
+        ascending : boolean, default False
+            Sort in ascending order.
+        bins : integer, optional
+            This parameter is not yet supported and must be set to None (the
+            default value). It exists to ensure compatibiliy with
+            `Series.value_counts`.
+            Rather than count values, group them into half-open bins,
+            a convenience for ``pd.cut``, only works with single-column numeric
+            data.
+        dropna : boolean, default True
+            This parameter is not yet supported and must be set to True (the
+            default value). It exists to ensure compatibiliy with
+            `Series.value_counts`.
+            Don't include counts of rows containing NaN.
+        Returns
+        -------
+        counts : Series
+        See Also
+        --------
+        Series.value_counts: Equivalent method on Series.
+        Examples
+        --------
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 4, 6],
+        ...                    'num_wings': [2, 0, 0, 0]},
+        ...                   index=['falcon', 'dog', 'cat', 'ant'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
+        cat            4          0
+        ant            6          0
+        >>> df.value_counts()
+        num_legs  num_wings
+        4         0            2
+        6         0            1
+        2         2            1
+        dtype: int64
+        >>> df.value_counts(sort=False)
+        num_legs  num_wings
+        2         2            1
+        4         0            2
+        6         0            1
+        dtype: int64
+        >>> df.value_counts(ascending=True)
+        num_legs  num_wings
+        2         2            1
+        6         0            1
+        4         0            2
+        dtype: int64
+        >>> df.value_counts(normalize=True)
+        num_legs  num_wings
+        4         0            0.50
+        6         0            0.25
+        2         2            0.25
+        dtype: float64
+        >>> single_col_df = df[['num_legs']]
+        >>> single_col_df.value_counts(bins=4)
+        num_legs
+        (3.0, 4.0]      2
+        (5.0, 6.0]      1
+        (1.995, 3.0]    1
+        (4.0, 5.0]      0
+        dtype: int64
+        """
+        if subset is None:
+            subset = self.columns.tolist()
+
+        # Some features not supported yet
+        if not dropna:
+            raise NotImplementedError(
+                "`dropna=False` not yet supported for DataFrames."
+            )
+        if (bins is not None) and (len(subset) > 1):
+            raise NotImplementedError(
+                "`bins` parameter not yet supported for more than one column."
+            )
+
+        counts = self.groupby(subset).size()
+
+        if sort:
+            counts = counts.sort_values(ascending=ascending)
+        if normalize:
+            counts /= counts.sum()
+        # Force MultiIndex for single column
+        if len(subset) == 1:
+            counts.index = MultiIndex.from_arrays([counts.index])
+
+        return counts
 
     def nlargest(self, n, columns, keep="first") -> "DataFrame":
         """
