@@ -75,6 +75,7 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
+    IntervalIndex,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
@@ -872,8 +873,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
-            elif self.index.is_interval():
-                # TODO: will this incorrectly include object Index holding Intervals?
+            elif isinstance(self.index, IntervalIndex):
                 indexer = self.index.get_indexer_for(key)
                 return self.iloc[indexer]
             else:
