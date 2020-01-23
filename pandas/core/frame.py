@@ -6584,6 +6584,11 @@ Wild         185.0
         DataFrame.shift: Shift index by desired number of periods with an
             optional time freq.
 
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+
         Examples
         --------
         Difference with previous row
