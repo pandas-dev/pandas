@@ -32,23 +32,34 @@ class TestRolling(Base):
         c = o.rolling
 
         # valid
+        c(0)
         c(window=2)
         c(window=2, min_periods=1)
         c(window=2, min_periods=1, center=True)
         c(window=2, min_periods=1, center=False)
 
         # GH 13383
-        with pytest.raises(ValueError):
-            c(0)
+
+        msg = "window must be non-negative"
+
+        with pytest.raises(ValueError, match=msg):
             c(-1)
 
         # not valid
         for w in [2.0, "foo", np.array([2])]:
-            with pytest.raises(ValueError):
+            msg = (
+                "window must be an integer|"
+                "passed window foo is not compatible with a datetimelike index"
+            )
+            with pytest.raises(ValueError, match=msg):
                 c(window=w)
-            with pytest.raises(ValueError):
+
+            msg = "min_periods must be an integer"
+            with pytest.raises(ValueError, match=msg):
                 c(window=2, min_periods=w)
-            with pytest.raises(ValueError):
+
+            msg = "center must be a boolean"
+            with pytest.raises(ValueError, match=msg):
                 c(window=2, min_periods=1, center=w)
 
     @td.skip_if_no_scipy
@@ -57,7 +68,10 @@ class TestRolling(Base):
         # GH 13383
         o = getattr(self, which)
         c = o.rolling
-        with pytest.raises(ValueError):
+
+        msg = "window must be > 0"
+
+        with pytest.raises(ValueError, match=msg):
             c(-1, win_type="boxcar")
 
     @pytest.mark.parametrize("window", [timedelta(days=3), pd.Timedelta(days=3)])
@@ -113,7 +127,10 @@ class TestRolling(Base):
     def test_closed(self):
         df = DataFrame({"A": [0, 1, 2, 3, 4]})
         # closed only allowed for datetimelike
-        with pytest.raises(ValueError):
+
+        msg = "closed only implemented for datetimelike and offset based windows"
+
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window=3, closed="neither")
 
     @pytest.mark.parametrize("closed", ["neither", "left"])
@@ -296,7 +313,10 @@ class TestRolling(Base):
         # https://github.com/pandas-dev/pandas/issues/11704
         # Iteration over a Window
         obj = klass([1, 2, 3, 4])
-        with pytest.raises(NotImplementedError):
+
+        msg = "See issue #11704 https://github.com/pandas-dev/pandas/issues/11704"
+
+        with pytest.raises(NotImplementedError, match=msg):
             iter(obj.rolling(2))
 
     def test_rolling_axis_sum(self, axis_frame):

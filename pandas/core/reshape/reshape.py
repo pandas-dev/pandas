@@ -317,6 +317,10 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
+    # GH 19966 Make sure if MultiIndexed index has tuple name, they will be
+    # recognised as a whole
+    if clocs in index.names:
+        clocs = [clocs]
     clocs = [index._get_level_number(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
@@ -358,7 +362,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
             result = data
             for i in range(len(clocs)):
                 val = clocs[i]
-                result = result.unstack(val)
+                result = result.unstack(val, fill_value=fill_value)
                 clocs = [v if i > v else v - 1 for v in clocs]
 
             return result

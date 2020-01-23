@@ -354,10 +354,7 @@ class NAType(C_NAType):
         return NAType._instance
 
     def __repr__(self) -> str:
-        return "NA"
-
-    def __str__(self) -> str:
-        return "NA"
+        return "<NA>"
 
     def __bool__(self):
         raise TypeError("boolean value of NA is ambiguous")
@@ -420,12 +417,12 @@ class NAType(C_NAType):
         if other is C_NA:
             return NA
         elif isinstance(other, (numbers.Number, np.bool_)):
-            if other == 1 or other == -1:
+            if other == 1:
                 return other
             else:
                 return NA
         elif isinstance(other, np.ndarray):
-            return np.where((other == 1) | (other == -1), other, NA)
+            return np.where(other == 1, other, NA)
 
         return NotImplemented
 

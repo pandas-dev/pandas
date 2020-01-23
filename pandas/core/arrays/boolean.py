@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
-    is_integer,
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
@@ -27,10 +26,8 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
-from pandas.core.algorithms import take
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-import pandas.core.common as com
-from pandas.core.indexers import check_bool_array_indexer
+
+from .masked import BaseMaskedArray
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
@@ -197,7 +194,7 @@ def coerce_to_array(values, mask=None, copy: bool = False):
     return values, mask
 
 
-class BooleanArray(ExtensionArray, ExtensionOpsMixin):
+class BooleanArray(BaseMaskedArray):
     """
     Array of boolean (True/False) data with missing values.
 
@@ -247,9 +244,12 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
     >>> pd.array([True, False, None], dtype="boolean")
     <BooleanArray>
-    [True, False, NA]
+    [True, False, <NA>]
     Length: 3, dtype: boolean
     """
+
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = False
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
@@ -294,70 +294,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _from_factorized(cls, values, original: "BooleanArray"):
         return cls._from_sequence(values, dtype=original.dtype)
-
-    def _formatter(self, boxed=False):
-        return str
-
-    @property
-    def _hasna(self) -> bool:
-        # Note: this is expensive right now! The hope is that we can
-        # make this faster by having an optional mask, but not have to change
-        # source code using it..
-        return self._mask.any()
-
-    def __getitem__(self, item):
-        if is_integer(item):
-            if self._mask[item]:
-                return self.dtype.na_value
-            return self._data[item]
-
-        elif com.is_bool_indexer(item):
-            item = check_bool_array_indexer(self, item)
-
-        return type(self)(self._data[item], self._mask[item])
-
-    def _coerce_to_ndarray(self, dtype=None, na_value: "Scalar" = libmissing.NA):
-        """
-        Coerce to an ndarray of object dtype or bool dtype (if force_bool=True).
-
-        Parameters
-        ----------
-        dtype : dtype, default object
-            The numpy dtype to convert to
-        na_value : scalar, optional
-             Scalar missing value indicator to use in numpy array. Defaults
-             to the native missing value indicator of this array (pd.NA).
-        """
-        if dtype is None:
-            dtype = object
-        if is_bool_dtype(dtype):
-            if not self._hasna:
-                return self._data
-            else:
-                raise ValueError(
-                    "cannot convert to bool numpy array in presence of missing values"
-                )
-        data = self._data.astype(dtype)
-        data[self._mask] = na_value
-        return data
-
-    __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
-
-    def __array__(self, dtype=None):
-        """
-        the array interface, return my values
-        We return an object array here to preserve our scalar values
-        """
-        # by default (no dtype specified), return an object array
-        return self._coerce_to_ndarray(dtype=dtype)
-
-    def __arrow_array__(self, type=None):
-        """
-        Convert myself into a pyarrow Array.
-        """
-        import pyarrow as pa
-
-        return pa.array(self._data, mask=self._mask, type=type)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
@@ -406,40 +342,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         else:
             return reconstruct(result)
 
-    def __iter__(self):
-        for i in range(len(self)):
-            if self._mask[i]:
-                yield self.dtype.na_value
-            else:
-                yield self._data[i]
-
-    def take(self, indexer, allow_fill=False, fill_value=None):
-        # we always fill with False internally
-        # to avoid upcasting
-        data_fill_value = False if isna(fill_value) else fill_value
-        result = take(
-            self._data, indexer, fill_value=data_fill_value, allow_fill=allow_fill
-        )
-
-        mask = take(self._mask, indexer, fill_value=True, allow_fill=allow_fill)
-
-        # if we are filling
-        # we only fill where the indexer is null
-        # not existing missing values
-        # TODO(jreback) what if we have a non-na float as a fill value?
-        if allow_fill and notna(fill_value):
-            fill_mask = np.asarray(indexer) == -1
-            result[fill_mask] = fill_value
-            mask = mask ^ fill_mask
-
-        return type(self)(result, mask, copy=False)
-
-    def copy(self):
-        data, mask = self._data, self._mask
-        data = data.copy()
-        mask = mask.copy()
-        return type(self)(data, mask, copy=False)
-
     def __setitem__(self, key, value):
         _is_scalar = is_scalar(value)
         if _is_scalar:
@@ -452,26 +354,6 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
 
         self._data[key] = value
         self._mask[key] = mask
-
-    def __len__(self):
-        return len(self._data)
-
-    @property
-    def nbytes(self):
-        return self._data.nbytes + self._mask.nbytes
-
-    def isna(self):
-        return self._mask
-
-    @property
-    def _na_value(self):
-        return self._dtype.na_value
-
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        data = np.concatenate([x._data for x in to_concat])
-        mask = np.concatenate([x._mask for x in to_concat])
-        return cls(data, mask)
 
     def astype(self, dtype, copy=True):
         """
@@ -525,54 +407,8 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        data = self._coerce_to_ndarray(na_value=na_value)
+        data = self.to_numpy(na_value=na_value)
         return astype_nansafe(data, dtype, copy=False)
-
-    def value_counts(self, dropna=True):
-        """
-        Returns a Series containing counts of each category.
-
-        Every category will have an entry, even those with a count of 0.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaN.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-
-        """
-
-        from pandas import Index, Series
-
-        # compute counts on the data with no nans
-        data = self._data[~self._mask]
-        value_counts = Index(data).value_counts()
-        array = value_counts.values
-
-        # TODO(extension)
-        # if we have allow Index to hold an ExtensionArray
-        # this is easier
-        index = value_counts.index.values.astype(bool).astype(object)
-
-        # if we want nans, count the mask
-        if not dropna:
-
-            # TODO(extension)
-            # appending to an Index *always* infers
-            # w/o passing the dtype
-            array = np.append(array, [self._mask.sum()])
-            index = Index(
-                np.concatenate([index, np.array([np.nan], dtype=object)]), dtype=object
-            )
-
-        return Series(array, index=index)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -645,7 +481,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         >>> pd.array([True, False, pd.NA]).any(skipna=False)
         True
         >>> pd.array([False, False, pd.NA]).any(skipna=False)
-        NA
+        <NA>
         """
         kwargs.pop("axis", None)
         nv.validate_any((), kwargs)
@@ -710,7 +546,7 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         required (whether ``pd.NA`` is True or False influences the result):
 
         >>> pd.array([True, True, pd.NA]).all(skipna=False)
-        NA
+        <NA>
         >>> pd.array([True, False, pd.NA]).all(skipna=False)
         False
         """
@@ -834,12 +670,14 @@ class BooleanArray(ExtensionArray, ExtensionOpsMixin):
         mask = self._mask
 
         # coerce to a nan-aware float if needed
-        if mask.any():
-            data = self._data.astype("float64")
-            data[mask] = np.nan
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
 
         # if we have numeric op that would result in an int, coerce to int if possible
         if name in ["sum", "prod"] and notna(result):

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
+from pandas import DataFrame, Period, Series, Timestamp, date_range, to_datetime
 import pandas._testing as tm
 
 
@@ -79,6 +79,12 @@ class TestFrameAsof:
             index=to_datetime(["1989-12-31"]), columns=["A", "B"], dtype="float64"
         )
         tm.assert_frame_equal(result, expected)
+
+        # Check that we handle PeriodIndex correctly, dont end up with
+        #  period.ordinal for series name
+        df = df.to_period("D")
+        result = df.asof("1989-12-31")
+        assert isinstance(result.name, Period)
 
     def test_all_nans(self, date_range_frame):
         # GH 15713

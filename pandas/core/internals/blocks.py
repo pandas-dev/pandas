@@ -192,13 +192,19 @@ class Block(PandasObject):
 
         return False
 
-    def external_values(self, dtype=None):
-        """ return an outside world format, currently just the ndarray """
+    def external_values(self):
+        """
+        The array that Series.values returns (public attribute).
+        This has some historical constraints, and is overridden in block
+        subclasses to return the correct array (e.g. period returns
+        object ndarray and datetimetz a datetime64[ns] ndarray instead of
+        proper extension array).
+        """
         return self.values
 
-    def internal_values(self, dtype=None):
-        """ return an internal format, currently just the ndarray
-        this should be the pure internal API format
+    def internal_values(self):
+        """
+        The array that Series._values returns (internal values).
         """
         return self.values
 
@@ -362,13 +368,17 @@ class Block(PandasObject):
         self.values = np.delete(self.values, loc, 0)
         self.mgr_locs = self.mgr_locs.delete(loc)
 
-    def apply(self, func, **kwargs):
+    def apply(self, func, **kwargs) -> List["Block"]:
         """ apply the function to my values; return a block if we are not
         one
         """
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
 
+        return self._split_op_result(result)
+
+    def _split_op_result(self, result) -> List["Block"]:
+        # See also: split_and_operate
         if is_extension_array_dtype(result) and result.ndim > 1:
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
@@ -382,7 +392,7 @@ class Block(PandasObject):
         if not isinstance(result, Block):
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
-        return result
+        return [result]
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         """ fillna on the block with the value. If we fail, then convert to
@@ -1777,12 +1787,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values[slicer]
         mask = isna(values)
 
-        try:
-            values[mask] = na_rep
-        except Exception:
-            # eg SparseArray does not support setitem, needs to be converted to ndarray
-            return super().to_native_types(slicer, na_rep, quoting, **kwargs)
-        values = values.astype(str)
+        values = np.asarray(values.astype(object))
+        values[mask] = na_rep
 
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
@@ -1966,7 +1972,7 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     Series[T].values is an ndarray of objects.
     """
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return self.values.astype(object)
 
 
@@ -2482,7 +2488,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         )
         return rvalues
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
 
 
@@ -2988,7 +2994,6 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 
 def _extend_blocks(result, blocks=None):
     """ return a new extended blocks, given the result """
-    from pandas.core.internals import BlockManager
 
     if blocks is None:
         blocks = []
@@ -2998,9 +3003,8 @@ def _extend_blocks(result, blocks=None):
                 blocks.extend(r)
             else:
                 blocks.append(r)
-    elif isinstance(result, BlockManager):
-        blocks.extend(result.blocks)
     else:
+        assert isinstance(result, Block), type(result)
         blocks.append(result)
     return blocks
 

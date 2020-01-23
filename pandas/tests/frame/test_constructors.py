@@ -26,7 +26,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.arrays import IntervalArray, PeriodArray
+from pandas.arrays import IntervalArray, PeriodArray, SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
@@ -411,6 +411,12 @@ class TestDataFrameConstructors:
         frame = DataFrame(data=d)
         expected = DataFrame(data=d, columns=list("ba"))
         tm.assert_frame_equal(frame, expected)
+
+    def test_constructor_dict_nan_key_and_columns(self):
+        # GH 16894
+        result = pd.DataFrame({np.nan: [1, 2], 2: [2, 3]}, columns=[np.nan, 2])
+        expected = pd.DataFrame([[1, 2], [2, 3]], columns=[np.nan, 2])
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_multi_index(self):
         # GH 4078
@@ -1854,9 +1860,9 @@ class TestDataFrameConstructors:
             # No NaN found -> error
             if len(indexer) == 0:
                 msg = (
-                    "cannot do label indexing on"
-                    r" <class 'pandas\.core\.indexes\.range\.RangeIndex'>"
-                    r" with these indexers \[nan\] of <class 'float'>"
+                    "cannot do label indexing on "
+                    r"<class 'pandas\.core\.indexes\.range\.RangeIndex'> "
+                    r"with these indexers \[nan\] of <class 'float'>"
                 )
                 with pytest.raises(TypeError, match=msg):
                     df.loc[:, np.nan]
@@ -2414,7 +2420,7 @@ class TestDataFrameConstructors:
         "extension_arr",
         [
             Categorical(list("aabbc")),
-            pd.arrays.SparseArray([1, np.nan, np.nan, np.nan]),
+            SparseArray([1, np.nan, np.nan, np.nan]),
             IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
         ],
@@ -2431,6 +2437,24 @@ class TestDataFrameConstructors:
         tup = v, v
         result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
         expected = DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))
+        tm.assert_frame_equal(result, expected)
+
+    def test_construct_with_two_categoricalindex_series(self):
+        # GH 14600
+        s1 = pd.Series(
+            [39, 6, 4], index=pd.CategoricalIndex(["female", "male", "unknown"])
+        )
+        s2 = pd.Series(
+            [2, 152, 2, 242, 150],
+            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
+        )
+        result = pd.DataFrame([s1, s2])
+        expected = pd.DataFrame(
+            np.array(
+                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
+            ),
+            columns=["f", "female", "m", "male", "unknown"],
+        )
         tm.assert_frame_equal(result, expected)
 
 

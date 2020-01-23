@@ -34,12 +34,13 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodArray, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
+from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -47,8 +48,6 @@ from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
-
-from .base import ExtensionArray, ExtensionOpsMixin
 
 
 def _datetimelike_array_cmp(cls, op):
@@ -368,16 +367,19 @@ default 'raise'
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
-        values = _ensure_datetimelike_to_i8(self)
+        if is_datetime64tz_dtype(self):
+            # operate on naive timestamps, then convert back to aware
+            naive = self.tz_localize(None)
+            result = naive._round(freq, mode, ambiguous, nonexistent)
+            aware = result.tz_localize(
+                self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+            )
+            return aware
+
+        values = self.view("i8")
         result = round_nsint64(values, mode, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
-
-        dtype = self.dtype
-        if is_datetime64tz_dtype(self):
-            dtype = None
-        return self._ensure_localized(
-            self._simple_new(result, dtype=dtype), ambiguous, nonexistent
-        )
+        return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous="raise", nonexistent="raise"):
@@ -479,7 +481,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def nbytes(self):
         return self._data.nbytes
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
         if is_object_dtype(dtype):
             return np.array(list(self), dtype=object)
@@ -541,8 +543,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if result.ndim > 1:
             # To support MPL which performs slicing with 2 dim
             # even though it only has 1 dim by definition
-            if is_period:
-                return self._simple_new(result, dtype=self.dtype, freq=freq)
             return result
 
         return self._simple_new(result, dtype=self.dtype, freq=freq)
@@ -743,17 +743,36 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             Array of insertion points with the same shape as `value`.
         """
         if isinstance(value, str):
-            value = self._scalar_from_string(value)
+            try:
+                value = self._scalar_from_string(value)
+            except ValueError:
+                raise TypeError("searchsorted requires compatible dtype or scalar")
 
-        if not (isinstance(value, (self._scalar_type, type(self))) or isna(value)):
-            raise ValueError(f"Unexpected type for 'value': {type(value)}")
+        elif is_valid_nat_for_dtype(value, self.dtype):
+            value = NaT
 
-        self._check_compatible_with(value)
+        elif isinstance(value, self._recognized_scalars):
+            value = self._scalar_type(value)
+
+        elif isinstance(value, np.ndarray):
+            if not type(self)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            value = type(self)(value)
+            self._check_compatible_with(value)
+
+        if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
+            raise TypeError(f"Unexpected type for 'value': {type(value)}")
+
         if isinstance(value, type(self)):
+            self._check_compatible_with(value)
             value = value.asi8
         else:
             value = self._unbox_scalar(value)
 
+        # TODO: Use datetime64 semantics for sorting, xref GH#29844
         return self.asi8.searchsorted(value, side=side, sorter=sorter)
 
     def repeat(self, repeats, *args, **kwargs):
@@ -920,7 +939,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     @property
     def freqstr(self):
         """
-        Return the frequency object as a string if its set, otherwise None
+        Return the frequency object as a string if its set, otherwise None.
         """
         if self.freq is None:
             return None
@@ -1412,45 +1431,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return self
 
     # --------------------------------------------------------------
-    # Comparison Methods
-
-    def _ensure_localized(
-        self, arg, ambiguous="raise", nonexistent="raise", from_utc=False
-    ):
-        """
-        Ensure that we are re-localized.
-
-        This is for compat as we can then call this on all datetimelike
-        arrays generally (ignored for Period/Timedelta)
-
-        Parameters
-        ----------
-        arg : Union[DatetimeLikeArray, DatetimeIndexOpsMixin, ndarray]
-        ambiguous : str, bool, or bool-ndarray, default 'raise'
-        nonexistent : str, default 'raise'
-        from_utc : bool, default False
-            If True, localize the i8 ndarray to UTC first before converting to
-            the appropriate tz. If False, localize directly to the tz.
-
-        Returns
-        -------
-        localized array
-        """
-
-        # reconvert to local tz
-        tz = getattr(self, "tz", None)
-        if tz is not None:
-            if not isinstance(arg, type(self)):
-                arg = self._simple_new(arg)
-            if from_utc:
-                arg = arg.tz_localize("UTC").tz_convert(self.tz)
-            else:
-                arg = arg.tz_localize(
-                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
-                )
-        return arg
-
-    # --------------------------------------------------------------
     # Reductions
 
     def _reduce(self, name, axis=0, skipna=True, **kwargs):
@@ -1687,38 +1667,3 @@ def maybe_infer_freq(freq):
             freq_infer = True
             freq = None
     return freq, freq_infer
-
-
-def _ensure_datetimelike_to_i8(other, to_utc=False):
-    """
-    Helper for coercing an input scalar or array to i8.
-
-    Parameters
-    ----------
-    other : 1d array
-    to_utc : bool, default False
-        If True, convert the values to UTC before extracting the i8 values
-        If False, extract the i8 values directly.
-
-    Returns
-    -------
-    i8 1d array
-    """
-    from pandas import Index
-
-    if lib.is_scalar(other) and isna(other):
-        return iNaT
-    elif isinstance(other, (ABCPeriodArray, ABCIndexClass, DatetimeLikeArrayMixin)):
-        # convert tz if needed
-        if getattr(other, "tz", None) is not None:
-            if to_utc:
-                other = other.tz_convert("UTC")
-            else:
-                other = other.tz_localize(None)
-    else:
-        try:
-            return np.array(other, copy=False).view("i8")
-        except TypeError:
-            # period array cannot be coerced to int
-            other = Index(other)
-    return other.asi8

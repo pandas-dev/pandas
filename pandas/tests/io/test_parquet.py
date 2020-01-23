@@ -443,11 +443,12 @@ class TestParquetPyArrow(Base):
         self.check_error_on_write(df, pa, ValueError)
 
     def test_unsupported(self, pa):
-        # period
-        df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-        # pyarrow 0.11 raises ArrowTypeError
-        # older pyarrows raise ArrowInvalid
-        self.check_error_on_write(df, pa, Exception)
+        if LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"):
+            # period - will be supported using an extension type with pyarrow 1.0
+            df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
+            # pyarrow 0.11 raises ArrowTypeError
+            # older pyarrows raise ArrowInvalid
+            self.check_error_on_write(df, pa, Exception)
 
         # timedelta
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
@@ -549,6 +550,19 @@ class TestParquetPyArrow(Base):
             # if missing values in integer, currently de-serialized as float
             expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
+
+    @td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+    def test_additional_extension_types(self, pa):
+        # test additional ExtensionArrays that are supported through the
+        # __arrow_array__ protocol + by defining a custom ExtensionType
+        df = pd.DataFrame(
+            {
+                # Arrow does not yet support struct in writing to Parquet (ARROW-1644)
+                # "c": pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2), (3, 4)]),
+                "d": pd.period_range("2012-01-01", periods=3, freq="D"),
+            }
+        )
+        check_round_trip(df, pa)
 
 
 class TestParquetFastParquet(Base):
