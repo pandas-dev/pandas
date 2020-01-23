@@ -6,7 +6,7 @@ import warnings
 
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @deprecate_nonkeyword_arguments(version="1.1", allowed_args=["a", "b"])
