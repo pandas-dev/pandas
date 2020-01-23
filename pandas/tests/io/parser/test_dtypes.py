@@ -571,10 +571,6 @@ def test_boolean_dtype(all_parsers):
         ]
     )
 
-    assert all(s in data for s in ["True", "TRUE", "true"])
-    assert all(s in data for s in ["False", "FALSE", "false"])
-    assert all(s in data for s in ["NaN", "nan", "NA", "null", "NULL"])
-
     result = parser.read_csv(StringIO(data), dtype="boolean")
     expected = pd.DataFrame(
         {
