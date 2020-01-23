@@ -346,7 +346,7 @@ class JSONTableWriter(FrameWriter):
 
 @deprecate_kwarg(old_arg_name="numpy", new_arg_name=None)
 @deprecate_nonkeyword_arguments(
-    version="1.4", allowed_args=["path_or_buf"], stacklevel=3
+    version="2.0", allowed_args=["path_or_buf"], stacklevel=3
 )
 def read_json(
     path_or_buf=None,
