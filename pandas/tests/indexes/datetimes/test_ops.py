@@ -18,7 +18,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.base.utils import check_ops_properties_valid
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
 
@@ -30,7 +29,7 @@ class TestDatetimeIndexOps:
     def test_valid_ops_properties(self, op, index_or_series_obj):
         obj = index_or_series_obj
         if isinstance(obj, DatetimeIndex):
-            check_ops_properties_valid(obj, op)
+            tm.check_ops_properties_valid(obj, op)
 
     @pytest.mark.parametrize("op", DatetimeIndex._datetimelike_ops)
     def test_invalid_ops_properties(self, op, index_or_series_obj):

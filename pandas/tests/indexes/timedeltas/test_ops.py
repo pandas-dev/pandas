@@ -8,7 +8,6 @@ from pandas.core.dtypes.generic import ABCDateOffset
 import pandas as pd
 from pandas import DatetimeIndex, PeriodIndex, Series, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
-from pandas.tests.base.utils import check_ops_properties_valid
 
 from pandas.tseries.offsets import Day, Hour
 
@@ -18,7 +17,7 @@ class TestTimedeltaIndexOps:
     def test_valid_ops_properties(self, op, index_or_series_obj):
         obj = index_or_series_obj
         if isinstance(obj, TimedeltaIndex):
-            check_ops_properties_valid(obj, op)
+            tm.check_ops_properties_valid(obj, op)
 
     @pytest.mark.parametrize("op", TimedeltaIndex._datetimelike_ops)
     def test_invalid_ops_properties(self, op, index_or_series_obj):

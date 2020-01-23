@@ -5,7 +5,6 @@ import pandas as pd
 from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series, TimedeltaIndex
 import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
-from pandas.tests.base.utils import check_ops_properties_valid
 
 
 class TestPeriodIndexOps:
@@ -13,7 +12,7 @@ class TestPeriodIndexOps:
     def test_valid_ops_properties(self, op, index_or_series_obj):
         obj = index_or_series_obj
         if isinstance(obj, PeriodIndex):
-            check_ops_properties_valid(obj, op)
+            tm.check_ops_properties_valid(obj, op)
 
     @pytest.mark.parametrize("op", PeriodArray._datetimelike_ops)
     def test_invalid_ops_properties(self, op, index_or_series_obj):

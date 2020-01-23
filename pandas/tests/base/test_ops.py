@@ -30,7 +30,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.tests.base.utils import allow_na_ops
 
 
 class Ops:
@@ -261,7 +260,7 @@ class TestIndexOps(Ops):
             klass = type(o)
             values = o._ndarray_values
 
-            if not allow_na_ops(o):
+            if not tm.allow_na_ops(o):
                 continue
 
             # special assign to the numpy array
@@ -742,7 +741,7 @@ class TestIndexOps(Ops):
                 o = orig.copy()
                 klass = type(o)
 
-                if not allow_na_ops(o):
+                if not tm.allow_na_ops(o):
                     continue
 
                 if needs_i8_conversion(o):
