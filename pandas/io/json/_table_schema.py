@@ -18,9 +18,9 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import DataFrame
-from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
 
 loads = json.loads

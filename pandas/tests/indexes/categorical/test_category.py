@@ -9,8 +9,8 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, IntervalIndex
+import pandas._testing as tm
 from pandas.core.indexes.api import CategoricalIndex, Index
-import pandas.util.testing as tm
 
 from ..common import Base
 
@@ -298,8 +298,8 @@ class TestCategoricalIndex(Base):
 
         # invalid
         msg = (
-            "cannot insert an item into a CategoricalIndex that is not"
-            " already an existing category"
+            "cannot insert an item into a CategoricalIndex that is not "
+            "already an existing category"
         )
         with pytest.raises(TypeError, match=msg):
             ci.insert(0, "d")
@@ -528,8 +528,8 @@ class TestCategoricalIndex(Base):
             tm.assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
 
         msg = (
-            "method='pad' and method='backfill' not implemented yet for"
-            " CategoricalIndex"
+            "method='pad' and method='backfill' not implemented yet for "
+            "CategoricalIndex"
         )
         with pytest.raises(NotImplementedError, match=msg):
             idx2.get_indexer(idx1, method="pad")
@@ -673,8 +673,8 @@ class TestCategoricalIndex(Base):
             ci1 == Index(["a", "b", "c"])
 
         msg = (
-            "categorical index comparisons must have the same categories"
-            " and ordered attributes"
+            "categorical index comparisons must have the same categories "
+            "and ordered attributes"
             "|"
             "Categoricals can only be compared if 'categories' are the same. "
             "Categories are different lengths"
@@ -975,3 +975,9 @@ class TestCategoricalIndex(Base):
             ci.values._codes = ci.values._codes.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
+
+    def test_getitem_2d_deprecated(self):
+        # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
+        idx = self.create_index()
+        with pytest.raises(ValueError, match="cannot mask with array containing NA"):
+            idx[:, None]

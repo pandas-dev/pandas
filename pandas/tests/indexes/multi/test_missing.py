@@ -5,8 +5,8 @@ from pandas._libs.tslib import iNaT
 
 import pandas as pd
 from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 def test_fillna(idx):

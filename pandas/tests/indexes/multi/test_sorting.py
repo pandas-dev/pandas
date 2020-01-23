@@ -5,7 +5,7 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 import pandas as pd
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_sortlevel(idx):
@@ -120,7 +120,7 @@ def test_unsortedindex():
 
 
 def test_unsortedindex_doc_examples():
-    # http://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
+    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
     dfm = DataFrame(
         {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
     )

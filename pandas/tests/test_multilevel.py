@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -1359,6 +1359,30 @@ Thur,Lunch,Yes,51.51,17"""
         )
         tm.assert_frame_equal(expected, result)
 
+    def test_drop_multiindex_other_level_nan(self):
+        # GH 12754
+        df = (
+            DataFrame(
+                {
+                    "A": ["one", "one", "two", "two"],
+                    "B": [np.nan, 0.0, 1.0, 2.0],
+                    "C": ["a", "b", "c", "c"],
+                    "D": [1, 2, 3, 4],
+                }
+            )
+            .set_index(["A", "B", "C"])
+            .sort_index()
+        )
+        result = df.drop("c", level="C")
+        expected = DataFrame(
+            [2, 1],
+            columns=["D"],
+            index=pd.MultiIndex.from_tuples(
+                [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_drop_nonunique(self):
         df = DataFrame(
             [
@@ -2123,6 +2147,40 @@ class TestSorted(Base):
             sorted_after.drop([("foo", "three")], axis=1),
         )
 
+    def test_sort_index_categorical_multiindex(self):
+        # GH 15058
+        df = DataFrame(
+            {
+                "a": range(6),
+                "l1": pd.Categorical(
+                    ["a", "a", "b", "b", "c", "c"],
+                    categories=["c", "a", "b"],
+                    ordered=True,
+                ),
+                "l2": [0, 1, 0, 1, 0, 1],
+            }
+        )
+        result = df.set_index(["l1", "l2"]).sort_index()
+        expected = DataFrame(
+            [4, 5, 0, 1, 2, 3],
+            columns=["a"],
+            index=MultiIndex(
+                levels=[
+                    pd.CategoricalIndex(
+                        ["c", "a", "b"],
+                        categories=["c", "a", "b"],
+                        ordered=True,
+                        name="l1",
+                        dtype="category",
+                    ),
+                    [0, 1],
+                ],
+                codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                names=["l1", "l2"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_is_lexsorted(self):
         levels = [[0, 1], [0, 1, 2]]
 
@@ -2285,6 +2343,14 @@ class TestSorted(Base):
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_non_existent_label_multiindex(self):
+        # GH 12261
+        df = DataFrame(0, columns=[], index=pd.MultiIndex.from_product([[], []]))
+        df.loc["b", "2"] = 1
+        df.loc["a", "3"] = 1
+        result = df.sort_index().index.is_monotonic
+        assert result is True
 
     def test_sort_index_reorder_on_ops(self):
         # 15687

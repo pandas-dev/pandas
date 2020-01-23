@@ -5,23 +5,25 @@ from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
+import pandas._testing as tm
 from pandas.tests.window.common import ConsistencyBase
-import pandas.util.testing as tm
 
 
 class TestExpandingMomentsConsistency(ConsistencyBase):
     def setup_method(self, method):
         self._create_data()
 
-    def test_expanding_apply_args_kwargs(self, raw):
+    def test_expanding_apply_args_kwargs(self, engine_and_raw):
         def mean_w_arg(x, const):
             return np.mean(x) + const
 
+        engine, raw = engine_and_raw
+
         df = DataFrame(np.random.rand(20, 3))
 
-        expected = df.expanding().apply(np.mean, raw=raw) + 20.0
+        expected = df.expanding().apply(np.mean, engine=engine, raw=raw) + 20.0
 
-        result = df.expanding().apply(mean_w_arg, raw=raw, args=(20,))
+        result = df.expanding().apply(mean_w_arg, engine=engine, raw=raw, args=(20,))
         tm.assert_frame_equal(result, expected)
 
         result = df.expanding().apply(mean_w_arg, raw=raw, kwargs={"const": 20})
@@ -173,41 +175,56 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         tm.assert_frame_equal(result3, expected)
         tm.assert_frame_equal(result4, expected)
 
+    @pytest.mark.parametrize("has_min_periods", [True, False])
     @pytest.mark.parametrize(
         "func,static_comp",
         [("sum", np.sum), ("mean", np.mean), ("max", np.max), ("min", np.min)],
         ids=["sum", "mean", "max", "min"],
     )
-    def test_expanding_func(self, func, static_comp):
+    def test_expanding_func(self, func, static_comp, has_min_periods):
         def expanding_func(x, min_periods=1, center=False, axis=0):
             exp = x.expanding(min_periods=min_periods, center=center, axis=axis)
             return getattr(exp, func)()
 
         self._check_expanding(expanding_func, static_comp, preserve_nan=False)
+        self._check_expanding_has_min_periods(
+            expanding_func, static_comp, has_min_periods
+        )
 
-    def test_expanding_apply(self, raw):
+    @pytest.mark.parametrize("has_min_periods", [True, False])
+    def test_expanding_apply(self, engine_and_raw, has_min_periods):
+
+        engine, raw = engine_and_raw
+
         def expanding_mean(x, min_periods=1):
 
             exp = x.expanding(min_periods=min_periods)
-            result = exp.apply(lambda x: x.mean(), raw=raw)
+            result = exp.apply(lambda x: x.mean(), raw=raw, engine=engine)
             return result
 
         # TODO(jreback), needed to add preserve_nan=False
         # here to make this pass
         self._check_expanding(expanding_mean, np.mean, preserve_nan=False)
+        self._check_expanding_has_min_periods(expanding_mean, np.mean, has_min_periods)
 
+    def test_expanding_apply_empty_series(self, engine_and_raw):
+        engine, raw = engine_and_raw
         ser = Series([], dtype=np.float64)
-        tm.assert_series_equal(ser, ser.expanding().apply(lambda x: x.mean(), raw=raw))
+        tm.assert_series_equal(
+            ser, ser.expanding().apply(lambda x: x.mean(), raw=raw, engine=engine)
+        )
 
+    def test_expanding_apply_min_periods_0(self, engine_and_raw):
         # GH 8080
+        engine, raw = engine_and_raw
         s = Series([None, None, None])
-        result = s.expanding(min_periods=0).apply(lambda x: len(x), raw=raw)
+        result = s.expanding(min_periods=0).apply(
+            lambda x: len(x), raw=raw, engine=engine
+        )
         expected = Series([1.0, 2.0, 3.0])
         tm.assert_series_equal(result, expected)
 
-    def _check_expanding(
-        self, func, static_comp, has_min_periods=True, preserve_nan=True
-    ):
+    def _check_expanding(self, func, static_comp, preserve_nan=True):
 
         series_result = func(self.series)
         assert isinstance(series_result, Series)
@@ -220,6 +237,7 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         if preserve_nan:
             assert result.iloc[self._nan_locs].isna().all()
 
+    def _check_expanding_has_min_periods(self, func, static_comp, has_min_periods):
         ser = Series(randn(50))
 
         if has_min_periods:
@@ -245,17 +263,9 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             result = func(ser)
             tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
-    def test_moment_functions_zero_length(self):
-        # GH 8056
-        s = Series(dtype=np.float64)
-        s_expected = s
-        df1 = DataFrame()
-        df1_expected = df1
-        df2 = DataFrame(columns=["a"])
-        df2["a"] = df2["a"].astype("float64")
-        df2_expected = df2
-
-        functions = [
+    @pytest.mark.parametrize(
+        "f",
+        [
             lambda x: x.expanding().count(),
             lambda x: x.expanding(min_periods=5).cov(x, pairwise=False),
             lambda x: x.expanding(min_periods=5).corr(x, pairwise=False),
@@ -271,23 +281,35 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             lambda x: x.expanding(min_periods=5).median(),
             lambda x: x.expanding(min_periods=5).apply(sum, raw=False),
             lambda x: x.expanding(min_periods=5).apply(sum, raw=True),
-        ]
-        for f in functions:
-            try:
-                s_result = f(s)
-                tm.assert_series_equal(s_result, s_expected)
+        ],
+    )
+    def test_moment_functions_zero_length(self, f):
+        # GH 8056
+        s = Series(dtype=np.float64)
+        s_expected = s
+        df1 = DataFrame()
+        df1_expected = df1
+        df2 = DataFrame(columns=["a"])
+        df2["a"] = df2["a"].astype("float64")
+        df2_expected = df2
 
-                df1_result = f(df1)
-                tm.assert_frame_equal(df1_result, df1_expected)
+        s_result = f(s)
+        tm.assert_series_equal(s_result, s_expected)
 
-                df2_result = f(df2)
-                tm.assert_frame_equal(df2_result, df2_expected)
-            except (ImportError):
+        df1_result = f(df1)
+        tm.assert_frame_equal(df1_result, df1_expected)
 
-                # scipy needed for rolling_window
-                continue
+        df2_result = f(df2)
+        tm.assert_frame_equal(df2_result, df2_expected)
 
-    def test_moment_functions_zero_length_pairwise(self):
+    @pytest.mark.parametrize(
+        "f",
+        [
+            lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
+            lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
+        ],
+    )
+    def test_moment_functions_zero_length_pairwise(self, f):
 
         df1 = DataFrame()
         df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
@@ -303,16 +325,12 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             columns=Index(["a"], name="foo"),
             dtype="float64",
         )
-        functions = [
-            lambda x: (x.expanding(min_periods=5).cov(x, pairwise=True)),
-            lambda x: (x.expanding(min_periods=5).corr(x, pairwise=True)),
-        ]
-        for f in functions:
-            df1_result = f(df1)
-            tm.assert_frame_equal(df1_result, df1_expected)
 
-            df2_result = f(df2)
-            tm.assert_frame_equal(df2_result, df2_expected)
+        df1_result = f(df1)
+        tm.assert_frame_equal(df1_result, df1_expected)
+
+        df2_result = f(df2)
+        tm.assert_frame_equal(df2_result, df2_expected)
 
     @pytest.mark.slow
     @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
@@ -328,12 +346,31 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
             )
 
             # test consistency between different expanding_* moments
+            self._test_moments_consistency_mock_mean(
+                mean=lambda x: x.expanding(min_periods=min_periods).mean(),
+                mock_mean=lambda x: x.expanding(min_periods=min_periods).sum()
+                / x.expanding().count(),
+            )
+
+            self._test_moments_consistency_is_constant(
+                min_periods=min_periods,
+                count=lambda x: x.expanding().count(),
+                mean=lambda x: x.expanding(min_periods=min_periods).mean(),
+                corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
+            )
+
+            self._test_moments_consistency_var_debiasing_factors(
+                var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
+                var_biased=lambda x: x.expanding(min_periods=min_periods).var(ddof=0),
+                var_debiasing_factors=lambda x: (
+                    x.expanding().count()
+                    / (x.expanding().count() - 1.0).replace(0.0, np.nan)
+                ),
+            )
             self._test_moments_consistency(
                 min_periods=min_periods,
                 count=lambda x: x.expanding().count(),
                 mean=lambda x: x.expanding(min_periods=min_periods).mean(),
-                mock_mean=lambda x: x.expanding(min_periods=min_periods).sum()
-                / x.expanding().count(),
                 corr=lambda x, y: x.expanding(min_periods=min_periods).corr(y),
                 var_unbiased=lambda x: x.expanding(min_periods=min_periods).var(),
                 std_unbiased=lambda x: x.expanding(min_periods=min_periods).std(),
@@ -342,10 +379,6 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
                 std_biased=lambda x: x.expanding(min_periods=min_periods).std(ddof=0),
                 cov_biased=lambda x, y: x.expanding(min_periods=min_periods).cov(
                     y, ddof=0
-                ),
-                var_debiasing_factors=lambda x: (
-                    x.expanding().count()
-                    / (x.expanding().count() - 1.0).replace(0.0, np.nan)
                 ),
             )
 

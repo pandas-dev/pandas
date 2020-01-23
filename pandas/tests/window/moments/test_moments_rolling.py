@@ -10,9 +10,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna, notna
+import pandas._testing as tm
 from pandas.core.window.common import _flex_binary_moment
 from pandas.tests.window.common import Base, ConsistencyBase
-import pandas.util.testing as tm
 
 import pandas.tseries.offsets as offsets
 
@@ -945,9 +945,7 @@ class TestRollingMomentsConsistency(ConsistencyBase):
             )
 
             # test consistency between different rolling_* moments
-            self._test_moments_consistency(
-                min_periods=min_periods,
-                count=lambda x: (x.rolling(window=window, center=center).count()),
+            self._test_moments_consistency_mock_mean(
                 mean=lambda x: (
                     x.rolling(
                         window=window, min_periods=min_periods, center=center
@@ -961,6 +959,53 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                             window=window, min_periods=min_periods, center=center
                         ).count()
                     )
+                ),
+            )
+
+            self._test_moments_consistency_is_constant(
+                min_periods=min_periods,
+                count=lambda x: (x.rolling(window=window, center=center).count()),
+                mean=lambda x: (
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).mean()
+                ),
+                corr=lambda x, y: (
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).corr(y)
+                ),
+            )
+
+            self._test_moments_consistency_var_debiasing_factors(
+                var_unbiased=lambda x: (
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).var()
+                ),
+                var_biased=lambda x: (
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).var(ddof=0)
+                ),
+                var_debiasing_factors=lambda x: (
+                    x.rolling(window=window, center=center)
+                    .count()
+                    .divide(
+                        (x.rolling(window=window, center=center).count() - 1.0).replace(
+                            0.0, np.nan
+                        )
+                    )
+                ),
+            )
+
+            self._test_moments_consistency(
+                min_periods=min_periods,
+                count=lambda x: (x.rolling(window=window, center=center).count()),
+                mean=lambda x: (
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).mean()
                 ),
                 corr=lambda x, y: (
                     x.rolling(
@@ -996,15 +1041,6 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                     x.rolling(
                         window=window, min_periods=min_periods, center=center
                     ).cov(y, ddof=0)
-                ),
-                var_debiasing_factors=lambda x: (
-                    x.rolling(window=window, center=center)
-                    .count()
-                    .divide(
-                        (x.rolling(window=window, center=center).count() - 1.0).replace(
-                            0.0, np.nan
-                        )
-                    )
                 ),
             )
 
@@ -1092,8 +1128,8 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # GH3155
         # don't blow the stack
         msg = (
-            "arguments to moment function must be of type"
-            " np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type "
+            "np.ndarray/Series/DataFrame"
         )
         with pytest.raises(TypeError, match=msg):
             _flex_binary_moment(5, 6, None)

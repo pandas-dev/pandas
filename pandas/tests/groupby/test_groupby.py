@@ -9,9 +9,9 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 def test_repr():
@@ -785,7 +785,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = r"unsupported operand type\(s\) for \+: 'Timestamp'"
+    msg = "reduction operation 'sum' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -935,7 +935,7 @@ def test_mutate_groups():
             + ["c"] * 2
             + ["d"] * 2
             + ["e"] * 2,
-            "cat3": ["g{}".format(x) for x in range(1, 15)],
+            "cat3": [f"g{x}" for x in range(1, 15)],
             "val": np.random.randint(100, size=14),
         }
     )
@@ -1729,9 +1729,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
         {
-            "eventDate": pd.date_range(
-                pd.datetime.today(), periods=20, freq="M"
-            ).tolist(),
+            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )
@@ -1954,6 +1952,13 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
+def test_ffill_missing_arguments():
+    # GH 14955
+    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
+    with pytest.raises(ValueError, match="Must specify a fill"):
+        df.groupby("b").fillna()
+
+
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -2024,4 +2029,11 @@ def test_groupby_crash_on_nunique(axis):
     if not axis_number:
         expected = expected.T
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_list_level():
+    # GH 9790
+    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
+    result = expected.groupby(level=[0]).mean()
     tm.assert_frame_equal(result, expected)

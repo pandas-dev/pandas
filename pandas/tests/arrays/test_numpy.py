@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.arrays import PandasArray
 from pandas.core.arrays.numpy_ import PandasDtype
-import pandas.util.testing as tm
 
 
 @pytest.fixture(

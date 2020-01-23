@@ -2,11 +2,12 @@
 Module for formatting output data in HTML.
 """
 
-from collections import OrderedDict
 from textwrap import dedent
 from typing import IO, Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
+
+from pandas._libs import lib
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -138,10 +139,9 @@ class HTMLFormatter(TableFormatter):
         else:
             start_tag = "<{kind}>".format(kind=kind)
 
-        esc: Union[OrderedDict[str, str], Dict]
         if self.escape:
             # escape & first to prevent double escaping of &
-            esc = OrderedDict([("&", r"&amp;"), ("<", r"&lt;"), (">", r"&gt;")])
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
         else:
             esc = {}
 
@@ -216,8 +216,8 @@ class HTMLFormatter(TableFormatter):
                 self.classes = self.classes.split()
             if not isinstance(self.classes, (list, tuple)):
                 raise TypeError(
-                    "classes must be a string, list, or tuple, "
-                    "not {typ}".format(typ=type(self.classes))
+                    "classes must be a string, list, "
+                    f"or tuple, not {type(self.classes)}"
                 )
             _classes.extend(self.classes)
 
@@ -247,7 +247,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = object()
+                sentinel = lib.no_default
             else:
                 sentinel = False
             levels = self.columns.format(sparsify=sentinel, adjoin=False, names=False)
@@ -453,7 +453,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = object()
+            sentinel = lib.no_default
             levels = frame.index.format(sparsify=sentinel, adjoin=False, names=False)
 
             level_lengths = get_level_lengths(levels, sentinel)

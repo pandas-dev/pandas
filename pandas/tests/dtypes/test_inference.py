@@ -52,8 +52,8 @@ from pandas import (
     Timestamp,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -240,7 +240,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
 
         if has_contains:
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return self.d.__contains__(key)
 
     d = DictLike({1: 2})
@@ -1114,11 +1114,16 @@ class TestTypeInference:
 
         assert lib.is_string_array(np.array(["foo", "bar"]))
         assert not lib.is_string_array(
-            np.array(["foo", "bar", np.nan], dtype=object), skipna=False
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=False
         )
         assert lib.is_string_array(
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=True
+        )
+        # NaN is not valid for string array, just NA
+        assert not lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=True
         )
+
         assert not lib.is_string_array(np.array([1, 2]))
 
     def test_to_object_array_tuples(self):

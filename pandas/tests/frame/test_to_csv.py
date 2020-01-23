@@ -18,8 +18,8 @@ from pandas import (
     read_csv,
     to_datetime,
 )
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 from pandas.io.common import get_handle
 

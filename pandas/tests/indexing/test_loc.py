@@ -7,9 +7,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
-import pandas.util.testing as tm
 
 
 class TestLoc(Base):
@@ -219,8 +219,8 @@ class TestLoc(Base):
 
         # raise a KeyError?
         msg = (
-            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
@@ -236,8 +236,8 @@ class TestLoc(Base):
             s.loc[-1]
 
         msg = (
-            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-1, -2]]
@@ -252,8 +252,8 @@ class TestLoc(Base):
 
         s["a"] = 2
         msg = (
-            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-2]]
@@ -268,8 +268,8 @@ class TestLoc(Base):
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[3], :]
@@ -369,6 +369,9 @@ class TestLoc(Base):
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[mask.values]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[pd.array(mask, dtype="boolean")]
         tm.assert_frame_equal(result, expected)
 
     def test_loc_general(self):
@@ -979,4 +982,33 @@ def test_loc_setitem_float_intindex():
 
     result = pd.DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_axis_1_slice():
+    # GH 10586
+    cols = [(yr, m) for yr in [2014, 2015] for m in [7, 8, 9, 10]]
+    df = pd.DataFrame(
+        np.ones((10, 8)),
+        index=tuple("ABCDEFGHIJ"),
+        columns=pd.MultiIndex.from_tuples(cols),
+    )
+    result = df.loc(axis=1)[(2014, 9):(2015, 8)]
+    expected = pd.DataFrame(
+        np.ones((10, 4)),
+        index=tuple("ABCDEFGHIJ"),
+        columns=pd.MultiIndex.from_tuples(
+            [(2014, 9), (2014, 10), (2015, 7), (2015, 8)]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_set_dataframe_multiindex():
+    # GH 14592
+    expected = pd.DataFrame(
+        "a", index=range(2), columns=pd.MultiIndex.from_product([range(2), range(2)])
+    )
+    result = expected.copy()
+    result.loc[0, [(0, 1)]] = result.loc[0, [(0, 1)]]
     tm.assert_frame_equal(result, expected)

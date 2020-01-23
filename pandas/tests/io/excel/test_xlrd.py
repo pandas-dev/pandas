@@ -1,7 +1,7 @@
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelFile
 
@@ -10,8 +10,10 @@ xlwt = pytest.importorskip("xlwt")
 
 
 @pytest.fixture(autouse=True)
-def skip_ods_files(read_ext):
+def skip_ods_and_xlsb_files(read_ext):
     if read_ext == ".ods":
+        pytest.skip("Not valid for xlrd")
+    if read_ext == ".xlsb":
         pytest.skip("Not valid for xlrd")
 
 

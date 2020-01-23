@@ -9,8 +9,13 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
-from pandas.core.window.common import _doc_template, _get_center_of_mass, _shared_docs
-from pandas.core.window.rolling import _flex_binary_moment, _Rolling, _zsqrt
+from pandas.core.window.common import (
+    _doc_template,
+    _get_center_of_mass,
+    _shared_docs,
+    zsqrt,
+)
+from pandas.core.window.rolling import _flex_binary_moment, _Rolling
 
 _bias_template = """
         Parameters
@@ -89,7 +94,7 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
 
     Examples
     --------
@@ -269,7 +274,7 @@ class EWM(_Rolling):
         Exponential weighted moving stddev.
         """
         nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(bias=bias, **kwargs))
+        return zsqrt(self.var(bias=bias, **kwargs))
 
     vol = std
 
@@ -314,7 +319,7 @@ class EWM(_Rolling):
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         bias : bool, default False
-            Use a standard estimation bias correction
+            Use a standard estimation bias correction.
         **kwargs
            Keyword arguments to be passed into func.
         """
@@ -390,7 +395,7 @@ class EWM(_Rolling):
                 cov = _cov(x_values, y_values)
                 x_var = _cov(x_values, x_values)
                 y_var = _cov(y_values, y_values)
-                corr = cov / _zsqrt(x_var * y_var)
+                corr = cov / zsqrt(x_var * y_var)
             return X._wrap_result(corr)
 
         return _flex_binary_moment(
