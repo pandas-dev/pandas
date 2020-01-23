@@ -252,7 +252,7 @@ def test_coerce_to_numpy_array():
 
 
 def test_to_boolean_array_from_strings(na_value):
-    result = BooleanArray._from_sequence_of_strings(["True", "False"])
+    result = BooleanArray._from_sequence_of_strings(np.array(["True", "False", np.nan], dtype=object))
     expected = BooleanArray(np.array([True, False]), np.array([False, False]))
 
     tm.assert_extension_array_equal(result, expected)
