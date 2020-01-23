@@ -3302,7 +3302,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._constructor(new_data).__finalize__(self)
 
     def _take_with_is_copy(
-        self: FrameOrSeries, indices, axis=0, is_copy: bool_t = True, **kwargs
+        self: FrameOrSeries, indices, axis=0, **kwargs
     ) -> FrameOrSeries:
         """
         Internal version of the `take` method that sets the `_is_copy`
@@ -3312,9 +3312,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         See the docstring of `take` for full explanation of the parameters.
         """
         result = self.take(indices=indices, axis=axis, **kwargs)
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
+        if not result._get_axis(axis).equals(self._get_axis(axis)):
+            result._set_is_copy(self)
         return result
 
     def xs(self, key, axis=0, level=None, drop_level: bool_t = True):
