@@ -251,6 +251,22 @@ def test_coerce_to_numpy_array():
         np.array(arr, dtype="bool")
 
 
+def test_to_boolean_array_from_strings():
+    result = BooleanArray._from_sequence_of_strings(
+        np.array(["True", "False", np.nan], dtype=object)
+    )
+    expected = BooleanArray(
+        np.array([True, False, False]), np.array([False, False, True])
+    )
+
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_boolean_array_from_strings_invalid_string():
+    with pytest.raises(ValueError, match="cannot be cast"):
+        BooleanArray._from_sequence_of_strings(["donkey"])
+
+
 def test_repr():
     df = pd.DataFrame({"A": pd.array([True, False, None], dtype="boolean")})
     expected = "       A\n0   True\n1  False\n2   <NA>"

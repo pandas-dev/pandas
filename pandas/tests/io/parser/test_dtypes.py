@@ -550,3 +550,35 @@ def test_numeric_dtype(all_parsers, dtype):
 
     result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
     tm.assert_frame_equal(expected, result)
+
+
+def test_boolean_dtype(all_parsers):
+    parser = all_parsers
+    data = "\n".join(
+        [
+            "a",
+            "True",
+            "TRUE",
+            "true",
+            "False",
+            "FALSE",
+            "false",
+            "NaN",
+            "nan",
+            "NA",
+            "null",
+            "NULL",
+        ]
+    )
+
+    result = parser.read_csv(StringIO(data), dtype="boolean")
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                [True, True, True, False, False, False, None, None, None, None, None],
+                dtype="boolean",
+            )
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)
