@@ -1610,6 +1610,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if is_scalar(obj) or isinstance(labels, ABCMultiIndex):
             # Otherwise get_loc will raise InvalidIndexError
+
             # if we are a label return me
             try:
                 return labels.get_loc(obj)

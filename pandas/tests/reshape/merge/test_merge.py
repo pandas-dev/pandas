@@ -2152,3 +2152,20 @@ def test_merge_multiindex_columns():
     expected["id"] = ""
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_upcast_dtype():
+    # https://github.com/pandas-dev/pandas/issues/31208
+    df1 = pd.DataFrame({"x": ["a", "b", "c"], "y": ["1", "2", "4"]})
+    df2 = pd.DataFrame(
+        {"y": ["1", "2", "3"], "z": pd.to_datetime(["2000", "2001", "2002"])}
+    )
+    result = pd.merge(df1, df2, how="left", on="y")
+    expected = pd.DataFrame(
+        {
+            "x": ["a", "b", "c"],
+            "y": ["1", "2", "4"],
+            "z": pd.to_datetime(["2000", "2001", "NaT"]),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
