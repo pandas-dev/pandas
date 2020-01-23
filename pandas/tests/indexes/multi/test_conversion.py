@@ -142,17 +142,6 @@ def test_roundtrip_pickle_with_tz():
     assert index.equal_levels(unpickled)
 
 
-def test_pickle(indices):
-    return  # FIXME: this can't be right?
-
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    original_name, indices.name = indices.name, "foo"
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    indices.name = original_name
-
-
 def test_to_series(idx):
     # assert that we are creating a copy of the index
 
