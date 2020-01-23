@@ -2241,6 +2241,11 @@ Name: Max Speed, dtype: float64
             optional time freq.
         DataFrame.diff: First discrete difference of object.
 
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+
         Examples
         --------
         Difference with previous row
@@ -2277,7 +2282,7 @@ Name: Max Speed, dtype: float64
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com.values_from_object(self), periods)
+        result = algorithms.diff(self.array, periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1) -> float:

@@ -141,7 +141,7 @@ def _sparse_array_op(
             left, right = right, left
             name = name[1:]
 
-        if name in ("and", "or") and dtype == "bool":
+        if name in ("and", "or", "xor") and dtype == "bool":
             opname = f"sparse_{name}_uint8"
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
@@ -1459,6 +1459,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _add_comparison_ops(cls):
         cls.__and__ = cls._create_comparison_method(operator.and_)
         cls.__or__ = cls._create_comparison_method(operator.or_)
+        cls.__xor__ = cls._create_arithmetic_method(operator.xor)
         super()._add_comparison_ops()
 
     # ----------

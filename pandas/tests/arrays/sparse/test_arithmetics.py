@@ -388,6 +388,14 @@ class TestSparseArrayArithmetics:
         assert b.dtype == SparseDtype(rdtype, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
 
+    def test_xor(self):
+        s = SparseArray([True, True, False, False])
+        t = SparseArray([True, False, True, False])
+        result = s ^ t
+        sp_index = pd.core.arrays.sparse.IntIndex(4, np.array([0, 1, 2], dtype="int32"))
+        expected = SparseArray([False, True, True], sparse_index=sp_index)
+        tm.assert_sp_array_equal(result, expected)
+
 
 @pytest.mark.parametrize("op", [operator.eq, operator.add])
 def test_with_list(op):
