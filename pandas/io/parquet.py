@@ -1,5 +1,6 @@
 """ parquet compat """
 
+from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 from warnings import catch_warnings
 
@@ -116,13 +117,32 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
 
-    def read(self, path, columns=None, **kwargs):
+    def read(self, path, columns=None, use_nullable_dtypes=False, **kwargs):
         path, _, _, should_close = get_filepath_or_buffer(path)
 
         kwargs["use_pandas_metadata"] = True
-        result = self.api.parquet.read_table(
-            path, columns=columns, **kwargs
-        ).to_pandas()
+        to_pandas_kwargs = {}
+        if use_nullable_dtypes:
+            if LooseVersion(self.api.__version__) > "0.15.1.dev":
+                import pandas as pd
+
+                mapping = {
+                    self.api.int8(): pd.Int8Dtype(),
+                    self.api.int16(): pd.Int16Dtype(),
+                    self.api.int32(): pd.Int32Dtype(),
+                    self.api.int64(): pd.Int64Dtype(),
+                    self.api.uint8(): pd.UInt8Dtype(),
+                    self.api.uint16(): pd.UInt16Dtype(),
+                    self.api.uint32(): pd.UInt32Dtype(),
+                    self.api.uint64(): pd.UInt64Dtype(),
+                    self.api.bool_(): pd.BooleanDtype(),
+                    self.api.string(): pd.StringDtype(),
+                }
+                to_pandas_kwargs["types_mapper"] = mapping.get
+
+        result = self.api.parquet.read_table(path, columns=columns, **kwargs).to_pandas(
+            **to_pandas_kwargs
+        )
         if should_close:
             path.close()
 
@@ -184,6 +204,12 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(self, path, columns=None, **kwargs):
+        use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        if use_nullable_dtypes:
+            raise ValueError(
+                "The 'use_nullable_dtypes' argument is not supported for the "
+                "fastparquet engine"
+            )
         if is_s3_url(path):
             from pandas.io.s3 import get_file_and_filesystem
 
@@ -263,7 +289,13 @@ def to_parquet(
     )
 
 
-def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
+def read_parquet(
+    path,
+    engine: str = "auto",
+    columns=None,
+    use_nullable_dtypes: bool = False,
+    **kwargs,
+):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
@@ -296,6 +328,11 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         If not None, only these columns will be read from the file.
 
         .. versionadded:: 0.21.1
+    use_nullable_dtypes : bool, default False
+        If True, use dtypes that use ``pd.NA`` as missing value indicator
+        for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
+        As new dtypes are added that support ``pd.NA`` in the future, the
+        output with this option will change to use those dtypes.
     **kwargs
         Any additional kwargs are passed to the engine.
 
@@ -305,4 +342,6 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     """
 
     impl = get_engine(engine)
-    return impl.read(path, columns=columns, **kwargs)
+    return impl.read(
+        path, columns=columns, use_nullable_dtypes=use_nullable_dtypes, **kwargs
+    )

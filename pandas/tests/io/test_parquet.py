@@ -564,6 +564,31 @@ class TestParquetPyArrow(Base):
         )
         check_round_trip(df, pa)
 
+    @td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+    def test_use_nullable_dtypes(self, pa):
+        import pyarrow.parquet as pq
+
+        table = pyarrow.table(
+            {
+                "a": pyarrow.array([1, 2, 3, None], "int64"),
+                "b": pyarrow.array(["a", "b", "c", None]),
+            }
+        )
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            result1 = read_parquet(path)
+            result2 = read_parquet(path, use_nullable_dtypes=True)
+
+        assert result1["a"].dtype == np.dtype("float64")
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1, 2, 3, None], dtype="Int64"),
+                "b": pd.array(["a", "b", "c", None], dtype="string"),
+            }
+        )
+        tm.assert_frame_equal(result2, expected)
+
 
 class TestParquetFastParquet(Base):
     @td.skip_if_no("fastparquet", min_version="0.3.2")
