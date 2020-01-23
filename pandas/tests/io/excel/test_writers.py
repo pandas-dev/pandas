@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, get_option, set_option
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.excel import (
     ExcelFile,
@@ -252,7 +252,7 @@ class TestRoundTrip:
             res = pd.read_excel(pth, parse_dates=["date_strings"], index_col=0)
             tm.assert_frame_equal(df, res)
 
-            date_parser = lambda x: pd.datetime.strptime(x, "%m/%d/%Y")
+            date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
             res = pd.read_excel(
                 pth, parse_dates=["date_strings"], date_parser=date_parser, index_col=0
             )

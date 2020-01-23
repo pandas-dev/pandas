@@ -17,10 +17,11 @@ from pandas.core.dtypes.missing import isna
 from pandas import compat
 from pandas.core import nanops
 from pandas.core.algorithms import searchsorted, take, unique
+from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
+import pandas.core.common as com
 from pandas.core.construction import extract_array
+from pandas.core.indexers import check_bool_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
-
-from .base import ExtensionArray, ExtensionOpsMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -72,9 +73,22 @@ class PandasDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
-        return cls(np.dtype(string))
+        try:
+            return cls(np.dtype(string))
+        except TypeError as err:
+            raise TypeError(
+                f"Cannot construct a 'PandasDtype' from '{string}'"
+            ) from err
 
+    @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return PandasArray
 
     @property
@@ -168,7 +182,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
@@ -220,6 +234,9 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def __getitem__(self, item):
         if isinstance(item, type(self)):
             item = item._ndarray
+
+        elif com.is_bool_indexer(item):
+            item = check_bool_array_indexer(self, item)
 
         result = self._ndarray[item]
         if not lib.is_scalar(item):
@@ -403,26 +420,14 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     # ------------------------------------------------------------------------
     # Additional Methods
-    def to_numpy(self, dtype=None, copy=False):
-        """
-        Convert the PandasArray to a :class:`numpy.ndarray`.
-
-        By default, this requires no coercion or copying of data.
-
-        Parameters
-        ----------
-        dtype : numpy.dtype
-            The NumPy dtype to pass to :func:`numpy.asarray`.
-        copy : bool, default False
-            Whether to copy the underlying data.
-
-        Returns
-        -------
-        ndarray
-        """
+    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
         result = np.asarray(self._ndarray, dtype=dtype)
-        if copy and result is self._ndarray:
+
+        if (copy or na_value is not lib.no_default) and result is self._ndarray:
             result = result.copy()
+
+        if na_value is not lib.no_default:
+            result[self.isna()] = na_value
 
         return result
 

@@ -2,14 +2,13 @@
 Base and utility classes for pandas objects.
 """
 import builtins
-from collections import OrderedDict
 import textwrap
 from typing import Dict, FrozenSet, List, Optional
-import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -20,12 +19,13 @@ from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_ns_dtype,
-    is_datetime64tz_dtype,
+    is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
     is_timedelta64_ns_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -87,6 +87,14 @@ class PandasObject(DirNamesMixin):
         # object's 'sizeof'
         return super().__sizeof__()
 
+    def _ensure_type(self: T, obj) -> T:
+        """Ensure that an object has same type as self.
+
+        Used by type checkers.
+        """
+        assert isinstance(obj, type(self)), type(obj)
+        return obj
+
 
 class NoNewAttributesMixin:
     """Mixin which prevents adding new attributes.
@@ -141,39 +149,35 @@ class SelectionMixin:
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
-    _builtin_table = OrderedDict(
-        ((builtins.sum, np.sum), (builtins.max, np.max), (builtins.min, np.min))
-    )
+    _builtin_table = {builtins.sum: np.sum, builtins.max: np.max, builtins.min: np.min}
 
-    _cython_table = OrderedDict(
-        (
-            (builtins.sum, "sum"),
-            (builtins.max, "max"),
-            (builtins.min, "min"),
-            (np.all, "all"),
-            (np.any, "any"),
-            (np.sum, "sum"),
-            (np.nansum, "sum"),
-            (np.mean, "mean"),
-            (np.nanmean, "mean"),
-            (np.prod, "prod"),
-            (np.nanprod, "prod"),
-            (np.std, "std"),
-            (np.nanstd, "std"),
-            (np.var, "var"),
-            (np.nanvar, "var"),
-            (np.median, "median"),
-            (np.nanmedian, "median"),
-            (np.max, "max"),
-            (np.nanmax, "max"),
-            (np.min, "min"),
-            (np.nanmin, "min"),
-            (np.cumprod, "cumprod"),
-            (np.nancumprod, "cumprod"),
-            (np.cumsum, "cumsum"),
-            (np.nancumsum, "cumsum"),
-        )
-    )
+    _cython_table = {
+        builtins.sum: "sum",
+        builtins.max: "max",
+        builtins.min: "min",
+        np.all: "all",
+        np.any: "any",
+        np.sum: "sum",
+        np.nansum: "sum",
+        np.mean: "mean",
+        np.nanmean: "mean",
+        np.prod: "prod",
+        np.nanprod: "prod",
+        np.std: "std",
+        np.nanstd: "std",
+        np.var: "var",
+        np.nanvar: "var",
+        np.median: "median",
+        np.nanmedian: "median",
+        np.max: "max",
+        np.nanmax: "max",
+        np.min: "min",
+        np.nanmin: "min",
+        np.cumprod: "cumprod",
+        np.nancumprod: "cumprod",
+        np.cumsum: "cumsum",
+        np.nancumsum: "cumsum",
+    }
 
     @property
     def _selection_name(self):
@@ -309,7 +313,6 @@ class SelectionMixin:
         None if not required
         """
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-        is_nested_renamer = False
 
         _axis = kwargs.pop("_axis", None)
         if _axis is None:
@@ -329,7 +332,7 @@ class SelectionMixin:
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in arg.values()):
-                new_arg = OrderedDict()
+                new_arg = {}
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -387,35 +390,18 @@ class SelectionMixin:
             def _agg(arg, func):
                 """
                 run the aggregations over the arg with func
-                return an OrderedDict
+                return a dict
                 """
-                result = OrderedDict()
+                result = {}
                 for fname, agg_how in arg.items():
                     result[fname] = func(fname, agg_how)
                 return result
 
             # set the final keys
             keys = list(arg.keys())
-            result = OrderedDict()
+            result = {}
 
-            # nested renamer
-            if is_nested_renamer:
-                result = list(_agg(arg, _agg_1dim).values())
-
-                if all(isinstance(r, dict) for r in result):
-
-                    result, results = OrderedDict(), result
-                    for r in results:
-                        result.update(r)
-                    keys = list(result.keys())
-
-                else:
-
-                    if self._selection is not None:
-                        keys = None
-
-            # some selection on the object
-            elif self._selection is not None:
+            if self._selection is not None:
 
                 sl = set(self._selection_list)
 
@@ -597,12 +583,10 @@ class SelectionMixin:
 class ShallowMixin:
     _attributes: List[str] = []
 
-    def _shallow_copy(self, obj=None, **kwargs):
+    def _shallow_copy(self, obj, **kwargs):
         """
         return a new object with the replacement attributes
         """
-        if obj is None:
-            obj = self._selected_obj.copy()
 
         if isinstance(obj, self._constructor):
             obj = obj.obj
@@ -620,7 +604,7 @@ class IndexOpsMixin:
     # ndarray compatibility
     __array_priority__ = 1000
     _deprecations: FrozenSet[str] = frozenset(
-        ["tolist", "item"]  # tolist is not deprecated, just suppressed in the __dir__
+        ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
     def transpose(self, *args, **kwargs):
@@ -642,24 +626,6 @@ class IndexOpsMixin:
     )
 
     @property
-    def _is_homogeneous_type(self) -> bool:
-        """
-        Whether the object has a single dtype.
-
-        By definition, Series and Index are always considered homogeneous.
-        A MultiIndex may or may not be homogeneous, depending on the
-        dtypes of the levels.
-
-        See Also
-        --------
-        DataFrame._is_homogeneous_type : Whether all the columns in a
-            DataFrame have the same dtype.
-        MultiIndex._is_homogeneous_type : Whether all the levels of a
-            MultiIndex have the same dtype.
-        """
-        return True
-
-    @property
     def shape(self):
         """
         Return a tuple of the shape of the underlying data.
@@ -677,19 +643,27 @@ class IndexOpsMixin:
         """
         Return the first element of the underlying data as a python scalar.
 
-        .. deprecated:: 0.25.0
-
         Returns
         -------
         scalar
             The first element of %(klass)s.
+
+        Raises
+        ------
+        ValueError
+            If the data is not length-1.
         """
-        warnings.warn(
-            "`item` has been deprecated and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.values.item()
+        if not (
+            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
+        ):
+            # numpy returns ints instead of datetime64/timedelta64 objects,
+            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
+            return self.values.item()
+
+        if len(self) == 1:
+            return next(iter(self))
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
     def nbytes(self):
@@ -739,6 +713,8 @@ class IndexOpsMixin:
         period             PeriodArray
         interval           IntervalArray
         IntegerNA          IntegerArray
+        string             StringArray
+        boolean            BooleanArray
         datetime64[ns, tz] DatetimeArray
         ================== =============================
 
@@ -790,7 +766,7 @@ class IndexOpsMixin:
 
         return result
 
-    def to_numpy(self, dtype=None, copy=False):
+    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
         """
         A NumPy ndarray representing the values in this Series or Index.
 
@@ -805,6 +781,17 @@ class IndexOpsMixin:
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
+        na_value : Any, optional
+            The value to use for missing values. The default value depends
+            on `dtype` and the type of the array.
+
+            .. versionadded:: 1.0.0
+
+        **kwargs
+            Additional keywords passed through to the ``to_numpy`` method
+            of the underlying array (for extension arrays).
+
+            .. versionadded:: 1.0.0
 
         Returns
         -------
@@ -874,16 +861,21 @@ class IndexOpsMixin:
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        if is_datetime64tz_dtype(self.dtype) and dtype is None:
-            # note: this is going to change very soon.
-            # I have a WIP PR making this unnecessary, but it's
-            # a bit out of scope for the DatetimeArray PR.
-            dtype = "object"
+        if is_extension_array_dtype(self.dtype):
+            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+        else:
+            if kwargs:
+                msg = "to_numpy() got an unexpected keyword argument '{}'".format(
+                    list(kwargs.keys())[0]
+                )
+                raise TypeError(msg)
 
         result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
-        if copy:
+        if copy or na_value is not lib.no_default:
             result = result.copy()
+            if na_value is not lib.no_default:
+                result[self.isna()] = na_value
         return result
 
     @property
@@ -1122,8 +1114,8 @@ class IndexOpsMixin:
         # we can fastpath dict/Series to an efficient map
         # as we know that we are not going to have to yield
         # python types
-        if isinstance(mapper, dict):
-            if hasattr(mapper, "__missing__"):
+        if is_dict_like(mapper):
+            if isinstance(mapper, dict) and hasattr(mapper, "__missing__"):
                 # If a dictionary subclass defines a default value method,
                 # convert mapper to a lookup function (GH #15999).
                 dict_with_default = mapper

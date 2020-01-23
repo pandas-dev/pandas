@@ -3,9 +3,9 @@ import pytest
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series, TimedeltaIndex
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 from pandas.tests.base.utils import check_ops_properties_valid
-import pandas.util.testing as tm
 
 
 class TestPeriodIndexOps:

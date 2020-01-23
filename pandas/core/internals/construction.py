@@ -37,9 +37,13 @@ from pandas.core.dtypes.generic import (
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
 from pandas.core.construction import sanitize_array
-from pandas.core.index import Index, ensure_index, get_objs_combined_axis
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import union_indexes
+from pandas.core.indexes.api import (
+    Index,
+    ensure_index,
+    get_objs_combined_axis,
+    union_indexes,
+)
 from pandas.core.internals import (
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
@@ -70,7 +74,7 @@ def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
+def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
     """
     Extract from a masked rec array and create the manager.
     """
@@ -139,22 +143,30 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     ):
 
         if not hasattr(values, "dtype"):
-            values = prep_ndarray(values, copy=copy)
+            values = _prep_ndarray(values, copy=copy)
             values = values.ravel()
         elif copy:
             values = values.copy()
 
         index, columns = _get_axes(len(values), 1, index, columns)
         return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
-    elif is_extension_array_dtype(values):
+    elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
+
+        if isinstance(values, np.ndarray) and values.ndim > 1:
+            # GH#12513 a EA dtype passed with a 2D array, split into
+            #  multiple EAs that view the values
+            values = [values[:, n] for n in range(values.shape[1])]
+        else:
+            values = [values]
+
         if columns is None:
-            columns = [0]
-        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
+            columns = list(range(len(values)))
+        return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
-    values = prep_ndarray(values, copy=copy)
+    values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None:
         if not is_dtype_equal(values.dtype, dtype):
@@ -163,8 +175,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
             except Exception as orig:
                 # e.g. ValueError when trying to cast object dtype to float64
                 raise ValueError(
-                    "failed to cast to '{dtype}' (Exception "
-                    "was: {orig})".format(dtype=dtype, orig=orig)
+                    f"failed to cast to '{dtype}' (Exception was: {orig})"
                 ) from orig
 
     index, columns = _get_axes(*values.shape, index=index, columns=columns)
@@ -246,10 +257,13 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True):
+def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
+        elif isinstance(values, range):
+            arr = np.arange(values.start, values.stop, values.step, dtype="int64")
+            return arr[..., np.newaxis]
 
         def convert(v):
             return maybe_convert_platform(v)
@@ -358,8 +372,8 @@ def extract_index(data):
             if have_series:
                 if lengths[0] != len(index):
                     msg = (
-                        "array length {length} does not match index "
-                        "length {idx_len}".format(length=lengths[0], idx_len=len(index))
+                        f"array length {lengths[0]} does not match index "
+                        f"length {len(index)}"
                     )
                     raise ValueError(msg)
             else:
@@ -394,7 +408,7 @@ def get_names_from_index(data):
         if n is not None:
             index[i] = n
         else:
-            index[i] = "Unnamed {count}".format(count=count)
+            index[i] = f"Unnamed {count}"
             count += 1
 
     return index
@@ -564,8 +578,8 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
         if len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
             raise AssertionError(
-                "{col:d} columns passed, passed data had "
-                "{con} columns".format(col=len(columns), con=len(content))
+                f"{len(columns)} columns passed, passed data had "
+                f"{len(content)} columns"
             )
 
     # provide soft conversion of object dtypes
@@ -584,29 +598,24 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 # Series-Based
 
 
-def sanitize_index(data, index, copy=False):
+def sanitize_index(data, index: Index):
     """
     Sanitize an index type to return an ndarray of the underlying, pass
     through a non-Index.
     """
 
-    if index is None:
-        return data
-
     if len(data) != len(index):
         raise ValueError("Length of values does not match length of index")
 
-    if isinstance(data, ABCIndexClass) and not copy:
+    if isinstance(data, ABCIndexClass):
         pass
     elif isinstance(data, (ABCPeriodIndex, ABCDatetimeIndex)):
         data = data._values
-        if copy:
-            data = data.copy()
 
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
         if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=copy)
+            data = sanitize_array(data, index, copy=False)
 
     return data

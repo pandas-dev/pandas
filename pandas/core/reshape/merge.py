@@ -13,6 +13,7 @@ import numpy as np
 
 from pandas._libs import Timedelta, hashtable as libhashtable, lib
 import pandas._libs.join as libjoin
+from pandas._typing import FrameOrSeries
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -40,7 +41,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas import Categorical, Index, MultiIndex
-from pandas._typing import FrameOrSeries
+from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
@@ -68,7 +69,7 @@ def merge(
     copy: bool = True,
     indicator: bool = False,
     validate=None,
-):
+) -> "DataFrame":
     op = _MergeOperation(
         left,
         right,
@@ -113,26 +114,27 @@ def _groupby_and_merge(
         by = [by]
 
     lby = left.groupby(by, sort=False)
+    rby: Optional[groupby.DataFrameGroupBy] = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
+
+    # we will check & remove duplicates if indicated
+    if check_duplicates:
+        if on is None:
+            on = []
+        elif not isinstance(on, (list, tuple)):
+            on = [on]
+
+        if right.duplicated(by + on).any():
+            _right = right.drop_duplicates(by + on, keep="last")
+            # TODO: use overload to refine return type of drop_duplicates
+            assert _right is not None  # needed for mypy
+            right = _right
     try:
-
-        # we will check & remove duplicates if indicated
-        if check_duplicates:
-            if on is None:
-                on = []
-            elif not isinstance(on, (list, tuple)):
-                on = [on]
-
-            if right.duplicated(by + on).any():
-                _right = right.drop_duplicates(by + on, keep="last")
-                # TODO: use overload to refine return type of drop_duplicates
-                assert _right is not None  # needed for mypy
-                right = _right
         rby = right.groupby(by, sort=False)
     except KeyError:
-        rby = None
+        pass
 
     for key, lhs in lby:
 
@@ -183,7 +185,7 @@ def merge_ordered(
     fill_method=None,
     suffixes=("_x", "_y"),
     how: str = "outer",
-):
+) -> "DataFrame":
     """
     Perform merge with optional filling/interpolation.
 
@@ -317,7 +319,7 @@ def merge_asof(
     tolerance=None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
-):
+) -> "DataFrame":
     """
     Perform an asof merge. This is similar to a left-join except that we
     match on nearest key rather than equal keys.
@@ -598,13 +600,11 @@ class _MergeOperation:
 
         if not is_bool(left_index):
             raise ValueError(
-                "left_index parameter must be of type bool, not "
-                "{left_index}".format(left_index=type(left_index))
+                f"left_index parameter must be of type bool, not {type(left_index)}"
             )
         if not is_bool(right_index):
             raise ValueError(
-                "right_index parameter must be of type bool, not "
-                "{right_index}".format(right_index=type(right_index))
+                f"right_index parameter must be of type bool, not {type(right_index)}"
             )
 
         # warn user when merging between different levels
@@ -1071,9 +1071,8 @@ class _MergeOperation:
                 continue
 
             msg = (
-                "You are trying to merge on {lk_dtype} and "
-                "{rk_dtype} columns. If you wish to proceed "
-                "you should use pd.concat".format(lk_dtype=lk.dtype, rk_dtype=rk.dtype)
+                f"You are trying to merge on {lk.dtype} and "
+                f"{rk.dtype} columns. If you wish to proceed you should use pd.concat"
             )
 
             # if we are numeric, then allow differing
@@ -1090,8 +1089,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int "
-                            "representation",
+                            "are not equal to their int representation",
                             UserWarning,
                         )
                     continue
@@ -1101,8 +1099,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int "
-                            "representation",
+                            "are not equal to their int representation",
                             UserWarning,
                         )
                     continue
@@ -1197,9 +1194,7 @@ class _MergeOperation:
                         )
                     )
                 if not common_cols.is_unique:
-                    raise MergeError(
-                        "Data columns not unique: {common!r}".format(common=common_cols)
-                    )
+                    raise MergeError(f"Data columns not unique: {repr(common_cols)}")
                 self.left_on = self.right_on = common_cols
         elif self.on is not None:
             if self.left_on is not None or self.right_on is not None:
@@ -1246,32 +1241,29 @@ class _MergeOperation:
         if validate in ["one_to_one", "1:1"]:
             if not left_unique and not right_unique:
                 raise MergeError(
-                    "Merge keys are not unique in either left"
-                    " or right dataset; not a one-to-one merge"
+                    "Merge keys are not unique in either left "
+                    "or right dataset; not a one-to-one merge"
                 )
             elif not left_unique:
                 raise MergeError(
-                    "Merge keys are not unique in left dataset;"
-                    " not a one-to-one merge"
+                    "Merge keys are not unique in left dataset; not a one-to-one merge"
                 )
             elif not right_unique:
                 raise MergeError(
-                    "Merge keys are not unique in right dataset;"
-                    " not a one-to-one merge"
+                    "Merge keys are not unique in right dataset; not a one-to-one merge"
                 )
 
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
                 raise MergeError(
-                    "Merge keys are not unique in left dataset;"
-                    " not a one-to-many merge"
+                    "Merge keys are not unique in left dataset; not a one-to-many merge"
                 )
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
                 raise MergeError(
-                    "Merge keys are not unique in right dataset;"
-                    " not a many-to-one merge"
+                    "Merge keys are not unique in right dataset; "
+                    "not a many-to-one merge"
                 )
 
         elif validate in ["many_to_many", "m:m"]:
@@ -1833,8 +1825,7 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
             raise AssertionError(
                 "If more than one join key is given then "
                 "'right_ax' must be a MultiIndex and the "
-                "number of join keys must be the number of "
-                "levels in right_ax"
+                "number of join keys must be the number of levels in right_ax"
             )
 
         left_indexer, right_indexer = _get_multiindex_indexer(
@@ -2004,8 +1995,7 @@ def _validate_operand(obj: FrameOrSeries) -> "DataFrame":
             return obj.to_frame()
     else:
         raise TypeError(
-            "Can only merge Series or DataFrame objects, "
-            "a {obj} was passed".format(obj=type(obj))
+            f"Can only merge Series or DataFrame objects, a {type(obj)} was passed"
         )
 
 
@@ -2021,10 +2011,7 @@ def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
         return left, right
 
     if not lsuffix and not rsuffix:
-        raise ValueError(
-            "columns overlap but no suffix specified: "
-            "{rename}".format(rename=to_rename)
-        )
+        raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
 
     def renamer(x, suffix):
         """
@@ -2043,7 +2030,7 @@ def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
         x : renamed column name
         """
         if x in to_rename and suffix is not None:
-            return "{x}{suffix}".format(x=x, suffix=suffix)
+            return f"{x}{suffix}"
         return x
 
     lrenamer = partial(renamer, suffix=lsuffix)

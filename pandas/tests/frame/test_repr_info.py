@@ -3,6 +3,7 @@ from io import StringIO
 import re
 import sys
 import textwrap
+import warnings
 
 import numpy as np
 import pytest
@@ -18,7 +19,7 @@ from pandas import (
     option_context,
     period_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
@@ -29,17 +30,17 @@ import pandas.io.formats.format as fmt
 class TestDataFrameReprInfoEtc:
     def test_repr_empty(self):
         # empty
-        foo = repr(DataFrame())  # noqa
+        repr(DataFrame())
 
         # empty with index
         frame = DataFrame(index=np.arange(1000))
-        foo = repr(frame)  # noqa
+        repr(frame)
 
     def test_repr_mixed(self, float_string_frame):
         buf = StringIO()
 
         # mixed
-        foo = repr(float_string_frame)  # noqa
+        repr(float_string_frame)
         float_string_frame.info(verbose=False, buf=buf)
 
     @pytest.mark.slow
@@ -51,13 +52,13 @@ class TestDataFrameReprInfoEtc:
         biggie.loc[:20, "A"] = np.nan
         biggie.loc[:20, "B"] = np.nan
 
-        foo = repr(biggie)  # noqa
+        repr(biggie)
 
     def test_repr(self, float_frame):
         buf = StringIO()
 
         # small one
-        foo = repr(float_frame)
+        repr(float_frame)
         float_frame.info(verbose=False, buf=buf)
 
         # even smaller
@@ -68,7 +69,7 @@ class TestDataFrameReprInfoEtc:
 
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
-        foo = repr(no_index)  # noqa
+        repr(no_index)
 
         # no columns or index
         DataFrame().info(buf=buf)
@@ -97,7 +98,6 @@ class TestDataFrameReprInfoEtc:
 
     def test_repr_unsortable(self, float_frame):
         # columns are not sortable
-        import warnings
 
         warn_filters = warnings.filters
         warnings.filterwarnings("ignore", category=FutureWarning, module=".*format")
@@ -164,13 +164,13 @@ class TestDataFrameReprInfoEtc:
                 "Id": [7117434],
                 "StringCol": (
                     "Is it possible to modify drop plot code"
-                    " so that the output graph is displayed "
+                    "so that the output graph is displayed "
                     "in iphone simulator, Is it possible to "
                     "modify drop plot code so that the "
                     "output graph is \xe2\x80\xa8displayed "
                     "in iphone simulator.Now we are adding "
-                    "the CSV file externally. I want to Call"
-                    " the File through the code.."
+                    "the CSV file externally. I want to Call "
+                    "the File through the code.."
                 ),
             }
         )
@@ -205,6 +205,28 @@ class TestDataFrameReprInfoEtc:
         frame.info()
         frame.info(verbose=False)
 
+    def test_info_verbose(self):
+        buf = StringIO()
+        size = 1001
+        start = 5
+        frame = DataFrame(np.random.randn(3, size))
+        frame.info(verbose=True, buf=buf)
+
+        res = buf.getvalue()
+        header = " #    Column  Dtype  \n---   ------  -----  "
+        assert header in res
+
+        frame.info(verbose=True, buf=buf)
+        buf.seek(0)
+        lines = buf.readlines()
+        assert len(lines) > 0
+
+        for i, line in enumerate(lines):
+            if i >= start and i < start + size:
+                index = i - start
+                line_nr = " {} ".format(index)
+                assert line.startswith(line_nr)
+
     def test_info_memory(self):
         # https://github.com/pandas-dev/pandas/issues/21056
         df = pd.DataFrame({"a": pd.Series([1, 2], dtype="i8")})
@@ -218,7 +240,9 @@ class TestDataFrameReprInfoEtc:
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 2 entries, 0 to 1
         Data columns (total 1 columns):
-        a    2 non-null int64
+         #   Column  Non-Null Count  Dtype
+        ---  ------  --------------  -----
+         0   a       2 non-null      int64
         dtypes: int64(1)
         memory usage: {} bytes
         """.format(
@@ -262,8 +286,8 @@ class TestDataFrameReprInfoEtc:
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        assert "a    1 non-null int64\n" == lines[3]
-        assert "a    1 non-null float64\n" == lines[4]
+        assert " 0   a       1 non-null      int64  \n" == lines[5]
+        assert " 1   a       1 non-null      float64\n" == lines[6]
 
     def test_info_shows_column_dtypes(self):
         dtypes = [
@@ -283,13 +307,20 @@ class TestDataFrameReprInfoEtc:
         buf = StringIO()
         df.info(buf=buf)
         res = buf.getvalue()
+        header = (
+            " #   Column  Non-Null Count  Dtype          \n"
+            "---  ------  --------------  -----          "
+        )
+        assert header in res
         for i, dtype in enumerate(dtypes):
-            name = "{i:d}    {n:d} non-null {dtype}".format(i=i, n=n, dtype=dtype)
+            name = " {i:d}   {i:d}       {n:d} non-null     {dtype}".format(
+                i=i, n=n, dtype=dtype
+            )
             assert name in res
 
     def test_info_max_cols(self):
         df = DataFrame(np.random.randn(10, 5))
-        for len_, verbose in [(5, None), (5, False), (10, True)]:
+        for len_, verbose in [(5, None), (5, False), (12, True)]:
             # For verbose always      ^ setting  ^ summarize ^ full output
             with option_context("max_info_columns", 4):
                 buf = StringIO()
@@ -297,16 +328,16 @@ class TestDataFrameReprInfoEtc:
                 res = buf.getvalue()
                 assert len(res.strip().split("\n")) == len_
 
-        for len_, verbose in [(10, None), (5, False), (10, True)]:
+        for len_, verbose in [(12, None), (5, False), (12, True)]:
 
-            # max_cols no exceeded
+            # max_cols not exceeded
             with option_context("max_info_columns", 5):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
                 assert len(res.strip().split("\n")) == len_
 
-        for len_, max_cols in [(10, 5), (5, 4)]:
+        for len_, max_cols in [(12, 5), (5, 4)]:
             # setting truncates
             with option_context("max_info_columns", 4):
                 buf = StringIO()

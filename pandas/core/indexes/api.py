@@ -37,8 +37,6 @@ To retain the current behavior and silence the warning, pass 'sort=True'.
 )
 
 
-# TODO: there are many places that rely on these private methods existing in
-# pandas.core.index
 __all__ = [
     "Index",
     "MultiIndex",
@@ -65,7 +63,7 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis=0, sort: bool = True
+    objs, intersect: bool = False, axis=0, sort: bool = True, copy: bool = False
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -83,13 +81,15 @@ def get_objs_combined_axis(
         The axis to extract indexes from.
     sort : bool, default True
         Whether the result index should come out sorted or not.
+    copy : bool, default False
+        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
 
 
 def _get_distinct_objs(objs: List[Index]) -> List[Index]:
@@ -107,7 +107,10 @@ def _get_distinct_objs(objs: List[Index]) -> List[Index]:
 
 
 def _get_combined_index(
-    indexes: List[Index], intersect: bool = False, sort: bool = False
+    indexes: List[Index],
+    intersect: bool = False,
+    sort: bool = False,
+    copy: bool = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -121,12 +124,13 @@ def _get_combined_index(
         calculate the union.
     sort : bool, default False
         Whether the result index should come out sorted or not.
+    copy : bool, default False
+        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
-
     # TODO: handle index names!
     indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
@@ -146,6 +150,11 @@ def _get_combined_index(
             index = index.sort_values()
         except TypeError:
             pass
+
+    # GH 29879
+    if copy:
+        index = index.copy()
+
     return index
 
 
@@ -201,6 +210,7 @@ def union_indexes(indexes, sort=True) -> Index:
         result = indexes[0]
 
         if hasattr(result, "union_many"):
+            # DatetimeIndex
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
@@ -275,7 +285,6 @@ def get_consensus_names(indexes):
     list
         A list representing the consensus 'names' found.
     """
-
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
     consensus_names = {tuple(i.names) for i in indexes if com.any_not_none(*i.names)}

@@ -15,10 +15,10 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -585,10 +585,6 @@ starting,ending,measure
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
-        # uncommenting these makes the results match
-        # for col in xrange(100, 200):
-        #    wasCol[col] = 1
-        #    df[col] = np.nan
 
         for i, dt in enumerate(df.index):
             for col in range(100, 200):

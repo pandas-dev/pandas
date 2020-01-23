@@ -30,11 +30,11 @@ from pandas import (
     Timestamp,
     compat,
 )
+import pandas._testing as tm
 from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestFactorize:
@@ -653,8 +653,8 @@ class TestIsin:
     def test_invalid(self):
 
         msg = (
-            r"only list-like objects are allowed to be passed to isin\(\),"
-            r" you passed a \[int\]"
+            r"only list-like objects are allowed to be passed to isin\(\), "
+            r"you passed a \[int\]"
         )
         with pytest.raises(TypeError, match=msg):
             algos.isin(1, 1)
@@ -1402,6 +1402,19 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 
 class TestHashTable:
+    def test_string_hashtable_set_item_signature(self):
+        # GH#30419 fix typing in StringHashTable.set_item to prevent segfault
+        tbl = ht.StringHashTable()
+
+        tbl.set_item("key", 1)
+        assert tbl.get_item("key") == 1
+
+        with pytest.raises(TypeError, match="'key' has incorrect type"):
+            # key arg typed as string, not object
+            tbl.set_item(4, 6)
+        with pytest.raises(TypeError, match="'val' has incorrect type"):
+            tbl.get_item(4)
+
     def test_lookup_nan(self, writable):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
         # GH 21688 ensure we can deal with readonly memory views

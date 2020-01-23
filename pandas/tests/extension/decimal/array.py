@@ -8,7 +8,7 @@ import numpy as np
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
-from pandas.api.extensions import register_extension_dtype
+from pandas.api.extensions import no_default, register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
@@ -27,7 +27,8 @@ class DecimalDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
-        """Return the array type associated with this dtype
+        """
+        Return the array type associated with this dtype.
 
         Returns
         -------
@@ -40,7 +41,7 @@ class DecimalDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
     @property
     def _is_numeric(self):
@@ -83,6 +84,12 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
+    def to_numpy(self, dtype=None, copy=False, na_value=no_default, decimals=None):
+        result = np.asarray(self, dtype=dtype)
+        if decimals is not None:
+            result = np.asarray([round(x, decimals) for x in result])
+        return result
+
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         #
         if not all(
@@ -108,6 +115,15 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         if isinstance(item, numbers.Integral):
             return self._data[item]
         else:
+            # array, slice.
+            if pd.api.types.is_list_like(item):
+                if not pd.api.types.is_array_like(item):
+                    item = pd.array(item)
+                dtype = item.dtype
+                if pd.api.types.is_bool_dtype(dtype):
+                    item = pd.api.indexers.check_bool_array_indexer(self, item)
+                elif pd.api.types.is_integer_dtype(dtype):
+                    item = np.asarray(item, dtype="int")
             return type(self)(self._data[item])
 
     def take(self, indexer, allow_fill=False, fill_value=None):

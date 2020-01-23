@@ -14,6 +14,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_timedelta64_value, get_datetime64_value)
 from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
+from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
+
+from pandas.compat import is_platform_32bit
 
 
 cdef:
@@ -21,6 +24,8 @@ cdef:
     float64_t NEGINF = -INF
 
     int64_t NPY_NAT = util.get_nat()
+
+    bint is_32bit = is_platform_32bit()
 
 
 cpdef bint checknull(object val):
@@ -286,15 +291,28 @@ cdef inline bint is_null_period(v):
 # Implementation of NA singleton
 
 
-def _create_binary_propagating_op(name, divmod=False):
+def _create_binary_propagating_op(name, is_divmod=False):
 
     def method(self, other):
         if (other is C_NA or isinstance(other, str)
-                or isinstance(other, (numbers.Number, np.bool_))):
-            if divmod:
+                or isinstance(other, (numbers.Number, np.bool_))
+                or isinstance(other, np.ndarray) and not other.shape):
+            # Need the other.shape clause to handle NumPy scalars,
+            # since we do a setitem on `out` below, which
+            # won't work for NumPy scalars.
+            if is_divmod:
                 return NA, NA
             else:
                 return NA
+
+        elif isinstance(other, np.ndarray):
+            out = np.empty(other.shape, dtype=object)
+            out[:] = NA
+
+            if is_divmod:
+                return out, out.copy()
+            else:
+                return out
 
         return NotImplemented
 
@@ -336,16 +354,15 @@ class NAType(C_NAType):
         return NAType._instance
 
     def __repr__(self) -> str:
-        return "NA"
-
-    def __str__(self) -> str:
-        return "NA"
+        return "<NA>"
 
     def __bool__(self):
         raise TypeError("boolean value of NA is ambiguous")
 
     def __hash__(self):
-        return id(self)
+        # GH 30013: Ensure hash is large enough to avoid hash collisions with integers
+        exponent = 31 if is_32bit else 61
+        return 2 ** exponent - 1
 
     # Binary arithmetic and comparison ops -> propagate
 
@@ -363,10 +380,8 @@ class NAType(C_NAType):
     __rfloordiv__ = _create_binary_propagating_op("__rfloordiv__")
     __mod__ = _create_binary_propagating_op("__mod__")
     __rmod__ = _create_binary_propagating_op("__rmod__")
-    __divmod__ = _create_binary_propagating_op("__divmod__", divmod=True)
-    __rdivmod__ = _create_binary_propagating_op("__rdivmod__", divmod=True)
-    __pow__ = _create_binary_propagating_op("__pow__")
-    __rpow__ = _create_binary_propagating_op("__rpow__")
+    __divmod__ = _create_binary_propagating_op("__divmod__", is_divmod=True)
+    __rdivmod__ = _create_binary_propagating_op("__rdivmod__", is_divmod=True)
     # __lshift__ and __rshift__ are not implemented
 
     __eq__ = _create_binary_propagating_op("__eq__")
@@ -382,6 +397,34 @@ class NAType(C_NAType):
     __pos__ = _create_unary_propagating_op("__pos__")
     __abs__ = _create_unary_propagating_op("__abs__")
     __invert__ = _create_unary_propagating_op("__invert__")
+
+    # pow has special
+    def __pow__(self, other):
+        if other is C_NA:
+            return NA
+        elif isinstance(other, (numbers.Number, np.bool_)):
+            if other == 0:
+                # returning positive is correct for +/- 0.
+                return type(other)(1)
+            else:
+                return NA
+        elif isinstance(other, np.ndarray):
+            return np.where(other == 0, other.dtype.type(1), NA)
+
+        return NotImplemented
+
+    def __rpow__(self, other):
+        if other is C_NA:
+            return NA
+        elif isinstance(other, (numbers.Number, np.bool_)):
+            if other == 1:
+                return other
+            else:
+                return NA
+        elif isinstance(other, np.ndarray):
+            return np.where(other == 1, other, NA)
+
+        return NotImplemented
 
     # Logical ops using Kleene logic
 
@@ -411,6 +454,31 @@ class NAType(C_NAType):
         return NotImplemented
 
     __rxor__ = __xor__
+
+    __array_priority__ = 1000
+    _HANDLED_TYPES = (np.ndarray, numbers.Number, str, np.bool_)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        types = self._HANDLED_TYPES + (NAType,)
+        for x in inputs:
+            if not isinstance(x, types):
+                return NotImplemented
+
+        if method != "__call__":
+            raise ValueError(f"ufunc method '{method}' not supported for NA")
+        result = maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is NotImplemented:
+            # For a NumPy ufunc that's not a binop, like np.logaddexp
+            index = [i for i, x in enumerate(inputs) if x is NA][0]
+            result = np.broadcast_arrays(*inputs)[index]
+            if result.ndim == 0:
+                result = result.item()
+            if ufunc.nout > 1:
+                result = (NA,) * ufunc.nout
+
+        return result
 
 
 C_NA = NAType()   # C-visible

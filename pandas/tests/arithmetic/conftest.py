@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 # ------------------------------------------------------------------
 # Helper Functions
@@ -232,25 +232,6 @@ def box_df_fail(request):
     """
     Fixture equivalent to `box` fixture but xfailing the DataFrame case.
     """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
-        (pd.Index, False),
-        (pd.Series, False),
-        (pd.DataFrame, False),
-        pytest.param((pd.DataFrame, True), marks=pytest.mark.xfail),
-        (tm.to_array, False),
-    ],
-    ids=id_func,
-)
-def box_transpose_fail(request):
-    """
-    Fixture similar to `box` but testing both transpose cases for DataFrame,
-    with the tranpose=True case xfailed.
-    """
-    # GH#23620
     return request.param
 
 

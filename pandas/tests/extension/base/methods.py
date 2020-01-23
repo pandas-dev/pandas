@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.sorting import nargsort
-import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -260,6 +260,11 @@ class BaseMethodsTests(BaseExtensionTests):
         result = arr.shift(-2, fill_value=fill_value)
         expected = data.take([2, 3, 0, 0])
         self.assert_extension_array_equal(result, expected)
+
+    def test_not_hashable(self, data):
+        # We are in general mutable, so not hashable
+        with pytest.raises(TypeError, match="unhashable type"):
+            hash(data)
 
     def test_hash_pandas_object_works(self, data, as_frame):
         # https://github.com/pandas-dev/pandas/issues/23066

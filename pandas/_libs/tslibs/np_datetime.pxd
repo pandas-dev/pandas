@@ -72,6 +72,6 @@ cdef npy_datetime get_datetime64_value(object obj) nogil
 cdef npy_timedelta get_timedelta64_value(object obj) nogil
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
 
-cdef int _string_to_dts(object val, npy_datetimestruct* dts,
+cdef int _string_to_dts(str val, npy_datetimestruct* dts,
                         int* out_local, int* out_tzoffset,
                         bint want_exc) except? -1

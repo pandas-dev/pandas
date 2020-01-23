@@ -12,8 +12,9 @@ from pandas.compat._optional import VERSIONS, _get_version, import_optional_depe
 
 
 def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
-    "Returns system information as a list"
-
+    """
+    Returns system information as a list
+    """
     blob: List[Tuple[str, Optional[Union[str, int]]]] = []
 
     # get full commit hash
@@ -40,14 +41,14 @@ def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
             [
                 ("python", ".".join(map(str, sys.version_info))),
                 ("python-bits", struct.calcsize("P") * 8),
-                ("OS", "{sysname}".format(sysname=sysname)),
-                ("OS-release", "{release}".format(release=release)),
+                ("OS", f"{sysname}"),
+                ("OS-release", f"{release}"),
                 # ("Version", "{version}".format(version=version)),
-                ("machine", "{machine}".format(machine=machine)),
-                ("processor", "{processor}".format(processor=processor)),
-                ("byteorder", "{byteorder}".format(byteorder=sys.byteorder)),
-                ("LC_ALL", "{lc}".format(lc=os.environ.get("LC_ALL", "None"))),
-                ("LANG", "{lang}".format(lang=os.environ.get("LANG", "None"))),
+                ("machine", f"{machine}"),
+                ("processor", f"{processor}"),
+                ("byteorder", f"{sys.byteorder}"),
+                ("LC_ALL", f"{os.environ.get('LC_ALL', 'None')}"),
+                ("LANG", f"{os.environ.get('LANG', 'None')}"),
                 ("LOCALE", ".".join(map(str, locale.getlocale()))),
             ]
         )
@@ -123,7 +124,7 @@ def show_versions(as_json=False):
             print(tpl.format(k=k, stat=stat))
 
 
-def main():
+def main() -> int:
     from optparse import OptionParser
 
     parser = OptionParser()

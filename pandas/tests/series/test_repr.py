@@ -8,14 +8,14 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
+    MultiIndex,
     Series,
     date_range,
     option_context,
     period_range,
     timedelta_range,
 )
-from pandas.core.index import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesRepr:

@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
@@ -51,9 +51,8 @@ def melt(
             missing = Index(com.flatten(id_vars)).difference(cols)
             if not missing.empty:
                 raise KeyError(
-                    "The following 'id_vars' are not present"
-                    " in the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    "The following 'id_vars' are not present "
+                    f"in the DataFrame: {list(missing)}"
                 )
     else:
         id_vars = []
@@ -73,9 +72,8 @@ def melt(
             missing = Index(com.flatten(value_vars)).difference(cols)
             if not missing.empty:
                 raise KeyError(
-                    "The following 'value_vars' are not present in"
-                    " the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    "The following 'value_vars' are not present in "
+                    f"the DataFrame: {list(missing)}"
                 )
         frame = frame.loc[:, id_vars + value_vars]
     else:
@@ -122,6 +120,7 @@ def melt(
     return frame._constructor(mdata, columns=mcolumns)
 
 
+@deprecate_kwarg(old_arg_name="label", new_arg_name=None)
 def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
     """
     Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
@@ -132,8 +131,6 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     groups : dict
         {new_name : list_of_columns}
     dropna : boolean, default True
-    label : object, default None
-        Dummy kwarg, not used.
 
     Examples
     --------
@@ -193,7 +190,9 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
-def wide_to_long(df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"):
+def wide_to_long(
+    df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
+) -> DataFrame:
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
