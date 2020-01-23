@@ -294,10 +294,6 @@ class Block(PandasObject):
         self.values = state[1]
         self.ndim = self.values.ndim
 
-    def __invert__(self):
-        new_values = ~self.values
-        return make_block(new_values, self.mgr_locs, ndim=self.ndim)
-
     def _slice(self, slicer):
         """ return a slice of my values """
         return self.values[slicer]
