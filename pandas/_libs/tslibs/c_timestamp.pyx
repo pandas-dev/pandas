@@ -119,7 +119,9 @@ cdef class _Timestamp(datetime):
             else:
                 return NotImplemented
 
-        self._assert_tzawareness_compat(other)
+        if op not in [Py_EQ, Py_NE]:
+            self._assert_tzawareness_compat(other)
+
         return cmp_scalar(self.value, ots.value, op)
 
     def __reduce_ex__(self, protocol):
@@ -179,8 +181,7 @@ cdef class _Timestamp(datetime):
     cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
         if self.tzinfo is None:
             if other.tzinfo is not None:
-                raise TypeError('Cannot compare tz-naive and tz-aware '
-                                'timestamps')
+                raise TypeError("Cannot compare tz-naive and tz-aware timestamps")
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 

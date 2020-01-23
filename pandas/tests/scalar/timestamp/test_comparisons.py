@@ -86,10 +86,6 @@ class TestTimestampComparison:
         b = Timestamp("3/12/2012", tz=utc_fixture)
 
         with pytest.raises(TypeError):
-            a == b
-        with pytest.raises(TypeError):
-            a != b
-        with pytest.raises(TypeError):
             a < b
         with pytest.raises(TypeError):
             a <= b
@@ -98,10 +94,6 @@ class TestTimestampComparison:
         with pytest.raises(TypeError):
             a >= b
 
-        with pytest.raises(TypeError):
-            b == a
-        with pytest.raises(TypeError):
-            b != a
         with pytest.raises(TypeError):
             b < a
         with pytest.raises(TypeError):
@@ -160,6 +152,17 @@ class TestTimestampComparison:
         assert result is True
         result = arr > ts
         assert result is False
+
+    def test_timestamp_compare_tz(self):
+        # https://github.com/pandas-dev/pandas/issues/28507
+        ts = Timestamp.now()
+        ts2 = ts.tz_localize("UTC")
+
+        dt = ts.to_pydatetime()
+        dt2 = ts2.to_pydatetime()
+
+        assert ts == ts2
+        assert not dt == dt2
 
 
 def test_rich_comparison_with_unsupported_type():
