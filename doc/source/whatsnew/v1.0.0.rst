@@ -144,7 +144,7 @@ type dedicated to boolean data that can hold missing values. The default
 ``bool`` data type based on a bool-dtype NumPy array, the column can only hold
 ``True`` or ``False``, and not missing values. This new :class:`~arrays.BooleanArray`
 can store missing values as well by keeping track of this in a separate mask.
-(:issue:`29555`, :issue:`30095`)
+(:issue:`29555`, :issue:`30095`, :issue:`31131`)
 
 .. ipython:: python
 
