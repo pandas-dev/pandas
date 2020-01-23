@@ -3610,12 +3610,12 @@ class DataFrame(NDFrame):
             # Explicitly copy here, instead of in sanitize_index,
             # as sanitize_index won't copy an EA, even with copy=True
             value = value.copy()
-            value = sanitize_index(value, self.index, copy=False)
+            value = sanitize_index(value, self.index)
 
         elif isinstance(value, Index) or is_sequence(value):
 
             # turn me into an ndarray
-            value = sanitize_index(value, self.index, copy=False)
+            value = sanitize_index(value, self.index)
             if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
                     value = maybe_convert_platform(value)
@@ -6583,6 +6583,11 @@ Wild         185.0
         DataFrame.pct_change: Percent change over given number of periods.
         DataFrame.shift: Shift index by desired number of periods with an
             optional time freq.
+
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
 
         Examples
         --------

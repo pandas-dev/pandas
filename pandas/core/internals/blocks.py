@@ -1280,7 +1280,10 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
-        new_values = algos.diff(self.values, n, axis=axis)
+        new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
+        # We use block_shape for ExtensionBlock subclasses, which may call here
+        # via a super.
+        new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods, axis=0, fill_value=None):
@@ -1859,6 +1862,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values=values.fillna(value=fill_value, method=method, limit=limit),
             placement=self.mgr_locs,
         )
+
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
+        if axis == 1:
+            # we are by definition 1D.
+            axis = 0
+        return super().diff(n, axis)
 
     def shift(
         self,
@@ -2994,7 +3003,6 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 
 def _extend_blocks(result, blocks=None):
     """ return a new extended blocks, given the result """
-    from pandas.core.internals import BlockManager
 
     if blocks is None:
         blocks = []
@@ -3004,9 +3012,8 @@ def _extend_blocks(result, blocks=None):
                 blocks.extend(r)
             else:
                 blocks.append(r)
-    elif isinstance(result, BlockManager):
-        blocks.extend(result.blocks)
     else:
+        assert isinstance(result, Block), type(result)
         blocks.append(result)
     return blocks
 
