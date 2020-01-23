@@ -476,6 +476,14 @@ def test_invert(fill_value):
     expected = SparseArray(~arr, fill_value=not fill_value)
     tm.assert_sp_array_equal(result, expected)
 
+    result = ~pd.Series(sparray)
+    expected = pd.Series(expected)
+    tm.assert_series_equal(result, expected)
+
+    result = ~pd.DataFrame({"A": sparray})
+    expected = pd.DataFrame({"A": expected})
+    tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])
 @pytest.mark.parametrize("op", [operator.pos, operator.neg])
