@@ -660,7 +660,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
         name: Optional[Hashable]
-        if len(set(names)) == 1:
+        if len(set(names)) == 1:  # TODO: we have a func in ops for this
             name = names[0]
         else:
             name = None

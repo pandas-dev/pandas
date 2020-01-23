@@ -99,8 +99,12 @@ def test_numpy_ufuncs_other(indices, func):
 
     elif isinstance(idx, PeriodIndex):
         # raise TypeError or ValueError (PeriodIndex)
-        with pytest.raises(Exception):
-            func(idx)
+        if func in [np.isfinite]:
+            result = func(idx)
+            assert isinstance(result, np.ndarray)
+        else:
+            with pytest.raises(Exception):
+                func(idx)
 
     elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
         # Results in bool array

@@ -1278,6 +1278,7 @@ class TestPeriodIndexSeriesMethods:
         )
         obj = tm.box_expected(idx, box_with_array)
         msg = (
+            "cannot use operands with types|"
             r"unsupported operand type\(s\)|can only concatenate|"
             r"must be str|object to str implicitly"
         )

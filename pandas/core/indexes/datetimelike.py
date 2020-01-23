@@ -23,13 +23,14 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_period_dtype,
     is_scalar,
+    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas.core import algorithms
+from pandas.core import algorithms, ops
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
@@ -125,6 +126,79 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # no need to infer if freq is None
             attrs["freq"] = "infer"
         return Index(result, **attrs)
+
+    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        # unary ufuncs
+        if (
+            len(inputs) == 1
+            and inputs[0] is self
+            and not kwargs
+            and method == "__call__"
+        ):
+            if ufunc.__name__ in ["isfinite"]:
+                return self.notna()
+            if ufunc.__name__ == "negative":
+                return -self
+            if ufunc.__name__ == "absolute":
+                if is_timedelta64_dtype(self.dtype):
+                    return abs(self)
+
+        # binary ufuncs
+        if len(inputs) == 2 and not kwargs and method == "__call__":
+            from pandas import DatetimeIndex, TimedeltaIndex
+
+            new_inputs = [inputs[0], inputs[1]]
+            for i, val in enumerate(new_inputs):
+                if isinstance(val, np.ndarray) and val.dtype.kind == "m":
+                    val = TimedeltaIndex(val)
+                    new_inputs[i] = val
+                if isinstance(val, np.ndarray) and val.dtype.kind == "M":
+                    val = DatetimeIndex(val)
+                    new_inputs[i] = val
+
+            if ufunc.__name__ == "subtract":
+                if not isinstance(inputs[0], DatetimeIndexOpsMixin):
+                    result = new_inputs[1].__rsub__(new_inputs[0])
+                else:
+                    result = new_inputs[0].__sub__(new_inputs[1])
+
+                if result is NotImplemented:
+                    # raise explicitly or else we get recursionerror
+                    raise TypeError("cannot use operands with types")
+                return result
+
+            if ufunc.__name__ == "add":
+                if not isinstance(inputs[0], DatetimeIndexOpsMixin):
+                    result = new_inputs[1].__radd__(new_inputs[0])
+                else:
+                    result = new_inputs[0].__add__(new_inputs[1])
+
+                if result is NotImplemented:
+                    # raise explicitly or else we get recursionerror
+                    raise TypeError("cannot use operands with types")
+                return result
+
+        if (
+            len(inputs) == 2
+            and len(kwargs) == 1
+            and "out" in kwargs
+            and method == "__call__"
+        ):
+            out = kwargs["out"]
+            if ufunc.__name__ == "subtract":
+                out[:] = inputs[0] - inputs[1]
+                return
+            if ufunc.__name__ == "add":
+                out[:] = inputs[0] + inputs[1]
+                return
+
+        return NotImplemented
 
     # ------------------------------------------------------------------------
 
