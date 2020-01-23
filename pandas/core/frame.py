@@ -5066,7 +5066,7 @@ class DataFrame(NDFrame):
 
     def value_counts(
         self,
-        subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        subset=None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
