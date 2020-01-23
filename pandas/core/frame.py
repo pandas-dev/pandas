@@ -2892,14 +2892,17 @@ class DataFrame(NDFrame):
         engine = self.index._engine
 
         try:
-            return engine.get_value(series._values, index)
+            if isinstance(series._values, np.ndarray):
+                # i.e. not EA, we can use engine
+                return engine.get_value(series._values, index)
+            else:
+                loc = series.index.get_loc(index)
+                return series._values[loc]
         except KeyError:
             # GH 20629
             if self.index.nlevels > 1:
                 # partial indexing forbidden
                 raise
-        except (TypeError, ValueError):
-            pass
 
         # we cannot handle direct indexing
         # use positional
