@@ -132,7 +132,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
--
+- Bug in :meth:`DataFrame.replace` was changing other columns' dtypes when values in one column were being replaced with ``NaN`` (:issue:`30512`)
 -
 
 Strings
@@ -202,6 +202,7 @@ Reshaping
 - Fix incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
 - Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
 - Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
+- Bug in :meth:`SeriesGroupBy.aggregate` was resulting in aggregations being overwritten when they shared the same name (:issue:`30092`)
 
 Sparse
 ^^^^^^
