@@ -433,11 +433,7 @@ class Float64Index(NumericIndex):
             raise InvalidIndexError
 
         loc = self.get_loc(key)
-        if not is_scalar(loc):
-            return series.iloc[loc]
-
-        new_values = series._values[loc]
-        return new_values
+        return self._get_values_for_loc(series, loc)
 
     def equals(self, other) -> bool:
         """
