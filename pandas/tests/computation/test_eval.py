@@ -573,45 +573,39 @@ class TestEvalNumexprPandas:
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
             tm.assert_series_equal(expect, result)
 
-    def test_frame_pos(self):
+    @pytest.mark.parametrize(
+        "lhs",
+        [
+            # Float
+            DataFrame(randn(5, 2)),
+            # Int
+            DataFrame(randint(5, size=(5, 2))),
+            # bool doesn't work with numexpr but works elsewhere
+            DataFrame(rand(5, 2) > 0.5),
+        ],
+    )
+    def test_frame_pos(self, lhs):
         expr = self.ex("+")
-
-        # float
-        lhs = DataFrame(randn(5, 2))
         expect = lhs
+
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
         tm.assert_frame_equal(expect, result)
 
-        # int
-        lhs = DataFrame(randint(5, size=(5, 2)))
-        expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_frame_equal(expect, result)
-
-        # bool doesn't work with numexpr but works elsewhere
-        lhs = DataFrame(rand(5, 2) > 0.5)
-        expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_frame_equal(expect, result)
-
-    def test_series_pos(self):
+    @pytest.mark.parametrize(
+        "lhs",
+        [
+            # Float
+            Series(randn(5)),
+            # Int
+            Series(randint(5, size=5)),
+            # bool doesn't work with numexpr but works elsewhere
+            Series(rand(5) > 0.5),
+        ],
+    )
+    def test_series_pos(self, lhs):
         expr = self.ex("+")
-
-        # float
-        lhs = Series(randn(5))
         expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_series_equal(expect, result)
 
-        # int
-        lhs = Series(randint(5, size=5))
-        expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_series_equal(expect, result)
-
-        # bool doesn't work with numexpr but works elsewhere
-        lhs = Series(rand(5) > 0.5)
-        expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
         tm.assert_series_equal(expect, result)
 
