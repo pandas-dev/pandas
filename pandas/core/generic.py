@@ -1393,8 +1393,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # inv fails with 0 len
             return self
 
-        arr = operator.inv(com.values_from_object(self))
-        return self.__array_wrap__(arr)
+        new_data = self._data.apply(operator.invert)
+        result = self._constructor(new_data).__finalize__(self)
+        return result
 
     def __nonzero__(self):
         raise ValueError(

@@ -18,7 +18,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
@@ -682,8 +682,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        if is_scalar(key) and isna(key):
-            key = NaT  # FIXME: do this systematically
+        if is_valid_nat_for_dtype(key, self.dtype):
+            key = NaT
 
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by

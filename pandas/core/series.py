@@ -1063,9 +1063,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             if takeable:
                 self._values[label] = value
-            else:
+            elif isinstance(self._values, np.ndarray):
+                # i.e. not EA, so we can use _engine
                 self.index._engine.set_value(self._values, label, value)
-        except (KeyError, TypeError):
+            else:
+                self.loc[label] = value
+        except KeyError:
 
             # set using a non-recursive method
             self.loc[label] = value
@@ -2244,6 +2247,11 @@ Name: Max Speed, dtype: float64
             optional time freq.
         DataFrame.diff: First discrete difference of object.
 
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+
         Examples
         --------
         Difference with previous row
@@ -2280,7 +2288,7 @@ Name: Max Speed, dtype: float64
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com.values_from_object(self), periods)
+        result = algorithms.diff(self.array, periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1) -> float:
