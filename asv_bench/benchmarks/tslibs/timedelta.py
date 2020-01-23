@@ -48,7 +48,7 @@ class TimedeltaConstructor:
         Timedelta("nat")
 
     def time_from_pd_timedelta(self):
-        TimeDelta(self.td)
+        Timedelta(self.td)
 
 
 class TimedeltaProperties:
