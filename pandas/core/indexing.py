@@ -1608,19 +1608,22 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
-        # if we are a label return me
-        try:
-            return labels.get_loc(key)
-        except LookupError:
-            if isinstance(key, tuple) and isinstance(labels, ABCMultiIndex):
-                if len(key) == labels.nlevels:
-                    return {"key": key}
-                raise
-        except TypeError:
-            pass
-        except ValueError:
-            if not is_int_positional:
-                raise
+        if is_scalar(key) or isinstance(labels, ABCMultiIndex):
+            # Otherwise get_loc will raise InvalidIndexError
+
+            # if we are a label return me
+            try:
+                return labels.get_loc(key)
+            except LookupError:
+                if isinstance(key, tuple) and isinstance(labels, ABCMultiIndex):
+                    if len(key) == labels.nlevels:
+                        return {"key": key}
+                    raise
+            except TypeError:
+                pass
+            except ValueError:
+                if not is_int_positional:
+                    raise
 
         # a positional
         if is_int_positional:
