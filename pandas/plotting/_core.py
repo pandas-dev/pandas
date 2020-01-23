@@ -374,7 +374,6 @@ as ``layout`` is returned:
     <class 'numpy.ndarray'>
 """
 
-
 _backend_doc = """\
 backend : str, default None
     Backend to use instead of the backend specified in the option
@@ -846,6 +845,8 @@ class PlotAccessor(PandasObject):
                     data.columns = label_name
 
         return plot_backend.plot(data, kind=kind, **kwargs)
+
+    __call__.__doc__ = __doc__
 
     def line(self, x=None, y=None, **kwargs):
         """
