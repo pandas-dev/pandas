@@ -164,22 +164,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
 
-    # Try to run function on index first, and then on elements of index
-    # Especially important for group-by functionality
-    def map(self, mapper, na_action=None):
-        try:
-            result = mapper(self)
-
-            # Try to use this result if we can
-            if isinstance(result, np.ndarray):
-                result = Index(result)
-
-            if not isinstance(result, Index):
-                raise TypeError("The map function must return an Index object")
-            return result
-        except Exception:
-            return self.astype(object).map(mapper)
-
     def sort_values(self, return_indexer=False, ascending=True):
         """
         Return sorted copy of Index.
