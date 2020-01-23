@@ -274,7 +274,6 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - :class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
-- :class:`pandas.core.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
 *pandas 0.25.x*
 
@@ -293,20 +292,21 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 
    pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
 
-- :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
+:meth:`DataFrame.merge` preserves right frame's row order
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
 
-.. ipython:: python
+.. code-block:: python
 
     left_df = pd.DataFrame({"colors": ["blue", "red"]}, index=pd.Index([0, 1]))
     right_df = pd.DataFrame({"hats": ["small", "big"]}, index=pd.Index([1, 0]))
+    left_df
+    right_df
 
 *pandas 0.25.x*
 
-.. ipython:: python
+.. code-block:: python
     left_df.merge(right_df, left_index=True, right_index=True, how="right")
-        colors   hats
-    0    blue    big
-    1     red  small
 
 
 *pandas 1.0.0*
@@ -976,7 +976,6 @@ Reshaping
 - Bug in :func:`melt` where supplying mixed strings and numeric values for ``id_vars`` or ``value_vars`` would incorrectly raise a ``ValueError`` (:issue:`29718`)
 - Dtypes are now preserved when transposing a ``DataFrame`` where each column is the same extension dtype (:issue:`30091`)
 - Bug in :func:`merge_asof` merging on a tz-aware ``left_index`` and ``right_on`` a tz-aware column (:issue:`29864`)
-- :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
 -
 
 Sparse
