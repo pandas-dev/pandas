@@ -701,7 +701,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         numpy.ndarray
-            The values in the series converted to a :class:`numpy.ndarary`
+            The values in the series converted to a :class:`numpy.ndarray`
             with the specified `dtype`.
 
         See Also
@@ -743,35 +743,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     __int__ = _coerce_method(int)
 
     # ----------------------------------------------------------------------
-
-    def _unpickle_series_compat(self, state) -> None:
-        if isinstance(state, dict):
-            self._data = state["_data"]
-            self.name = state["name"]
-            self.index = self._data.index
-
-        elif isinstance(state, tuple):
-
-            # < 0.12 series pickle
-
-            nd_state, own_state = state
-
-            # recreate the ndarray
-            data = np.empty(nd_state[1], dtype=nd_state[2])
-            np.ndarray.__setstate__(data, nd_state)
-
-            # backwards compat
-            index, name = own_state[0], None
-            if len(own_state) > 1:
-                name = own_state[1]
-
-            # recreate
-            self._data = SingleBlockManager(data, index, fastpath=True)
-            self._index = index
-            self.name = name
-
-        else:
-            raise Exception(f"cannot unpickle legacy formats -> [{state}]")
 
     # indexers
     @property
@@ -837,21 +808,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
+
+        if key is Ellipsis:
+            return self
+
         try:
             result = self.index.get_value(self, key)
 
-            if not is_scalar(result):
-                if is_list_like(result) and not isinstance(result, Series):
-
-                    # we need to box if loc of the key isn't scalar here
-                    # otherwise have inline ndarray/lists
-                    try:
-                        if not is_scalar(self.index.get_loc(key)):
-                            result = self._constructor(
-                                result, index=[key] * len(result), dtype=self.dtype
-                            ).__finalize__(self)
-                    except KeyError:
-                        pass
             return result
         except InvalidIndexError:
             pass
@@ -859,8 +822,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                 # kludge
                 pass
-            elif key is Ellipsis:
-                return self
             elif com.is_bool_indexer(key):
                 pass
             else:
@@ -968,7 +929,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if takeable:
             return com.maybe_box_datetimelike(self._values[label])
-        return self.index.get_value(self._values, label)
+        return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
@@ -3986,6 +3947,32 @@ Name: Max Speed, dtype: float64
             )
         else:
             return self._set_name(index, inplace=inplace)
+
+    @Appender(
+        """
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+
+        >>> s.set_axis(['a', 'b', 'c'], axis=0)
+        a    1
+        b    2
+        c    3
+        dtype: int64
+    """
+    )
+    @Substitution(
+        **_shared_doc_kwargs,
+        extended_summary_sub="",
+        axis_description_sub="",
+        see_also_sub="",
+    )
+    @Appender(generic.NDFrame.set_axis.__doc__)
+    def set_axis(self, labels, axis=0, inplace=False):
+        return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)
