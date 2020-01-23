@@ -248,7 +248,7 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         # Fails creating expected
         super().test_repeat(data, repeats, as_series, use_numpy)
 
-    @pytest.mark.skip(reason="algorithms.diff skips PandasArray")
+    @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 

@@ -1,5 +1,9 @@
+import operator
+
 import numpy as np
 import pytest
+
+from pandas.core.dtypes.common import is_bool_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -234,14 +238,18 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods):
         data = data[:5]
+        if is_bool_dtype(data.dtype):
+            op = operator.xor
+        else:
+            op = operator.sub
         try:
             # does this array implement ops?
-            data - data
+            op(data, data)
         except Exception:
             pytest.skip(f"{type(data)} does not support diff")
         s = pd.Series(data)
         result = s.diff(periods)
-        expected = pd.Series(data - data.shift(periods))
+        expected = pd.Series(op(data, data.shift(periods)))
         self.assert_series_equal(result, expected)
 
         df = pd.DataFrame({"A": data, "B": [1.0] * 5})
