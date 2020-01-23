@@ -808,6 +808,13 @@ class Base:
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
+    def test_map_str(self):
+        # GH 31202
+        index = self.create_index()
+        result = index.map(str)
+        expected = Index([str(x) for x in index], dtype=object)
+        tm.assert_index_equal(result, expected)
+
     def test_putmask_with_wrong_mask(self):
         # GH18368
         index = self.create_index()
