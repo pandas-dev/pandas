@@ -2994,7 +2994,6 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 
 def _extend_blocks(result, blocks=None):
     """ return a new extended blocks, given the result """
-    from pandas.core.internals import BlockManager
 
     if blocks is None:
         blocks = []
@@ -3004,9 +3003,8 @@ def _extend_blocks(result, blocks=None):
                 blocks.extend(r)
             else:
                 blocks.append(r)
-    elif isinstance(result, BlockManager):
-        blocks.extend(result.blocks)
     else:
+        assert isinstance(result, Block), type(result)
         blocks.append(result)
     return blocks
 

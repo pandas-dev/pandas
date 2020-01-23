@@ -74,7 +74,7 @@ def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
+def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
     """
     Extract from a masked rec array and create the manager.
     """
@@ -143,7 +143,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     ):
 
         if not hasattr(values, "dtype"):
-            values = prep_ndarray(values, copy=copy)
+            values = _prep_ndarray(values, copy=copy)
             values = values.ravel()
         elif copy:
             values = values.copy()
@@ -166,7 +166,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
-    values = prep_ndarray(values, copy=copy)
+    values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None:
         if not is_dtype_equal(values.dtype, dtype):
@@ -257,7 +257,7 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True) -> np.ndarray:
+def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
@@ -598,29 +598,24 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 # Series-Based
 
 
-def sanitize_index(data, index, copy=False):
+def sanitize_index(data, index: Index):
     """
     Sanitize an index type to return an ndarray of the underlying, pass
     through a non-Index.
     """
 
-    if index is None:
-        return data
-
     if len(data) != len(index):
         raise ValueError("Length of values does not match length of index")
 
-    if isinstance(data, ABCIndexClass) and not copy:
+    if isinstance(data, ABCIndexClass):
         pass
     elif isinstance(data, (ABCPeriodIndex, ABCDatetimeIndex)):
         data = data._values
-        if copy:
-            data = data.copy()
 
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
         if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=copy)
+            data = sanitize_array(data, index, copy=False)
 
     return data
