@@ -182,7 +182,7 @@ def _reconstruct_data(values, dtype, original):
     """
 
     if is_extension_array_dtype(dtype):
-        values = dtype.construct_array_type()._from_sequence(values)
+        values = dtype.construct_array_type()._from_sequence(values, dtype)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
