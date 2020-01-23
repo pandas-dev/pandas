@@ -5159,9 +5159,9 @@ class DataFrame(NDFrame):
                 "`dropna=False` not yet supported for DataFrames."
             )
 
-        if (bins is not None) and (len(subset) > 1):
+        if bins is not None:
             raise NotImplementedError(
-                "`bins` parameter not yet supported for more than one column."
+                "`bins` parameter not yet supported for DataFrames."
             )
 
         counts = self.groupby(subset).size()
