@@ -5149,14 +5149,6 @@ class DataFrame(NDFrame):
         6         0            0.25
         2         2            0.25
         dtype: float64
-        >>> single_col_df = df[['num_legs']]
-        >>> single_col_df.value_counts(bins=4)
-        num_legs
-        (3.0, 4.0]      2
-        (5.0, 6.0]      1
-        (1.995, 3.0]    1
-        (4.0, 5.0]      0
-        dtype: int64
         """
         if subset is None:
             subset = self.columns.tolist()
