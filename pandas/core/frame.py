@@ -5075,13 +5075,14 @@ class DataFrame(NDFrame):
     ):
         """
         Return a Series containing counts of unique rows in the DataFrame.
-        .. versionadded:: 1.0.0
+        .. versionadded:: 1.1.0
         The returned Series will have a MultiIndex with one level per input
         column.
-        By default, rows that contain any NaN value are omitted from the
-        results.
-        By default, the resulting series will be in descending order so that the
+        By default, rows that contain any NA values are omitted from the
+        result.
+        By default, the resulting Series will be in descending order so that the
         first element is the most frequently-occurring row.
+
         Parameters
         ----------
         subset : list-like, default self.columns
@@ -5103,13 +5104,16 @@ class DataFrame(NDFrame):
             This parameter is not yet supported and must be set to True (the
             default value). It exists to ensure compatibiliy with
             `Series.value_counts`.
-            Don't include counts of rows containing NaN.
+            Don't include counts of rows containing NA values.
+
         Returns
         -------
-        counts : Series
+        Series
+
         See Also
         --------
         Series.value_counts: Equivalent method on Series.
+
         Examples
         --------
         >>> df = pd.DataFrame({'num_legs': [2, 4, 4, 6],
@@ -5162,6 +5166,7 @@ class DataFrame(NDFrame):
             raise NotImplementedError(
                 "`dropna=False` not yet supported for DataFrames."
             )
+
         if (bins is not None) and (len(subset) > 1):
             raise NotImplementedError(
                 "`bins` parameter not yet supported for more than one column."
