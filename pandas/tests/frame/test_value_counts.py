@@ -94,13 +94,9 @@ def test_data_frame_value_counts_bins_not_supported():
 
 
 def test_data_frame_value_counts_single_col_default():
-    df = pd.DataFrame(
-        {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
-        index=["falcon", "dog", "cat", "ant"],
-    )
-    df_single_col = df[["num_legs"]]
+    df = pd.DataFrame({"num_legs": [2, 4, 4, 6]})
 
-    result = df_single_col.value_counts()
+    result = df.value_counts()
     expected = pd.Series(
         data=[2, 1, 1],
         index=pd.MultiIndex.from_arrays([[4, 6, 2]], names=["num_legs"]),
