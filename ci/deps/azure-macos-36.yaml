@@ -33,3 +33,4 @@ dependencies:
   - pip
   - pip:
     - pyreadstat
+    - pyxlsb
