@@ -15,7 +15,7 @@ class TestDataFrameDiff:
         )
 
         # int dtype
-        a = 10000000000000000
+        a = 10_000_000_000_000_000
         b = a + 1
         s = Series([a, b])
 

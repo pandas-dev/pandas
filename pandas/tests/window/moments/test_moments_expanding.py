@@ -13,15 +13,17 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
     def setup_method(self, method):
         self._create_data()
 
-    def test_expanding_apply_args_kwargs(self, raw):
+    def test_expanding_apply_args_kwargs(self, engine_and_raw):
         def mean_w_arg(x, const):
             return np.mean(x) + const
 
+        engine, raw = engine_and_raw
+
         df = DataFrame(np.random.rand(20, 3))
 
-        expected = df.expanding().apply(np.mean, raw=raw) + 20.0
+        expected = df.expanding().apply(np.mean, engine=engine, raw=raw) + 20.0
 
-        result = df.expanding().apply(mean_w_arg, raw=raw, args=(20,))
+        result = df.expanding().apply(mean_w_arg, engine=engine, raw=raw, args=(20,))
         tm.assert_frame_equal(result, expected)
 
         result = df.expanding().apply(mean_w_arg, raw=raw, kwargs={"const": 20})
@@ -190,11 +192,14 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         )
 
     @pytest.mark.parametrize("has_min_periods", [True, False])
-    def test_expanding_apply(self, raw, has_min_periods):
+    def test_expanding_apply(self, engine_and_raw, has_min_periods):
+
+        engine, raw = engine_and_raw
+
         def expanding_mean(x, min_periods=1):
 
             exp = x.expanding(min_periods=min_periods)
-            result = exp.apply(lambda x: x.mean(), raw=raw)
+            result = exp.apply(lambda x: x.mean(), raw=raw, engine=engine)
             return result
 
         # TODO(jreback), needed to add preserve_nan=False
@@ -202,14 +207,20 @@ class TestExpandingMomentsConsistency(ConsistencyBase):
         self._check_expanding(expanding_mean, np.mean, preserve_nan=False)
         self._check_expanding_has_min_periods(expanding_mean, np.mean, has_min_periods)
 
-    def test_expanding_apply_empty_series(self, raw):
+    def test_expanding_apply_empty_series(self, engine_and_raw):
+        engine, raw = engine_and_raw
         ser = Series([], dtype=np.float64)
-        tm.assert_series_equal(ser, ser.expanding().apply(lambda x: x.mean(), raw=raw))
+        tm.assert_series_equal(
+            ser, ser.expanding().apply(lambda x: x.mean(), raw=raw, engine=engine)
+        )
 
-    def test_expanding_apply_min_periods_0(self, raw):
+    def test_expanding_apply_min_periods_0(self, engine_and_raw):
         # GH 8080
+        engine, raw = engine_and_raw
         s = Series([None, None, None])
-        result = s.expanding(min_periods=0).apply(lambda x: len(x), raw=raw)
+        result = s.expanding(min_periods=0).apply(
+            lambda x: len(x), raw=raw, engine=engine
+        )
         expected = Series([1.0, 2.0, 3.0])
         tm.assert_series_equal(result, expected)
 
