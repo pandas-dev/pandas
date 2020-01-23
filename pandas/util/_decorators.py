@@ -304,7 +304,7 @@ def deprecate_nonkeyword_arguments(
                 num_allow_args = allow_args
             if len(args) > num_allow_args:
                 msg = (
-                    "After Pandas version {version} all arguments of {funcname}"
+                    "After pandas version {version} all arguments of {funcname}"
                     "{except_args} will be keyword-only"
                 ).format(version=version, funcname=func.__name__, except_args=arguments)
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
