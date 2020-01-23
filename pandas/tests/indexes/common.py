@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -301,6 +302,9 @@ class Base:
 
         index_type = type(indices)
         result = index_type(indices.values, copy=True, **init_kwargs)
+        if is_datetime64tz_dtype(indices.dtype):
+            result = result.tz_localize("UTC").tz_convert(indices.tz)
+
         tm.assert_index_equal(indices, result)
         tm.assert_numpy_array_equal(
             indices._ndarray_values, result._ndarray_values, check_same="copy"
@@ -464,6 +468,11 @@ class Base:
         intersect = first.intersection(second)
         assert tm.equalContents(intersect, second)
 
+        if is_datetime64tz_dtype(indices.dtype):
+            # The second.values below will drop tz, so the rest of this test
+            #  is not applicable.
+            return
+
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
@@ -481,6 +490,11 @@ class Base:
         everything = indices
         union = first.union(second)
         assert tm.equalContents(union, everything)
+
+        if is_datetime64tz_dtype(indices.dtype):
+            # The second.values below will drop tz, so the rest of this test
+            #  is not applicable.
+            return
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
