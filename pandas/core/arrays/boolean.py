@@ -298,7 +298,7 @@ class BooleanArray(BaseMaskedArray):
             elif s in ["False", "FALSE", "false"]:
                 return False
             else:
-                return s
+                raise ValueError(f"{s} cannot be cast to bool")
 
         scalars = [map_string(x) for x in strings]
         return cls._from_sequence(scalars, dtype, copy)
