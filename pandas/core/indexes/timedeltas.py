@@ -1,5 +1,4 @@
 """ implement the TimedeltaIndex """
-from datetime import datetime
 
 import numpy as np
 
@@ -10,19 +9,23 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE,
     is_float,
     is_integer,
-    is_list_like,
     is_scalar,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
+from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.base import (
+    Index,
+    InvalidIndexError,
+    _index_shared_docs,
+    maybe_extract_name,
+)
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimelikeDelegateMixin,
@@ -236,22 +239,10 @@ class TimedeltaIndex(
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-
-        if isinstance(key, str):
-            try:
-                key = Timedelta(key)
-            except ValueError:
-                raise KeyError(key)
-
-        if isinstance(key, self._data._recognized_scalars) or key is NaT:
-            key = Timedelta(key)
-            return self.get_value_maybe_box(series, key)
-
-        value = Index.get_value(self, series, key)
-        return com.maybe_box(self, value, series, key)
-
-    def get_value_maybe_box(self, series, key: Timedelta):
-        loc = self.get_loc(key)
+        if is_integer(key):
+            loc = key
+        else:
+            loc = self.get_loc(key)
         return self._get_values_for_loc(series, loc)
 
     def get_loc(self, key, method=None, tolerance=None):
@@ -260,26 +251,30 @@ class TimedeltaIndex(
 
         Returns
         -------
-        loc : int
+        loc : int, slice, or ndarray[int]
         """
-        if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):
-            # GH#20464 datetime check here is to ensure we don't allow
-            #   datetime objects to be incorrectly treated as timedelta
-            #   objects; NaT is a special case because it plays a double role
-            #   as Not-A-Timedelta
-            raise TypeError
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
 
-        if isna(key):
+        if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
+
+        elif isinstance(key, str):
+            try:
+                key = Timedelta(key)
+            except ValueError:
+                raise KeyError(key)
+
+        elif isinstance(key, self._data._recognized_scalars) or key is NaT:
+            key = Timedelta(key)
+
+        else:
+            raise KeyError(key)
 
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-
-        if _is_convertible_to_td(key) or key is NaT:
-            key = Timedelta(key)
-            return Index.get_loc(self, key, method, tolerance)
 
         return Index.get_loc(self, key, method, tolerance)
 

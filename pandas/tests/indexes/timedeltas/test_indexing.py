@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -48,12 +49,19 @@ class TestGetItem:
 
     @pytest.mark.parametrize(
         "key",
-        [pd.Timestamp("1970-01-01"), pd.Timestamp("1970-01-02"), datetime(1970, 1, 1)],
+        [
+            pd.Timestamp("1970-01-01"),
+            pd.Timestamp("1970-01-02"),
+            datetime(1970, 1, 1),
+            pd.Timestamp("1970-01-03").to_datetime64(),
+            # non-matching NA values
+            np.datetime64("NaT"),
+        ],
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
         tdi = pd.timedelta_range(0, periods=10)
-        with pytest.raises(TypeError):
+        with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 
 
