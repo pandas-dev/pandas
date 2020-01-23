@@ -1577,7 +1577,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
                 )
 
-    def _convert_to_indexer(self, obj, axis: int, raise_missing: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on a ndarray.
@@ -1594,30 +1594,30 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """
         labels = self.obj._get_axis(axis)
 
-        if isinstance(obj, slice):
-            return self._convert_slice_indexer(obj, axis)
+        if isinstance(key, slice):
+            return self._convert_slice_indexer(key, axis)
 
         # try to find out correct indexer, if not type correct raise
         try:
-            obj = self._convert_scalar_indexer(obj, axis)
+            key = self._convert_scalar_indexer(key, axis)
         except TypeError:
             # but we will allow setting
             pass
 
         # see if we are positional in nature
         is_int_index = labels.is_integer()
-        is_int_positional = is_integer(obj) and not is_int_index
+        is_int_positional = is_integer(key) and not is_int_index
 
-        if is_scalar(obj) or isinstance(labels, ABCMultiIndex):
+        if is_scalar(key) or isinstance(labels, ABCMultiIndex):
             # Otherwise get_loc will raise InvalidIndexError
 
             # if we are a label return me
             try:
-                return labels.get_loc(obj)
+                return labels.get_loc(key)
             except LookupError:
-                if isinstance(obj, tuple) and isinstance(labels, ABCMultiIndex):
-                    if len(obj) == labels.nlevels:
-                        return {"key": obj}
+                if isinstance(key, tuple) and isinstance(labels, ABCMultiIndex):
+                    if len(key) == labels.nlevels:
+                        return {"key": key}
                     raise
             except TypeError:
                 pass
@@ -1633,33 +1633,33 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             if self.name == "loc":
                 # always valid
-                return {"key": obj}
+                return {"key": key}
 
-            if obj >= self.obj.shape[axis] and not isinstance(labels, ABCMultiIndex):
+            if key >= self.obj.shape[axis] and not isinstance(labels, ABCMultiIndex):
                 # a positional
                 raise ValueError("cannot set by positional indexing with enlargement")
 
-            return obj
+            return key
 
-        if is_nested_tuple(obj, labels):
-            return labels.get_locs(obj)
+        if is_nested_tuple(key, labels):
+            return labels.get_locs(key)
 
-        elif is_list_like_indexer(obj):
+        elif is_list_like_indexer(key):
 
-            if com.is_bool_indexer(obj):
-                obj = check_bool_indexer(labels, obj)
-                (inds,) = obj.nonzero()
+            if com.is_bool_indexer(key):
+                key = check_bool_indexer(labels, key)
+                (inds,) = key.nonzero()
                 return inds
             else:
                 # When setting, missing keys are not allowed, even with .loc:
-                return self._get_listlike_indexer(obj, axis, raise_missing=True)[1]
+                return self._get_listlike_indexer(key, axis, raise_missing=True)[1]
         else:
             try:
-                return labels.get_loc(obj)
+                return labels.get_loc(key)
             except LookupError:
                 # allow a not found key only if we are a setter
-                if not is_list_like_indexer(obj):
-                    return {"key": obj}
+                if not is_list_like_indexer(key):
+                    return {"key": key}
                 raise
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
@@ -2051,21 +2051,20 @@ class _iLocIndexer(_LocationIndexer):
 
             return self._get_loc(key, axis=axis)
 
-    # raise_missing is included for compat with the parent class signature
-    def _convert_to_indexer(self, obj, axis: int, raise_missing: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         """
         Much simpler as we only have to deal with our valid types.
         """
         # make need to convert a float key
-        if isinstance(obj, slice):
-            return self._convert_slice_indexer(obj, axis)
+        if isinstance(key, slice):
+            return self._convert_slice_indexer(key, axis)
 
-        elif is_float(obj):
-            return self._convert_scalar_indexer(obj, axis)
+        elif is_float(key):
+            return self._convert_scalar_indexer(key, axis)
 
         try:
-            self._validate_key(obj, axis)
-            return obj
+            self._validate_key(key, axis)
+            return key
         except ValueError:
             raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
