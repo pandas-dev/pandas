@@ -5175,7 +5175,9 @@ class DataFrame(NDFrame):
             counts /= counts.sum()
         # Force MultiIndex for single column
         if len(subset) == 1:
-            counts.index = MultiIndex.from_arrays([counts.index])
+            counts.index = MultiIndex.from_arrays(
+                [counts.index], names=[counts.index.name]
+            )
 
         return counts
 
