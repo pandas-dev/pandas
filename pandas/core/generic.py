@@ -3287,7 +3287,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if is_copy is not None:
             warnings.warn(
                 "is_copy is deprecated and will be removed in a future version. "
-                "take always returns a copy, so there is no need to specify this.",
+                "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -3300,6 +3300,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
         return self._constructor(new_data).__finalize__(self)
+
+    def _take_with_is_copy(
+        self: FrameOrSeries, indices, axis=0, is_copy: bool_t = True, **kwargs
+    ) -> FrameOrSeries:
+        """
+        Internal version of the `take` method that sets the `_is_copy`
+        attribute to keep track of the parent dataframe (using in indexing
+        for the SettingWithCopyWarning).
+
+        See the docstring of `take` for full explanation of the parameters.
+        """
+        result = self.take(indices=indices, axis=axis, **kwargs)
+        if is_copy:
+            if not result._get_axis(axis).equals(self._get_axis(axis)):
+                result._set_is_copy(self)
+        return result
 
     def xs(self, key, axis=0, level=None, drop_level: bool_t = True):
         """
@@ -3428,9 +3444,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     (inds,) = loc.nonzero()
-                    return self.take(inds, axis=axis)
+                    return self._take_with_is_copy(inds, axis=axis)
                 else:
-                    return self.take(loc, axis=axis)
+                    return self._take_with_is_copy(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -3487,7 +3503,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self.take(item, axis=self._info_axis_number)
+            lower = self._take_with_is_copy(item, axis=self._info_axis_number)
         return lower
 
     def _box_item_values(self, key, values):
@@ -7413,7 +7429,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self.take(indexer, axis=axis)
+        return self._take_with_is_copy(indexer, axis=axis)
 
     def between_time(
         self: FrameOrSeries,
@@ -7495,7 +7511,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self.take(indexer, axis=axis)
+        return self._take_with_is_copy(indexer, axis=axis)
 
     def resample(
         self,
