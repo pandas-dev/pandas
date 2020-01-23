@@ -360,6 +360,17 @@ def test_func_duplicates_raises():
         df.groupby("A").agg(["min", "min"])
 
 
+@pytest.mark.parametrize(
+    "index", [pd.CategoricalIndex(list("abc")), pd.interval_range(0, 3)]
+)
+def test_agg_with_ea_backed_index(index):
+    # GH 31223
+    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
+    result = df.groupby("group").agg({"value": Series.nunique})
+    expected = DataFrame({"group": [1, 2], "value": [2, 1]}).set_index("group")
+    tm.assert_frame_equal(result, expected)
+
+
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
