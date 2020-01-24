@@ -7498,7 +7498,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries, time, asof: bool_t = False, axis=None
     ) -> FrameOrSeries:
         """
-        Select values at particular time of day (e.g. 9:30AM).
+        Select values at particular time of day (e.g., 9:30AM).
 
         Parameters
         ----------
