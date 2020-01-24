@@ -760,7 +760,7 @@ we can also pass in ``sum``.
        values='val0', index='row', columns='col', aggfunc='sum', fill_value=0)
 
 Another aggregation we can do is calculate the frequency in which the columns
-and rows occur together a.k.a "cross tabulation". To do this, we can pass
+and rows occur together a.k.a. "cross tabulation". To do this, we can pass
 ``size`` to the ``aggfunc`` parameter.
 
 .. ipython:: python
