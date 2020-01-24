@@ -2,7 +2,6 @@
 Tests for DatetimeIndex timezone-related methods
 """
 from datetime import date, datetime, time, timedelta, tzinfo
-from distutils.version import LooseVersion
 
 import dateutil
 from dateutil.tz import gettz, tzlocal
