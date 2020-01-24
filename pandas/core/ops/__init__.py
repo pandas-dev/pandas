@@ -5,12 +5,13 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Set, Tuple, Union
+from typing import Optional, Set, Tuple, Union
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
+from pandas._typing import Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
@@ -610,7 +611,7 @@ def _combine_series_frame(left, right, func, axis: int):
 
 
 def _align_method_FRAME(
-    left, right, axis, flex: Optional[bool] = False, level: Optional[Label] = None
+    left, right, axis, flex: Optional[bool] = False, level: Level = None
 ):
     """
     Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
