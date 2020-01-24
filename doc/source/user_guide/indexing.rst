@@ -105,7 +105,7 @@ Basics
 ------
 
 As mentioned when introducing the data structures in the :ref:`last section
-<basics>`, the primary function of indexing with ``[]`` (a.k.a ``__getitem__``
+<basics>`, the primary function of indexing with ``[]`` (a.k.a. ``__getitem__``
 for those familiar with implementing class behavior in Python) is selecting out
 lower-dimensional slices. The following table shows return type values when
 indexing pandas objects with ``[]``:
