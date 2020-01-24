@@ -18,7 +18,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
@@ -27,7 +27,7 @@ from pandas.core.arrays.datetimes import (
     validate_tz_from_dtype,
 )
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
@@ -641,6 +641,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
 
         if isinstance(key, (datetime, np.datetime64)):
             return self.get_value_maybe_box(series, key)
@@ -677,8 +679,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         loc : int
         """
-        if is_scalar(key) and isna(key):
-            key = NaT  # FIXME: do this systematically
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
+
+        if is_valid_nat_for_dtype(key, self.dtype):
+            key = NaT
 
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
