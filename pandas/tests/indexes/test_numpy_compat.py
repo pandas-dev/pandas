@@ -81,6 +81,9 @@ def test_numpy_ufuncs_other(indices, func):
 
     idx = indices
     if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
+        if isinstance(idx, DatetimeIndex) and idx.tz is not None:
+            if func in [np.isfinite, np.isnan, np.isinf]:
+                pytest.xfail(reason="__array_ufunc__ is not defined")
 
         if not _np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
             # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64

@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._libs import index as libindex, lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -47,6 +47,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
     ABCSparseArray,
 )
@@ -76,6 +78,7 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
+    IntervalIndex,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
@@ -177,6 +180,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _name: Optional[Hashable]
     _metadata: List[str] = ["name"]
+    _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -495,9 +499,42 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @property
     def _values(self):
         """
-        Return the internal repr of this data.
+        Return the internal repr of this data (defined by Block.interval_values).
+        This are the values as stored in the Block (ndarray or ExtensionArray
+        depending on the Block class).
+
+        Differs from the public ``.values`` for certain data types, because of
+        historical backwards compatibility of the public attribute (e.g. period
+        returns object ndarray and datetimetz a datetime64[ns] ndarray for
+        ``.values`` while it returns an ExtensionArray for ``._values`` in those
+        cases).
+
+        Differs from ``.array`` in that this still returns the numpy array if
+        the Block is backed by a numpy array, while ``.array`` ensures to always
+        return an ExtensionArray.
+
+        Differs from ``._ndarray_values``, as that ensures to always return a
+        numpy array (it will call ``_ndarray_values`` on the ExtensionArray, if
+        the Series was backed by an ExtensionArray).
+
+        Overview:
+
+        dtype       | values        | _values       | array         | _ndarray_values |
+        ----------- | ------------- | ------------- | ------------- | --------------- |
+        Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
+        Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
+        dt64[ns]    | ndarray[M8ns] | ndarray[M8ns] | DatetimeArray | ndarray[M8ns]   |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
+        Nullable    | EA            | EA            | EA            | ndarray         |
+
         """
         return self._data.internal_values()
+
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
+    @property
+    def array(self) -> ExtensionArray:
+        return self._data._block.array_values()
 
     def _internal_get_values(self):
         """
@@ -873,6 +910,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
+            elif isinstance(self.index, IntervalIndex):
+                indexer = self.index.get_indexer_for(key)
+                return self.iloc[indexer]
             else:
                 return self._get_values(key)
         elif key_type == "boolean":
@@ -948,6 +988,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self[:] = value
             else:
                 self.loc[key] = value
+        except InvalidIndexError:
+            # e.g. slice
+            self._set_with(key, value)
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
@@ -1061,9 +1104,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             if takeable:
                 self._values[label] = value
-            else:
+            elif isinstance(self._values, np.ndarray):
+                # i.e. not EA, so we can use _engine
                 self.index._engine.set_value(self._values, label, value)
-        except (KeyError, TypeError):
+            else:
+                self.loc[label] = value
+        except KeyError:
 
             # set using a non-recursive method
             self.loc[label] = value
@@ -2242,6 +2288,11 @@ Name: Max Speed, dtype: float64
             optional time freq.
         DataFrame.diff: First discrete difference of object.
 
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+
         Examples
         --------
         Difference with previous row
@@ -2278,7 +2329,7 @@ Name: Max Speed, dtype: float64
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com.values_from_object(self), periods)
+        result = algorithms.diff(self.array, periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1) -> float:
@@ -3348,6 +3399,7 @@ Name: Max Speed, dtype: float64
         Series
             Series with levels swapped in MultiIndex.
         """
+        assert isinstance(self.index, ABCMultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
             self
@@ -3372,6 +3424,7 @@ Name: Max Speed, dtype: float64
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
+        assert isinstance(result.index, ABCMultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
 
@@ -4477,6 +4530,7 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
@@ -4501,8 +4555,15 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    index: "Index" = properties.AxisProperty(
+        axis=0, doc="The index (axis labels) of the Series."
+    )
 
     # ----------------------------------------------------------------------
     # Accessor Methods

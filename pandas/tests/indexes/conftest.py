@@ -7,6 +7,7 @@ indices_dict = {
     "unicode": tm.makeUnicodeIndex(100),
     "string": tm.makeStringIndex(100),
     "datetime": tm.makeDateIndex(100),
+    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
     "period": tm.makePeriodIndex(100),
     "timedelta": tm.makeTimedeltaIndex(100),
     "int": tm.makeIntIndex(100),
