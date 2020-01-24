@@ -980,6 +980,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self[:] = value
             else:
                 self.loc[key] = value
+        except InvalidIndexError:
+            # e.g. slice
+            self._set_with(key, value)
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
