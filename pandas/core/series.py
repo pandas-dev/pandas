@@ -4329,27 +4329,7 @@ Name: Max Speed, dtype: float64
         convert_string: bool = True,
         convert_integer: bool = True,
         convert_boolean: bool = True,
-    ) -> ABCSeries:
-        """
-        Convert objects to best possible type, and optionally,
-        columns of DataFrame or a Series to types supporting ``pd.NA``.
-
-        Parameters
-        ----------
-        infer_objects : bool, default True
-            Whether object dtypes should be converted to the best possible types.
-        convert_string : bool, default True
-            Whether object dtypes should be converted to ``StringDtype()``.
-        convert_integer : bool, default True
-            Whether, if possible, conversion can be done to integer extension types.
-        convert_boolean : bool, defaults True
-            Whether object dtypes should be converted to ``BooleanDtypes()``.
-
-        Returns
-        -------
-        Series
-            copy of Series with new (or existing) dtype
-        """
+    ) -> "Series":
         input_series = self
         if infer_objects:
             input_series = input_series.infer_objects()

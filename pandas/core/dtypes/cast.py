@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import Dtype
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -1024,7 +1025,7 @@ def convert_dtypes(
     convert_string: bool = True,
     convert_integer: bool = True,
     convert_boolean: bool = True,
-):
+) -> Dtype:
     """
     Convert objects to best possible type, and optionally,
     to types supporting ``pd.NA``.
