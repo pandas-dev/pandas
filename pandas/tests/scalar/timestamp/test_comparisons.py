@@ -161,7 +161,10 @@ class TestTimestampComparison:
         dt = ts.to_pydatetime()
         dt2 = ts2.to_pydatetime()
 
-        assert ts == ts2
+        assert ts != ts2
+        assert dt != dt2
+
+        assert not ts == ts2
         assert not dt == dt2
 
 

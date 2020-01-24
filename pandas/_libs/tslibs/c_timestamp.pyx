@@ -119,9 +119,11 @@ cdef class _Timestamp(datetime):
             else:
                 return NotImplemented
 
-        if op not in [Py_EQ, Py_NE]:
-            self._assert_tzawareness_compat(other)
 
+        if op in [Py_EQ, Py_NE]:
+            return op == Py_NE
+
+        self._assert_tzawareness_compat(other)
         return cmp_scalar(self.value, ots.value, op)
 
     def __reduce_ex__(self, protocol):
