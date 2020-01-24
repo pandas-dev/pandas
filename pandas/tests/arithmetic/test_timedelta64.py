@@ -48,7 +48,8 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(res, expected)
 
-        with pytest.raises(TypeError):
+        msg = "Invalid comparison between dtype"
+        with pytest.raises(TypeError, match=msg):
             # zero-dim of wrong dtype should still raise
             tdi >= np.array(4)
 
@@ -442,7 +443,8 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi[0:1] + dti
 
         # random indexes
-        with pytest.raises(TypeError):
+        msg = "Addition/subtraction of integers and integer-arrays"
+        with pytest.raises(TypeError, match=msg):
             tdi + pd.Int64Index([1, 2, 3])
 
         # this is a union!
@@ -604,6 +606,7 @@ class TestAddSubNaTMasking:
     def test_tdi_add_overflow(self):
         # See GH#14068
         # preliminary test scalar analogue of vectorized tests below
+        # TODO: Make raised error message more informative and test
         with pytest.raises(OutOfBoundsDatetime):
             pd.to_timedelta(106580, "D") + Timestamp("2000")
         with pytest.raises(OutOfBoundsDatetime):
@@ -700,13 +703,14 @@ class TestTimedeltaArraylikeAddSubOps:
         actual = -timedelta_NaT + s1
         tm.assert_series_equal(actual, sn)
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             s1 + np.nan
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             np.nan + s1
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s1 - np.nan
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             -np.nan + s1
 
         actual = s1 + pd.NaT
@@ -738,9 +742,10 @@ class TestTimedeltaArraylikeAddSubOps:
         actual = df1 - timedelta_NaT
         tm.assert_frame_equal(actual, dfn)
 
-        with pytest.raises(TypeError):
+        msg = "cannot subtract a datelike from|unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             df1 + np.nan
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df1 - np.nan
 
         actual = df1 + pd.NaT  # NaT is datetime, not timedelta
@@ -957,7 +962,8 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(ts - tdarr, expected2)
         tm.assert_equal(ts + (-tdarr), expected2)
 
-        with pytest.raises(TypeError):
+        msg = "cannot subtract a datelike"
+        with pytest.raises(TypeError, match=msg):
             tdarr - ts
 
     def test_tdi_sub_dt64_array(self, box_with_array):
@@ -969,7 +975,8 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        with pytest.raises(TypeError):
+        msg = "cannot subtract a datelike from"
+        with pytest.raises(TypeError, match=msg):
             tdi - dtarr
 
         # TimedeltaIndex.__rsub__
@@ -1025,7 +1032,8 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # TODO: parametrize over box for pi?
         tdi = tm.box_expected(tdi, box_with_array)
-        with pytest.raises(TypeError):
+        msg = "cannot subtract|unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             tdi - pi
 
         # FIXME: don't leave commented-out
@@ -1034,9 +1042,9 @@ class TestTimedeltaArraylikeAddSubOps:
         #    pi - tdi
 
         # GH#13078 subtraction of Period scalar not supported
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             tdi - pi[0]
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             pi[0] - tdi
 
     @pytest.mark.parametrize(
@@ -1499,16 +1507,17 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(TypeError):
+        msg = "has incorrect type|cannot add the type MonthEnd"
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 tdi + anchored
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored + tdi
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 tdi - anchored
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - tdi
 
@@ -1533,7 +1542,8 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type|cannot subtract a datelike"
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(warn):
                 tdarr - other
 
@@ -1588,7 +1598,8 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
-        with pytest.raises(TypeError):
+        msg = "argument must be an integer|cannot use operands with types dtype"
+        with pytest.raises(TypeError, match=msg):
             rng * two_hours
 
     def test_tdi_mul_int_array_zerodim(self, box_with_array):
@@ -1777,12 +1788,13 @@ class TestTimedeltaArraylikeMulDivOps:
         mismatched = [1, 2, 3, 4]
 
         rng = tm.box_expected(rng, box_with_array)
+        msg = "Cannot divide vectors|Unable to coerce to Series"
         for obj in [mismatched, mismatched[:2]]:
             # one shorter, one longer
             for other in [obj, np.array(obj), pd.Index(obj)]:
-                with pytest.raises(ValueError):
+                with pytest.raises(ValueError, match=msg):
                     rng / other
-                with pytest.raises(ValueError):
+                with pytest.raises(ValueError, match=msg):
                     other / rng
 
     # ------------------------------------------------------------------
@@ -1908,7 +1920,8 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdarr % 2
         tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "Cannot divide int by"
+        with pytest.raises(TypeError, match=msg):
             2 % tdarr
 
         if box_with_array is pd.DataFrame:
@@ -1957,15 +1970,21 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_too_short_raises(self, box_with_array):
         idx = TimedeltaIndex(np.arange(5, dtype="int64"))
         idx = tm.box_expected(idx, box_with_array)
-        with pytest.raises(TypeError):
+        msg = (
+            "cannot use operands with types dtype|"
+            "Cannot multiply with unequal lengths|"
+            "Unable to coerce to Series"
+        )
+        with pytest.raises(TypeError, match=msg):
             idx * idx[:3]
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             idx * np.array([1, 2])
 
     def test_td64arr_mul_td64arr_raises(self, box_with_array):
         idx = TimedeltaIndex(np.arange(5, dtype="int64"))
         idx = tm.box_expected(idx, box_with_array)
-        with pytest.raises(TypeError):
+        msg = "cannot use operands with types dtype"
+        with pytest.raises(TypeError, match=msg):
             idx * idx
 
     # ------------------------------------------------------------------
