@@ -34,7 +34,7 @@ class Dtype:
     def get_expects(self):
         expects = {
             "sr1": {
-                "count": Series([np.nan, 2, 2, 2, 2], dtype="float64"),
+                "count": Series([1, 2, 2, 2, 2], dtype="float64"),
                 "max": Series([np.nan, 1, 2, 3, 4], dtype="float64"),
                 "min": Series([np.nan, 0, 1, 2, 3], dtype="float64"),
                 "sum": Series([np.nan, 1, 3, 5, 7], dtype="float64"),
@@ -44,7 +44,7 @@ class Dtype:
                 "median": Series([np.nan, 0.5, 1.5, 2.5, 3.5], dtype="float64"),
             },
             "sr2": {
-                "count": Series([np.nan, 2, 2, 2, 2], dtype="float64"),
+                "count": Series([1, 2, 2, 2, 2], dtype="float64"),
                 "max": Series([np.nan, 10, 8, 6, 4], dtype="float64"),
                 "min": Series([np.nan, 8, 6, 4, 2], dtype="float64"),
                 "sum": Series([np.nan, 18, 14, 10, 6], dtype="float64"),
@@ -54,7 +54,7 @@ class Dtype:
                 "median": Series([np.nan, 9, 7, 5, 3], dtype="float64"),
             },
             "sr3": {
-                "count": Series([np.nan, 2, 2, 1, 1], dtype="float64"),
+                "count": Series([1, 2, 2, 1, 1], dtype="float64"),
                 "max": Series([np.nan, 1, 2, np.nan, np.nan], dtype="float64"),
                 "min": Series([np.nan, 0, 1, np.nan, np.nan], dtype="float64"),
                 "sum": Series([np.nan, 1, 3, np.nan, np.nan], dtype="float64"),
@@ -67,7 +67,7 @@ class Dtype:
             },
             "df": {
                 "count": DataFrame(
-                    {0: Series([np.nan, 2, 2, 2, 2]), 1: Series([np.nan, 2, 2, 2, 2])},
+                    {0: Series([1, 2, 2, 2, 2]), 1: Series([1, 2, 2, 2, 2])},
                     dtype="float64",
                 ),
                 "max": DataFrame(

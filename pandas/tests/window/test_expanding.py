@@ -115,8 +115,20 @@ class TestExpanding(Base):
         tm.assert_frame_equal(result, expected)
 
 
-def test_expanding_count_with_min_periods():
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_expanding_count_with_min_periods(constructor):
     # GH 26996
-    result = Series(range(5)).expanding(min_periods=3).count()
-    expected = Series([np.nan, np.nan, 3.0, 4.0, 5.0])
-    tm.assert_series_equal(result, expected)
+    result = constructor(range(5)).expanding(min_periods=3).count()
+    expected = constructor([np.nan, np.nan, 3.0, 4.0, 5.0])
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_expanding_count_default_min_periods_with_null_values(constructor):
+    # GH 26996
+    values = [1, 2, 3, np.nan, 4, 5, 6]
+    expected_counts = [1.0, 2.0, 3.0, 3.0, 4.0, 5.0, 6.0]
+
+    result = constructor(values).expanding().count()
+    expected = constructor(expected_counts)
+    tm.assert_equal(result, expected)

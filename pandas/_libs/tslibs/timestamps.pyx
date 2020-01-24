@@ -375,11 +375,13 @@ class Timestamp(_Timestamp):
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef _TSObject ts
+        print('haha')
 
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
 
         if tzinfo is not None:
+            print('tzinfo not None')
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
                 raise TypeError(
@@ -392,6 +394,7 @@ class Timestamp(_Timestamp):
             tz, tzinfo = tzinfo, None
 
         if isinstance(ts_input, str):
+            print('ts_input is str')
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
             if any(arg is not None for arg in _date_attributes):
