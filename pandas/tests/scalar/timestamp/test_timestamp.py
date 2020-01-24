@@ -13,7 +13,6 @@ import pytest
 import pytz
 from pytz import timezone, utc
 
-from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
 import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
@@ -242,24 +241,20 @@ class TestTimestampConstructors:
             for result in [Timestamp(date_str), Timestamp(date)]:
                 # only with timestring
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
                 for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
                     expected_tz = expected - offset * 3600 * 1_000_000_000
                     assert result.value == expected_tz
-                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should preserve tz
                     result = Timestamp(result)
                     assert result.value == expected_tz
-                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should convert to UTC
                     if tz is not None:
@@ -268,7 +263,6 @@ class TestTimestampConstructors:
                         result = Timestamp(result, tz="UTC")
                     expected_utc = expected - offset * 3600 * 1_000_000_000
                     assert result.value == expected_utc
-                    assert conversion.pydt_to_i8(result) == expected_utc
 
     def test_constructor_with_stringoffset(self):
         # GH 7833
@@ -301,30 +295,25 @@ class TestTimestampConstructors:
             for result in [Timestamp(date_str)]:
                 # only with timestring
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
                 result = Timestamp(date_str, tz=tz)
                 expected_tz = expected
                 assert result.value == expected_tz
-                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should preserve tz
                 result = Timestamp(result)
                 assert result.value == expected_tz
-                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should convert to UTC
                 result = Timestamp(result).tz_convert("UTC")
                 expected_utc = expected
                 assert result.value == expected_utc
-                assert conversion.pydt_to_i8(result) == expected_utc
 
         # This should be 2013-11-01 05:00 in UTC
         # converted to Chicago tz
