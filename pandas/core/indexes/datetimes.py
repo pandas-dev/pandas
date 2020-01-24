@@ -27,7 +27,7 @@ from pandas.core.arrays.datetimes import (
     validate_tz_from_dtype,
 )
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
@@ -641,6 +641,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
 
         if isinstance(key, (datetime, np.datetime64)):
             return self.get_value_maybe_box(series, key)
@@ -677,6 +679,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         loc : int
         """
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
+
         if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
 

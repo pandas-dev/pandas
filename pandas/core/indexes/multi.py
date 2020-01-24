@@ -2778,7 +2778,7 @@ class MultiIndex(Index):
                     indexer = self._get_level_indexer(key, level=level)
                     new_index = maybe_mi_droplevels(indexer, [0], drop_level)
                     return indexer, new_index
-            except TypeError:
+            except (TypeError, InvalidIndexError):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
