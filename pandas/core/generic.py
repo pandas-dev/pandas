@@ -5741,7 +5741,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
 
-        .. versionadded:: 1.1.0
+        .. versionadded:: 1.0.0
 
         Parameters
         ----------
