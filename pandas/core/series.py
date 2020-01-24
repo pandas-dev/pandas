@@ -28,6 +28,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
+from pandas.core.dtypes.cast import convert_dtypes
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
@@ -4371,6 +4372,34 @@ Name: Max Speed, dtype: float64
             rmask = self < right
 
         return lmask & rmask
+
+    # ----------------------------------------------------------------------
+    # Convert to types that support pd.NA
+
+    def _convert_dtypes(
+        self: ABCSeries,
+        infer_objects: bool = True,
+        convert_string: bool = True,
+        convert_integer: bool = True,
+        convert_boolean: bool = True,
+    ) -> "Series":
+        input_series = self
+        if infer_objects:
+            input_series = input_series.infer_objects()
+            if is_object_dtype(input_series):
+                input_series = input_series.copy()
+
+        if convert_string or convert_integer or convert_boolean:
+            inferred_dtype = convert_dtypes(
+                input_series._values, convert_string, convert_integer, convert_boolean
+            )
+            try:
+                result = input_series.astype(inferred_dtype)
+            except TypeError:
+                result = input_series.copy()
+        else:
+            result = input_series.copy()
+        return result
 
     @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "Series":
