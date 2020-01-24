@@ -2,6 +2,7 @@
 Tests for DatetimeIndex timezone-related methods
 """
 from datetime import date, datetime, time, timedelta, tzinfo
+from distutils.version import LooseVersion
 
 import dateutil
 from dateutil.tz import gettz, tzlocal
@@ -10,6 +11,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
+from pandas.compat._optional import _get_version
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -585,7 +587,10 @@ class TestDatetimeIndexTimezones:
                 "dateutil/US/Pacific",
                 "shift_backward",
                 "2019-03-10 01:00",
-                marks=pytest.mark.xfail(reason="GH 24329"),
+                marks=pytest.mark.xfail(
+                    LooseVersion(_get_version(dateutil)) < LooseVersion("2.7.0"),
+                    reason="GH 31043",
+                ),
             ),
             ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
         ],
