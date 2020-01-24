@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from io import StringIO
 import sys
+from typing import Any
 
 import numpy as np
 import pytest
@@ -30,6 +31,12 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+
+
+def allow_na_ops(obj: Any) -> bool:
+    """Whether to skip test cases including NaN"""
+    is_bool_index = isinstance(obj, Index) and obj.is_boolean()
+    return not is_bool_index and obj._can_hold_na
 
 
 class Ops:
@@ -260,7 +267,7 @@ class TestIndexOps(Ops):
             klass = type(o)
             values = o._ndarray_values
 
-            if not tm.allow_na_ops(o):
+            if not allow_na_ops(o):
                 continue
 
             # special assign to the numpy array
@@ -741,7 +748,7 @@ class TestIndexOps(Ops):
                 o = orig.copy()
                 klass = type(o)
 
-                if not tm.allow_na_ops(o):
+                if not allow_na_ops(o):
                     continue
 
                 if needs_i8_conversion(o):

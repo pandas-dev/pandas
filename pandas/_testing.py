@@ -2757,9 +2757,3 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     sep = os.linesep
     expected = sep.join(rows_list) + sep
     return expected
-
-
-def allow_na_ops(obj: Any) -> bool:
-    """Whether to skip test cases including NaN"""
-    is_bool_index = isinstance(obj, Index) and obj.is_boolean()
-    return not is_bool_index and obj._can_hold_na
