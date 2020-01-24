@@ -129,7 +129,7 @@ bar2,12,13,14,15
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "feather", Exception, "feather"),
+            (pd.read_feather, "pyarrow", IOError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -153,8 +153,11 @@ bar2,12,13,14,15
         msg7 = (
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
+        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}.?, error: .*"
+
         with pytest.raises(
-            error_class, match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7})"
+            error_class,
+            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -165,7 +168,7 @@ bar2,12,13,14,15
             (pd.read_table, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "feather", Exception, "feather"),
+            (pd.read_feather, "pyarrow", IOError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -193,9 +196,11 @@ bar2,12,13,14,15
         msg7 = (
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
+        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}.?, error: .*"
 
         with pytest.raises(
-            error_class, match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7})"
+            error_class,
+            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
         ):
             reader(path)
 
@@ -212,7 +217,7 @@ bar2,12,13,14,15
             (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
             (
                 pd.read_feather,
-                "feather",
+                "pyarrow",
                 ("io", "data", "feather", "feather-0_3_1.feather"),
             ),
             (
@@ -249,7 +254,7 @@ bar2,12,13,14,15
         [
             ("to_csv", {}, "os"),
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
-            ("to_feather", {}, "feather"),
+            ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
