@@ -772,7 +772,6 @@ def _comp_method_FRAME(cls, op, special):
                     "Can only compare identically-labeled DataFrame objects"
                 )
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             # axis=1 is default for DataFrame-with-Series op
@@ -780,14 +779,14 @@ def _comp_method_FRAME(cls, op, special):
                 other, join="outer", axis=1, level=None, copy=False
             )
             new_data = dispatch_to_series(self, other, op, axis="columns")
-            return self._construct_result(new_data)
 
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             new_data = dispatch_to_series(self, other, op)
-            return self._construct_result(new_data)
+
+        return self._construct_result(new_data)
 
     f.__name__ = op_name
 
