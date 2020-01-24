@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import Any, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
@@ -58,6 +57,10 @@ from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
+
+if TYPE_CHECKING:
+    from pandas import Series
+
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -681,7 +684,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return sub_idx._searchsorted_monotonic(label, side)
 
     def get_loc(
-        self, key: Any, method: Optional[str] = None, tolerance=None
+        self, key, method: Optional[str] = None, tolerance=None
     ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
@@ -723,10 +726,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         """
         self._check_method(method)
 
-        # list-like are invalid labels for II but in some cases may work, e.g
-        # single element array of comparable type, so guard against them early
-        if is_list_like(key):
-            raise KeyError(key)
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
 
         if isinstance(key, Interval):
             if self.closed != key.closed:
@@ -819,6 +820,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
                     loc = self.get_loc(key)
                 except KeyError:
                     loc = -1
+                except InvalidIndexError:
+                    # i.e. non-scalar key
+                    raise TypeError(key)
                 indexer.append(loc)
 
         return ensure_platform_int(indexer)
@@ -882,24 +886,14 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return self.get_indexer(target, **kwargs)
 
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
-    def get_value(self, series: ABCSeries, key: Any) -> Any:
-
-        if com.is_bool_indexer(key):
-            loc = key
-        elif is_list_like(key):
-            if self.is_overlapping:
-                loc, missing = self.get_indexer_non_unique(key)
-                if len(missing):
-                    raise KeyError
-            else:
-                loc = self.get_indexer(key)
-        elif isinstance(key, slice):
-            if not (key.step is None or key.step == 1):
-                raise ValueError("cannot support not-default step in a slice")
-            loc = self._convert_slice_indexer(key, kind="getitem")
-        else:
-            loc = self.get_loc(key)
+    def get_value(self, series: "Series", key):
+        loc = self.get_loc(key)
         return series.iloc[loc]
+
+    def _convert_slice_indexer(self, key: slice, kind=None):
+        if not (key.step is None or key.step == 1):
+            raise ValueError("cannot support not-default step in a slice")
+        return super()._convert_slice_indexer(key, kind)
 
     @Appender(_index_shared_docs["where"])
     def where(self, cond, other=None):
