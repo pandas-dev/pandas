@@ -306,7 +306,7 @@ Subclassing pandas data structures
 
   1. Extensible method chains with :ref:`pipe <basics.pipe>`
 
-  2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
+  2. Use *composition*. See `here <https://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
 
   3. Extending by :ref:`registering an accessor <extending.register-accessors>`
 
