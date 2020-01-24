@@ -81,12 +81,15 @@ class TestDataFrameEval:
 
     # smaller hits python, larger hits numexpr
     @pytest.mark.parametrize("n", [4, 4000])
-    @pytest.mark.parametrize("op_str,op,rop", [
+    @pytest.mark.parametrize(
+        "op_str,op,rop",
+        [
             ("+", "__add__", "__radd__"),
             ("-", "__sub__", "__rsub__"),
             ("*", "__mul__", "__rmul__"),
             ("/", "__truediv__", "__rtruediv__"),
-        ])
+        ],
+    )
     def test_ops(self, op_str, op, rop, n):
 
         # tst ops and reversed ops in evaluation
