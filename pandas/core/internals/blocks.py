@@ -66,7 +66,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, DatetimeArray, PandasDtype, TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    PandasArray,
+    PandasDtype,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -193,7 +200,14 @@ class Block(PandasObject):
         return False
 
     def external_values(self, dtype=None):
-        """ return an outside world format, currently just the ndarray """
+        """
+        The array that Series.values returns (public attribute).
+
+        This has some historical constraints, and is overridden in block
+        subclasses to return the correct array (e.g. period returns
+        object ndarray and datetimetz a datetime64[ns] ndarray instead of
+        proper extension array).
+        """
         return self.values
 
     def internal_values(self, dtype=None):
@@ -201,6 +215,12 @@ class Block(PandasObject):
         this should be the pure internal API format
         """
         return self.values
+
+    def array_values(self) -> ExtensionArray:
+        """
+        The array that Series.array returns. Always an ExtensionArray.
+        """
+        return PandasArray(self.values)
 
     def get_values(self, dtype=None):
         """
@@ -1770,6 +1790,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values.reshape((1,) + values.shape)
         return values
 
+    def array_values(self) -> ExtensionArray:
+        return self.values
+
     def to_dense(self):
         return np.asarray(self.values)
 
@@ -2233,6 +2256,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def external_values(self):
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
+    def array_values(self) -> ExtensionArray:
+        return DatetimeArray._simple_new(self.values)
+
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
@@ -2489,6 +2515,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def external_values(self, dtype=None):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
+
+    def array_values(self) -> ExtensionArray:
+        return TimedeltaArray._simple_new(self.values)
 
 
 class BoolBlock(NumericBlock):
