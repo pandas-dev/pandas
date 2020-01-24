@@ -393,6 +393,46 @@ class TestFloat64Index(Numeric):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            pd.date_range("2016-01-01", periods=3),
+            pd.timedelta_range("1 Day", periods=3),
+        ],
+    )
+    def test_lookups_datetimelike_values(self, vals):
+        # If we have datetime64 or timedelta64 values, make sure they are
+        #  wrappped correctly
+        ser = pd.Series(vals, index=range(3, 6))
+        ser.index = ser.index.astype("float64")
+
+        expected = vals[1]
+
+        result = ser.index.get_value(ser, 4.0)
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.index.get_value(ser, 4)
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.loc[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.loc[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.at[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        # Note: ser.at[4] raises ValueError; TODO: should we make this match loc?
+
+        result = ser.iloc[1]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.iat[1]
+        assert isinstance(result, type(expected)) and result == expected
+
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
         assert np.nan in i

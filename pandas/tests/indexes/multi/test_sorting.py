@@ -66,11 +66,6 @@ def test_sortlevel_deterministic():
     assert sorted_idx.equals(expected[::-1])
 
 
-def test_sort(indices):
-    with pytest.raises(TypeError):
-        indices.sort()
-
-
 def test_numpy_argsort(idx):
     result = np.argsort(idx)
     expected = idx.argsort()
