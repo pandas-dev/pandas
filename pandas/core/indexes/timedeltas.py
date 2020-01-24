@@ -163,6 +163,17 @@ class TimedeltaIndex(
                 "represent unambiguous timedelta values durations."
             )
 
+        if isinstance(data, TimedeltaArray) and freq is None:
+            if copy:
+                data = data.copy()
+            return cls._simple_new(data, name=name, freq=freq)
+
+        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+            if copy:
+                return data.copy()
+            else:
+                return data._shallow_copy()
+
         # - Cases checked above all return/raise before reaching here - #
 
         tdarr = TimedeltaArray._from_sequence(
