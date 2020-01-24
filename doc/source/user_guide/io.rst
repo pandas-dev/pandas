@@ -49,7 +49,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 CSV & text files
 ----------------
 
-The workhorse function for reading text files (a.k.a flat files) is
+The workhorse function for reading text files (a.k.a. flat files) is
 :func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
 Parsing options
