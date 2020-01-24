@@ -43,6 +43,7 @@ Conversion
    :toctree: api/
 
    DataFrame.astype
+   DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
    DataFrame.isna

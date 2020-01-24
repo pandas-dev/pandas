@@ -5702,6 +5702,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         to_datetime : Convert argument to datetime.
         to_timedelta : Convert argument to timedelta.
         to_numeric : Convert argument to numeric type.
+        convert_dtypes : Convert argument to best possible dtype.
 
         Examples
         --------
@@ -5729,6 +5730,142 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 datetime=True, numeric=False, timedelta=True, coerce=False, copy=True
             )
         ).__finalize__(self)
+
+    def convert_dtypes(
+        self: FrameOrSeries,
+        infer_objects: bool_t = True,
+        convert_string: bool_t = True,
+        convert_integer: bool_t = True,
+        convert_boolean: bool_t = True,
+    ) -> FrameOrSeries:
+        """
+        Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
+
+        .. versionadded:: 1.1.0
+
+        Parameters
+        ----------
+        infer_objects : bool, default True
+            Whether object dtypes should be converted to the best possible types.
+        convert_string : bool, default True
+            Whether object dtypes should be converted to ``StringDtype()``.
+        convert_integer : bool, default True
+            Whether, if possible, conversion can be done to integer extension types.
+        convert_boolean : bool, defaults True
+            Whether object dtypes should be converted to ``BooleanDtypes()``.
+
+        Returns
+        -------
+        Series or DataFrame
+            Copy of input object with new dtype.
+
+        See Also
+        --------
+        infer_objects : Infer dtypes of objects.
+        to_datetime : Convert argument to datetime.
+        to_timedelta : Convert argument to timedelta.
+        to_numeric : Convert argument to a numeric type.
+
+        Notes
+        -----
+
+        By default, ``convert_dtypes`` will attempt to convert a Series (or each
+        Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
+        ``convert_string``, ``convert_integer``, and ``convert_boolean``, it is
+        possible to turn off individual conversions to ``StringDtype``, the integer
+        extension types or ``BooleanDtype``, respectively.
+
+        For object-dtyped columns, if ``infer_objects`` is ``True``, use the inference
+        rules as during normal Series/DataFrame construction.  Then, if possible,
+        convert to ``StringDtype``, ``BooleanDtype`` or an appropriate integer extension
+        type, otherwise leave as ``object``.
+
+        If the dtype is integer, convert to an appropriate integer extension type.
+
+        If the dtype is numeric, and consists of all integers, convert to an
+        appropriate integer extension type.
+
+        In the future, as new dtypes are added that support ``pd.NA``, the results
+        of this method will change to support those new dtypes.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
+        ...         "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
+        ...         "c": pd.Series([True, False, np.nan], dtype=np.dtype("O")),
+        ...         "d": pd.Series(["h", "i", np.nan], dtype=np.dtype("O")),
+        ...         "e": pd.Series([10, np.nan, 20], dtype=np.dtype("float")),
+        ...         "f": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
+        ...     }
+        ... )
+
+        Start with a DataFrame with default dtypes.
+
+        >>> df
+           a  b      c    d     e      f
+        0  1  x   True    h  10.0    NaN
+        1  2  y  False    i   NaN  100.5
+        2  3  z    NaN  NaN  20.0  200.0
+
+        >>> df.dtypes
+        a      int32
+        b     object
+        c     object
+        d     object
+        e    float64
+        f    float64
+        dtype: object
+
+        Convert the DataFrame to use best possible dtypes.
+
+        >>> dfn = df.convert_dtypes()
+        >>> dfn
+           a  b      c     d     e      f
+        0  1  x   True     h    10    NaN
+        1  2  y  False     i  <NA>  100.5
+        2  3  z   <NA>  <NA>    20  200.0
+
+        >>> dfn.dtypes
+        a      Int32
+        b     string
+        c    boolean
+        d     string
+        e      Int64
+        f    float64
+        dtype: object
+
+        Start with a Series of strings and missing data represented by ``np.nan``.
+
+        >>> s = pd.Series(["a", "b", np.nan])
+        >>> s
+        0      a
+        1      b
+        2    NaN
+        dtype: object
+
+        Obtain a Series with dtype ``StringDtype``.
+
+        >>> s.convert_dtypes()
+        0       a
+        1       b
+        2    <NA>
+        dtype: string
+        """
+        if self.ndim == 1:
+            return self._convert_dtypes(
+                infer_objects, convert_string, convert_integer, convert_boolean
+            )
+        else:
+            results = [
+                col._convert_dtypes(
+                    infer_objects, convert_string, convert_integer, convert_boolean
+                )
+                for col_name, col in self.items()
+            ]
+            result = pd.concat(results, axis=1, copy=False)
+            return result
 
     # ----------------------------------------------------------------------
     # Filling NA's

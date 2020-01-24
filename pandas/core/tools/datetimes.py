@@ -628,6 +628,7 @@ def to_datetime(
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_timedelta : Convert argument to timedelta.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------
