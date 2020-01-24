@@ -439,12 +439,8 @@ def test_rolling_count_with_min_periods(constructor):
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
 def test_rolling_count_default_min_periods_with_null_values(constructor):
     # GH 26996
-    # We need rolling count to have default min_periods=0,
-    # as the method is meant to count how many non-null values,
-    # we want to by default produce a valid count even if
-    # there are very few valid entries in the window
     values = [1, 2, 3, np.nan, 4, 5, 6]
-    expected_counts = [np.nan, np.nan, 3.0, 2.0, 2.0, 2.0, 3.0]
+    expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     result = constructor(values).rolling(3).count()
     expected = constructor(expected_counts)
