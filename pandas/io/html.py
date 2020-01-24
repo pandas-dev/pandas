@@ -986,7 +986,7 @@ def read_html(
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
-        <http://www.w3.org/TR/html-markup/global-attributes.html>`__. ::
+        <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
             attrs = {'asdf': 'table'}
 
@@ -995,7 +995,7 @@ def read_html(
         table attributes can be found `here
         <http://www.w3.org/TR/REC-html40/struct/tables.html#h-11.2>`__. A
         working draft of the HTML 5 spec can be found `here
-        <http://www.w3.org/TR/html-markup/table.html>`__. It contains the
+        <https://html.spec.whatwg.org/multipage/tables.html>`__. It contains the
         latest information on table attributes for the modern web.
 
     parse_dates : bool, optional

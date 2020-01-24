@@ -264,7 +264,7 @@ which pandas excels.
 
 ## Out-of-core
 
-### [Blaze](http://blaze.pydata.org/)
+### [Blaze](https://blaze.pydata.org/)
 
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB,

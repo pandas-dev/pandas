@@ -2502,7 +2502,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         References
         ----------
-        .. [1] http://docs.sqlalchemy.org
+        .. [1] https://docs.sqlalchemy.org
         .. [2] https://www.python.org/dev/peps/pep-0249/
 
         Examples
@@ -2711,7 +2711,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Notes
         -----
-        See the `xarray docs <http://xarray.pydata.org/en/stable/>`__
+        See the `xarray docs <https://xarray.pydata.org/en/stable/>`__
 
         Examples
         --------
@@ -6642,9 +6642,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         similar names. These use the actual numerical values of the index.
         For more information on their behavior, see the
         `SciPy documentation
-        <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+        <https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
         and `SciPy tutorial
-        <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
+        <https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
 
         Examples
         --------

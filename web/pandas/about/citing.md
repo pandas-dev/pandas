@@ -4,7 +4,7 @@
 
 If you use _pandas_ for a scientific publication, we would appreciate citations to one of the following papers:
 
-- [Data structures for statistical computing in python](http://conference.scipy.org/proceedings/scipy2010/pdfs/mckinney.pdf),
+- [Data structures for statistical computing in python](https://conference.scipy.org/proceedings/scipy2010/pdfs/mckinney.pdf),
    McKinney, Proceedings of the 9th Python in Science Conference, Volume 445, 2010.
 
         @inproceedings{mckinney2010data,

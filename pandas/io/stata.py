@@ -7,7 +7,7 @@ project who also developed the StataWriter and was finally added to pandas in
 a once again improved version.
 
 You can find more information on http://presbrey.mit.edu/PyDTA and
-http://www.statsmodels.org/devel/
+https://www.statsmodels.org/devel/
 """
 from collections import abc
 import datetime
@@ -204,7 +204,7 @@ stata_epoch = datetime.datetime(1960, 1, 1)
 
 def _stata_elapsed_date_to_datetime_vec(dates, fmt):
     """
-    Convert from SIF to datetime. http://www.stata.com/help.cgi?datetime
+    Convert from SIF to datetime. https://www.stata.com/help.cgi?datetime
 
     Parameters
     ----------
@@ -369,7 +369,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
 
 def _datetime_to_stata_elapsed_vec(dates, fmt):
     """
-    Convert from datetime to SIF. http://www.stata.com/help.cgi?datetime
+    Convert from datetime to SIF. https://www.stata.com/help.cgi?datetime
 
     Parameters
     ----------
@@ -729,7 +729,7 @@ class StataMissingValue:
 
     Notes
     -----
-    More information: <http://www.stata.com/help.cgi?missing>
+    More information: <https://www.stata.com/help.cgi?missing>
 
     Integer missing values make the code '.', '.a', ..., '.z' to the ranges
     101 ... 127 (for int8), 32741 ... 32767  (for int16) and 2147483621 ...

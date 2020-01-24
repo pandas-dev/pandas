@@ -56,7 +56,7 @@ Bug reports and enhancement requests
 Bug reports are an important part of making *pandas* more stable. Having a complete bug report
 will allow others to reproduce the bug and provide insight into fixing. See
 `this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
-`this blogpost <http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
+`this blogpost <https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
 for tips on writing a good bug report.
 
 Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
@@ -67,7 +67,7 @@ Bug reports must:
 
 #. Include a short, self-contained Python snippet reproducing the problem.
    You can format the code nicely by using `GitHub Flavored Markdown
-   <http://github.github.com/github-flavored-markdown/>`_::
+   <https://github.github.com/github-flavored-markdown/>`_::
 
       ```python
       >>> from pandas import DataFrame
@@ -104,19 +104,19 @@ feel free to ask for help.
 
 The code is hosted on `GitHub <https://www.github.com/pandas-dev/pandas>`_. To
 contribute you will need to sign up for a `free GitHub account
-<https://github.com/signup/free>`_. We use `Git <http://git-scm.com/>`_ for
+<https://github.com/signup/free>`_. We use `Git <https://git-scm.com/>`_ for
 version control to allow many people to work together on the project.
 
 Some great resources for learning Git:
 
-* the `GitHub help pages <http://help.github.com/>`_.
-* the `NumPy's documentation <http://docs.scipy.org/doc/numpy/dev/index.html>`_.
-* Matthew Brett's `Pydagogue <http://matthew-brett.github.com/pydagogue/>`_.
+* the `GitHub help pages <https://help.github.com/>`_.
+* the `NumPy's documentation <https://docs.scipy.org/doc/numpy/dev/index.html>`_.
+* Matthew Brett's `Pydagogue <https://matthew-brett.github.com/pydagogue/>`_.
 
 Getting started with Git
 ------------------------
 
-`GitHub has instructions <http://help.github.com/set-up-git-redirect>`__ for installing git,
+`GitHub has instructions <https://help.github.com/set-up-git-redirect>`__ for installing git,
 setting up your SSH key, and configuring git.  All these steps need to be completed before
 you can work seamlessly between your local repository and GitHub.
 
@@ -260,7 +260,7 @@ To return to your root environment::
 
       conda deactivate
 
-See the full conda docs `here <http://conda.pydata.org/docs>`__.
+See the full conda docs `here <https://conda.pydata.org/docs>`__.
 
 .. _contributing.pip:
 
@@ -365,7 +365,7 @@ About the *pandas* documentation
 --------------------------------
 
 The documentation is written in **reStructuredText**, which is almost like writing
-in plain English, and built using `Sphinx <http://www.sphinx-doc.org/en/master/>`__. The
+in plain English, and built using `Sphinx <https://www.sphinx-doc.org/en/master/>`__. The
 Sphinx Documentation has an excellent `introduction to reST
 <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`__. Review the Sphinx docs to perform more
 complex changes to the documentation as well.
@@ -390,7 +390,7 @@ Some other important things to know about the docs:
      contributing_docstring.rst
 
 * The tutorials make heavy use of the `ipython directive
-  <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
+  <https://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
 
@@ -436,7 +436,7 @@ Some other important things to know about the docs:
     The ``.rst`` files are used to automatically generate Markdown and HTML versions
     of the docs. For this reason, please do not edit ``CONTRIBUTING.md`` directly,
     but instead make any changes to ``doc/source/development/contributing.rst``. Then, to
-    generate ``CONTRIBUTING.md``, use `pandoc <http://johnmacfarlane.net/pandoc/>`_
+    generate ``CONTRIBUTING.md``, use `pandoc <https://johnmacfarlane.net/pandoc/>`_
     with the following command::
 
       pandoc doc/source/development/contributing.rst -t markdown_github > CONTRIBUTING.md
@@ -620,8 +620,8 @@ You can also run this command on an entire directory if necessary::
    cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive modified-c-directory
 
 To make your commits compliant with this standard, you can install the
-`ClangFormat <http://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
-downloaded `here <http://llvm.org/builds/>`__. To configure, in your home directory,
+`ClangFormat <https://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
+downloaded `here <https://llvm.org/builds/>`__. To configure, in your home directory,
 run the following command::
 
     clang-format style=google -dump-config  > .clang-format
@@ -651,7 +651,7 @@ fixes manually.
 Python (PEP8 / black)
 ~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* follows the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard
+*pandas* follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
 `Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
 format throughout the project.
@@ -971,9 +971,9 @@ Adding tests is one of the most common requests after code is pushed to *pandas*
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
 Like many packages, *pandas* uses `pytest
-<http://docs.pytest.org/en/latest/>`_ and the convenient
+<https://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
-<http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
+<https://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
 .. note::
 
@@ -1024,7 +1024,7 @@ Transitioning to ``pytest``
     class TestReallyCoolFeature:
         pass
 
-Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
+Going forward, we are moving to a more *functional* style using the `pytest <https://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
@@ -1257,7 +1257,7 @@ On Windows, one can type::
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
-For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
+For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 
 Furthermore one can run
 

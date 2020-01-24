@@ -60,7 +60,7 @@ except ImportError:
 
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
-# See https://cython.readthedocs.io/en/latest/src/reference/compilation.html
+# See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
 from distutils.extension import Extension  # noqa: E402 isort:skip
 from distutils.command.build import build  # noqa: E402 isort:skip
 

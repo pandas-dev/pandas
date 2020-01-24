@@ -77,8 +77,8 @@ language that allows encoding styles in plain text files. Documentation
 about reStructuredText can be found in:
 
 * `Sphinx reStructuredText primer <https://www.sphinx-doc.org/en/stable/rest.html>`_
-* `Quick reStructuredText reference <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
-* `Full reStructuredText specification <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html>`_
+* `Quick reStructuredText reference <https://docutils.sourceforge.io/docs/user/rst/quickref.html>`_
+* `Full reStructuredText specification <https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html>`_
 
 Pandas has some helpers for sharing docstrings between related classes, see
 :ref:`docstring.sharing`.

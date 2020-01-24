@@ -20,7 +20,7 @@ Cython (writing C extensions for pandas)
 
 For many use cases writing pandas in pure Python and NumPy is sufficient. In some
 computationally heavy applications however, it can be possible to achieve sizable
-speed-ups by offloading work to `cython <http://cython.org/>`__.
+speed-ups by offloading work to `cython <https://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in Python, for example
 by trying to remove for-loops and making use of NumPy vectorization. It's always worth
@@ -69,7 +69,7 @@ We achieve our result by using ``apply`` (row-wise):
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
 time is spent during this operation (limited to the most time consuming
-four calls) using the `prun ipython magic function <http://ipython.org/ipython-doc/stable/api/generated/IPython.core.magics.execution.html#IPython.core.magics.execution.ExecutionMagics.prun>`__:
+four calls) using the `prun ipython magic function <https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-prun>`__:
 
 .. ipython:: python
 
@@ -298,7 +298,7 @@ advanced Cython techniques:
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
 For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
-`compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
+`compiler directives <https://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
 
 .. _enhancingperf.numba:
 
@@ -423,9 +423,9 @@ prefer that Numba throw an error if it cannot compile a function in a way that
 speeds up your code, pass Numba the argument
 ``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on
 troubleshooting Numba modes, see the `Numba troubleshooting page
-<http://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
+<https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-Read more in the `Numba docs <http://numba.pydata.org/>`__.
+Read more in the `Numba docs <https://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 

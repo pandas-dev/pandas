@@ -4262,12 +4262,12 @@ control compression: ``complevel`` and ``complib``.
   - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
     compression and decompression.
   - `bzip2 <http://bzip.org/>`_: Good compression rates.
-  - `blosc <http://www.blosc.org/>`_: Fast compression and
+  - `blosc <https://www.blosc.org/>`_: Fast compression and
     decompression.
 
     Support for alternative blosc compressors:
 
-    - `blosc:blosclz <http://www.blosc.org/>`_ This is the
+    - `blosc:blosclz <https://www.blosc.org/>`_ This is the
       default compressor for ``blosc``
     - `blosc:lz4
       <https://fastcompression.blogspot.dk/p/lz4.html>`_:
@@ -5021,7 +5021,7 @@ Possible values are:
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
   For more information check the SQLAlchemy `documention
-  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+  <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on
   specific backend dialect features.

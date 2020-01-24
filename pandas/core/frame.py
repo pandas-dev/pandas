@@ -1490,9 +1490,9 @@ class DataFrame(NDFrame):
             when getting user credentials.
 
             .. _local webserver flow:
-                http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+                https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
             .. _console flow:
-                http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+                https://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
             *New in version 0.2.0 of pandas-gbq*.
         table_schema : list of dicts, optional
@@ -3363,7 +3363,7 @@ class DataFrame(NDFrame):
         * To select strings you must use the ``object`` dtype, but note that
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
-          <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
+          <https://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -7614,7 +7614,7 @@ Wild         185.0
         semi-definite. This could lead to estimate correlations having
         absolute values which are greater than one, and/or a non-invertible
         covariance matrix. See `Estimation of covariance matrices
-        <http://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_
+        <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_
         matrices>`__ for more details.
 
         Examples

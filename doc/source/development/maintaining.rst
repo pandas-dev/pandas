@@ -36,7 +36,7 @@ of what it means to be a maintainer.
 * Provide experience / wisdom on API design questions to ensure consistency and maintainability
 * Project organization (run / attend developer meetings, represent pandas)
 
-http://matthewrocklin.com/blog/2019/05/18/maintainer may be interesting background
+https://matthewrocklin.com/blog/2019/05/18/maintainer may be interesting background
 reading.
 
 .. _maintaining.triage:
@@ -78,7 +78,7 @@ Here's a typical workflow for triaging a newly opened issue.
 4. **Is the issue minimal and reproducible**?
 
    For bug reports, we ask that the reporter provide a minimal reproducible
-   example. See http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
+   example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
    for a good explanation. If the example is not reproducible, or if it's
    *clearly* not minimal, feel free to ask the reporter if they can provide
    and example or simplify the provided one. Do acknowledge that writing

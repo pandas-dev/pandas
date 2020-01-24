@@ -326,7 +326,7 @@ def test_map_dictlike(idx, mapper):
 )
 def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
-    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     if _np_version_under1p17:
         expected_exception = AttributeError

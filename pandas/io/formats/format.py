@@ -418,7 +418,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             self.ambiguous_width = 1
 
         # Definition of East Asian Width
-        # http://unicode.org/reports/tr11/
+        # https://unicode.org/reports/tr11/
         # Ambiguous width can be changed by option
         self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
 
