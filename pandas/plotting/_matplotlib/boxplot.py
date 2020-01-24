@@ -111,12 +111,20 @@ class BoxPlot(LinePlot):
         # for these four kwargs should be overridden; if not, use Pandas settings
         if not self.kwds.get("boxprops"):
             setp(bp["boxes"], color=boxes, alpha=1)
+        else:
+            setp(bp["boxes"], **self.kwds["boxprops"])
         if not self.kwds.get("whiskerprops"):
             setp(bp["whiskers"], color=whiskers, alpha=1)
+        else:
+            setp(bp["whiskers"], **self.kwds["whiskerprops"])
         if not self.kwds.get("medianprops"):
             setp(bp["medians"], color=medians, alpha=1)
+        else:
+            setp(bp["medians"], **self.kwds["medianprops"])
         if not self.kwds.get("capprops"):
             setp(bp["caps"], color=caps, alpha=1)
+        else:
+            setp(bp["caps"], **self.kwds["capprops"])
 
     def _make_plot(self):
         if self.subplots:
