@@ -687,7 +687,6 @@ Other API changes
 - :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
 - Added ``<NA>`` to the list of default NA values for :meth:`read_csv` (:issue:`30821`)
 
-
 .. _whatsnew_100.api.documentation:
 
 Documentation Improvements

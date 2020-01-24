@@ -1208,7 +1208,12 @@ class Timedelta(_Timedelta):
                 "represent unambiguous timedelta values durations."
             )
 
-        if isinstance(value, Timedelta):
+        # GH 30543 if pd.Timedelta already passed, return it
+        # check that only value is passed
+        if (isinstance(value, Timedelta) and unit is None and
+                len(kwargs) == 0):
+            return value
+        elif isinstance(value, Timedelta):
             value = value.value
         elif isinstance(value, str):
             if len(value) > 0 and value[0] == 'P':
