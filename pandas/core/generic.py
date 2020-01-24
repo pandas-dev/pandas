@@ -30,7 +30,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, iNaT, lib, properties
+from pandas._libs import Timestamp, iNaT, lib
 from pandas._typing import (
     Axis,
     Dtype,
@@ -332,18 +332,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls._info_axis_number = info_axis
         cls._info_axis_name = axes[info_axis]
-
-        # setup the actual axis
-        def set_axis(a, i):
-            setattr(cls, a, properties.AxisProperty(i, docs.get(a, a)))
-            cls._internal_names_set.add(a)
-
-        if axes_are_reversed:
-            for i, a in cls._AXIS_NAMES.items():
-                set_axis(a, 1 - i)
-        else:
-            for i, a in cls._AXIS_NAMES.items():
-                set_axis(a, i)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
@@ -5084,6 +5072,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self.attrs[name] = other.attrs[name]
             # For subclasses using _metadata.
             for name in self._metadata:
+                assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
         return self
 

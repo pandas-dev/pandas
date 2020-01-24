@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._libs import index as libindex, lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -46,6 +46,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
     ABCSparseArray,
 )
@@ -177,6 +179,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _name: Optional[Hashable]
     _metadata: List[str] = ["name"]
+    _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -3395,6 +3398,7 @@ Name: Max Speed, dtype: float64
         Series
             Series with levels swapped in MultiIndex.
         """
+        assert isinstance(self.index, ABCMultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
             self
@@ -3419,6 +3423,7 @@ Name: Max Speed, dtype: float64
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
+        assert isinstance(result.index, ABCMultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
 
@@ -4496,6 +4501,7 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
@@ -4520,8 +4526,15 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    index: "Index" = properties.AxisProperty(
+        axis=0, doc="The index (axis labels) of the Series."
+    )
 
     # ----------------------------------------------------------------------
     # Accessor Methods

@@ -957,6 +957,10 @@ Thur,Lunch,Yes,51.51,17"""
         exp = self.frame.swaplevel("first", "second").T
         tm.assert_frame_equal(swapped, exp)
 
+        msg = "Can only swap levels on a hierarchical axis."
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(range(3)).swaplevel()
+
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(["month", "day", "year"])
         expected = self.ymd.swaplevel(0, 1).swaplevel(1, 2)

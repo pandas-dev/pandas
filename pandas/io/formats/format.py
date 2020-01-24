@@ -57,10 +57,13 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
     ABCSparseArray,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -295,6 +298,9 @@ class SeriesFormatter:
         footer = ""
 
         if getattr(self.series.index, "freq", None) is not None:
+            assert isinstance(
+                self.series.index, (ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+            )
             footer += "Freq: {freq}".format(freq=self.series.index.freqstr)
 
         if self.name is not False and name is not None:
