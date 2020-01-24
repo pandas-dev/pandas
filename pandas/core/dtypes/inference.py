@@ -106,13 +106,15 @@ def is_iterator(obj) -> bool:
 
     Returns
     -------
-    is_iter : bool
+    bool
         Whether `obj` is an iterator.
 
     Examples
     --------
-    >>> is_iterator([1, 2, 3])
+    >>> is_iterator((x for x in [1, 2, 3]))
     True
+    >>> is_iterator([1, 2, 3])
+    False
     >>> is_iterator(datetime(2017, 1, 1))
     False
     >>> is_iterator("foo")
@@ -120,7 +122,6 @@ def is_iterator(obj) -> bool:
     >>> is_iterator(1)
     False
     """
-
     if not hasattr(obj, "__iter__"):
         return False
 
