@@ -78,45 +78,45 @@ class TestCompat:
 
 
 class TestDataFrameEval:
-    def test_ops(self):
+
+    # smaller hits python, larger hits numexpr
+    @pytest.mark.parametrize("n", [4, 4000])
+    @pytest.mark.parametrize("op_str,op,rop", [
+            ("+", "__add__", "__radd__"),
+            ("-", "__sub__", "__rsub__"),
+            ("*", "__mul__", "__rmul__"),
+            ("/", "__truediv__", "__rtruediv__"),
+        ])
+    def test_ops(self, op_str, op, rop, n):
 
         # tst ops and reversed ops in evaluation
         # GH7198
 
-        # smaller hits python, larger hits numexpr
-        for n in [4, 4000]:
+        df = DataFrame(1, index=range(n), columns=list("abcd"))
+        df.iloc[0] = 2
+        m = df.mean()
 
-            df = DataFrame(1, index=range(n), columns=list("abcd"))
-            df.iloc[0] = 2
-            m = df.mean()
+        base = DataFrame(  # noqa
+            np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
+        )
 
-            for op_str, op, rop in [
-                ("+", "__add__", "__radd__"),
-                ("-", "__sub__", "__rsub__"),
-                ("*", "__mul__", "__rmul__"),
-                ("/", "__truediv__", "__rtruediv__"),
-            ]:
+        expected = eval("base{op}df".format(op=op_str))
 
-                base = DataFrame(  # noqa
-                    np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
-                )
+        # ops as strings
+        result = eval("m{op}df".format(op=op_str))
+        tm.assert_frame_equal(result, expected)
 
-                expected = eval("base{op}df".format(op=op_str))
+        # these are commutative
+        if op in ["+", "*"]:
+            result = getattr(df, op)(m)
+            tm.assert_frame_equal(result, expected)
 
-                # ops as strings
-                result = eval("m{op}df".format(op=op_str))
-                tm.assert_frame_equal(result, expected)
+        # these are not
+        elif op in ["-", "/"]:
+            result = getattr(df, rop)(m)
+            tm.assert_frame_equal(result, expected)
 
-                # these are commutative
-                if op in ["+", "*"]:
-                    result = getattr(df, op)(m)
-                    tm.assert_frame_equal(result, expected)
-
-                # these are not
-                elif op in ["-", "/"]:
-                    result = getattr(df, rop)(m)
-                    tm.assert_frame_equal(result, expected)
-
+    def test_dataframe_sub_numexpr_path(self):
         # GH7192: Note we need a large number of rows to ensure this
         #  goes through the numexpr path
         df = DataFrame(dict(A=np.random.randn(25000)))

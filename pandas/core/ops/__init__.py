@@ -750,7 +750,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             )
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -784,7 +784,7 @@ def _comp_method_FRAME(cls, op, special):
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
