@@ -8013,7 +8013,7 @@ Wild         185.0
                     result = coerce_to_dtypes(result, self.dtypes)
 
         if constructor is not None:
-            result = Series(result, index=labels)
+            result = self._constructor_sliced(result, index=labels)
         return result
 
     def nunique(self, axis=0, dropna=True) -> Series:
