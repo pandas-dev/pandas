@@ -295,8 +295,6 @@ class Base:
         if isinstance(indices, PeriodIndex):
             # Needs "freq" specification:
             init_kwargs["freq"] = indices.freq
-        elif isinstance(indices, DatetimeIndex) and indices.tz is not None:
-            pytest.skip()
         elif isinstance(indices, (RangeIndex, MultiIndex, CategoricalIndex)):
             # RangeIndex cannot be initialized from data
             # MultiIndex and CategoricalIndex are tested separately
@@ -464,9 +462,6 @@ class Base:
     def test_intersection_base(self, indices):
         if isinstance(indices, CategoricalIndex):
             pytest.skip()
-        if isinstance(indices, DatetimeIndex) and indices.tz is not None:
-            # TODO: This should probably be fixed
-            pytest.skip()
 
         first = indices[:5]
         second = indices[:3]
@@ -490,10 +485,6 @@ class Base:
                 first.intersection([1, 2, 3])
 
     def test_union_base(self, indices):
-        if isinstance(indices, DatetimeIndex) and indices.tz is not None:
-            # TODO: This should probably be fixed
-            pytest.skip()
-
         first = indices[3:]
         second = indices[:5]
         everything = indices
