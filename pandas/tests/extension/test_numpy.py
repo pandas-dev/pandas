@@ -248,6 +248,10 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         # Fails creating expected
         super().test_repeat(data, repeats, as_series, use_numpy)
 
+    @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
+    def test_diff(self, data, periods):
+        return super().test_diff(data, periods)
+
 
 @skip_nested
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
