@@ -202,7 +202,11 @@ class TestLoc(Base):
         s = Series([1, 2, 3])
         with pytest.raises(
             IndexError,
-            match=("Item wrong length {} instead of {}.".format(len(index), len(s))),
+            match=(
+                "Boolean index has wrong length: {} instead of {}".format(
+                    len(index), len(s)
+                )
+            ),
         ):
             _ = s.loc[index]
 

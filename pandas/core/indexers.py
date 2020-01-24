@@ -270,14 +270,18 @@ def deprecate_ndim_indexing(result):
         )
 
 
+# -----------------------------------------------------------
+# Public indexer validation
+
+
 def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
     """
     Check if `indexer` is a valid array indexer for `array`.
 
-    `array` and `indexer` are checked to have the same length, and the
-    dtype is validated. If it is an integer or boolean ExtensionArray, it is
-    checked if there are missing values present, and it is converted to
-    the appropriate numpy array.
+    For a boolean mask, `array` and `indexer` are checked to have the same
+    length. The dtype is validated, and if it is an integer or boolean
+    ExtensionArray, it is checked if there are missing values present, and
+    it is converted to the appropriate numpy array.
 
     .. versionadded:: 1.0.0
 
@@ -286,12 +290,14 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
     array : array-like
         The array that is being indexed (only used for the length).
     indexer : array-like or list-like
-        The array-like that's used to index.
+        The array-like that's used to index. The function assumes this is an
+        array-like, and input that is not yet an numpy array or an ExtensionArray
+        is converted to one.
 
     Returns
     -------
     numpy.ndarray
-        The validated indexer.
+        The validated indexer as a numpy array that can be used to index.
 
     Raises
     ------
@@ -321,7 +327,7 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
     >>> pd.api.indexers.check_array_indexer(arr, mask)
     Traceback (most recent call last):
     ...
-    IndexError: Item wrong length 3 instead of 2.
+    IndexError: Boolean index has wrong length: 3 instead of 2.
 
     A ValueError is raised when the mask cannot be converted to
     a bool-dtype ndarray.
@@ -331,6 +337,12 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
     Traceback (most recent call last):
     ...
     ValueError: Cannot mask with a boolean indexer containing NA values
+
+    A numpy boolean mask will get passed through (if the length is correct):
+
+    >>> mask = np.array([True, False])
+    >>> pd.api.indexers.check_array_indexer(arr, mask)
+    array([ True, False])
 
     Similarly for integer indexers, an integer ndarray is returned when it is
     a valid indexer, otherwise an error is  (for integer indexers, a matching
@@ -342,9 +354,18 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
     array([0, 2])
 
     >>> indexer = pd.array([0, pd.NA], dtype="Int64")
+    >>> pd.api.indexers.check_array_indexer(arr, indexer)
     Traceback (most recent call last):
     ...
     ValueError: Cannot index with an integer indexer containing NA values
+
+    For non-integer/boolean dtypes, an appropriate error is raised:
+
+    >>> indexer = np.array([0., 2.], dtype="float64")
+    >>> pd.api.indexers.check_array_indexer(arr, indexer)
+    Traceback (most recent call last):
+    ...
+    IndexError: arrays used as indices must be of integer or boolean type
     """
     from pandas.core.construction import array as pd_array
 
@@ -360,9 +381,9 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
         # GH26658
         if len(indexer) != len(array):
             raise IndexError(
-                f"Item wrong length {len(indexer)} instead of {len(array)}."
+                f"Boolean index has wrong length: "
+                f"{len(indexer)} instead of {len(array)}"
             )
-
     elif is_integer_dtype(dtype):
         try:
             indexer = np.asarray(indexer, dtype=np.intp)
@@ -370,5 +391,7 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
             raise ValueError(
                 "Cannot index with an integer indexer containing NA values"
             )
+    else:
+        raise IndexError("arrays used as indices must be of integer or boolean type")
 
     return indexer
