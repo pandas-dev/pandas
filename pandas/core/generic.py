@@ -4893,11 +4893,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis)
 
-    def shuffle(
-        self: FrameOrSeries,
-        random_state=None,
-        axis=None,
-    ) -> FrameOrSeries:
+    def shuffle(self: FrameOrSeries, random_state=None, axis=None,) -> FrameOrSeries:
         """
         Return a randomly shuffled dataframe or series
 
