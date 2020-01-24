@@ -526,7 +526,7 @@ class TestDatetimeIndexComparisons:
 
     @pytest.mark.parametrize(
         "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
+        [operator.gt, operator.ge, operator.lt, operator.le],
     )
     def test_comparison_tzawareness_compat(self, op, box_df_fail):
         # GH#18162
