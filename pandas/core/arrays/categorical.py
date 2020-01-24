@@ -54,7 +54,7 @@ from pandas.core.arrays.base import (
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
@@ -2006,8 +2006,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         result = self._codes[key]
         if result.ndim > 1:
-            from pandas.core.indexes.base import deprecate_ndim_indexing
-
             deprecate_ndim_indexing(result)
             return result
         return self._constructor(result, dtype=self.dtype, fastpath=True)
