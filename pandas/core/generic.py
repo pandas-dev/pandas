@@ -4893,6 +4893,65 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis)
 
+    def shuffle(
+        self: FrameOrSeries,
+        random_state=None,
+        axis=None,
+    ) -> FrameOrSeries:
+        """
+        Return a randomly shuffled dataframe or series
+
+        You can use `random_state` for reproducibility
+
+        Parameters:
+        ----------
+        random_state: int or numpy.random.RandomState, optional
+            Seed for the random number generator (if int), or numpy RandomState
+            object.
+        axis: {0 or ‘index’, 1 or ‘columns’, None}, default None
+            Axis to sample. Accepts axis number or name. Default is stat axis
+            for given data type (0 for Series and DataFrames).
+
+        Returns
+        -------
+        Series or DataFrame
+            A new object of the same type as caller with all the items randomly
+            sampled from the caller object.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 8, 0],
+        ...                    'num_wings': [2, 0, 0, 0],
+        ...                    'num_specimen_seen': [10, 2, 1, 8]},
+        ...                   index=['falcon', 'dog', 'spider', 'fish'])
+        >>> df
+            num_legs  num_wings  num_specimen_seen
+        falcon         2          2                 10
+        dog            4          0                  2
+        spider         8          0                  1
+        fish           0          0                  8
+
+        Shuffle the ``Series`` ``df['num_legs']``:
+        Note that we use `random_state` to ensure the reproducibility of
+        the examples.
+
+        >>> df['num_legs'].shuffle(random_state=1)
+        fish      0
+        spider    8
+        falcon    2
+        dog       4
+        Name: num_legs, dtype: int64
+
+        Shuffling the whole ``DataFrame``:
+        >>> df.shuffle(frac=1, random_state=2)
+                num_legs  num_wings  num_specimen_seen
+        spider         8          0                  1
+        fish           0          0                  8
+        dog            4          0                  2
+        falcon         2          2                 10
+        """
+        return self.sample(frac=1, axis=axis, random_state=random_state)
+
     _shared_docs[
         "pipe"
     ] = r"""
