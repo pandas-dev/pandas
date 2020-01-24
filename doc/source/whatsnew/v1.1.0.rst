@@ -191,7 +191,7 @@ MultiIndex
 
 I/O
 ^^^
-
+- Bug in :meth:`read_json` where integer overflow was occuring when json contains big number strings. (:issue:`30320`)
 -
 -
 
