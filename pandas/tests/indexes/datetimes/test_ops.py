@@ -23,7 +23,7 @@ class TestDatetimeIndexOps:
         for op in ["year", "day", "second", "weekday"]:
             msg = f"'Series' object has no attribute '{op}'"
             with pytest.raises(AttributeError, match=msg):
-                getattr(self.dt_series, op)
+                getattr(datetime_series, op)
 
         # attribute access should still work!
         s = Series(dict(year=2000, month=1, day=10))
