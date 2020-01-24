@@ -95,7 +95,7 @@ class TestFY5253LastOfMonth(Base):
 
     on_offset_cases = [
         # From Wikipedia (see:
-        # http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Last_Saturday_of_the_month_at_fiscal_year_end)
+        # https://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Last_Saturday_of_the_month_at_fiscal_year_end)
         (offset_lom_sat_aug, datetime(2006, 8, 26), True),
         (offset_lom_sat_aug, datetime(2007, 8, 25), True),
         (offset_lom_sat_aug, datetime(2008, 8, 30), True),
@@ -208,7 +208,7 @@ class TestFY5253NearestEndMonth(Base):
 
     on_offset_cases = [
         #    From Wikipedia (see:
-        #    http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
+        #    https://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
         #    #Saturday_nearest_the_end_of_month)
         #    2006-09-02   2006 September 2
         #    2007-09-01   2007 September 1
