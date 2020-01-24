@@ -778,7 +778,7 @@ def _comp_method_FRAME(cls, op, special):
             self, other = self.align(
                 other, join="outer", axis=1, level=None, copy=False
             )
-            new_data = dispatch_to_series(self, other, op, axis="columns", str_rep=str_rep)
+            new_data = dispatch_to_series(self, other, op, str_rep=str_rep, axis="columns")
 
         else:
 

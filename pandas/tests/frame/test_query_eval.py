@@ -100,10 +100,10 @@ class TestDataFrameEval:
             np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
         )
 
-        expected = eval("base{op}df".format(op=op_str))
+        expected = eval(f"base {op_str} df")
 
         # ops as strings
-        result = eval("m{op}df".format(op=op_str))
+        result = eval(f"m {op_str} df")
         tm.assert_frame_equal(result, expected)
 
         # these are commutative
