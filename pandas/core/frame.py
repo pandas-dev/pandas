@@ -5341,7 +5341,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func, fill_value=None, level=None):
+    def _combine_frame(self, other: "DataFrame", func, fill_value=None):
         # at this point we have `self._indexed_same(other)`
 
         if fill_value is None:
@@ -5368,7 +5368,7 @@ class DataFrame(NDFrame):
 
         return new_data
 
-    def _combine_match_index(self, other, func):
+    def _combine_match_index(self, other: Series, func):
         # at this point we have `self.index.equals(other.index)`
 
         if ops.should_series_dispatch(self, other, func):
