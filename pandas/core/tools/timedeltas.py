@@ -49,6 +49,7 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------

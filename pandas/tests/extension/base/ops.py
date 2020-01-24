@@ -168,3 +168,11 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             assert result is NotImplemented
         else:
             raise pytest.skip(f"{type(data).__name__} does not implement __eq__")
+
+
+class BaseUnaryOpsTests(BaseOpsUtil):
+    def test_invert(self, data):
+        s = pd.Series(data, name="name")
+        result = ~s
+        expected = pd.Series(~data, name="name")
+        self.assert_series_equal(result, expected)

@@ -1637,7 +1637,7 @@ default 'raise'
         """
         Convert Datetime Array to float64 ndarray of Julian Dates.
         0 Julian date is noon January 1, 4713 BC.
-        http://en.wikipedia.org/wiki/Julian_day
+        https://en.wikipedia.org/wiki/Julian_day
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
