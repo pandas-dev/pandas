@@ -13,36 +13,6 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_100.convert_dtypes:
-
-``convert_dtypes`` method to ease use of supported extension dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In order to encourage use of the extension dtypes ``StringDtype``,
-``BooleanDtype``, ``Int64Dtype``, ``Int32Dtype``, etc., that support ``pd.NA``, the
-methods :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes`
-have been introduced. (:issue:`29752`) (:issue:`30929`)
-
-Example:
-
-.. ipython:: python
-
-   df = pd.DataFrame({'x': ['abc', None, 'def'],
-                      'y': [1, 2, np.nan],
-                      'z': [True, False, True]})
-   df
-   df.dtypes
-
-.. ipython:: python
-
-   converted = df.convert_dtypes()
-   converted
-   converted.dtypes
-
-This is especially useful after reading in data using readers such as :func:`read_csv`
-and :func:`read_excel`.
-See :ref:`here <missing_data.NA.conversion>` for a description.
-
 .. _whatsnew_110.period_index_partial_string_slicing:
 
 Nonmonotonic PeriodIndex Partial String Slicing
