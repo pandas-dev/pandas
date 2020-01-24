@@ -277,7 +277,7 @@ def na_logical_op(x: np.ndarray, y, op):
             assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
             x = ensure_object(x)
             y = ensure_object(y)
-            result = libops.vec_binop(x, y, op)
+            result = libops.vec_binop(x.ravel(), y.ravel(), op)
         else:
             # let null fall thru
             assert lib.is_scalar(y)
@@ -298,7 +298,7 @@ def na_logical_op(x: np.ndarray, y, op):
                     f"and scalar of type [{typ}]"
                 )
 
-    return result
+    return result.reshape(x.shape)
 
 
 def logical_op(
