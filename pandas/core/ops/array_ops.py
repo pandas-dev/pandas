@@ -27,7 +27,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
-    ABCIndexClass,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -52,7 +51,9 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         if isinstance(y, (ABCSeries, ABCIndex)):
             y = y.values
 
-        result = libops.vec_compare(x.ravel(), y, op)
+        if x.shape != y.shape:
+            raise ValueError("Shapes must match", x.shape, y.shape)
+        result = libops.vec_compare(x.ravel(), y.ravel(), op)
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
     return result.reshape(x.shape)
@@ -200,6 +201,27 @@ def arithmetic_op(
     return res_values
 
 
+def _broadcast_comparison_op(lvalues, rvalues, op):
+    if isinstance(rvalues, np.ndarray):
+        rvalues = np.broadcast_to(rvalues, lvalues.shape)
+        result = comparison_op(lvalues, rvalues, op)
+    else:
+        result = np.empty(lvalues.shape, dtype=bool)
+        for i in range(len(lvalues)):
+            result[i, :] = comparison_op(lvalues[i], rvalues[:, 0], op)
+    return result
+
+
+def _can_broadcast(lvalues, rvalues) -> bool:
+    # We assume that lengths dont match
+    if lvalues.ndim == rvalues.ndim == 2:
+        # See if we can broadcast unambiguously
+        if lvalues.shape[1] == rvalues.shape[-1]:
+            if rvalues.shape[0] == 1:
+                return True
+    return False
+
+
 def comparison_op(
     left: Union[np.ndarray, ABCExtensionArray], right: Any, op
 ) -> Union[np.ndarray, ABCExtensionArray]:
@@ -227,12 +249,16 @@ def comparison_op(
         # TODO: same for tuples?
         rvalues = np.asarray(rvalues)
 
-    if isinstance(rvalues, (np.ndarray, ABCExtensionArray, ABCIndexClass)):
+    if isinstance(rvalues, (np.ndarray, ABCExtensionArray)):
         # TODO: make this treatment consistent across ops and classes.
         #  We are not catching all listlikes here (e.g. frozenset, tuple)
         #  The ambiguous case is object-dtype.  See GH#27803
         if len(lvalues) != len(rvalues):
-            raise ValueError("Lengths must match to compare")
+            if _can_broadcast(lvalues, rvalues):
+                return _broadcast_comparison_op(lvalues, rvalues, op)
+            raise ValueError(
+                "Lengths must match to compare", lvalues.shape, rvalues.shape
+            )
 
     if should_extension_dispatch(lvalues, rvalues):
         res_values = dispatch_to_extension_op(op, lvalues, rvalues)

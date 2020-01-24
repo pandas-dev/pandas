@@ -100,7 +100,7 @@ def scalar_compare(object[:] values, object val, object op):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def vec_compare(object[:] left, object[:] right, object op):
+def vec_compare(ndarray[object] left, ndarray[object] right, object op):
     """
     Compare the elements of `left` with the elements of `right` pointwise,
     with the comparison operation described by `op`.
