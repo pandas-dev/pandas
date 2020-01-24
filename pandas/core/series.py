@@ -526,11 +526,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._data.internal_values()
 
-    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
-    @property
-    def array(self) -> ExtensionArray:
-        return self._data._block.array_values()
-
     def _internal_get_values(self):
         """
         Same as values (but handles sparseness conversions); is a view.
