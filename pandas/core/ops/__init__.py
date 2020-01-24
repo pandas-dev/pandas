@@ -584,29 +584,23 @@ def _flex_method_SERIES(cls, op, special):
 # DataFrame
 
 
-def _combine_series_frame(self, other, func, axis=None, level=None):
+def _combine_series_frame(left, right, func, axis: int):
     """
     Apply binary operator `func` to self, other using alignment and fill
-    conventions determined by the axis and level kwargs.
+    conventions determined by the axis argument.
 
     Parameters
     ----------
-    self : DataFrame
-    other : Series
+    left : DataFrame
+    right : Series
     func : binary operator
-    axis : {0, 1, 'columns', 'index', None}, default None
-    level : int or None, default None
+    axis : {0, 1}
 
     Returns
     -------
     result : DataFrame
     """
-    if axis is None:
-        # default axis is columns
-        axis = 1
-
-    axis = self._get_axis_number(axis)
-    left, right = self.align(other, join="outer", axis=axis, level=level, copy=False)
+    # We assume that self.align(other, ...) has already been called
     if axis == 0:
         new_data = left._combine_match_index(right, func)
     else:
@@ -707,7 +701,9 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
-            return _combine_series_frame(self, other, pass_op, axis=axis, level=level)
+            axis = self._get_axis_number(axis) if axis is not None else 1
+            self, other = self.align(other, join="outer", axis=axis, level=level, copy=False)
+            return _combine_series_frame(self, other, pass_op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
@@ -743,7 +739,9 @@ def _flex_comp_method_FRAME(cls, op, special):
             return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
-            return _combine_series_frame(self, other, op, axis=axis, level=level)
+            axis = self._get_axis_number(axis) if axis is not None else 1
+            self, other = self.align(other, join="outer", axis=axis, level=level, copy=False)
+            return _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             new_data = dispatch_to_series(self, other, op)
@@ -773,7 +771,9 @@ def _comp_method_FRAME(cls, op, special):
             return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
-            return _combine_series_frame(self, other, op, axis=None, level=None)
+            # axis=1 is default for DataFrame-with-Series op
+            self, other = self.align(other, join="outer", axis=1, level=None, copy=False)
+            return _combine_series_frame(self, other, op, axis=1)
         else:
 
             # straight boolean comparisons we want to allow all columns
