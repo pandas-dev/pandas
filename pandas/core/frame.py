@@ -38,7 +38,7 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib
+from pandas._libs import algos as libalgos, lib, properties
 from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
@@ -91,8 +91,10 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -394,6 +396,7 @@ class DataFrame(NDFrame):
     2  7  8  9
     """
 
+    _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
 
     @property
@@ -2892,14 +2895,17 @@ class DataFrame(NDFrame):
         engine = self.index._engine
 
         try:
-            return engine.get_value(series._values, index)
+            if isinstance(series._values, np.ndarray):
+                # i.e. not EA, we can use engine
+                return engine.get_value(series._values, index)
+            else:
+                loc = series.index.get_loc(index)
+                return series._values[loc]
         except KeyError:
             # GH 20629
             if self.index.nlevels > 1:
                 # partial indexing forbidden
                 raise
-        except (TypeError, ValueError):
-            pass
 
         # we cannot handle direct indexing
         # use positional
@@ -5290,9 +5296,15 @@ class DataFrame(NDFrame):
         result = self.copy()
 
         axis = self._get_axis_number(axis)
+
+        if not isinstance(result._get_axis(axis), ABCMultiIndex):  # pragma: no cover
+            raise TypeError("Can only swap levels on a hierarchical axis.")
+
         if axis == 0:
+            assert isinstance(result.index, ABCMultiIndex)
             result.index = result.index.swaplevel(i, j)
         else:
+            assert isinstance(result.columns, ABCMultiIndex)
             result.columns = result.columns.swaplevel(i, j)
         return result
 
@@ -5319,8 +5331,10 @@ class DataFrame(NDFrame):
         result = self.copy()
 
         if axis == 0:
+            assert isinstance(result.index, ABCMultiIndex)
             result.index = result.index.reorder_levels(order)
         else:
+            assert isinstance(result.columns, ABCMultiIndex)
             result.columns = result.columns.reorder_levels(order)
         return result
 
@@ -8010,7 +8024,7 @@ Wild         185.0
                     result = coerce_to_dtypes(result, self.dtypes)
 
         if constructor is not None:
-            result = Series(result, index=labels)
+            result = self._constructor_sliced(result, index=labels)
         return result
 
     def nunique(self, axis=0, dropna=True) -> Series:
@@ -8349,8 +8363,10 @@ Wild         185.0
 
         axis = self._get_axis_number(axis)
         if axis == 0:
+            assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
             new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
         elif axis == 1:
+            assert isinstance(self.columns, (ABCDatetimeIndex, ABCPeriodIndex))
             new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
         else:  # pragma: no cover
             raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
@@ -8383,8 +8399,10 @@ Wild         185.0
 
         axis = self._get_axis_number(axis)
         if axis == 0:
+            assert isinstance(self.index, ABCDatetimeIndex)
             new_data.set_axis(1, self.index.to_period(freq=freq))
         elif axis == 1:
+            assert isinstance(self.columns, ABCDatetimeIndex)
             new_data.set_axis(0, self.columns.to_period(freq=freq))
         else:  # pragma: no cover
             raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
@@ -8486,6 +8504,15 @@ Wild         185.0
                 self.index,
                 self.columns,
             )
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    index: "Index" = properties.AxisProperty(
+        axis=1, doc="The index (row labels) of the DataFrame."
+    )
+    columns: "Index" = properties.AxisProperty(
+        axis=0, doc="The column labels of the DataFrame."
+    )
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame

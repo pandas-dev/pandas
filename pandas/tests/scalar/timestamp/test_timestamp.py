@@ -751,7 +751,7 @@ class TestTimestamp:
 
     def test_class_ops_pytz(self):
         def compare(x, y):
-            assert int(Timestamp(x).value / 1e9) == int(Timestamp(y).value / 1e9)
+            assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
@@ -775,8 +775,12 @@ class TestTimestamp:
 
     def test_class_ops_dateutil(self):
         def compare(x, y):
-            assert int(np.round(Timestamp(x).value / 1e9)) == int(
-                np.round(Timestamp(y).value / 1e9)
+            assert (
+                int(
+                    np.round(Timestamp(x).value / 1e9)
+                    - np.round(Timestamp(y).value / 1e9)
+                )
+                == 0
             )
 
         compare(Timestamp.now(), datetime.now())
