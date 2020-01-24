@@ -258,6 +258,36 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, res)
 
+    def test_multiindex_interval_datetimes(self, ext):
+        # GH 30986
+        midx = pd.MultiIndex.from_arrays(
+            [
+                range(4),
+                pd.interval_range(
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                ),
+            ]
+        )
+        df = pd.DataFrame(range(4), index=midx)
+        with tm.ensure_clean(ext) as pth:
+            df.to_excel(pth)
+            result = pd.read_excel(pth, index_col=[0, 1])
+        expected = pd.DataFrame(
+            range(4),
+            pd.MultiIndex.from_arrays(
+                [
+                    range(4),
+                    [
+                        "(2020-01-31, 2020-07-31]",
+                        "(2020-07-31, 2021-01-31]",
+                        "(2021-01-31, 2021-07-31]",
+                        "(2021-07-31, 2022-01-31]",
+                    ],
+                ]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @td.skip_if_no("xlrd")
 @pytest.mark.parametrize(
