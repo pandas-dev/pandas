@@ -861,9 +861,11 @@ cdef class _Timedelta(timedelta):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision).
+        Total duration of timedelta in seconds (to microsecond precision).
         """
-        return self.value / 1e9
+        # GH 31043
+        # Microseconds precision to avoid confusing tzinfo.utcoffset
+        return (self.value - self.value % 1000) / 1e9
 
     def view(self, dtype):
         """
