@@ -5091,22 +5091,22 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        subset : list-like, default self.columns
+        subset : list-like, optional
             Columns to use when counting unique combinations.
-        normalize : boolean, default False
+        normalize : bool, default False
             Return proportions rather than frequencies.
-        sort : boolean, default True
+        sort : bool, default True
             Sort by frequencies.
-        ascending : boolean, default False
+        ascending : bool, default False
             Sort in ascending order.
-        bins : integer, optional
+        bins : int, optional
             This parameter is not yet supported and must be set to None (the
             default value). It exists to ensure compatibiliy with
             `Series.value_counts`.
             Rather than count values, group them into half-open bins,
             a convenience for ``pd.cut``, only works with single-column numeric
             data.
-        dropna : boolean, default True
+        dropna : bool, default True
             This parameter is not yet supported and must be set to True (the
             default value). It exists to ensure compatibiliy with
             `Series.value_counts`.
