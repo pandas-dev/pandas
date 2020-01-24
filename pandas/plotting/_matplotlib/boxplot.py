@@ -294,12 +294,20 @@ def boxplot(
         # for these four kwargs should be overridden; if not, use Pandas settings
         if not kwds.get("boxprops"):
             setp(bp["boxes"], color=colors[0], alpha=1)
+        else:
+            setp(bp["boxes"], **kwds["boxprops"])
         if not kwds.get("whiskerprops"):
             setp(bp["whiskers"], color=colors[1], alpha=1)
+        else:
+            setp(bp["whiskers"], **kwds["whiskerprops"])
         if not kwds.get("medianprops"):
             setp(bp["medians"], color=colors[2], alpha=1)
+        else:
+            setp(bp["medians"], **kwds["medianprops"])
         if not kwds.get("capprops"):
             setp(bp["caps"], color=colors[3], alpha=1)
+        else:
+            setp(bp["caps"], **kwds["capprops"])
 
     def plot_group(keys, values, ax):
         keys = [pprint_thing(x) for x in keys]
