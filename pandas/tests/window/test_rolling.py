@@ -428,21 +428,16 @@ def test_min_periods1():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("test_series", [True, False])
-def test_rolling_count_with_min_periods(test_series):
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_rolling_count_with_min_periods(constructor):
     # GH 26996
-    if test_series:
-        result = Series(range(5)).rolling(3, min_periods=3).count()
-        expected = Series([np.nan, np.nan, 3.0, 3.0, 3.0])
-        tm.assert_series_equal(result, expected)
-    else:
-        result = DataFrame(range(5)).rolling(3, min_periods=3).count()
-        expected = DataFrame([np.nan, np.nan, 3.0, 3.0, 3.0])
-        tm.assert_frame_equal(result, expected)
+    result = constructor(range(5)).rolling(3, min_periods=3).count()
+    expected = constructor([np.nan, np.nan, 3.0, 3.0, 3.0])
+    tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("test_series", [True, False])
-def test_rolling_count_default_min_periods_with_null_values(test_series):
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_rolling_count_default_min_periods_with_null_values(constructor):
     # GH 26996
     # We need rolling count to have default min_periods=0,
     # as the method is meant to count how many non-null values,
@@ -451,13 +446,6 @@ def test_rolling_count_default_min_periods_with_null_values(test_series):
     values = [1, 2, 3, np.nan, 4, 5, 6]
     expected_counts = [np.nan, np.nan, 3.0, 2.0, 2.0, 2.0, 3.0]
 
-    if test_series:
-        ser = Series(values)
-        result = ser.rolling(3).count()
-        expected = Series(expected_counts)
-        tm.assert_series_equal(result, expected)
-    else:
-        df = DataFrame(values)
-        result = df.rolling(3).count()
-        expected = DataFrame(expected_counts)
-        tm.assert_frame_equal(result, expected)
+    result = constructor(values).rolling(3).count()
+    expected = constructor(expected_counts)
+    tm.assert_equal(result, expected)
