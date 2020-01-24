@@ -309,6 +309,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     pytest -q --doctest-modules pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests dtypes/inference.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/dtypes/inference.py -k "is_iterator"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCSTRINGS ###

@@ -115,8 +115,6 @@ def is_iterator(obj) -> bool:
     True
     >>> is_iterator([1, 2, 3])
     False
-    >>> is_iterator(datetime(2017, 1, 1))
-    False
     >>> is_iterator("foo")
     False
     >>> is_iterator(1)
