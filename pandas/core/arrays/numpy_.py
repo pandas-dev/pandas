@@ -43,7 +43,6 @@ class PandasDtype(ExtensionDtype):
     def __init__(self, dtype):
         dtype = np.dtype(dtype)
         self._dtype = dtype
-        self._name = dtype.name
         self._type = dtype.type
 
     def __repr__(self) -> str:
@@ -56,7 +55,7 @@ class PandasDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return self._name
+        return self._dtype.name
 
     @property
     def type(self):

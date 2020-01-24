@@ -18,13 +18,11 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_ns_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_ns_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -745,26 +743,7 @@ class IndexOpsMixin:
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        # As a mixin, we depend on the mixing class having _values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        result = self._values  # type: ignore
-
-        if is_datetime64_ns_dtype(result.dtype):
-            from pandas.arrays import DatetimeArray
-
-            result = DatetimeArray(result)
-        elif is_timedelta64_ns_dtype(result.dtype):
-            from pandas.arrays import TimedeltaArray
-
-            result = TimedeltaArray(result)
-
-        elif not is_extension_array_dtype(result.dtype):
-            from pandas.core.arrays.numpy_ import PandasArray
-
-            result = PandasArray(result)
-
-        return result
+        raise AbstractMethodError(self)
 
     def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
         """
