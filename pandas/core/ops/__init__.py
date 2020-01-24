@@ -620,7 +620,7 @@ def _align_method_FRAME(left, right, axis, flex=False, level=None):
     axis: int, str, or None
     flex: bool or None, default False
         Whether this is a flex op, in which case we reindex.
-        None indices not to check for alignment.
+        None indicates not to check for alignment.
     level : int or level name, default None
 
     Returns
