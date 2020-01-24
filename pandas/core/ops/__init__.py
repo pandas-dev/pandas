@@ -609,7 +609,7 @@ def _combine_series_frame(left, right, func, axis: int):
     return left._construct_result(new_data)
 
 
-def _align_method_FRAME(left, right, axis, flex=False, level=None):
+def _align_method_FRAME(left, right, axis, flex: Optional[bool] = False, level: Optional[Label] = None):
     """
     Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
 
