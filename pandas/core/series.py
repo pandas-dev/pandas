@@ -3389,7 +3389,7 @@ Name: Max Speed, dtype: float64
         See Also
         --------
         Series.str.split : Split string values on specified separator.
-        Series.unstack : Unstack, a.k.a pivot, Series with MultiIndex
+        Series.unstack : Unstack, a.k.a. pivot, Series with MultiIndex
             to produce DataFrame.
         DataFrame.melt : Unpivot a DataFrame from wide format to long format.
         DataFrame.explode : Explode a DataFrame from list-like
@@ -3432,7 +3432,7 @@ Name: Max Speed, dtype: float64
 
     def unstack(self, level=-1, fill_value=None):
         """
-        Unstack, a.k.a pivot, Series with MultiIndex to produce DataFrame.
+        Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
         The level involved will automatically get sorted.
 
         Parameters
