@@ -328,7 +328,7 @@ def test_transform_transformation_func(transformation_func):
 
     if transformation_func in ["pad", "backfill", "tshift", "corrwith", "cumcount"]:
         # These transformation functions are not yet covered in this test
-        return
+        pytest.xfail()
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
