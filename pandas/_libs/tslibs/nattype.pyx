@@ -278,7 +278,7 @@ cdef class _NaT(datetime):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision).
+        Total duration of timedelta in seconds (to microsecond precision).
         """
         # GH#10939
         return np.nan
