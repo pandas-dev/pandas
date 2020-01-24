@@ -172,7 +172,7 @@ def _reconstruct_data(values, dtype, original):
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray or ExtensionArray
     dtype : pandas_dtype
     original : ndarray-like
 
