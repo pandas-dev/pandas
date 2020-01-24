@@ -2192,34 +2192,6 @@ def test_merge_preserves_row_order(how):
     expected_cols = ["name", "country", "population"]
     expected = DataFrame(expected_data, columns=expected_cols)
 
-    result = pop.merge(ppl, on=("name", "country"), how="right")
-
-    tm.assert_frame_equal(result, expected)
-
-
-def test_left_merge_preserves_row_order():
-    # GH 27453
-    population = [
-        ("Jenn", "Jamaica", 3),
-        ("Beth", "Bulgaria", 7),
-        ("Carl", "Canada", 30),
-    ]
-    columns = ["name", "country", "population"]
-    pop = DataFrame(population, columns=columns)
-
-    people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
-    columns = ["name", "country"]
-    ppl = DataFrame(people, columns=columns)
-
-    expected_data = [
-        ("Abe", "America", np.nan),
-        ("Beth", "Bulgaria", 7),
-        ("Carl", "Canada", 30),
-    ]
-    expected_cols = ["name", "country", "population"]
-    expected = DataFrame(expected_data, columns=expected_cols)
-
-    result = ppl.merge(pop, on=("name", "country"), how="left")
     if how == "right":
         left_df, right_df = population_df, people_df
     elif how == "left":

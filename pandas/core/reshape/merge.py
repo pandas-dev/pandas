@@ -567,10 +567,10 @@ class _MergeOperation:
         indicator: bool = False,
         validate=None,
     ):
-        left = validate_operand(left)
-        right = validate_operand(right)
-        self.left = self.orig_left = left
-        self.right = self.orig_right = right
+        _left = _validate_operand(left)
+        _right = _validate_operand(right)
+        self.left = self.orig_left = _left
+        self.right = self.orig_right = _right
         self.how = how
         self.axis = axis
 
