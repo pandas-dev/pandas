@@ -5070,7 +5070,7 @@ class DataFrame(NDFrame):
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
-        bins=None,
+        bins: Optional[int] = None,
         dropna: bool = True,
     ):
         """
