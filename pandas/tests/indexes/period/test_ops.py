@@ -2,29 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series, TimedeltaIndex
+from pandas import Index, NaT, PeriodIndex, Series
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
 
 
 class TestPeriodIndexOps:
-    @pytest.mark.parametrize("op", PeriodArray._datetimelike_ops)
-    def test_valid_ops_properties(self, op, index_or_series_obj):
-        obj = index_or_series_obj
-        if isinstance(obj, PeriodIndex):
-            tm.check_ops_properties_valid(obj, op)
-
-    @pytest.mark.parametrize("op", PeriodArray._datetimelike_ops)
-    def test_invalid_ops_properties(self, op, index_or_series_obj):
-        obj = index_or_series_obj
-        if isinstance(obj, (PeriodIndex, DatetimeIndex)):
-            pytest.skip()
-        if op == "freq" and isinstance(obj, TimedeltaIndex):
-            pytest.skip()
-
-        with pytest.raises((AttributeError, TypeError)):
-            getattr(obj, op)
-
     def test_resolution(self):
         for freq, expected in zip(
             ["A", "Q", "M", "D", "H", "T", "S", "L", "U"],

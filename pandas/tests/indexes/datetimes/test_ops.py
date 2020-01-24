@@ -7,16 +7,7 @@ import pytest
 from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    PeriodIndex,
-    Series,
-    TimedeltaIndex,
-    Timestamp,
-    bdate_range,
-    date_range,
-)
+from pandas import DatetimeIndex, Index, Series, Timestamp, bdate_range, date_range
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
@@ -25,23 +16,6 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestDatetimeIndexOps:
-    @pytest.mark.parametrize("op", DatetimeIndex._datetimelike_ops)
-    def test_valid_ops_properties(self, op, index_or_series_obj):
-        obj = index_or_series_obj
-        if isinstance(obj, DatetimeIndex):
-            tm.check_ops_properties_valid(obj, op)
-
-    @pytest.mark.parametrize("op", DatetimeIndex._datetimelike_ops)
-    def test_invalid_ops_properties(self, op, index_or_series_obj):
-        obj = index_or_series_obj
-        if isinstance(obj, (DatetimeIndex, PeriodIndex)):
-            pytest.skip()
-        if op == "freq" and isinstance(obj, TimedeltaIndex):
-            pytest.skip()
-
-        with pytest.raises((AttributeError, TypeError)):
-            getattr(obj, op)
-
     def test_ops_properties_basic(self, datetime_series):
 
         # sanity check that the behavior didn't change
