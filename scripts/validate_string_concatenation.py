@@ -17,10 +17,10 @@ import token
 import tokenize
 from typing import IO, Callable, Generator, List, Tuple
 
-FILE_EXTENSIONS_TO_CHECK = (".py", ".pyx", ".pyx.ini", ".pxd")
+FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pyx.ini", ".pxd")
 
 
-def bare_pytest_raises(file_obj: IO) -> Generator[Tuple[int, str], None, None]:
+def bare_pytest_raises(file_obj: IO[str]) -> Generator[Tuple[int, str], None, None]:
     """
     Test Case for bare pytest raises.
 
@@ -69,7 +69,7 @@ def bare_pytest_raises(file_obj: IO) -> Generator[Tuple[int, str], None, None]:
                 break
 
 
-def strings_to_concatenate(file_obj: IO) -> Generator[Tuple[int, str], None, None]:
+def strings_to_concatenate(file_obj: IO[str]) -> Generator[Tuple[int, str], None, None]:
     """
     This test case is necessary after 'Black' (https://github.com/psf/black),
     is formating strings over multiple lines.
@@ -119,7 +119,7 @@ def strings_to_concatenate(file_obj: IO) -> Generator[Tuple[int, str], None, Non
 
 
 def strings_with_wrong_placed_whitespace(
-    file_obj: IO,
+    file_obj: IO[str],
 ) -> Generator[Tuple[int, str], None, None]:
     """
     Test case for leading spaces in concated strings.
@@ -254,7 +254,7 @@ def strings_with_wrong_placed_whitespace(
 
 
 def main(
-    function: Callable[[IO], Generator[Tuple[int, str], None, None]],
+    function: Callable[[IO[str]], Generator[Tuple[int, str], None, None]],
     source_path: str,
     output_format: str,
 ) -> bool:
@@ -284,9 +284,10 @@ def main(
         raise ValueError("Please enter a valid path, pointing to a file/directory.")
 
     is_failed: bool = False
+    file_path: str = ""
 
     if os.path.isfile(source_path):
-        file_path: str = source_path
+        file_path = source_path
         with open(file_path, "r") as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
@@ -303,7 +304,7 @@ def main(
             ):
                 continue
 
-            file_path: str = os.path.join(subdir, file_name)
+            file_path = os.path.join(subdir, file_name)
             with open(file_path, "r") as file_obj:
                 for line_number, msg in function(file_obj):
                     is_failed = True
@@ -346,7 +347,7 @@ if __name__ == "__main__":
 
     sys.exit(
         main(
-            function=globals().get(args.validation_type),
+            function=globals().get(args.validation_type),  # type: ignore
             source_path=args.path,
             output_format=args.format,
         )
