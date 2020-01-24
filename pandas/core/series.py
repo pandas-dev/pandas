@@ -2475,7 +2475,7 @@ Name: Max Speed, dtype: float64
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False) -> "Series":
+    def append(self, to_append, ignore_index=False, verify_integrity=False):
         """
         Concatenate two or more Series.
 
@@ -2552,10 +2552,8 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
-        return self._ensure_type(
-            concat(
-                to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
-            )
+        return concat(
+            to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
 
     def _binop(self, other, func, level=None, fill_value=None):
