@@ -33,7 +33,7 @@ programming language.
                 <div class="card-body flex-fill">
                     <h5 class="card-title">Getting started</h5>
                     <p class="card-text">New to <em>pandas</em>? Check out the getting started guides. They
-                    contain a first introduction to some of the main <em>pandas</em> concepts. Furthermore,
+                    contain an introduction to <em>pandas'</em> main concepts and links to additional tutorials.
                     it contains an overview of community provided tutorials.</p>
 
 .. container:: custom-button
@@ -67,8 +67,8 @@ programming language.
                 <img src="_static/index_api.svg" class="card-img-top" alt="api of pandas action icon" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">API reference</h5>
-                    <p class="card-text">The reference guide contains a detailed overview of
-                    all functionalities in the pandas API. The reference describes how
+                    <p class="card-text">The reference guide contains a detailed description of
+                    the pandas API. The reference describes how
                     the methods work and which parameters can be used. It assumes that you
                     have an understanding of the key concepts.</p>
 
@@ -88,7 +88,7 @@ programming language.
                     <h5 class="card-title">Developer guide</h5>
                     <p class="card-text">Saw a typo in the documentation? Want to improve
                     existing functionalities? The contributing guidelines will guide
-                    you through the process of setting up a development environment.</p>
+                    you through the process of improving pandas.</p>
 
 .. container:: custom-button
 
