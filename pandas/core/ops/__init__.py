@@ -702,7 +702,9 @@ def _arith_method_FRAME(cls, op, special):
                 raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
             axis = self._get_axis_number(axis) if axis is not None else 1
-            self, other = self.align(other, join="outer", axis=axis, level=level, copy=False)
+            self, other = self.align(
+                other, join="outer", axis=axis, level=level, copy=False
+            )
             return _combine_series_frame(self, other, pass_op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
@@ -740,7 +742,9 @@ def _flex_comp_method_FRAME(cls, op, special):
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            self, other = self.align(other, join="outer", axis=axis, level=level, copy=False)
+            self, other = self.align(
+                other, join="outer", axis=axis, level=level, copy=False
+            )
             return _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
@@ -772,8 +776,12 @@ def _comp_method_FRAME(cls, op, special):
 
         elif isinstance(other, ABCSeries):
             # axis=1 is default for DataFrame-with-Series op
-            self, other = self.align(other, join="outer", axis=1, level=None, copy=False)
-            return _combine_series_frame(self, other, op, axis=1)
+            self, other = self.align(
+                other, join="outer", axis=1, level=None, copy=False
+            )
+            new_data = dispatch_to_series(self, other, op, axis="columns")
+            return self._construct_result(new_data)
+
         else:
 
             # straight boolean comparisons we want to allow all columns
