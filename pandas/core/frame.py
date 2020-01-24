@@ -5072,7 +5072,7 @@ class DataFrame(NDFrame):
 
     def value_counts(
         self,
-        subset: Sequence[Label] = None,
+        subset: Optional[Sequence[Label]] = None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
