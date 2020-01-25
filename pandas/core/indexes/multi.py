@@ -3314,9 +3314,11 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        self_tuples = self._ndarray_values
-        other_tuples = other._ndarray_values
-        uniq_tuples = set(self_tuples) & set(other_tuples)
+        uniq_other = set(other.values)
+        seen = set()
+        uniq_tuples = [
+            x for x in self.values if x in uniq_other and not (x in seen or seen.add(x))
+        ]
 
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)
