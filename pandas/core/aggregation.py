@@ -17,16 +17,25 @@ from pandas.core.indexes.api import Index
 def reconstruct_func(func, *args, **kwargs):
     """
     This is the internal function to reconstruct func given if there is relabeling
-    or not. And also normalize the keyword to get new order of columns;
+    or not and also normalize the keyword to get new order of columns.
+
     If relabeling is True, will return relabeling, reconstructed func, column
     names, and the reconstructed order of columns.
     If relabeling is False, the columns and order will be None.
+
+    Parameters
+    ----------
+    func: aggregated function
+    **kwargs: dict
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
     columns: Optional[List[str]] = None
     order: Optional[List[int]] = None
 
-    if isinstance(func, list) and len(func) > len(set(func)):
+    if relabeling:
+        func, columns, order = normalize_keyword_aggregation(kwargs)
+
+    elif isinstance(func, list) and len(func) > len(set(func)):
 
         # GH 28426 will raise error if duplicated function names are used and
         # there is no reassigned name
@@ -36,9 +45,6 @@ def reconstruct_func(func, *args, **kwargs):
     elif func is None:
         # nicer error message
         raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-    if relabeling:
-        func, columns, order = normalize_keyword_aggregation(kwargs)
 
     func = maybe_mangle_lambdas(func)
 
