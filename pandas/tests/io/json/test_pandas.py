@@ -1647,3 +1647,18 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame({"col": ["31900441201190696999", "Text"]})
         result = read_json(encoded_json)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dataframe,expected",
+        [
+            (
+                pd.DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]}),
+                '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
+                '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}',
+            )
+        ],
+    )
+    def test_json_multiindex(self, dataframe, expected):
+        series = dataframe.stack()
+        result = series.to_json(orient="index")
+        assert result == expected
