@@ -523,8 +523,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------- | ------------- | ------------- | ------------- | --------------- |
         Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
         Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
-        dt64[ns]    | ndarray[M8ns] | ndarray[M8ns] | DatetimeArray | ndarray[M8ns]   |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
         dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8bs] | ndarray[m8ns]   |
         Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
         Nullable    | EA            | EA            | EA            | ndarray         |
 
