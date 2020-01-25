@@ -8,62 +8,63 @@ import validate_string_concatenation as validate_unwanted_patterns
 
 class TestBarePytestRaises:
     @pytest.mark.parametrize(
-        "fd, expected",
+        "data, expected",
         [
             (
-                io.StringIO(
+                (
                     """
 with pytest.raises(ValueError, match="foo"):
     pass
-""".strip()
+"""
                 ),
                 [],
             ),
             (
-                io.StringIO(
+                (
                     """
 # with pytest.raises(ValueError, match="foo"):
 #    pass
-""".strip()
+"""
                 ),
                 [],
             ),
             (
-                io.StringIO(
+                (
                     """
 # with pytest.raises(ValueError):
 #    pass
-""".strip()
+"""
                 ),
                 [],
             ),
             (
-                io.StringIO(
+                (
                     """
 with pytest.raises(
     ValueError,
     match="foo"
     ):
     pass
-""".strip()
+"""
                 ),
                 [],
             ),
         ],
     )
-    def test_good_pytest_raises(self, fd, expected):
+    def test_good_pytest_raises(self, data, expected):
+        fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
         assert result == expected
 
     @pytest.mark.parametrize(
-        "fd, expected",
+        "data, expected",
         [
             (
-                io.StringIO(
+                (
                     """
 with pytest.raises(ValueError):
     pass
-""".strip()
+"""
                 ),
                 [
                     (
@@ -77,13 +78,13 @@ with pytest.raises(ValueError):
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 with pytest.raises(ValueError, match="foo"):
     with pytest.raises(ValueError):
         pass
     pass
-""".strip()
+"""
                 ),
                 [
                     (
@@ -97,13 +98,13 @@ with pytest.raises(ValueError, match="foo"):
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 with pytest.raises(ValueError):
     with pytest.raises(ValueError, match="foo"):
         pass
     pass
-""".strip()
+"""
                 ),
                 [
                     (
@@ -117,13 +118,13 @@ with pytest.raises(ValueError):
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 with pytest.raises(
     ValueError
 ):
     pass
-""".strip()
+"""
                 ),
                 [
                     (
@@ -137,14 +138,14 @@ with pytest.raises(
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 with pytest.raises(
     ValueError,
     # match = "foo"
 ):
     pass
-""".strip()
+"""
                 ),
                 [
                     (
@@ -159,7 +160,8 @@ with pytest.raises(
             ),
         ],
     )
-    def test_bad_pytest_raises(self, fd, expected):
+    def test_bad_pytest_raises(self, data, expected):
+        fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
         assert result == expected
 
