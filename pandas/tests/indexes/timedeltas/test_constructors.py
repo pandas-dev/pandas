@@ -47,6 +47,12 @@ class TestTimedeltaIndex:
             # GH#23789
             TimedeltaArray(tdi, freq="D")
 
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(tdi._data, freq="D")
+
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray(tdi._data, freq="D")
+
     def test_dt64_data_invalid(self):
         # GH#23539
         # passing tz-aware DatetimeIndex raises, naive or ndarray[datetime64]
