@@ -12,7 +12,6 @@ from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -221,10 +220,6 @@ class Block(PandasObject):
         """
         The array that Series.array returns. Always an ExtensionArray.
         """
-        return self._ea_values
-
-    @cache_readonly
-    def _ea_values(self) -> ExtensionArray:
         return PandasArray(self.values)
 
     def get_values(self, dtype=None):
@@ -2143,15 +2138,9 @@ class DatetimeLikeBlockMixin:
             return result.reshape(self.values.shape)
         return self.values
 
-    def array_values(self):
-        return self._ea_values
-
     def internal_values(self):
-        return self._ea_values
-
-    @cache_readonly
-    def _ea_values(self):
-        return self._holder._simple_new(self.values)
+        # Override to return DatetimeArray and TimedeltaArray
+        return self.array_values()
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2274,6 +2263,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def external_values(self):
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
+
+    def array_values(self) -> ExtensionArray:
+        return DatetimeArray._simple_new(self.values)
 
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
@@ -2532,6 +2524,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def external_values(self):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
+
+    def array_values(self) -> ExtensionArray:
+        return TimedeltaArray._simple_new(self.values)
 
 
 class BoolBlock(NumericBlock):
