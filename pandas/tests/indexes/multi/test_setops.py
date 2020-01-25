@@ -20,21 +20,17 @@ def test_set_ops_error_cases(idx, case, sort, method):
 
 @pytest.mark.parametrize("sort", [None, False])
 def test_intersection_base(idx, sort):
-    first = idx[:5]
-    second = idx[:3]
-    intersect = first.intersection(second, sort=sort)
+    first = idx[2::-1]  # first 3 elements reversed
+    second = idx[:5]
 
-    if sort is None:
-        tm.assert_index_equal(intersect, second.sort_values())
-    assert tm.equalContents(intersect, second)
-
-    # GH 10149
-    cases = [klass(second.values) for klass in [np.array, Series, list]]
-    for case in cases:
-        result = first.intersection(case, sort=sort)
+    array_like_cases = [klass(second.values) for klass in [np.array, Series, list]]
+    for case in [second, *array_like_cases]:
+        intersect = first.intersection(case, sort=sort)
         if sort is None:
-            tm.assert_index_equal(result, second.sort_values())
-        assert tm.equalContents(result, second)
+            expected = first.sort_values()
+        else:
+            expected = first
+        tm.assert_index_equal(intersect, expected)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
