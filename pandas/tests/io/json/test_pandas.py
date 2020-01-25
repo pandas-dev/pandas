@@ -1651,12 +1651,14 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     @pytest.mark.parametrize(
         "dataframe,expected",
         [
-            (pd.DataFrame({'x': [1, 2, 3], 'y': ['a', 'b', 'c']}),
-            '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
-            '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}')
-        ]
+            (
+                pd.DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]}),
+                '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
+                '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}',
+            )
+        ],
     )
     def test_json_multiindex(self, dataframe, expected):
         series = dataframe.stack()
         result = series.to_json(orient="index")
-        assert result==expected
+        assert result == expected
