@@ -59,7 +59,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     return result.reshape(x.shape)
 
 
-def masked_arith_op(x, y, op):
+def masked_arith_op(x: np.ndarray, y, op):
     """
     If the given arithmetic operation fails, attempt it again on
     only the non-null elements of the input array(s).
@@ -78,10 +78,22 @@ def masked_arith_op(x, y, op):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
+        if len(x) != len(y):
+            if not _can_broadcast(x, y):
+                raise ValueError(x.shape, y.shape)
+
+            # Call notna on pre-broadcasted y for performance
+            ymask = notna(y)
+            y = np.broadcast_to(y, x.shape)
+            ymask = np.broadcast_to(ymask, x.shape)
+
+        else:
+            ymask = notna(y)
+
         # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
         #  we would get int64 dtype, see GH#19956
         yrav = y.ravel()
-        mask = notna(xrav) & notna(yrav)
+        mask = notna(xrav) & ymask.ravel()
 
         if yrav.shape != mask.shape:
             # FIXME: GH#5284, GH#5035, GH#19448
