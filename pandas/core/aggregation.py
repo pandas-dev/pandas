@@ -14,7 +14,9 @@ import pandas.core.common as com
 from pandas.core.indexes.api import Index
 
 
-def reconstruct_func(func, *args, **kwargs):
+def reconstruct_func(
+    func: Optional[List[Any]], *args, **kwargs: dict
+) -> Tuple[bool, Any, List[str], List[int]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -27,6 +29,21 @@ def reconstruct_func(func, *args, **kwargs):
     ----------
     func: aggregated function
     **kwargs: dict
+
+    Returns
+    -------
+    relabelling: bool, if there is relabelling or not
+    func: normalized and mangled func
+    columns: list of column names
+    order: list of columns indices
+
+    Examples
+    --------
+    >>> reconstruct_func({"foo": ("col", "min")})
+    True, {"col": ["min"]}, ("foo",), [0]
+
+    >>> reconstruct_func("min")
+    False, "min", None, None
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
     columns: Optional[List[str]] = None
