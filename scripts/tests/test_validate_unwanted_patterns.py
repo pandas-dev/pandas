@@ -2,7 +2,9 @@ import io
 
 import pytest
 
-# the "as" is just so I won't have to change this in many places later.
+# TODO: change this import to "import validate_unwanted_patterns"
+# when renaming "scripts/validate_string_concatenation.py" to
+# "scripts/validate_unwanted_patterns.py"
 import validate_string_concatenation as validate_unwanted_patterns
 
 
