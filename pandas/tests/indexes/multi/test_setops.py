@@ -39,21 +39,17 @@ def test_intersection_base(idx, sort):
 
 @pytest.mark.parametrize("sort", [None, False])
 def test_union_base(idx, sort):
-    first = idx[3:]
+    first = idx[::-1]
     second = idx[:5]
-    everything = idx
-    union = first.union(second, sort=sort)
-    if sort is None:
-        tm.assert_index_equal(union, everything.sort_values())
-    assert tm.equalContents(union, everything)
 
-    # GH 10149
-    cases = [klass(second.values) for klass in [np.array, Series, list]]
-    for case in cases:
-        result = first.union(case, sort=sort)
+    array_like_cases = [klass(second.values) for klass in [np.array, Series, list]]
+    for case in [second, *array_like_cases]:
+        union = first.union(case, sort=sort)
         if sort is None:
-            tm.assert_index_equal(result, everything.sort_values())
-        assert tm.equalContents(result, everything)
+            expected = first.sort_values()
+        else:
+            expected = first
+        tm.assert_index_equal(union, expected)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
