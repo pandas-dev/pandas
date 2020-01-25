@@ -611,10 +611,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self._data
+
         if isinstance(values, type(self)):
             values = values._data
         if isinstance(values, np.ndarray):
-            values = type(self._data)._simple_new(values, dtype=self.dtype, freq=kwargs.get("freq"))
+            # TODO: We would rather not get here
+            if kwargs.get("freq") is not None:
+                raise ValueError(kwargs)
+            values = type(self._data)._simple_new(values, dtype=self.dtype)
 
         attributes = self._get_attributes_dict()
 

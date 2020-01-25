@@ -163,7 +163,7 @@ class TimedeltaIndex(
                 "represent unambiguous timedelta values durations."
             )
 
-        if isinstance(data, TimedeltaArray):
+        if isinstance(data, TimedeltaArray) and freq is None:
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name, freq=freq)

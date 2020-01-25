@@ -2101,8 +2101,7 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
         key = list(self._convert_key(key, is_setter=True))
-        key.append(value)
-        self.obj._set_value(*key, takeable=self._takeable)
+        self.obj._set_value(*key, value=value, takeable=self._takeable)
 
 
 @Appender(IndexingMixin.at.__doc__)
@@ -2233,7 +2232,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         result = result.astype(bool)._values
     else:
         if is_sparse(result):
-            result = result.to_dense()
+            result = np.asarray(result)
         result = check_bool_array_indexer(index, result)
 
     return result

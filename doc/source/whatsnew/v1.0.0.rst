@@ -144,7 +144,7 @@ type dedicated to boolean data that can hold missing values. The default
 ``bool`` data type based on a bool-dtype NumPy array, the column can only hold
 ``True`` or ``False``, and not missing values. This new :class:`~arrays.BooleanArray`
 can store missing values as well by keeping track of this in a separate mask.
-(:issue:`29555`, :issue:`30095`)
+(:issue:`29555`, :issue:`30095`, :issue:`31131`)
 
 .. ipython:: python
 
@@ -156,6 +156,36 @@ You can use the alias ``"boolean"`` as well.
 
    s = pd.Series([True, False, None], dtype="boolean")
    s
+
+.. _whatsnew_100.convert_dtypes:
+
+``convert_dtypes`` method to ease use of supported extension dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to encourage use of the extension dtypes ``StringDtype``,
+``BooleanDtype``, ``Int64Dtype``, ``Int32Dtype``, etc., that support ``pd.NA``, the
+methods :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes`
+have been introduced. (:issue:`29752`) (:issue:`30929`)
+
+Example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'x': ['abc', None, 'def'],
+                      'y': [1, 2, np.nan],
+                      'z': [True, False, True]})
+   df
+   df.dtypes
+
+.. ipython:: python
+
+   converted = df.convert_dtypes()
+   converted
+   converted.dtypes
+
+This is especially useful after reading in data using readers such as :func:`read_csv`
+and :func:`read_excel`.
+See :ref:`here <missing_data.NA.conversion>` for a description.
 
 .. _whatsnew_100.numba_rolling_apply:
 
@@ -687,7 +717,6 @@ Other API changes
 - :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
 - Added ``<NA>`` to the list of default NA values for :meth:`read_csv` (:issue:`30821`)
 
-
 .. _whatsnew_100.api.documentation:
 
 Documentation Improvements
@@ -1019,6 +1048,7 @@ Numeric
 - Bug in :meth:`DataFrame.round` where a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`IntervalIndex` columns would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` when there are duplicated indices (:issue:`30463`)
 - Bug in :class:`DataFrame` cumulative operations (e.g. cumsum, cummax) incorrect casting to object-dtype (:issue:`19296`)
+- Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
 - Bug in :class:`~DataFrame.diff` losing the dtype for extension types (:issue:`30889`)
 - Bug in :class:`DataFrame.diff` raising an ``IndexError`` when one of the columns was a nullable integer dtype (:issue:`30967`)
 
@@ -1169,6 +1199,7 @@ ExtensionArray
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
 - Bug where :class:`DataFrame` constructor raised ``ValueError`` with list-like data and ``dtype`` specified (:issue:`30280`)
+- Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
 
 
 Other
