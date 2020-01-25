@@ -486,7 +486,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             try:
                 loc = self._get_string_slice(key)
                 return series[loc]
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
             asdt, reso = parse_time_string(key, self.freq)
@@ -572,27 +572,28 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
                 loc = self._get_string_slice(key)
                 return loc
             except (TypeError, ValueError):
+                pass
 
-                try:
-                    asdt, reso = parse_time_string(key, self.freq)
-                except DateParseError:
-                    # A string with invalid format
-                    raise KeyError(f"Cannot interpret '{key}' as period")
+            try:
+                asdt, reso = parse_time_string(key, self.freq)
+            except DateParseError:
+                # A string with invalid format
+                raise KeyError(f"Cannot interpret '{key}' as period")
 
-                grp = resolution.Resolution.get_freq_group(reso)
-                freqn = resolution.get_freq_group(self.freq)
+            grp = resolution.Resolution.get_freq_group(reso)
+            freqn = resolution.get_freq_group(self.freq)
 
-                # _get_string_slice will handle cases where grp < freqn
-                assert grp >= freqn
+            # _get_string_slice will handle cases where grp < freqn
+            assert grp >= freqn
 
-                if grp == freqn:
-                    key = Period(asdt, freq=self.freq)
-                    loc = self.get_loc(key, method=method, tolerance=tolerance)
-                    return loc
-                elif method is None:
-                    raise KeyError(key)
-                else:
-                    key = asdt
+            if grp == freqn:
+                key = Period(asdt, freq=self.freq)
+                loc = self.get_loc(key, method=method, tolerance=tolerance)
+                return loc
+            elif method is None:
+                raise KeyError(key)
+            else:
+                key = asdt
 
         elif is_integer(key):
             # Period constructor will cast to string, which we dont want
