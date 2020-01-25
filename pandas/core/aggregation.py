@@ -16,7 +16,7 @@ from pandas.core.indexes.api import Index
 
 def reconstruct_func(
     func: Optional[List[Any]], *args, **kwargs: dict
-) -> Tuple[bool, Any, List[str], List[int]]:
+) -> Tuple[bool, Any, Optional[List[str]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.

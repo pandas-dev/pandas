@@ -6756,25 +6756,33 @@ Wild         185.0
             return self.apply(func, axis=axis, args=args, **kwargs)
 
         if relabeling:
-            reordered_indexes = [
-                pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
-            ]
+            result = self._relabel_result(result, func, columns, order)
 
-            # This is to keep the order to columns occurrence unchanged, and also
-            # keep the order of new columns occurrence unchanged
-            reordered_result = DataFrame(index=columns)
-            idx = 0
-
-            # The reason is self._aggregate outputs different type of result if
-            # any column is only used once in aggregation
-            mask = True if any(len(v) == 1 for v in func.values()) else False
-            for col, fun in func.items():
-                s = result[col][::-1].dropna() if mask else result[col]
-                s.index = reordered_indexes[idx : idx + len(fun)]
-                reordered_result[col] = s.reindex(columns)
-                idx = idx + len(fun)
-            result = reordered_result
         return result
+
+    @staticmethod
+    def _relabel_result(result, func, columns, order):
+        """Internal function to reorder result if relabelling."""
+
+        reordered_indexes = [
+            pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
+        ]
+
+        # This is to keep the order to columns occurrence unchanged, and also
+        # keep the order of new columns occurrence unchanged
+        reordered_result = DataFrame(index=columns)
+        idx = 0
+
+        # The reason is self._aggregate outputs different type of result if
+        # any column is only used once in aggregation
+        mask = isinstance(result, ABCDataFrame) and result.isna().any().any()
+
+        for col, fun in func.items():
+            s = result[col][::-1].dropna() if mask else result[col]
+            s.index = reordered_indexes[idx: idx + len(fun)]
+            reordered_result[col] = s.reindex(columns)
+            idx = idx + len(fun)
+        return reordered_result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
         if axis == 1:
