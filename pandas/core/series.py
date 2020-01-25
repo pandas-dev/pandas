@@ -392,7 +392,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _index = None
 
-    def _set_axis(self, axis, labels, fastpath=False) -> None:
+    def _set_axis(self, axis, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
         """
@@ -413,17 +413,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # or not be a DatetimeIndex
                     pass
 
-        self._set_subtyp(is_all_dates)
-
         object.__setattr__(self, "_index", labels)
         if not fastpath:
             self._data.set_axis(axis, labels)
-
-    def _set_subtyp(self, is_all_dates):
-        if is_all_dates:
-            object.__setattr__(self, "_subtyp", "time_series")
-        else:
-            object.__setattr__(self, "_subtyp", "series")
 
     def _update_inplace(self, result, **kwargs):
         # we want to call the generic version and not the IndexOpsMixin
