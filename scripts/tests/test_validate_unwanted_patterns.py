@@ -168,10 +168,10 @@ with pytest.raises(
 
 class TestStringsToConcatenate:
     @pytest.mark.parametrize(
-        "fd, expected",
+        "data, expected",
         [
             (
-                io.StringIO('msg = ("bar " "baz")'),
+                'msg = ("bar " "baz")',
                 [
                     (
                         1,
@@ -183,7 +183,7 @@ class TestStringsToConcatenate:
                 ],
             ),
             (
-                io.StringIO('msg = ("foo " "bar " "baz")'),
+                'msg = ("foo " "bar " "baz")',
                 [
                     (
                         1,
@@ -203,23 +203,24 @@ class TestStringsToConcatenate:
             ),
         ],
     )
-    def test_strings_to_concatenate(self, fd, expected):
+    def test_strings_to_concatenate(self, data, expected):
+        fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.strings_to_concatenate(fd))
         assert result == expected
 
 
 class TestStringsWithWrongPlacedWhitespace:
     @pytest.mark.parametrize(
-        "fd, expected",
+        "data, expected",
         [
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     " bar"
 )
-""".strip()
+"""
                 ),
                 [
                     (
@@ -232,13 +233,13 @@ msg = (
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     f"foo"
     " bar"
 )
-""".strip()
+"""
                 ),
                 [
                     (
@@ -251,13 +252,13 @@ msg = (
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     f" bar"
 )
-""".strip()
+"""
                 ),
                 [
                     (
@@ -270,13 +271,13 @@ msg = (
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     f"foo"
     f" bar"
 )
-""".strip()
+"""
                 ),
                 [
                     (
@@ -289,14 +290,14 @@ msg = (
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     rf" bar"
     " baz"
 )
-""".strip()
+"""
                 ),
                 [
                     (
@@ -316,14 +317,14 @@ msg = (
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     " bar"
     rf" baz"
 )
-""".strip()
+"""
                 ),
                 [
                     (
@@ -343,14 +344,14 @@ msg = (
                 ],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     rf" bar"
     rf" baz"
 )
-""".strip()
+"""
                 ),
                 [
                     (
@@ -371,74 +372,76 @@ msg = (
             ),
         ],
     )
-    def test_strings_with_wrong_placed_whitespace(self, fd, expected):
+    def test_strings_with_wrong_placed_whitespace(self, data, expected):
+        fd = io.StringIO(data.strip())
         result = list(
             validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
         )
         assert result == expected
 
     @pytest.mark.parametrize(
-        "fd, expected",
+        "data, expected",
         [
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo\n"
     " bar"
 )
-""".strip()
+"""
                 ),
                 [],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     "  bar"
     "baz"
 )
-""".strip()
+"""
                 ),
                 [],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     f"foo"
     "  bar"
 )
-""".strip()
+"""
                 ),
                 [],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     f"  bar"
 )
-""".strip()
+"""
                 ),
                 [],
             ),
             (
-                io.StringIO(
+                (
                     """
 msg = (
     "foo"
     rf"  bar"
 )
-""".strip()
+"""
                 ),
                 [],
             ),
         ],
     )
-    def test_excluded_strings_with_wrong_placed_whitespace(self, fd, expected):
+    def test_excluded_strings_with_wrong_placed_whitespace(self, data, expected):
+        fd = io.StringIO(data.strip())
         result = list(
             validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
         )
