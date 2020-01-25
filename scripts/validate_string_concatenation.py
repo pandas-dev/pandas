@@ -20,6 +20,39 @@ from typing import IO, Callable, Generator, List, Tuple
 FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pyx.ini", ".pxd")
 
 
+def _get_literal_string_prefix_len(token_string: str) -> int:
+    """
+    Getting the length of the literal string prefix.
+
+    Parameters
+    ----------
+    token_string : str
+        String to check.
+
+    Returns
+    -------
+    int
+        Length of the literal string prefix.
+
+    Examples
+    --------
+    >>> example_string = "'Hello world'"
+    >>> _get_literal_string_prefix_len(example_string)
+    0
+    >>> example_string = "r'Hello world'"
+    >>> _get_literal_string_prefix_len(example_string)
+    1
+    """
+    try:
+        return min(
+            token_string.find(quote)
+            for quote in (r"'", r'"')
+            if token_string.find(quote) >= 0
+        )
+    except ValueError:
+        return 0
+
+
 def bare_pytest_raises(file_obj: IO[str]) -> Generator[Tuple[int, str], None, None]:
     """
     Test Case for bare pytest raises.
@@ -227,20 +260,10 @@ def strings_with_wrong_placed_whitespace(
         ):
             # Striping the quotes, with the string litteral prefix
             first_string: str = first_token.string[
-                min(
-                    first_token.string.find(quote)
-                    for quote in (r'"', r"'")
-                    if first_token.string.find(quote) >= 0
-                )
-                + 1 : -1
+                _get_literal_string_prefix_len(first_token.string) + 1 : -1
             ]
             second_string: str = third_token.string[
-                min(
-                    third_token.string.find(quote)
-                    for quote in (r'"', r"'")
-                    if third_token.string.find(quote) >= 0
-                )
-                + 1 : -1
+                _get_literal_string_prefix_len(third_token.string) + 1 : -1
             ]
 
             if has_wrong_whitespace(first_string, second_string):
