@@ -7,6 +7,7 @@ import pytz
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
 import pandas._testing as tm
+from pandas.core.indexes.base import InvalidIndexError
 
 from pandas.tseries.offsets import BDay, CDay
 
@@ -697,7 +698,7 @@ class TestDatetimeIndex:
 
         with pytest.raises(KeyError, match="'foobar'"):
             idx.get_loc("foobar")
-        with pytest.raises(TypeError):
+        with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
             idx.get_loc(slice(2))
 
         idx = pd.to_datetime(["2000-01-01", "2000-01-04"])
@@ -773,3 +774,14 @@ class TestDatetimeIndex:
         # GH#20464
         index = DatetimeIndex(["1/3/2000", "NaT"])
         assert index.get_loc(pd.NaT) == 1
+
+        assert index.get_loc(None) == 1
+
+        assert index.get_loc(np.nan) == 1
+
+        assert index.get_loc(pd.NA) == 1
+
+        assert index.get_loc(np.datetime64("NaT")) == 1
+
+        with pytest.raises(KeyError, match="NaT"):
+            index.get_loc(np.timedelta64("NaT"))

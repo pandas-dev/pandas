@@ -278,7 +278,7 @@ cdef class _NaT(datetime):
 
     def total_seconds(self):
         """
-        Total duration of timedelta in seconds (to ns precision).
+        Total duration of timedelta in seconds (to microsecond precision).
         """
         # GH#10939
         return np.nan
@@ -326,7 +326,7 @@ class NaTType(_NaT):
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
-        # http://bugs.python.org/issue28730
+        # https://bugs.python.org/issue28730
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 

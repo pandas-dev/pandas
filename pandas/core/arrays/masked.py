@@ -50,6 +50,9 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     def __len__(self) -> int:
         return len(self._data)
 
+    def __invert__(self):
+        return type(self)(~self._data, self._mask)
+
     def to_numpy(
         self, dtype=None, copy=False, na_value: "Scalar" = lib.no_default,
     ):
