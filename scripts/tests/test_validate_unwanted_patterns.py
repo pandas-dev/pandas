@@ -8,164 +8,153 @@ import pytest
 import validate_string_concatenation as validate_unwanted_patterns
 
 
-class TestBarePytestRaises:
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (
             (
-                (
-                    """
+                """
 with pytest.raises(ValueError, match="foo"):
     pass
 """
-                ),
-                [],
             ),
+            [],
+        ),
+        (
             (
-                (
-                    """
+                """
 # with pytest.raises(ValueError, match="foo"):
 #    pass
 """
-                ),
-                [],
             ),
+            [],
+        ),
+        (
             (
-                (
-                    """
+                """
 # with pytest.raises(ValueError):
 #    pass
 """
-                ),
-                [],
             ),
+            [],
+        ),
+        (
             (
-                (
-                    """
+                """
 with pytest.raises(
     ValueError,
     match="foo"
-    ):
+):
     pass
 """
-                ),
-                [],
             ),
-        ],
-    )
-    def test_good_pytest_raises(self, data, expected):
-        fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
+            [],
+        ),
+        (
             (
-                (
-                    """
+                """
 with pytest.raises(ValueError):
     pass
 """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
             ),
-            (
+            [
                 (
-                    """
+                    1,
+                    (
+                        "Bare pytests raise have been found. "
+                        "Please pass in the argument 'match' "
+                        "as well the exception."
+                    ),
+                ),
+            ],
+        ),
+        (
+            (
+                """
 with pytest.raises(ValueError, match="foo"):
     with pytest.raises(ValueError):
         pass
     pass
 """
-                ),
-                [
-                    (
-                        2,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
             ),
-            (
+            [
                 (
-                    """
+                    2,
+                    (
+                        "Bare pytests raise have been found. "
+                        "Please pass in the argument 'match' "
+                        "as well the exception."
+                    ),
+                ),
+            ],
+        ),
+        (
+            (
+                """
 with pytest.raises(ValueError):
     with pytest.raises(ValueError, match="foo"):
         pass
     pass
 """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
             ),
-            (
+            [
                 (
-                    """
+                    1,
+                    (
+                        "Bare pytests raise have been found. "
+                        "Please pass in the argument 'match' "
+                        "as well the exception."
+                    ),
+                ),
+            ],
+        ),
+        (
+            (
+                """
 with pytest.raises(
     ValueError
 ):
     pass
 """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
             ),
-            (
+            [
                 (
-                    """
+                    1,
+                    (
+                        "Bare pytests raise have been found. "
+                        "Please pass in the argument 'match' "
+                        "as well the exception."
+                    ),
+                ),
+            ],
+        ),
+        (
+            (
+                """
 with pytest.raises(
     ValueError,
     # match = "foo"
 ):
     pass
 """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
             ),
-        ],
-    )
-    def test_bad_pytest_raises(self, data, expected):
-        fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
-        assert result == expected
+            [
+                (
+                    1,
+                    (
+                        "Bare pytests raise have been found. "
+                        "Please pass in the argument 'match' "
+                        "as well the exception."
+                    ),
+                ),
+            ],
+        ),
+    ],
+)
+def test_pytest_raises(data, expected):
+    fd = io.StringIO(data.strip())
+    result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
+    assert result == expected
 
 
 class TestStringsToConcatenate:
