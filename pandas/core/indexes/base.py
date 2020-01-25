@@ -12,6 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import final
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -2412,6 +2413,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
+    @final
     def _get_reconciled_name_object(self, other):
         """
         If the result of a set operation will be self,
@@ -2423,6 +2425,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
+    @final
     def _union_incompatible_dtypes(self, other, sort):
         """
         Casts this and other index to object dtype to allow the formation
@@ -2463,6 +2466,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return type(self) is type(other) and is_dtype_equal(self.dtype, other.dtype)
 
+    @final
     def _validate_sort_keyword(self, sort):
         if sort not in [None, False]:
             raise ValueError(
@@ -3019,6 +3023,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("list-like tolerance size must match target index size")
         return tolerance
 
+    @final
     def _get_fill_indexer(
         self, target: "Index", method: str_t, limit=None, tolerance=None
     ) -> np.ndarray:
@@ -3037,6 +3042,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         return indexer
 
+    @final
     def _get_fill_indexer_searchsorted(
         self, target: "Index", method: str_t, limit=None
     ) -> np.ndarray:
@@ -3070,6 +3076,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer[indexer == len(self)] = -1
         return indexer
 
+    @final
     def _get_nearest_indexer(self, target: "Index", limit, tolerance) -> np.ndarray:
         """
         Get the indexer for the nearest index labels; requires an index with
@@ -3093,6 +3100,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
         return indexer
 
+    @final
     def _filter_indexer_tolerance(
         self, target: "Index", indexer: np.ndarray, tolerance
     ) -> np.ndarray:
@@ -3331,6 +3339,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return None
 
+    @final
     def _invalid_indexer(self, form, key):
         """
         Consistent invalid indexer message.
@@ -3612,6 +3621,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_multi(self, other, how, return_indexers=True):
         from pandas.core.indexes.multi import MultiIndex
         from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
@@ -3687,6 +3697,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return result[0], result[2], result[1]
         return result
 
+    @final
     def _join_non_unique(self, other, how="left", return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -3708,6 +3719,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_level(
         self, other, level, how="left", return_indexers=False, keep_order=True
     ):
@@ -3849,6 +3861,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
+    @final
     def _join_monotonic(self, other, how="left", return_indexers=False):
         if self.equals(other):
             ret_index = other if how == "right" else self
@@ -4057,6 +4070,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy_with_infer(values, dtype=dtype)
 
     # construction helpers
+    @final
     @classmethod
     def _scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
@@ -4066,6 +4080,7 @@ class Index(IndexOpsMixin, PandasObject):
             f"kind, {repr(data)} was passed"
         )
 
+    @final
     @classmethod
     def _string_data_error(cls, data):
         raise TypeError(
@@ -4102,6 +4117,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return value
 
+    @final
     def _assert_can_do_op(self, value):
         """
         Check value is valid for scalar op.
@@ -4205,6 +4221,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return result
 
+    @final
     def _can_hold_identifiers_and_holds_name(self, name) -> bool:
         """
         Faster check for ``name in self`` when we know `name` is a Python
@@ -4332,6 +4349,7 @@ class Index(IndexOpsMixin, PandasObject):
             com.values_from_object(self), com.values_from_object(other)
         )
 
+    @final
     def identical(self, other) -> bool:
         """
         Similar to equals, but check that other comparable attributes are
@@ -4655,6 +4673,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._get_values_for_loc(series, loc)
 
+    @final
     def _get_values_for_loc(self, series, loc):
         """
         Do a positional lookup on the given Series, returning either a scalar

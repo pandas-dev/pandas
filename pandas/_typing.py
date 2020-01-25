@@ -17,6 +17,16 @@ from typing import (
 
 import numpy as np
 
+try:
+    # PY38+
+    from typing import final
+except ImportError:
+    # define a dummy
+
+    def final(x):
+        return x
+
+
 # To prevent import cycles place any internal imports in the branch below
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
