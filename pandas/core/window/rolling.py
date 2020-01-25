@@ -1188,7 +1188,7 @@ class _Rolling_and_Expanding(_Rolling):
             result = self._constructor(
                 result,
                 window=self._get_window(),
-                min_periods=self.min_periods if self.min_periods else 0,
+                min_periods=self.min_periods or 0,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,
