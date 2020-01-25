@@ -46,7 +46,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 )
 def test_numpy_ufuncs_basic(indices, func):
     # test ufuncs of numpy, see:
-    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     idx = indices
     if isinstance(idx, DatetimeIndexOpsMixin):
@@ -77,7 +77,7 @@ def test_numpy_ufuncs_basic(indices, func):
 )
 def test_numpy_ufuncs_other(indices, func):
     # test ufuncs of numpy, see:
-    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     idx = indices
     if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
