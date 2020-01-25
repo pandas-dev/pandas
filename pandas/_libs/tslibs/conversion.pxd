@@ -23,6 +23,4 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
 cdef int64_t get_datetime64_nanos(object val) except? -1
 
-cpdef int64_t pydt_to_i8(object pydt) except? -1
-
 cpdef datetime localize_pydatetime(datetime dt, object tz)

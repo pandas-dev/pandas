@@ -44,10 +44,6 @@ from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 
-def _is_convertible_to_td(key):
-    return isinstance(key, (Tick, timedelta, np.timedelta64, str))
-
-
 def _field_accessor(name, alias, docstring=None):
     def f(self):
         values = self.asi8
