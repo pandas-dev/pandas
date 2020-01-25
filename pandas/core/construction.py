@@ -377,10 +377,7 @@ def extract_array(obj, extract_numpy: bool = False):
     array([1, 2, 3])
     """
     if isinstance(obj, (ABCIndexClass, ABCSeries)):
-        arr = obj._values
-        if not extract_numpy and isinstance(arr, np.ndarray):
-            return obj.array
-        return arr
+        obj = obj.array
 
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()

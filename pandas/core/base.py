@@ -752,16 +752,7 @@ class IndexOpsMixin:
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        # As a mixin, we depend on the mixing class having _values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        result = self._values  # type: ignore
-        if isinstance(result, np.ndarray):
-            from pandas.core.arrays.numpy_ import PandasArray
-
-            result = PandasArray(result)
-
-        return result
+        raise AbstractMethodError(self)
 
     def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
         """

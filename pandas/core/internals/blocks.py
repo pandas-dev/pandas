@@ -67,7 +67,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, DatetimeArray, PandasDtype, TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    PandasArray,
+    PandasDtype,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -209,6 +216,16 @@ class Block(PandasObject):
         The array that Series._values returns (internal values).
         """
         return self.values
+
+    def array_values(self) -> ExtensionArray:
+        """
+        The array that Series.array returns. Always an ExtensionArray.
+        """
+        return self._ea_values
+
+    @cache_readonly
+    def _ea_values(self) -> ExtensionArray:
+        return PandasArray(self.values)
 
     def get_values(self, dtype=None):
         """
@@ -1782,6 +1799,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values.reshape((1,) + values.shape)
         return values
 
+    def array_values(self) -> ExtensionArray:
+        return self.values
+
     def to_dense(self):
         return np.asarray(self.values)
 
@@ -2123,12 +2143,15 @@ class DatetimeLikeBlockMixin:
             return result.reshape(self.values.shape)
         return self.values
 
+    def array_values(self):
+        return self._ea_values
+
     def internal_values(self):
         return self._ea_values
 
     @cache_readonly
     def _ea_values(self):
-        return self._holder(self.values)
+        return self._holder._simple_new(self.values)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2166,7 +2189,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             values = values._data
 
         assert isinstance(values, np.ndarray), type(values)
-        assert values.dtype == _NS_DTYPE, values.dtype
         return values
 
     def astype(self, dtype, copy: bool = False, errors: str = "raise"):
