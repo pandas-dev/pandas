@@ -518,12 +518,20 @@ class TestIndexing:
 
         ps0 = [p0, p1, p2]
         idx0 = pd.PeriodIndex(ps0)
+        ser = pd.Series(range(6, 9), index=idx0)
 
         for p in ps0:
             assert p in idx0
             assert str(p) in idx0
 
-        assert "2017-09-01 00:00:01" in idx0
+        # GH#31172
+        # Higher-resolution period-like are _not_ considered as contained
+        key = "2017-09-01 00:00:01"
+        assert key not in idx0
+        with pytest.raises(KeyError, match=key):
+            idx0.get_loc(key)
+        with pytest.raises(KeyError, match=key):
+            idx0.get_value(ser, key)
 
         assert "2017-09" in idx0
 
