@@ -198,6 +198,7 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
+@pytest.mark.xfail
 def test_legacy_sparse_warning(datapath):
     """
 
