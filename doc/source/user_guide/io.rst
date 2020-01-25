@@ -39,6 +39,10 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
+.. note::
+   For examples that use the ``StringIO`` class, make sure you import it
+   with ``from io import StringIO`` for Python 3.
+
 .. _io.read_csv_table:
 
 CSV & text files
@@ -905,14 +909,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-
-.. note::
-
-   When passing a dict as the `parse_dates` argument, the order of
-   the columns prepended is not guaranteed. Because of this, when using a
-   dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
-   specify `index_col` as a column label rather then as an index on the resulting frame.
 
 
 Date parsing functions
