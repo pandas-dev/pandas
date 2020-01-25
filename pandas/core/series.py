@@ -22,12 +22,13 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._libs import index as libindex, lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
+from pandas.core.dtypes.cast import convert_dtypes
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
@@ -46,6 +47,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
     ABCSparseArray,
 )
@@ -75,6 +78,7 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
+    IntervalIndex,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
@@ -176,6 +180,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _name: Optional[Hashable]
     _metadata: List[str] = ["name"]
+    _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -900,6 +905,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
+            elif isinstance(self.index, IntervalIndex):
+                indexer = self.index.get_indexer_for(key)
+                return self.iloc[indexer]
             else:
                 return self._get_values(key)
         elif key_type == "boolean":
@@ -2462,7 +2470,7 @@ Name: Max Speed, dtype: float64
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False) -> "Series":
+    def append(self, to_append, ignore_index=False, verify_integrity=False):
         """
         Concatenate two or more Series.
 
@@ -2539,10 +2547,8 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
-        return self._ensure_type(
-            concat(
-                to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
-            )
+        return concat(
+            to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
 
     def _binop(self, other, func, level=None, fill_value=None):
@@ -3386,6 +3392,7 @@ Name: Max Speed, dtype: float64
         Series
             Series with levels swapped in MultiIndex.
         """
+        assert isinstance(self.index, ABCMultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
             self
@@ -3410,6 +3417,7 @@ Name: Max Speed, dtype: float64
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
+        assert isinstance(result.index, ABCMultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
 
@@ -3471,7 +3479,7 @@ Name: Max Speed, dtype: float64
 
     def unstack(self, level=-1, fill_value=None):
         """
-        Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
         The level involved will automatically get sorted.
 
         Parameters
@@ -4358,6 +4366,34 @@ Name: Max Speed, dtype: float64
 
         return lmask & rmask
 
+    # ----------------------------------------------------------------------
+    # Convert to types that support pd.NA
+
+    def _convert_dtypes(
+        self: ABCSeries,
+        infer_objects: bool = True,
+        convert_string: bool = True,
+        convert_integer: bool = True,
+        convert_boolean: bool = True,
+    ) -> "Series":
+        input_series = self
+        if infer_objects:
+            input_series = input_series.infer_objects()
+            if is_object_dtype(input_series):
+                input_series = input_series.copy()
+
+        if convert_string or convert_integer or convert_boolean:
+            inferred_dtype = convert_dtypes(
+                input_series._values, convert_string, convert_integer, convert_boolean
+            )
+            try:
+                result = input_series.astype(inferred_dtype)
+            except TypeError:
+                result = input_series.copy()
+        else:
+            result = input_series.copy()
+        return result
+
     @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "Series":
         return super().isna()
@@ -4487,6 +4523,7 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
@@ -4511,8 +4548,15 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
+
+    # ----------------------------------------------------------------------
+    # Add index and columns
+    index: "Index" = properties.AxisProperty(
+        axis=0, doc="The index (axis labels) of the Series."
+    )
 
     # ----------------------------------------------------------------------
     # Accessor Methods

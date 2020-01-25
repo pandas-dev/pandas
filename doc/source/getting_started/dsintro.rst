@@ -609,7 +609,7 @@ union of the column and row labels.
 
 When doing an operation between DataFrame and Series, the default behavior is
 to align the Series **index** on the DataFrame **columns**, thus `broadcasting
-<http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`__
+<https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`__
 row-wise. For example:
 
 .. ipython:: python
