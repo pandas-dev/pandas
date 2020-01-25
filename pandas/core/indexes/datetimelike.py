@@ -615,9 +615,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if isinstance(values, type(self)):
             values = values._data
         if isinstance(values, np.ndarray):
-            # TODO: try to avoid this case
-            freq = getattr(kwargs, "freq", None)
-            values = type(self._data)(values, dtype=self.dtype, freq=freq)
+            # TODO: We would rather not get here
+            if kwargs.get("freq") is not None:
+                raise ValueError(kwargs)
+            values = type(self._data)(values, dtype=self.dtype)
 
         attributes = self._get_attributes_dict()
 
