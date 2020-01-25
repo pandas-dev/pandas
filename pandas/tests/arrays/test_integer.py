@@ -363,24 +363,26 @@ class TestArithmeticOps(BaseOpsUtil):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_pow_scalar(self):
-        a = pd.array([0, 1, None, 2], dtype="Int64")
+        a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
         result = a ** 0
-        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** 1
-        expected = pd.array([0, 1, None, 2], dtype="Int64")
+        expected = pd.array([-1, 0, 1, None, 2], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** pd.NA
-        expected = pd.array([None, 1, None, None], dtype="Int64")
+        expected = pd.array([None, None, 1, None, None], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
 
         result = a ** np.nan
-        expected = np.array([np.nan, 1, np.nan, np.nan], dtype="float64")
+        expected = np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64")
         tm.assert_numpy_array_equal(result, expected)
 
         # reversed
+        a = a[1:]  # Can't raise integers to negative powers.
+
         result = 0 ** a
         expected = pd.array([1, 0, None, 0], dtype="Int64")
         tm.assert_extension_array_equal(result, expected)
@@ -678,6 +680,13 @@ class TestCasting:
         tm.assert_numpy_array_equal(a.astype(str), expected)
         tm.assert_numpy_array_equal(a.astype("str"), expected)
 
+    def test_astype_boolean(self):
+        # https://github.com/pandas-dev/pandas/issues/31102
+        a = pd.array([1, 0, -1, 2, None], dtype="Int64")
+        result = a.astype("boolean")
+        expected = pd.array([True, False, True, True, None], dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
+
 
 def test_frame_repr(data_missing):
 
@@ -933,6 +942,8 @@ def test_astype_nansafe():
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
+# np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
+@pytest.mark.filterwarnings("ignore:invalid value encountered in sign")
 def test_ufuncs_single_int(ufunc):
     a = integer_array([1, 2, -3, np.nan])
     result = ufunc(a)

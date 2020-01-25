@@ -2,6 +2,7 @@
 Tests for DatetimeIndex timezone-related methods
 """
 from datetime import date, datetime, time, timedelta, tzinfo
+from distutils.version import LooseVersion
 
 import dateutil
 from dateutil.tz import gettz, tzlocal
@@ -10,6 +11,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import conversion, timezones
+from pandas.compat._optional import _get_version
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -573,13 +575,7 @@ class TestDatetimeIndexTimezones:
             "2013-10-26 23:00", "2013-10-27 01:00", freq="H", tz=tz, ambiguous="infer"
         )
         assert times[0] == Timestamp("2013-10-26 23:00", tz=tz, freq="H")
-
-        if str(tz).startswith("dateutil"):
-            # fixed ambiguous behavior
-            # see GH#14621
-            assert times[-1] == Timestamp("2013-10-27 01:00:00+0100", tz=tz, freq="H")
-        else:
-            assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz, freq="H")
+        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz, freq="H")
 
     @pytest.mark.parametrize(
         "tz, option, expected",
@@ -591,7 +587,10 @@ class TestDatetimeIndexTimezones:
                 "dateutil/US/Pacific",
                 "shift_backward",
                 "2019-03-10 01:00",
-                marks=pytest.mark.xfail(reason="GH 24329"),
+                marks=pytest.mark.xfail(
+                    LooseVersion(_get_version(dateutil)) < LooseVersion("2.7.0"),
+                    reason="GH 31043",
+                ),
             ),
             ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
         ],

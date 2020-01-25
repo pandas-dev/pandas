@@ -644,8 +644,8 @@ class TestDatetimeIndex:
         )
 
         msg = (
-            "cannot supply both a tz and a timezone-naive dtype"
-            r" \(i\.e\. datetime64\[ns\]\)"
+            "cannot supply both a tz and a timezone-naive dtype "
+            r"\(i\.e\. datetime64\[ns\]\)"
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns]")
@@ -950,3 +950,10 @@ class TestTimeSeries:
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+
+
+def test_timedelta_constructor_identity():
+    # Test for #30543
+    expected = pd.Timedelta(np.timedelta64(1, "s"))
+    result = pd.Timedelta(expected)
+    assert result is expected

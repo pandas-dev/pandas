@@ -137,7 +137,9 @@ class TestTimeSeries:
         assert ts.last_valid_index().freq == ts.index.freq
 
     def test_mpl_compat_hack(self, datetime_series):
-        result = datetime_series[:, np.newaxis]
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            # GH#30588 multi-dimensional indexing deprecated
+            result = datetime_series[:, np.newaxis]
         expected = datetime_series.values[:, np.newaxis]
         tm.assert_almost_equal(result, expected)
 

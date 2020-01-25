@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import List, Optional, Set
+from typing import Any, List, Optional, Set
 
 import numpy as np
 
@@ -27,12 +27,13 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
@@ -153,32 +154,15 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return np.array_equal(self.asi8, other.asi8)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key):
+    def __contains__(self, key: Any) -> bool:
+        hash(key)
         try:
             res = self.get_loc(key)
-            return (
-                is_scalar(res)
-                or isinstance(res, slice)
-                or (is_list_like(res) and len(res))
-            )
         except (KeyError, TypeError, ValueError):
             return False
-
-    # Try to run function on index first, and then on elements of index
-    # Especially important for group-by functionality
-    def map(self, mapper, na_action=None):
-        try:
-            result = mapper(self)
-
-            # Try to use this result if we can
-            if isinstance(result, np.ndarray):
-                result = Index(result)
-
-            if not isinstance(result, Index):
-                raise TypeError("The map function must return an Index object")
-            return result
-        except Exception:
-            return self.astype(object).map(mapper)
+        return bool(
+            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
+        )
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -195,20 +179,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             #  because the treatment of NaT has been changed to put NaT last
             #  instead of first.
             sorted_values = np.sort(self.asi8)
-            attribs = self._get_attributes_dict()
-            freq = attribs["freq"]
 
+            freq = self.freq
             if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
                     freq = freq * -1
-            attribs["freq"] = freq
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
-            return self._simple_new(sorted_values, **attribs)
+            arr = type(self._data)._simple_new(
+                sorted_values, dtype=self.dtype, freq=freq
+            )
+            return self._simple_new(arr, name=self.name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -222,6 +207,18 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return ExtensionIndex.take(
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
+
+    @Appender(_shared_docs["searchsorted"])
+    def searchsorted(self, value, side="left", sorter=None):
+        if isinstance(value, str):
+            raise TypeError(
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+        if isinstance(value, Index):
+            value = value._data
+
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     _can_hold_na = True
 
@@ -388,10 +385,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem', 'iloc'} or None
         """
 
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # we don't allow integer/float indexing for loc
         # we don't allow float indexing for ix/getitem
@@ -400,7 +397,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             is_flt = is_float(key)
             if kind in ["loc"] and (is_int or is_flt):
                 self._invalid_indexer("index", key)
-            elif kind in ["ix", "getitem"] and is_flt:
+            elif kind in ["getitem"] and is_flt:
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
@@ -505,22 +502,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-        attribs = self._get_attributes_dict()
-        attribs["name"] = name
+
         # do not pass tz to set because tzlocal cannot be hashed
         if len({str(x.dtype) for x in to_concat}) != 1:
             raise ValueError("to_concat must have the same tz")
 
-        new_data = type(self._values)._concat_same_type(to_concat).asi8
+        new_data = type(self._data)._concat_same_type(to_concat)
 
-        # GH 3232: If the concat result is evenly spaced, we can retain the
-        # original frequency
-        is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1
-        if not is_period_dtype(self) and not is_diff_evenly_spaced:
-            # reset freq
-            attribs["freq"] = None
+        if not is_period_dtype(self.dtype):
+            # GH 3232: If the concat result is evenly spaced, we can retain the
+            # original frequency
+            is_diff_evenly_spaced = len(unique_deltas(new_data.asi8)) == 1
+            if is_diff_evenly_spaced:
+                new_data._freq = self.freq
 
-        return self._simple_new(new_data, **attribs)
+        return self._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -614,8 +610,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self._data
-        if isinstance(values, type(self)):
-            values = values._data
 
         attributes = self._get_attributes_dict()
 
@@ -875,11 +869,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
-        if (
-            isinstance(other, type(self))
-            and self.freq == other.freq
-            and self._can_fast_union(other)
-        ):
+        if self._can_fast_union(other):
             joined = self._shallow_copy(joined)
             joined.name = name
             return joined
@@ -888,6 +878,60 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             if hasattr(self, "tz"):
                 kwargs["tz"] = getattr(other, "tz", None)
             return self._simple_new(joined, name, **kwargs)
+
+    # --------------------------------------------------------------------
+    # List-Like Methods
+
+    def insert(self, loc, item):
+        """
+        Make new Index inserting new item at location
+        Parameters
+        ----------
+        loc : int
+        item : object
+            if not either a Python datetime or a numpy integer-like, returned
+            Index dtype will be object rather than datetime.
+        Returns
+        -------
+        new_index : Index
+        """
+        if isinstance(item, self._data._recognized_scalars):
+            item = self._data._scalar_type(item)
+        elif is_valid_nat_for_dtype(item, self.dtype):
+            # GH 18295
+            item = self._na_value
+        elif is_scalar(item) and isna(item):
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
+
+        freq = None
+        if isinstance(item, self._data._scalar_type) or item is NaT:
+            self._data._check_compatible_with(item, setitem=True)
+
+            # check freq can be preserved on edge cases
+            if self.size and self.freq is not None:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                    freq = self.freq
+                elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            item = item.asm8
+
+        try:
+            new_i8s = np.concatenate(
+                (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
+            )
+            return self._shallow_copy(new_i8s, freq=freq)
+        except (AttributeError, TypeError):
+
+            # fall back to object index
+            if isinstance(item, str):
+                return self.astype(object).insert(loc, item)
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
 
 class DatetimelikeDelegateMixin(PandasDelegate):
