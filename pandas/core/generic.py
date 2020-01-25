@@ -4939,7 +4939,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Name: num_legs, dtype: int64
 
         Shuffling the whole ``DataFrame``:
-        >>> df.shuffle(frac=1, random_state=2)
+        >>> df.shuffle(random_state=2)
                 num_legs  num_wings  num_specimen_seen
         spider         8          0                  1
         fish           0          0                  8
