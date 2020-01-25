@@ -106,7 +106,9 @@ def test_resample_empty_series(freq, empty_series, resample_method):
     if isinstance(s.index, PeriodIndex):
         expected.index = s.index.asfreq(freq=freq)
     else:
-        expected.index = s.index._shallow_copy(freq=freq)
+        idx = s.index
+        index = type(idx)([], dtype=idx.dtype, freq=freq, name=idx.name)
+        expected.index = index
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     tm.assert_series_equal(result, expected, check_dtype=False)
@@ -122,7 +124,9 @@ def test_resample_count_empty_series(freq, empty_series, resample_method):
     if isinstance(empty_series.index, PeriodIndex):
         index = empty_series.index.asfreq(freq=freq)
     else:
-        index = empty_series.index._shallow_copy(freq=freq)
+        idx = empty_series.index
+        index = type(idx)([], dtype=idx.dtype, freq=freq, name=idx.name)
+
     expected = pd.Series([], dtype="int64", index=index, name=empty_series.name)
 
     tm.assert_series_equal(result, expected)
@@ -144,7 +148,9 @@ def test_resample_empty_dataframe(empty_frame, freq, resample_method):
     if isinstance(df.index, PeriodIndex):
         expected.index = df.index.asfreq(freq=freq)
     else:
-        expected.index = df.index._shallow_copy(freq=freq)
+        idx = df.index
+        index = type(idx)([], dtype=idx.dtype, freq=freq, name=idx.name)
+        expected.index = index
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
     tm.assert_almost_equal(result, expected, check_dtype=False)
@@ -165,7 +171,8 @@ def test_resample_count_empty_dataframe(freq, empty_frame):
     if isinstance(empty_frame.index, PeriodIndex):
         index = empty_frame.index.asfreq(freq=freq)
     else:
-        index = empty_frame.index._shallow_copy(freq=freq)
+        idx = empty_frame.index
+        index = type(idx)([], dtype=idx.dtype, freq=freq, name=idx.name)
     expected = pd.DataFrame({"a": []}, dtype="int64", index=index)
 
     tm.assert_frame_equal(result, expected)
@@ -184,7 +191,8 @@ def test_resample_size_empty_dataframe(freq, empty_frame):
     if isinstance(empty_frame.index, PeriodIndex):
         index = empty_frame.index.asfreq(freq=freq)
     else:
-        index = empty_frame.index._shallow_copy(freq=freq)
+        idx = empty_frame.index
+        index = type(idx)([], dtype=idx.dtype, freq=freq, name=idx.name)
     expected = pd.Series([], dtype="int64", index=index)
 
     tm.assert_series_equal(result, expected)

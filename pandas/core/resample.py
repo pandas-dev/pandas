@@ -427,7 +427,9 @@ class Resampler(_GroupBy, ShallowMixin):
             if isinstance(obj.index, PeriodIndex):
                 result.index = obj.index.asfreq(self.freq)
             else:
-                result.index = obj.index._shallow_copy(freq=self.freq)
+                idx = obj.index
+                index = type(idx)([], dtype=idx.dtype, freq=self.freq, name=idx.name)
+                result.index = index
             result.name = getattr(obj, "name", None)
 
         return result
@@ -1787,8 +1789,10 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
     elif len(obj.index) == 0:
         new_obj = obj.copy()
-        new_obj.index = obj.index._shallow_copy(freq=to_offset(freq))
 
+        idx = obj.index
+        new_index = type(idx)([], dtype=idx.dtype, name=idx.name, freq=freq)
+        new_obj.index = new_index
     else:
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         dti.name = obj.index.name
