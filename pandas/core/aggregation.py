@@ -32,19 +32,21 @@ def reconstruct_func(func, *args, **kwargs):
     columns: Optional[List[str]] = None
     order: Optional[List[int]] = None
 
+    if not relabeling:
+        if isinstance(func, list) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            # there is no reassigned name
+            raise SpecificationError(
+                "Function names must be unique if there is no new column names"
+                " assigned"
+            )
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
-
-    elif isinstance(func, list) and len(func) > len(set(func)):
-
-        # GH 28426 will raise error if duplicated function names are used and
-        # there is no reassigned name
-        raise SpecificationError(
-            "Function names must be unique if there is no new column names assigned"
-        )
-    elif func is None:
-        # nicer error message
-        raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     func = maybe_mangle_lambdas(func)
 
