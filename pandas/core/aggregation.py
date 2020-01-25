@@ -26,10 +26,7 @@ def reconstruct_func(func, *args, **kwargs):
     columns: Optional[List[str]] = None
     order: Optional[List[int]] = None
 
-    if relabeling:
-        func, columns, order = normalize_keyword_aggregation(kwargs)
-
-    elif isinstance(func, list) and len(func) > len(set(func)):
+    if isinstance(func, list) and len(func) > len(set(func)):
 
         # GH 28426 will raise error if duplicated function names are used and
         # there is no reassigned name
@@ -39,6 +36,9 @@ def reconstruct_func(func, *args, **kwargs):
     elif func is None:
         # nicer error message
         raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+    if relabeling:
+        func, columns, order = normalize_keyword_aggregation(kwargs)
 
     func = maybe_mangle_lambdas(func)
 
