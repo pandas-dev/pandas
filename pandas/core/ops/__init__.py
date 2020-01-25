@@ -335,8 +335,6 @@ def fill_binop(left, right, fill_value):
         left_mask = isna(left)
         right_mask = isna(right)
 
-        right = right.copy()
-
         # one but not both
         mask = left_mask ^ right_mask
 
