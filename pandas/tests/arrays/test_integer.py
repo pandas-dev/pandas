@@ -773,21 +773,21 @@ def test_integer_array_constructor_copy():
 
 def test_integer_Series_iter_return_native():
     expected = int
-    result = type(pd.Series([1, 2], dtype='int64').tolist()[0])
+    result = type(pd.Series([1, 2], dtype="int64").tolist()[0])
     assert expected == result
-    result = type(pd.Series([1, 2], dtype='Int64').tolist()[0])
+    result = type(pd.Series([1, 2], dtype="Int64").tolist()[0])
     assert expected == result
-    result = type(pd.Series([1, 2], dtype='int64').to_dict()[0])
+    result = type(pd.Series([1, 2], dtype="int64").to_dict()[0])
     assert expected == result
-    result = type(pd.Series([1, 2], dtype='Int64').to_dict()[0])
+    result = type(pd.Series([1, 2], dtype="Int64").to_dict()[0])
     assert expected == result
-    result = type(list(pd.Series([1, 2], dtype='int64').iteritems())[0][1])
+    result = type(list(pd.Series([1, 2], dtype="int64").iteritems())[0][1])
     assert expected == result
-    result = type(list(pd.Series([1, 2], dtype='Int64').iteritems())[0][1])
+    result = type(list(pd.Series([1, 2], dtype="Int64").iteritems())[0][1])
     assert expected == result
-    result = type(list(iter(pd.Series([1, 2], dtype='int64')))[0])
+    result = type(list(iter(pd.Series([1, 2], dtype="int64")))[0])
     assert expected == result
-    result = type(list(iter(pd.Series([1, 2], dtype='Int64')))[0])
+    result = type(list(iter(pd.Series([1, 2], dtype="Int64")))[0])
     assert expected == result
 
 
