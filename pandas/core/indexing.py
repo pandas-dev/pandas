@@ -1662,16 +1662,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     return {"key": key}
                 raise
 
-    def _get_slice_axis(self, slice_obj: slice, axis: int):
-        # caller is responsible for ensuring non-None axis
-        obj = self.obj
-
-        if not need_slice(slice_obj):
-            return obj.copy(deep=False)
-
-        indexer = self._convert_slice_indexer(slice_obj, axis)
-        return self._slice(indexer, axis=axis, kind="iloc")
-
 
 class _LocationIndexer(_NDFrameIndexer):
     _takeable: bool = False
@@ -1705,27 +1695,6 @@ class _LocationIndexer(_NDFrameIndexer):
         key = check_bool_indexer(labels, key)
         inds = key.nonzero()[0]
         return self.obj.take(inds, axis=axis)
-
-    def _get_slice_axis(self, slice_obj: slice, axis: int):
-        """
-        This is pretty simple as we just have to deal with labels.
-        """
-        # caller is responsible for ensuring non-None axis
-        obj = self.obj
-        if not need_slice(slice_obj):
-            return obj.copy(deep=False)
-
-        labels = obj._get_axis(axis)
-        indexer = labels.slice_indexer(
-            slice_obj.start, slice_obj.stop, slice_obj.step, kind=self.name
-        )
-
-        if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis, kind="iloc")
-        else:
-            # DatetimeIndex overrides Index.slice_indexer and may
-            #  return a DatetimeIndex instead of a slice object.
-            return self.obj.take(indexer, axis=axis)
 
 
 @Appender(IndexingMixin.loc.__doc__)
@@ -1881,6 +1850,27 @@ class _LocIndexer(_LocationIndexer):
         self._validate_key(key, axis)
         return self._get_label(key, axis=axis)
 
+    def _get_slice_axis(self, slice_obj: slice, axis: int):
+        """
+        This is pretty simple as we just have to deal with labels.
+        """
+        # caller is responsible for ensuring non-None axis
+        obj = self.obj
+        if not need_slice(slice_obj):
+            return obj.copy(deep=False)
+
+        labels = obj._get_axis(axis)
+        indexer = labels.slice_indexer(
+            slice_obj.start, slice_obj.stop, slice_obj.step, kind=self.name
+        )
+
+        if isinstance(indexer, slice):
+            return self._slice(indexer, axis=axis, kind="iloc")
+        else:
+            # DatetimeIndex overrides Index.slice_indexer and may
+            #  return a DatetimeIndex instead of a slice object.
+            return self.obj.take(indexer, axis=axis)
+
 
 @Appender(IndexingMixin.iloc.__doc__)
 class _iLocIndexer(_LocationIndexer):
@@ -1888,7 +1878,6 @@ class _iLocIndexer(_LocationIndexer):
         "integer, integer slice (START point is INCLUDED, END "
         "point is EXCLUDED), listlike of integers, boolean array"
     )
-    _get_slice_axis = _NDFrameIndexer._get_slice_axis
     _takeable = True
 
     def _validate_key(self, key, axis: int):
@@ -2050,6 +2039,16 @@ class _iLocIndexer(_LocationIndexer):
             self._validate_integer(key, axis)
 
             return self._get_loc(key, axis=axis)
+
+    def _get_slice_axis(self, slice_obj: slice, axis: int):
+        # caller is responsible for ensuring non-None axis
+        obj = self.obj
+
+        if not need_slice(slice_obj):
+            return obj.copy(deep=False)
+
+        indexer = self._convert_slice_indexer(slice_obj, axis)
+        return self._slice(indexer, axis=axis, kind="iloc")
 
     def _convert_to_indexer(self, key, axis: int):
         """
