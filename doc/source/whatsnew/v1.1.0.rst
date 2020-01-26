@@ -13,36 +13,6 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_100.convert_dtypes:
-
-``convert_dtypes`` method to ease use of supported extension dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In order to encourage use of the extension dtypes ``StringDtype``,
-``BooleanDtype``, ``Int64Dtype``, ``Int32Dtype``, etc., that support ``pd.NA``, the
-methods :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes`
-have been introduced. (:issue:`29752`) (:issue:`30929`)
-
-Example:
-
-.. ipython:: python
-
-   df = pd.DataFrame({'x': ['abc', None, 'def'],
-                      'y': [1, 2, np.nan],
-                      'z': [True, False, True]})
-   df
-   df.dtypes
-
-.. ipython:: python
-
-   converted = df.convert_dtypes()
-   converted
-   converted.dtypes
-
-This is especially useful after reading in data using readers such as :func:`read_csv`
-and :func:`read_excel`.
-See :ref:`here <missing_data.NA.conversion>` for a description.
-
 .. _whatsnew_110.period_index_partial_string_slicing:
 
 Nonmonotonic PeriodIndex Partial String Slicing
@@ -109,7 +79,9 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
+- Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 -
 -
 
@@ -149,6 +121,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.floordiv` with ``axis=0`` not treating division-by-zero like :meth:`Series.floordiv` (:issue:`31271`)
 -
 -
 
@@ -174,7 +147,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
--
+- Bug in :meth:`PeriodIndex.get_loc` treating higher-resolution strings differently from :meth:`PeriodIndex.get_value` (:issue:`31172`)
 -
 
 Missing
@@ -198,13 +171,14 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+- :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 -
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
+- Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
 
 Reshaping
 ^^^^^^^^^
