@@ -2124,7 +2124,7 @@ class _AtIndexer(_ScalarAccessIndexer):
                         "can only have integer indexers"
                     )
             else:
-                if is_integer(i) and not ax.holds_integer():
+                if is_integer(i) and not (ax.holds_integer() or ax.is_floating()):
                     raise ValueError(
                         "At based indexing on an non-integer "
                         "index can only have non-integer "
