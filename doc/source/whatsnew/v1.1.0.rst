@@ -171,7 +171,7 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+- :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 -
 
 Groupby/resample/rolling
