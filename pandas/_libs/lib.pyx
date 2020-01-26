@@ -11,6 +11,9 @@ from cython import Py_ssize_t
 from cpython.object cimport PyObject_RichCompareBool, Py_EQ
 from cpython.ref cimport Py_INCREF
 from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
+from cpython.iterator cimport PyIter_Check
+from cpython.sequence cimport PySequence_Check
+from cpython.number cimport PyNumber_Check
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -156,7 +159,8 @@ def is_scalar(val: object) -> bool:
     True
     """
 
-    return (cnp.PyArray_IsAnyScalar(val)
+    # Start with C-optimized checks
+    if (cnp.PyArray_IsAnyScalar(val)
             # PyArray_IsAnyScalar is always False for bytearrays on Py3
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -164,12 +168,52 @@ def is_scalar(val: object) -> bool:
             # We differ from numpy, which claims that None is not scalar;
             # see np.isscalar
             or val is C_NA
-            or val is None
-            or isinstance(val, (Fraction, Number))
+            or val is None):
+        return True
+
+    # Next use C-optimized checks to exclude common non-scalars before falling
+    #  back to non-optimized checks.
+    if PySequence_Check(val):
+        # e.g. list, tuple
+        # includes np.ndarray, Series which PyNumber_Check can return True for
+        return False
+
+    # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
+    return (PyNumber_Check(val)
             or util.is_period_object(val)
-            or is_decimal(val)
             or is_interval(val)
             or util.is_offset_object(val))
+
+
+def is_iterator(obj: object) -> bool:
+    """
+    Check if the object is an iterator.
+
+    This is intended for generators, not list-like objects.
+
+    Parameters
+    ----------
+    obj : The object to check
+
+    Returns
+    -------
+    is_iter : bool
+        Whether `obj` is an iterator.
+
+    Examples
+    --------
+    >>> is_iterator((x for x in []))
+    True
+    >>> is_iterator([1, 2, 3])
+    False
+    >>> is_iterator(datetime(2017, 1, 1))
+    False
+    >>> is_iterator("foo")
+    False
+    >>> is_iterator(1)
+    False
+    """
+    return PyIter_Check(obj)
 
 
 def item_from_zerodim(val: object) -> object:

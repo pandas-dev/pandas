@@ -23,7 +23,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    ;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
@@ -41,8 +41,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 
 .. note::
    For examples that use the ``StringIO`` class, make sure you import it
-   according to your Python version, i.e. ``from StringIO import StringIO`` for
-   Python 2 and ``from io import StringIO`` for Python 3.
+   with ``from io import StringIO`` for Python 3.
 
 .. _io.read_csv_table:
 
@@ -910,16 +909,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-
-.. note::
-
-   When passing a dict as the `parse_dates` argument, the order of
-   the columns prepended is not guaranteed, because `dict` objects do not impose
-   an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
-   instead of a regular `dict` if this matters to you. Because of this, when using a
-   dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
-   specify `index_col` as a column label rather then as an index on the resulting frame.
 
 
 Date parsing functions
@@ -2453,7 +2442,7 @@ Specify a number of rows to skip:
 
    dfs = pd.read_html(url, skiprows=0)
 
-Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
+Specify a number of rows to skip using a list (``range`` works
 as well):
 
 .. code-block:: python
@@ -2768,7 +2757,8 @@ Excel files
 
 The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
 files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``.
+can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3123,11 +3113,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 .. code-block:: python
 
-   # Safe import for either Python 2.x or 3.x
-   try:
-       from io import BytesIO
-   except ImportError:
-       from cStringIO import StringIO as BytesIO
+   from io import BytesIO
 
    bio = BytesIO()
 
@@ -3228,6 +3214,30 @@ OpenDocument spreadsheets match what can be done for `Excel files`_ using
 
    Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
    is not implemented.
+
+.. _io.xlsb:
+
+Binary Excel (.xlsb) files
+--------------------------
+
+.. versionadded:: 1.0.0
+
+The :func:`~pandas.read_excel` method can also read binary Excel files
+using the ``pyxlsb`` module. The semantics and features for reading
+binary Excel files mostly match what can be done for `Excel files`_ using
+``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
+in files and will return floats instead.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.xlsb', engine='pyxlsb')
+
+.. note::
+
+   Currently pandas only supports *reading* binary Excel files. Writing
+   is not implemented.
+
 
 .. _io.clipboard:
 
@@ -4237,12 +4247,12 @@ control compression: ``complevel`` and ``complib``.
   - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
     compression and decompression.
   - `bzip2 <http://bzip.org/>`_: Good compression rates.
-  - `blosc <http://www.blosc.org/>`_: Fast compression and
+  - `blosc <https://www.blosc.org/>`_: Fast compression and
     decompression.
 
     Support for alternative blosc compressors:
 
-    - `blosc:blosclz <http://www.blosc.org/>`_ This is the
+    - `blosc:blosclz <https://www.blosc.org/>`_ This is the
       default compressor for ``blosc``
     - `blosc:lz4
       <https://fastcompression.blogspot.dk/p/lz4.html>`_:
@@ -4996,7 +5006,7 @@ Possible values are:
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
   For more information check the SQLAlchemy `documention
-  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+  <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on
   specific backend dialect features.
