@@ -222,6 +222,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     _mask = None
 
     _raw_inherit = {"__array__", "overlaps", "contains"}
+    _data: IntervalArray
 
     # --------------------------------------------------------------------
     # Constructors
@@ -401,11 +402,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             return False
 
     @cache_readonly
-    def _multiindex(self):
+    def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
     @cache_readonly
-    def values(self):
+    def values(self) -> IntervalArray:
         """
         Return the IntervalIndex's data as an IntervalArray.
         """
