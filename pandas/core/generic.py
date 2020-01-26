@@ -5747,7 +5747,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
 
-        .. versionadded:: 1.1.0
+        .. versionadded:: 1.0.0
 
         Parameters
         ----------
@@ -7503,7 +7503,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries, time, asof: bool_t = False, axis=None
     ) -> FrameOrSeries:
         """
-        Select values at particular time of day (e.g. 9:30AM).
+        Select values at particular time of day (e.g., 9:30AM).
 
         Parameters
         ----------
