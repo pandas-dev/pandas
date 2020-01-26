@@ -344,6 +344,13 @@ class IntegerArray(BaseMaskedArray):
         self._data = values
         self._mask = mask
 
+    def __iter__(self):
+        for i in range(len(self)):
+            if self._mask[i]:
+                yield self.dtype.na_value
+            else:
+                yield self._data[i].item()
+
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return integer_array(scalars, dtype=dtype, copy=copy)
