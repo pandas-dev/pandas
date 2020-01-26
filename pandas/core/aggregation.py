@@ -5,7 +5,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, List, Optional, Sequence, Tuple
+from typing import Any, DefaultDict, List, Optional, Sequence, Tuple, Union
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 
@@ -15,7 +15,7 @@ from pandas.core.indexes.api import Index
 
 
 def reconstruct_func(
-    func: Optional[List[Any], dict], *args, **kwargs: dict
+    func: Optional[Union[List[Any], dict]], *args, **kwargs: dict
 ) -> Tuple[bool, Any, Optional[List[str]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
