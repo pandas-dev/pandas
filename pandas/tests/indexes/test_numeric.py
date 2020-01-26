@@ -425,7 +425,7 @@ class TestFloat64Index(Numeric):
 
         result = ser.at[4.0]
         assert isinstance(result, type(expected)) and result == expected
-        # GH#???? .at[4] should cast to 4.0, matching .loc behavior
+        # GH#31329 .at[4] should cast to 4.0, matching .loc behavior
         result = ser.at[4]
         assert isinstance(result, type(expected)) and result == expected
 
