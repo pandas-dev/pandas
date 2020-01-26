@@ -499,9 +499,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = self.objs[0]._constructor
-            return cons._from_axes(new_data, self.new_axes).__finalize__(
-                self, method="concat"
-            )
+            return cons(new_data).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:
@@ -519,7 +517,11 @@ class _Concatenator:
     def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
-            self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
+            self.objs,
+            axis=data_axis,
+            intersect=self.intersect,
+            sort=self.sort,
+            copy=self.copy,
         )
 
     def _get_concat_axis(self) -> Index:
