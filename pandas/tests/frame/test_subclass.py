@@ -633,3 +633,15 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
+
+    def test_dot(self):
+
+        df = tm.SubclassedDataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
+        s = tm.SubclassedSeries([1, 1, 2, 1])
+        result = df.dot(s)
+        assert isinstance(result, tm.SubclassedSeries)
+
+        df = tm.SubclassedDataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
+        s = tm.SubclassedDataFrame([1, 1, 2, 1])
+        result = df.dot(s)
+        assert isinstance(result, tm.SubclassedDataFrame)
