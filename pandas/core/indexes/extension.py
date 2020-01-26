@@ -6,13 +6,13 @@ from typing import List
 import numpy as np
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.indexes.base import Index
+from pandas.core.indexes.base import Index, deprecate_ndim_indexing
 from pandas.core.ops import get_op_result_name
 
 
@@ -178,6 +178,7 @@ class ExtensionIndex(Index):
             return type(self)(result, name=self.name)
 
         # Includes cases where we get a 2D ndarray back for MPL compat
+        deprecate_ndim_indexing(result)
         return result
 
     def __iter__(self):
@@ -187,6 +188,7 @@ class ExtensionIndex(Index):
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
+    @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
@@ -200,6 +202,7 @@ class ExtensionIndex(Index):
         result = self._data.repeat(repeats, axis=axis)
         return self._shallow_copy(result)
 
+    @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
@@ -229,6 +232,24 @@ class ExtensionIndex(Index):
             result = result[~result.isna()]
         return self._shallow_copy(result)
 
+    @Appender(Index.map.__doc__)
+    def map(self, mapper, na_action=None):
+        # Try to run function on index first, and then on elements of index
+        # Especially important for group-by functionality
+        try:
+            result = mapper(self)
+
+            # Try to use this result if we can
+            if isinstance(result, np.ndarray):
+                result = Index(result)
+
+            if not isinstance(result, Index):
+                raise TypeError("The map function must return an Index object")
+            return result
+        except Exception:
+            return self.astype(object).map(mapper)
+
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype) and copy is False:
             # Ensure that self.astype(self.dtype) is self

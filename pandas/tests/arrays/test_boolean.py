@@ -251,6 +251,34 @@ def test_coerce_to_numpy_array():
         np.array(arr, dtype="bool")
 
 
+def test_to_boolean_array_from_strings():
+    result = BooleanArray._from_sequence_of_strings(
+        np.array(["True", "False", np.nan], dtype=object)
+    )
+    expected = BooleanArray(
+        np.array([True, False, False]), np.array([False, False, True])
+    )
+
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_boolean_array_from_strings_invalid_string():
+    with pytest.raises(ValueError, match="cannot be cast"):
+        BooleanArray._from_sequence_of_strings(["donkey"])
+
+
+def test_repr():
+    df = pd.DataFrame({"A": pd.array([True, False, None], dtype="boolean")})
+    expected = "       A\n0   True\n1  False\n2   <NA>"
+    assert repr(df) == expected
+
+    expected = "0     True\n1    False\n2     <NA>\nName: A, dtype: boolean"
+    assert repr(df.A) == expected
+
+    expected = "<BooleanArray>\n[True, False, <NA>]\nLength: 3, dtype: boolean"
+    assert repr(df.A.array) == expected
+
+
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
 def test_to_numpy(box):
     con = pd.Series if box else pd.array
@@ -335,7 +363,7 @@ def test_astype():
     tm.assert_numpy_array_equal(result, expected)
 
     result = arr.astype("str")
-    expected = np.array(["True", "False", "NA"], dtype="object")
+    expected = np.array(["True", "False", "<NA>"], dtype="object")
     tm.assert_numpy_array_equal(result, expected)
 
     # no missing values
@@ -441,6 +469,24 @@ def test_ufunc_reduce_raises(values):
     a = pd.array(values, dtype="boolean")
     with pytest.raises(NotImplementedError):
         np.add.reduce(a)
+
+
+class TestUnaryOps:
+    def test_invert(self):
+        a = pd.array([True, False, None], dtype="boolean")
+        expected = pd.array([False, True, None], dtype="boolean")
+        tm.assert_extension_array_equal(~a, expected)
+
+        expected = pd.Series(expected, index=["a", "b", "c"], name="name")
+        result = ~pd.Series(a, index=["a", "b", "c"], name="name")
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame({"A": a, "B": [True, False, False]}, index=["a", "b", "c"])
+        result = ~df
+        expected = pd.DataFrame(
+            {"A": expected, "B": [False, True, True]}, index=["a", "b", "c"]
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestLogicalOps(BaseOpsUtil):
@@ -856,3 +902,30 @@ def test_arrow_roundtrip():
     result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.BooleanDtype)
     tm.assert_frame_equal(result, df)
+
+
+def test_value_counts_na():
+    arr = pd.array([True, False, pd.NA], dtype="boolean")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([1, 1, 1], index=[True, False, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([1, 1], index=[True, False], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_diff():
+    a = pd.array(
+        [True, True, False, False, True, None, True, None, False], dtype="boolean"
+    )
+    result = pd.core.algorithms.diff(a, 1)
+    expected = pd.array(
+        [None, False, True, False, True, None, None, None, None], dtype="boolean"
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = s.diff()
+    expected = pd.Series(expected)
+    tm.assert_series_equal(result, expected)

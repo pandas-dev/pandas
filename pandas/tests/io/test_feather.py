@@ -136,7 +136,7 @@ class TestFeather:
 
         # column multi-index
         df.index = [0, 1, 2]
-        df.columns = (pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),)
+        df.columns = pd.MultiIndex.from_tuples([("a", 1)])
         self.check_error_on_write(df, ValueError)
 
     def test_path_pathlib(self):

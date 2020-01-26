@@ -43,7 +43,13 @@ class TestTSPlot(TestPlotBase):
     def teardown_method(self, method):
         tm.close()
 
+    # Ignore warning
+    # ```
+    # Converting to PeriodArray/Index representation will drop timezone information.
+    # ```
+    # which occurs for UTC-like timezones.
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:msg:UserWarning")
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173
         tz = tz_aware_fixture
@@ -121,8 +127,8 @@ class TestTSPlot(TestPlotBase):
         ts = tm.makeTimeSeries()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
-            "keyword argument. Please use one or the other or pass 'style'"
-            " without a color symbol"
+            "keyword argument. Please use one or the other or pass 'style' "
+            "without a color symbol"
         )
         with pytest.raises(ValueError, match=msg):
             ts.plot(style="b-", color="#000099")

@@ -1182,17 +1182,13 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj = self._create_blocks()
-
-        window = self._get_window()
-        window = min(window, len(obj)) if not self.center else window
-
         results = []
         for b in blocks:
             result = b.notna().astype(int)
             result = self._constructor(
                 result,
-                window=window,
-                min_periods=0,
+                window=self._get_window(),
+                min_periods=self.min_periods or 0,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,
@@ -1203,7 +1199,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs["apply"] = dedent(
         r"""
-    The %(name)s function's apply function.
+    Apply an arbitrary function to each %(name)s window.
 
     Parameters
     ----------
@@ -1657,7 +1653,11 @@ class _Rolling_and_Expanding(_Rolling):
             mean = lambda x: x.rolling(
                 window, self.min_periods, center=self.center
             ).mean(**kwargs)
-            count = (X + Y).rolling(window=window, center=self.center).count(**kwargs)
+            count = (
+                (X + Y)
+                .rolling(window=window, min_periods=0, center=self.center)
+                .count(**kwargs)
+            )
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
@@ -1820,8 +1820,7 @@ class Rolling(_Rolling_and_Expanding):
         else:
             raise ValueError(
                 f"invalid on specified as {self.on}, "
-                "must be a column (of DataFrame), an Index "
-                "or None"
+                "must be a column (of DataFrame), an Index or None"
             )
 
     def validate(self):
@@ -1838,9 +1837,8 @@ class Rolling(_Rolling_and_Expanding):
             # we don't allow center
             if self.center:
                 raise NotImplementedError(
-                    "center is not implemented "
-                    "for datetimelike and offset "
-                    "based windows"
+                    "center is not implemented for "
+                    "datetimelike and offset based windows"
                 )
 
             # this will raise ValueError on non-fixed freqs
@@ -1886,8 +1884,7 @@ class Rolling(_Rolling_and_Expanding):
         except (TypeError, ValueError):
             raise ValueError(
                 f"passed window {self.window} is not "
-                "compatible with a datetimelike "
-                "index"
+                "compatible with a datetimelike index"
             )
 
     _agg_see_also_doc = dedent(

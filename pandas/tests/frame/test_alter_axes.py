@@ -1312,7 +1312,7 @@ class TestDataFrameAlterAxes:
     def test_rename_positional_named(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = DataFrame({"a": [1, 2], "b": [1, 2]}, index=["X", "Y"])
-        result = df.rename(str.lower, columns=str.upper)
+        result = df.rename(index=str.lower, columns=str.upper)
         expected = DataFrame({"A": [1, 2], "B": [1, 2]}, index=["x", "y"])
         tm.assert_frame_equal(result, expected)
 
@@ -1336,12 +1336,12 @@ class TestDataFrameAlterAxes:
 
         # Multiple targets and axis
         with pytest.raises(TypeError, match=over_spec_msg):
-            df.rename(str.lower, str.lower, axis="columns")
+            df.rename(str.lower, index=str.lower, axis="columns")
 
         # Too many targets
-        over_spec_msg = "Cannot specify all of 'mapper', 'index', 'columns'."
+        over_spec_msg = "Cannot specify both 'mapper' and any of 'index' or 'columns'"
         with pytest.raises(TypeError, match=over_spec_msg):
-            df.rename(str.lower, str.lower, str.lower)
+            df.rename(str.lower, index=str.lower, columns=str.lower)
 
         # Duplicates
         with pytest.raises(TypeError, match="multiple values"):
@@ -1375,16 +1375,42 @@ class TestDataFrameAlterAxes:
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
 
-    def test_rename_positional(self):
+    def test_rename_positional_raises(self):
+        # GH 29136
         df = DataFrame(columns=["A", "B"])
-        with tm.assert_produces_warning(FutureWarning) as rec:
-            result = df.rename(None, str.lower)
-        expected = DataFrame(columns=["a", "b"])
-        tm.assert_frame_equal(result, expected)
-        assert len(rec) == 1
-        message = str(rec[0].message)
-        assert "rename" in message
-        assert "Use named arguments" in message
+        msg = r"rename\(\) takes from 1 to 2 positional arguments"
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename(None, str.lower)
+
+    def test_rename_no_mappings_raises(self):
+        # GH 29136
+        df = DataFrame([[1]])
+        msg = "must pass an index to rename"
+        with pytest.raises(TypeError, match=msg):
+            df.rename()
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename(None, index=None)
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename(None, columns=None)
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename(None, columns=None, index=None)
+
+    def test_rename_mapper_and_positional_arguments_raises(self):
+        # GH 29136
+        df = DataFrame([[1]])
+        msg = "Cannot specify both 'mapper' and any of 'index' or 'columns'"
+        with pytest.raises(TypeError, match=msg):
+            df.rename({}, index={})
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename({}, columns={})
+
+        with pytest.raises(TypeError, match=msg):
+            df.rename({}, columns={}, index={})
 
     def test_assign_columns(self, float_frame):
         float_frame["hi"] = "there"
@@ -1408,14 +1434,6 @@ class TestDataFrameAlterAxes:
             result = df.set_index(cols).reset_index()
             result = result.reindex(columns=df.columns)
             tm.assert_frame_equal(result, df)
-
-    def test_ambiguous_warns(self):
-        df = DataFrame({"A": [1, 2]})
-        with tm.assert_produces_warning(FutureWarning):
-            df.rename(id, id)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.rename({0: 10}, {"A": "B"})
 
     def test_rename_signature(self):
         sig = inspect.signature(DataFrame.rename)

@@ -12,7 +12,6 @@ from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     _format_is_iso,
     _guess_datetime_format,
-    parse_time_string,
 )
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import ArrayLike
@@ -38,9 +37,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.arrays import IntegerArray
+from pandas.arrays import DatetimeArray, IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimes import tz_to_dtype
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -231,9 +231,7 @@ def _return_parsed_timezone_results(result, timezones, tz, name):
     """
     if tz is not None:
         raise ValueError(
-            "Cannot pass a tz argument when "
-            "parsing strings with timezone "
-            "information."
+            "Cannot pass a tz argument when parsing strings with timezone information."
         )
     tz_results = np.array(
         [Timestamp(res).tz_localize(zone) for res, zone in zip(result, timezones)]
@@ -285,7 +283,6 @@ def _convert_listlike_datetimes(
     Index-like of parsed dates
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays import DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype,
         objects_to_datetime64ns,
@@ -430,7 +427,8 @@ def _convert_listlike_datetimes(
             #  datetime objects are found without passing `utc=True`
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
-                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+                dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
+                return DatetimeIndex._simple_new(dta, name=name)
             except (ValueError, TypeError):
                 raise e
 
@@ -450,7 +448,8 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -629,6 +628,7 @@ def to_datetime(
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_timedelta : Convert argument to timedelta.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------
@@ -817,8 +817,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
         required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            f"[year, month, day] be specified: [{required}] "
-            "is missing"
+            f"[year, month, day] be specified: [{required}] is missing"
         )
 
     # keys we don't recognize

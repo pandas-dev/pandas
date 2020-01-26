@@ -385,14 +385,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self._shallow_copy(result, name=name)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
         if is_scalar(key) and isna(key):
             return self.hasnans
 
+        hash(key)
         return contains(self, key, container=self._engine)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
@@ -427,19 +428,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         # `self` is not passed into the lambda.
         codes = self.codes
         return self._engine_type(lambda: codes, len(self))
-
-    # introspection
-    @cache_readonly
-    def is_unique(self) -> bool:
-        return self._engine.is_unique
-
-    @property
-    def is_monotonic_increasing(self):
-        return self._engine.is_monotonic_increasing
-
-    @property
-    def is_monotonic_decreasing(self) -> bool:
-        return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
     def unique(self, level=None):
@@ -516,8 +504,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         Any
             The element of the series at the position indicated by the key
         """
+        k = key
         try:
-            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind="getitem")
             indexer = self.get_loc(k)
             return series.take([indexer])[0]
@@ -811,7 +799,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """
         return self._create_from_codes(np.delete(self.codes, loc))
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location. Follows
         Python list.append semantics for negative values

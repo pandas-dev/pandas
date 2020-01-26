@@ -219,8 +219,8 @@ class TestLoc(Base):
 
         # raise a KeyError?
         msg = (
-            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
@@ -236,8 +236,8 @@ class TestLoc(Base):
             s.loc[-1]
 
         msg = (
-            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-1, -2]]
@@ -252,8 +252,8 @@ class TestLoc(Base):
 
         s["a"] = 2
         msg = (
-            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-2]]
@@ -268,8 +268,8 @@ class TestLoc(Base):
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[3], :]
@@ -1001,4 +1001,14 @@ def test_loc_axis_1_slice():
             [(2014, 9), (2014, 10), (2015, 7), (2015, 8)]
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_set_dataframe_multiindex():
+    # GH 14592
+    expected = pd.DataFrame(
+        "a", index=range(2), columns=pd.MultiIndex.from_product([range(2), range(2)])
+    )
+    result = expected.copy()
+    result.loc[0, [(0, 1)]] = result.loc[0, [(0, 1)]]
     tm.assert_frame_equal(result, expected)

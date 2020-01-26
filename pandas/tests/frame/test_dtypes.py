@@ -897,15 +897,15 @@ class TestDataFrameDataTypes:
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
         msg = (
-            r"cannot astype a datetimelike from \[datetime64\[ns\]\] to"
-            r" \[timedelta64\[{}\]\]"
+            r"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
+            r"\[timedelta64\[{}\]\]"
         ).format(unit)
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
         msg = (
-            r"cannot astype a timedelta from \[timedelta64\[ns\]\] to"
-            r" \[datetime64\[{}\]\]"
+            r"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
+            r"\[datetime64\[{}\]\]"
         ).format(unit)
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
@@ -1070,6 +1070,27 @@ class TestDataFrameDataTypes:
         # change the dtype of the elements from object to float one by one
         result.loc[result.index, "A"] = [float(x) for x in col_data]
         expected = pd.DataFrame(col_data, columns=["A"], dtype=float)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
+    )
+    def test_convert_dtypes(self, convert_integer, expected):
+        # Specific types are tested in tests/series/test_dtypes.py
+        # Just check that it works for DataFrame here
+        df = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
+                "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
+            }
+        )
+        result = df.convert_dtypes(True, True, convert_integer, False)
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2, 3], dtype=expected),
+                "b": pd.Series(["x", "y", "z"], dtype="string"),
+            }
+        )
         tm.assert_frame_equal(result, expected)
 
 

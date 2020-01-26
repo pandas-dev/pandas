@@ -118,7 +118,9 @@ def pivot_table(
                 agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
-    if table.index.nlevels > 1:
+
+    # GH17038, this check should only happen if index is defined (not None)
+    if table.index.nlevels > 1 and index:
         # Related GH #17123
         # If index_names are integers, determine whether the integers refer
         # to the level position or name.
@@ -133,13 +135,13 @@ def pivot_table(
         table = agged.unstack(to_unstack)
 
     if not dropna:
-        if table.index.nlevels > 1:
+        if isinstance(table.index, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
             )
             table = table.reindex(m, axis=0)
 
-        if table.columns.nlevels > 1:
+        if isinstance(table.columns, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.columns.levels), names=table.columns.names
             )
@@ -225,15 +227,7 @@ def _add_margins(
 
     elif values:
         marginal_result_set = _generate_marginal_results(
-            table,
-            data,
-            values,
-            rows,
-            cols,
-            aggfunc,
-            observed,
-            grand_margin,
-            margins_name,
+            table, data, values, rows, cols, aggfunc, observed, margins_name,
         )
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
@@ -302,15 +296,7 @@ def _compute_grand_margin(data, values, aggfunc, margins_name: str = "All"):
 
 
 def _generate_marginal_results(
-    table,
-    data,
-    values,
-    rows,
-    cols,
-    aggfunc,
-    observed,
-    grand_margin,
-    margins_name: str = "All",
+    table, data, values, rows, cols, aggfunc, observed, margins_name: str = "All",
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
@@ -344,12 +330,22 @@ def _generate_marginal_results(
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
         else:
-            margin = grand_margin
+            from pandas import DataFrame
+
             cat_axis = 0
             for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
-                all_key = _all_key(key)
+                if len(cols) > 1:
+                    all_key = _all_key(key)
+                else:
+                    all_key = margins_name
                 table_pieces.append(piece)
-                table_pieces.append(Series(margin[key], index=[all_key]))
+                # GH31016 this is to calculate margin for each group, and assign
+                # corresponded key as index
+                transformed_piece = DataFrame(piece.apply(aggfunc)).T
+                transformed_piece.index = Index([all_key], name=piece.index.name)
+
+                # append piece for margin into table_piece
+                table_pieces.append(transformed_piece)
                 margin_keys.append(all_key)
 
         result = concat(table_pieces, axis=cat_axis)
@@ -378,7 +374,7 @@ def _generate_marginal_results_without_values(
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
-        margin_keys = []
+        margin_keys: Union[List, Index] = []
 
         def _all_key():
             if len(cols) == 1:
@@ -428,6 +424,9 @@ def _convert_by(by):
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+    if columns is None:
+        raise TypeError("pivot() missing 1 required argument: 'columns'")
+
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -589,6 +588,7 @@ def crosstab(
         **dict(zip(unique_col_names, columns)),
     }
     df = DataFrame(data, index=common_idx)
+    original_df_cols = df.columns
 
     if values is None:
         df["__dummy__"] = 0
@@ -598,7 +598,7 @@ def crosstab(
         kwargs = {"aggfunc": aggfunc}
 
     table = df.pivot_table(
-        "__dummy__",
+        ["__dummy__"],
         index=unique_row_names,
         columns=unique_col_names,
         margins=margins,
@@ -606,6 +606,12 @@ def crosstab(
         dropna=dropna,
         **kwargs,
     )
+
+    # GH18321, after pivoting, an extra top level of column index of `__dummy__` is
+    # created, and this extra level should not be included in the further steps
+    if not table.empty:
+        cols_diff = df.columns.difference(original_df_cols)[0]
+        table = table[cols_diff]
 
     # Post-process
     if normalize is not False:
