@@ -5081,7 +5081,9 @@ class DataFrame(NDFrame):
     ):
         """
         Return a Series containing counts of unique rows in the DataFrame.
+
         .. versionadded:: 1.1.0
+
         The returned Series will have a MultiIndex with one level per input
         column.
         By default, rows that contain any NA values are omitted from the
@@ -5131,24 +5133,28 @@ class DataFrame(NDFrame):
         dog            4          0
         cat            4          0
         ant            6          0
+
         >>> df.value_counts()
         num_legs  num_wings
         4         0            2
         6         0            1
         2         2            1
         dtype: int64
+
         >>> df.value_counts(sort=False)
         num_legs  num_wings
         2         2            1
         4         0            2
         6         0            1
         dtype: int64
+
         >>> df.value_counts(ascending=True)
         num_legs  num_wings
         2         2            1
         6         0            1
         4         0            2
         dtype: int64
+
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
