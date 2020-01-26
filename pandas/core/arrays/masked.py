@@ -45,7 +45,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
             if self._mask[i]:
                 yield self.dtype.na_value
             else:
-                yield self._data[i]
+                yield self._data[i].item()
 
     def __len__(self) -> int:
         return len(self._data)
