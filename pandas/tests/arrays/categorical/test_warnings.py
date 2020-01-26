@@ -14,6 +14,8 @@ class TestCategoricalWarnings:
 
         code = "import pandas as pd; c = Categorical([])"
         await ip.run_code(code)
-        with tm.assert_produces_warning(None):
+
+        # deprecation warning is raised due to jedi upgrades
+        with tm.assert_produces_warning(DeprecationWarning):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("c.", 1))

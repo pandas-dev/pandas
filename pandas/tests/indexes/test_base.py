@@ -2413,7 +2413,9 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
         await ip.run_code(code)
-        with tm.assert_produces_warning(None):
+
+        # deprecation warning is raised due to jedi upgrades
+        with tm.assert_produces_warning(DeprecationWarning):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
