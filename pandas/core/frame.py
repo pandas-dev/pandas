@@ -6779,7 +6779,7 @@ Wild         185.0
 
         for col, fun in func.items():
             s = result[col][::-1].dropna() if mask else result[col]
-            s.index = reordered_indexes[idx: idx + len(fun)]
+            s.index = reordered_indexes[idx : idx + len(fun)]
             reordered_result[col] = s.reindex(columns)
             idx = idx + len(fun)
         return reordered_result
