@@ -603,3 +603,11 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame()
         result = df.count()
         assert isinstance(result, tm.SubclassedSeries)
+
+    def test_isin(self):
+
+        df = tm.SubclassedDataFrame(
+            {"num_legs": [2, 4], "num_wings": [2, 0]}, index=["falcon", "dog"]
+        )
+        result = df.isin([0, 2])
+        assert isinstance(result, tm.SubclassedDataFrame)
