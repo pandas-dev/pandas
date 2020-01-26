@@ -298,7 +298,7 @@ class Base:
         elif isinstance(indices, (RangeIndex, MultiIndex, CategoricalIndex)):
             # RangeIndex cannot be initialized from data
             # MultiIndex and CategoricalIndex are tested separately
-            pytest.skip()
+            return
 
         index_type = type(indices)
         result = index_type(indices.values, copy=True, **init_kwargs)
@@ -461,7 +461,7 @@ class Base:
 
     def test_intersection_base(self, indices):
         if isinstance(indices, CategoricalIndex):
-            pytest.skip()
+            return
 
         first = indices[:5]
         second = indices[:3]
