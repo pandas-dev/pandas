@@ -68,8 +68,8 @@ Backwards incompatible API changes
 
 Deprecations
 ~~~~~~~~~~~~
--:func:`read_excel` engine argument "xlrd" will no longer be the default engine and 
-will be replaced by "openpyxl" in a future version (:issue:`28547`).
+- :func:`read_excel` engine argument "xlrd" will no longer be the default engine and 
+  will be replaced by "openpyxl" in a future version (:issue:`28547`).
 -
 -
 
