@@ -332,6 +332,21 @@ class TestFrameFlexComparisons:
 
 
 class TestFrameFlexArithmetic:
+    def test_floordiv_axis0(self):
+        # make sure we df.floordiv(ser, axis=0) matches column-wise result
+        arr = np.arange(3)
+        ser = pd.Series(arr)
+        df = pd.DataFrame({"A": ser, "B": ser})
+
+        result = df.floordiv(ser, axis=0)
+
+        expected = pd.DataFrame({col: df[col] // ser for col in df.columns})
+
+        tm.assert_frame_equal(result, expected)
+
+        result2 = df.floordiv(ser.values, axis=0)
+        tm.assert_frame_equal(result2, expected)
+
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)
