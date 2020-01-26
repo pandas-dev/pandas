@@ -22,7 +22,8 @@ class TestMisc:
         assert libwriters.max_len_string_array(arr) == 3
 
         # raises
-        with pytest.raises(TypeError):
+        msg = "No matching signature found"
+        with pytest.raises(TypeError, match=msg):
             libwriters.max_len_string_array(arr.astype("U"))
 
     def test_fast_unique_multiple_list_gen_sort(self):
@@ -100,9 +101,11 @@ class TestIndexing:
         assert not isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(maybe_slice, indices)
 
-        with pytest.raises(IndexError):
+        msg = "index 100 is out of bounds for axis (0|1) with size 100"
+
+        with pytest.raises(IndexError, match=msg):
             target[indices]
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             target[maybe_slice]
 
         indices = np.array([100, 99, 98, 97], dtype=np.int64)
@@ -111,9 +114,9 @@ class TestIndexing:
         assert not isinstance(maybe_slice, slice)
         tm.assert_numpy_array_equal(maybe_slice, indices)
 
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             target[indices]
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             target[maybe_slice]
 
         for case in [[99, 97, 99, 96], [99, 99, 98, 97], [98, 98, 97, 96]]:

@@ -870,3 +870,15 @@ class TestPeriodIndex:
         result = _get_period_range_edges(first, last, offset)
         expected = (exp_first, exp_last)
         assert result == expected
+
+    def test_sum_min_count(self):
+        # GH 19974
+        index = pd.date_range(start="2018", freq="M", periods=6)
+        data = np.ones(6)
+        data[3:6] = np.nan
+        s = pd.Series(data, index).to_period()
+        result = s.resample("Q").sum(min_count=1)
+        expected = pd.Series(
+            [3.0, np.nan], index=PeriodIndex(["2018Q1", "2018Q2"], freq="Q-DEC")
+        )
+        tm.assert_series_equal(result, expected)

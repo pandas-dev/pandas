@@ -136,7 +136,12 @@ def test_missing_required_dependency():
     # https://github.com/MacPython/pandas-wheels/pull/50
     call = ["python", "-sSE", "-c", "import pandas"]
 
-    with pytest.raises(subprocess.CalledProcessError) as exc:
+    msg = (
+        r"Command '\['python', '-sSE', '-c', 'import pandas'\]' "
+        "returned non-zero exit status 1."
+    )
+
+    with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
         subprocess.check_output(call, stderr=subprocess.STDOUT)
 
     output = exc.value.stdout.decode()
