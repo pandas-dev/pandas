@@ -6962,9 +6962,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             if where < start:
                 if not is_series:
-                    from pandas import Series
-
-                    return Series(index=self.columns, name=where, dtype=np.float64)
+                    return self._constructor_sliced(index=self.columns, name=where, dtype=np.float64)
                 return np.nan
 
             # It's always much faster to use a *while* loop here for
@@ -6991,13 +6989,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if is_series:
                 return self._constructor(np.nan, index=where, name=self.name)
             elif is_list:
-                from pandas import DataFrame
-
-                return DataFrame(np.nan, index=where, columns=self.columns)
+                return self._constructor(np.nan, index=where, columns=self.columns)
             else:
-                from pandas import Series
-
-                return Series(np.nan, index=self.columns, name=where[0])
+                return self._constructor_sliced(np.nan, index=self.columns, name=where[0])
 
         locs = self.index.asof_locs(where, ~(nulls.values))
 

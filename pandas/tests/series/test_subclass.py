@@ -1,5 +1,6 @@
 import pandas._testing as tm
-
+import pandas as pd
+import numpy as np
 
 class TestSeriesSubclassing:
     def test_indexing_sliced(self):
@@ -35,3 +36,11 @@ class TestSeriesSubclassing:
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             sub_series = tm.SubclassedSeries()
         assert "SubclassedSeries" in repr(sub_series)
+
+    def test_asof(self):
+        N = 3
+        rng = pd.date_range("1/1/1990", periods=N, freq="53s")
+        s = tm.SubclassedSeries({"A": [np.nan, np.nan, np.nan]}, index=rng)
+
+        result = s.asof(rng[-2:])
+        assert isinstance(result, tm.SubclassedSeries)
