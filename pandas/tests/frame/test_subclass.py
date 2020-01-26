@@ -621,3 +621,9 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame()
         result = df.duplicated()
         assert isinstance(result, tm.SubclassedSeries)
+
+    def test_idxmin(self):
+
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.idxmin()
+        assert isinstance(result, tm.SubclassedSeries)
