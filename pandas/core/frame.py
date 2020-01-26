@@ -11,6 +11,7 @@ labeling information
 
 import collections
 from collections import abc
+import datetime
 from io import StringIO
 import itertools
 import sys
@@ -19,6 +20,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    Dict,
     FrozenSet,
     Hashable,
     Iterable,
@@ -39,7 +41,7 @@ import numpy.ma as ma
 from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, lib, properties
-from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Level, Renamer
+from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1851,16 +1853,16 @@ class DataFrame(NDFrame):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
-        path,
-        convert_dates=None,
-        write_index=True,
-        byteorder=None,
-        time_stamp=None,
-        data_label=None,
-        variable_labels=None,
-        version=114,
-        convert_strl=None,
-    ):
+        path: FilePathOrBuffer,
+        convert_dates: Optional[Dict[Label, str]] = None,
+        write_index: bool = True,
+        byteorder: Optional[str] = None,
+        time_stamp: Optional[datetime.datetime] = None,
+        data_label: Optional[str] = None,
+        variable_labels: Optional[Dict[Label, str]] = None,
+        version: Optional[int] = 114,
+        convert_strl: Optional[Sequence[Label]] = None,
+    ) -> None:
         """
         Export DataFrame object to Stata dta format.
 
@@ -1954,11 +1956,13 @@ class DataFrame(NDFrame):
                 raise ValueError("strl is not supported in format 114")
             from pandas.io.stata import StataWriter as statawriter
         elif version == 117:
-            from pandas.io.stata import StataWriter117 as statawriter
+            # mypy: Name 'statawriter' already defined (possibly by an import)
+            from pandas.io.stata import StataWriter117 as statawriter  # type: ignore
         else:  # versions 118 and 119
-            from pandas.io.stata import StataWriterUTF8 as statawriter
+            # mypy: Name 'statawriter' already defined (possibly by an import)
+            from pandas.io.stata import StataWriterUTF8 as statawriter  # type:ignore
 
-        kwargs = {}
+        kwargs: Dict[str, Any] = {}
         if version is None or version >= 117:
             # strl conversion is only supported >= 117
             kwargs["convert_strl"] = convert_strl
@@ -1966,7 +1970,8 @@ class DataFrame(NDFrame):
             # Specifying the version is only supported for UTF8 (118 or 119)
             kwargs["version"] = version
 
-        writer = statawriter(
+        # mypy: Too many arguments for "StataWriter"
+        writer = statawriter(  # type: ignore
             path,
             self,
             convert_dates=convert_dates,
