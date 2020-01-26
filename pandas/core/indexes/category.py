@@ -844,12 +844,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         prop = getattr(self._values, name)
         return prop  # no wrapping for now
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
         if "inplace" in kwargs:

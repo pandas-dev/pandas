@@ -489,7 +489,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
 
-    def _parsed_string_to_bounds(self, reso, parsed):
+    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
         """
         Calculate datetime bounds for parsed time string and its resolution.
 
@@ -581,7 +581,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         return start, end
 
     def _partial_date_slice(
-        self, reso: str, parsed, use_lhs: bool = True, use_rhs: bool = True
+        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
     ):
         """
         Parameters
@@ -698,7 +698,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
 
         return Index.get_loc(self, key, method, tolerance)
 
-    def _maybe_cast_for_get_loc(self, key):
+    def _maybe_cast_for_get_loc(self, key) -> Timestamp:
         # needed to localize naive datetimes
         key = Timestamp(key)
         if key.tzinfo is None:
@@ -707,7 +707,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             key = key.tz_convert(self.tz)
         return key
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         """
         If label is a string, cast it to datetime according to resolution.
 

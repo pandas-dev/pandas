@@ -88,7 +88,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     return wrapper
 
 
-def _make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname: str):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -108,7 +108,7 @@ def _make_wrapped_comparison_op(opname):
     return wrapper
 
 
-def make_wrapped_arith_op(opname):
+def make_wrapped_arith_op(opname: str):
     def method(self, other):
         meth = getattr(self._data, opname)
         result = meth(_maybe_unwrap_index(other))
