@@ -5076,8 +5076,6 @@ class DataFrame(NDFrame):
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
-        bins: Optional[int] = None,
-        dropna: bool = True,
     ):
         """
         Return a Series containing counts of unique rows in the DataFrame.
@@ -5101,18 +5099,6 @@ class DataFrame(NDFrame):
             Sort by frequencies.
         ascending : bool, default False
             Sort in ascending order.
-        bins : int, optional
-            This parameter is not yet supported and must be set to None (the
-            default value). It exists to ensure compatibiliy with
-            `Series.value_counts`.
-            Rather than count values, group them into half-open bins,
-            a convenience for ``pd.cut``, only works with single-column numeric
-            data.
-        dropna : bool, default True
-            This parameter is not yet supported and must be set to True (the
-            default value). It exists to ensure compatibiliy with
-            `Series.value_counts`.
-            Don't include counts of rows containing NA values.
 
         Returns
         -------
@@ -5163,18 +5149,7 @@ class DataFrame(NDFrame):
         dtype: float64
         """
         if subset is None:
-            subset = self.columns.tolist()
-
-        # Some features not supported yet
-        if not dropna:
-            raise NotImplementedError(
-                "`dropna=False` not yet supported for DataFrames."
-            )
-
-        if bins is not None:
-            raise NotImplementedError(
-                "`bins` parameter not yet supported for DataFrames."
-            )
+            subset = self.columns
 
         counts = self.groupby(subset).size()
 
@@ -5182,6 +5157,7 @@ class DataFrame(NDFrame):
             counts = counts.sort_values(ascending=ascending)
         if normalize:
             counts /= counts.sum()
+
         # Force MultiIndex for single column
         if len(subset) == 1:
             counts.index = MultiIndex.from_arrays(
