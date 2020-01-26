@@ -641,34 +641,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
-
-        if isinstance(key, (datetime, np.datetime64)):
-            return self.get_value_maybe_box(series, key)
-
-        if isinstance(key, time):
-            locs = self.indexer_at_time(key)
-            return series.take(locs)
-
-        if isinstance(key, str):
-            try:
-                loc = self._get_string_slice(key)
-                return series[loc]
-            except (TypeError, ValueError, KeyError):
-                pass
-            try:
-                stamp = self._maybe_cast_for_get_loc(key)
-                loc = self.get_loc(stamp)
-                return series[loc]
-            except (KeyError, ValueError):
-                raise KeyError(key)
-
-        value = Index.get_value(self, series, key)
-        return com.maybe_box(self, value, series, key)
-
-    def get_value_maybe_box(self, series, key):
-        loc = self.get_loc(key)
+        if is_integer(key):
+            loc = key
+        else:
+            loc = self.get_loc(key)
         return self._get_values_for_loc(series, loc)
 
     def get_loc(self, key, method=None, tolerance=None):
