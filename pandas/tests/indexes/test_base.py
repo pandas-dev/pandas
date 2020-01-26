@@ -2416,6 +2416,7 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
 
         # GH 31324 newer jedi version raises Deprecation warning
         import jedi
+
         if jedi.__version__ < "0.16.0":
             warning = tm.assert_produces_warning(None)
         else:
@@ -2424,7 +2425,7 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             )
         with warning:
             with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("idx.", 4))
+                list(ip.Completer.completions("c.", 1))
 
     def test_contains_method_removed(self, indices):
         # GH#30103 method removed for all types except IntervalIndex
