@@ -79,7 +79,9 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
+- Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 -
 -
 
