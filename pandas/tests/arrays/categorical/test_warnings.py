@@ -26,4 +26,4 @@ class TestCategoricalWarnings:
             )
         with warning:
             with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("idx.", 4))
+                list(ip.Completer.completions("c.", 1))

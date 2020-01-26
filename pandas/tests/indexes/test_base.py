@@ -2425,7 +2425,7 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             )
         with warning:
             with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("c.", 1))
+                list(ip.Completer.completions("idx.", 4))
 
     def test_contains_method_removed(self, indices):
         # GH#30103 method removed for all types except IntervalIndex
