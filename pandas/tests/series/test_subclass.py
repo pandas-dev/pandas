@@ -44,3 +44,8 @@ class TestSeriesSubclassing:
 
         result = s.asof(rng[-2:])
         assert isinstance(result, tm.SubclassedSeries)
+
+    def test_explode(self):
+        s = tm.SubclassedSeries([[1, 2, 3], "foo", [], [3, 4]])
+        result = s.explode()
+        assert isinstance(result, tm.SubclassedSeries)

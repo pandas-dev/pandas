@@ -3471,7 +3471,7 @@ Name: Max Speed, dtype: float64
 
         values, counts = reshape.explode(np.asarray(self.array))
 
-        result = Series(values, index=self.index.repeat(counts), name=self.name)
+        result = self._constructor(values, index=self.index.repeat(counts), name=self.name)
         return result
 
     def unstack(self, level=-1, fill_value=None):
