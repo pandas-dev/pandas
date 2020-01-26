@@ -68,7 +68,7 @@ Backwards incompatible API changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
 -
 -
 
