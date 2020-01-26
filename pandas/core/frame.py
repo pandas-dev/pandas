@@ -7748,7 +7748,7 @@ Wild         185.0
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
 
-            correl = Series(
+            correl = self._constructor_sliced(
                 map(c, zip(left.values.T, right.values.T)), index=left.columns
             )
 
