@@ -1,20 +1,10 @@
 from numpy.random import randn
 
 from pandas import DataFrame, MultiIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
-class TestMultiIndexSetOps:
-    def test_multiindex_symmetric_difference(self):
-        # GH 13490
-        idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=["a", "b"])
-        result = idx ^ idx
-        assert result.names == idx.names
-
-        idx2 = idx.copy().rename(["A", "B"])
-        result = idx ^ idx2
-        assert result.names == [None, None]
-
+class TestMultiIndexInsertion:
     def test_mixed_depth_insert(self):
         arrays = [
             ["a", "top", "top", "routine1", "routine1", "routine2"],

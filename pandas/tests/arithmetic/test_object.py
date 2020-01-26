@@ -9,8 +9,8 @@ import pytest
 
 import pandas as pd
 from pandas import Series, Timestamp
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -137,7 +137,13 @@ class TestArithmetic:
         ser = Series(data, dtype=dtype)
 
         ser = tm.box_expected(ser, box_with_array)
-        with pytest.raises(TypeError):
+        msg = (
+            "can only concatenate str|"
+            "did not contain a loop with signature matching types|"
+            "unsupported operand type|"
+            "must be str"
+        )
+        with pytest.raises(TypeError, match=msg):
             "foo_" + ser
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd, operator.sub, ops.rsub])
@@ -149,9 +155,10 @@ class TestArithmetic:
         obj_ser.name = "objects"
 
         obj_ser = tm.box_expected(obj_ser, box)
-        with pytest.raises(Exception):
+        msg = "can only concatenate str|unsupported operand type|must be str"
+        with pytest.raises(Exception, match=msg):
             op(obj_ser, 1)
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match=msg):
             op(obj_ser, np.array(1, dtype=np.int64))
 
     # TODO: Moved from tests.series.test_operators; needs cleanup
@@ -275,13 +282,15 @@ class TestArithmetic:
 
     def test_sub_fail(self):
         index = tm.makeStringIndex(100)
-        with pytest.raises(TypeError):
+
+        msg = "unsupported operand type|Cannot broadcast"
+        with pytest.raises(TypeError, match=msg):
             index - "a"
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index - index
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index - index.tolist()
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index.tolist() - index
 
     def test_sub_object(self):
@@ -295,10 +304,11 @@ class TestArithmetic:
         result = index - pd.Index([Decimal(1), Decimal(1)])
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             index - "foo"
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             index - np.array([2, "foo"])
 
     def test_rsub_object(self):
@@ -312,8 +322,9 @@ class TestArithmetic:
         result = np.array([Decimal(2), Decimal(2)]) - index
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
             "foo" - index
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             np.array([True, pd.Timestamp.now()]) - index

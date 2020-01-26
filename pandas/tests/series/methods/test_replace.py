@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesReplace:
@@ -120,8 +120,8 @@ class TestSeriesReplace:
         # make sure things don't get corrupted when fillna call fails
         s = ser.copy()
         msg = (
-            r"Invalid fill method\. Expecting pad \(ffill\) or backfill"
-            r" \(bfill\)\. Got crash_cymbal"
+            r"Invalid fill method\. Expecting pad \(ffill\) or backfill "
+            r"\(bfill\)\. Got crash_cymbal"
         )
         with pytest.raises(ValueError, match=msg):
             s.replace([1, 2, 3], inplace=True, method="crash_cymbal")

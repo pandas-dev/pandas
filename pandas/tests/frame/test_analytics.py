@@ -20,9 +20,9 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._testing as tm
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(
@@ -828,6 +828,16 @@ class TestDataFrameAnalytics:
         bools = np.isnan(float_frame)
         bools.sum(1)
         bools.sum(0)
+
+    def test_sum_mixed_datetime(self):
+        # GH#30886
+        df = pd.DataFrame(
+            {"A": pd.date_range("2000", periods=4), "B": [1, 2, 3, 4]}
+        ).reindex([2, 3, 4])
+        result = df.sum()
+
+        expected = pd.Series({"B": 7.0})
+        tm.assert_series_equal(result, expected)
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data

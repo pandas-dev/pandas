@@ -33,13 +33,26 @@ from pandas.util._validators import (
 
 
 class CompatValidator:
-    def __init__(self, defaults, fname=None, method=None, max_fname_arg_count=None):
+    def __init__(
+        self,
+        defaults,
+        fname=None,
+        method: Optional[str] = None,
+        max_fname_arg_count=None,
+    ):
         self.fname = fname
         self.method = method
         self.defaults = defaults
         self.max_fname_arg_count = max_fname_arg_count
 
-    def __call__(self, args, kwargs, fname=None, max_fname_arg_count=None, method=None):
+    def __call__(
+        self,
+        args,
+        kwargs,
+        fname=None,
+        max_fname_arg_count=None,
+        method: Optional[str] = None,
+    ) -> None:
         if args or kwargs:
             fname = self.fname if fname is None else fname
             max_fname_arg_count = (
@@ -168,13 +181,6 @@ def validate_clip_with_axis(axis, args, kwargs):
     validate_clip(args, kwargs)
     return axis
 
-
-COMPRESS_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
-COMPRESS_DEFAULTS["axis"] = None
-COMPRESS_DEFAULTS["out"] = None
-validate_compress = CompatValidator(
-    COMPRESS_DEFAULTS, fname="compress", method="both", max_fname_arg_count=1
-)
 
 CUM_FUNC_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
 CUM_FUNC_DEFAULTS["dtype"] = None
@@ -307,7 +313,7 @@ validate_transpose = CompatValidator(
 )
 
 
-def validate_window_func(name, args, kwargs):
+def validate_window_func(name, args, kwargs) -> None:
     numpy_args = ("axis", "dtype", "out")
     msg = (
         f"numpy operations are not valid with window objects. "
@@ -322,7 +328,7 @@ def validate_window_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_rolling_func(name, args, kwargs):
+def validate_rolling_func(name, args, kwargs) -> None:
     numpy_args = ("axis", "dtype", "out")
     msg = (
         f"numpy operations are not valid with window objects. "
@@ -337,7 +343,7 @@ def validate_rolling_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_expanding_func(name, args, kwargs):
+def validate_expanding_func(name, args, kwargs) -> None:
     numpy_args = ("axis", "dtype", "out")
     msg = (
         f"numpy operations are not valid with window objects. "
@@ -352,7 +358,7 @@ def validate_expanding_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_groupby_func(name, args, kwargs, allowed=None):
+def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
     """
     'args' and 'kwargs' should be empty, except for allowed
     kwargs because all of
@@ -366,16 +372,15 @@ def validate_groupby_func(name, args, kwargs, allowed=None):
 
     if len(args) + len(kwargs) > 0:
         raise UnsupportedFunctionCall(
-            f"numpy operations are not valid with "
-            f"groupby. Use .groupby(...).{name}() "
-            f"instead"
+            "numpy operations are not valid with groupby. "
+            f"Use .groupby(...).{name}() instead"
         )
 
 
 RESAMPLER_NUMPY_OPS = ("min", "max", "sum", "prod", "mean", "std", "var")
 
 
-def validate_resampler_func(method, args, kwargs):
+def validate_resampler_func(method: str, args, kwargs) -> None:
     """
     'args' and 'kwargs' should be empty because all of
     their necessary parameters are explicitly listed in
@@ -384,15 +389,14 @@ def validate_resampler_func(method, args, kwargs):
     if len(args) + len(kwargs) > 0:
         if method in RESAMPLER_NUMPY_OPS:
             raise UnsupportedFunctionCall(
-                f"numpy operations are not "
-                f"valid with resample. Use "
-                f".resample(...).{method}() instead"
+                "numpy operations are not valid with resample. "
+                f"Use .resample(...).{method}() instead"
             )
         else:
             raise TypeError("too many arguments passed in")
 
 
-def validate_minmax_axis(axis):
+def validate_minmax_axis(axis: Optional[int]) -> None:
     """
     Ensure that the axis argument passed to min, max, argmin, or argmax is
     zero or None, as otherwise it will be incorrectly ignored.

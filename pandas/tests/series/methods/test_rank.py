@@ -8,8 +8,8 @@ from pandas._libs.tslib import iNaT
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
-import pandas.util.testing as tm
 
 
 class TestSeriesRank:
@@ -203,8 +203,7 @@ class TestSeriesRank:
         s = Series([0, 1])
         s.rank(method="average")
         msg = (
-            "No axis named average for object type"
-            " <class 'pandas.core.series.Series'>"
+            "No axis named average for object type <class 'pandas.core.series.Series'>"
         )
         with pytest.raises(ValueError, match=msg):
             s.rank("average")

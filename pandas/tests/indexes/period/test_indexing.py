@@ -7,7 +7,7 @@ from pandas._libs.tslibs import period as libperiod
 
 import pandas as pd
 from pandas import DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestGetItem:
@@ -235,6 +235,21 @@ class TestWhere:
         result = i.where(notna(i2), i2.values)
         tm.assert_index_equal(result, i2)
 
+    def test_where_invalid_dtypes(self):
+        pi = period_range("20130101", periods=5, freq="D")
+
+        i2 = pi.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + pi[2:].tolist(), freq="D")
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.asi8)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            pi.where(notna(i2), i2.to_timestamp("S"))
+
 
 class TestTake:
     def test_take(self):
@@ -342,7 +357,7 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        msg = "index -5 is out of bounds for size 3"
+        msg = "index -5 is out of bounds for( axis 0 with)? size 3"
         with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
@@ -394,8 +409,8 @@ class TestIndexing:
             idx0.get_loc(1.1)
 
         msg = (
-            r"'PeriodIndex\(\['2017-09-01', '2017-09-02', '2017-09-03'\],"
-            r" dtype='period\[D\]', freq='D'\)' is an invalid key"
+            r"'PeriodIndex\(\['2017-09-01', '2017-09-02', '2017-09-03'\], "
+            r"dtype='period\[D\]', freq='D'\)' is an invalid key"
         )
         with pytest.raises(TypeError, match=msg):
             idx0.get_loc(idx0)
@@ -419,8 +434,8 @@ class TestIndexing:
             idx1.get_loc(1.1)
 
         msg = (
-            r"'PeriodIndex\(\['2017-09-02', '2017-09-02', '2017-09-03'\],"
-            r" dtype='period\[D\]', freq='D'\)' is an invalid key"
+            r"'PeriodIndex\(\['2017-09-02', '2017-09-02', '2017-09-03'\], "
+            r"dtype='period\[D\]', freq='D'\)' is an invalid key"
         )
         with pytest.raises(TypeError, match=msg):
             idx1.get_loc(idx1)
@@ -435,6 +450,28 @@ class TestIndexing:
         assert idx2.get_loc(str(p1)) == expected_idx2_p1
         tm.assert_numpy_array_equal(idx2.get_loc(p2), expected_idx2_p2)
         tm.assert_numpy_array_equal(idx2.get_loc(str(p2)), expected_idx2_p2)
+
+    def test_get_loc_integer(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        with pytest.raises(KeyError, match="16801"):
+            pi.get_loc(16801)
+
+        pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
+        with pytest.raises(KeyError, match="46"):
+            pi2.get_loc(46)
+
+    def test_get_value_integer(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        ser = pd.Series(range(3), index=pi)
+        with pytest.raises(IndexError, match="is out of bounds for axis 0 with size 3"):
+            pi.get_value(ser, 16801)
+
+        pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
+        ser2 = pd.Series(range(3), index=pi2)
+        with pytest.raises(IndexError, match="is out of bounds for axis 0 with size 3"):
+            pi2.get_value(ser2, 46)
 
     def test_is_monotonic_increasing(self):
         # GH 17717
@@ -481,12 +518,20 @@ class TestIndexing:
 
         ps0 = [p0, p1, p2]
         idx0 = pd.PeriodIndex(ps0)
+        ser = pd.Series(range(6, 9), index=idx0)
 
         for p in ps0:
             assert p in idx0
             assert str(p) in idx0
 
-        assert "2017-09-01 00:00:01" in idx0
+        # GH#31172
+        # Higher-resolution period-like are _not_ considered as contained
+        key = "2017-09-01 00:00:01"
+        assert key not in idx0
+        with pytest.raises(KeyError, match=key):
+            idx0.get_loc(key)
+        with pytest.raises(KeyError, match=key):
+            idx0.get_value(ser, key)
 
         assert "2017-09" in idx0
 
@@ -549,6 +594,35 @@ class TestIndexing:
 
         res = idx.get_indexer(target, "nearest", tolerance=pd.Timedelta("1 day"))
         tm.assert_numpy_array_equal(res, np.array([0, 0, 1, -1], dtype=np.intp))
+
+    def test_get_indexer_mismatched_dtype(self):
+        # Check that we return all -1s and do not raise or cast incorrectly
+
+        dti = pd.date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        pi2 = dti.to_period("W")
+
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+
+        result = pi.get_indexer(dti)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # This should work in both directions
+        result = dti.get_indexer(pi)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pi.get_indexer(pi2)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # We expect the same from get_indexer_non_unique
+        result = pi.get_indexer_non_unique(dti)[0]
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti.get_indexer_non_unique(pi)[0]
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pi.get_indexer_non_unique(pi2)[0]
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_non_unique(self):
         # GH 17717

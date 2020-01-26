@@ -2,6 +2,7 @@
 
 import calendar
 from datetime import datetime, timedelta
+from distutils.version import LooseVersion
 import locale
 import unicodedata
 
@@ -12,14 +13,14 @@ import pytest
 import pytz
 from pytz import timezone, utc
 
-from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
+import pandas.compat as compat
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Period, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 
@@ -240,24 +241,20 @@ class TestTimestampConstructors:
             for result in [Timestamp(date_str), Timestamp(date)]:
                 # only with timestring
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
                 for result in [Timestamp(date_str, tz=tz), Timestamp(date, tz=tz)]:
                     expected_tz = expected - offset * 3600 * 1_000_000_000
                     assert result.value == expected_tz
-                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should preserve tz
                     result = Timestamp(result)
                     assert result.value == expected_tz
-                    assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should convert to UTC
                     if tz is not None:
@@ -266,7 +263,6 @@ class TestTimestampConstructors:
                         result = Timestamp(result, tz="UTC")
                     expected_utc = expected - offset * 3600 * 1_000_000_000
                     assert result.value == expected_utc
-                    assert conversion.pydt_to_i8(result) == expected_utc
 
     def test_constructor_with_stringoffset(self):
         # GH 7833
@@ -299,30 +295,25 @@ class TestTimestampConstructors:
             for result in [Timestamp(date_str)]:
                 # only with timestring
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
                 # re-creation shouldn't affect to internal value
                 result = Timestamp(result)
                 assert result.value == expected
-                assert conversion.pydt_to_i8(result) == expected
 
             # with timezone
             for tz, offset in timezones:
                 result = Timestamp(date_str, tz=tz)
                 expected_tz = expected
                 assert result.value == expected_tz
-                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should preserve tz
                 result = Timestamp(result)
                 assert result.value == expected_tz
-                assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should convert to UTC
                 result = Timestamp(result).tz_convert("UTC")
                 expected_utc = expected
                 assert result.value == expected_utc
-                assert conversion.pydt_to_i8(result) == expected_utc
 
         # This should be 2013-11-01 05:00 in UTC
         # converted to Chicago tz
@@ -700,6 +691,19 @@ class TestTimestampConstructors:
         expected = Timestamp(2000, 1, 1)
         assert result == expected
 
+    @pytest.mark.skipif(
+        not compat.PY38,
+        reason="datetime.fromisocalendar was added in Python version 3.8",
+    )
+    def test_constructor_fromisocalendar(self):
+        # GH 30395
+        expected_timestamp = Timestamp("2000-01-03 00:00:00")
+        expected_stdlib = datetime.fromisocalendar(2000, 1, 1)
+        result = Timestamp.fromisocalendar(2000, 1, 1)
+        assert result == expected_timestamp
+        assert result == expected_stdlib
+        assert isinstance(result, Timestamp)
+
 
 class TestTimestamp:
     def test_tz(self):
@@ -737,7 +741,7 @@ class TestTimestamp:
 
     def test_class_ops_pytz(self):
         def compare(x, y):
-            assert int(Timestamp(x).value / 1e9) == int(Timestamp(y).value / 1e9)
+            assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
@@ -761,8 +765,12 @@ class TestTimestamp:
 
     def test_class_ops_dateutil(self):
         def compare(x, y):
-            assert int(np.round(Timestamp(x).value / 1e9)) == int(
-                np.round(Timestamp(y).value / 1e9)
+            assert (
+                int(
+                    np.round(Timestamp(x).value / 1e9)
+                    - np.round(Timestamp(y).value / 1e9)
+                )
+                == 0
             )
 
         compare(Timestamp.now(), datetime.now())
@@ -1066,4 +1074,35 @@ def test_dt_subclass_add_timedelta(lh, rh):
     # Timedelta operations
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected
+
+
+def test_constructor_ambigous_dst():
+    # GH 24329
+    # Make sure that calling Timestamp constructor
+    # on Timestamp created from ambiguous time
+    # doesn't change Timestamp.value
+    ts = Timestamp(1382835600000000000, tz="dateutil/Europe/London")
+    expected = ts.value
+    result = Timestamp(ts).value
+    assert result == expected
+
+
+@pytest.mark.xfail(
+    LooseVersion(compat._optional._get_version(dateutil)) < LooseVersion("2.7.0"),
+    reason="dateutil moved to Timedelta.total_seconds() in 2.7.0",
+)
+@pytest.mark.parametrize("epoch", [1552211999999999872, 1552211999999999999])
+def test_constructor_before_dst_switch(epoch):
+    # GH 31043
+    # Make sure that calling Timestamp constructor
+    # on time just before DST switch doesn't lead to
+    # nonexistent time or value change
+    # Works only with dateutil >= 2.7.0 as dateutil overrid
+    # pandas.Timedelta.total_seconds with
+    # datetime.timedelta.total_seconds before
+    ts = Timestamp(epoch, tz="dateutil/US/Pacific")
+    result = ts.tz.dst(ts)
+    expected = timedelta(seconds=0)
+    assert Timestamp(ts).value == epoch
     assert result == expected

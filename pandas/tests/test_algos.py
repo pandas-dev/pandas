@@ -30,11 +30,11 @@ from pandas import (
     Timestamp,
     compat,
 )
+import pandas._testing as tm
 from pandas.conftest import BYTES_DTYPES, STRING_DTYPES
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 class TestFactorize:
@@ -653,8 +653,8 @@ class TestIsin:
     def test_invalid(self):
 
         msg = (
-            r"only list-like objects are allowed to be passed to isin\(\),"
-            r" you passed a \[int\]"
+            r"only list-like objects are allowed to be passed to isin\(\), "
+            r"you passed a \[int\]"
         )
         with pytest.raises(TypeError, match=msg):
             algos.isin(1, 1)

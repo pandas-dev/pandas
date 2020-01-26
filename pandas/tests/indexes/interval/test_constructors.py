@@ -19,9 +19,9 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[None, "foo"])
@@ -164,7 +164,7 @@ class Base:
             constructor(dtype="int64", **filler)
 
         # invalid dtype
-        msg = 'data type "invalid" not understood'
+        msg = "data type [\"']invalid[\"'] not understood"
         with pytest.raises(TypeError, match=msg):
             constructor(dtype="invalid", **filler)
 

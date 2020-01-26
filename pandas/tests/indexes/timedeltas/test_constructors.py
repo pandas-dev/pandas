@@ -5,8 +5,8 @@ import pytest
 
 import pandas as pd
 from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
-import pandas.util.testing as tm
 
 
 class TestTimedeltaIndex:
@@ -46,6 +46,12 @@ class TestTimedeltaIndex:
         with pytest.raises(ValueError, match=msg):
             # GH#23789
             TimedeltaArray(tdi, freq="D")
+
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(tdi._data, freq="D")
+
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray(tdi._data, freq="D")
 
     def test_dt64_data_invalid(self):
         # GH#23539
@@ -176,15 +182,15 @@ class TestTimedeltaIndex:
 
         # non-conforming freq
         msg = (
-            "Inferred frequency None from passed values does not conform to"
-            " passed frequency D"
+            "Inferred frequency None from passed values does not conform to "
+            "passed frequency D"
         )
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(["1 days", "2 days", "4 days"], freq="D")
 
         msg = (
-            "Of the four parameters: start, end, periods, and freq, exactly"
-            " three must be specified"
+            "Of the four parameters: start, end, periods, and freq, exactly "
+            "three must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             timedelta_range(periods=10, freq="D")
