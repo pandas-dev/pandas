@@ -18,7 +18,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
@@ -27,7 +27,7 @@ from pandas.core.arrays.datetimes import (
     validate_tz_from_dtype,
 )
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
@@ -486,8 +486,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
                     s = t1
             snapped[i] = s
 
-        # we know it conforms; skip check
-        return DatetimeIndex._simple_new(snapped, name=self.name, tz=self.tz, freq=freq)
+        dta = DatetimeArray(snapped, dtype=self.dtype)
+        return DatetimeIndex._simple_new(dta, name=self.name)
 
     def _parsed_string_to_bounds(self, reso, parsed):
         """
@@ -641,32 +641,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-
-        if isinstance(key, (datetime, np.datetime64)):
-            return self.get_value_maybe_box(series, key)
-
-        if isinstance(key, time):
-            locs = self.indexer_at_time(key)
-            return series.take(locs)
-
-        if isinstance(key, str):
-            try:
-                loc = self._get_string_slice(key)
-                return series[loc]
-            except (TypeError, ValueError, KeyError):
-                pass
-            try:
-                stamp = self._maybe_cast_for_get_loc(key)
-                loc = self.get_loc(stamp)
-                return series[loc]
-            except (KeyError, ValueError):
-                raise KeyError(key)
-
-        value = Index.get_value(self, series, key)
-        return com.maybe_box(self, value, series, key)
-
-    def get_value_maybe_box(self, series, key):
-        loc = self.get_loc(key)
+        if is_integer(key):
+            loc = key
+        else:
+            loc = self.get_loc(key)
         return self._get_values_for_loc(series, loc)
 
     def get_loc(self, key, method=None, tolerance=None):
@@ -677,8 +655,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         -------
         loc : int
         """
-        if is_scalar(key) and isna(key):
-            key = NaT  # FIXME: do this systematically
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
+
+        if is_valid_nat_for_dtype(key, self.dtype):
+            key = NaT
 
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
