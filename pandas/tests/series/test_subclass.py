@@ -2,6 +2,7 @@ import pandas._testing as tm
 import pandas as pd
 import numpy as np
 
+
 class TestSeriesSubclassing:
     def test_indexing_sliced(self):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list("abcd"))

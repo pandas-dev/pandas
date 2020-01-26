@@ -2590,9 +2590,9 @@ class DataFrame(NDFrame):
             index=self.columns,
         )
         if index:
-            result = self._constructor_sliced(self.index.memory_usage(deep=deep), index=["Index"]).append(
-                result
-            )
+            result = self._constructor_sliced(
+                self.index.memory_usage(deep=deep), index=["Index"]
+            ).append(result)
         return result
 
     def transpose(self, *args, copy: bool = False) -> "DataFrame":
@@ -7871,7 +7871,9 @@ Wild         185.0
                 # GH13407
                 series_counts = notna(frame).sum(axis=axis)
                 counts = series_counts.values
-                result = self._constructor_sliced(counts, index=frame._get_agg_axis(axis))
+                result = self._constructor_sliced(
+                    counts, index=frame._get_agg_axis(axis)
+                )
 
         return result.astype("int64")
 
