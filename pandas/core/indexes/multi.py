@@ -1261,10 +1261,10 @@ class MultiIndex(Index):
             # on the output of a groupby doesn't reflect back here.
             level_index = level_index.copy()
 
-        if len(level_index):
-            grouper = level_index.take(codes)
-        else:
+        if level_index._can_hold_na:
             grouper = level_index.take(codes, fill_value=True)
+        else:
+            grouper = level_index.take(codes)
 
         return grouper, codes, level_index
 
