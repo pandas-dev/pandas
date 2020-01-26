@@ -3211,8 +3211,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
-        is_copy : bool, default True
-            Whether to return a copy of the original object or not.
+        is_copy : bool
+            Before pandas 1.0, ``is_copy=False`` can be specified to ensure
+            that the return value is an actual copy. Starting with pandas 1.0,
+            ``take`` always returns a copy, and the keyword is therefore
+            deprecated.
 
             .. deprecated:: 1.0.0
         **kwargs
