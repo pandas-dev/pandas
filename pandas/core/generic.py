@@ -3304,6 +3304,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         See the docstring of `take` for full explanation of the parameters.
         """
         result = self.take(indices=indices, axis=axis, **kwargs)
+        # Maybe set copy if we didn't actually change the index.
         if not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)
         return result
