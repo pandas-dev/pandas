@@ -217,7 +217,7 @@ def parse_datetime_string(date_string: str, freq=None, dayfirst=False,
         return dt
 
     try:
-        dt, _, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
+        dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
         return dt
     except DateParseError:
         raise
@@ -280,7 +280,6 @@ cdef parse_datetime_string_with_reso(str date_string, freq=None, dayfirst=False,
     Returns
     -------
     datetime
-    datetime/dateutil.parser._result
     str
         Inferred resolution of the parsed string.
 
@@ -297,7 +296,7 @@ cdef parse_datetime_string_with_reso(str date_string, freq=None, dayfirst=False,
 
     parsed, reso = _parse_delimited_date(date_string, dayfirst)
     if parsed is not None:
-        return parsed, parsed, reso
+        return parsed, reso
 
     try:
         return _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq)
@@ -315,7 +314,7 @@ cdef parse_datetime_string_with_reso(str date_string, freq=None, dayfirst=False,
         raise DateParseError(err)
     if parsed is None:
         raise DateParseError(f"Could not parse {date_string}")
-    return parsed, parsed, reso
+    return parsed, reso
 
 
 cpdef bint _does_string_look_like_datetime(str py_string):
@@ -375,7 +374,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     assert isinstance(date_string, str)
 
     if date_string in nat_strings:
-        return NaT, NaT, ''
+        return NaT, ''
 
     date_string = date_string.upper()
     date_len = len(date_string)
@@ -384,7 +383,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
         # parse year only like 2000
         try:
             ret = default.replace(year=int(date_string))
-            return ret, ret, 'year'
+            return ret, 'year'
         except ValueError:
             pass
 
@@ -441,7 +440,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                 month = (quarter - 1) * 3 + 1
 
             ret = default.replace(year=year, month=month)
-            return ret, ret, 'quarter'
+            return ret, 'quarter'
 
     except DateParseError:
         raise
@@ -454,14 +453,14 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
         month = int(date_string[4:6])
         try:
             ret = default.replace(year=year, month=month)
-            return ret, ret, 'month'
+            return ret, 'month'
         except ValueError:
             pass
 
     for pat in ['%Y-%m', '%b %Y', '%b-%Y']:
         try:
             ret = datetime.strptime(date_string, pat)
-            return ret, ret, 'month'
+            return ret, 'month'
         except ValueError:
             pass
 

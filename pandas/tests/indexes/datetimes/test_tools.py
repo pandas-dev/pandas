@@ -1874,7 +1874,7 @@ class TestDatetimeParsingWrappers:
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
 
-        result1, _, _ = parsing.parse_time_string(date_str, yearfirst=yearfirst)
+        result1, _ = parsing.parse_time_string(date_str, yearfirst=yearfirst)
         result2 = to_datetime(date_str, yearfirst=yearfirst)
         result3 = to_datetime([date_str], yearfirst=yearfirst)
         # result5 is used below
@@ -1910,7 +1910,7 @@ class TestDatetimeParsingWrappers:
 
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
-        result1, _, _ = parsing.parse_time_string("NaT")
+        result1, _ = parsing.parse_time_string("NaT")
         result2 = to_datetime("NaT")
         result3 = Timestamp("NaT")
         result4 = DatetimeIndex(["NaT"])[0]
@@ -1986,7 +1986,7 @@ class TestDatetimeParsingWrappers:
                 )
                 assert dateutil_result == expected
 
-                result1, _, _ = parsing.parse_time_string(
+                result1, _ = parsing.parse_time_string(
                     date_str, dayfirst=dayfirst, yearfirst=yearfirst
                 )
 
@@ -2016,7 +2016,7 @@ class TestDatetimeParsingWrappers:
         }
 
         for date_str, (exp_now, exp_def) in cases.items():
-            result1, _, _ = parsing.parse_time_string(date_str)
+            result1, _ = parsing.parse_time_string(date_str)
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
             result4 = Timestamp(date_str)

@@ -10,6 +10,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+from datetime import datetime
 import importlib
 import inspect
 import logging
@@ -137,7 +138,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pandas"
-copyright = "2008-2020, the pandas development team"
+copyright = f"2008-{datetime.now().year}, the pandas development team"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -407,7 +408,7 @@ if pattern is None:
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-        "statsmodels": ("http://www.statsmodels.org/devel/", None),
+        "statsmodels": ("https://www.statsmodels.org/devel/", None),
     }
 
 # extlinks alias
@@ -624,10 +625,10 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return f"http://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
+        return f"https://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
     else:
         return (
-            f"http://github.com/pandas-dev/pandas/blob/"
+            f"https://github.com/pandas-dev/pandas/blob/"
             f"v{pandas.__version__}/pandas/{fn}{linespec}"
         )
 
@@ -694,7 +695,7 @@ def rstjinja(app, docname, source):
     """
     Render our pages as a jinja template for fancy templating goodness.
     """
-    # http://ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
+    # https://www.ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
     # Make sure we're outputting HTML
     if app.builder.format != "html":
         return

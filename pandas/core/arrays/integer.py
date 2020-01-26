@@ -19,9 +19,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
 from pandas.core.ops import invalid_comparison
@@ -440,11 +441,17 @@ class IntegerArray(BaseMaskedArray):
             if incompatible type with an IntegerDtype, equivalent of same_kind
             casting
         """
+        from pandas.core.arrays.boolean import BooleanArray, BooleanDtype
+
+        dtype = pandas_dtype(dtype)
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
             result = self._data.astype(dtype.numpy_dtype, copy=False)
             return type(self)(result, mask=self._mask, copy=False)
+        elif isinstance(dtype, BooleanDtype):
+            result = self._data.astype("bool", copy=False)
+            return BooleanArray(result, mask=self._mask, copy=False)
 
         # coerce
         if is_float_dtype(dtype):
@@ -549,13 +556,15 @@ class IntegerArray(BaseMaskedArray):
         mask = self._mask
 
         # coerce to a nan-aware float if needed
-        if mask.any():
-            data = self._data.astype("float64")
-            # We explicitly use NaN within reductions.
-            data[mask] = np.nan
+        # (we explicitly use NaN within reductions)
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
 
         # if we have a boolean op, don't coerce
         if name in ["any", "all"]:
@@ -563,7 +572,7 @@ class IntegerArray(BaseMaskedArray):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ["sum", "min", "max", "prod"] and notna(result):
+        elif name in ["sum", "min", "max", "prod"]:
             int_result = int(result)
             if int_result == result:
                 result = int_result

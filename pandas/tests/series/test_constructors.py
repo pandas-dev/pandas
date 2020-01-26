@@ -1115,6 +1115,15 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
+    def test_contructor_dict_tuple_indexer(self):
+        # GH 12948
+        data = {(1, 1, None): -1.0}
+        result = Series(data)
+        expected = Series(
+            -1.0, index=MultiIndex(levels=[[1], [1], [np.nan]], codes=[[0], [0], [-1]])
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_mapping(self, non_mapping_dict_subclass):
         # GH 29788
         ndm = non_mapping_dict_subclass({3: "three"})
