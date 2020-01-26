@@ -73,26 +73,6 @@ def test_data_frame_value_counts_normalize():
     tm.assert_series_equal(result, expected)
 
 
-def test_data_frame_value_counts_dropna_not_supported_yet():
-    df = pd.DataFrame(
-        {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
-        index=["falcon", "dog", "cat", "ant"],
-    )
-
-    with pytest.raises(NotImplementedError, match="not yet supported"):
-        df.value_counts(dropna=False)
-
-
-def test_data_frame_value_counts_bins_not_supported():
-    df = pd.DataFrame(
-        {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
-        index=["falcon", "dog", "cat", "ant"],
-    )
-
-    with pytest.raises(NotImplementedError, match="not yet supported"):
-        df.value_counts(bins=2)
-
-
 def test_data_frame_value_counts_single_col_default():
     df = pd.DataFrame({"num_legs": [2, 4, 4, 6]})
 

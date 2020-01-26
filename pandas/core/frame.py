@@ -5149,7 +5149,7 @@ class DataFrame(NDFrame):
         dtype: float64
         """
         if subset is None:
-            subset = self.columns
+            subset = self.columns.tolist()
 
         counts = self.groupby(subset).size()
 
