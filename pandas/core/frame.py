@@ -2585,12 +2585,12 @@ class DataFrame(NDFrame):
         >>> df['object'].astype('category').memory_usage(deep=True)
         5216
         """
-        result = Series(
+        result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
             index=self.columns,
         )
         if index:
-            result = Series(self.index.memory_usage(deep=deep), index=["Index"]).append(
+            result = self._constructor_sliced(self.index.memory_usage(deep=deep), index=["Index"]).append(
                 result
             )
         return result
