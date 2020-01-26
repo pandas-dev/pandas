@@ -31,6 +31,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.core.ops import _get_op_name, _get_opstr
 
 
 def allow_na_ops(obj: Any) -> bool:
@@ -84,27 +85,21 @@ class Ops:
 
 
 @pytest.mark.parametrize("klass", [Series, DataFrame])
-@pytest.mark.parametrize(
-    "op_name, op",
-    [
-        ("add", "+"),
-        ("sub", "-"),
-        ("mul", "*"),
-        ("mod", "%"),
-        ("pow", "**"),
-        ("truediv", "/"),
-        ("floordiv", "//"),
-    ],
-)
-def test_binary_ops_docs(klass, op_name, op):
+def test_binary_ops_docs(klass, all_arithmetic_functions):
+    operator = all_arithmetic_functions
+    operator_name = _get_op_name(operator, special=False)
+    operator_symbol = _get_opstr(operator)
+    is_reverse = operator_name.startswith("r")
+
     operand1 = klass.__name__.lower()
     operand2 = "other"
-    expected_str = " ".join([operand1, op, operand2])
-    assert expected_str in getattr(klass, op_name).__doc__
+    order = [operand1, operator_symbol, operand2]
+    if is_reverse:
+        # switch order of operand1 and operand2
+        order[0], order[2] = order[2], order[0]
 
-    # reverse version of the binary ops
-    expected_str = " ".join([operand2, op, operand1])
-    assert expected_str in getattr(klass, "r" + op_name).__doc__
+    expected_str = " ".join(order)
+    assert expected_str in getattr(klass, operator_name).__doc__
 
 
 class TestTranspose(Ops):
