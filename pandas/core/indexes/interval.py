@@ -408,6 +408,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         """
         return self._data
 
+    @property
+    def _has_complex_internals(self):
+        # to disable groupby tricks
+        return True
+
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result

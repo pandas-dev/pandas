@@ -616,8 +616,8 @@ class BaseGrouper:
             # TODO: can we get a performant workaround for EAs backed by ndarray?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif isinstance(obj.index, MultiIndex):
-            # MultiIndex; Pre-empt TypeError in _aggregate_series_fast
+        elif obj.index._has_complex_internals:
+            # Pre-empt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:

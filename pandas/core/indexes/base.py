@@ -4099,6 +4099,14 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_scalar(value):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
+    @property
+    def _has_complex_internals(self):
+        """
+        Indicates if an index is not directly backed by a numpy array
+        """
+        # used to disable groupby tricks
+        return False
+
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.

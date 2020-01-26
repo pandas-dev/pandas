@@ -158,7 +158,7 @@ cdef class _BaseGrouper:
         if util.is_array(values) and not values.flags.contiguous:
             # e.g. Categorical has no `flags` attribute
             values = values.copy()
-        index = dummy.index.to_numpy()
+        index = dummy.index.values
         if not index.flags.contiguous:
             index = index.copy()
 
@@ -229,7 +229,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         self.arr = values
         self.typ = series._constructor
         self.ityp = series.index._constructor
-        self.index = series.index.to_numpy()
+        self.index = series.index.values
         self.name = series.name
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)
@@ -326,7 +326,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         self.arr = values
         self.typ = series._constructor
         self.ityp = series.index._constructor
-        self.index = series.index.to_numpy()
+        self.index = series.index.values
         self.name = series.name
 
         self.dummy_arr, self.dummy_index = self._check_dummy(dummy)

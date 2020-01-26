@@ -378,6 +378,11 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
+    @property
+    def _has_complex_internals(self):
+        # to disable groupby tricks
+        return True
+
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
         # We use _shallow_copy rather than the Index implementation
