@@ -79,7 +79,9 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
+- Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 -
 -
 
@@ -119,6 +121,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.floordiv` with ``axis=0`` not treating division-by-zero like :meth:`Series.floordiv` (:issue:`31271`)
 -
 -
 
@@ -168,7 +171,7 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+- :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 -
 
 Groupby/resample/rolling

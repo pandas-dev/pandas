@@ -28,6 +28,7 @@ Attributes and underlying data
    :toctree: api/
 
    DataFrame.dtypes
+   DataFrame.info
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.axes
@@ -347,7 +348,6 @@ Serialization / IO / conversion
 
    DataFrame.from_dict
    DataFrame.from_records
-   DataFrame.info
    DataFrame.to_parquet
    DataFrame.to_pickle
    DataFrame.to_csv
