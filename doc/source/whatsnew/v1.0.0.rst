@@ -1165,6 +1165,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
 - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
 - Bug in :meth:`GroupBy.pct_change` and :meth:`core.groupby.SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
+- Bug in :meth:`Rolling.count` and :meth:`Expanding.count` argument where ``min_periods`` was ignored (:issue:`26996`)
 
 Reshaping
 ^^^^^^^^^
