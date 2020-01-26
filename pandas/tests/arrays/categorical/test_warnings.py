@@ -15,7 +15,14 @@ class TestCategoricalWarnings:
         code = "import pandas as pd; c = Categorical([])"
         await ip.run_code(code)
 
-        # deprecation warning is raised due to jedi upgrades
-        with tm.assert_produces_warning(DeprecationWarning):
+        # GH 31324 newer jedi version raises Deprecation warning
+        import jedi
+        if jedi.__version__ < "0.16.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with warning:
             with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("c.", 1))
+                list(ip.Completer.completions("idx.", 4))
