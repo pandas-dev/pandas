@@ -120,7 +120,7 @@ Intro to pandas
 When working with tabular data, such as data stored in spreadsheets or databases, Pandas is the right tool for you. Pandas will help you
 to explore, clean and process your data. In Pandas, a data table is called a :class:`DataFrame`.
 
-.. image:: ../../_static/schemas/01_table_dataframe.svg
+.. image:: ../_static/schemas/01_table_dataframe.svg
    :align: center
 
 .. raw:: html
@@ -167,7 +167,7 @@ to explore, clean and process your data. In Pandas, a data table is called a :cl
 Pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). Importing data from each of these
 data sources is provided by function with the prefix ``read_*``. Similarly, the ``to_*`` methods are used to store data.
 
-.. image:: ../../_static/schemas/02_io_readwrite.svg
+.. image:: ../_static/schemas/02_io_readwrite.svg
    :align: center
 
 .. raw:: html
@@ -214,7 +214,7 @@ data sources is provided by function with the prefix ``read_*``. Similarly, the 
 Selecting or filtering specific rows and/or columns? Filtering the data on a condition? Methods for slicing, selecting, and extracting the
 data you need are available in Pandas.
 
-.. image:: ../../_static/schemas/03_subset_columns_rows.svg
+.. image:: ../_static/schemas/03_subset_columns_rows.svg
    :align: center
 
 .. raw:: html
@@ -261,7 +261,7 @@ data you need are available in Pandas.
 Pandas provides plotting your data out of the box, using the power of Matplotlib. You can pick the plot type (scatter, bar, boxplot,...)
 corresponding to your data.
 
-.. image:: ../../_static/schemas/04_plot_overview.svg
+.. image:: ../_static/schemas/04_plot_overview.svg
    :align: center
 
 .. raw:: html
@@ -308,7 +308,7 @@ corresponding to your data.
 There is no need to loop over all rows of your data table to do calculations. Data manipulations on a column work elementwise.
 Adding a column to a :class:`DataFrame` based on existing data in other columns is straightforward.
 
-.. image:: ../../_static/schemas/05_newcolumn_2.svg
+.. image:: ../_static/schemas/05_newcolumn_2.svg
    :align: center
 
 .. raw:: html
@@ -355,7 +355,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
 Basic statistics (mean, median, min, max, counts...) are easily calculable. These or custom aggregations can be applied on the entire
 data set, a sliding window of the data or grouped by categories. The latter is also known as the split-apply-combine approach.
 
-.. image:: ../../_static/schemas/06_groupby.svg
+.. image:: ../_static/schemas/06_groupby.svg
    :align: center
 
 .. raw:: html
@@ -402,7 +402,7 @@ data set, a sliding window of the data or grouped by categories. The latter is a
 Change the structure of your data table in multiple ways. You can :func:`~pandas.melt` your data table from wide to long/tidy form or :func:`~pandas.pivot`
 from long to wide format. With aggregations built-in, a pivot table is created with a sinlge command.
 
-.. image:: ../../_static/schemas/07_melt.svg
+.. image:: ../_static/schemas/07_melt.svg
    :align: center
 
 .. raw:: html
@@ -448,7 +448,7 @@ from long to wide format. With aggregations built-in, a pivot table is created w
 
 Multiple tables can be concatenated both column wise as row wise and database-like join/merge operations are provided to combine multiple tables of data.
 
-.. image:: ../../_static/schemas/08_concat_row.svg
+.. image:: ../_static/schemas/08_concat_row.svg
    :align: center
 
 .. raw:: html
