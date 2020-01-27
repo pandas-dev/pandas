@@ -1,10 +1,12 @@
+:notoc:
+
 .. pandas documentation master file, created by
 
 .. module:: pandas
 
-*********************************************
-pandas: powerful Python data analysis toolkit
-*********************************************
+********************
+pandas documentation
+********************
 
 **Date**: |today| **Version**: |version|
 
@@ -21,7 +23,83 @@ pandas: powerful Python data analysis toolkit
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
-See the :ref:`overview` for more detail about what's in the library.
+.. raw:: html
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_getting_started.svg" class="card-img-top" alt="getting started with pandas action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">Getting started</h5>
+                    <p class="card-text">New to <em>pandas</em>? Check out the getting started guides. They
+                    contain an introduction to <em>pandas'</em> main concepts and links to additional tutorials.</p>
+
+.. container:: custom-button
+
+    :ref:`To the getting started guides<getting_started>`
+
+.. raw:: html
+
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_user_guide.svg" class="card-img-top" alt="pandas user guide action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">User guide</h5>
+                    <p class="card-text">The user guide provides in-depth information on the
+                    key concepts of pandas with useful background information and explanation.</p>
+
+.. container:: custom-button
+
+    :ref:`To the user guide<user_guide>`
+
+.. raw:: html
+
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_api.svg" class="card-img-top" alt="api of pandas action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">API reference</h5>
+                    <p class="card-text">The reference guide contains a detailed description of
+                    the pandas API. The reference describes how the methods work and which parameters can
+                    be used. It assumes that you have an understanding of the key concepts.</p>
+
+.. container:: custom-button
+
+    :ref:`To the reference guide<api>`
+
+.. raw:: html
+
+                </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
+                <div class="card text-center intro-card shadow">
+                <img src="_static/index_contribute.svg" class="card-img-top" alt="contribute to pandas action icon" height="52">
+                <div class="card-body flex-fill">
+                    <h5 class="card-title">Developer guide</h5>
+                    <p class="card-text">Saw a typo in the documentation? Want to improve
+                    existing functionalities? The contributing guidelines will guide
+                    you through the process of improving pandas.</p>
+
+.. container:: custom-button
+
+    :ref:`To the development guide<development>`
+
+.. raw:: html
+
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
@@ -50,68 +128,3 @@ See the :ref:`overview` for more detail about what's in the library.
     development/index
     whatsnew/index
 {% endif %}
-
-* :doc:`whatsnew/v1.1.0`
-* :doc:`getting_started/index`
-
-  * :doc:`getting_started/install`
-  * :doc:`getting_started/overview`
-  * :doc:`getting_started/10min`
-  * :doc:`getting_started/basics`
-  * :doc:`getting_started/dsintro`
-  * :doc:`getting_started/comparison/index`
-  * :doc:`getting_started/tutorials`
-
-* :doc:`user_guide/index`
-
-  * :doc:`user_guide/io`
-  * :doc:`user_guide/indexing`
-  * :doc:`user_guide/advanced`
-  * :doc:`user_guide/merging`
-  * :doc:`user_guide/reshaping`
-  * :doc:`user_guide/text`
-  * :doc:`user_guide/missing_data`
-  * :doc:`user_guide/categorical`
-  * :doc:`user_guide/integer_na`
-  * :doc:`user_guide/boolean`
-  * :doc:`user_guide/visualization`
-  * :doc:`user_guide/computation`
-  * :doc:`user_guide/groupby`
-  * :doc:`user_guide/timeseries`
-  * :doc:`user_guide/timedeltas`
-  * :doc:`user_guide/style`
-  * :doc:`user_guide/options`
-  * :doc:`user_guide/enhancingperf`
-  * :doc:`user_guide/scale`
-  * :doc:`user_guide/sparse`
-  * :doc:`user_guide/gotchas`
-  * :doc:`user_guide/cookbook`
-
-* :doc:`ecosystem`
-* :doc:`reference/index`
-
-  * :doc:`reference/io`
-  * :doc:`reference/general_functions`
-  * :doc:`reference/series`
-  * :doc:`reference/frame`
-  * :doc:`reference/arrays`
-  * :doc:`reference/panel`
-  * :doc:`reference/indexing`
-  * :doc:`reference/offset_frequency`
-  * :doc:`reference/window`
-  * :doc:`reference/groupby`
-  * :doc:`reference/resampling`
-  * :doc:`reference/style`
-  * :doc:`reference/plotting`
-  * :doc:`reference/general_utility_functions`
-  * :doc:`reference/extensions`
-
-* :doc:`development/index`
-
-  * :doc:`development/contributing`
-  * :doc:`development/code_style`
-  * :doc:`development/internals`
-  * :doc:`development/extending`
-  * :doc:`development/developer`
-
-* :doc:`whatsnew/index`
