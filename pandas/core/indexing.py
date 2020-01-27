@@ -1801,7 +1801,7 @@ class _LocationIndexer(_NDFrameIndexer):
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
-            return self.obj.take(indexer, axis=axis)
+            return self.obj._take_with_is_copy(indexer, axis=axis)
 
 
 @Appender(IndexingMixin.loc.__doc__)
