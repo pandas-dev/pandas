@@ -259,6 +259,7 @@ the adapted time scale on plots. Let’s apply this on our data.
 Create a plot of the :math:`NO_2` values in the different stations from the 20th of May till the end of 21st of May
 
 .. ipython:: python
+    :okwarning:
 
     @savefig 09_time_section.png
     no_2["2019-05-20":"2019-05-21"].plot();
@@ -337,6 +338,7 @@ When defined, the frequency of the time series is provided by the
 Make a plot of the daily median :math:`NO_2` value in each of the stations.
 
 .. ipython:: python
+    :okwarning:
 
     @savefig 09_resample_mean.png
     no_2.resample("D").mean().plot(style="-o", figsize=(10, 5));
