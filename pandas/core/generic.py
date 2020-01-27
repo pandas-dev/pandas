@@ -3150,10 +3150,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return cacher
 
     def _maybe_update_cacher(
-        self,
-        clear: bool_t = False,
-        verify_is_copy: bool_t = True,
-        change_cache: bool_t = True,
+        self, clear: bool_t = False, verify_is_copy: bool_t = True
     ) -> None:
         """
         See if we need to update our parent cacher if clear, then clear our
@@ -3165,9 +3162,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Clear the item cache.
         verify_is_copy : bool, default True
             Provide is_copy checks.
-        change_cache: bool, default True
-            If True, then cache may be changed
         """
+
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
             ref = cacher[1]()
@@ -3176,7 +3172,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # a copy
             if ref is None:
                 del self._cacher
-            elif change_cache:
+            else:
                 # Note: we need to call ref._maybe_cache_changed even in the
                 #  case where it will raise.  (Uh, not clear why)
                 try:
@@ -3894,7 +3890,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
-    def _update_inplace(self, result, verify_is_copy: bool_t = True, **kwargs) -> None:
+    def _update_inplace(self, result, verify_is_copy: bool_t = True) -> None:
         """
         Replace self internals with result.
 
