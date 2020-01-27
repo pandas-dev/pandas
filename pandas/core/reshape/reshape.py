@@ -1,6 +1,6 @@
 from functools import partial
 import itertools
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 
@@ -375,6 +375,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
             unstcols = unstacked.index
         else:
             unstcols = unstacked.columns
+        assert isinstance(unstcols, MultiIndex)  # for mypy
         new_levels = [unstcols.levels[0]] + clevels
         new_names = [data.columns.name] + cnames
 
@@ -994,6 +995,7 @@ def _get_dummies_1d(
 
         dummy_cols = [_make_col_name(prefix, prefix_sep, level) for level in levels]
 
+    index: Optional[Index]
     if isinstance(data, Series):
         index = data.index
     else:

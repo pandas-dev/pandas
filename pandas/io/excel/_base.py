@@ -809,7 +809,9 @@ class ExcelFile:
     from pandas.io.excel._xlrd import _XlrdReader
     from pandas.io.excel._pyxlsb import _PyxlsbReader
 
-    _engines: Dict[str, Type[Union[_XlrdReader, _OpenpyxlReader, _ODFReader]]] = {
+    _engines: Dict[
+        str, Type[Union[_XlrdReader, _OpenpyxlReader, _ODFReader, _PyxlsbReader]]
+    ] = {
         "xlrd": _XlrdReader,
         "openpyxl": _OpenpyxlReader,
         "odf": _ODFReader,

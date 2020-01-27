@@ -3,7 +3,7 @@ Table Schema builders
 
 https://specs.frictionlessdata.io/json-table-schema/
 """
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union, cast
 import warnings
 
 import pandas._libs.json as json
@@ -20,12 +20,14 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import DataFrame
 import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas import Series  # noqa: F401
+    from pandas.core.indexes.multi import MultiIndex   # noqa: F401
 
 loads = json.loads
 
@@ -249,8 +251,9 @@ def build_table_schema(
     fields = []
 
     if index:
-        if data.index.nlevels > 1:
-            for level, name in zip(data.index.levels, data.index.names):
+        if isinstance(data.index, ABCMultiIndex):
+            _index = cast("MultiIndex", data.index)
+            for level, name in zip(_index.levels, _index.names):
                 new_field = convert_pandas_type_to_json_field(level)
                 new_field["name"] = name
                 fields.append(new_field)

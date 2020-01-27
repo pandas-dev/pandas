@@ -450,7 +450,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         if return_name:
             return holidays
         else:
-            return holidays.index
+            return cast("DatetimeIndex", holidays.index)
 
     @staticmethod
     def merge_class(base, other):
