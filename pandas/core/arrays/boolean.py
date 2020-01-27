@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, Any, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Tuple, Type
 import warnings
 
 import numpy as np
@@ -285,6 +285,23 @@ class BooleanArray(BaseMaskedArray):
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
         return BooleanArray(values, mask)
+
+    @classmethod
+    def _from_sequence_of_strings(
+        cls, strings: List[str], dtype=None, copy: bool = False
+    ):
+        def map_string(s):
+            if isna(s):
+                return s
+            elif s in ["True", "TRUE", "true"]:
+                return True
+            elif s in ["False", "FALSE", "false"]:
+                return False
+            else:
+                raise ValueError(f"{s} cannot be cast to bool")
+
+        scalars = [map_string(x) for x in strings]
+        return cls._from_sequence(scalars, dtype, copy)
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         data = self._data.astype("int8")
@@ -670,12 +687,14 @@ class BooleanArray(BaseMaskedArray):
         mask = self._mask
 
         # coerce to a nan-aware float if needed
-        if mask.any():
-            data = self._data.astype("float64")
-            data[mask] = np.nan
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
 
         # if we have numeric op that would result in an int, coerce to int if possible
         if name in ["sum", "prod"] and notna(result):

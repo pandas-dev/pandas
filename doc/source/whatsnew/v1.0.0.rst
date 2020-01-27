@@ -144,7 +144,7 @@ type dedicated to boolean data that can hold missing values. The default
 ``bool`` data type based on a bool-dtype NumPy array, the column can only hold
 ``True`` or ``False``, and not missing values. This new :class:`~arrays.BooleanArray`
 can store missing values as well by keeping track of this in a separate mask.
-(:issue:`29555`, :issue:`30095`)
+(:issue:`29555`, :issue:`30095`, :issue:`31131`)
 
 .. ipython:: python
 
@@ -156,6 +156,36 @@ You can use the alias ``"boolean"`` as well.
 
    s = pd.Series([True, False, None], dtype="boolean")
    s
+
+.. _whatsnew_100.convert_dtypes:
+
+``convert_dtypes`` method to ease use of supported extension dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to encourage use of the extension dtypes ``StringDtype``,
+``BooleanDtype``, ``Int64Dtype``, ``Int32Dtype``, etc., that support ``pd.NA``, the
+methods :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes`
+have been introduced. (:issue:`29752`) (:issue:`30929`)
+
+Example:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'x': ['abc', None, 'def'],
+                      'y': [1, 2, np.nan],
+                      'z': [True, False, True]})
+   df
+   df.dtypes
+
+.. ipython:: python
+
+   converted = df.convert_dtypes()
+   converted
+   converted.dtypes
+
+This is especially useful after reading in data using readers such as :func:`read_csv`
+and :func:`read_excel`.
+See :ref:`here <missing_data.NA.conversion>` for a description.
 
 .. _whatsnew_100.numba_rolling_apply:
 
@@ -215,7 +245,8 @@ Other enhancements
 - :meth:`Styler.format` added the ``na_rep`` parameter to help format the missing values (:issue:`21527`, :issue:`28358`)
 - Roundtripping DataFrames with nullable integer, string and period data types to parquet
   (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
-  now preserve those data types with pyarrow >= 0.16.0 (:issue:`20612`, :issue:`28371`).
+  now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
+- :func:`read_excel` now can read binary Excel (``.xlsb``) files by passing ``engine='pyxlsb'``. For more details and example usage, see the :ref:`Binary Excel files documentation <io.xlsb>`. Closes :issue:`8540`.
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
 - :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue:`30270`)
@@ -483,6 +514,25 @@ Use :meth:`arrays.IntegerArray.to_numpy` with an explicit ``na_value`` instead.
 
    a.to_numpy(dtype="float", na_value=np.nan)
 
+**Reductions can return ``pd.NA``**
+
+When performing a reduction such as a sum with ``skipna=False``, the result
+will now be ``pd.NA`` instead of ``np.nan`` in presence of missing values
+(:issue:`30958`).
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+    >>> pd.Series(a).sum(skipna=False)
+    nan
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   pd.Series(a).sum(skipna=False)
+
 **value_counts returns a nullable integer dtype**
 
 :meth:`Series.value_counts` with a nullable integer dtype now returns a nullable
@@ -667,7 +717,6 @@ Other API changes
 - :meth:`Series.str.__iter__` was deprecated and will be removed in future releases (:issue:`28277`).
 - Added ``<NA>`` to the list of default NA values for :meth:`read_csv` (:issue:`30821`)
 
-
 .. _whatsnew_100.api.documentation:
 
 Documentation Improvements
@@ -703,10 +752,11 @@ Deprecations
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
 - ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
-- The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
+- The parameter ``is_copy`` of :meth:`Series.take` and :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
 - Support for multi-dimensional indexing (e.g. ``index[:, None]``) on a :class:`Index` is deprecated and will be removed in a future version, convert to a numpy array before indexing instead (:issue:`30588`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30610`)
+- :class:`~DataFrame.diff` will raise a ``TypeError`` rather than implicitly losing the dtype of extension types in the future. Convert to the correct dtype before calling ``diff`` instead (:issue:`31025`)
 
 **Selecting Columns from a Grouped DataFrame**
 
@@ -998,6 +1048,9 @@ Numeric
 - Bug in :meth:`DataFrame.round` where a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`IntervalIndex` columns would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` when there are duplicated indices (:issue:`30463`)
 - Bug in :class:`DataFrame` cumulative operations (e.g. cumsum, cummax) incorrect casting to object-dtype (:issue:`19296`)
+- Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
+- Bug in :class:`~DataFrame.diff` losing the dtype for extension types (:issue:`30889`)
+- Bug in :class:`DataFrame.diff` raising an ``IndexError`` when one of the columns was a nullable integer dtype (:issue:`30967`)
 
 Conversion
 ^^^^^^^^^^
@@ -1033,6 +1086,7 @@ Indexing
 - Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with non-string categories didn't work (:issue:`17569`, :issue:`30225`)
 - :meth:`Index.get_indexer_non_unique` could fail with ``TypeError`` in some cases, such as when searching for ints in a string index (:issue:`28257`)
 - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
+- Bug in :meth:`DataFrame.loc` with incorrect dtype when setting Categorical value in 1-row DataFrame (:issue:`25495`)
 - :meth:`MultiIndex.get_loc` can't find missing values when input includes missing values (:issue:`19132`)
 - Bug in :meth:`Series.__setitem__` incorrectly assigning values with boolean indexer when the length of new data matches the number of ``True`` values and new data is not a ``Series`` or an ``np.array`` (:issue:`30567`)
 - Bug in indexing with a :class:`PeriodIndex` incorrectly accepting integers representing years, use e.g. ``ser.loc["2007"]`` instead of ``ser.loc[2007]`` (:issue:`30763`)
@@ -1112,6 +1166,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
 - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
 - Bug in :meth:`GroupBy.pct_change` and :meth:`core.groupby.SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
+- Bug in :meth:`Rolling.count` and :meth:`Expanding.count` argument where ``min_periods`` was ignored (:issue:`26996`)
 
 Reshaping
 ^^^^^^^^^
@@ -1138,7 +1193,7 @@ Sparse
 ^^^^^^
 - Bug in :class:`SparseDataFrame` arithmetic operations incorrectly casting inputs to float (:issue:`28107`)
 - Bug in ``DataFrame.sparse`` returning a ``Series`` when there was a column named ``sparse`` rather than the accessor (:issue:`30758`)
--
+- Fixed :meth:`operator.xor` with a boolean-dtype ``SparseArray``. Now returns a sparse result, rather than object dtype (:issue:`31025`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
@@ -1146,6 +1201,7 @@ ExtensionArray
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
 - Bug where :class:`DataFrame` constructor raised ``ValueError`` with list-like data and ``dtype`` specified (:issue:`30280`)
+- Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
 
 
 Other
