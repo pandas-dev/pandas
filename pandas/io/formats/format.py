@@ -57,10 +57,13 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
     ABCSparseArray,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -295,6 +298,9 @@ class SeriesFormatter:
         footer = ""
 
         if getattr(self.series.index, "freq", None) is not None:
+            assert isinstance(
+                self.series.index, (ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+            )
             footer += "Freq: {freq}".format(freq=self.series.index.freqstr)
 
         if self.name is not False and name is not None:
@@ -412,7 +418,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             self.ambiguous_width = 1
 
         # Definition of East Asian Width
-        # http://unicode.org/reports/tr11/
+        # https://unicode.org/reports/tr11/
         # Ambiguous width can be changed by option
         self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
 
@@ -737,12 +743,8 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(List[str], self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
-                        (
-                            "Writing {ncols} cols but got {nalias} "
-                            "aliases".format(
-                                ncols=len(self.columns), nalias=len(self.header)
-                            )
-                        )
+                        f"Writing {len(self.columns)} cols "
+                        f"but got {len(self.header)} aliases"
                     )
                 str_columns = [[label] for label in self.header]
             else:

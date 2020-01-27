@@ -969,22 +969,17 @@ b  2""",
             result = concat(values, axis=self.axis)
             ax = self._selected_obj._get_axis(self.axis)
 
-            if isinstance(result, Series):
-                result = result.reindex(ax)
+            # this is a very unfortunate situation
+            # we can't use reindex to restore the original order
+            # when the ax has duplicates
+            # so we resort to this
+            # GH 14776, 30667
+            if ax.has_duplicates:
+                indexer, _ = result.index.get_indexer_non_unique(ax.values)
+                indexer = algorithms.unique1d(indexer)
+                result = result.take(indexer, axis=self.axis)
             else:
-
-                # this is a very unfortunate situation
-                # we have a multi-index that is NOT lexsorted
-                # and we have a result which is duplicated
-                # we can't reindex, so we resort to this
-                # GH 14776
-                if isinstance(ax, MultiIndex) and not ax.is_unique:
-                    indexer = algorithms.unique1d(
-                        result.index.get_indexer_for(ax.values)
-                    )
-                    result = result.take(indexer, axis=self.axis)
-                else:
-                    result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis)
 
         elif self.group_keys:
 
