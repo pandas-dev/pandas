@@ -506,6 +506,7 @@ class Index(IndexOpsMixin, PandasObject):
             values = self.values
 
         attributes = self._get_attributes_dict()
+
         attributes.update(kwargs)
         if not len(values) and "dtype" not in kwargs:
             attributes["dtype"] = self.dtype
@@ -2576,6 +2577,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
+                result = Index(result)._values  # do type inference here
         else:
             # find indexes of things in "other" that are not in "self"
             if self.is_unique:
@@ -2605,7 +2607,8 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     def _wrap_setop_result(self, other, result):
-        return self._constructor(result, name=get_op_result_name(self, other))
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name)
 
     _index_shared_docs[
         "intersection"
@@ -2666,9 +2669,10 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(lvals, rvals)[0]
-                return self._wrap_setop_result(other, result)
             except TypeError:
                 pass
+            else:
+                return self._wrap_setop_result(other, result)
 
         try:
             indexer = Index(rvals).get_indexer(lvals)

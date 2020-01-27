@@ -29,7 +29,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
@@ -377,12 +376,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def values(self):
         """ return the underlying data, which is a Categorical """
         return self._data
-
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        # We use _shallow_copy rather than the Index implementation
-        #  (which uses _constructor) in order to preserve dtype.
-        return self._shallow_copy(result, name=name)
 
     @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
     def __contains__(self, key: Any) -> bool:
