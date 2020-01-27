@@ -62,8 +62,6 @@ class PandasDtype(ExtensionDtype):
     def name(self) -> str:
         """
         A bit-width name for this data-type.
-
-        Un-sized flexible data-type objects do not have this attribute.
         """
         return self._dtype.name
 
