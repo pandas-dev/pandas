@@ -14,9 +14,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
-    is_extension_array_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
@@ -211,17 +209,8 @@ def cut(
         if is_scalar(bins) and bins < 1:
             raise ValueError("`bins` should be a positive integer.")
 
-        # TODO: Support arbitrary Extension Arrays. We need
-        # For now, we're only attempting to support IntegerArray.
-        # See the note on _bins_to_cuts about what is needed.
-        is_nullable_integer = is_extension_array_dtype(x.dtype) and is_integer_dtype(
-            x.dtype
-        )
-        try:
-            if is_extension_array_dtype(x) and is_integer_dtype(x):
-                sz = len(x)
-            else:
-                sz = x.size
+        try:  # for array-like
+            sz = x.size
         except AttributeError:
             x = np.asarray(x)
             sz = x.size
@@ -229,10 +218,7 @@ def cut(
         if sz == 0:
             raise ValueError("Cannot cut empty array")
 
-        if is_nullable_integer:
-            rng = x._reduce("min"), x._reduce("max")
-        else:
-            rng = (nanops.nanmin(x), nanops.nanmax(x))
+        rng = (nanops.nanmin(x), nanops.nanmax(x))
         mn, mx = [mi + 0.0 for mi in rng]
 
         if np.isinf(mn) or np.isinf(mx):
@@ -397,26 +383,10 @@ def _bins_to_cuts(
             bins = unique_bins
 
     side = "left" if right else "right"
-    is_nullable_integer = is_extension_array_dtype(x.dtype) and is_integer_dtype(
-        x.dtype
-    )
-
-    if is_nullable_integer:
-        # TODO: Support other extension types somehow. We don't currently
-        # We *could* use factorize here, but that does more that we need.
-        # We just need some integer representation, and the NA values needn't
-        # even be marked specially.
-        x_int = x._ndarray_values
-        ids = ensure_int64(bins.searchsorted(x_int, side=side))
-    else:
-        ids = ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        mask = x == bins[0]
-        if is_nullable_integer:
-            # when x is integer
-            mask = mask.to_numpy(na_value=False, dtype=bool)
-        ids[mask] = 1
+        ids[x == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
