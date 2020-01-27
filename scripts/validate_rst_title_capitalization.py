@@ -14,6 +14,7 @@ import sys
 import re
 import os
 from typing import Tuple, Generator, List
+import glob
 
 
 CAPITALIZATION_EXCEPTIONS = {
@@ -54,24 +55,29 @@ err_msg = "Heading capitalization formatted incorrectly. Please correctly capita
 
 def correct_title_capitalization(title: str) -> str:
     """
-    Algorithm to create the correct capitalization for a given title
+    Algorithm to create the correct capitalization for a given title.
 
     Parameters
     ----------
     title : str
-        Heading string to correct
+        Heading string to correct.
 
     Returns
     -------
     correct_title : str
-        Correctly capitalized heading
+        Correctly capitalized heading.
 
     """
 
+    # Function to strip all non-word characters from the beginning of the title to the
+    # first word character.
     correct_title: str = re.sub(r"^\W*", "", title).capitalize()
 
+    # Function to remove a URL from the title. We do this because words in a URL must
+    # stay lowercase, even if they are a capitalization exception.
     removed_https_title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", correct_title)
 
+    # Function to split a title into a list using non-word character delimiters.
     word_list = re.split(r"\W", removed_https_title)
 
     for word in word_list:
@@ -86,69 +92,60 @@ def correct_title_capitalization(title: str) -> str:
 def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
     """
     Algorithm to identify particular text that should be considered headings in an
-    RST file
+    RST file.
 
     See <https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html> for details
-    on what constitutes a string as a heading in RST
+    on what constitutes a string as a heading in RST.
 
     Parameters
     ----------
     rst_file : str
-        RST file to scan through for headings
+        RST file to scan through for headings.
 
     Yields
     -------
     title : str
-        A heading found in the rst file
+        A heading found in the rst file.
 
     line_number : int
-        The corresponding line number of the heading
+        The corresponding line number of the heading.
 
     """
 
     with open(rst_file, "r") as file_obj:
         lines = file_obj.read().split("\n")
 
-    regex = {
-        "*": r"^(?:\*{1})*$",
-        "=": r"^(?:={1})*$",
-        "-": r"^(?:-{1})*$",
-        "^": r"^(?:\^{1})*$",
-        "~": r"^(?:~{1})*$",
-        "#": r"^(?:#{1})*$",
-        '"': r'^(?:"{1})*$',
-    }
+    symbols = ("*", "=", "-", "^", "~", "#", '"')
 
     table = str.maketrans("", "", "*`_")
 
-    for line_no in range(1, len(lines)):
-        if len(lines[line_no]) != 0 and len(lines[line_no - 1]) != 0:
-            for key in regex:
-                match = re.search(regex[key], lines[line_no])
-                if match is not None:
-                    if line_no >= 2:
-                        if lines[line_no] == lines[line_no - 2]:
-                            if len(lines[line_no]) == len(lines[line_no - 1]):
-                                yield lines[line_no - 1].translate(table), line_no
-                            break
-                    if len(lines[line_no]) >= len(lines[line_no - 1]):
-                        yield lines[line_no - 1].translate(table), line_no
+    for i, line in enumerate(lines):
+        if len(line) != 0 and len(lines[i - 1]) != 0:
+            line_chars = set(line)
+            if len(line_chars) == 1 and line_chars.pop() in symbols:
+                if i >= 2:
+                    if line == lines[i - 2]:
+                        if len(line) == len(lines[i - 1]):
+                            yield lines[i - 1].translate(table), i
+                        continue
+                if len(line) >= len(lines[i - 1]):
+                    yield lines[i - 1].translate(table), i
 
 
 def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
     """
     Given the command line arguments of directory paths, this method
-    yields the strings of the .rst file directories that these paths contain
+    yields the strings of the .rst file directories that these paths contain.
 
     Parameters
     ----------
     source_paths : str
-        List of directories to validate, provided through command line arguments
+        List of directories to validate, provided through command line arguments.
 
     Yields
     -------
     directory_address : str
-        Directory address of a .rst files found in command line argument directories
+        Directory address of a .rst files found in command line argument directories.
 
     """
 
@@ -160,27 +157,27 @@ def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
         elif directory_address.endswith(".rst"):
             yield directory_address
         else:
-            for (dirpath, _, filenames) in os.walk(directory_address):
-                for file in filenames:
-                    if file.endswith(".rst"):
-                        yield os.path.join(dirpath, file)
+            for filename in glob.glob(
+                pathname=f"{directory_address}/**/*.rst", recursive=True
+            ):
+                yield filename
 
 
 def main(source_paths: List[str], output_format: str) -> bool:
     """
-    The main method to print all headings with incorrect capitalization
+    The main method to print all headings with incorrect capitalization.
 
     Parameters
     ----------
     source_paths : str
-        List of directories to validate, provided through command line arguments
+        List of directories to validate, provided through command line arguments.
     output_format : str
         Output format of the script.
 
     Returns
     -------
     number_of_errors : int
-        Number of incorrect headings found overall
+        Number of incorrect headings found overall.
 
     """
 
