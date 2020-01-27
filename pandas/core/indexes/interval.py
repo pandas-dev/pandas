@@ -401,11 +401,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             return False
 
     @cache_readonly
-    def _multiindex(self):
+    def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
     @cache_readonly
-    def values(self):
+    def values(self) -> IntervalArray:
         """
         Return the IntervalIndex's data as an IntervalArray.
         """
@@ -947,18 +947,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
-
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        assert that we all have the same .closed
-        we allow a 0-len index here as well
-        """
-        if not len({i.closed for i in to_concat if len(i)}) == 1:
-            raise ValueError(
-                "can only append two IntervalIndex objects "
-                "that are closed on the same side"
-            )
-        return super()._concat_same_dtype(to_concat, name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
