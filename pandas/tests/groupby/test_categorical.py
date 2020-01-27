@@ -1344,16 +1344,22 @@ def test_series_groupby_categorical_aggregation_getitem():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("func, expected_values", [
-    (pd.Series.nunique, [1, 1, 2]),
-    (pd.Series.count, [1, 2, 2])])
+@pytest.mark.parametrize(
+    "func, expected_values",
+    [(pd.Series.nunique, [1, 1, 2]), (pd.Series.count, [1, 2, 2])],
+)
 def test_groupby_agg_categorical_columns(func, expected_values):
     # 31256
-    df = pd.DataFrame({"id": [0, 1, 2, 3, 4],
-                       "groups": [0, 1, 1, 2, 2],
-                       "value": pd.Categorical([0, 0, 0, 0, 1])
-                       }).set_index('id')
-    result = df.groupby('groups').agg(func)
+    df = pd.DataFrame(
+        {
+            "id": [0, 1, 2, 3, 4],
+            "groups": [0, 1, 1, 2, 2],
+            "value": pd.Categorical([0, 0, 0, 0, 1]),
+        }
+    ).set_index("id")
+    result = df.groupby("groups").agg(func)
 
-    expected = pd.DataFrame({"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"))
+    expected = pd.DataFrame(
+        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups")
+    )
     tm.assert_frame_equal(result, expected)
