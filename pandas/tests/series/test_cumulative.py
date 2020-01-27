@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _check_accum_op(name, series, check_dtype=True):

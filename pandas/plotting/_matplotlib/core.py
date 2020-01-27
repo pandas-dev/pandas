@@ -229,10 +229,9 @@ class MPLPlot:
                 for char in s:
                     if char in matplotlib.colors.BASE_COLORS:
                         raise ValueError(
-                            "Cannot pass 'style' string with a color "
-                            "symbol and 'color' keyword argument. Please"
-                            " use one or the other or pass 'style' "
-                            "without a color symbol"
+                            "Cannot pass 'style' string with a color symbol and "
+                            "'color' keyword argument. Please use one or the other or "
+                            "pass 'style' without a color symbol"
                         )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
@@ -394,6 +393,10 @@ class MPLPlot:
             # TODO: change after solving issue 27881
             include_type = [np.number]
             exclude_type = ["timedelta"]
+
+        # GH 18755, include object and category type for scatter plot
+        if self._kind == "scatter":
+            include_type.extend(["object", "category"])
 
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
@@ -723,7 +726,10 @@ class MPLPlot:
         has_color = "color" in kwds or self.colormap is not None
         nocolor_style = style is None or re.match("[a-z]+", style) is None
         if (has_color or self.subplots) and nocolor_style:
-            kwds["color"] = colors[col_num % len(colors)]
+            if isinstance(colors, dict):
+                kwds["color"] = colors[label]
+            else:
+                kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
     def _get_colors(self, num_colors=None, color_kwds="color"):
@@ -866,10 +872,13 @@ class PlanePlot(MPLPlot):
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
             y = self.data.columns[y]
-        if len(self.data[x]._get_numeric_data()) == 0:
-            raise ValueError(self._kind + " requires x column to be numeric")
-        if len(self.data[y]._get_numeric_data()) == 0:
-            raise ValueError(self._kind + " requires y column to be numeric")
+
+        # Scatter plot allows to plot objects data
+        if self._kind == "hexbin":
+            if len(self.data[x]._get_numeric_data()) == 0:
+                raise ValueError(self._kind + " requires x column to be numeric")
+            if len(self.data[y]._get_numeric_data()) == 0:
+                raise ValueError(self._kind + " requires y column to be numeric")
 
         self.x = x
         self.y = y
@@ -1341,6 +1350,8 @@ class BarPlot(MPLPlot):
             kwds = self.kwds.copy()
             if self._is_series:
                 kwds["color"] = colors
+            elif isinstance(colors, dict):
+                kwds["color"] = colors[label]
             else:
                 kwds["color"] = colors[i % ncolors]
 

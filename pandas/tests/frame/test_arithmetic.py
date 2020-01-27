@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
-import pandas.util.testing as tm
 
 # -------------------------------------------------------------------
 # Comparisons
@@ -332,6 +332,21 @@ class TestFrameFlexComparisons:
 
 
 class TestFrameFlexArithmetic:
+    def test_floordiv_axis0(self):
+        # make sure we df.floordiv(ser, axis=0) matches column-wise result
+        arr = np.arange(3)
+        ser = pd.Series(arr)
+        df = pd.DataFrame({"A": ser, "B": ser})
+
+        result = df.floordiv(ser, axis=0)
+
+        expected = pd.DataFrame({col: df[col] // ser for col in df.columns})
+
+        tm.assert_frame_equal(result, expected)
+
+        result2 = df.floordiv(ser.values, axis=0)
+        tm.assert_frame_equal(result2, expected)
+
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)
@@ -726,3 +741,14 @@ def test_zero_len_frame_with_series_corner_cases():
     result = df + ser
     expected = df
     tm.assert_frame_equal(result, expected)
+
+
+def test_frame_single_columns_object_sum_axis_1():
+    # GH 13758
+    data = {
+        "One": pd.Series(["A", 1.2, np.nan]),
+    }
+    df = pd.DataFrame(data)
+    result = df.sum(axis=1)
+    expected = pd.Series(["A", 1.2, 0])
+    tm.assert_series_equal(result, expected)

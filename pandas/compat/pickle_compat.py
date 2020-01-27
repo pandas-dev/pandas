@@ -169,9 +169,9 @@ _class_locations_map = {
 
 
 # our Unpickler sub-class to override methods and some dispatcher
-# functions for compat
+# functions for compat and uses a non-public class of the pickle module.
 
-
+# error: Name 'pkl._Unpickler' is not defined
 class Unpickler(pkl._Unpickler):  # type: ignore
     def find_class(self, module, name):
         # override superclass

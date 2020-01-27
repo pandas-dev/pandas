@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameAppend:
@@ -49,6 +49,10 @@ class TestDataFrameAppend:
             DataFrame({0: series[::-1][:3]}).T, ignore_index=True, sort=True
         )
         tm.assert_frame_equal(result, expected.loc[:, result.columns])
+
+        msg = "Can only append a dict if ignore_index=True"
+        with pytest.raises(TypeError, match=msg):
+            df.append(series.to_dict())
 
         # can append when name set
         row = df.loc[4]
@@ -176,4 +180,20 @@ class TestDataFrameAppend:
         df = pd.DataFrame([pd.Timestamp(timestamp, tz=tz)])
         result = df.append(df.iloc[0]).iloc[-1]
         expected = pd.Series(pd.Timestamp(timestamp, tz=tz), name=0)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, dtype",
+        [
+            ([1], pd.Int64Dtype()),
+            ([1], pd.CategoricalDtype()),
+            ([pd.Interval(left=0, right=5)], pd.IntervalDtype()),
+            ([pd.Period("2000-03", freq="M")], pd.PeriodDtype("M")),
+            ([1], pd.SparseDtype()),
+        ],
+    )
+    def test_other_dtypes(self, data, dtype):
+        df = pd.DataFrame(data, dtype=dtype)
+        result = df.append(df.iloc[0]).iloc[-1]
+        expected = pd.Series(data, name=0, dtype=dtype)
         tm.assert_series_equal(result, expected)

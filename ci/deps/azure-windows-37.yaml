@@ -24,6 +24,7 @@ dependencies:
   - numexpr
   - numpy=1.14.*
   - openpyxl
+  - pyarrow=0.14
   - pytables
   - python-dateutil
   - pytz
@@ -34,3 +35,6 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pyreadstat
+  - pip
+  - pip:
+    - pyxlsb

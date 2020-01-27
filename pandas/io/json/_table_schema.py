@@ -1,7 +1,7 @@
 """
 Table Schema builders
 
-http://specs.frictionlessdata.io/json-table-schema/
+https://specs.frictionlessdata.io/json-table-schema/
 """
 import warnings
 
@@ -18,9 +18,9 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import DataFrame
-from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
 
 loads = json.loads

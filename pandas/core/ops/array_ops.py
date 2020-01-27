@@ -95,7 +95,9 @@ def masked_arith_op(x, y, op):
 
     else:
         if not is_scalar(y):
-            raise TypeError(type(y))
+            raise TypeError(
+                f"Cannot broadcast np.ndarray with operand of type { type(y) }"
+            )
 
         # mask is only meaningful for x
         result = np.empty(x.size, dtype=x.dtype)
@@ -246,7 +248,7 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = "__{op}__".format(op=op.__name__)
+        op_name = f"__{op.__name__}__"
         method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
             res_values = method(rvalues)
@@ -254,9 +256,8 @@ def comparison_op(
         if res_values is NotImplemented:
             res_values = invalid_comparison(lvalues, rvalues, op)
         if is_scalar(res_values):
-            raise TypeError(
-                "Could not compare {typ} type with Series".format(typ=type(rvalues))
-            )
+            typ = type(rvalues)
+            raise TypeError(f"Could not compare {typ} type with Series")
 
     return res_values
 
@@ -278,7 +279,7 @@ def na_logical_op(x: np.ndarray, y, op):
             assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
             x = ensure_object(x)
             y = ensure_object(y)
-            result = libops.vec_binop(x, y, op)
+            result = libops.vec_binop(x.ravel(), y.ravel(), op)
         else:
             # let null fall thru
             assert lib.is_scalar(y)
@@ -293,14 +294,13 @@ def na_logical_op(x: np.ndarray, y, op):
                 OverflowError,
                 NotImplementedError,
             ):
+                typ = type(y).__name__
                 raise TypeError(
-                    "Cannot perform '{op}' with a dtyped [{dtype}] array "
-                    "and scalar of type [{typ}]".format(
-                        op=op.__name__, dtype=x.dtype, typ=type(y).__name__
-                    )
+                    f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
+                    f"and scalar of type [{typ}]"
                 )
 
-    return result
+    return result.reshape(x.shape)
 
 
 def logical_op(
