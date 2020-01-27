@@ -4550,7 +4550,7 @@ Name: Max Speed, dtype: float64
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
     # ----------------------------------------------------------------------
-    # Add index and columns
+    # Add index
     index: "Index" = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
