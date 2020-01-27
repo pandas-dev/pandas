@@ -3898,8 +3898,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ----------
         verify_is_copy : bool, default True
             Provide is_copy checks.
-        **kwargs
-            Passed to self._maybe_update_cacher
         """
         # NOTE: This does *not* call __finalize__ and that's an explicit
         # decision that we may revisit in the future.
@@ -3907,7 +3905,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._reset_cache()
         self._clear_item_cache()
         self._data = getattr(result, "_data", result)
-        self._maybe_update_cacher(verify_is_copy=verify_is_copy, **kwargs)
+        self._maybe_update_cacher(verify_is_copy=verify_is_copy)
 
     def add_prefix(self: FrameOrSeries, prefix: str) -> FrameOrSeries:
         """
