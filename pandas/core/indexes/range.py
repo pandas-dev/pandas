@@ -400,7 +400,7 @@ class RangeIndex(Int64Index):
             name = self.name
         return self.from_range(self._range, name=name)
 
-    def _minmax(self, meth) -> int:
+    def _minmax(self, meth: str):
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
