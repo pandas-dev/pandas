@@ -1,11 +1,26 @@
 """Extend pandas with custom array types"""
-from typing import Any, List, Optional, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 import numpy as np
 
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
+
+ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
 class ExtensionDtype:
@@ -26,7 +41,6 @@ class ExtensionDtype:
 
     * type
     * name
-    * construct_from_string
 
     The following attributes influence the behavior of the dtype in
     pandas operations
@@ -71,7 +85,7 @@ class ExtensionDtype:
         class ExtensionDtype:
 
             def __from_arrow__(
-                self, array: pyarrow.Array/ChunkedArray
+                self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
             ) -> ExtensionArray:
                 ...
 
@@ -82,6 +96,7 @@ class ExtensionDtype:
     """
 
     _metadata: Tuple[str, ...] = ()
+    _match: Pattern
 
     def __str__(self) -> str:
         return self.name
@@ -119,11 +134,11 @@ class ExtensionDtype:
     def __hash__(self) -> int:
         return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
-    def __ne__(self, other) -> bool:
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
     @property
-    def na_value(self):
+    def na_value(self) -> object:
         """
         Default NA value to use for this type.
 
@@ -134,12 +149,12 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[object]:
         """
-        The scalar type for the array, e.g. ``int``
+        The type for the array, e.g. ``int``
 
         It's expected ``ExtensionArray[item]`` returns an instance
-        of ``ExtensionDtype.type`` for scalar ``item``, assuming
+        of ``ExtensionDtype.type`` for ``item``, assuming
         that value is valid (not NA). NA values do not need to be
         instances of `type`.
         """
@@ -181,7 +196,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["ExtensionArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -192,7 +207,40 @@ class ExtensionDtype:
         raise NotImplementedError
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def _validate_from_string(cls, string: str) -> Dict[str, Any]:
+        """
+        Validate string argument of cls.construct_from_string().
+
+        If subclass defines class attribute `_match`, returns a dictionary
+        containing all the named subgroups of the match keyed by the subgroup name.
+        Used for keyword arguments to class constructor.
+
+        Returns
+        -------
+        dict
+        """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+
+        if hasattr(cls, "_match"):
+            match = cls._match.match(string)
+            if match:
+                return match.groupdict()
+        else:
+            # error: Non-overlapping equality check (left operand type: "str", right
+            #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
+            assert isinstance(cls.name, str), (cls, type(cls.name))
+            if string == cls.name:
+                return {}
+
+        raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
+
+    @classmethod
+    def construct_from_string(
+        cls: Type[ExtensionDtypeT], string: str
+    ) -> ExtensionDtypeT:
         r"""
         Construct this type from a string.
 
@@ -201,8 +249,9 @@ class ExtensionDtype:
         can be set as ``period[H]`` (where H means hourly frequency).
 
         By default, in the abstract class, just the name of the type is
-        expected. But subclasses can overwrite this method to accept
-        parameters.
+        expected. Subclasses can add a class attribute `_match` to with a
+        compiled regex to extract the required keyword arguments for the
+        constructor.
 
         Parameters
         ----------
@@ -224,28 +273,17 @@ class ExtensionDtype:
         For extension dtypes with arguments the following may be an
         adequate implementation.
 
-        >>> @classmethod
-        ... def construct_from_string(cls, string):
-        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")
-        ...     match = pattern.match(string)
-        ...     if match:
-        ...         return cls(**match.groupdict())
-        ...     else:
-        ...         raise TypeError(f"Cannot construct a '{cls.__name__}' from
-        ...             " "'{string}'")
+        >>> _match = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")
         """
-        if not isinstance(string, str):
-            raise TypeError(f"Expects a string, got {type(string).__name__}")
-
-        # error: Non-overlapping equality check (left operand type: "str", right
-        #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
-        assert isinstance(cls.name, str), (cls, type(cls.name))
-        if string != cls.name:
+        kwargs = cls._validate_from_string(string)
+        try:
+            # error: Too many arguments for "ExtensionDtype"
+            return cls(**kwargs)  # type: ignore
+        except Exception:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
-        return cls()
 
     @classmethod
-    def is_dtype(cls, dtype) -> bool:
+    def is_dtype(cls, dtype: object) -> bool:
         """
         Check if we match 'dtype'.
 
@@ -256,7 +294,7 @@ class ExtensionDtype:
 
         Returns
         -------
-        is_dtype : bool
+        bool
 
         Notes
         -----
