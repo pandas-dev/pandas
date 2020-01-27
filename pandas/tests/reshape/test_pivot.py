@@ -910,6 +910,64 @@ class TestPivotTable:
             totals = table.loc[("All", ""), item]
             assert totals == self.data[item].mean()
 
+    @pytest.mark.parametrize(
+        "columns, aggfunc, values, expected_columns",
+        [
+            (
+                "A",
+                np.mean,
+                [[5.5, 5.5, 2.2, 2.2], [8.0, 8.0, 4.4, 4.4]],
+                Index(["bar", "All", "foo", "All"], name="A"),
+            ),
+            (
+                ["A", "B"],
+                "sum",
+                [[9, 13, 22, 5, 6, 11], [14, 18, 32, 11, 11, 22]],
+                MultiIndex.from_tuples(
+                    [
+                        ("bar", "one"),
+                        ("bar", "two"),
+                        ("bar", "All"),
+                        ("foo", "one"),
+                        ("foo", "two"),
+                        ("foo", "All"),
+                    ],
+                    names=["A", "B"],
+                ),
+            ),
+        ],
+    )
+    def test_margin_with_only_columns_defined(
+        self, columns, aggfunc, values, expected_columns
+    ):
+        # GH 31016
+        df = pd.DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+            }
+        )
+
+        result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        expected = pd.DataFrame(
+            values, index=Index(["D", "E"]), columns=expected_columns
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_margins_dtype(self):
         # GH 17013
 
@@ -2588,6 +2646,46 @@ class TestCrosstab:
         )
         expected = pd.DataFrame(
             [[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=e_idx, columns=e_columns
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_normalize_multiple_columns(self):
+        # GH 15150
+        df = pd.DataFrame(
+            {
+                "A": ["one", "one", "two", "three"] * 6,
+                "B": ["A", "B", "C"] * 8,
+                "C": ["foo", "foo", "foo", "bar", "bar", "bar"] * 4,
+                "D": [0] * 24,
+                "E": [0] * 24,
+            }
+        )
+        result = pd.crosstab(
+            [df.A, df.B],
+            df.C,
+            values=df.D,
+            aggfunc=np.sum,
+            normalize=True,
+            margins=True,
+        )
+        expected = pd.DataFrame(
+            np.array([0] * 29 + [1], dtype=float).reshape(10, 3),
+            columns=Index(["bar", "foo", "All"], dtype="object", name="C"),
+            index=MultiIndex.from_tuples(
+                [
+                    ("one", "A"),
+                    ("one", "B"),
+                    ("one", "C"),
+                    ("three", "A"),
+                    ("three", "B"),
+                    ("three", "C"),
+                    ("two", "A"),
+                    ("two", "B"),
+                    ("two", "C"),
+                    ("All", ""),
+                ],
+                names=["A", "B"],
+            ),
         )
         tm.assert_frame_equal(result, expected)
 

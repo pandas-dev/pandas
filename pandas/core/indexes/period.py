@@ -504,25 +504,20 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             return series.iat[key]
 
         if isinstance(key, str):
+            try:
+                loc = self._get_string_slice(key)
+                return series[loc]
+            except (TypeError, ValueError, OverflowError):
+                pass
+
             asdt, reso = parse_time_string(key, self.freq)
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
 
-            vals = self._ndarray_values
+            # _get_string_slice will handle cases where grp < freqn
+            assert grp >= freqn
 
-            # if our data is higher resolution than requested key, slice
-            if grp < freqn:
-                iv = Period(asdt, freq=(grp, 1))
-                ord1 = iv.asfreq(self.freq, how="S").ordinal
-                ord2 = iv.asfreq(self.freq, how="E").ordinal
-
-                if ord2 < vals[0] or ord1 > vals[-1]:
-                    raise KeyError(key)
-
-                pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
-                key = slice(pos[0], pos[1] + 1)
-                return series[key]
-            elif grp == freqn:
+            if grp == freqn:
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key)
                 return series.iloc[loc]
@@ -593,12 +588,33 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         """
 
         if isinstance(key, str):
+
+            try:
+                loc = self._get_string_slice(key)
+                return loc
+            except (TypeError, ValueError):
+                pass
+
             try:
                 asdt, reso = parse_time_string(key, self.freq)
-                key = asdt
             except DateParseError:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period")
+
+            grp = resolution.Resolution.get_freq_group(reso)
+            freqn = resolution.get_freq_group(self.freq)
+
+            # _get_string_slice will handle cases where grp < freqn
+            assert grp >= freqn
+
+            if grp == freqn:
+                key = Period(asdt, freq=self.freq)
+                loc = self.get_loc(key, method=method, tolerance=tolerance)
+                return loc
+            elif method is None:
+                raise KeyError(key)
+            else:
+                key = asdt
 
         elif is_integer(key):
             # Period constructor will cast to string, which we dont want
@@ -664,62 +680,53 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         return label
 
-    def _parsed_string_to_bounds(self, reso, parsed):
-        if reso == "year":
-            t1 = Period(year=parsed.year, freq="A")
-        elif reso == "month":
-            t1 = Period(year=parsed.year, month=parsed.month, freq="M")
-        elif reso == "quarter":
-            q = (parsed.month - 1) // 3 + 1
-            t1 = Period(year=parsed.year, quarter=q, freq="Q-DEC")
-        elif reso == "day":
-            t1 = Period(year=parsed.year, month=parsed.month, day=parsed.day, freq="D")
-        elif reso == "hour":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                freq="H",
-            )
-        elif reso == "minute":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                minute=parsed.minute,
-                freq="T",
-            )
-        elif reso == "second":
-            t1 = Period(
-                year=parsed.year,
-                month=parsed.month,
-                day=parsed.day,
-                hour=parsed.hour,
-                minute=parsed.minute,
-                second=parsed.second,
-                freq="S",
-            )
-        else:
+    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+        if reso not in ["year", "month", "quarter", "day", "hour", "minute", "second"]:
             raise KeyError(reso)
-        return (t1.asfreq(self.freq, how="start"), t1.asfreq(self.freq, how="end"))
+
+        grp = resolution.Resolution.get_freq_group(reso)
+        iv = Period(parsed, freq=(grp, 1))
+        return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         # TODO: Check for non-True use_lhs/use_rhs
-        if not self.is_monotonic:
-            raise ValueError("Partial indexing only valid for ordered time series")
-
         parsed, reso = parse_time_string(key, self.freq)
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
-        if reso in ["day", "hour", "minute", "second"] and not grp < freqn:
-            raise KeyError(key)
+
+        if not grp < freqn:
+            # TODO: we used to also check for
+            #  reso in ["day", "hour", "minute", "second"]
+            #  why is that check not needed?
+            raise ValueError(key)
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        return slice(
-            self.searchsorted(t1, side="left"), self.searchsorted(t2, side="right")
-        )
+        i8vals = self.asi8
+
+        if self.is_monotonic:
+
+            # we are out of range
+            if len(self) and (
+                (use_lhs and t1 < self[0] and t2 < self[0])
+                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+            ):
+                raise KeyError(key)
+
+            # TODO: does this depend on being monotonic _increasing_?
+            #  If so, DTI will also be affected.
+
+            # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating Periods
+            left = i8vals.searchsorted(t1.ordinal, side="left") if use_lhs else None
+            right = i8vals.searchsorted(t2.ordinal, side="right") if use_rhs else None
+            return slice(left, right)
+
+        else:
+            lhs_mask = (i8vals >= t1.ordinal) if use_lhs else True
+            rhs_mask = (i8vals <= t2.ordinal) if use_rhs else True
+
+            # try to find a the dates
+            return (lhs_mask & rhs_mask).nonzero()[0]
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)

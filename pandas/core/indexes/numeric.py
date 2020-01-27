@@ -289,9 +289,9 @@ class Int64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
-    def _is_compatible_with_other(self, other):
+    def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
-            isinstance(type(obj), (ABCInt64Index, ABCFloat64Index, ABCRangeIndex))
+            isinstance(obj, (ABCInt64Index, ABCFloat64Index, ABCRangeIndex))
             for obj in [self, other]
         )
 
@@ -346,10 +346,9 @@ class UInt64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
-    def _is_compatible_with_other(self, other):
+    def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
-            isinstance(type(obj), (ABCUInt64Index, ABCFloat64Index))
-            for obj in [self, other]
+            isinstance(obj, (ABCUInt64Index, ABCFloat64Index)) for obj in [self, other]
         )
 
 
@@ -400,10 +399,7 @@ class Float64Index(NumericIndex):
         return key
 
     @Appender(_index_shared_docs["_convert_slice_indexer"])
-    def _convert_slice_indexer(self, key, kind=None):
-        # if we are not a slice, then we are done
-        if not isinstance(key, slice):
-            return key
+    def _convert_slice_indexer(self, key: slice, kind=None):
 
         if kind == "iloc":
             return super()._convert_slice_indexer(key, kind=kind)
@@ -434,11 +430,7 @@ class Float64Index(NumericIndex):
             raise InvalidIndexError
 
         loc = self.get_loc(key)
-        if not is_scalar(loc):
-            return series.iloc[loc]
-
-        new_values = series._values[loc]
-        return new_values
+        return self._get_values_for_loc(series, loc)
 
     def equals(self, other) -> bool:
         """
@@ -495,11 +487,10 @@ class Float64Index(NumericIndex):
             self._validate_index_level(level)
         return algorithms.isin(np.array(self), values)
 
-    def _is_compatible_with_other(self, other):
+    def _is_compatible_with_other(self, other) -> bool:
         return super()._is_compatible_with_other(other) or all(
             isinstance(
-                type(obj),
-                (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
+                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
             )
             for obj in [self, other]
         )

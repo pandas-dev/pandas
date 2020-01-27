@@ -581,12 +581,7 @@ class TestDatetimeIndexTimezones:
             ["US/Pacific", "shift_forward", "2019-03-10 03:00"],
             ["dateutil/US/Pacific", "shift_forward", "2019-03-10 03:00"],
             ["US/Pacific", "shift_backward", "2019-03-10 01:00"],
-            pytest.param(
-                "dateutil/US/Pacific",
-                "shift_backward",
-                "2019-03-10 01:00",
-                marks=pytest.mark.xfail(reason="GH 24329"),
-            ),
+            ["dateutil/US/Pacific", "shift_backward", "2019-03-10 01:00"],
             ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
         ],
     )

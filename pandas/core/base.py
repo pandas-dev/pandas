@@ -28,13 +28,11 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_ns_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_ns_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -125,7 +123,7 @@ class NoNewAttributesMixin:
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value):
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
@@ -254,7 +252,7 @@ class SelectionMixin:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         sub-classes to define
         return a sliced object
@@ -622,6 +620,11 @@ class IndexOpsMixin:
         ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
+    @property
+    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+        # must be defined here as a property for mypy
+        raise AbstractMethodError(self)
+
     def transpose(self, *args, **kwargs):
         """
         Return the transpose, which is by definition self.
@@ -646,6 +649,10 @@ class IndexOpsMixin:
         Return a tuple of the shape of the underlying data.
         """
         return self._values.shape
+
+    def __len__(self) -> int:
+        # We need this defined here for mypy
+        raise AbstractMethodError(self)
 
     @property
     def ndim(self) -> int:
@@ -681,14 +688,14 @@ class IndexOpsMixin:
             raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
         """
         return self._values.nbytes
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
         Return the number of elements in the underlying data.
         """
@@ -760,26 +767,7 @@ class IndexOpsMixin:
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        # As a mixin, we depend on the mixing class having _values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        result = self._values  # type: ignore
-
-        if is_datetime64_ns_dtype(result.dtype):
-            from pandas.arrays import DatetimeArray
-
-            result = DatetimeArray(result)
-        elif is_timedelta64_ns_dtype(result.dtype):
-            from pandas.arrays import TimedeltaArray
-
-            result = TimedeltaArray(result)
-
-        elif not is_extension_array_dtype(result.dtype):
-            from pandas.core.arrays.numpy_ import PandasArray
-
-            result = PandasArray(result)
-
-        return result
+        raise AbstractMethodError(self)
 
     def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
         """
@@ -1094,7 +1082,14 @@ class IndexOpsMixin:
         return bool(isna(self).any())
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
         """ perform the reduction type operation if we can """
         func = getattr(self, name, None)
@@ -1290,7 +1285,7 @@ class IndexOpsMixin:
 
         return result
 
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True) -> int:
         """
         Return number of unique elements in the object.
 
@@ -1331,7 +1326,7 @@ class IndexOpsMixin:
         return n
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """
         Return boolean if values in the object are unique.
 
@@ -1342,7 +1337,7 @@ class IndexOpsMixin:
         return self.nunique(dropna=False) == len(self)
 
     @property
-    def is_monotonic(self):
+    def is_monotonic(self) -> bool:
         """
         Return boolean if values in the object are
         monotonic_increasing.
@@ -1355,7 +1350,11 @@ class IndexOpsMixin:
 
         return Index(self).is_monotonic
 
-    is_monotonic_increasing = is_monotonic
+    @property
+    def is_monotonic_increasing(self) -> bool:
+        """alias for is_monotonic"""
+        # mypy complains if we alias directly
+        return self.is_monotonic
 
     @property
     def is_monotonic_decreasing(self) -> bool:
@@ -1508,7 +1507,7 @@ class IndexOpsMixin:
 
     @Substitution(klass="Index")
     @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first", inplace=False):

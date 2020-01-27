@@ -2071,7 +2071,7 @@ class FY5253(DateOffset):
     such as retail, manufacturing and parking industry.
 
     For more information see:
-    http://en.wikipedia.org/wiki/4-4-5_calendar
+    https://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
 
@@ -2279,7 +2279,7 @@ class FY5253Quarter(DateOffset):
     such as retail, manufacturing and parking industry.
 
     For more information see:
-    http://en.wikipedia.org/wiki/4-4-5_calendar
+    https://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
 
