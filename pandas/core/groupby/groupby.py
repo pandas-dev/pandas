@@ -807,7 +807,12 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if is_extension_array_dtype(dtype) and dtype.kind != "M":
+            # should only cast to ea if it is not a reduction
+            if (
+                is_extension_array_dtype(dtype)
+                and dtype.kind != "M"
+                and len(result) == len(obj)
+            ):
                 # The function can return something of any type, so check
                 #  if the type is compatible with the calling EA.
                 # datetime64tz is handled correctly in agg_series,
@@ -935,7 +940,7 @@ b  2""",
             result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-            output[key] = result
+            output[key] = self._try_cast(result, obj, numeric_only=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
