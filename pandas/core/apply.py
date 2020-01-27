@@ -278,7 +278,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         if (
             self.result_type in ["reduce", None]
             and not self.dtypes.apply(is_extension_array_dtype).any()
-            # Disallow dtypes that have blocks backed by EAs
+            # Disallow dtypes where setting _index_data will break
+            #  ExtensionArray values, see GH#31182
             and not self.dtypes.apply(lambda x: x.kind in ["m", "M"]).any()
             # Disallow MultiIndex since libreduction shortcut
             #  cannot handle MultiIndex
