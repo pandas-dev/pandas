@@ -39,7 +39,13 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
 
     if isinstance(attr, property):
         if cache:
-            method = cache_readonly(attr.fget)
+
+            def cached(self):
+                return getattr(self._data, name)
+
+            cached.__name__ = name
+            cached.__doc__ = attr.__doc__
+            method = cache_readonly(cached)
 
         else:
 
