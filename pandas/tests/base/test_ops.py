@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from io import StringIO
-import operator
 import sys
 from typing import Any
 
@@ -87,13 +86,9 @@ class Ops:
 
 @pytest.mark.parametrize("klass", [Series, DataFrame])
 def test_binary_ops_docs(klass, all_arithmetic_functions):
-    op = all_arithmetic_functions
-    operator_name = _get_op_name(op, special=False)
-    if op is operator.mod:
-        # _get_opstr returns 'None' for this operator
-        operator_symbol = "%"
-    else:
-        operator_symbol = _get_opstr(op)
+    operator = all_arithmetic_functions
+    operator_name = _get_op_name(operator, special=False)
+    operator_symbol = _get_opstr(operator)
     is_reverse = operator_name.startswith("r")
 
     operand1 = klass.__name__.lower()
