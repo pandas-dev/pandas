@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 import os
 from pathlib import Path
@@ -9,7 +10,7 @@ from pandas.errors import EmptyDataError
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 # https://github.com/cython/cython/issues/1720
@@ -23,7 +24,7 @@ class TestSAS7BDAT:
         for j in 1, 2:
             fname = os.path.join(self.dirpath, f"test_sas7bdat_{j}.csv")
             df = pd.read_csv(fname)
-            epoch = pd.datetime(1960, 1, 1)
+            epoch = datetime(1960, 1, 1)
             t1 = pd.to_timedelta(df["Column4"], unit="d")
             df["Column4"] = epoch + t1
             t2 = pd.to_timedelta(df["Column12"], unit="d")

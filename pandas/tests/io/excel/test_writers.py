@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, get_option, set_option
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.excel import (
     ExcelFile,
@@ -252,11 +252,41 @@ class TestRoundTrip:
             res = pd.read_excel(pth, parse_dates=["date_strings"], index_col=0)
             tm.assert_frame_equal(df, res)
 
-            date_parser = lambda x: pd.datetime.strptime(x, "%m/%d/%Y")
+            date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
             res = pd.read_excel(
                 pth, parse_dates=["date_strings"], date_parser=date_parser, index_col=0
             )
             tm.assert_frame_equal(df, res)
+
+    def test_multiindex_interval_datetimes(self, ext):
+        # GH 30986
+        midx = pd.MultiIndex.from_arrays(
+            [
+                range(4),
+                pd.interval_range(
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                ),
+            ]
+        )
+        df = pd.DataFrame(range(4), index=midx)
+        with tm.ensure_clean(ext) as pth:
+            df.to_excel(pth)
+            result = pd.read_excel(pth, index_col=[0, 1])
+        expected = pd.DataFrame(
+            range(4),
+            pd.MultiIndex.from_arrays(
+                [
+                    range(4),
+                    [
+                        "(2020-01-31, 2020-07-31]",
+                        "(2020-07-31, 2021-01-31]",
+                        "(2021-01-31, 2021-07-31]",
+                        "(2021-07-31, 2022-01-31]",
+                    ],
+                ]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 @td.skip_if_no("xlrd")

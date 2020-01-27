@@ -16,8 +16,7 @@ class BaseDtypeTests(BaseExtensionTests):
 
     def test_kind(self, dtype):
         valid = set("biufcmMOSUV")
-        if dtype.kind is not None:
-            assert dtype.kind in valid
+        assert dtype.kind in valid
 
     def test_construct_from_string_own_name(self, dtype):
         result = dtype.construct_from_string(dtype.name)
@@ -37,6 +36,9 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_is_dtype_from_self(self, dtype):
         result = type(dtype).is_dtype(dtype)
         assert result is True
+
+    def test_is_dtype_other_input(self, dtype):
+        assert dtype.is_dtype([1, 2, 3]) is False
 
     def test_is_not_string_type(self, dtype):
         return not pd.api.types.is_string_dtype(dtype)
