@@ -395,7 +395,7 @@ class Index(IndexOpsMixin, PandasObject):
             if subarr.ndim > 1:
                 # GH#13601, GH#20285, GH#27125
                 raise ValueError("Index data must be 1-dimensional")
-            return cls._simple_new(subarr, name, **kwargs)
+            return cls._simple_new(subarr, name)
 
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
