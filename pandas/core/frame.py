@@ -2805,7 +2805,7 @@ class DataFrame(NDFrame):
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
-        data = self.take(indexer, axis=1)
+        data = self._take_with_is_copy(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -2838,7 +2838,7 @@ class DataFrame(NDFrame):
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
         indexer = key.nonzero()[0]
-        return self.take(indexer, axis=0)
+        return self._take_with_is_copy(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
