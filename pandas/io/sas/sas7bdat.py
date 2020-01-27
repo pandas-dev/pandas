@@ -27,6 +27,31 @@ from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 
 
+def _convert_datetimes(sas_datetimes: pd.Series, unit: str):
+    """
+    Convert to Timestamp if possible, otherwise to datetime.datetime.
+    SAS float64 lacks precision for more than ms resolution so the fit
+    to datetime.datetime is ok.
+
+    Parameters
+    ----------
+    sas_datetimes : Series of 64bit floats representing dates or datetimes
+        in SAS
+    unit : "d" if the floats represent dates, "t" for datetimes
+    """
+    try:
+        return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
+    except OutOfBoundsDatetime:
+        if unit == "s":
+            return sas_datetimes.apply(
+                lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
+            )
+        elif unit == "d":
+            return sas_datetimes.apply(
+                lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
+            )
+
+
 class _subheader_pointer:
     pass
 
@@ -687,26 +712,6 @@ class SAS7BDATReader(BaseIterator):
 
         return False
 
-    @staticmethod
-    def _convert_datetimes(sas_datetimes, unit):
-        """Converts to np.datetime64 if possible, otherwise to dateime.datetime
-        (n.b. generally better support in pandas for datetime than date).
-        SAS float64 lacks precision for more than ms resolution so the fit
-        to datetime.datetime is ok
-        """
-        try:
-            return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
-        except OutOfBoundsDatetime:
-            if unit == "s":
-                return sas_datetimes.apply(
-                    lambda sas_float: datetime(1960, 1, 1)
-                    + timedelta(seconds=sas_float)
-                )
-            elif unit == "d":
-                return sas_datetimes.apply(
-                    lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
-                )
-
     def _chunk_to_dataframe(self):
 
         n = self._current_row_in_chunk_index
@@ -724,9 +729,9 @@ class SAS7BDATReader(BaseIterator):
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
-                        rslt[name] = self._convert_datetimes(rslt[name], "d")
+                        rslt[name] = _convert_datetimes(rslt[name], "d")
                     elif self.column_formats[j] in const.sas_datetime_formats:
-                        rslt[name] = self._convert_datetimes(rslt[name], "s")
+                        rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
                 rslt[name] = self._string_chunk[js, :]
