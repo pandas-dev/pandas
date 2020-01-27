@@ -134,13 +134,13 @@ def pivot_table(
         table = agged.unstack(to_unstack)
 
     if not dropna:
-        if table.index.nlevels > 1:
+        if isinstance(table.index, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
             )
             table = table.reindex(m, axis=0)
 
-        if table.columns.nlevels > 1:
+        if isinstance(table.columns, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.columns.levels), names=table.columns.names
             )
@@ -373,7 +373,7 @@ def _generate_marginal_results_without_values(
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
-        margin_keys = []
+        margin_keys: Union[List, Index] = []
 
         def _all_key():
             if len(cols) == 1:

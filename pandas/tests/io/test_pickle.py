@@ -198,6 +198,7 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
+@pytest.mark.xfail(reason="GitHub issue #31310", strict=False)
 def test_legacy_sparse_warning(datapath):
     """
 

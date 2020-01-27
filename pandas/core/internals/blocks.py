@@ -66,7 +66,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, DatetimeArray, PandasDtype, TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    PandasArray,
+    PandasDtype,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -195,6 +202,7 @@ class Block(PandasObject):
     def external_values(self):
         """
         The array that Series.values returns (public attribute).
+
         This has some historical constraints, and is overridden in block
         subclasses to return the correct array (e.g. period returns
         object ndarray and datetimetz a datetime64[ns] ndarray instead of
@@ -207,6 +215,12 @@ class Block(PandasObject):
         The array that Series._values returns (internal values).
         """
         return self.values
+
+    def array_values(self) -> ExtensionArray:
+        """
+        The array that Series.array returns. Always an ExtensionArray.
+        """
+        return PandasArray(self.values)
 
     def get_values(self, dtype=None):
         """
@@ -862,7 +876,11 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-
+        exact_match = (
+            len(arr_value.shape)
+            and arr_value.shape[0] == values.shape[0]
+            and arr_value.size == values.size
+        )
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -872,14 +890,21 @@ class Block(PandasObject):
             #  be e.g. a list; see GH#6043
             values[indexer] = value
 
+        elif (
+            exact_match
+            and is_categorical_dtype(arr_value.dtype)
+            and not is_categorical_dtype(values)
+        ):
+            # GH25495 - If the current dtype is not categorical,
+            # we need to create a new categorical block
+            values[indexer] = value
+            return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
-        elif (
-            len(arr_value.shape)
-            and arr_value.shape[0] == values.shape[0]
-            and arr_value.size == values.size
-        ):
+        elif exact_match:
             values[indexer] = value
+
             try:
                 values = values.astype(arr_value.dtype)
             except ValueError:
@@ -1280,7 +1305,10 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
-        new_values = algos.diff(self.values, n, axis=axis)
+        new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
+        # We use block_shape for ExtensionBlock subclasses, which may call here
+        # via a super.
+        new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods, axis=0, fill_value=None):
@@ -1777,6 +1805,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values.reshape((1,) + values.shape)
         return values
 
+    def array_values(self) -> ExtensionArray:
+        return self.values
+
     def to_dense(self):
         return np.asarray(self.values)
 
@@ -1859,6 +1890,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values=values.fillna(value=fill_value, method=method, limit=limit),
             placement=self.mgr_locs,
         )
+
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
+        if axis == 1:
+            # we are by definition 1D.
+            axis = 0
+        return super().diff(n, axis)
 
     def shift(
         self,
@@ -2234,6 +2271,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def external_values(self):
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
+    def array_values(self) -> ExtensionArray:
+        return DatetimeArray._simple_new(self.values)
+
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
@@ -2490,6 +2530,9 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def external_values(self):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
+
+    def array_values(self) -> ExtensionArray:
+        return TimedeltaArray._simple_new(self.values)
 
 
 class BoolBlock(NumericBlock):
@@ -2994,7 +3037,6 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 
 def _extend_blocks(result, blocks=None):
     """ return a new extended blocks, given the result """
-    from pandas.core.internals import BlockManager
 
     if blocks is None:
         blocks = []
@@ -3004,9 +3046,8 @@ def _extend_blocks(result, blocks=None):
                 blocks.extend(r)
             else:
                 blocks.append(r)
-    elif isinstance(result, BlockManager):
-        blocks.extend(result.blocks)
     else:
+        assert isinstance(result, Block), type(result)
         blocks.append(result)
     return blocks
 
