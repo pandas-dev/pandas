@@ -27,7 +27,7 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas import Series  # noqa: F401
-    from pandas.core.indexes.multi import MultiIndex   # noqa: F401
+    from pandas.core.indexes.multi import MultiIndex  # noqa: F401
 
 loads = json.loads
 
