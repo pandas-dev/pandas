@@ -925,3 +925,12 @@ def test_uint_drop(any_int_dtype):
     series.loc[0] = 4
     expected = pd.Series([4, 2, 3], dtype=any_int_dtype)
     tm.assert_series_equal(series, expected)
+
+
+def test_getitem_2d_no_warning():
+    # https://github.com/pandas-dev/pandas/issues/30867
+    # Unclear that we want to support this long-term, but
+    # for now ensure that no warning from Index comes through.
+    series = pd.Series([1, 2, 3], index=[1, 2, 3])
+    with tm.assert_produces_warning(None):
+        series[:, None]

@@ -4168,6 +4168,13 @@ class Index(IndexOpsMixin, PandasObject):
         raise TypeError("Index does not support mutable operations")
 
     def __getitem__(self, key):
+        # To support the deprecation of Index[:, None] returning an
+        # ndarray with a warning, we use a helper method _getitem_deprecate_nd.
+        # Series[:, None] eventaully calls that with warn=False, via
+        # SingleBlockManager.get_slice
+        return self._getitem_deprecate_nd(key)
+
+    def _getitem_deprecate_nd(self, key, warn=True):
         """
         Override numpy.ndarray's __getitem__ method to work as desired.
 
@@ -4199,7 +4206,8 @@ class Index(IndexOpsMixin, PandasObject):
         result = getitem(key)
         if not is_scalar(result):
             if np.ndim(result) > 1:
-                deprecate_ndim_indexing(result)
+                if warn:
+                    deprecate_ndim_indexing(result)
                 return result
             return promote(result)
         else:
