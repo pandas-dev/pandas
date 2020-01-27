@@ -929,8 +929,9 @@ def test_uint_drop(any_int_dtype):
 
 def test_getitem_2d_no_warning():
     # https://github.com/pandas-dev/pandas/issues/30867
-    # Unclear that we want to support this long-term, but
-    # for now ensure that no warning from Index comes through.
+    # Don't want to support this long-term, but
+    # for now ensure that the warning from Index
+    # doesn't comes through via Series.__getitem__.
     series = pd.Series([1, 2, 3], index=[1, 2, 3])
     with tm.assert_produces_warning(None):
         series[:, None]
