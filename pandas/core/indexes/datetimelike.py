@@ -7,7 +7,6 @@ from typing import Any, List, Optional, Set
 import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
-from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import timezones
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
