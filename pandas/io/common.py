@@ -160,10 +160,9 @@ def get_filepath_or_buffer(
 
     Returns
     -------
-    tuple of ({a filepath_ or buffer or S3File instance},
-              encoding, str,
-              compression, str,
-              should_close, bool)
+    Tuple[FilePathOrBuffer, str, str, bool]
+        Tuple containing the filepath or buffer, the encoding, the compression
+        and should_close.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
