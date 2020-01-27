@@ -193,7 +193,6 @@ class SetopCheck:
         "overlaps",
         "contains",
         "size",
-        "closed",
         "dtype",
         "left",
         "right",
@@ -202,7 +201,7 @@ class SetopCheck:
     IntervalArray,
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "_ndarray_values"],
+    ["is_non_overlapping_monotonic", "mid", "_ndarray_values", "closed"],
     IntervalArray,
     cache=True,
 )
