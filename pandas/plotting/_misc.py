@@ -1,7 +1,5 @@
 from contextlib import contextmanager
 
-from pandas.util._decorators import deprecate_kwarg
-
 from pandas.plotting._core import _get_plot_backend
 
 
@@ -151,7 +149,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     influence of all dimensions.
 
     More info available at the `original article
-    <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
     describing RadViz.
 
     Parameters
@@ -210,7 +208,6 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     )
 
 
-@deprecate_kwarg(old_arg_name="data", new_arg_name="frame")
 def andrews_curves(
     frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
 ):
@@ -310,8 +307,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     )
 
 
-@deprecate_kwarg(old_arg_name="colors", new_arg_name="color")
-@deprecate_kwarg(old_arg_name="data", new_arg_name="frame", stacklevel=3)
 def parallel_coordinates(
     frame,
     class_column,
@@ -440,7 +435,6 @@ class _Options(dict):
 
     def __init__(self, deprecated=False):
         self._deprecated = deprecated
-        # self['xaxis.compat'] = False
         super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
@@ -459,7 +453,7 @@ class _Options(dict):
             raise ValueError(f"Cannot remove default parameter {key}")
         return super().__delitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         key = self._get_canonical_key(key)
         return super().__contains__(key)
 

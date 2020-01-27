@@ -4,7 +4,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
-from pandas.io.common import _stringify_path
+from pandas.io.common import stringify_path
 
 
 def to_feather(df: DataFrame, path):
@@ -20,7 +20,7 @@ def to_feather(df: DataFrame, path):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path = _stringify_path(path)
+    path = stringify_path(path)
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -34,18 +34,16 @@ def to_feather(df: DataFrame, path):
     # raise on anything else as we don't serialize the index
 
     if not isinstance(df.index, Int64Index):
+        typ = type(df.index)
         raise ValueError(
-            "feather does not support serializing {} "
-            "for the index; you can .reset_index() "
-            "to make the index into column(s)".format(type(df.index))
+            f"feather does not support serializing {typ} "
+            "for the index; you can .reset_index() to make the index into column(s)"
         )
 
     if not df.index.equals(RangeIndex.from_range(range(len(df)))):
         raise ValueError(
-            "feather does not support serializing a "
-            "non-default index for the index; you "
-            "can .reset_index() to make the index "
-            "into column(s)"
+            "feather does not support serializing a non-default index for the index; "
+            "you can .reset_index() to make the index into column(s)"
         )
 
     if df.index.name is not None:
@@ -63,7 +61,7 @@ def to_feather(df: DataFrame, path):
     feather.write_feather(df, path)
 
 
-def read_feather(path, columns=None, use_threads=True):
+def read_feather(path, columns=None, use_threads: bool = True):
     """
     Load a feather-format object from the file path.
 
@@ -97,6 +95,6 @@ def read_feather(path, columns=None, use_threads=True):
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path = _stringify_path(path)
+    path = stringify_path(path)
 
     return feather.read_feather(path, columns=columns, use_threads=bool(use_threads))

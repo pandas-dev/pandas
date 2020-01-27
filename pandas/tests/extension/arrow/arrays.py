@@ -33,10 +33,17 @@ class ArrowBoolDtype(ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError(f"Cannot construct a '{cls}' from '{string}'")
+            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return ArrowBoolArray
 
     def _is_boolean(self):
@@ -60,6 +67,13 @@ class ArrowStringDtype(ExtensionDtype):
 
     @classmethod
     def construct_array_type(cls):
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return ArrowStringArray
 
 

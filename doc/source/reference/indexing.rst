@@ -313,6 +313,7 @@ MultiIndex selecting
    :toctree: api/
 
    MultiIndex.get_loc
+   MultiIndex.get_locs
    MultiIndex.get_loc_level
    MultiIndex.get_indexer
    MultiIndex.get_level_values

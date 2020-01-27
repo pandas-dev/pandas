@@ -2,7 +2,6 @@ import datetime
 from io import StringIO
 import itertools
 from itertools import product
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
@@ -12,9 +11,8 @@ import pytz
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -121,7 +119,8 @@ class TestMultiLevel(Base):
                     (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
                     (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
                 ]
-                + expected_tuples
+                + expected_tuples,
+                dtype=object,
             ),
             None,
         )
@@ -209,22 +208,12 @@ class TestMultiLevel(Base):
         reindexed = self.frame.loc[[("foo", "one"), ("bar", "one")]]
         tm.assert_frame_equal(reindexed, expected)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            reindexed = self.frame.ix[[("foo", "one"), ("bar", "one")]]
-        tm.assert_frame_equal(reindexed, expected)
-
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
         assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        assert chunk.index is new_index
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
         ymdT = self.ymd.T
@@ -902,6 +891,31 @@ Thur,Lunch,Yes,51.51,17"""
         )
         manual_compare_stacked(df, df.stack(0), 0, 1)
 
+    def test_stack_unstack_unordered_multiindex(self):
+        # GH 18265
+        values = np.arange(5)
+        data = np.vstack(
+            [
+                ["b{}".format(x) for x in values],  # b0, b1, ..
+                ["a{}".format(x) for x in values],
+            ]
+        )  # a0, a1, ..
+        df = pd.DataFrame(data.T, columns=["b", "a"])
+        df.columns.name = "first"
+        second_level_dict = {"x": df}
+        multi_level_df = pd.concat(second_level_dict, axis=1)
+        multi_level_df.columns.names = ["second", "first"]
+        df = multi_level_df.reindex(sorted(multi_level_df.columns), axis=1)
+        result = df.stack(["first", "second"]).unstack(["first", "second"])
+        expected = DataFrame(
+            [["a0", "b0"], ["a1", "b1"], ["a2", "b2"], ["a3", "b3"], ["a4", "b4"]],
+            index=[0, 1, 2, 3, 4],
+            columns=MultiIndex.from_tuples(
+                [("a", "x"), ("b", "x")], names=["first", "second"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_corner(self):
         midx = MultiIndex(
             levels=[["foo"], ["bar"], ["baz"]],
@@ -967,6 +981,10 @@ Thur,Lunch,Yes,51.51,17"""
         swapped = ft.swaplevel("first", "second", axis=1)
         exp = self.frame.swaplevel("first", "second").T
         tm.assert_frame_equal(swapped, exp)
+
+        msg = "Can only swap levels on a hierarchical axis."
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(range(3)).swaplevel()
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(["month", "day", "year"])
@@ -1369,6 +1387,30 @@ Thur,Lunch,Yes,51.51,17"""
             [("routine1", "result1", ""), ("routine2", "result1", "")], axis=1
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_drop_multiindex_other_level_nan(self):
+        # GH 12754
+        df = (
+            DataFrame(
+                {
+                    "A": ["one", "one", "two", "two"],
+                    "B": [np.nan, 0.0, 1.0, 2.0],
+                    "C": ["a", "b", "c", "c"],
+                    "D": [1, 2, 3, 4],
+                }
+            )
+            .set_index(["A", "B", "C"])
+            .sort_index()
+        )
+        result = df.drop("c", level="C")
+        expected = DataFrame(
+            [2, 1],
+            columns=["D"],
+            index=pd.MultiIndex.from_tuples(
+                [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_drop_nonunique(self):
         df = DataFrame(
@@ -2134,6 +2176,40 @@ class TestSorted(Base):
             sorted_after.drop([("foo", "three")], axis=1),
         )
 
+    def test_sort_index_categorical_multiindex(self):
+        # GH 15058
+        df = DataFrame(
+            {
+                "a": range(6),
+                "l1": pd.Categorical(
+                    ["a", "a", "b", "b", "c", "c"],
+                    categories=["c", "a", "b"],
+                    ordered=True,
+                ),
+                "l2": [0, 1, 0, 1, 0, 1],
+            }
+        )
+        result = df.set_index(["l1", "l2"]).sort_index()
+        expected = DataFrame(
+            [4, 5, 0, 1, 2, 3],
+            columns=["a"],
+            index=MultiIndex(
+                levels=[
+                    pd.CategoricalIndex(
+                        ["c", "a", "b"],
+                        categories=["c", "a", "b"],
+                        ordered=True,
+                        name="l1",
+                        dtype="category",
+                    ),
+                    [0, 1],
+                ],
+                codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                names=["l1", "l2"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_is_lexsorted(self):
         levels = [[0, 1], [0, 1, 2]]
 
@@ -2296,6 +2372,14 @@ class TestSorted(Base):
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_non_existent_label_multiindex(self):
+        # GH 12261
+        df = DataFrame(0, columns=[], index=pd.MultiIndex.from_product([[], []]))
+        df.loc["b", "2"] = 1
+        df.loc["a", "3"] = 1
+        result = df.sort_index().index.is_monotonic
+        assert result is True
 
     def test_sort_index_reorder_on_ops(self):
         # 15687

@@ -195,7 +195,6 @@ class JoinUnit:
                         return array(
                             np.full(self.shape[1], fill_value.value), dtype=empty_dtype
                         )
-                    pass
                 elif getattr(self.block, "is_categorical", False):
                     pass
                 elif getattr(self.block, "is_extension", False):
@@ -351,7 +350,7 @@ def _get_empty_dtype_and_na(join_units):
         dtype = upcast_classes["datetimetz"]
         return dtype[0], tslibs.NaT
     elif "datetime" in upcast_classes:
-        return np.dtype("M8[ns]"), tslibs.iNaT
+        return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
     else:  # pragma

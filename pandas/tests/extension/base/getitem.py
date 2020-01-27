@@ -121,6 +121,45 @@ class BaseGetitemTests(BaseExtensionTests):
         assert len(result) == 1
         assert result.dtype == data.dtype
 
+    def test_getitem_mask_raises(self, data):
+        mask = np.array([True, False])
+        with pytest.raises(IndexError):
+            data[mask]
+
+        mask = pd.array(mask, dtype="boolean")
+        with pytest.raises(IndexError):
+            data[mask]
+
+    def test_getitem_boolean_array_mask(self, data):
+        mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
+        result = data[mask]
+        assert len(result) == 0
+        assert isinstance(result, type(data))
+
+        result = pd.Series(data)[mask]
+        assert len(result) == 0
+        assert result.dtype == data.dtype
+
+        mask[:5] = True
+        expected = data.take([0, 1, 2, 3, 4])
+        result = data[mask]
+        self.assert_extension_array_equal(result, expected)
+
+        expected = pd.Series(expected)
+        result = pd.Series(data)[mask]
+        self.assert_series_equal(result, expected)
+
+    def test_getitem_boolean_array_mask_raises(self, data):
+        mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
+        mask[:2] = pd.NA
+        with pytest.raises(ValueError):
+            data[mask]
+
+        s = pd.Series(data)
+
+        with pytest.raises(ValueError):
+            s[mask]
+
     def test_getitem_slice(self, data):
         # getitem[slice] should return an array
         result = data[slice(0)]  # empty
@@ -206,7 +245,9 @@ class BaseGetitemTests(BaseExtensionTests):
         fill_value = data_missing[1]  # valid
         na = data_missing[0]
 
-        array = data_missing._from_sequence([na, fill_value, na])
+        array = data_missing._from_sequence(
+            [na, fill_value, na], dtype=data_missing.dtype
+        )
         result = array.take([-1, 1], fill_value=fill_value, allow_fill=True)
         expected = array.take([1, 1])
         self.assert_extension_array_equal(result, expected)
@@ -254,10 +295,12 @@ class BaseGetitemTests(BaseExtensionTests):
         valid = data_missing[1]
         na = data_missing[0]
 
-        array = data_missing._from_sequence([na, valid])
+        array = data_missing._from_sequence([na, valid], dtype=data_missing.dtype)
         ser = pd.Series(array)
         result = ser.reindex([0, 1, 2], fill_value=valid)
-        expected = pd.Series(data_missing._from_sequence([na, valid, valid]))
+        expected = pd.Series(
+            data_missing._from_sequence([na, valid, valid], dtype=data_missing.dtype)
+        )
 
         self.assert_series_equal(result, expected)
 
@@ -266,3 +309,16 @@ class BaseGetitemTests(BaseExtensionTests):
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
         assert res._data._block.ndim == 1
+
+    def test_item(self, data):
+        # https://github.com/pandas-dev/pandas/pull/30175
+        s = pd.Series(data)
+        result = s[:1].item()
+        assert result == data[0]
+
+        msg = "can only convert an array of size 1 to a Python scalar"
+        with pytest.raises(ValueError, match=msg):
+            s[:0].item()
+
+        with pytest.raises(ValueError, match=msg):
+            s.item()

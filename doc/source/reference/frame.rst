@@ -28,6 +28,7 @@ Attributes and underlying data
    :toctree: api/
 
    DataFrame.dtypes
+   DataFrame.info
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.axes
@@ -43,6 +44,7 @@ Conversion
    :toctree: api/
 
    DataFrame.astype
+   DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
    DataFrame.isna
@@ -273,6 +275,8 @@ Metadata
 
 :attr:`DataFrame.attrs` is a dictionary for storing global metadata for this DataFrame.
 
+.. warning:: ``DataFrame.attrs`` is considered experimental and may change without warning.
+
 .. autosummary::
    :toctree: api/
 
@@ -344,7 +348,6 @@ Serialization / IO / conversion
 
    DataFrame.from_dict
    DataFrame.from_records
-   DataFrame.info
    DataFrame.to_parquet
    DataFrame.to_pickle
    DataFrame.to_csv
@@ -357,9 +360,9 @@ Serialization / IO / conversion
    DataFrame.to_feather
    DataFrame.to_latex
    DataFrame.to_stata
-   DataFrame.to_msgpack
    DataFrame.to_gbq
    DataFrame.to_records
    DataFrame.to_string
    DataFrame.to_clipboard
+   DataFrame.to_markdown
    DataFrame.style

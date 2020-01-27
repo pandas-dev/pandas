@@ -66,7 +66,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, DatetimeArray, PandasDtype, TimedeltaArray
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    ExtensionArray,
+    PandasArray,
+    PandasDtype,
+    TimedeltaArray,
+)
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -115,8 +122,8 @@ class Block(PandasObject):
 
         if self._validate_ndim and self.ndim and len(self.mgr_locs) != len(self.values):
             raise ValueError(
-                "Wrong number of items passed {val}, placement implies "
-                "{mgr}".format(val=len(self.values), mgr=len(self.mgr_locs))
+                f"Wrong number of items passed {len(self.values)}, "
+                f"placement implies {len(self.mgr_locs)}"
             )
 
     def _check_ndim(self, values, ndim):
@@ -144,9 +151,10 @@ class Block(PandasObject):
             ndim = values.ndim
 
         if self._validate_ndim and values.ndim != ndim:
-            msg = "Wrong number of dimensions. values.ndim != ndim [{} != {}]"
-            raise ValueError(msg.format(values.ndim, ndim))
-
+            raise ValueError(
+                "Wrong number of dimensions. "
+                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+            )
         return ndim
 
     @property
@@ -184,22 +192,35 @@ class Block(PandasObject):
         if dtype is Categorical or dtype is CategoricalDtype:
             # this is a pd.Categorical, but is not
             # a valid type for astypeing
-            raise TypeError("invalid type {0} for astype".format(dtype))
+            raise TypeError(f"invalid type {dtype} for astype")
 
         elif is_categorical_dtype(dtype):
             return True
 
         return False
 
-    def external_values(self, dtype=None):
-        """ return an outside world format, currently just the ndarray """
-        return self.values
+    def external_values(self):
+        """
+        The array that Series.values returns (public attribute).
 
-    def internal_values(self, dtype=None):
-        """ return an internal format, currently just the ndarray
-        this should be the pure internal API format
+        This has some historical constraints, and is overridden in block
+        subclasses to return the correct array (e.g. period returns
+        object ndarray and datetimetz a datetime64[ns] ndarray instead of
+        proper extension array).
         """
         return self.values
+
+    def internal_values(self):
+        """
+        The array that Series._values returns (internal values).
+        """
+        return self.values
+
+    def array_values(self) -> ExtensionArray:
+        """
+        The array that Series.array returns. Always an ExtensionArray.
+        """
+        return PandasArray(self.values)
 
     def get_values(self, dtype=None):
         """
@@ -241,7 +262,7 @@ class Block(PandasObject):
         """
         return self.dtype
 
-    def make_block(self, values, placement=None):
+    def make_block(self, values, placement=None) -> "Block":
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -264,18 +285,14 @@ class Block(PandasObject):
         name = type(self).__name__
         if self._is_single_block:
 
-            result = "{name}: {len} dtype: {dtype}".format(
-                name=name, len=len(self), dtype=self.dtype
-            )
+            result = f"{name}: {len(self)} dtype: {self.dtype}"
 
         else:
 
             shape = " x ".join(pprint_thing(s) for s in self.shape)
-            result = "{name}: {index}, {shape}, dtype: {dtype}".format(
-                name=name,
-                index=pprint_thing(self.mgr_locs.indexer),
-                shape=shape,
-                dtype=self.dtype,
+            result = (
+                f"{name}: {pprint_thing(self.mgr_locs.indexer)}, "
+                f"{shape}, dtype: {self.dtype}"
             )
 
         return result
@@ -329,7 +346,7 @@ class Block(PandasObject):
             dtype = self.dtype.subtype
         else:
             dtype = self.dtype
-        return "{dtype}:{ftype}".format(dtype=dtype, ftype=self._ftype)
+        return f"{dtype}:{self._ftype}"
 
     def merge(self, other):
         return _merge_blocks([self, other])
@@ -365,16 +382,31 @@ class Block(PandasObject):
         self.values = np.delete(self.values, loc, 0)
         self.mgr_locs = self.mgr_locs.delete(loc)
 
-    def apply(self, func, **kwargs):
+    def apply(self, func, **kwargs) -> List["Block"]:
         """ apply the function to my values; return a block if we are not
         one
         """
         with np.errstate(all="ignore"):
             result = func(self.values, **kwargs)
+
+        return self._split_op_result(result)
+
+    def _split_op_result(self, result) -> List["Block"]:
+        # See also: split_and_operate
+        if is_extension_array_dtype(result) and result.ndim > 1:
+            # if we get a 2D ExtensionArray, we need to split it into 1D pieces
+            nbs = []
+            for i, loc in enumerate(self.mgr_locs):
+                vals = result[i]
+                nv = _block_shape(vals, ndim=self.ndim)
+                block = self.make_block(values=nv, placement=[loc])
+                nbs.append(block)
+            return nbs
+
         if not isinstance(result, Block):
             result = self.make_block(values=_block_shape(result, ndim=self.ndim))
 
-        return result
+        return [result]
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         """ fillna on the block with the value. If we fail, then convert to
@@ -544,15 +576,15 @@ class Block(PandasObject):
 
         if errors not in errors_legal_values:
             invalid_arg = (
-                "Expected value of kwarg 'errors' to be one of {}. "
-                "Supplied value is '{}'".format(list(errors_legal_values), errors)
+                "Expected value of kwarg 'errors' to be one of "
+                f"{list(errors_legal_values)}. Supplied value is '{errors}'"
             )
             raise ValueError(invalid_arg)
 
         if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
             msg = (
-                "Expected an instance of {}, but got the class instead. "
-                "Try instantiating 'dtype'.".format(dtype.__name__)
+                f"Expected an instance of {dtype.__name__}, "
+                "but got the class instead. Try instantiating 'dtype'."
             )
             raise TypeError(msg)
 
@@ -613,15 +645,9 @@ class Block(PandasObject):
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
                 raise TypeError(
-                    "cannot set astype for copy = [{copy}] for dtype "
-                    "({dtype} [{shape}]) to different shape "
-                    "({newb_dtype} [{newb_shape}])".format(
-                        copy=copy,
-                        dtype=self.dtype.name,
-                        shape=self.shape,
-                        newb_dtype=newb.dtype.name,
-                        newb_shape=newb.shape,
-                    )
+                    f"cannot set astype for copy = [{copy}] for dtype "
+                    f"({self.dtype.name} [{self.shape}]) to different shape "
+                    f"({newb.dtype.name} [{newb.shape}])"
                 )
         return newb
 
@@ -655,10 +681,10 @@ class Block(PandasObject):
         if slicer is not None:
             values = values[:, slicer]
         mask = isna(values)
+        itemsize = writers.word_len(na_rep)
 
-        if not self.is_object and not quoting:
-            itemsize = writers.word_len(na_rep)
-            values = values.astype("<U{size}".format(size=itemsize))
+        if not self.is_object and not quoting and itemsize:
+            values = values.astype(f"<U{itemsize}")
         else:
             values = np.array(values, dtype="object")
 
@@ -850,7 +876,11 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-
+        exact_match = (
+            len(arr_value.shape)
+            and arr_value.shape[0] == values.shape[0]
+            and arr_value.size == values.size
+        )
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -860,14 +890,21 @@ class Block(PandasObject):
             #  be e.g. a list; see GH#6043
             values[indexer] = value
 
+        elif (
+            exact_match
+            and is_categorical_dtype(arr_value.dtype)
+            and not is_categorical_dtype(values)
+        ):
+            # GH25495 - If the current dtype is not categorical,
+            # we need to create a new categorical block
+            values[indexer] = value
+            return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
-        elif (
-            len(arr_value.shape)
-            and arr_value.shape[0] == values.shape[0]
-            and arr_value.size == values.size
-        ):
+        elif exact_match:
             values[indexer] = value
+
             try:
                 values = values.astype(arr_value.dtype)
             except ValueError:
@@ -941,15 +978,20 @@ class Block(PandasObject):
                 and np.any(mask[mask])
                 and getattr(new, "ndim", 1) == 1
             ):
-
-                if not (
-                    mask.shape[-1] == len(new)
-                    or mask[mask].shape[-1] == len(new)
-                    or len(new) == 1
-                ):
+                if mask[mask].shape[-1] == len(new):
+                    # GH 30567
+                    # If length of ``new`` is less than the length of ``new_values``,
+                    # `np.putmask` would first repeat the ``new`` array and then
+                    # assign the masked values hence produces incorrect result.
+                    # `np.place` on the other hand uses the ``new`` values at it is
+                    # to place in the masked locations of ``new_values``
+                    np.place(new_values, mask, new)
+                elif mask.shape[-1] == len(new) or len(new) == 1:
+                    np.putmask(new_values, mask, new)
+                else:
                     raise ValueError("cannot assign mismatch length to masked array")
-
-            np.putmask(new_values, mask, new)
+            else:
+                np.putmask(new_values, mask, new)
 
         # maybe upcast me
         elif mask.any():
@@ -1045,8 +1087,7 @@ class Block(PandasObject):
                 return self.astype(object)
 
             raise AssertionError(
-                "possible recursion in "
-                "coerce_to_target_dtype: {} {}".format(self, other)
+                f"possible recursion in coerce_to_target_dtype: {self} {other}"
             )
 
         elif self.is_timedelta or is_timedelta64_dtype(dtype):
@@ -1056,8 +1097,7 @@ class Block(PandasObject):
                 return self.astype(object)
 
             raise AssertionError(
-                "possible recursion in "
-                "coerce_to_target_dtype: {} {}".format(self, other)
+                f"possible recursion in coerce_to_target_dtype: {self} {other}"
             )
 
         try:
@@ -1202,8 +1242,7 @@ class Block(PandasObject):
         if method in ("krogh", "piecewise_polynomial", "pchip"):
             if not index.is_monotonic:
                 raise ValueError(
-                    "{0} interpolation requires that the "
-                    "index be monotonic.".format(method)
+                    f"{method} interpolation requires that the index be monotonic."
                 )
         # process 1-d slices in the axis direction
 
@@ -1266,7 +1305,10 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> List["Block"]:
         """ return block for the diff of the values """
-        new_values = algos.diff(self.values, n, axis=axis)
+        new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
+        # We use block_shape for ExtensionBlock subclasses, which may call here
+        # via a super.
+        new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods, axis=0, fill_value=None):
@@ -1461,7 +1503,7 @@ class Block(PandasObject):
         -------
         Block
         """
-        # We should always have ndim == 2 becase Series dispatches to DataFrame
+        # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
 
         values = self.get_values()
@@ -1585,7 +1627,7 @@ class NonConsolidatableMixIn:
         if self.ndim == 2 and isinstance(col, tuple):
             col, loc = col
             if not com.is_null_slice(col) and col != 0:
-                raise IndexError("{0} only contains one item".format(self))
+                raise IndexError(f"{self} only contains one item")
             elif isinstance(col, slice):
                 if col != slice(None):
                     raise NotImplementedError(col)
@@ -1593,7 +1635,7 @@ class NonConsolidatableMixIn:
             return self.values[loc]
         else:
             if col != 0:
-                raise IndexError("{0} only contains one item".format(self))
+                raise IndexError(f"{self} only contains one item")
             return self.values
 
     def should_store(self, value):
@@ -1763,6 +1805,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values.reshape((1,) + values.shape)
         return values
 
+    def array_values(self) -> ExtensionArray:
+        return self.values
+
     def to_dense(self):
         return np.asarray(self.values)
 
@@ -1773,12 +1818,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values = values[slicer]
         mask = isna(values)
 
-        try:
-            values = values.astype(str)
-            values[mask] = na_rep
-        except Exception:
-            # eg SparseArray does not support setitem, needs to be converted to ndarray
-            return super().to_native_types(slicer, na_rep, quoting, **kwargs)
+        values = np.asarray(values.astype(object))
+        values[mask] = na_rep
 
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
@@ -1849,6 +1890,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values=values.fillna(value=fill_value, method=method, limit=limit),
             placement=self.mgr_locs,
         )
+
+    def diff(self, n: int, axis: int = 1) -> List["Block"]:
+        if axis == 1:
+            # we are by definition 1D.
+            axis = 0
+        return super().diff(n, axis)
 
     def shift(
         self,
@@ -1962,7 +2009,7 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     Series[T].values is an ndarray of objects.
     """
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return self.values.astype(object)
 
 
@@ -2224,6 +2271,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def external_values(self):
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
+    def array_values(self) -> ExtensionArray:
+        return DatetimeArray._simple_new(self.values)
+
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
@@ -2312,7 +2362,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         if isinstance(slicer, tuple):
             col, loc = slicer
             if not com.is_null_slice(col) and col != 0:
-                raise IndexError("{0} only contains one item".format(self))
+                raise IndexError(f"{self} only contains one item")
             return self.values[loc]
         return self.values[slicer]
 
@@ -2444,7 +2494,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             # Deprecation GH#24694, GH#19233
             raise TypeError(
                 "Passing integers to fillna for timedelta64[ns] dtype is no "
-                "longer supporetd.  To obtain the old behavior, pass "
+                "longer supported.  To obtain the old behavior, pass "
                 "`pd.Timedelta(seconds=n)` instead."
             )
         return super().fillna(value, **kwargs)
@@ -2478,8 +2528,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         )
         return rvalues
 
-    def external_values(self, dtype=None):
+    def external_values(self):
         return np.asarray(self.values.astype("timedelta64[ns]", copy=False))
+
+    def array_values(self) -> ExtensionArray:
+        return TimedeltaArray._simple_new(self.values)
 
 
 class BoolBlock(NumericBlock):
@@ -2983,8 +3036,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 
 
 def _extend_blocks(result, blocks=None):
-    """ return a new extended blocks, givin the result """
-    from pandas.core.internals import BlockManager
+    """ return a new extended blocks, given the result """
 
     if blocks is None:
         blocks = []
@@ -2994,9 +3046,8 @@ def _extend_blocks(result, blocks=None):
                 blocks.extend(r)
             else:
                 blocks.append(r)
-    elif isinstance(result, BlockManager):
-        blocks.extend(result.blocks)
     else:
+        assert isinstance(result, Block), type(result)
         blocks.append(result)
     return blocks
 
@@ -3024,7 +3075,6 @@ def _merge_blocks(blocks, dtype=None, _can_consolidate=True):
         if dtype is None:
             if len({b.dtype for b in blocks}) != 1:
                 raise AssertionError("_merge_blocks are invalid!")
-            dtype = blocks[0].dtype
 
         # FIXME: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.

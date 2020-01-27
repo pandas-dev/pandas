@@ -120,8 +120,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
     elif box == "datetime":
         func_create = create_datetime_from_ts
     else:
-        raise ValueError("box must be one of 'datetime', 'date', 'time' or"
-                         " 'timestamp'")
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or 'timestamp'")
 
     if is_utc(tz) or tz is None:
         for i in range(n):
@@ -188,7 +187,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
     return result
 
 
-def _test_parse_iso8601(object ts):
+def _test_parse_iso8601(ts: str):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
     only for testing, actual construction uses `convert_str_to_tsobject`
@@ -296,16 +295,33 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     return result
 
 
-def array_with_unit_to_datetime(ndarray values, object unit,
+def array_with_unit_to_datetime(ndarray values, ndarray mask, object unit,
                                 str errors='coerce'):
     """
-    convert the ndarray according to the unit
+    Convert the ndarray to datetime according to the time unit.
+
+    This function converts an array of objects into a numpy array of
+    datetime64[ns]. It returns the converted array
+    and also returns the timezone offset
+
     if errors:
       - raise: return converted values or raise OutOfBoundsDatetime
           if out of range on the conversion or
           ValueError for other conversions (e.g. a string)
       - ignore: return non-convertible values as the same unit
       - coerce: NaT for non-convertibles
+
+    Parameters
+    ----------
+    values : ndarray of object
+         Date-like objects to convert
+    mask : ndarray of bool
+         Not-a-time mask for non-nullable integer types conversion,
+         can be None
+    unit : object
+         Time unit to use during conversion
+    errors : str, default 'raise'
+         Error behavior when parsing
 
     Returns
     -------
@@ -316,7 +332,6 @@ def array_with_unit_to_datetime(ndarray values, object unit,
         Py_ssize_t i, j, n=len(values)
         int64_t m
         ndarray[float64_t] fvalues
-        ndarray mask
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         bint is_raise = errors=='raise'
@@ -329,9 +344,13 @@ def array_with_unit_to_datetime(ndarray values, object unit,
 
     if unit == 'ns':
         if issubclass(values.dtype.type, np.integer):
-            return values.astype('M8[ns]'), tz
-        # This will return a tz
-        return array_to_datetime(values.astype(object), errors=errors)
+            result = values.astype('M8[ns]')
+        else:
+            result, tz = array_to_datetime(values.astype(object), errors=errors)
+        if mask is not None:
+            iresult = result.view('i8')
+            iresult[mask] = NPY_NAT
+        return result, tz
 
     m = cast_from_unit(None, unit)
 
@@ -343,7 +362,9 @@ def array_with_unit_to_datetime(ndarray values, object unit,
         if values.dtype.kind == "i":
             # Note: this condition makes the casting="same_kind" redundant
             iresult = values.astype('i8', casting='same_kind', copy=False)
-            mask = iresult == NPY_NAT
+            # If no mask, fill mask by comparing to NPY_NAT constant
+            if mask is None:
+                mask = iresult == NPY_NAT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
             need_to_iterate = False

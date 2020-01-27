@@ -22,9 +22,27 @@ from pandas._libs.algos import is_monotonic
 
 from pandas._libs.util cimport numeric
 
-from pandas._libs.skiplist cimport (
-    skiplist_t, skiplist_init, skiplist_destroy, skiplist_get, skiplist_insert,
-    skiplist_remove)
+cdef extern from "../src/skiplist.h":
+    ctypedef struct node_t:
+        node_t **next
+        int *width
+        double value
+        int is_nil
+        int levels
+        int ref_count
+
+    ctypedef struct skiplist_t:
+        node_t *head
+        node_t **tmp_chain
+        int *tmp_steps
+        int size
+        int maxlevels
+
+    skiplist_t* skiplist_init(int) nogil
+    void skiplist_destroy(skiplist_t*) nogil
+    double skiplist_get(skiplist_t*, int, int*) nogil
+    int skiplist_insert(skiplist_t*, double) nogil
+    int skiplist_remove(skiplist_t*, double) nogil
 
 cdef:
     float32_t MINfloat32 = np.NINF
@@ -38,8 +56,9 @@ cdef:
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
-cdef inline bint is_monotonic_start_end_bounds(ndarray[int64_t, ndim=1] start,
-                                               ndarray[int64_t, ndim=1] end):
+cdef inline bint is_monotonic_start_end_bounds(
+    ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
+):
     return is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
 
 # Cython implementations of rolling sum, mean, variance, skewness,
@@ -72,8 +91,12 @@ cdef inline bint is_monotonic_start_end_bounds(ndarray[int64_t, ndim=1] start,
 # this is only an impl for index not None, IOW, freq aware
 
 
-def roll_count(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-               int64_t minp):
+def roll_count(
+    ndarray[float64_t] values,
+    ndarray[int64_t] start,
+    ndarray[int64_t] end,
+    int64_t minp,
+):
     cdef:
         float64_t val, count_x = 0.0
         int64_t s, e, nobs, N = len(values)
@@ -1853,8 +1876,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
         bint is_observation
 
     if <Py_ssize_t>len(input_y) != N:
-        raise ValueError(f"arrays are of different lengths "
-                         f"({N} and {len(input_y)})")
+        raise ValueError(f"arrays are of different lengths ({N} and {len(input_y)})")
 
     output = np.empty(N, dtype=float)
     if N == 0:

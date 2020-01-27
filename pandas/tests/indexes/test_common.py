@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import needs_i8_conversion
 
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex, RangeIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCommon:

@@ -29,8 +29,8 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 class Ops:
@@ -62,8 +62,8 @@ class Ops:
         self.unicode_series = Series(arr, index=self.unicode_index, name="a")
 
         types = ["bool", "int", "float", "dt", "dt_tz", "period", "string", "unicode"]
-        self.indexes = [getattr(self, "{}_index".format(t)) for t in types]
-        self.series = [getattr(self, "{}_series".format(t)) for t in types]
+        self.indexes = [getattr(self, f"{t}_index") for t in types]
+        self.series = [getattr(self, f"{t}_series") for t in types]
 
         # To test narrow dtypes, we use narrower *data* elements, not *index* elements
         index = self.int_index
@@ -79,7 +79,7 @@ class Ops:
         self.uint32_series = Series(arr_int.astype(np.uint32), index=index, name="a")
 
         nrw_types = ["float32", "int8", "int16", "int32", "uint8", "uint16", "uint32"]
-        self.narrow_series = [getattr(self, "{}_series".format(t)) for t in nrw_types]
+        self.narrow_series = [getattr(self, f"{t}_series") for t in nrw_types]
 
         self.objs = self.indexes + self.series + self.narrow_series
 
@@ -123,11 +123,11 @@ class Ops:
 
                     # an object that is datetimelike will raise a TypeError,
                     # otherwise an AttributeError
+                    msg = "no attribute"
                     err = AttributeError
                     if issubclass(type(o), DatetimeIndexOpsMixin):
                         err = TypeError
-
-                    with pytest.raises(err):
+                    with pytest.raises(err, match=msg):
                         getattr(o, op)
 
     @pytest.mark.parametrize("klass", [Series, DataFrame])
@@ -211,9 +211,10 @@ class TestIndexOps(Ops):
                 if is_datetime64_dtype(o) or is_datetime64tz_dtype(o):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
-                    with pytest.raises(TypeError):
+                    msg = "Invalid comparison"
+                    with pytest.raises(TypeError, match=msg):
                         None > o
-                    with pytest.raises(TypeError):
+                    with pytest.raises(TypeError, match=msg):
                         o > None
                 else:
                     result = None > o
@@ -235,16 +236,15 @@ class TestIndexOps(Ops):
             for p in ["flags", "strides", "itemsize", "base", "data"]:
                 assert not hasattr(o, p)
 
-            with pytest.raises(ValueError):
-                with tm.assert_produces_warning(FutureWarning):
-                    o.item()  # len > 1
+            msg = "can only convert an array of size 1 to a Python scalar"
+            with pytest.raises(ValueError, match=msg):
+                o.item()  # len > 1
 
             assert o.ndim == 1
             assert o.size == len(o)
 
-        with tm.assert_produces_warning(FutureWarning):
-            assert Index([1]).item() == 1
-            assert Series([1]).item() == 1
+        assert Index([1]).item() == 1
+        assert Series([1]).item() == 1
 
     def test_value_counts_unique_nunique(self):
         for orig in self.objs:
@@ -440,7 +440,8 @@ class TestIndexOps(Ops):
         s = klass(s_values)
 
         # bins
-        with pytest.raises(TypeError):
+        msg = "bins argument only works with numeric data"
+        with pytest.raises(TypeError, match=msg):
             s.value_counts(bins=1)
 
         s1 = Series([1, 1, 2, 3])
@@ -700,9 +701,7 @@ class TestIndexOps(Ops):
 
                 with pytest.raises(
                     TypeError,
-                    match=(
-                        r"drop_duplicates\(\) got an " r"unexpected keyword argument"
-                    ),
+                    match=r"drop_duplicates\(\) got an unexpected keyword argument",
                 ):
                     idx.drop_duplicates(inplace=True)
 
@@ -861,7 +860,8 @@ class TestIndexOps(Ops):
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
-            with pytest.raises(ValueError):
+            msg = "expected type bool"
+            with pytest.raises(ValueError, match=msg):
                 self.int_series.drop_duplicates(inplace=value)
 
     def test_getitem(self):
@@ -874,9 +874,11 @@ class TestIndexOps(Ops):
 
             assert i[-1] == i[9]
 
-            with pytest.raises(IndexError):
+            msg = "index 20 is out of bounds for axis 0 with size 10"
+            with pytest.raises(IndexError, match=msg):
                 i[20]
-            with pytest.raises(IndexError):
+            msg = "single positional indexer is out-of-bounds"
+            with pytest.raises(IndexError, match=msg):
                 s.iloc[20]
 
     @pytest.mark.parametrize("indexer_klass", [list, pd.Index])

@@ -11,6 +11,9 @@ from cython import Py_ssize_t
 from cpython.object cimport PyObject_RichCompareBool, Py_EQ
 from cpython.ref cimport Py_INCREF
 from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
+from cpython.iterator cimport PyIter_Check
+from cpython.sequence cimport PySequence_Check
+from cpython.number cimport PyNumber_Check
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -19,7 +22,7 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM,
+from numpy cimport (ndarray, PyArray_Check, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t, float32_t, float64_t,
@@ -156,7 +159,8 @@ def is_scalar(val: object) -> bool:
     True
     """
 
-    return (cnp.PyArray_IsAnyScalar(val)
+    # Start with C-optimized checks
+    if (cnp.PyArray_IsAnyScalar(val)
             # PyArray_IsAnyScalar is always False for bytearrays on Py3
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -164,12 +168,52 @@ def is_scalar(val: object) -> bool:
             # We differ from numpy, which claims that None is not scalar;
             # see np.isscalar
             or val is C_NA
-            or val is None
-            or isinstance(val, (Fraction, Number))
+            or val is None):
+        return True
+
+    # Next use C-optimized checks to exclude common non-scalars before falling
+    #  back to non-optimized checks.
+    if PySequence_Check(val):
+        # e.g. list, tuple
+        # includes np.ndarray, Series which PyNumber_Check can return True for
+        return False
+
+    # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
+    return (PyNumber_Check(val)
             or util.is_period_object(val)
-            or is_decimal(val)
             or is_interval(val)
             or util.is_offset_object(val))
+
+
+def is_iterator(obj: object) -> bool:
+    """
+    Check if the object is an iterator.
+
+    This is intended for generators, not list-like objects.
+
+    Parameters
+    ----------
+    obj : The object to check
+
+    Returns
+    -------
+    is_iter : bool
+        Whether `obj` is an iterator.
+
+    Examples
+    --------
+    >>> is_iterator((x for x in []))
+    True
+    >>> is_iterator([1, 2, 3])
+    False
+    >>> is_iterator(datetime(2017, 1, 1))
+    False
+    >>> is_iterator("foo")
+    False
+    >>> is_iterator(1)
+    False
+    """
+    return PyIter_Check(obj)
 
 
 def item_from_zerodim(val: object) -> object:
@@ -510,7 +554,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 @cython.boundscheck(False)
 def array_equivalent_object(left: object[:], right: object[:]) -> bool:
     """
-    Perform an element by element comparion on 1-d object arrays
+    Perform an element by element comparison on 1-d object arrays
     taking into account nan positions.
     """
     cdef:
@@ -524,8 +568,11 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
-            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            if PyArray_Check(x) and PyArray_Check(y):
+                if not array_equivalent_object(x, y):
+                    return False
+            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
@@ -598,7 +645,7 @@ def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
 @cython.boundscheck(False)
 def clean_index_list(obj: list):
     """
-    Utility used in ``pandas.core.index.ensure_index``.
+    Utility used in ``pandas.core.indexes.api.ensure_index``.
     """
     cdef:
         Py_ssize_t i, n = len(obj)
@@ -1259,15 +1306,15 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     # make contiguous
     values = values.ravel()
 
-    if skipna:
-        values = values[~isnaobj(values)]
-
     val = _try_infer_map(values)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
         values = values.astype('O')
+
+    if skipna:
+        values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:
@@ -1620,6 +1667,10 @@ cdef class StringValidator(Validator):
 
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
+
+    cdef bint is_valid_null(self, object value) except -1:
+        # We deliberately exclude None / NaN here since StringArray uses NA
+        return value is C_NA
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -2232,13 +2283,14 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
-_no_default = object()
+# Note: no_default is exported to the public API in pandas.api.extensions
+no_default = object()  #: Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
-                   object na_value=_no_default, object dtype=object):
+                   object na_value=no_default, object dtype=object):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2269,7 +2321,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
     result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
-            if na_value is _no_default:
+            if na_value is no_default:
                 val = arr[i]
             else:
                 val = na_value

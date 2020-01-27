@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 
 from pandas import DataFrame, Series, date_range
@@ -7,6 +9,36 @@ try:
     import pandas.core.computation.expressions as expr
 except ImportError:
     import pandas.computation.expressions as expr
+
+
+class IntFrameWithScalar:
+    params = [
+        [np.float64, np.int64],
+        [2, 3.0, np.int32(4), np.float64(5)],
+        [
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
+            operator.floordiv,
+            operator.pow,
+            operator.mod,
+            operator.eq,
+            operator.ne,
+            operator.gt,
+            operator.ge,
+            operator.lt,
+            operator.le,
+        ],
+    ]
+    param_names = ["dtype", "scalar", "op"]
+
+    def setup(self, dtype, scalar, op):
+        arr = np.random.randn(20000, 100)
+        self.df = DataFrame(arr.astype(dtype))
+
+    def time_frame_op_with_scalar(self, dtype, scalar, op):
+        op(self.df, scalar)
 
 
 class Ops:

@@ -5,8 +5,8 @@ from pandas._libs.tslib import iNaT
 
 import pandas as pd
 from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 def test_fillna(idx):
@@ -101,7 +101,7 @@ def test_nulls(idx):
         idx.isna()
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="isna is not defined for MultiIndex")
 def test_hasnans_isnans(idx):
     # GH 11343, added tests for hasnans / isnans
     index = idx.copy()

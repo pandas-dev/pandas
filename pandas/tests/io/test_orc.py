@@ -7,7 +7,7 @@ import pytest
 
 import pandas as pd
 from pandas import read_orc
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
 pytest.importorskip("pyarrow.orc")

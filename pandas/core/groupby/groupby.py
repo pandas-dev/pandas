@@ -4,7 +4,7 @@ class providing the base-class of operations.
 
 The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
-expose these user-facing objects to provide specific functionailty.
+expose these user-facing objects to provide specific functionality.
 """
 
 from contextlib import contextmanager
@@ -33,6 +33,7 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
+from pandas._typing import FrameOrSeries, Scalar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -50,7 +51,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import FrameOrSeries, Scalar
 from pandas.core import nanops
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import Categorical, DatetimeArray, try_cast_to_ea
@@ -59,7 +59,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, ops
-from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
@@ -236,7 +236,7 @@ apply : Apply function to each group instead of to the
 Notes
 -----
 See more `here
-<http://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
 
 Examples
 --------
@@ -325,7 +325,7 @@ class GroupByPlot(PandasObject):
         f.__name__ = "plot"
         return self._groupby.apply(f)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
@@ -485,8 +485,8 @@ class _GroupBy(PandasObject, SelectionMixin):
                 except KeyError:
                     # turns out it wasn't a tuple
                     msg = (
-                        "must supply a same-length tuple to get_group"
-                        " with multiple grouping keys"
+                        "must supply a same-length tuple to get_group "
+                        "with multiple grouping keys"
                     )
                     raise ValueError(msg)
 
@@ -570,7 +570,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions() | self._apply_whitelist
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self.obj:
@@ -685,7 +685,7 @@ b  2""",
         if not len(inds):
             raise KeyError(name)
 
-        return obj.take(inds, axis=self.axis)
+        return obj._take_with_is_copy(inds, axis=self.axis)
 
     def __iter__(self):
         """
@@ -969,22 +969,17 @@ b  2""",
             result = concat(values, axis=self.axis)
             ax = self._selected_obj._get_axis(self.axis)
 
-            if isinstance(result, Series):
-                result = result.reindex(ax)
+            # this is a very unfortunate situation
+            # we can't use reindex to restore the original order
+            # when the ax has duplicates
+            # so we resort to this
+            # GH 14776, 30667
+            if ax.has_duplicates:
+                indexer, _ = result.index.get_indexer_non_unique(ax.values)
+                indexer = algorithms.unique1d(indexer)
+                result = result.take(indexer, axis=self.axis)
             else:
-
-                # this is a very unfortunate situation
-                # we have a multi-index that is NOT lexsorted
-                # and we have a result which is duplicated
-                # we can't reindex, so we resort to this
-                # GH 14776
-                if isinstance(ax, MultiIndex) and not ax.is_unique:
-                    indexer = algorithms.unique1d(
-                        result.index.get_indexer_for(ax.values)
-                    )
-                    result = result.take(indexer, axis=self.axis)
-                else:
-                    result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis)
 
         elif self.group_keys:
 
@@ -1937,21 +1932,22 @@ class GroupBy(_GroupBy):
             #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
             #  but this hits https://github.com/pandas-dev/pandas/issues/10710
             #  which doesn't reorder the list-like `q` on the inner level.
-            order = np.roll(list(range(result.index.nlevels)), -1)
+            order = list(range(1, result.index.nlevels)) + [0]
+
+            # temporarily saves the index names
+            index_names = np.array(result.index.names)
+
+            # set index names to positions to avoid confusion
+            result.index.names = np.arange(len(index_names))
+
+            # place quantiles on the inside
             result = result.reorder_levels(order)
-            result = result.reindex(q, level=-1)
 
-            # fix order.
-            hi = len(q) * self.ngroups
-            arr = np.arange(0, hi, self.ngroups)
-            arrays = []
+            # restore the index names in order
+            result.index.names = index_names[order]
 
-            for i in range(self.ngroups):
-                arr2 = arr + i
-                arrays.append(arr2)
-
-            indices = np.concatenate(arrays)
-            assert len(indices) == len(result)
+            # reorder rows to keep things sorted
+            indices = np.arange(len(result)).reshape([len(q), self.ngroups]).T.flatten()
             return result.take(indices)
 
     @Substitution(name="groupby")
@@ -2098,17 +2094,17 @@ class GroupBy(_GroupBy):
         Parameters
         ----------
         method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
-            * average: average rank of group
-            * min: lowest rank in group
-            * max: highest rank in group
-            * first: ranks assigned in order they appear in the array
-            * dense: like 'min', but rank always increases by 1 between groups
+            * average: average rank of group.
+            * min: lowest rank in group.
+            * max: highest rank in group.
+            * first: ranks assigned in order they appear in the array.
+            * dense: like 'min', but rank always increases by 1 between groups.
         ascending : bool, default True
             False for ranks by high (1) to low (N).
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
-            * keep: leave NA values where they are
-            * top: smallest rank if ascending
-            * bottom: smallest rank if descending
+            * keep: leave NA values where they are.
+            * top: smallest rank if ascending.
+            * bottom: smallest rank if descending.
         pct : bool, default False
             Compute percentage rank of data within each group.
         axis : int, default 0
@@ -2361,6 +2357,9 @@ class GroupBy(_GroupBy):
                     axis=axis,
                 )
             )
+        if fill_method is None:  # GH30463
+            fill_method = "pad"
+            limit = 0
         filled = getattr(self, fill_method)(limit=limit)
         fill_grp = filled.groupby(self.grouper.codes)
         shifted = fill_grp.shift(periods=periods, freq=freq)
@@ -2376,6 +2375,8 @@ class GroupBy(_GroupBy):
         from the original DataFrame with original index and order preserved
         (``as_index`` flag is ignored).
 
+        Does not work for negative values of `n`.
+
         Returns
         -------
         Series or DataFrame
@@ -2389,6 +2390,10 @@ class GroupBy(_GroupBy):
            A  B
         0  1  2
         2  5  6
+        >>> df.groupby('A').head(-1)
+        Empty DataFrame
+        Columns: [A, B]
+        Index: []
         """
         self._reset_group_selection()
         mask = self._cumcount_array() < n
@@ -2404,6 +2409,8 @@ class GroupBy(_GroupBy):
         from the original DataFrame with original index and order preserved
         (``as_index`` flag is ignored).
 
+        Does not work for negative values of `n`.
+
         Returns
         -------
         Series or DataFrame
@@ -2417,6 +2424,10 @@ class GroupBy(_GroupBy):
            A  B
         1  a  2
         3  b  2
+        >>> df.groupby('A').tail(-1)
+        Empty DataFrame
+        Columns: [A, B]
+        Index: []
         """
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
@@ -2527,9 +2538,9 @@ def get_groupby(
     squeeze: bool = False,
     observed: bool = False,
     mutated: bool = False,
-):
+) -> GroupBy:
 
-    klass: Union[Type["SeriesGroupBy"], Type["DataFrameGroupBy"]]
+    klass: Type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 

@@ -3,9 +3,7 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
-from collections import OrderedDict
-
-from pandas.core.index import Index, MultiIndex
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.series import Series
 
 
@@ -19,14 +17,14 @@ def _check_is_partition(parts, whole):
 
 
 def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
-    """ For arbitrary (MultiIndexed) SparseSeries return
+    """ For arbitrary (MultiIndexed) sparse Series return
     (v, i, j, ilabels, jlabels) where (v, (i, j)) is suitable for
     passing to scipy.sparse.coo constructor. """
     # index and column levels must be a partition of the index
     _check_is_partition([row_levels, column_levels], range(ss.index.nlevels))
 
-    # from the SparseSeries: get the labels and data for non-null entries
-    values = ss._data.internal_values()._valid_sp_values
+    # from the sparse Series: get the labels and data for non-null entries
+    values = ss.array._valid_sp_values
 
     nonnull_labels = ss.dropna()
 
@@ -46,14 +44,13 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
         # labels_to_i[:] = np.arange(labels_to_i.shape[0])
 
         def _get_label_to_i_dict(labels, sort_labels=False):
-            """ Return OrderedDict of unique labels to number.
+            """ Return dict of unique labels to number.
             Optionally sort by label.
             """
             labels = Index(map(tuple, labels)).unique().tolist()  # squish
             if sort_labels:
                 labels = sorted(labels)
-            d = OrderedDict((k, i) for i, k in enumerate(labels))
-            return d
+            return {k: i for i, k in enumerate(labels)}
 
         def _get_index_subset_to_coord_dict(index, subset, sort_labels=False):
             ilabels = list(zip(*[index._get_level_values(i) for i in subset]))
@@ -88,7 +85,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
 
 def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """
-    Convert a SparseSeries to a scipy.sparse.coo_matrix using index
+    Convert a sparse Series to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
     labels respectively. Returns the sparse_matrix, row and column labels.
     """

@@ -22,7 +22,6 @@ Flat file
    read_table
    read_csv
    read_fwf
-   read_msgpack
 
 Clipboard
 ~~~~~~~~~
@@ -51,13 +50,13 @@ JSON
    :toctree: api/
 
    read_json
+   json_normalize
 
 .. currentmodule:: pandas.io.json
 
 .. autosummary::
    :toctree: api/
 
-   json_normalize
    build_table_schema
 
 .. currentmodule:: pandas

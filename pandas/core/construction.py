@@ -11,6 +11,7 @@ import numpy.ma as ma
 
 from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime
+from pandas._typing import ArrayLike, Dtype
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -44,12 +45,11 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas._typing import ArrayLike, Dtype
 import pandas.core.common as com
 
 if TYPE_CHECKING:
     from pandas.core.series import Series  # noqa: F401
-    from pandas.core.index import Index  # noqa: F401
+    from pandas.core.indexes.api import Index  # noqa: F401
 
 
 def array(
@@ -265,8 +265,8 @@ def array(
     )
 
     if lib.is_scalar(data):
-        msg = "Cannot pass scalar '{}' to 'pandas.array'."
-        raise ValueError(msg.format(data))
+        msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
+        raise ValueError(msg)
 
     if dtype is None and isinstance(
         data, (ABCSeries, ABCIndexClass, ABCExtensionArray)
@@ -334,7 +334,7 @@ def array(
     return result
 
 
-def extract_array(obj, extract_numpy=False):
+def extract_array(obj, extract_numpy: bool = False):
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -497,13 +497,8 @@ def sanitize_array(
 
         if is_object_dtype(subarr.dtype) and not is_object_dtype(dtype):
             inferred = lib.infer_dtype(subarr, skipna=False)
-            if inferred == "period":
-                from pandas.core.arrays import period_array
-
-                try:
-                    subarr = period_array(subarr)
-                except IncompatibleFrequency:
-                    pass
+            if inferred in {"interval", "period"}:
+                subarr = array(subarr)
 
     return subarr
 
