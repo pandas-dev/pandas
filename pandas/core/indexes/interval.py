@@ -201,7 +201,7 @@ class SetopCheck:
     IntervalArray,
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "_ndarray_values", "closed"],
+    ["is_non_overlapping_monotonic", "mid", "_ndarray_values", "closed", "_closed"],
     IntervalArray,
     cache=True,
 )
