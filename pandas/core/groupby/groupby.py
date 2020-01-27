@@ -935,7 +935,7 @@ b  2""",
             result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-            output[key] = self._try_cast(result, obj, numeric_only=True)
+            output[key] = result
 
         if len(output) == 0:
             return self._python_apply_general(f)
