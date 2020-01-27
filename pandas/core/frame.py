@@ -2776,6 +2776,13 @@ class DataFrame(NDFrame):
         if indexer is not None:
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
+            if not isinstance(key, slice):
+                warnings.warn(
+                    "row-based slicing on a DataFrame is deprecated and will "
+                    "raise in a future version.  Use `df.loc[key]` instead.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
             return self._slice(indexer, axis=0)
 
         # Do we have a (boolean) DataFrame?
@@ -2926,6 +2933,13 @@ class DataFrame(NDFrame):
         if indexer is not None:
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
+            if not isinstance(key, slice):
+                warnings.warn(
+                    "row-based slicing on a DataFrame is deprecated and will "
+                    "raise in a future version.  Use `df.loc[key]` instead.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
             return self._setitem_slice(indexer, value)
 
         if isinstance(key, DataFrame) or getattr(key, "ndim", None) == 2:

@@ -309,7 +309,8 @@ class TestSlicing:
                     tm.assert_series_equal(result, expected)
 
                     # Frame should return slice as well
-                    result = df[ts_string]
+                    with tm.assert_produces_warning(FutureWarning):
+                        result = df[ts_string]
                     expected = df[theslice]
                     tm.assert_frame_equal(result, expected)
 
