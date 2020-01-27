@@ -3211,8 +3211,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
-        is_copy : bool, default True
-            Whether to return a copy of the original object or not.
+        is_copy : bool
+            Before pandas 1.0, ``is_copy=False`` can be specified to ensure
+            that the return value is an actual copy. Starting with pandas 1.0,
+            ``take`` always returns a copy, and the keyword is therefore
+            deprecated.
 
             .. deprecated:: 1.0.0
         **kwargs
@@ -3276,12 +3279,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if is_copy is not None:
             warnings.warn(
                 "is_copy is deprecated and will be removed in a future version. "
-                "take will always return a copy in the future.",
+                "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
                 stacklevel=2,
             )
-        else:
-            is_copy = True
 
         nv.validate_take(tuple(), kwargs)
 
@@ -3290,13 +3291,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         new_data = self._data.take(
             indices, axis=self._get_block_manager_axis(axis), verify=True
         )
-        result = self._constructor(new_data).__finalize__(self)
+        return self._constructor(new_data).__finalize__(self)
 
+    def _take_with_is_copy(
+        self: FrameOrSeries, indices, axis=0, **kwargs
+    ) -> FrameOrSeries:
+        """
+        Internal version of the `take` method that sets the `_is_copy`
+        attribute to keep track of the parent dataframe (using in indexing
+        for the SettingWithCopyWarning).
+
+        See the docstring of `take` for full explanation of the parameters.
+        """
+        result = self.take(indices=indices, axis=axis, **kwargs)
         # Maybe set copy if we didn't actually change the index.
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
-
+        if not result._get_axis(axis).equals(self._get_axis(axis)):
+            result._set_is_copy(self)
         return result
 
     def xs(self, key, axis=0, level=None, drop_level: bool_t = True):
@@ -3426,9 +3436,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     (inds,) = loc.nonzero()
-                    return self.take(inds, axis=axis)
+                    return self._take_with_is_copy(inds, axis=axis)
                 else:
-                    return self.take(loc, axis=axis)
+                    return self._take_with_is_copy(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -3485,7 +3495,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self.take(item, axis=self._info_axis_number)
+            lower = self._take_with_is_copy(item, axis=self._info_axis_number)
         return lower
 
     def _box_item_values(self, key, values):
@@ -7003,8 +7013,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # mask the missing
         missing = locs == -1
-        d = self.take(locs)
-        data = d.copy()
+        data = self.take(locs)
         data.index = where
         data.loc[missing] = np.nan
         return data if is_list else data.iloc[-1]
@@ -7550,7 +7559,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self.take(indexer, axis=axis)
+        return self._take_with_is_copy(indexer, axis=axis)
 
     def between_time(
         self: FrameOrSeries,
@@ -7632,7 +7641,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         except AttributeError:
             raise TypeError("Index must be DatetimeIndex")
 
-        return self.take(indexer, axis=axis)
+        return self._take_with_is_copy(indexer, axis=axis)
 
     def resample(
         self,

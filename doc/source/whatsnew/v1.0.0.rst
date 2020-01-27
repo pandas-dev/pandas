@@ -752,7 +752,7 @@ Deprecations
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
 - ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
-- The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
+- The parameter ``is_copy`` of :meth:`Series.take` and :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
 - Support for multi-dimensional indexing (e.g. ``index[:, None]``) on a :class:`Index` is deprecated and will be removed in a future version, convert to a numpy array before indexing instead (:issue:`30588`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30610`)
