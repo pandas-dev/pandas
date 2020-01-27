@@ -1,5 +1,5 @@
 import numbers
-from typing import Optional, Tuple, Type, TypeVar, Union
+from typing import Optional, Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -119,9 +119,6 @@ class PandasDtype(ExtensionDtype):
         return self._dtype.itemsize
 
 
-PandasArrayT = TypeVar("PandasArrayT", bound="PandasArray")
-
-
 class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     """
     A pandas ExtensionArray for NumPy data.
@@ -158,9 +155,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(
-        self: PandasArrayT, values: Union[np.ndarray, PandasArrayT], copy: bool = False
-    ):
+    def __init__(self, values: Union[np.ndarray, "PandasArray"], copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -178,9 +173,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         self._dtype = PandasDtype(values.dtype)
 
     @classmethod
-    def _from_sequence(
-        cls: Type[PandasArrayT], scalars, dtype=None, copy: bool = False
-    ) -> PandasArrayT:
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "PandasArray":
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
@@ -190,11 +183,11 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return cls(result)
 
     @classmethod
-    def _from_factorized(cls: Type[PandasArrayT], values, original) -> PandasArrayT:
+    def _from_factorized(cls, values, original) -> "PandasArray":
         return cls(values)
 
     @classmethod
-    def _concat_same_type(cls: Type[PandasArrayT], to_concat) -> PandasArrayT:
+    def _concat_same_type(cls, to_concat) -> "PandasArray":
         return cls(np.concatenate(to_concat))
 
     # ------------------------------------------------------------------------
@@ -293,11 +286,8 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         return isna(self._ndarray)
 
     def fillna(
-        self: PandasArrayT,
-        value=None,
-        method: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> PandasArrayT:
+        self, value=None, method: Optional[str] = None, limit: Optional[int] = None,
+    ) -> "PandasArray":
         # TODO(_values_for_fillna): remove this
         value, method = validate_fillna_kwargs(value, method)
 
@@ -324,9 +314,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
             new_values = self.copy()
         return new_values
 
-    def take(
-        self: PandasArrayT, indices, allow_fill=False, fill_value=None
-    ) -> PandasArrayT:
+    def take(self, indices, allow_fill=False, fill_value=None) -> "PandasArray":
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value
@@ -335,7 +323,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         )
         return type(self)(result)
 
-    def copy(self: PandasArrayT) -> PandasArrayT:
+    def copy(self) -> "PandasArray":
         return type(self)(self._ndarray.copy())
 
     def _values_for_argsort(self) -> np.ndarray:
@@ -344,7 +332,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         return self._ndarray, -1
 
-    def unique(self: PandasArrayT) -> PandasArrayT:
+    def unique(self) -> "PandasArray":
         return type(self)(unique(self._ndarray))
 
     # ------------------------------------------------------------------------
