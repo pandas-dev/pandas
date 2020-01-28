@@ -2541,7 +2541,7 @@ class MultiIndex(Index):
         for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
 
-            if lab not in lev and not isna(lab):
+            if lab not in lev and np.ndim(lab) == 0 and not isna(lab):
                 if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
                     raise TypeError(f"Level type mismatch: {lab}")
 
