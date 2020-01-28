@@ -14,7 +14,9 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
+    is_extension_array_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
@@ -204,6 +206,12 @@ def cut(
     original = x
     x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
+
+    # To support cut(IntegerArray), we convert to object dtype with NaN
+    # Will properly support in the future.
+    # https://github.com/pandas-dev/pandas/pull/31290
+    if is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
+        x = x.to_numpy(dtype=object, na_value=np.nan)
 
     if not np.iterable(bins):
         if is_scalar(bins) and bins < 1:
