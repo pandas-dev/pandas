@@ -4142,6 +4142,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    B     9     9    c
         0    A     2     0    a
         1    A     1     1    B
+
+        Sorting with a key function
+
+        >>> df.sort_values(by='col4', key=lambda col : col.str.lower())
+           col1  col2  col3 col4
+        0    A     2     0    a
+        1    A     1     1    B
+        2    B     9     9    c
+        3  NaN     8     4    D
+        4    D     7     2    e
+        5    C     4     3    F
         """
         raise AbstractMethodError(self)
 

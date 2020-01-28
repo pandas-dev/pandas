@@ -4958,7 +4958,9 @@ class DataFrame(NDFrame):
 
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
 
-            if key is not None: # need to rewrap columns in Series to apply key function
+            if (
+                key is not None
+            ):  # need to rewrap columns in Series to apply key function
                 keys = [Series(k) for k in keys]
 
             indexer = lexsort_indexer(
@@ -4971,7 +4973,7 @@ class DataFrame(NDFrame):
             by = by[0]
             k = self._get_label_or_level_values(by, axis=axis)
 
-            if key is not None: # need to rewrap column in Series to apply key function
+            if key is not None:  # need to rewrap column in Series to apply key function
                 k = Series(k)
 
             if isinstance(ascending, (tuple, list)):
@@ -5036,7 +5038,7 @@ class DataFrame(NDFrame):
             .. versionadded:: 1.0.0
 
         key : callable, optional
-            If not None, apply the key function to the **non-missing** values
+            If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an

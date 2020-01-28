@@ -2828,12 +2828,11 @@ Name: Max Speed, dtype: float64
             .. versionadded:: 1.0.0
 
         key : callable, optional
-            If not None, apply the key function to the **no-missing** values
+            If not None, apply the key function to the series values
             before sorting. This is similar to the `key` argument in the
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
-            ``Series`` or ``Index`` and return an array-like that implements
-            ``argsort``.
+            ``Series`` and return an array-like that implements ``argsort``.
 
             .. versionadded:: 1.0.0
 
@@ -3074,7 +3073,7 @@ Name: Max Speed, dtype: float64
             .. versionadded:: 1.0.0
 
         key : callable, optional
-            If not None, apply the key function to the **non-missing** values
+            If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect an
@@ -3182,7 +3181,6 @@ Name: Max Speed, dtype: float64
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
-        # TODO: should ensure_key_mapped convert to an array?
         index = ensure_key_mapped(self.index, key)
 
         if level is not None:
