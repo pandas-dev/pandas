@@ -1575,11 +1575,12 @@ class Categorical(ExtensionArray, PandasObject):
             'first' puts NaNs at the beginning
             'last' puts NaNs at the end
         key : callable, optional
-            Apply the key function to the values
-            before sorting. This is similar to the `key` argument in the
-            builtin :meth:`sorted` function, with the notable difference that
-            this `key` function should be *vectorized*. It should expect a
-            ``Categorical`` and return an object with the same shape as the input.
+            Apply the key function to the values before sorting.
+            This is similar to the `key` argument in the builtin
+            :meth:`sorted` function, with the notable difference that
+            this `key` function should be *vectorized*. It should expect
+            a ``Categorical`` and return an object with the same shape
+            as the input.
 
             .. versionadded:: 1.0.0
 

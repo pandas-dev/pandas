@@ -169,8 +169,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Return sorted copy of Index.
         """
-        assert isinstance(self, Index)
-
         idx = ensure_key_mapped(self, key)
 
         if return_indexer:

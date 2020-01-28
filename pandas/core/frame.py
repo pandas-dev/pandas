@@ -4958,9 +4958,8 @@ class DataFrame(NDFrame):
 
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
 
-            if (
-                key is not None
-            ):  # need to rewrap columns in Series to apply key function
+            # need to rewrap columns in Series to apply key function
+            if key is not None:
                 keys = [Series(k) for k in keys]
 
             indexer = lexsort_indexer(
@@ -4973,7 +4972,8 @@ class DataFrame(NDFrame):
             by = by[0]
             k = self._get_label_or_level_values(by, axis=axis)
 
-            if key is not None:  # need to rewrap column in Series to apply key function
+            # need to rewrap column in Series to apply key function
+            if key is not None:
                 k = Series(k)
 
             if isinstance(ascending, (tuple, list)):

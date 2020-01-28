@@ -2791,7 +2791,7 @@ Name: Max Speed, dtype: float64
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    def sort_values(  # type: ignore[override] # NOQA
+    def sort_values(
         self,
         axis=0,
         ascending=True,

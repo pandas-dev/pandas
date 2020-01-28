@@ -321,14 +321,14 @@ def nargsort(
 
 def ensure_key_mapped(values, key: Optional[Callable]):
     """
-    Applies a callable key function to elements in an Index subclass or
-    an ndarray. Uses index.map for index subclasses and ignores nan values
-    in ndarrays.
+    Applies a callable key function to the values function and checks
+    that the resulting value has the same shape. Can be called on Index
+    subclasses, Series, DataFrames, or ndarrays.
 
     Parameters
     ----------
-    values : Index subclass or ndarray
-    key : Optional[Callable], key to be called on every index or entry in ndarray.
+    values : Series, DataFrame, Index subclass, or ndarray
+    key : Optional[Callable], key to be called on the values array
     """
     if not key:
         return values
