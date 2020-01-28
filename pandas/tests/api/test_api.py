@@ -46,7 +46,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules: List[str] = ["np", "datetime"]
+    deprecated_modules: List[str] = ["np", "datetime", "core"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -190,6 +190,7 @@ class TestPDApi(Base):
     # private modules in pandas namespace
     private_modules = [
         "_config",
+        "_core",
         "_hashtable",
         "_lib",
         "_libs",
@@ -241,11 +242,11 @@ class TestPDApi(Base):
                 deprecated = getattr(pd, depr)
                 if not compat.PY37:
                     if depr == "datetime":
-                        deprecated.__getattr__(dir(pd.datetime.datetime)[-1])
+                        deprecated.__getattr__(dir(pd.datetime.datetime)[0])
                     elif depr == "SparseArray":
                         deprecated([])
                     else:
-                        deprecated.__getattr__(dir(deprecated)[-1])
+                        deprecated.__getattr__(dir(deprecated)[0])
 
 
 def test_datetime():

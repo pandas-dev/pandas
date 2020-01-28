@@ -190,6 +190,10 @@ del get_versions, v
 # TODO: remove Panel compat in 1.0
 if pandas.compat.PY37:
 
+    import pandas.core as _core
+
+    del pandas.core
+
     def __getattr__(name):
         import warnings
 
@@ -255,6 +259,18 @@ if pandas.compat.PY37:
             from pandas.core.arrays.sparse import SparseArray as _SparseArray
 
             return _SparseArray
+
+        elif name == "core":
+
+            warnings.warn(
+                "The pandas.core module is private and access "
+                "will be moved to pandas._core in a future version. "
+                f"You should import directly from the pandas namespace instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+
+            return _core
 
         raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
@@ -359,6 +375,28 @@ else:
             return sa(*args, **kwargs)
 
     SparseArray = __SparseArraySub
+
+    class __core:
+        def __init__(self):
+            import pandas.core as core
+            import warnings
+
+            self._core = core
+            self._warnings = warnings
+
+        def __getattr__(self, item):
+            attr = getattr(self._core, item)
+            self._warnings.warn(
+                "The pandas.core module is private and access "
+                "will be moved to pandas._core in a future version. "
+                f"You should import pandas.{item} directly instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            return attr
+
+    _core = __core()
+    core: __core = __core()
 
 
 # module level doc-string
