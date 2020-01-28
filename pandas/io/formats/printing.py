@@ -6,12 +6,14 @@ import sys
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Mapping,
     Optional,
     Sequence,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -20,6 +22,8 @@ from pandas._config import get_option
 from pandas.core.dtypes.inference import is_sequence
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
+_KT = TypeVar("_KT")
+_VT = TypeVar("_VT")
 
 
 def adjoin(space: int, *lists: List[str], **kwargs) -> str:
@@ -530,8 +534,8 @@ def format_object_attrs(
     return attrs
 
 
-class PrettyDict(dict):
+class PrettyDict(Dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pprint_thing(self, max_seq_items=get_option("display.max_rows"))
