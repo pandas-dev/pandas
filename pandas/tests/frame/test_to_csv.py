@@ -576,6 +576,7 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(to_df, recons)
 
     def test_to_csv_raises_on_header_prefix(self):
+        # gh-27394
         msg = "Argument prefix must be None if argument header is not None"
         s = StringIO("0,1\n2,3")
         with pytest.raises(ValueError, match=msg):
