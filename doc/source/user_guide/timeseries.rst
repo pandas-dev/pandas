@@ -677,6 +677,7 @@ If index resolution is second, then the minute-accurate timestamp gives a
 If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
 
 .. ipython:: python
+   :okwarning:
 
     dft_minute = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
                               index=series_minute.index)
@@ -689,7 +690,11 @@ If the timestamp string is treated as a slice, it can be used to index ``DataFra
 
    To *always* have unambiguous selection, whether the row is treated as a slice or a single selection, use ``.loc``.
 
+   As of version 1.1.0, row-based indexing is deprecated.  Users should always use ``.loc``
+   for label-based row indexing.
+
    .. ipython:: python
+      :okwarning:
 
       dft_minute.loc['2011-12-31 23:59']
 
@@ -1982,6 +1987,7 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
 As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 
 .. ipython:: python
+   :okwarning:
 
    dfp['2013-01-01 10H':'2013-01-01 11H']
 
