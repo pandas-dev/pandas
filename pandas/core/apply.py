@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
@@ -281,9 +281,8 @@ class FrameApply(metaclass=abc.ABCMeta):
             # Disallow dtypes where setting _index_data will break
             #  ExtensionArray values, see GH#31182
             and not self.dtypes.apply(lambda x: x.kind in ["m", "M"]).any()
-            # Disallow MultiIndex since libreduction shortcut
-            #  cannot handle MultiIndex
-            and not isinstance(self.agg_axis, ABCMultiIndex)
+            # Disallow complex_internals since libreduction shortcut raises a TypeError
+            and not self.agg_axis._has_complex_internals
         ):
 
             values = self.values
