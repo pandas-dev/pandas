@@ -8,7 +8,12 @@ import numpy as np
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal, is_integer
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_dtype_equal,
+    is_integer,
+    is_object_dtype,
+)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
@@ -132,6 +137,15 @@ def _make_wrapped_comparison_op(opname):
 
 def make_wrapped_arith_op(opname):
     def method(self, other):
+        if (
+            isinstance(other, Index)
+            and is_object_dtype(other.dtype)
+            and type(other) is not Index
+        ):
+            # We return NotImplemented for object-dtype index *subclasses* so they have
+            # a chance to implement ops before we unwrap them.
+            # See https://github.com/pandas-dev/pandas/issues/31109
+            return NotImplemented
         meth = getattr(self._data, opname)
         result = meth(_maybe_unwrap_index(other))
         return _wrap_arithmetic_op(self, other, result)
