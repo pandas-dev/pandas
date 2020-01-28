@@ -24,14 +24,6 @@ def test_read_with_bad_header(all_parsers):
         parser.read_csv(s, header=[10])
 
 
-def test_read_raises_on_header_prefix(all_parsers):
-    parser = all_parsers
-    msg = "Argument prefix must be None if argument header is not None"
-    with pytest.raises(ValueError, match=msg):
-        s = StringIO("0,1\n2,3")
-        parser.read_csv(s, header=0, prefix="_X")
-
-
 def test_negative_header(all_parsers):
     # see gh-27779
     parser = all_parsers
