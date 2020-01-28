@@ -371,6 +371,9 @@ def check_array_indexer(array: AnyArrayLike, indexer) -> np.ndarray:
 
     if not is_array_like(indexer):
         indexer = pd_array(indexer)
+        if len(indexer) == 0:
+            # empty list is converted to float array by pd.array
+            indexer = np.array([], dtype=np.intp)
     dtype = indexer.dtype
     if is_bool_dtype(dtype):
         try:

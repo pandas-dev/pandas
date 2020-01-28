@@ -517,16 +517,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 return self._box_func(val)
             return type(self)(val, dtype=self.dtype)
 
-        if is_list_like(key) and not isinstance(key, tuple):
-            key = check_array_indexer(self, key)
-
         if com.is_bool_indexer(key):
-            # can still have object dtype
+            # first check for boolean, because check_array_indexer doesn't
+            # allow object dtype
             key = np.asarray(key, dtype=bool)
+            key = check_array_indexer(self, key)
             if key.all():
                 key = slice(0, None, None)
             else:
                 key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+        elif is_list_like(key) and not isinstance(key, tuple):
+            key = check_array_indexer(self, key)
 
         is_period = is_period_dtype(self)
         if is_period:

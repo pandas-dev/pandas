@@ -97,6 +97,15 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data_missing[0]
         assert na_cmp(result, na_value)
 
+    def test_getitem_empty(self, data):
+        # Indexing with empty list
+        result = data[[]]
+        assert len(result) == 0
+        assert isinstance(result, type(data))
+
+        expected = data[np.array([], dtype="int64")]
+        self.assert_extension_array_equal(result, expected)
+
     def test_getitem_mask(self, data):
         # Empty mask, raw array
         mask = np.zeros(len(data), dtype=bool)
@@ -153,7 +162,10 @@ class BaseGetitemTests(BaseExtensionTests):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
 
-        msg = "Cannot mask with a boolean indexer containing NA values"
+        msg = (
+            "Cannot mask with a boolean indexer containing NA values|"
+            "cannot mask with array containing NA / NaN values"
+        )
         with pytest.raises(ValueError, match=msg):
             data[mask]
 
