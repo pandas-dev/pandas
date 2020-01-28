@@ -1346,6 +1346,11 @@ class MultiIndex(Index):
         self._tuples = lib.fast_zip(values)
         return self._tuples
 
+    @property
+    def _has_complex_internals(self):
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
+
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """

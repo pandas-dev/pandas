@@ -811,3 +811,19 @@ def test_groupby_apply_datetime_result_dtypes():
         index=["observation", "color", "mood", "intensity", "score"],
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.CategoricalIndex(list("abc")),
+        pd.interval_range(0, 3),
+        pd.period_range("2020", periods=3, freq="D"),
+        pd.MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
+    ],
+)
+def test_apply_index_has_complex_internals(index):
+    # GH 31248
+    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
+    result = df.groupby("group").apply(lambda x: x)
+    tm.assert_frame_equal(result, df)
