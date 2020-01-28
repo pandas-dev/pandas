@@ -493,7 +493,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the internal repr of this data (defined by Block.interval_values).
         This are the values as stored in the Block (ndarray or ExtensionArray
-        depending on the Block class).
+        depending on the Block class), with datetime64[ns] and timedelta64[ns]
+        wrapped in ExtensionArrays to match Index._values behavior.
 
         Differs from the public ``.values`` for certain data types, because of
         historical backwards compatibility of the public attribute (e.g. period
