@@ -937,6 +937,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
+            # suppress warning from slicing the index with a 2d indexer.
+            # eventually we'll want Series itself to warn.
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore", "Support for multi-dim", DeprecationWarning
