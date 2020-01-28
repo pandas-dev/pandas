@@ -737,8 +737,9 @@ def test_preserve_on_ordered_ops(func, values):
     df = pd.DataFrame({"payload": [-1, -2, -1, -2], "col": c})
     g = df.groupby("payload")
     result = getattr(g, func)()
+    expected_col = pd.Categorical(values, ordered=True)
     expected = pd.DataFrame(
-        {"payload": [-2, -1], "col": pd.Series(values, dtype="category")}
+        {"payload": [-2, -1], "col": expected_col}
     ).set_index("payload")
     tm.assert_frame_equal(result, expected)
 

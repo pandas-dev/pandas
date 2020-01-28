@@ -48,6 +48,7 @@ def try_cast_to_ea(cls_or_instance, obj, dtype=None):
     """
     try:
         result = cls_or_instance._from_sequence(obj, dtype=dtype.name)
+        result = result.set_ordered(dtype.ordered)
     except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj
