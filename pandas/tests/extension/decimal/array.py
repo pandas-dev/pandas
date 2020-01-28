@@ -2,6 +2,7 @@ import decimal
 import numbers
 import random
 import sys
+from typing import Type
 
 import numpy as np
 
@@ -26,7 +27,7 @@ class DecimalDtype(ExtensionDtype):
         return f"DecimalDtype(context={self.context})"
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["DecimalArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -36,15 +37,8 @@ class DecimalDtype(ExtensionDtype):
         """
         return DecimalArray
 
-    @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
-
     @property
-    def _is_numeric(self):
+    def _is_numeric(self) -> bool:
         return True
 
 
