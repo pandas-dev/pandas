@@ -4,7 +4,6 @@ import itertools
 import operator
 import re
 from typing import Dict, List, Optional, Sequence, Tuple, Union
-import warnings
 
 import numpy as np
 
@@ -1506,13 +1505,7 @@ class SingleBlockManager(BlockManager):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", "Support for multi-dim", DeprecationWarning
-            )
-            index = self.index[slobj]
-
-        return type(self)(self._block._slice(slobj), index, fastpath=True,)
+        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True,)
 
     @property
     def index(self):
