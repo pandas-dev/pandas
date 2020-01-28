@@ -1379,8 +1379,7 @@ class Block(PandasObject):
         if not hasattr(cond, "shape"):
             raise ValueError("where must have a condition that is ndarray like")
 
-        # our where function
-        def func(cond, values, other):
+        def where_func(cond, values, other):
 
             if not (
                 (self.is_integer or self.is_bool)
@@ -1391,8 +1390,11 @@ class Block(PandasObject):
                 if not self._can_hold_element(other):
                     raise TypeError
                 if lib.is_scalar(other) and isinstance(values, np.ndarray):
+                    # convert datetime to datetime64, timedelta to timedelta64
                     other = convert_scalar(values, other)
 
+            # By the time we get here, we should have all Series/Index
+            #  args extracted to  ndarray
             fastres = expressions.where(cond, values, other)
             return fastres
 
@@ -1402,7 +1404,7 @@ class Block(PandasObject):
             # see if we can operate on the entire block, or need item-by-item
             # or if we are a single block (ndim == 1)
             try:
-                result = func(cond, values, other)
+                result = where_func(cond, values, other)
             except TypeError:
 
                 # we cannot coerce, return a compat dtype
