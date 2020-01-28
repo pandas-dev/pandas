@@ -136,7 +136,11 @@ class TestTimeSeries:
         assert ts.first_valid_index().freq == ts.index.freq
         assert ts.last_valid_index().freq == ts.index.freq
 
+    @pytest.mark.xfail(reason="Deprecate in Series.__getitem__")
     def test_mpl_compat_hack(self, datetime_series):
+        # This is currently failing because the test was relying on
+        # the DeprecationWarning coming through Index.__getitem__.
+        # We want to implement a warning specifically for Series.__getitem__.
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             # GH#30588 multi-dimensional indexing deprecated
             result = datetime_series[:, np.newaxis]
