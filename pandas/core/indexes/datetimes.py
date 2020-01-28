@@ -367,17 +367,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
             if this._can_fast_union(other):
                 this = this._fast_union(other)
             else:
-                dtype = this.dtype
                 this = Index.union(this, other)
-                if isinstance(this, DatetimeIndex):
-                    # TODO: we shouldn't be setting attributes like this;
-                    #  in all the tests this equality already holds
-                    this._data._dtype = dtype
         return this
-
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        return self._shallow_copy(result, name=name, freq=None)
 
     # --------------------------------------------------------------------
 
