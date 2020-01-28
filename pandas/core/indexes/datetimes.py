@@ -33,7 +33,6 @@ from pandas.core.indexes.datetimelike import (
     DatetimeTimedeltaMixin,
 )
 from pandas.core.indexes.extension import inherit_names
-from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
 from pandas.tseries.frequencies import Resolution, to_offset
