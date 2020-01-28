@@ -19,11 +19,13 @@ import numpy as np
 
 try:
     # PY38+
-    from typing import final
+    from typing import final  # type: ignore
 except ImportError:
     # define a dummy
+    FuncType = Callable[..., Any]
+    F = TypeVar("F", bound=FuncType)
 
-    def final(x):
+    def final(x: F) -> F:
         return x
 
 
