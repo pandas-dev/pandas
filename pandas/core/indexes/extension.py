@@ -292,10 +292,16 @@ class ExtensionIndex(Index):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        if is_integer(key):
-            loc = key
-        else:
+        try:
             loc = self.get_loc(key)
+        except KeyError:
+            # e.g. DatetimeIndex doesn't hold integers
+            if is_integer(key):
+                # Fall back to positional
+                loc = key
+            else:
+                raise
+
         return self._get_values_for_loc(series, loc)
 
     # --------------------------------------------------------------------
