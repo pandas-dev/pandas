@@ -2151,6 +2151,10 @@ class DatetimeLikeBlockMixin:
             return result.reshape(self.values.shape)
         return self.values
 
+    def internal_values(self):
+        # Override to return DatetimeArray and TimedeltaArray
+        return self.array_values()
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
@@ -2284,6 +2288,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_datetimetz = True
     is_extension = True
 
+    internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
