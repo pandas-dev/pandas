@@ -807,10 +807,7 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if (
-                is_extension_array_dtype(dtype)
-                and dtype.kind != "M"
-            ):
+            if is_extension_array_dtype(dtype) and dtype.kind != "M":
                 # The function can return something of any type, so check
                 #  if the type is compatible with the calling EA.
                 # datetime64tz is handled correctly in agg_series,
