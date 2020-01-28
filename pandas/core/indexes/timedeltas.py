@@ -45,13 +45,12 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
     _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
 
     _delegated_properties = TimedeltaArray._datetimelike_ops + list(_raw_properties)
-    _delegated_methods = (
-        TimedeltaArray._datetimelike_methods
-        + list(_raw_methods)
-        + ["_box_values", "__neg__", "__pos__", "__abs__"]
-    )
+    _delegated_methods = TimedeltaArray._datetimelike_methods + list(_raw_methods)
 
 
+@inherit_names(
+    ["_box_values", "__neg__", "__pos__", "__abs__"], TimedeltaArray, wrap=True
+)
 @inherit_names(
     [
         "_bool_ops",

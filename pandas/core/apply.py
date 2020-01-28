@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
@@ -278,9 +278,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         if (
             self.result_type in ["reduce", None]
             and not self.dtypes.apply(is_extension_array_dtype).any()
-            # Disallow complex_internals since libreduction shortcut
-            #  cannot handle MultiIndex
-            and not isinstance(self.agg_axis, ABCMultiIndex)
+            # Disallow complex_internals since libreduction shortcut raises a TypeError
+            and not self.agg_axis._has_complex_internals
         ):
 
             values = self.values
