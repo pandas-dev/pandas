@@ -639,7 +639,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
             try:
                 return ax.get_loc(key)
-            except (TypeError, KeyError):
+            except (TypeError, KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 pass
 
