@@ -5832,6 +5832,8 @@ def deprecate_ndim_indexing(result):
         # GH#27125 indexer like idx[:, None] expands dim, but we
         #  cannot do that and keep an index, so return ndarray
         # Deprecation GH#30588
+        # Note: update SingleBlockManager.get_slice when the DeprecationWarning
+        # is elevated to a FutureWarning
         warnings.warn(
             "Support for multi-dimensional indexing (e.g. `index[:, None]`) "
             "on an Index is deprecated and will be removed in a future "

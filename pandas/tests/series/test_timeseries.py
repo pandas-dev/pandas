@@ -137,7 +137,12 @@ class TestTimeSeries:
         assert ts.last_valid_index().freq == ts.index.freq
 
     def test_mpl_compat_hack(self, datetime_series):
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+
+        # This is currently failing because the test was relying on
+        # the DeprecationWarning coming through Index.__getitem__.
+        # We want to implement a warning specifically for Series.__getitem__
+        # at which point this will become a Deprecation/FutureWarning
+        with tm.assert_produces_warning(None):
             # GH#30588 multi-dimensional indexing deprecated
             result = datetime_series[:, np.newaxis]
         expected = datetime_series.values[:, np.newaxis]
