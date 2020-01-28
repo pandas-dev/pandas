@@ -185,7 +185,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             #  instead of first.
             sorted_values = np.sort(idx.asi8)
 
-            freq = self.freq
+            freq = idx.freq
             if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
