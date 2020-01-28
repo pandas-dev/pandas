@@ -33,7 +33,6 @@ class TestPDApi(Base):
         "api",
         "arrays",
         "compat",
-        "core",
         "errors",
         "pandas",
         "plotting",
