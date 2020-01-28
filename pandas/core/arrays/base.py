@@ -47,11 +47,8 @@ def try_cast_to_ea(cls_or_instance, obj, dtype=None):
     ExtensionArray or obj
     """
     try:
-        result = cls_or_instance._from_sequence(obj, dtype=dtype.name)
+        result = cls_or_instance._from_sequence(obj, dtype=dtype)
 
-        # still preserve order for categorical
-        if hasattr(cls_or_instance, "ordered"):
-            result = result.set_ordered(dtype.ordered)
     except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj

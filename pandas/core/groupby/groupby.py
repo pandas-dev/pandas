@@ -818,7 +818,11 @@ b  2""",
 
                 # return the same type (Series) as our caller
                 cls = dtype.construct_array_type()
-                result = try_cast_to_ea(cls, result, dtype=dtype)
+                result = try_cast_to_ea(cls, result, dtype=dtype.name)
+
+                # still preserve the order for categorical
+                if hasattr(result, "ordered"):
+                    result = result.set_ordered(dtype.ordered)
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 
