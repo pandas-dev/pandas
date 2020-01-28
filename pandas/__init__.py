@@ -395,9 +395,8 @@ else:
             )
             return attr
 
-    _core = __core()
+    _core: __core = __core()  # type: ignore
     core: __core = __core()
-
 
 # module level doc-string
 __doc__ = """
