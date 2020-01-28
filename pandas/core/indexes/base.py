@@ -4659,7 +4659,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._get_values_for_loc(series, loc)
 
-    def _get_values_for_loc(self, series, loc):
+    def _get_values_for_loc(self, series: "Series", loc):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
