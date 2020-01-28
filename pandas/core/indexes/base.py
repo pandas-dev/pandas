@@ -396,7 +396,7 @@ class Index(IndexOpsMixin, PandasObject):
             if subarr.ndim > 1:
                 # GH#13601, GH#20285, GH#27125
                 raise ValueError("Index data must be 1-dimensional")
-            return cls._simple_new(subarr, name, **kwargs)
+            return cls._simple_new(subarr, name)
 
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
@@ -508,11 +508,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-
-        # _simple_new expects the type of self._data
-        values = getattr(values, "_values", values)
 
         return self._simple_new(values, **attributes)
 
@@ -2355,6 +2350,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self.is_unique:
             values = self.unique()
+            if not isinstance(self, ABCMultiIndex):
+                # extract an array to pass to _shallow_copy
+                values = values._data
 
         if dropna:
             try:
@@ -4124,6 +4122,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if not is_scalar(value):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
+
+    @property
+    def _has_complex_internals(self):
+        """
+        Indicates if an index is not directly backed by a numpy array
+        """
+        # used to avoid libreduction code paths, which raise or require conversion
+        return False
 
     def _is_memory_usage_qualified(self) -> bool:
         """
