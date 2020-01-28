@@ -2039,14 +2039,21 @@ def test_groupby_list_level():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groups_repr_truncates():
+@pytest.mark.parametrize(
+    "max_seq_items, expected",
+    [
+        (5, "{0: [0], 1: [1], 2: [2], 3: [3], 4: [4]}"),
+        (4, "{0: [0], 1: [1], 2: [2], 3: [3], ...}"),
+    ],
+)
+def test_groups_repr_truncates(max_seq_items, expected):
     # GH 1135
-    df = pd.DataFrame(np.random.randn(61, 1))
+    df = pd.DataFrame(np.random.randn(5, 1))
     df["a"] = df.index
 
-    result = df.groupby("a").groups.__repr__()
-    expected = str({i: [i] for i in range(60)})[:-1] + ", ...}"
-    assert result == expected
+    with pd.option_context("display.max_seq_items", max_seq_items):
+        result = df.groupby("a").groups.__repr__()
+        assert result == expected
 
-    result = df.groupby(np.array(df.a)).groups.__repr__()
-    assert result == expected
+        result = df.groupby(np.array(df.a)).groups.__repr__()
+        assert result == expected

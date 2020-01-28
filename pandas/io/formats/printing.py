@@ -102,7 +102,7 @@ def _pprint_seq(
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
-    rather than calling this directly.
+    rather then calling this directly.
 
     bounds length of printed sequence, depending on options
     """
@@ -137,7 +137,7 @@ def _pprint_dict(
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
-    rather than calling this directly.
+    rather then calling this directly.
     """
     fmt = "{{{things}}}"
     pairs = []
@@ -538,4 +538,4 @@ class PrettyDict(Dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
     def __repr__(self) -> str:
-        return pprint_thing(self, max_seq_items=get_option("display.max_rows"))
+        return pprint_thing(self)
