@@ -530,7 +530,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
             # this for now (would otherwise raise in check_array_indexer)
             pass
-        elif is_list_like(key) and not isinstance(key, tuple):
+        else:
             key = check_array_indexer(self, key)
 
         is_period = is_period_dtype(self)

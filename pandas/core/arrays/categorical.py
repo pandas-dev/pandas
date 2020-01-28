@@ -2001,8 +2001,7 @@ class Categorical(ExtensionArray, PandasObject):
             else:
                 return self.categories[i]
 
-        if is_list_like(key) and not isinstance(key, tuple):
-            key = check_array_indexer(self, key)
+        key = check_array_indexer(self, key)
 
         result = self._codes[key]
         if result.ndim > 1:

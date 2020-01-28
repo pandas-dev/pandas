@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_dtype_equal,
     is_integer,
-    is_list_like,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -770,8 +769,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 else:
                     key = np.asarray(key)
 
-            if is_list_like(key) and not isinstance(key, tuple):
-                key = check_array_indexer(self, key)
+            key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self, key)

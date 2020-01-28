@@ -9,7 +9,6 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
@@ -234,8 +233,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(item, type(self)):
             item = item._ndarray
 
-        elif is_list_like(item) and not isinstance(item, tuple):
-            item = check_array_indexer(self, item)
+        item = check_array_indexer(self, item)
 
         result = self._ndarray[item]
         if not lib.is_scalar(item):

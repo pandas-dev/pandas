@@ -85,3 +85,13 @@ def test_raise_invalid_array_dtypes(indexer):
     msg = "arrays used as indices must be of integer or boolean type"
     with pytest.raises(IndexError, match=msg):
         check_array_indexer(array, indexer)
+
+
+@pytest.mark.parametrize(
+    "indexer", [None, Ellipsis, slice(0, 3), (None,)],
+)
+def test_pass_through_non_array_likes(indexer):
+    array = np.array([1, 2, 3])
+
+    result = check_array_indexer(array, indexer)
+    assert result == indexer
