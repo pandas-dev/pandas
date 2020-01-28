@@ -807,11 +807,9 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
-            # should only cast to ea if it is not a reduction
             if (
                 is_extension_array_dtype(dtype)
                 and dtype.kind != "M"
-                and len(result) == len(obj)
             ):
                 # The function can return something of any type, so check
                 #  if the type is compatible with the calling EA.

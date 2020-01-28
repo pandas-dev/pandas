@@ -47,7 +47,7 @@ def try_cast_to_ea(cls_or_instance, obj, dtype=None):
     ExtensionArray or obj
     """
     try:
-        result = cls_or_instance._from_sequence(obj, dtype=dtype)
+        result = cls_or_instance._from_sequence(obj, dtype=dtype.name)
     except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj
