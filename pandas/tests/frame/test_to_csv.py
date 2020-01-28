@@ -575,10 +575,10 @@ class TestDataFrameToCSV:
             recons.reset_index(inplace=True)
             tm.assert_frame_equal(to_df, recons)
 
-    def test_to_csv_raises_on_header_prefix():
+    def test_to_csv_raises_on_header_prefix(self):
         msg = "Argument prefix must be None if argument header is not None"
+        s = StringIO("0,1\n2,3")
         with pytest.raises(ValueError, match=msg):
-            s = StringIO("0,1\n2,3")
             read_csv(s, header=0, prefix="_X")
 
     def test_to_csv_multiindex(self, float_frame, datetime_frame):
