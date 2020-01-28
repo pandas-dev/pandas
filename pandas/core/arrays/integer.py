@@ -697,7 +697,7 @@ None
 """
 
 # create the Dtype
-Int8Dtype = register_extension_dtype(
+Int8Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "Int8Dtype",
         (_IntegerDtype,),
@@ -709,7 +709,7 @@ Int8Dtype = register_extension_dtype(
     )
 )
 
-Int16Dtype = register_extension_dtype(
+Int16Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "Int16Dtype",
         (_IntegerDtype,),
@@ -721,7 +721,7 @@ Int16Dtype = register_extension_dtype(
     )
 )
 
-Int32Dtype = register_extension_dtype(
+Int32Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "Int32Dtype",
         (_IntegerDtype,),
@@ -733,7 +733,7 @@ Int32Dtype = register_extension_dtype(
     )
 )
 
-Int64Dtype = register_extension_dtype(
+Int64Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "Int64Dtype",
         (_IntegerDtype,),
@@ -745,7 +745,7 @@ Int64Dtype = register_extension_dtype(
     )
 )
 
-UInt8Dtype = register_extension_dtype(
+UInt8Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "UInt8Dtype",
         (_IntegerDtype,),
@@ -757,7 +757,7 @@ UInt8Dtype = register_extension_dtype(
     )
 )
 
-UInt16Dtype = register_extension_dtype(
+UInt16Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "UInt16Dtype",
         (_IntegerDtype,),
@@ -769,7 +769,7 @@ UInt16Dtype = register_extension_dtype(
     )
 )
 
-UInt32Dtype = register_extension_dtype(
+UInt32Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "UInt32Dtype",
         (_IntegerDtype,),
@@ -781,7 +781,7 @@ UInt32Dtype = register_extension_dtype(
     )
 )
 
-UInt64Dtype = register_extension_dtype(
+UInt64Dtype: Type[_IntegerDtype] = register_extension_dtype(
     type(
         "UInt64Dtype",
         (_IntegerDtype,),
