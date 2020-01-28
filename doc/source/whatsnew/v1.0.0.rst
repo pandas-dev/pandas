@@ -230,12 +230,12 @@ Other enhancements
 - Added the ``na_value`` argument to :meth:`Series.to_numpy`, :meth:`Index.to_numpy` and :meth:`DataFrame.to_numpy` to control the value used for missing data (:issue:`30322`)
 - :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
-- The :ref:`integer dtype <integer_na>` with support for missing values and the
-  new :ref:`string dtype <text.types>` can now be converted to ``pyarrow`` (>=
-  0.15.0), which means that it is supported in writing to the Parquet file
-  format when using the ``pyarrow`` engine. It is currently not yet supported
-  when converting back to pandas, so it will become an integer or float
-  (depending on the presence of missing data) or object dtype column. (:issue:`28368`)
+- DataFrames with :ref:`nullable integer <integer_na>`, the :ref:`new string dtype <text.types>`
+  and period data type can now be converted to ``pyarrow`` (>=0.15.0), which means that it is
+  supported in writing to the Parquet file format when using the ``pyarrow`` engine (:issue:`28368`).
+  Full roundtrip to parquet (writing and reading back in with :meth:`~DataFrame.to_parquet` / :func:`read_parquet`)
+  is supported starting with pyarrow >= 0.16 (:issue:`20612`).
+- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue:`30270`)
 - :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
 - Implemented :meth:`pandas.core.window.Window.var` and :meth:`pandas.core.window.Window.std` functions (:issue:`26597`)
@@ -243,13 +243,9 @@ Other enhancements
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 - :meth:`Styler.background_gradient` now accepts ``vmin`` and ``vmax`` arguments (:issue:`12145`)
 - :meth:`Styler.format` added the ``na_rep`` parameter to help format the missing values (:issue:`21527`, :issue:`28358`)
-- Roundtripping DataFrames with nullable integer, string and period data types to parquet
-  (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
-  now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - :func:`read_excel` now can read binary Excel (``.xlsb``) files by passing ``engine='pyxlsb'``. For more details and example usage, see the :ref:`Binary Excel files documentation <io.xlsb>`. Closes :issue:`8540`.
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
-- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue:`30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
@@ -312,7 +308,7 @@ To update, use ``MultiIndex.set_names``, which returns a new ``MultiIndex``.
 New repr for :class:`~pandas.arrays.IntervalArray`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
+:class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
 *pandas 0.25.x*
 
@@ -333,52 +329,62 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 ``DataFrame.rename`` now only accepts one positional argument
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :meth:`DataFrame.rename` would previously accept positional arguments that would lead
-  to ambiguous or undefined behavior. From pandas 1.0, only the very first argument, which
-  maps labels to their new names along the default axis, is allowed to be passed by position
-  (:issue:`29136`).
+:meth:`DataFrame.rename` would previously accept positional arguments that would lead
+to ambiguous or undefined behavior. From pandas 1.0, only the very first argument, which
+maps labels to their new names along the default axis, is allowed to be passed by position
+(:issue:`29136`).
+
+.. ipython:: python
+   :suppress:
+
+   df = pd.DataFrame([[1]])
 
 *pandas 0.25.x*
 
-.. code-block:: ipython
+.. code-block:: python
 
-   In [1]: df = pd.DataFrame([[1]])
-   In [2]: df.rename({0: 1}, {0: 2})
+   >>> df = pd.DataFrame([[1]])
+   >>> df.rename({0: 1}, {0: 2})
    FutureWarning: ...Use named arguments to resolve ambiguity...
-   Out[2]:
       2
    1  1
 
 *pandas 1.0.0*
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: python
 
-   df.rename({0: 1}, {0: 2})
+   >>> df.rename({0: 1}, {0: 2})
+   Traceback (most recent call last):
+   ...
+   TypeError: rename() takes from 1 to 2 positional arguments but 3 were given
 
 Note that errors will now be raised when conflicting or potentially ambiguous arguments are provided.
 
 *pandas 0.25.x*
 
-.. code-block:: ipython
+.. code-block:: python
 
-   In [1]: df.rename({0: 1}, index={0: 2})
-   Out[1]:
+   >>> df.rename({0: 1}, index={0: 2})
       0
    1  1
 
-   In [2]: df.rename(mapper={0: 1}, index={0: 2})
-   Out[2]:
+   >>> df.rename(mapper={0: 1}, index={0: 2})
       0
    2  1
 
 *pandas 1.0.0*
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: python
 
-   df.rename({0: 1}, index={0: 2})
-   df.rename(mapper={0: 1}, index={0: 2})
+   >>> df.rename({0: 1}, index={0: 2})
+   Traceback (most recent call last):
+   ...
+   TypeError: Cannot specify both 'mapper' and any of 'index' or 'columns'
+
+   >>> df.rename(mapper={0: 1}, index={0: 2})
+   Traceback (most recent call last):
+   ...
+   TypeError: Cannot specify both 'mapper' and any of 'index' or 'columns'
 
 You can still change the axis along which the first positional argument is applied by
 supplying the ``axis`` keyword argument.
@@ -398,7 +404,7 @@ keywords.
 Extended verbose info output for :class:`~pandas.DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :meth:`DataFrame.info` now shows line numbers for the columns summary (:issue:`17304`)
+:meth:`DataFrame.info` now shows line numbers for the columns summary (:issue:`17304`)
 
 *pandas 0.25.x*
 
@@ -700,13 +706,12 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
-- Bumped the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
 - :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 - In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
   To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
-- The returned dtype of ::func:`pd.unique` now matches the input dtype. (:issue:`27874`)
+- The returned dtype of :func:`unique` now matches the input dtype. (:issue:`27874`)
 - Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).
   Now, pandas custom formatters will only be applied to plots created by pandas, through :meth:`~DataFrame.plot`.
   Previously, pandas' formatters would be applied to all plots created *after* a :meth:`~DataFrame.plot`.
