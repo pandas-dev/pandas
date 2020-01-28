@@ -955,14 +955,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         )
         return self._shallow_copy(result)
 
-    def __getitem__(self, value):
-        result = self._data[value]
-        if isinstance(result, IntervalArray):
-            return self._shallow_copy(result)
-        else:
-            # scalar
-            return result
-
     # --------------------------------------------------------------------
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
