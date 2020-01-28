@@ -255,6 +255,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     def values(self):
         return np.asarray(self)
 
+    @property
+    def _has_complex_internals(self):
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
+
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
         if values is None:
