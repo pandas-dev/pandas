@@ -518,7 +518,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return type(self)(val, dtype=self.dtype)
 
         if com.is_bool_indexer(key):
-            # first check for boolean, because check_array_indexer doesn't
+            # first convert to boolean, because check_array_indexer doesn't
             # allow object dtype
             key = np.asarray(key, dtype=bool)
             key = check_array_indexer(self, key)
@@ -526,6 +526,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 key = slice(0, None, None)
             else:
                 key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+        elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
+            # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
+            # this for now (would otherwise raise in check_array_indexer)
+            pass
         elif is_list_like(key) and not isinstance(key, tuple):
             key = check_array_indexer(self, key)
 

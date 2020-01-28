@@ -496,7 +496,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self.left)
 
     def __getitem__(self, value):
-        if is_list_like(value):
+        if is_list_like(value) and not isinstance(value, tuple):
             value = check_array_indexer(self, value)
         left = self.left[value]
         right = self.right[value]

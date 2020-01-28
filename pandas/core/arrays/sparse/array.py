@@ -770,7 +770,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 else:
                     key = np.asarray(key)
 
-            if is_list_like(key):
+            if is_list_like(key) and not isinstance(key, tuple):
                 key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):

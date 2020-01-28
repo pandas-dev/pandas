@@ -39,7 +39,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
                 return self.dtype.na_value
             return self._data[item]
 
-        elif is_list_like(item):
+        elif is_list_like(item) and not isinstance(item, tuple):
             item = check_array_indexer(self, item)
 
         return type(self)(self._data[item], self._mask[item])

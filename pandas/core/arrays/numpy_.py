@@ -234,7 +234,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(item, type(self)):
             item = item._ndarray
 
-        elif is_list_like(item):
+        elif is_list_like(item) and not isinstance(item, tuple):
             item = check_array_indexer(self, item)
 
         result = self._ndarray[item]
