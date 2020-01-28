@@ -103,7 +103,7 @@ class NumericIndex(Index):
                 f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
             )
 
-    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
+    @Appender(Index._maybe_cast_slice_bound.__doc__)
     def _maybe_cast_slice_bound(self, label, side, kind):
         assert kind in ["loc", "getitem", None]
 
@@ -257,7 +257,7 @@ class IntegerIndex(NumericIndex):
         # do not cache or you'll create a memory leak
         return self.values.view(self._default_dtype)
 
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
+    @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         assert kind in ["loc", "getitem", "iloc", None]
 
@@ -311,7 +311,7 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
 
-    @Appender(_index_shared_docs["_convert_arr_indexer"])
+    @Appender(Index._convert_arr_indexer.__doc__)
     def _convert_arr_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so that the values returned
         # from indexing are also uint64.
@@ -323,7 +323,7 @@ class UInt64Index(IntegerIndex):
 
         return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
-    @Appender(_index_shared_docs["_convert_index_indexer"])
+    @Appender(Index._convert_index_indexer.__doc__)
     def _convert_index_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so
         # that the values returned from indexing are
@@ -373,7 +373,7 @@ class Float64Index(NumericIndex):
         """
         return "floating"
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if needs_i8_conversion(dtype):
@@ -388,7 +388,7 @@ class Float64Index(NumericIndex):
             return Int64Index(arr)
         return super().astype(dtype, copy=copy)
 
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
+    @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         assert kind in ["loc", "getitem", "iloc", None]
 
@@ -397,7 +397,7 @@ class Float64Index(NumericIndex):
 
         return key
 
-    @Appender(_index_shared_docs["_convert_slice_indexer"])
+    @Appender(Index._convert_slice_indexer.__doc__)
     def _convert_slice_indexer(self, key: slice, kind=None):
 
         if kind == "iloc":
@@ -460,7 +460,7 @@ class Float64Index(NumericIndex):
 
         return is_float(other) and np.isnan(other) and self.hasnans
 
-    @Appender(_index_shared_docs["get_loc"])
+    @Appender(Index.get_loc.__doc__)
     def get_loc(self, key, method=None, tolerance=None):
         if is_bool(key):
             # Catch this to avoid accidentally casting to 1.0
