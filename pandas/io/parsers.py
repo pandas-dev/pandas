@@ -1908,6 +1908,9 @@ class CParserWrapper(ParserBase):
                 ]
             else:
                 self.names = list(range(self._reader.table_width))
+        elif self.prefix:
+            raise ValueError("Argument prefix must be None "
+                             "if argument header is not None")
 
         # gh-9755
         #
