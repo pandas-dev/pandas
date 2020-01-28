@@ -2546,7 +2546,7 @@ class MultiIndex(Index):
         for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
 
-            if lab not in lev and not isna(lab):
+            if lab not in lev and np.ndim(lab) == 0 and not isna(lab):
                 if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
                     raise TypeError(f"Level type mismatch: {lab}")
 
@@ -2648,7 +2648,8 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
-        if not isinstance(key, tuple):
+        if not isinstance(key, (tuple, list)):
+            # not including list here breaks some indexing, xref #30892
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
 
