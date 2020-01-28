@@ -246,7 +246,6 @@ class BaseGrouper:
     @cache_readonly
     def groups(self):
         """ dict {group name -> group labels} """
-
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:

@@ -528,3 +528,10 @@ def format_object_attrs(
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))
     return attrs
+
+
+class PrettyDict(dict):
+    """Dict extension to support abbreviated __repr__"""
+
+    def __repr__(self):
+        return pprint_thing(self, max_seq_items=get_option("display.max_rows"))
