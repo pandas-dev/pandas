@@ -380,7 +380,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @property
     def _has_complex_internals(self):
-        # to disable groupby tricks
+        # used to avoid libreduction code paths, which raise or require conversion
         return True
 
     def _wrap_setop_result(self, other, result):

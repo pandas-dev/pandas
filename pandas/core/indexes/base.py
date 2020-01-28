@@ -4114,7 +4114,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Indicates if an index is not directly backed by a numpy array
         """
-        # used to disable groupby tricks
+        # used to avoid libreduction code paths, which raise or require conversion
         return False
 
     def _is_memory_usage_qualified(self) -> bool:

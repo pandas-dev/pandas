@@ -1348,7 +1348,7 @@ class MultiIndex(Index):
 
     @property
     def _has_complex_internals(self):
-        # to disable groupby tricks
+        # used to avoid libreduction code paths, which raise or require conversion
         return True
 
     @cache_readonly
