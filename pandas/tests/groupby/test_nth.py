@@ -334,9 +334,7 @@ def test_first_last_tz_multi_column(method, ts, alpha):
     result = getattr(df.groupby("group"), method)()
     expected = pd.DataFrame(
         {
-            "category_string": pd.Categorical(
-                [alpha, "c"], dtype=category_string.dtype
-            ),
+            "category_string": pd.Categorical([alpha, "c"]),
             "datetimetz": [ts, Timestamp("2013-01-03", tz="US/Eastern")],
         },
         index=pd.Index([1, 2], name="group"),
