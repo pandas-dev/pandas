@@ -296,7 +296,7 @@ class ExtensionIndex(Index):
             loc = self.get_loc(key)
         except KeyError:
             # e.g. DatetimeIndex doesn't hold integers
-            if is_integer(key):
+            if is_integer(key) and not self.holds_integer():
                 # Fall back to positional
                 loc = key
             else:

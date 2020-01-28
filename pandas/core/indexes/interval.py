@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -56,10 +56,6 @@ from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
-
-if TYPE_CHECKING:
-    from pandas import Series
-
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -525,6 +521,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         # GH 23309
         return self._engine.is_overlapping
+
+    def holds_integer(self):
+        return self.dtype.subtype.kind not in ["m", "M"]
+        # TODO: There must already exist something for this?
 
     @Appender(_index_shared_docs["_convert_scalar_indexer"])
     def _convert_scalar_indexer(self, key, kind=None):
