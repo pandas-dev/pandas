@@ -23,7 +23,7 @@ try:
 except ImportError:
     # define a dummy
 
-    def final(x: F) -> F:
+    def final(x):
         return x
 
 
