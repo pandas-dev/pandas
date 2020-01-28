@@ -1558,9 +1558,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
             raise ValueError(msg)
 
-    def _get_label_or_level_values(
-        self, key: str, axis: int = 0, raw: bool_t = True
-    ) -> np.ndarray:
+    def _get_label_or_level_values(self, key: str, axis: int = 0) -> np.ndarray:
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1579,8 +1577,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Label or level name.
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        raw : bool, default True
-            Whether to unbox the array from the Series, or return the Series object
 
         Returns
         -------
@@ -1601,9 +1597,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if self._is_label_reference(key, axis=axis):
             self._check_label_or_level_ambiguity(key, axis=axis)
-            values = self.xs(key, axis=other_axes[0])
-            if raw:
-                values = values._values
+            values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
             values = self.axes[axis].get_level_values(key)._values
         else:

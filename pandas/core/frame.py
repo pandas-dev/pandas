@@ -4933,7 +4933,7 @@ class DataFrame(NDFrame):
     # TODO: Just move the sort_values doc here.
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    def sort_values(  # type: ignore[override] # NOQA
+    def sort_values(  # type: ignore[override] # NOQA # issue 27237
         self,
         by,
         axis=0,
@@ -4953,11 +4953,14 @@ class DataFrame(NDFrame):
             raise ValueError(
                 f"Length of ascending ({len(ascending)}) != length of by ({len(by)})"
             )
-        raw = key is None
         if len(by) > 1:
             from pandas.core.sorting import lexsort_indexer
 
-            keys = [self._get_label_or_level_values(x, axis=axis, raw=raw) for x in by]
+            keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
+
+            if key is not None: # need to rewrap columns in Series to apply key function
+                keys = [Series(k) for k in keys]
+
             indexer = lexsort_indexer(
                 keys, orders=ascending, na_position=na_position, key=key
             )
@@ -4966,7 +4969,10 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self._get_label_or_level_values(by, axis=axis, raw=raw)
+            k = self._get_label_or_level_values(by, axis=axis)
+
+            if key is not None: # need to rewrap column in Series to apply key function
+                k = Series(k)
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]

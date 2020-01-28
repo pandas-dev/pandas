@@ -1579,7 +1579,7 @@ class Categorical(ExtensionArray, PandasObject):
             before sorting. This is similar to the `key` argument in the
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
-            ``Categorical`` and return a Categorical with the same shape as the input.
+            ``Categorical`` and return an object with the same shape as the input.
 
             .. versionadded:: 1.0.0
 
