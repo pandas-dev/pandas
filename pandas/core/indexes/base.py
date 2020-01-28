@@ -507,11 +507,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-
-        # _simple_new expects the type of self._data
-        values = getattr(values, "_values", values)
 
         return self._simple_new(values, **attributes)
 
@@ -2354,6 +2349,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self.is_unique:
             values = self.unique()
+            if not isinstance(self, ABCMultiIndex):
+                # extract an array to pass to _shallow_copy
+                values = values._data
 
         if dropna:
             try:
