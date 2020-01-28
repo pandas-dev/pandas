@@ -1461,6 +1461,7 @@ class MultiIndex(Index):
         new_codes = [level_codes[~indexer] for level_codes in self.codes]
         return self.copy(codes=new_codes, deep=True)
 
+    @Appender(Index.get_value.__doc__)
     def get_value(self, series, key):
         # Label-based
         s = com.values_from_object(series)

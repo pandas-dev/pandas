@@ -883,7 +883,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
 
-    @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
+    @Appender(Index.get_value.__doc__)
     def get_value(self, series: "Series", key):
         loc = self.get_loc(key)
         return series.iloc[loc]
