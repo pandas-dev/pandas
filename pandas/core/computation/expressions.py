@@ -133,7 +133,7 @@ def _where_numexpr(cond, a, b):
 
         result = ne.evaluate(
             "where(cond_value, a_value, b_value)",
-            local_dict={"cond_value": cond, "a_value": a, "b_value": b,},
+            local_dict={"cond_value": cond, "a_value": a, "b_value": b},
             casting="safe",
         )
 
