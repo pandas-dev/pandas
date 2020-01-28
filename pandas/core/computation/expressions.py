@@ -178,7 +178,7 @@ def _bool_arith_check(
     return True
 
 
-def evaluate(op, op_str, a, b, use_numexpr: bool = True):
+def evaluate(op, op_str, a, b, use_numexpr=True):
     """
     Evaluate and return the expression of the op on a and b.
 
