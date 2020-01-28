@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
@@ -186,31 +185,27 @@ class SetopCheck:
         ),
     )
 )
-@accessor.delegate_names(
-    delegate=IntervalArray,
-    accessors=["length", "size", "left", "right", "mid", "closed", "dtype"],
-    typ="property",
-    overwrite=True,
-)
-@accessor.delegate_names(
-    delegate=IntervalArray,
-    accessors=[
+@inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
+@inherit_names(
+    [
+        "__len__",
         "__array__",
         "overlaps",
         "contains",
-        "__len__",
-        "set_closed",
-        "to_tuples",
+        "size",
+        "dtype",
+        "left",
+        "right",
+        "length",
     ],
-    typ="method",
-    overwrite=True,
+    IntervalArray,
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "_ndarray_values"],
+    ["is_non_overlapping_monotonic", "mid", "_ndarray_values", "closed"],
     IntervalArray,
     cache=True,
 )
-class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
+class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
     _attributes = ["name", "closed"]
@@ -220,8 +215,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
 
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
-
-    _raw_inherit = {"__array__", "overlaps", "contains"}
 
     # --------------------------------------------------------------------
     # Constructors
@@ -1154,21 +1147,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     symmetric_difference = _setop("symmetric_difference")
 
     # TODO: arithmetic operations
-
-    def _delegate_property_get(self, name, *args, **kwargs):
-        """ method delegation to the ._values """
-        prop = getattr(self._data, name)
-        return prop  # no wrapping for now
-
-    def _delegate_method(self, name, *args, **kwargs):
-        """ method delegation to the ._data """
-        method = getattr(self._data, name)
-        res = method(*args, **kwargs)
-        if is_scalar(res) or name in self._raw_inherit:
-            return res
-        if isinstance(res, IntervalArray):
-            return type(self)._simple_new(res, name=self.name)
-        return Index(res)
 
     # GH#30817 until IntervalArray implements inequalities, get them from Index
     def __lt__(self, other):
