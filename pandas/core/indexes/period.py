@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import weakref
 
 import numpy as np
@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
+    is_scalar,
     pandas_dtype,
 )
 
@@ -33,6 +34,7 @@ from pandas.core.arrays.period import (
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
+    InvalidIndexError,
     _index_shared_docs,
     ensure_index,
     maybe_extract_name,
@@ -52,6 +54,8 @@ from pandas.tseries.offsets import DateOffset, Tick
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
 
+if TYPE_CHECKING:
+    from pandas import Series
 
 # --- Period index sketch
 
@@ -479,43 +483,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         # indexing
         return "period"
 
-    def get_value(self, series, key):
+    def get_value(self, series: "Series", key):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
         if is_integer(key):
-            return series.iat[key]
-
-        if isinstance(key, str):
-            try:
-                loc = self._get_string_slice(key)
-                return series[loc]
-            except (TypeError, ValueError, OverflowError):
-                pass
-
-            asdt, reso = parse_time_string(key, self.freq)
-            grp = resolution.Resolution.get_freq_group(reso)
-            freqn = resolution.get_freq_group(self.freq)
-
-            # _get_string_slice will handle cases where grp < freqn
-            assert grp >= freqn
-
-            if grp == freqn:
-                key = Period(asdt, freq=self.freq)
-                loc = self.get_loc(key)
-                return series.iloc[loc]
-            else:
-                raise KeyError(key)
-
-        elif isinstance(key, Period) or key is NaT:
-            ordinal = key.ordinal if key is not NaT else NaT.value
-            loc = self._engine.get_loc(ordinal)
-            return series[loc]
-
-        # slice, PeriodIndex, np.ndarray, List[Period]
-        value = Index.get_value(self, series, key)
-        return com.maybe_box(self, value, series, key)
+            loc = key
+        else:
+            loc = self.get_loc(key)
+        return self._get_values_for_loc(series, loc)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -570,6 +547,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         TypeError
             If key is listlike or otherwise not hashable.
         """
+
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
 
         if isinstance(key, str):
 
