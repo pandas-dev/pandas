@@ -2,7 +2,6 @@
 
 import calendar
 from datetime import datetime, timedelta
-from distutils.version import LooseVersion
 import locale
 import unicodedata
 
