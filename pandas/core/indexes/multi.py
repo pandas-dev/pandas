@@ -1346,6 +1346,11 @@ class MultiIndex(Index):
         self._tuples = lib.fast_zip(values)
         return self._tuples
 
+    @property
+    def _has_complex_internals(self):
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
+
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """
@@ -2643,7 +2648,8 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
-        if not isinstance(key, tuple):
+        if not isinstance(key, (tuple, list)):
+            # not including list here breaks some indexing, xref #30892
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
 
