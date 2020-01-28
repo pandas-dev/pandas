@@ -468,7 +468,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
 
-    def _summary(self, name=None):
+    def _summary(self, name=None) -> str:
         """
         Return a summarized representation.
 
@@ -963,7 +963,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
             result = Index(result, name=self.name)
         return result
 
-    def _delegate_property_set(self, name, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs):
         setattr(self._data, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
