@@ -1003,7 +1003,7 @@ def _get_dummies_1d(
 
     if sparse:
 
-        fill_value: Union[bool, float]
+        fill_value: Union[bool, float, int]
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == bool:
