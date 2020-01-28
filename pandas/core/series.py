@@ -493,7 +493,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the internal repr of this data (defined by Block.interval_values).
         This are the values as stored in the Block (ndarray or ExtensionArray
-        depending on the Block class).
+        depending on the Block class), with datetime64[ns] and timedelta64[ns]
+        wrapped in ExtensionArrays to match Index._values behavior.
 
         Differs from the public ``.values`` for certain data types, because of
         historical backwards compatibility of the public attribute (e.g. period
@@ -502,8 +503,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         cases).
 
         Differs from ``.array`` in that this still returns the numpy array if
-        the Block is backed by a numpy array, while ``.array`` ensures to always
-        return an ExtensionArray.
+        the Block is backed by a numpy array (except for datetime64 and
+        timedelta64 dtypes), while ``.array`` ensures to always return an
+        ExtensionArray.
 
         Differs from ``._ndarray_values``, as that ensures to always return a
         numpy array (it will call ``_ndarray_values`` on the ExtensionArray, if
@@ -515,8 +517,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------- | ------------- | ------------- | ------------- | --------------- |
         Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
         Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
-        dt64[ns]    | ndarray[M8ns] | ndarray[M8ns] | DatetimeArray | ndarray[M8ns]   |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
         dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] | ndarray[m8ns]   |
         Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
         Nullable    | EA            | EA            | EA            | ndarray         |
 

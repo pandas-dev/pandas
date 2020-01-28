@@ -316,7 +316,12 @@ class TestIndexReductions:
         )
         td = s.diff()
 
-        msg = "reduction operation '{op}' not allowed for this dtype"
+        msg = "|".join(
+            [
+                "reduction operation '{op}' not allowed for this dtype",
+                r"cannot perform {op} with type timedelta64\[ns\]",
+            ]
+        )
         msg = msg.format(op=opname)
 
         with pytest.raises(TypeError, match=msg):
@@ -648,7 +653,13 @@ class TestSeriesReductions:
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
         if method == "var":
-            with pytest.raises(TypeError, match="operation 'var' not allowed"):
+            msg = "|".join(
+                [
+                    "operation 'var' not allowed",
+                    r"cannot perform var with type timedelta64\[ns\]",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
                 getattr(tdser, method)()
         else:
             result = getattr(tdser, method)()
