@@ -574,6 +574,7 @@ partial string selection is a form of label slicing, the endpoints **will be** i
 would include matching times on an included date:
 
 .. ipython:: python
+   :okwarning:
 
    dft = pd.DataFrame(np.random.randn(100000, 1), columns=['A'],
                       index=pd.date_range('20130101', periods=100000, freq='T'))
