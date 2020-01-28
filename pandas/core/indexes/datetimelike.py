@@ -195,7 +195,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
-            arr = type(self._data)._simple_new(
+            arr = type(idx._data)._simple_new(
                 sorted_values, dtype=self.dtype, freq=freq
             )
             return self._simple_new(arr, name=self.name)
