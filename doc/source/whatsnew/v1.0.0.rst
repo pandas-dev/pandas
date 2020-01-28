@@ -217,7 +217,7 @@ Sorting with keys
 We've added a ``key`` argument to the DataFrame and Series sorting methods, including
 :meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`Series.sort_values`,
 and :meth:`Series.sort_index`. The ``key`` can be any callable function which is applied
-to the each column of a DataFrame before sorting is performed.
+to the each column of a DataFrame before sorting is performed (:issue:`27237`).
 
 .. ipython:: python
 
@@ -234,7 +234,7 @@ Note how this is sorted with capital letters first. Now if we apply the `col.str
    s
 
 For more details, see examples and documentation in :meth:`DataFrame.sort_values`,
-:meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index` (:issue:`27237`)
+:meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index`.
 
 .. _whatsnew_100.to_markdown:
 

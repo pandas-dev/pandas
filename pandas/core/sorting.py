@@ -289,8 +289,6 @@ def nargsort(
             items, kind=kind, ascending=ascending, na_position=na_position, key=None
         )
 
-    # breakpoint()
-
     items = extract_array(items)
     mask = np.asarray(isna(items))
 
