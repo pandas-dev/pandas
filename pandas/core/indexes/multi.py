@@ -1261,10 +1261,10 @@ class MultiIndex(Index):
             # on the output of a groupby doesn't reflect back here.
             level_index = level_index.copy()
 
-        if len(level_index):
-            grouper = level_index.take(codes)
-        else:
+        if level_index._can_hold_na:
             grouper = level_index.take(codes, fill_value=True)
+        else:
+            grouper = level_index.take(codes)
 
         return grouper, codes, level_index
 
@@ -1345,6 +1345,11 @@ class MultiIndex(Index):
 
         self._tuples = lib.fast_zip(values)
         return self._tuples
+
+    @property
+    def _has_complex_internals(self):
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
 
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
@@ -2058,7 +2063,7 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                codes = com.index_labels_to_array(codes)
+                codes = com.index_labels_to_array(codes, dtype=object)
             except ValueError:
                 pass
 
@@ -2643,7 +2648,8 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
-        if not isinstance(key, tuple):
+        if not isinstance(key, (tuple, list)):
+            # not including list here breaks some indexing, xref #30892
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
 
@@ -2778,7 +2784,7 @@ class MultiIndex(Index):
                     indexer = self._get_level_indexer(key, level=level)
                     new_index = maybe_mi_droplevels(indexer, [0], drop_level)
                     return indexer, new_index
-            except TypeError:
+            except (TypeError, InvalidIndexError):
                 pass
 
             if not any(isinstance(k, slice) for k in key):

@@ -70,6 +70,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     to_datetime : Convert argument to datetime.
     to_timedelta : Convert argument to timedelta.
     numpy.ndarray.astype : Cast a numpy array to a specified type.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------

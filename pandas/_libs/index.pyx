@@ -26,19 +26,13 @@ from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
-cdef int64_t NPY_NAT = util.get_nat()
-
 
 cdef inline bint is_definitely_invalid_key(object val):
-    if isinstance(val, tuple):
-        try:
-            hash(val)
-        except TypeError:
-            return True
-
-    # we have a _data, means we are a NDFrame
-    return (isinstance(val, slice) or util.is_array(val)
-            or isinstance(val, list) or hasattr(val, '_data'))
+    try:
+        hash(val)
+    except TypeError:
+        return True
+    return False
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
@@ -168,6 +162,15 @@ cdef class IndexEngine:
             int count
 
         indexer = self._get_index_values() == val
+        return self._unpack_bool_indexer(indexer, val)
+
+    cdef _unpack_bool_indexer(self,
+                              ndarray[uint8_t, ndim=1, cast=True] indexer,
+                              object val):
+        cdef:
+            ndarray[intp_t, ndim=1] found
+            int count
+
         found = np.where(indexer)[0]
         count = len(found)
 
@@ -446,7 +449,7 @@ cdef class DatetimeEngine(Int64Engine):
         cdef:
             int64_t loc
         if is_definitely_invalid_key(val):
-            raise TypeError
+            raise TypeError(f"'{val}' is an invalid key")
 
         try:
             conv = self._unbox_scalar(val)
@@ -651,7 +654,10 @@ cdef class BaseMultiIndexCodesEngine:
         # integers representing labels: we will use its get_loc and get_indexer
         self._base.__init__(self, lambda: lab_ints, len(lab_ints))
 
-    def _extract_level_codes(self, object target, object method=None):
+    def _codes_to_ints(self, codes):
+        raise NotImplementedError("Implemented by subclass")
+
+    def _extract_level_codes(self, object target):
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.

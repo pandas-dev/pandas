@@ -17,6 +17,7 @@ Enhancements
 
 Nonmonotonic PeriodIndex Partial String Slicing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 :class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
 
 For example:
@@ -31,6 +32,7 @@ For example:
    ser
 
 .. ipython:: python
+
    ser["2014"]
    ser.loc["May 2015"]
 
@@ -54,7 +56,12 @@ Other API changes
 - :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
   will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
 -
--
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
+  Previously a ``AttributeError`` was raised (:issue:`31126`)
+
 
 .. ---------------------------------------------------------------------------
 
@@ -74,6 +81,8 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
+- Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 -
 -
 
@@ -93,9 +102,10 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+
 - Bug in :class:`Timestamp` where constructing :class:`Timestamp` from ambiguous epoch time and calling constructor again changed :meth:`Timestamp.value` property (:issue:`24329`)
 - :meth:`DatetimeArray.searchsorted`, :meth:`TimedeltaArray.searchsorted`, :meth:`PeriodArray.searchsorted` not recognizing non-pandas scalars and incorrectly raising ``ValueError`` instead of ``TypeError`` (:issue:`30950`)
--
+- Bug in :class:`Timestamp` where constructing :class:`Timestamp` with dateutil timezone less than 128 nanoseconds before daylight saving time switch from winter to summer would result in nonexistent time (:issue:`31043`)
 
 Timedelta
 ^^^^^^^^^
@@ -112,6 +122,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.floordiv` with ``axis=0`` not treating division-by-zero like :meth:`Series.floordiv` (:issue:`31271`)
 -
 -
 
@@ -137,7 +148,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
--
+- Bug in :meth:`PeriodIndex.get_loc` treating higher-resolution strings differently from :meth:`PeriodIndex.get_value` (:issue:`31172`)
 -
 
 Missing
@@ -154,25 +165,26 @@ MultiIndex
 
 I/O
 ^^^
-
+- Bug in :meth:`read_json` where integer overflow was occuring when json contains big number strings. (:issue:`30320`)
 -
 -
 
 Plotting
 ^^^^^^^^
 
--
+- :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 -
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
+- Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
 
 Reshaping
 ^^^^^^^^^
 
--
+- Bug effecting all numeric and boolean reduction methods not returning subclassed data type. (:issue:`25596`)
 - Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` can take tuple names in MultiIndexed data (:issue:`19966`)
 - Bug in :meth:`DataFrame.pivot_table` when ``margin`` is ``True`` and only ``column`` is defined (:issue:`31016`)

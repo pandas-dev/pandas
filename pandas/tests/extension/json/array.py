@@ -16,6 +16,7 @@ import numbers
 import random
 import string
 import sys
+from typing import Type
 
 import numpy as np
 
@@ -29,7 +30,7 @@ class JSONDtype(ExtensionDtype):
     na_value = UserDict()
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["JSONArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -38,13 +39,6 @@ class JSONDtype(ExtensionDtype):
         type
         """
         return JSONArray
-
-    @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
 
 class JSONArray(ExtensionArray):
@@ -112,6 +106,11 @@ class JSONArray(ExtensionArray):
 
     def __len__(self) -> int:
         return len(self.data)
+
+    def __array__(self, dtype=None):
+        if dtype is None:
+            dtype = object
+        return np.asarray(self.data, dtype=dtype)
 
     @property
     def nbytes(self) -> int:
