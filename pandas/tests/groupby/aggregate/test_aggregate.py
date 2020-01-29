@@ -648,6 +648,43 @@ def test_lambda_named_agg(func):
     tm.assert_frame_equal(result, expected)
 
 
+def test_aggregate_mixed_types():
+    # GH 16916
+    df = pd.DataFrame(
+        data=np.array([0] * 9).reshape(3, 3), columns=list("XYZ"), index=list("abc")
+    )
+    df["grouping"] = ["group 1", "group 1", 2]
+    result = df.groupby("grouping").aggregate(lambda x: x.tolist())
+    expected_data = [[[0], [0], [0]], [[0, 0], [0, 0], [0, 0]]]
+    expected = pd.DataFrame(
+        expected_data,
+        index=Index([2, "group 1"], dtype="object", name="grouping"),
+        columns=Index(["X", "Y", "Z"], dtype="object"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_aggregate_udf_na_extension_type():
+    # https://github.com/pandas-dev/pandas/pull/31359
+    # This is currently failing to cast back to Int64Dtype.
+    # The presence of the NA causes two problems
+    # 1. NA is not an instance of Int64Dtype.type (numpy.int64)
+    # 2. The presence of an NA forces object type, so the non-NA values is
+    #    a Python int rather than a NumPy int64. Python ints aren't
+    #    instances of numpy.int64.
+    def aggfunc(x):
+        if all(x > 2):
+            return 1
+        else:
+            return pd.NA
+
+    df = pd.DataFrame({"A": pd.array([1, 2, 3])})
+    result = df.groupby([1, 1, 2]).agg(aggfunc)
+    expected = pd.DataFrame({"A": pd.array([1, pd.NA], dtype="Int64")}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
 class TestLambdaMangling:
     def test_maybe_mangle_lambdas_passthrough(self):
         assert _maybe_mangle_lambdas("mean") == "mean"
