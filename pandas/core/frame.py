@@ -4797,11 +4797,11 @@ class DataFrame(NDFrame):
             return result
 
     def sanitize_column_names(self):
-        '''
+        """
         changes the column names to lowercase, strips any leading and trailing white
         space, replaces space between words to underscores and only keeps alphanumeric
         (and underscore) characters
-        '''
+        """
         from re import sub
 
         new_cols = []
