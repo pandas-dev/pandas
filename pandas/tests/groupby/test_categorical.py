@@ -1363,3 +1363,12 @@ def test_groupby_agg_categorical_columns(func, expected_values):
         {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_non_numeric():
+    df = pd.DataFrame(
+        {"A": pd.Categorical(["a", "a", "b"], categories=["a", "b", "c"])}
+    )
+    result = df.groupby([1, 2, 1]).nunique()
+    expected = pd.DataFrame({"A": [2, 1]}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
