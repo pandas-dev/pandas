@@ -498,7 +498,7 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=3)
 
-        dt64 = np.datetime64("2016-01-01", dtype="datetime64[us]")
+        dt64 = np.datetime64("2016-01-01", "us")
         with pytest.raises(TypeError):
             td.__rfloordiv__(dt64)
 
