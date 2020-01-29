@@ -571,7 +571,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 if loc.start in (0, None) or loc.stop in (len(self), None):
                     freq = self.freq
 
-        return self._shallow_copy(new_i8s, freq=freq)
+        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+        return self._shallow_copy(arr, name=self.name)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
@@ -620,12 +621,21 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 raise ValueError(kwargs)
             values = type(self._data)._simple_new(values, dtype=self.dtype)
 
+        if kwargs.get("freq") is not None and values.freq != kwargs["freq"]:
+            # Try setting the new freq; the setter does validation
+            values = type(values)._simple_new(values._data)
+            values.freq = kwargs["freq"]
+
         attributes = self._get_attributes_dict()
 
         if "freq" not in kwargs and self.freq is not None:
             if isinstance(values, (DatetimeArray, TimedeltaArray)):
                 if values.freq is None:
                     del attributes["freq"]
+        if "tz" in attributes:
+            # FIXME: kludge
+            tz = attributes.pop("tz")
+            assert tz == values.tz, (tz, values.tz)
 
         attributes.update(kwargs)
         return self._simple_new(values, **attributes)
@@ -772,7 +782,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates, freq=self.freq)  # TODO: is self.freq right here?
+            result = self._shallow_copy(dates)
+            result._set_freq("infer")
+            # TODO: can we infer that it has self.freq?
+            return result
         else:
             left, right = other, self
 
@@ -784,7 +797,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates, freq=self.freq)  # TODO: is self.freq right here?
+            result = self._shallow_copy(dates)
+            result._set_freq("infer")
+            # TODO: can we infer that it has self.freq?
+            return result
         else:
             return left
 
@@ -885,7 +901,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         else:
             kwargs = {}
             if hasattr(self, "tz"):
-                #kwargs["tz"] = getattr(other, "tz", None)
+                # TODO: Do we need to do this?
                 kwargs["dtype"] = other.dtype
 
             arr = type(self._data)._simple_new(joined, **kwargs)
@@ -935,7 +951,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_i8s, freq=freq)
+            arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+            return self._shallow_copy(arr, name=self.name)
         except (AttributeError, TypeError):
 
             # fall back to object index

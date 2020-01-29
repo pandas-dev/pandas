@@ -275,21 +275,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
         if we are passed a non-dtype compat, then coerce using the constructor
         """
         assert isinstance(values, DatetimeArray), type(values)
-        if isinstance(values, DatetimeArray):
-            if tz:
-                tz = validate_tz_from_dtype(dtype, tz)
-                dtype = DatetimeTZDtype(tz=tz)
-            elif dtype is None:
-                dtype = _NS_DTYPE
+        assert tz is None or tz == values.tz, (tz, values.tz)
+        assert dtype is None or dtype == values.dtype, (dtype, values.dtype)
+        assert freq is None or freq == values.freq, (freq, values.freq)
 
-            values = DatetimeArray(values, freq=freq, dtype=dtype)
-            tz = values.tz
-            freq = values.freq
-            values = values._data
-
-        dtype = tz_to_dtype(tz)
-        dtarr = DatetimeArray._simple_new(values, freq=freq, dtype=dtype)
-        assert isinstance(dtarr, DatetimeArray)
+        dtarr = values
 
         result = object.__new__(cls)
         result._data = dtarr
