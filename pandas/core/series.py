@@ -940,7 +940,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
-            return self._get_values(key)
+            # suppress warning from slicing the index with a 2d indexer.
+            # eventually we'll want Series itself to warn.
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", "Support for multi-dim", DeprecationWarning
+                )
+                return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):
             raise ValueError("Can only tuple-index with a MultiIndex")
