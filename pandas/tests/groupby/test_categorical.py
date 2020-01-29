@@ -1369,6 +1369,10 @@ def test_groupby_agg_non_numeric():
     df = pd.DataFrame(
         {"A": pd.Categorical(["a", "a", "b"], categories=["a", "b", "c"])}
     )
-    result = df.groupby([1, 2, 1]).nunique()
     expected = pd.DataFrame({"A": [2, 1]}, index=[1, 2])
+
+    result = df.groupby([1, 2, 1]).agg(pd.Series.nunique)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby([1, 2, 1]).nunique()
     tm.assert_frame_equal(result, expected)
