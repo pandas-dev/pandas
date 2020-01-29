@@ -388,7 +388,7 @@ class TestGrouping:
         # if it fails on the elements, map tries it on the entire index as
         # a sequence. That can yield invalid results that cause trouble
         # down the line.
-        # the surprise comes from using key[0:6] rather then str(key)[0:6]
+        # the surprise comes from using key[0:6] rather than str(key)[0:6]
         # when the elements are Timestamp.
         # the result is Index[0:6], very confusing.
 
