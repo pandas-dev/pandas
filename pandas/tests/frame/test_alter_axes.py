@@ -1487,38 +1487,39 @@ class TestDataFrameAlterAxes:
         result = df.droplevel("level_2", axis="columns")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('test_dtype', [object, 'int64'])
+    @pytest.mark.parametrize("test_dtype", [object, "int64"])
     def test_dtypes(self, test_dtype):
-        df = DataFrame({'A': Series([1, 2, 3], dtype=test_dtype), 'B': [1, 2, 3]})
+        df = DataFrame({"A": Series([1, 2, 3], dtype=test_dtype), "B": [1, 2, 3]})
         expected = df.dtypes.values[0].type
 
-        result = df.set_index('A').index.dtype.type
+        result = df.set_index("A").index.dtype.type
         assert result == expected
 
     @pytest.fixture
     def mixed_series(self):
-        return Series([1, 2, 3, 'apple', 'corn'], dtype=object)
+        return Series([1, 2, 3, "apple", "corn"], dtype=object)
 
     @pytest.fixture
     def int_series(self):
         return Series([100, 200, 300, 400, 500])
 
     def test_dtypes_between_queries(self, mixed_series, int_series):
-        df = DataFrame({'item': mixed_series, 'cost': int_series})
+        df = DataFrame({"item": mixed_series, "cost": int_series})
 
         orig_dtypes = df.dtypes
-        item_dtype = orig_dtypes.get('item').type
-        cost_dtype = orig_dtypes.get('cost').type
-        expected = {'item': item_dtype, 'cost': cost_dtype}
+        item_dtype = orig_dtypes.get("item").type
+        cost_dtype = orig_dtypes.get("cost").type
+        expected = {"item": item_dtype, "cost": cost_dtype}
 
         # after applying a query that would remove strings from the 'item' series with
         # dtype: object, that series should remain as dtype: object as it becomes an
         # index, and again as it becomes a column again after calling reset_index()
-        dtypes_transformed = df.query('cost < 400').set_index(
-            'item').reset_index().dtypes
-        item_dtype_transformed = dtypes_transformed.get('item').type
-        cost_dtype_transformed = dtypes_transformed.get('cost').type
-        result = {'item': item_dtype_transformed, 'cost': cost_dtype_transformed}
+        dtypes_transformed = (
+            df.query("cost < 400").set_index("item").reset_index().dtypes
+        )
+        item_dtype_transformed = dtypes_transformed.get("item").type
+        cost_dtype_transformed = dtypes_transformed.get("cost").type
+        result = {"item": item_dtype_transformed, "cost": cost_dtype_transformed}
 
         assert result == expected
 

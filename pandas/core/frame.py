@@ -90,7 +90,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
     needs_i8_conversion,
-    is_datetime64_any_dtype
+    is_datetime64_any_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
