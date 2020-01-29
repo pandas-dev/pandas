@@ -626,6 +626,54 @@ consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
    DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
    Series([], dtype: float64)
 
+Result dtype inference changes for resample operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The rules for the result dtype in :meth:`DataFrame.resample` aggregations have changed for extension types (:issue:`31359`).
+Previously, pandas would attempt to convert the result back to the original dtype, falling back to the usual
+inference rules if that was not possible. Now, pandas will only return a result of the original dtype if the
+scalar values in the result are instances of the extension dtype's scalar type.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": ['a', 'b']}, dtype='category',
+                     index=pd.date_range('2000', periods=2))
+   df
+
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> df.resample("2D").agg(lambda x: 'a').A.dtype
+   CategoricalDtype(categories=['a', 'b'], ordered=False)
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   df.resample("2D").agg(lambda x: 'a').A.dtype
+
+This fixes an inconsistency between ``resample`` and ``groupby``.
+This also fixes a potential bug, where the **values** of the result might change
+depending on how the results are cast back to the original dtype.
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> df.resample("2D").agg(lambda x: 'c')
+
+        A
+   0  NaN
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   df.resample("2D").agg(lambda x: 'c')
+
+
 .. _whatsnew_100.api_breaking.python:
 
 Increased minimum version for Python
