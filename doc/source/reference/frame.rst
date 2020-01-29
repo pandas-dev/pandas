@@ -28,19 +28,15 @@ Attributes and underlying data
    :toctree: api/
 
    DataFrame.dtypes
-   DataFrame.ftypes
-   DataFrame.get_dtype_counts
-   DataFrame.get_ftype_counts
+   DataFrame.info
    DataFrame.select_dtypes
    DataFrame.values
-   DataFrame.get_values
    DataFrame.axes
    DataFrame.ndim
    DataFrame.size
    DataFrame.shape
    DataFrame.memory_usage
    DataFrame.empty
-   DataFrame.is_copy
 
 Conversion
 ~~~~~~~~~~
@@ -48,6 +44,7 @@ Conversion
    :toctree: api/
 
    DataFrame.astype
+   DataFrame.convert_dtypes
    DataFrame.infer_objects
    DataFrame.copy
    DataFrame.isna
@@ -142,9 +139,6 @@ Computations / descriptive stats
    DataFrame.all
    DataFrame.any
    DataFrame.clip
-   DataFrame.clip_lower
-   DataFrame.clip_upper
-   DataFrame.compound
    DataFrame.corr
    DataFrame.corrwith
    DataFrame.count
@@ -281,6 +275,8 @@ Metadata
 
 :attr:`DataFrame.attrs` is a dictionary for storing global metadata for this DataFrame.
 
+.. warning:: ``DataFrame.attrs`` is considered experimental and may change without warning.
+
 .. autosummary::
    :toctree: api/
 
@@ -351,9 +347,7 @@ Serialization / IO / conversion
    :toctree: api/
 
    DataFrame.from_dict
-   DataFrame.from_items
    DataFrame.from_records
-   DataFrame.info
    DataFrame.to_parquet
    DataFrame.to_pickle
    DataFrame.to_csv
@@ -366,10 +360,9 @@ Serialization / IO / conversion
    DataFrame.to_feather
    DataFrame.to_latex
    DataFrame.to_stata
-   DataFrame.to_msgpack
    DataFrame.to_gbq
    DataFrame.to_records
-   DataFrame.to_dense
    DataFrame.to_string
    DataFrame.to_clipboard
+   DataFrame.to_markdown
    DataFrame.style

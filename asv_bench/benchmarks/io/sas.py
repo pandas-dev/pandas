@@ -9,7 +9,7 @@ class SAS:
     param_names = ["format"]
 
     def setup(self, format):
-        # Read files that are located in 'pandas/io/tests/sas/data'
+        # Read files that are located in 'pandas/tests/io/sas/data'
         files = {"sas7bdat": "test1.sas7bdat", "xport": "paxraw_d_short.xpt"}
         file = files[format]
         paths = [
@@ -26,5 +26,5 @@ class SAS:
         ]
         self.f = os.path.join(*paths)
 
-    def time_read_msgpack(self, format):
+    def time_read_sas(self, format):
         read_sas(self.f, format=format)

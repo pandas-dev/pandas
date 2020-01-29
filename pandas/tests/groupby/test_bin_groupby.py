@@ -6,7 +6,7 @@ from pandas._libs import groupby, lib, reduction as libreduction
 from pandas.core.dtypes.common import ensure_int64
 
 from pandas import Index, Series, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_series_grouper():
@@ -23,6 +23,16 @@ def test_series_grouper():
 
     exp_counts = np.array([3, 4], dtype=np.int64)
     tm.assert_almost_equal(counts, exp_counts)
+
+
+def test_series_grouper_requires_nonempty_raises():
+    # GH#29500
+    obj = Series(np.random.randn(10))
+    dummy = obj[:0]
+    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+
+    with pytest.raises(ValueError, match="SeriesGrouper requires non-empty `series`"):
+        libreduction.SeriesGrouper(dummy, np.mean, labels, 2, dummy)
 
 
 def test_series_bin_grouper():
@@ -77,7 +87,7 @@ def test_group_ohlc():
         counts = np.zeros(len(out), dtype=np.int64)
         labels = ensure_int64(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
 
-        func = getattr(groupby, "group_ohlc_{dtype}".format(dtype=dtype))
+        func = getattr(groupby, f"group_ohlc_{dtype}")
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
@@ -106,15 +116,16 @@ class TestMoments:
 class TestReducer:
     def test_int_index(self):
         arr = np.random.randn(100, 4)
-        result = libreduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
-        expected = arr.sum(0)
-        tm.assert_almost_equal(result, expected)
 
-        result = libreduction.compute_reduction(
-            arr, np.sum, axis=1, labels=Index(np.arange(100))
-        )
-        expected = arr.sum(1)
-        tm.assert_almost_equal(result, expected)
+        msg = "Must pass either dummy and labels, or neither"
+        # we must pass either both labels and dummy, or neither
+        with pytest.raises(ValueError, match=msg):
+            libreduction.compute_reduction(arr, np.sum, labels=Index(np.arange(4)))
+
+        with pytest.raises(ValueError, match=msg):
+            libreduction.compute_reduction(
+                arr, np.sum, axis=1, labels=Index(np.arange(100))
+            )
 
         dummy = Series(0.0, index=np.arange(100))
         result = libreduction.compute_reduction(

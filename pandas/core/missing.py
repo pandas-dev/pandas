@@ -1,6 +1,7 @@
 """
 Routines for filling missing data.
 """
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -39,9 +40,8 @@ def mask_missing(arr, values_to_mask):
     mask = None
     for x in nonna:
         if mask is None:
-
-            # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
                 mask = False
             else:
                 mask = arr == x
@@ -51,9 +51,8 @@ def mask_missing(arr, values_to_mask):
             if is_scalar(mask):
                 mask = np.zeros(arr.shape, dtype=bool)
         else:
-
-            # numpy elementwise comparison warning
             if is_numeric_v_string_like(arr, x):
+                # GH#29553 prevent numpy deprecation warnings
                 mask |= False
             else:
                 mask |= arr == x
@@ -89,10 +88,7 @@ def clean_fill_method(method, allow_nearest=False):
         valid_methods.append("nearest")
         expecting = "pad (ffill), backfill (bfill) or nearest"
     if method not in valid_methods:
-        msg = "Invalid fill method. Expecting {expecting}. Got {method}".format(
-            expecting=expecting, method=method
-        )
-        raise ValueError(msg)
+        raise ValueError(f"Invalid fill method. Expecting {expecting}. Got {method}")
     return method
 
 
@@ -120,10 +116,7 @@ def clean_interp_method(method, **kwargs):
     if method in ("spline", "polynomial") and order is None:
         raise ValueError("You must specify the order of the spline or polynomial.")
     if method not in valid:
-        raise ValueError(
-            "method must be one of {valid}. Got '{method}' "
-            "instead.".format(valid=valid, method=method)
-        )
+        raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
     return method
 
@@ -175,7 +168,7 @@ def interpolate_1d(
     fill_value=None,
     bounds_error=False,
     order=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Logic for the 1-d interpolation.  The result should be 1-d, inputs
@@ -212,9 +205,9 @@ def interpolate_1d(
     valid_limit_directions = ["forward", "backward", "both"]
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        msg = "Invalid limit_direction: expecting one of {valid!r}, got {invalid!r}."
         raise ValueError(
-            msg.format(valid=valid_limit_directions, invalid=limit_direction)
+            "Invalid limit_direction: expecting one of "
+            f"{valid_limit_directions}, got '{limit_direction}'."
         )
 
     if limit_area is not None:
@@ -222,8 +215,8 @@ def interpolate_1d(
         limit_area = limit_area.lower()
         if limit_area not in valid_limit_areas:
             raise ValueError(
-                "Invalid limit_area: expecting one of {}, got "
-                "{}.".format(valid_limit_areas, limit_area)
+                f"Invalid limit_area: expecting one of {valid_limit_areas}, got "
+                f"{limit_area}."
             )
 
     # default limit is unlimited GH #16282
@@ -278,7 +271,11 @@ def interpolate_1d(
                 inds = lib.maybe_convert_objects(inds)
         else:
             inds = xvalues
-        result[invalid] = np.interp(inds[invalid], inds[valid], yvalues[valid])
+        # np.interp requires sorted X values, #21037
+        indexer = np.argsort(inds[valid])
+        result[invalid] = np.interp(
+            inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+        )
         result[preserve_nans] = np.nan
         return result
 
@@ -311,7 +308,7 @@ def interpolate_1d(
             fill_value=fill_value,
             bounds_error=bounds_error,
             order=order,
-            **kwargs
+            **kwargs,
         )
         result[preserve_nans] = np.nan
         return result
@@ -325,7 +322,7 @@ def _interpolate_scipy_wrapper(
     Returns an array interpolated at new_x.  Add any new methods to
     the list in _clean_interp_method.
     """
-    extra = "{method} interpolation requires SciPy.".format(method=method)
+    extra = f"{method} interpolation requires SciPy."
     import_optional_dependency("scipy", extra=extra)
     from scipy import interpolate
 
@@ -340,7 +337,7 @@ def _interpolate_scipy_wrapper(
     }
 
     if getattr(x, "is_all_dates", False):
-        # GH 5975, scipy.interp1d can't hande datetime64s
+        # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
     if method == "pchip":
@@ -372,8 +369,7 @@ def _interpolate_scipy_wrapper(
         # GH #10633, #24014
         if isna(order) or (order <= 0):
             raise ValueError(
-                "order needs to be specified and greater than 0; "
-                "got order: {}".format(order)
+                f"order needs to be specified and greater than 0; got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
         new_y = terp(new_x)

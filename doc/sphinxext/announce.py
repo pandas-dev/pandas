@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding:utf-8 -*-
 """
 Script to generate contributor and pull request lists
@@ -113,13 +113,13 @@ def build_string(revision_range, heading="Contributors"):
     components["authors"] = "* " + "\n* ".join(components["authors"])
 
     tpl = textwrap.dedent(
-        """\
-    {heading}
-    {uline}
+        f"""\
+    {components['heading']}
+    {components['uline']}
 
-    {author_message}
-    {authors}"""
-    ).format(**components)
+    {components['author_message']}
+    {components['authors']}"""
+    )
     return tpl
 
 

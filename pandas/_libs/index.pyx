@@ -17,8 +17,8 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.tslibs.conversion cimport maybe_datetimelike_to_i8
 from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 
 from pandas._libs.hashtable cimport HashTable
 
@@ -26,19 +26,13 @@ from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
-cdef int64_t NPY_NAT = util.get_nat()
-
 
 cdef inline bint is_definitely_invalid_key(object val):
-    if isinstance(val, tuple):
-        try:
-            hash(val)
-        except TypeError:
-            return True
-
-    # we have a _data, means we are a NDFrame
-    return (isinstance(val, slice) or util.is_array(val)
-            or isinstance(val, list) or hasattr(val, '_data'))
+    try:
+        hash(val)
+    except TypeError:
+        return True
+    return False
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
@@ -52,7 +46,7 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
 
 
 # Don't populate hash tables in monotonic indexes larger than this
-_SIZE_CUTOFF = 1000000
+_SIZE_CUTOFF = 1_000_000
 
 
 cdef class IndexEngine:
@@ -72,18 +66,20 @@ cdef class IndexEngine:
         self.over_size_threshold = n >= _SIZE_CUTOFF
         self.clear_mapping()
 
-    def __contains__(self, object val):
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
         self._ensure_mapping_populated()
-        hash(val)
         return val in self.mapping
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
         """
+        Parameters
+        ----------
         arr : 1-dimensional ndarray
         """
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         if isinstance(loc, slice) or util.is_array(loc):
@@ -93,11 +89,12 @@ cdef class IndexEngine:
 
     cpdef set_value(self, ndarray arr, object key, object value):
         """
+        Parameters
+        ----------
         arr : 1-dimensional ndarray
         """
         cdef:
             object loc
-            void* data_ptr
 
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
@@ -109,7 +106,7 @@ cdef class IndexEngine:
             Py_ssize_t loc
 
         if is_definitely_invalid_key(val):
-            raise TypeError("'{val}' is an invalid key".format(val=val))
+            raise TypeError(f"'{val}' is an invalid key")
 
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
@@ -141,8 +138,12 @@ cdef class IndexEngine:
 
         if self.is_monotonic_increasing:
             values = self._get_index_values()
-            left = values.searchsorted(val, side='left')
-            right = values.searchsorted(val, side='right')
+            try:
+                left = values.searchsorted(val, side='left')
+                right = values.searchsorted(val, side='right')
+            except TypeError:
+                # e.g. GH#29189 get_loc(None) with a Float64Index
+                raise KeyError(val)
 
             diff = right - left
             if diff == 0:
@@ -161,6 +162,15 @@ cdef class IndexEngine:
             int count
 
         indexer = self._get_index_values() == val
+        return self._unpack_bool_indexer(indexer, val)
+
+    cdef _unpack_bool_indexer(self,
+                              ndarray[uint8_t, ndim=1, cast=True] indexer,
+                              object val):
+        cdef:
+            ndarray[intp_t, ndim=1] found
+            int count
+
         found = np.where(indexer)[0]
         count = len(found)
 
@@ -207,7 +217,8 @@ cdef class IndexEngine:
         return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
-        cdef object is_unique
+        cdef:
+            bint is_unique
         try:
             values = self._get_index_values()
             self.monotonic_inc, self.monotonic_dec, is_unique = \
@@ -230,10 +241,10 @@ cdef class IndexEngine:
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
-    def get_backfill_indexer(self, other, limit=None):
+    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         return algos.backfill(self._get_index_values(), other, limit=limit)
 
-    def get_pad_indexer(self, other, limit=None):
+    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         return algos.pad(self._get_index_values(), other, limit=limit)
 
     cdef _make_hash_table(self, Py_ssize_t n):
@@ -279,11 +290,12 @@ cdef class IndexEngine:
         return self.mapping.lookup(values)
 
     def get_indexer_non_unique(self, targets):
-        """ return an indexer suitable for takng from a non unique index
-            return the labels in the same order ast the target
-            and a missing indexer into the targets (which correspond
-            to the -1 indices in the results """
-
+        """
+        Return an indexer suitable for taking from a non unique index
+        return the labels in the same order ast the target
+        and a missing indexer into the targets (which correspond
+        to the -1 indices in the results
+        """
         cdef:
             ndarray values, x
             ndarray[int64_t] result, missing
@@ -298,8 +310,8 @@ cdef class IndexEngine:
         stargets = set(targets)
         n = len(values)
         n_t = len(targets)
-        if n > 10000:
-            n_alloc = 10000
+        if n > 10_000:
+            n_alloc = 10_000
         else:
             n_alloc = n
 
@@ -341,7 +353,7 @@ cdef class IndexEngine:
 
                     # realloc if needed
                     if count >= n_alloc:
-                        n_alloc += 10000
+                        n_alloc += 10_000
                         result = np.resize(result, n_alloc)
 
                     result[count] = j
@@ -351,7 +363,7 @@ cdef class IndexEngine:
             else:
 
                 if count >= n_alloc:
-                    n_alloc += 10000
+                    n_alloc += 10_000
                     result = np.resize(result, n_alloc)
                 result[count] = -1
                 count += 1
@@ -389,7 +401,7 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
 
 cdef class ObjectEngine(IndexEngine):
     """
-    Index Engine for use with object-dtype Index, namely the base class Index
+    Index Engine for use with object-dtype Index, namely the base class Index.
     """
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
@@ -400,20 +412,29 @@ cdef class DatetimeEngine(Int64Engine):
     cdef _get_box_dtype(self):
         return 'M8[ns]'
 
-    def __contains__(self, object val):
-        cdef:
-            int64_t loc
+    cdef int64_t _unbox_scalar(self, scalar) except? -1:
+        # NB: caller is responsible for ensuring tzawareness compat
+        #  before we get here
+        if not (isinstance(scalar, _Timestamp) or scalar is NaT):
+            raise TypeError(scalar)
+        return scalar.value
 
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
+        cdef:
+            int64_t loc, conv
+
+        conv = self._unbox_scalar(val)
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                return self._get_loc_duplicates(val)
+                return self._get_loc_duplicates(conv)
             values = self._get_index_values()
-            conv = maybe_datetimelike_to_i8(val)
             loc = values.searchsorted(conv, side='left')
             return values[loc] == conv
 
         self._ensure_mapping_populated()
-        return maybe_datetimelike_to_i8(val) in self.mapping
+        return conv in self.mapping
 
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
@@ -422,24 +443,26 @@ cdef class DatetimeEngine(Int64Engine):
         return algos.is_monotonic(values, timelike=True)
 
     cpdef get_loc(self, object val):
+        # NB: the caller is responsible for ensuring that we are called
+        #  with either a Timestamp or NaT (Timedelta or NaT for TimedeltaEngine)
+
         cdef:
             int64_t loc
         if is_definitely_invalid_key(val):
-            raise TypeError
+            raise TypeError(f"'{val}' is an invalid key")
+
+        try:
+            conv = self._unbox_scalar(val)
+        except TypeError:
+            raise KeyError(val)
 
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                val = maybe_datetimelike_to_i8(val)
-                return self._get_loc_duplicates(val)
+                return self._get_loc_duplicates(conv)
             values = self._get_index_values()
 
-            try:
-                conv = maybe_datetimelike_to_i8(val)
-                loc = values.searchsorted(conv, side='left')
-            except TypeError:
-                self._date_check_type(val)
-                raise KeyError(val)
+            loc = values.searchsorted(conv, side='left')
 
             if loc == len(values) or values[loc] != conv:
                 raise KeyError(val)
@@ -447,26 +470,11 @@ cdef class DatetimeEngine(Int64Engine):
 
         self._ensure_mapping_populated()
         if not self.unique:
-            val = maybe_datetimelike_to_i8(val)
-            return self._get_loc_duplicates(val)
+            return self._get_loc_duplicates(conv)
 
         try:
-            return self.mapping.get_item(val.value)
+            return self.mapping.get_item(conv)
         except KeyError:
-            raise KeyError(val)
-        except AttributeError:
-            pass
-
-        try:
-            val = maybe_datetimelike_to_i8(val)
-            return self.mapping.get_item(val)
-        except (TypeError, ValueError):
-            self._date_check_type(val)
-            raise KeyError(val)
-
-    cdef inline _date_check_type(self, object val):
-        hash(val)
-        if not util.is_integer_object(val):
             raise KeyError(val)
 
     def get_indexer(self, values):
@@ -476,13 +484,13 @@ cdef class DatetimeEngine(Int64Engine):
         values = np.asarray(values).view('i8')
         return self.mapping.lookup(values)
 
-    def get_pad_indexer(self, other, limit=None):
+    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.pad(self._get_index_values(), other, limit=limit)
 
-    def get_backfill_indexer(self, other, limit=None):
+    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
@@ -494,22 +502,24 @@ cdef class TimedeltaEngine(DatetimeEngine):
     cdef _get_box_dtype(self):
         return 'm8[ns]'
 
+    cdef int64_t _unbox_scalar(self, scalar) except? -1:
+        if not (isinstance(scalar, Timedelta) or scalar is NaT):
+            raise TypeError(scalar)
+        return scalar.value
+
 
 cdef class PeriodEngine(Int64Engine):
 
     cdef _get_index_values(self):
-        return super(PeriodEngine, self).vgetter()
-
-    cdef void _call_map_locations(self, values):
-        # super(...) pattern doesn't seem to work with `cdef`
-        Int64Engine._call_map_locations(self, values.view('i8'))
+        return super(PeriodEngine, self).vgetter().view("i8")
 
     cdef _call_monotonic(self, values):
         # super(...) pattern doesn't seem to work with `cdef`
         return Int64Engine._call_monotonic(self, values.view('i8'))
 
     def get_indexer(self, values):
-        cdef ndarray[int64_t, ndim=1] ordinals
+        cdef:
+            ndarray[int64_t, ndim=1] ordinals
 
         super(PeriodEngine, self)._ensure_mapping_populated()
 
@@ -518,14 +528,14 @@ cdef class PeriodEngine(Int64Engine):
 
         return self.mapping.lookup(ordinals)
 
-    def get_pad_indexer(self, other, limit=None):
+    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
         return algos.pad(self._get_index_values(),
                          np.asarray(ordinal), limit=limit)
 
-    def get_backfill_indexer(self, other, limit=None):
+    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
         freq = super(PeriodEngine, self).vgetter().freq
         ordinal = periodlib.extract_ordinals(other, freq)
 
@@ -556,8 +566,8 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.datetime64("NaT", "ns")
-        raise ValueError("cannot set a Timestamp with a non-timestamp {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError("cannot set a Timestamp with a non-timestamp "
+                         f"{type(value).__name__}")
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if util.is_array(value):
@@ -573,17 +583,17 @@ cpdef convert_scalar(ndarray arr, object value):
             pass
         elif value is None or value != value:
             return np.timedelta64("NaT", "ns")
-        raise ValueError("cannot set a Timedelta with a non-timedelta {typ}"
-                         .format(typ=type(value).__name__))
+        raise ValueError("cannot set a Timedelta with a non-timedelta "
+                         f"{type(value).__name__}")
 
     if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
             not issubclass(arr.dtype.type, np.bool_)):
         if util.is_bool_object(value):
-            raise ValueError('Cannot assign bool to float/integer series')
+            raise ValueError("Cannot assign bool to float/integer series")
 
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:
-            raise ValueError('Cannot assign nan to integer series')
+            raise ValueError("Cannot assign nan to integer series")
 
     return value
 
@@ -621,13 +631,12 @@ cdef class BaseMultiIndexCodesEngine:
         Parameters
         ----------
         levels : list-like of numpy arrays
-            Levels of the MultiIndex
+            Levels of the MultiIndex.
         labels : list-like of numpy arrays of integer dtype
-            Labels of the MultiIndex
+            Labels of the MultiIndex.
         offsets : numpy array of uint64 dtype
-            Pre-calculated offsets, one for each level of the index
+            Pre-calculated offsets, one for each level of the index.
         """
-
         self.levels = levels
         self.offsets = offsets
 
@@ -645,7 +654,10 @@ cdef class BaseMultiIndexCodesEngine:
         # integers representing labels: we will use its get_loc and get_indexer
         self._base.__init__(self, lambda: lab_ints, len(lab_ints))
 
-    def _extract_level_codes(self, object target, object method=None):
+    def _codes_to_ints(self, codes):
+        raise NotImplementedError("Implemented by subclass")
+
+    def _extract_level_codes(self, object target):
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.
@@ -660,7 +672,6 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-
         level_codes = [lev.get_indexer(codes) + 1 for lev, codes
                        in zip(self.levels, zip(*target))]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
@@ -677,7 +688,7 @@ cdef class BaseMultiIndexCodesEngine:
             # Index._get_fill_indexer), sort (integer representations of) keys:
             order = np.argsort(lab_ints)
             lab_ints = lab_ints[order]
-            indexer = (getattr(self._base, 'get_{}_indexer'.format(method))
+            indexer = (getattr(self._base, f'get_{method}_indexer')
                        (self, lab_ints, limit=limit))
             indexer = indexer[order]
         else:
@@ -687,7 +698,7 @@ cdef class BaseMultiIndexCodesEngine:
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
-            raise TypeError("'{key}' is an invalid key".format(key=key))
+            raise TypeError(f"'{key}' is an invalid key")
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:
@@ -710,7 +721,9 @@ cdef class BaseMultiIndexCodesEngine:
 
         return indexer
 
-    def __contains__(self, object val):
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
         # Default __contains__ looks in the underlying mapping, which in this
         # case only contains integer representations.
         try:

@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -23,22 +24,22 @@ from pandas import (
     UInt64Index,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 class Base:
     """ base class for index sub-class tests """
 
-    _holder = None  # type: Optional[Type[Index]]
+    _holder: Optional[Type[Index]] = None
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def test_pickle_compat_construction(self):
         # need an object to create with
         msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some"
-            r" kind, None was passed|"
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            r"kind, None was passed|"
             r"__new__\(\) missing 1 required positional argument: 'data'|"
             r"__new__\(\) takes at least 2 arguments \(1 given\)"
         )
@@ -102,6 +103,13 @@ class Base:
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1, 2)
+
+    def test_constructor_name_unhashable(self):
+        # GH#29069 check that name is hashable
+        # See also same-named test in tests.series.test_constructors
+        idx = self.create_index()
+        with pytest.raises(TypeError, match="Index.name must be a hashable type"):
+            type(idx)(idx, name=[])
 
     def test_create_index_existing_name(self):
 
@@ -244,7 +252,7 @@ class Base:
         idx = self.create_index()
         idx.name = "foo"
         assert "'foo'" in str(idx)
-        assert idx.__class__.__name__ in str(idx)
+        assert type(idx).__name__ in str(idx)
 
     def test_repr_max_seq_item_setting(self):
         # GH10182
@@ -260,8 +268,8 @@ class Base:
         if isinstance(indices, MultiIndex):
             return
 
-        first = indices.__class__(indices, copy=True, name="mario")
-        second = first.__class__(first, copy=False)
+        first = type(indices)(indices, copy=True, name="mario")
+        second = type(first)(first, copy=False)
 
         # Even though "copy=False", we want a new object.
         assert first is not second
@@ -292,8 +300,11 @@ class Base:
             # MultiIndex and CategoricalIndex are tested separately
             return
 
-        index_type = indices.__class__
+        index_type = type(indices)
         result = index_type(indices.values, copy=True, **init_kwargs)
+        if is_datetime64tz_dtype(indices.dtype):
+            result = result.tz_localize("UTC").tz_convert(indices.tz)
+
         tm.assert_index_equal(indices, result)
         tm.assert_numpy_array_equal(
             indices._ndarray_values, result._ndarray_values, check_same="copy"
@@ -457,6 +468,11 @@ class Base:
         intersect = first.intersection(second)
         assert tm.equalContents(intersect, second)
 
+        if is_datetime64tz_dtype(indices.dtype):
+            # The second.values below will drop tz, so the rest of this test
+            #  is not applicable.
+            return
+
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
@@ -474,6 +490,11 @@ class Base:
         everything = indices
         union = first.union(second)
         assert tm.equalContents(union, everything)
+
+        if is_datetime64tz_dtype(indices.dtype):
+            # The second.values below will drop tz, so the rest of this test
+            #  is not applicable.
+            return
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
@@ -502,7 +523,7 @@ class Base:
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             if isinstance(indices, (DatetimeIndex, TimedeltaIndex)):
-                assert result.__class__ == answer.__class__
+                assert type(result) == type(answer)
                 tm.assert_numpy_array_equal(
                     result.sort_values().asi8, answer.sort_values().asi8
                 )
@@ -677,9 +698,9 @@ class Base:
             values[1] = np.nan
 
         if isinstance(indices, PeriodIndex):
-            idx = indices.__class__(values, freq=indices.freq)
+            idx = type(indices)(values, freq=indices.freq)
         else:
-            idx = indices.__class__(values)
+            idx = type(indices)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -716,9 +737,9 @@ class Base:
                 values[1] = np.nan
 
             if isinstance(indices, PeriodIndex):
-                idx = indices.__class__(values, freq=indices.freq)
+                idx = type(indices)(values, freq=indices.freq)
             else:
-                idx = indices.__class__(values)
+                idx = type(indices)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -801,6 +822,13 @@ class Base:
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
+    def test_map_str(self):
+        # GH 31202
+        index = self.create_index()
+        result = index.map(str)
+        expected = Index([str(x) for x in index], dtype=object)
+        tm.assert_index_equal(result, expected)
+
     def test_putmask_with_wrong_mask(self):
         # GH18368
         index = self.create_index()
@@ -868,3 +896,19 @@ class Base:
         nrefs_pre = len(gc.get_referrers(index))
         index._engine
         assert len(gc.get_referrers(index)) == nrefs_pre
+
+    def test_getitem_2d_deprecated(self):
+        # GH#30588
+        idx = self.create_index()
+        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+            res = idx[:, None]
+
+        assert isinstance(res, np.ndarray), type(res)
+
+    def test_contains_requires_hashable_raises(self):
+        idx = self.create_index()
+        with pytest.raises(TypeError, match="unhashable type"):
+            [] in idx
+
+        with pytest.raises(TypeError):
+            {} in idx._engine

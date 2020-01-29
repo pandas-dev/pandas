@@ -5,8 +5,8 @@ from pandas._libs.tslib import iNaT
 
 import pandas as pd
 from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 def test_fillna(idx):
@@ -42,9 +42,9 @@ def test_fillna(idx):
                 values[1] = np.nan
 
             if isinstance(index, PeriodIndex):
-                idx = index.__class__(values, freq=index.freq)
+                idx = type(index)(values, freq=index.freq)
             else:
-                idx = index.__class__(values)
+                idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -101,7 +101,7 @@ def test_nulls(idx):
         idx.isna()
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="isna is not defined for MultiIndex")
 def test_hasnans_isnans(idx):
     # GH 11343, added tests for hasnans / isnans
     index = idx.copy()
@@ -115,7 +115,7 @@ def test_hasnans_isnans(idx):
     values = index.values
     values[1] = np.nan
 
-    index = idx.__class__(values)
+    index = type(idx)(values)
 
     expected = np.array([False] * len(index), dtype=bool)
     expected[1] = True

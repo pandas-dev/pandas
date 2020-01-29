@@ -1,7 +1,4 @@
 from contextlib import contextmanager
-import warnings
-
-from pandas.util._decorators import deprecate_kwarg
 
 from pandas.plotting._core import _get_plot_backend
 
@@ -82,7 +79,7 @@ def scatter_matrix(
     density_kwds=None,
     hist_kwds=None,
     range_padding=0.05,
-    **kwargs
+    **kwargs,
 ):
     """
     Draw a matrix of scatter plots.
@@ -134,7 +131,7 @@ def scatter_matrix(
         density_kwds=density_kwds,
         hist_kwds=hist_kwds,
         range_padding=range_padding,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -152,7 +149,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     influence of all dimensions.
 
     More info available at the `original article
-    <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
     describing RadViz.
 
     Parameters
@@ -168,7 +165,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     colormap : str or :class:`matplotlib.colors.Colormap`, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
-    kwds : optional
+    **kwds
         Options to pass to matplotlib scatter plotting method.
 
     Returns
@@ -207,11 +204,10 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ax=ax,
         color=color,
         colormap=colormap,
-        **kwds
+        **kwds,
     )
 
 
-@deprecate_kwarg(old_arg_name="data", new_arg_name="frame")
 def andrews_curves(
     frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwargs
 ):
@@ -255,7 +251,7 @@ def andrews_curves(
         samples=samples,
         color=color,
         colormap=colormap,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -283,7 +279,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         greater or equal than the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
-    **kwds :
+    **kwds
         Options to pass to matplotlib plotting method.
 
     Returns
@@ -311,8 +307,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     )
 
 
-@deprecate_kwarg(old_arg_name="colors", new_arg_name="color")
-@deprecate_kwarg(old_arg_name="data", new_arg_name="frame", stacklevel=3)
 def parallel_coordinates(
     frame,
     class_column,
@@ -325,7 +319,7 @@ def parallel_coordinates(
     axvlines=True,
     axvlines_kwds=None,
     sort_labels=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Parallel coordinates plotting.
@@ -364,7 +358,7 @@ def parallel_coordinates(
     --------
     >>> from matplotlib import pyplot as plt
     >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
-                        '/pandas/tests/data/iris.csv')
+                        '/pandas/tests/data/csv/iris.csv')
     >>> pd.plotting.parallel_coordinates(
             df, 'Name',
             color=('#556270', '#4ECDC4', '#C7F464'))
@@ -383,7 +377,7 @@ def parallel_coordinates(
         axvlines=axvlines,
         axvlines_kwds=axvlines_kwds,
         sort_labels=sort_labels,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -396,7 +390,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     series : Time series
     lag : lag of the scatter plot, default 1
     ax : Matplotlib axis object, optional
-    kwds : Matplotlib scatter method keyword arguments, optional
+    **kwds
+        Matplotlib scatter method keyword arguments.
 
     Returns
     -------
@@ -425,39 +420,13 @@ def autocorrelation_plot(series, ax=None, **kwargs):
     return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
 
 
-def tsplot(series, plotf, ax=None, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    warnings.warn(
-        "'tsplot' is deprecated and will be removed in a "
-        "future version. Please use Series.plot() instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-    plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.tsplot(series=series, plotf=plotf, ax=ax, **kwargs)
-
-
 class _Options(dict):
     """
     Stores pandas plotting options.
+
     Allows for parameter aliasing so you can just use parameter names that are
     the same as the plot function parameters, but is stored in a canonical
-    format that makes it easy to breakdown into groups later
+    format that makes it easy to breakdown into groups later.
     """
 
     # alias so the names are same as plotting method parameter names
@@ -466,15 +435,12 @@ class _Options(dict):
 
     def __init__(self, deprecated=False):
         self._deprecated = deprecated
-        # self['xaxis.compat'] = False
         super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
         key = self._get_canonical_key(key)
         if key not in self:
-            raise ValueError(
-                "{key} is not a valid pandas plotting option".format(key=key)
-            )
+            raise ValueError(f"{key} is not a valid pandas plotting option")
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -484,10 +450,10 @@ class _Options(dict):
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
-            raise ValueError("Cannot remove default parameter {key}".format(key=key))
+            raise ValueError(f"Cannot remove default parameter {key}")
         return super().__delitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         key = self._get_canonical_key(key)
         return super().__contains__(key)
 

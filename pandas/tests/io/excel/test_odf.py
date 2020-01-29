@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 pytest.importorskip("odf")
 
@@ -13,7 +13,7 @@ pytest.importorskip("odf")
 def cd_and_set_engine(monkeypatch, datapath):
     func = functools.partial(pd.read_excel, engine="odf")
     monkeypatch.setattr(pd, "read_excel", func)
-    monkeypatch.chdir(datapath("io", "data"))
+    monkeypatch.chdir(datapath("io", "data", "excel"))
 
 
 def test_read_invalid_types_raises():

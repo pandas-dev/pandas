@@ -280,8 +280,8 @@ def infer_tzinfo(start, end):
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
-            msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
-            raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
+            raise AssertionError(f'Inputs must both have the same timezone, '
+                                 f'{tz} != {end.tzinfo}')
     elif start is not None:
         tz = start.tzinfo
     elif end is not None:

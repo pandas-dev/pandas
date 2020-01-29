@@ -3,13 +3,14 @@ from datetime import timedelta
 from distutils.version import LooseVersion
 from io import BytesIO
 import os
+from pathlib import Path
 import re
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY36, is_platform_little_endian, is_platform_windows
+from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -32,6 +33,7 @@ from pandas import (
     isna,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     create_tempfile,
@@ -41,7 +43,6 @@ from pandas.tests.io.pytables.common import (
     safe_remove,
     tables,
 )
-import pandas.util.testing as tm
 
 from pandas.io.pytables import (
     ClosedFileError,
@@ -63,10 +64,23 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
 
 @pytest.mark.single
 class TestHDFStore:
+    def test_format_type(self, setup_path):
+        df = pd.DataFrame({"A": [1, 2]})
+        with ensure_clean_path(setup_path) as path:
+            with HDFStore(path) as store:
+                store.put("a", df, format="fixed")
+                store.put("b", df, format="table")
+
+                assert store.get_storer("a").format_type == "fixed"
+                assert store.get_storer("b").format_type == "table"
+
     def test_format_kwarg_in_constructor(self, setup_path):
         # GH 13291
+
+        msg = "format is not a defined argument for HDFStore"
+
         with ensure_clean_path(setup_path) as path:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
@@ -202,21 +216,27 @@ class TestHDFStore:
             # Invalid.
             df = tm.makeDataFrame()
 
-            with pytest.raises(ValueError):
+            msg = "Can only append to Tables"
+
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df", append=True, format="f")
 
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df", append=True, format="fixed")
 
-            with pytest.raises(TypeError):
+            msg = r"invalid HDFStore format specified \[foo\]"
+
+            with pytest.raises(TypeError, match=msg):
                 df.to_hdf(path, "df", append=True, format="foo")
 
-            with pytest.raises(TypeError):
-                df.to_hdf(path, "df", append=False, format="bar")
+            with pytest.raises(TypeError, match=msg):
+                df.to_hdf(path, "df", append=False, format="foo")
 
         # File path doesn't exist
         path = ""
-        with pytest.raises(FileNotFoundError):
+        msg = f"File {path} does not exist"
+
+        with pytest.raises(FileNotFoundError, match=msg):
             read_hdf(path, "df")
 
     def test_api_default_format(self, setup_path):
@@ -229,7 +249,10 @@ class TestHDFStore:
             _maybe_remove(store, "df")
             store.put("df", df)
             assert not store.get_storer("df").is_table
-            with pytest.raises(ValueError):
+
+            msg = "Can only append to Tables"
+
+            with pytest.raises(ValueError, match=msg):
                 store.append("df2", df)
 
             pd.set_option("io.hdf.default_format", "table")
@@ -250,7 +273,7 @@ class TestHDFStore:
             df.to_hdf(path, "df")
             with HDFStore(path) as store:
                 assert not store.get_storer("df").is_table
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 df.to_hdf(path, "df2", append=True)
 
             pd.set_option("io.hdf.default_format", "table")
@@ -383,7 +406,10 @@ class TestHDFStore:
             # this is an error because its table_type is appendable, but no
             # version info
             store.get_node("df2")._v_attrs.pandas_version = None
-            with pytest.raises(Exception):
+
+            msg = "'NoneType' object has no attribute 'startswith'"
+
+            with pytest.raises(Exception, match=msg):
                 store.select("df2")
 
     def test_mode(self, setup_path):
@@ -427,7 +453,11 @@ class TestHDFStore:
 
                 # conv read
                 if mode in ["w"]:
-                    with pytest.raises(ValueError):
+                    msg = (
+                        "mode w is not allowed while performing a read. "
+                        r"Allowed modes are r, r\+ and a."
+                    )
+                    with pytest.raises(ValueError, match=msg):
                         read_hdf(path, "df", mode=mode)
                 else:
                     result = read_hdf(path, "df", mode=mode)
@@ -1272,7 +1302,7 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 store.append("df", df)
 
-            # store multile additional fields in different blocks
+            # store multiple additional fields in different blocks
             df["float_3"] = Series([1.0] * len(df), dtype="float64")
             with pytest.raises(ValueError):
                 store.append("df", df)
@@ -2376,8 +2406,8 @@ class TestHDFStore:
 
     @td.xfail_non_writeable
     def test_empty_series_frame(self, setup_path):
-        s0 = Series()
-        s1 = Series(name="myseries")
+        s0 = Series(dtype=object)
+        s1 = Series(name="myseries", dtype=object)
         df0 = DataFrame()
         df1 = DataFrame(index=["a", "b", "c"])
         df2 = DataFrame(columns=["d", "e", "f"])
@@ -2806,16 +2836,16 @@ class TestHDFStore:
 
             expected = store.select("df")
 
-            results = [s for s in store.select("df", iterator=True)]
+            results = list(store.select("df", iterator=True))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
-            results = [s for s in store.select("df", chunksize=100)]
+            results = list(store.select("df", chunksize=100))
             assert len(results) == 5
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
-            results = [s for s in store.select("df", chunksize=150)]
+            results = list(store.select("df", chunksize=150))
             result = concat(results)
             tm.assert_frame_equal(result, expected)
 
@@ -2835,7 +2865,7 @@ class TestHDFStore:
             df = tm.makeTimeDataFrame(500)
             df.to_hdf(path, "df", format="table")
 
-            results = [s for s in read_hdf(path, "df", chunksize=100)]
+            results = list(read_hdf(path, "df", chunksize=100))
             result = concat(results)
 
             assert len(results) == 5
@@ -2856,12 +2886,9 @@ class TestHDFStore:
 
             # full selection
             expected = store.select_as_multiple(["df1", "df2"], selector="df1")
-            results = [
-                s
-                for s in store.select_as_multiple(
-                    ["df1", "df2"], selector="df1", chunksize=150
-                )
-            ]
+            results = list(
+                store.select_as_multiple(["df1", "df2"], selector="df1", chunksize=150)
+            )
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -2916,19 +2943,19 @@ class TestHDFStore:
             end_dt = expected.index[-1]
 
             # select w/iterator and no where clause works
-            results = [s for s in store.select("df", chunksize=chunksize)]
+            results = list(store.select("df", chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, begin of range
             where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
             # select w/iterator and where clause, single term, end of range
             where = "index <= '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -2936,7 +2963,7 @@ class TestHDFStore:
             where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             tm.assert_frame_equal(expected, result)
 
@@ -2958,14 +2985,14 @@ class TestHDFStore:
 
             # select w/iterator and where clause, single term, begin of range
             where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
             where = "index <= '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index <= end_dt]
             tm.assert_frame_equal(rexpected, result)
@@ -2974,7 +3001,7 @@ class TestHDFStore:
             where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[
                 (expected.index >= beg_dt) & (expected.index <= end_dt)
@@ -2992,7 +3019,7 @@ class TestHDFStore:
 
             # select w/iterator and where clause, single term, begin of range
             where = "index > '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             assert 0 == len(results)
 
     def test_select_iterator_many_empty_frames(self, setup_path):
@@ -3014,14 +3041,14 @@ class TestHDFStore:
 
             # select w/iterator and where clause, single term, begin of range
             where = "index >= '{beg_dt}'".format(beg_dt=beg_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
             result = concat(results)
             rexpected = expected[expected.index >= beg_dt]
             tm.assert_frame_equal(rexpected, result)
 
             # select w/iterator and where clause, single term, end of range
             where = "index <= '{end_dt}'".format(end_dt=end_dt)
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
 
             assert len(results) == 1
             result = concat(results)
@@ -3032,7 +3059,7 @@ class TestHDFStore:
             where = "index >= '{beg_dt}' & index <= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
 
             # should be 1, is 10
             assert len(results) == 1
@@ -3052,7 +3079,7 @@ class TestHDFStore:
             where = "index <= '{beg_dt}' & index >= '{end_dt}'".format(
                 beg_dt=beg_dt, end_dt=end_dt
             )
-            results = [s for s in store.select("df", where=where, chunksize=chunksize)]
+            results = list(store.select("df", where=where, chunksize=chunksize))
 
             # should be []
             assert len(results) == 0
@@ -3216,7 +3243,7 @@ class TestHDFStore:
             tm.assert_frame_equal(result, expected)
 
             result = store.select(
-                "df", "(index>df.index[3] & " 'index<=df.index[6]) | string="bar"'
+                "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
             )
             expected = df.loc[
                 ((df.index > df.index[3]) & (df.index <= df.index[6]))
@@ -4597,12 +4624,9 @@ class TestHDFStore:
             with pytest.raises(ValueError):
                 read_hdf(path)
 
-    @td.skip_if_no("pathlib")
     def test_read_from_pathlib_path(self, setup_path):
 
         # GH11773
-        from pathlib import Path
-
         expected = DataFrame(
             np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
         )
@@ -4711,7 +4735,6 @@ class TestHDFStore:
             result = pd.read_hdf(path, key="data", mode="r")
         tm.assert_series_equal(result, series)
 
-    @pytest.mark.skipif(not PY36, reason="Need python 3.6")
     def test_fspath(self):
         with tm.ensure_clean("foo.h5") as path:
             with pd.HDFStore(path) as store:

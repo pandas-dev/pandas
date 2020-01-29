@@ -9,8 +9,8 @@ import pytest
 
 import pandas as pd
 from pandas import NaT, Timedelta, Timestamp, offsets
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 
 class TestTimedeltaAdditionSubtraction:
@@ -241,6 +241,57 @@ class TestTimedeltaAdditionSubtraction:
         res = op(arr, Timedelta("1D"))
         tm.assert_numpy_array_equal(res, exp)
 
+    # TODO: moved from index tests following #24365, may need de-duplication
+    def test_ops_ndarray(self):
+        td = Timedelta("1 day")
+
+        # timedelta, timedelta
+        other = pd.to_timedelta(["1 day"]).values
+        expected = pd.to_timedelta(["2 days"]).values
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+        msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            td + np.array([1])
+        msg = r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'"
+        with pytest.raises(TypeError, match=msg):
+            np.array([1]) + td
+
+        expected = pd.to_timedelta(["0 days"]).values
+        tm.assert_numpy_array_equal(td - other, expected)
+        tm.assert_numpy_array_equal(-other + td, expected)
+        msg = r"unsupported operand type\(s\) for -: 'Timedelta' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            td - np.array([1])
+        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timedelta'"
+        with pytest.raises(TypeError, match=msg):
+            np.array([1]) - td
+
+        expected = pd.to_timedelta(["2 days"]).values
+        tm.assert_numpy_array_equal(td * np.array([2]), expected)
+        tm.assert_numpy_array_equal(np.array([2]) * td, expected)
+        msg = (
+            "ufunc '?multiply'? cannot use operands with types "
+            r"dtype\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)"
+        )
+        with pytest.raises(TypeError, match=msg):
+            td * other
+        with pytest.raises(TypeError, match=msg):
+            other * td
+
+        tm.assert_numpy_array_equal(td / other, np.array([1], dtype=np.float64))
+        tm.assert_numpy_array_equal(other / td, np.array([1], dtype=np.float64))
+
+        # timedelta, datetime
+        other = pd.to_datetime(["2000-01-01"]).values
+        expected = pd.to_datetime(["2000-01-02"]).values
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+        expected = pd.to_datetime(["1999-12-31"]).values
+        tm.assert_numpy_array_equal(-td + other, expected)
+        tm.assert_numpy_array_equal(other - td, expected)
+
 
 class TestTimedeltaMultiplicationDivision:
     """
@@ -447,7 +498,7 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=3)
 
-        dt64 = np.datetime64("2016-01-01", dtype="datetime64[us]")
+        dt64 = np.datetime64("2016-01-01", "us")
         with pytest.raises(TypeError):
             td.__rfloordiv__(dt64)
 
@@ -463,8 +514,8 @@ class TestTimedeltaMultiplicationDivision:
             td.__rfloordiv__(np.float64(2.0))
         with pytest.raises(TypeError):
             td.__rfloordiv__(np.uint8(9))
-        with tm.assert_produces_warning(FutureWarning):
-            # GH-19761: Change to TypeError.
+        with pytest.raises(TypeError, match="Invalid dtype"):
+            # deprecated GH#19761, enforced GH#29797
             td.__rfloordiv__(np.int32(2.0))
 
     def test_td_rfloordiv_timedeltalike_array(self):
@@ -490,7 +541,9 @@ class TestTimedeltaMultiplicationDivision:
         ser = pd.Series([1], dtype=np.int64)
         res = td.__rfloordiv__(ser)
         assert res is NotImplemented
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+
+        with pytest.raises(TypeError, match="Invalid dtype"):
+            # Deprecated GH#19761, enforced GH#29797
             # TODO: GH-19761. Change to TypeError.
             ser // td
 

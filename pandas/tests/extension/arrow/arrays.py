@@ -7,6 +7,7 @@ current implementation is not efficient.
 """
 import copy
 import itertools
+from typing import Type
 
 import numpy as np
 import pyarrow as pa
@@ -29,17 +30,18 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
+        """
+        Return the array type associated with this dtype.
 
-    @classmethod
-    def construct_array_type(cls):
+        Returns
+        -------
+        type
+        """
         return ArrowBoolArray
 
-    def _is_boolean(self):
+    @property
+    def _is_boolean(self) -> bool:
         return True
 
 
@@ -52,14 +54,14 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
+    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+        """
+        Return the array type associated with this dtype.
 
-    @classmethod
-    def construct_array_type(cls):
+        Returns
+        -------
+        type
+        """
         return ArrowStringArray
 
 
@@ -79,7 +81,7 @@ class ArrowExtensionArray(ExtensionArray):
         return cls.from_scalars(scalars)
 
     def __repr__(self):
-        return "{cls}({data})".format(cls=type(self).__name__, data=repr(self._data))
+        return f"{type(self).__name__}({repr(self._data)})"
 
     def __getitem__(self, item):
         if pd.api.types.is_scalar(item):

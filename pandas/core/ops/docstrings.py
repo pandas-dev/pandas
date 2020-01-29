@@ -233,7 +233,7 @@ e    NaN
 dtype: float64
 """
 
-_op_descriptions = {
+_op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
     # Arithmetic Operators
     "add": {
         "op": "+",
@@ -310,7 +310,7 @@ _op_descriptions = {
         "reverse": None,
         "series_examples": None,
     },
-}  # type: Dict[str, Dict[str, Optional[str]]]
+}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:

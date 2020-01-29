@@ -6,16 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, get_option, read_clipboard
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.clipboard import clipboard_get, clipboard_set
-from pandas.io.clipboard.exceptions import PyperclipException
-
-try:
-    DataFrame({"A": [1, 2]}).to_clipboard()
-    _DEPS_INSTALLED = 1
-except (PyperclipException, RuntimeError):
-    _DEPS_INSTALLED = 0
 
 
 def build_kwargs(sep, excel):
@@ -149,7 +142,6 @@ def test_mock_clipboard(mock_clipboard):
 
 @pytest.mark.single
 @pytest.mark.clipboard
-@pytest.mark.skipif(not _DEPS_INSTALLED, reason="clipboard primitives not installed")
 @pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
@@ -257,7 +249,6 @@ class TestClipboard:
 
 @pytest.mark.single
 @pytest.mark.clipboard
-@pytest.mark.skipif(not _DEPS_INSTALLED, reason="clipboard primitives not installed")
 @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
 def test_raw_roundtrip(data):
     # PR #25040 wide unicode wasn't copied correctly on PY3 on windows

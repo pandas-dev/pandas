@@ -1191,12 +1191,15 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     return dtstruct_to_dt64(&dts)
 
 
-def period_format(int64_t value, int freq, object fmt=None):
+cdef str period_format(int64_t value, int freq, object fmt=None):
     cdef:
         int freq_group
 
     if value == NPY_NAT:
-        return repr(NaT)
+        return "NaT"
+
+    if isinstance(fmt, str):
+        fmt = fmt.encode("utf-8")
 
     if fmt is None:
         freq_group = get_freq_group(freq)
@@ -1209,8 +1212,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 4000:  # WK
             left = period_asfreq(value, freq, 6000, 0)
             right = period_asfreq(value, freq, 6000, 1)
-            return '%s/%s' % (period_format(left, 6000),
-                              period_format(right, 6000))
+            return f"{period_format(left, 6000)}/{period_format(right, 6000)}"
         elif (freq_group == 5000      # BUS
               or freq_group == 6000):  # DAY
             fmt = b'%Y-%m-%d'
@@ -1227,7 +1229,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 12000:  # NANOSEC
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
-            raise ValueError('Unknown freq: {freq}'.format(freq=freq))
+            raise ValueError(f"Unknown freq: {freq}")
 
     return _period_strftime(value, freq, fmt)
 
@@ -1242,24 +1244,22 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
-cdef object _period_strftime(int64_t value, int freq, object fmt):
+cdef str _period_strftime(int64_t value, int freq, bytes fmt):
     cdef:
         Py_ssize_t i
         npy_datetimestruct dts
         char *formatted
-        object pat, repl, result
+        bytes pat, brepl
         list found_pat = [False] * len(extra_fmts)
         int year, quarter
-
-    if isinstance(fmt, unicode):
-        fmt = fmt.encode('utf-8')
+        str result, repl
 
     get_date_info(value, freq, &dts)
     for i in range(len(extra_fmts)):
         pat = extra_fmts[i][0]
-        repl = extra_fmts[i][1]
+        brepl = extra_fmts[i][1]
         if pat in fmt:
-            fmt = fmt.replace(pat, repl)
+            fmt = fmt.replace(pat, brepl)
             found_pat[i] = True
 
     formatted = c_strftime(&dts, <char*>fmt)
@@ -1273,17 +1273,17 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
                 raise ValueError('Unable to get quarter and year')
 
             if i == 0:
-                repl = '%d' % quarter
+                repl = str(quarter)
             elif i == 1:  # %f, 2-digit year
-                repl = '%.2d' % (year % 100)
+                repl = f"{(year % 100):02d}"
             elif i == 2:
-                repl = '%d' % year
+                repl = str(year)
             elif i == 3:
-                repl = '%03d' % (value % 1000)
+                repl = f"{(value % 1_000):03d}"
             elif i == 4:
-                repl = '%06d' % (value % 1000000)
+                repl = f"{(value % 1_000_000):06d}"
             elif i == 5:
-                repl = '%09d' % (value % 1000000000)
+                repl = f"{(value % 1_000_000_000):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -1391,7 +1391,7 @@ def get_period_field_arr(int code, int64_t[:] arr, int freq):
 
     func = _get_accessor_func(code)
     if func is NULL:
-        raise ValueError('Unrecognized period code: {code}'.format(code=code))
+        raise ValueError(f"Unrecognized period code: {code}")
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -1578,9 +1578,8 @@ cdef class _Period:
         freq = to_offset(freq)
 
         if freq.n <= 0:
-            raise ValueError('Frequency must be positive, because it'
-                             ' represents span: {freqstr}'
-                             .format(freqstr=freq.freqstr))
+            raise ValueError("Frequency must be positive, because it "
+                             f"represents span: {freq.freqstr}")
 
         return freq
 
@@ -1614,9 +1613,8 @@ cdef class _Period:
                 return NotImplemented
             elif op == Py_NE:
                 return NotImplemented
-            raise TypeError('Cannot compare type {cls} with type {typ}'
-                            .format(cls=type(self).__name__,
-                                    typ=type(other).__name__))
+            raise TypeError(f"Cannot compare type {type(self).__name__} "
+                            f"with type {type(other).__name__}")
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -1634,8 +1632,8 @@ cdef class _Period:
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
-            msg = 'Input cannot be converted to Period(freq={0})'
-            raise IncompatibleFrequency(msg.format(self.freqstr))
+            raise IncompatibleFrequency("Input cannot be converted to "
+                                        f"Period(freq={self.freqstr})")
         elif util.is_offset_object(other):
             freqstr = other.rule_code
             base = get_base_alias(freqstr)
@@ -1665,9 +1663,8 @@ cdef class _Period:
                 # GH#17983
                 sname = type(self).__name__
                 oname = type(other).__name__
-                raise TypeError("unsupported operand type(s) for +: '{self}' "
-                                "and '{other}'".format(self=sname,
-                                                       other=oname))
+                raise TypeError(f"unsupported operand type(s) for +: '{sname}' "
+                                f"and '{oname}'")
             else:  # pragma: no cover
                 return NotImplemented
         elif is_period_object(other):
@@ -2204,7 +2201,7 @@ cdef class _Period:
         return self.days_in_month
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return bool(is_leapyear(self.year))
 
     @classmethod
@@ -2215,18 +2212,18 @@ cdef class _Period:
     def freqstr(self):
         return self.freq.freqstr
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
-        return "Period('%s', '%s')" % (formatted, self.freqstr)
+        return f"Period('{formatted}', '{self.freqstr}')"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation for a particular DataFrame
         """
         base, mult = get_freq_code(self.freq)
         formatted = period_format(self.ordinal, base)
-        value = ("%s" % formatted)
+        value = str(formatted)
         return value
 
     def __setstate__(self, state):
@@ -2237,7 +2234,7 @@ cdef class _Period:
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def strftime(self, fmt):
+    def strftime(self, fmt: str) -> str:
         """
         Returns the string representation of the :class:`Period`, depending
         on the selected ``fmt``. ``fmt`` must be a string
@@ -2469,7 +2466,7 @@ class Period(_Period):
             if util.is_integer_object(value):
                 value = str(value)
             value = value.upper()
-            dt, _, reso = parse_time_string(value, freq)
+            dt, reso = parse_time_string(value, freq)
             if dt is NaT:
                 ordinal = NPY_NAT
 
@@ -2477,9 +2474,8 @@ class Period(_Period):
                 try:
                     freq = Resolution.get_freq(reso)
                 except KeyError:
-                    raise ValueError(
-                        "Invalid frequency or could not infer: {reso}"
-                        .format(reso=reso))
+                    raise ValueError(f"Invalid frequency or could not "
+                                     f"infer: {reso}")
 
         elif PyDateTime_Check(value):
             dt = value

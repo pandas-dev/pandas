@@ -90,11 +90,11 @@ gen_yqm_offset = st.one_of(
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
-    # check that the class-specific implementations of onOffset match
+    # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
     compare = (dt + offset) - offset
-    assert offset.onOffset(dt) == (compare == dt)
+    assert offset.is_on_offset(dt) == (compare == dt)
 
 
 @pytest.mark.xfail(

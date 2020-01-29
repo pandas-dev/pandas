@@ -6,9 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
+import pandas._testing as tm
 import pandas.core.common as com
 from pandas.tests.frame.common import _check_mixed_float
-import pandas.util.testing as tm
 
 
 class TestDataFrameUnaryOperators:
@@ -60,6 +60,27 @@ class TestDataFrameUnaryOperators:
         df = float_frame
 
         tm.assert_frame_equal(-(df < 0), ~(df < 0))
+
+    def test_invert_mixed(self):
+        shape = (10, 5)
+        df = pd.concat(
+            [
+                pd.DataFrame(np.zeros(shape, dtype="bool")),
+                pd.DataFrame(np.zeros(shape, dtype=int)),
+            ],
+            axis=1,
+            ignore_index=True,
+        )
+        result = ~df
+        expected = pd.concat(
+            [
+                pd.DataFrame(np.ones(shape, dtype="bool")),
+                pd.DataFrame(-np.ones(shape, dtype=int)),
+            ],
+            axis=1,
+            ignore_index=True,
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "df",
@@ -217,6 +238,42 @@ class TestDataFrameLogicalOperators:
         result = d["a"].fillna(False, downcast=False) | d["b"]
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "left, right, op, expected",
+        [
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.and_,
+                [True, False, False],
+            ),
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.or_,
+                [True, False, False],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.or_,
+                [True, False, True],
+            ),
+        ],
+    )
+    def test_logical_operators_nans(self, left, right, op, expected):
+        # GH 13896
+        result = op(DataFrame(left), DataFrame(right))
+        expected = DataFrame(expected)
+
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameOperators:
@@ -530,6 +587,16 @@ class TestDataFrameOperators:
         test_comp(operator.ge)
         test_comp(operator.le)
 
+    def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
+        # GH 11565
+        df = DataFrame(
+            {x: {"x": "foo", "y": "bar", "z": "baz"} for x in ["a", "b", "c"]}
+        )
+
+        f = getattr(operator, compare_operators_no_eq_ne)
+        with pytest.raises(TypeError):
+            f(df, 0)
+
     def test_comparison_protected_from_errstate(self):
         missing_df = tm.makeDataFrame()
         missing_df.iloc[0]["A"] = np.nan
@@ -842,44 +909,3 @@ class TestDataFrameOperators:
         b = df["B"]
         with tm.assert_produces_warning(None):
             getattr(df, all_arithmetic_operators)(b, 0)
-
-
-class TestTranspose:
-    def test_transpose_tzaware_1col_single_tz(self):
-        # GH#26825
-        dti = pd.date_range("2016-04-05 04:30", periods=3, tz="UTC")
-
-        df = pd.DataFrame(dti)
-        assert (df.dtypes == dti.dtype).all()
-        res = df.T
-        assert (res.dtypes == dti.dtype).all()
-
-    def test_transpose_tzaware_2col_single_tz(self):
-        # GH#26825
-        dti = pd.date_range("2016-04-05 04:30", periods=3, tz="UTC")
-
-        df3 = pd.DataFrame({"A": dti, "B": dti})
-        assert (df3.dtypes == dti.dtype).all()
-        res3 = df3.T
-        assert (res3.dtypes == dti.dtype).all()
-
-    def test_transpose_tzaware_2col_mixed_tz(self):
-        # GH#26825
-        dti = pd.date_range("2016-04-05 04:30", periods=3, tz="UTC")
-        dti2 = dti.tz_convert("US/Pacific")
-
-        df4 = pd.DataFrame({"A": dti, "B": dti2})
-        assert (df4.dtypes == [dti.dtype, dti2.dtype]).all()
-        assert (df4.T.dtypes == object).all()
-        tm.assert_frame_equal(df4.T.T, df4)
-
-    def test_transpose_object_to_tzaware_mixed_tz(self):
-        # GH#26825
-        dti = pd.date_range("2016-04-05 04:30", periods=3, tz="UTC")
-        dti2 = dti.tz_convert("US/Pacific")
-
-        # mixed all-tzaware dtypes
-        df2 = pd.DataFrame([dti, dti2])
-        assert (df2.dtypes == object).all()
-        res2 = df2.T
-        assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()

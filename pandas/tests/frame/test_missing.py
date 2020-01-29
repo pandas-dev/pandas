@@ -8,17 +8,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
-import pandas.util.testing as tm
-
-
-def _skip_if_no_pchip():
-    try:
-        from scipy.interpolate import pchip_interpolate  # noqa
-    except ImportError:
-        import pytest
-
-        pytest.skip("scipy.interpolate.pchip missing")
 
 
 class TestDataFrameMissingData:
@@ -165,23 +156,16 @@ class TestDataFrameMissingData:
                 [7, np.nan, 8, 9],
             ]
         )
-        cp = df.copy()
 
         # GH20987
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.dropna(how="all", axis=[0, 1])
-        with tm.assert_produces_warning(FutureWarning):
-            result2 = df.dropna(how="all", axis=(0, 1))
-        expected = df.dropna(how="all").dropna(how="all", axis=1)
-
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result2, expected)
-        tm.assert_frame_equal(df, cp)
+        with pytest.raises(TypeError, match="supplying multiple axes"):
+            df.dropna(how="all", axis=[0, 1])
+        with pytest.raises(TypeError, match="supplying multiple axes"):
+            df.dropna(how="all", axis=(0, 1))
 
         inp = df.copy()
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="supplying multiple axes"):
             inp.dropna(how="all", axis=(0, 1), inplace=True)
-        tm.assert_frame_equal(inp, expected)
 
     def test_dropna_tz_aware_datetime(self):
         # GH13407
@@ -678,7 +662,7 @@ class TestDataFrameMissingData:
 
     def test_fillna_invalid_value(self, float_frame):
         # list
-        msg = '"value" parameter must be a scalar or dict, but you passed' ' a "{}"'
+        msg = '"value" parameter must be a scalar or dict, but you passed a "{}"'
         with pytest.raises(TypeError, match=msg.format("list")):
             float_frame.fillna([1, 2])
         # tuple
@@ -686,8 +670,8 @@ class TestDataFrameMissingData:
             float_frame.fillna((1, 2))
         # frame with series
         msg = (
-            '"value" parameter must be a scalar, dict or Series, but you'
-            ' passed a "DataFrame"'
+            '"value" parameter must be a scalar, dict or Series, but you '
+            'passed a "DataFrame"'
         )
         with pytest.raises(TypeError, match=msg):
             float_frame.iloc[:, 0].fillna(float_frame)
@@ -844,8 +828,6 @@ class TestDataFrameInterpolate:
         expectedk["A"] = expected["A"]
         tm.assert_frame_equal(result, expectedk)
 
-        _skip_if_no_pchip()
-
         result = df.interpolate(method="pchip")
         expected.loc[2, "A"] = 3
         expected.loc[5, "A"] = 6.0
@@ -988,3 +970,16 @@ class TestDataFrameInterpolate:
         # all good
         result = df[["B", "D"]].interpolate(downcast=None)
         tm.assert_frame_equal(result, df[["B", "D"]])
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_interp_time_inplace_axis(self, axis):
+        # GH 9687
+        periods = 5
+        idx = pd.date_range(start="2014-01-01", periods=periods)
+        data = np.random.rand(periods, periods)
+        data[data < 0.5] = np.nan
+        expected = pd.DataFrame(index=idx, columns=idx, data=data)
+
+        result = expected.interpolate(axis=0, method="time")
+        expected.interpolate(axis=0, method="time", inplace=True)
+        tm.assert_frame_equal(result, expected)

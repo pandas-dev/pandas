@@ -15,7 +15,7 @@ lint-diff:
 	git diff upstream/master --name-only -- "*.py" | xargs flake8
 
 black:
-	black . --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist|setup.py)'
+	black .
 
 develop: build
 	python -m pip install --no-build-isolation -e .

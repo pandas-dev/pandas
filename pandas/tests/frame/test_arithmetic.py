@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
-import pandas.util.testing as tm
 
 # -------------------------------------------------------------------
 # Comparisons
@@ -15,6 +15,13 @@ import pandas.util.testing as tm
 
 class TestFrameComparisons:
     # Specifically _not_ flex-comparisons
+
+    def test_frame_in_list(self):
+        # GH#12689 this should raise at the DataFrame level, not blocks
+        df = pd.DataFrame(np.random.randn(6, 4), columns=list("ABCD"))
+        msg = "The truth value of a DataFrame is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            df in [None]
 
     def test_comparison_invalid(self):
         def check(df, df2):
@@ -325,6 +332,21 @@ class TestFrameFlexComparisons:
 
 
 class TestFrameFlexArithmetic:
+    def test_floordiv_axis0(self):
+        # make sure we df.floordiv(ser, axis=0) matches column-wise result
+        arr = np.arange(3)
+        ser = pd.Series(arr)
+        df = pd.DataFrame({"A": ser, "B": ser})
+
+        result = df.floordiv(ser, axis=0)
+
+        expected = pd.DataFrame({col: df[col] // ser for col in df.columns})
+
+        tm.assert_frame_equal(result, expected)
+
+        result2 = df.floordiv(ser.values, axis=0)
+        tm.assert_frame_equal(result2, expected)
+
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)
@@ -470,7 +492,7 @@ class TestFrameFlexArithmetic:
     def test_arith_flex_zero_len_raises(self):
         # GH 19522 passing fill_value to frame flex arith methods should
         # raise even in the zero-length special cases
-        ser_len0 = pd.Series([])
+        ser_len0 = pd.Series([], dtype=object)
         df_len0 = pd.DataFrame(columns=["A", "B"])
         df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
 
@@ -719,3 +741,14 @@ def test_zero_len_frame_with_series_corner_cases():
     result = df + ser
     expected = df
     tm.assert_frame_equal(result, expected)
+
+
+def test_frame_single_columns_object_sum_axis_1():
+    # GH 13758
+    data = {
+        "One": pd.Series(["A", 1.2, np.nan]),
+    }
+    df = pd.DataFrame(data)
+    result = df.sum(axis=1)
+    expected = pd.Series(["A", 1.2, 0])
+    tm.assert_series_equal(result, expected)

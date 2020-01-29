@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, MultiIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_equals(idx):
@@ -146,7 +146,10 @@ def test_identical(idx):
     assert mi.identical(mi2)
 
     mi3 = Index(mi.tolist(), names=mi.names)
-    mi4 = Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+    msg = r"Unexpected keyword arguments {'names'}"
+    with pytest.raises(TypeError, match=msg):
+        Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+    mi4 = Index(mi.tolist(), tupleize_cols=False)
     assert mi.identical(mi3)
     assert not mi.identical(mi4)
     assert mi.equals(mi4)
