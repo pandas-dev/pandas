@@ -1,7 +1,7 @@
 .. _whatsnew_100:
 
-What's new in 1.0.0 (??)
-------------------------
+What's new in 1.0.0 (January 29, 2020)
+--------------------------------------
 
 These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
