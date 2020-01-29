@@ -37,6 +37,43 @@ See :ref:`policies.version` for more.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_100.numba_rolling_apply:
+
+Using Numba in ``rolling.apply`` and ``expanding.apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` and :meth:`~core.window.expanding.Expanding.apply`
+that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
+Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
+the data set is larger (1 million rows or greater). For more details, see
+:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
+
+.. _whatsnew_100.custom_window:
+
+Defining custom windows for rolling operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to define how
+window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
+method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
+indices used for each window during the rolling aggregation. For more details and example usage, see
+the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
+
+.. _whatsnew_100.to_markdown:
+
+Converting to Markdown
+^^^^^^^^^^^^^^^^^^^^^^
+
+We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:`11052`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=['a', 'a', 'b'])
+   print(df.to_markdown())
+
+Experimental new features
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. _whatsnew_100.NA:
 
 Experimental ``NA`` scalar to denote missing values
@@ -187,44 +224,11 @@ This is especially useful after reading in data using readers such as :func:`rea
 and :func:`read_excel`.
 See :ref:`here <missing_data.NA.conversion>` for a description.
 
-.. _whatsnew_100.numba_rolling_apply:
-
-Using Numba in ``rolling.apply`` and ``expanding.apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` and :meth:`~core.window.expanding.Expanding.apply`
-that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
-Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
-the data set is larger (1 million rows or greater). For more details, see
-:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
-
-.. _whatsnew_100.custom_window:
-
-Defining custom windows for rolling operations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to define how
-window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
-method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
-indices used for each window during the rolling aggregation. For more details and example usage, see
-the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
-
-.. _whatsnew_100.to_markdown:
-
-Converting to Markdown
-^^^^^^^^^^^^^^^^^^^^^^
-
-We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:`11052`)
-
-.. ipython:: python
-
-   df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=['a', 'a', 'b'])
-   print(df.to_markdown())
 
 .. _whatsnew_100.enhancements.other:
 
 Other enhancements
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 - :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
 - Added the ``na_value`` argument to :meth:`Series.to_numpy`, :meth:`Index.to_numpy` and :meth:`DataFrame.to_numpy` to control the value used for missing data (:issue:`30322`)
@@ -257,13 +261,6 @@ Other enhancements
 - :meth:`DataFrame.to_pickle` and :func:`read_pickle` now accept URL (:issue:`30163`)
 
 
-Build Changes
-^^^^^^^^^^^^^
-
-Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
-cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
-a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
-source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
 
 .. ---------------------------------------------------------------------------
 
@@ -748,6 +745,15 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+Build Changes
+^^^^^^^^^^^^^
+
+Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
+a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
+source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
+
 
 .. _whatsnew_100.api.other:
 
