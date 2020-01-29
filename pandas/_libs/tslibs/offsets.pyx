@@ -1,6 +1,7 @@
 import cython
 
 import time
+import warnings
 from typing import Any
 from cpython.datetime cimport (PyDateTime_IMPORT,
                                PyDateTime_Check,
@@ -472,10 +473,14 @@ class _BaseOffset:
             nint = int(n)
         except (ValueError, TypeError):
             raise TypeError(f'`n` argument must be an integer, got {type(n)}')
-        if n != nint or n == 0:
-            raise ValueError(
-                f'`n` argument must be an nonzero integer, got {n}'
-                )
+        if n != nint:
+            raise ValueError(f'`n` argument must be an integer, got {n}')
+        if n == 0:
+            warnings.warn(
+                "Initialising a DateOffset with n=0 is deprecated and "
+                "will be removed in a future version.",
+                FutureWarning,
+            )
         return nint
 
     def __setstate__(self, state):
