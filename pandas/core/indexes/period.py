@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_integer_dtype,
-    is_list_like,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -547,6 +546,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         TypeError
             If key is listlike or otherwise not hashable.
         """
+        orig_key = key
 
         if not is_scalar(key):
             raise InvalidIndexError(key)
@@ -588,23 +588,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
             key = Period(key, freq=self.freq)
         except ValueError:
             # we cannot construct the Period
-            # as we have an invalid type
-            if is_list_like(key):
-                raise TypeError(f"'{key}' is an invalid key")
-            raise KeyError(key)
+            raise KeyError(orig_key)
 
-        ordinal = key.ordinal if key is not NaT else key.value
         try:
-            return self._engine.get_loc(ordinal)
+            return Index.get_loc(self, key, method, tolerance)
         except KeyError:
-
-            try:
-                if tolerance is not None:
-                    tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-                return self._int64index.get_loc(ordinal, method, tolerance)
-
-            except KeyError:
-                raise KeyError(key)
+            raise KeyError(orig_key)
 
     def _maybe_cast_slice_bound(self, label, side, kind):
         """
