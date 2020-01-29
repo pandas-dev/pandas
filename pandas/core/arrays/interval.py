@@ -40,6 +40,7 @@ from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
@@ -495,6 +496,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self.left)
 
     def __getitem__(self, value):
+        value = check_array_indexer(self, value)
         left = self.left[value]
         right = self.right[value]
 

@@ -16,7 +16,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.indexes.base import Index, deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 
 

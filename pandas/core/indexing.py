@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
     is_sequence,
-    is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
@@ -23,7 +22,7 @@ from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
 from pandas.core.indexers import (
-    check_bool_array_indexer,
+    check_array_indexer,
     is_list_like_indexer,
     length_of_indexer,
 )
@@ -2231,9 +2230,9 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
             )
         result = result.astype(bool)._values
     else:
-        if is_sparse(result):
-            result = np.asarray(result)
-        result = check_bool_array_indexer(index, result)
+        # key might be sparse / object-dtype bool, check_array_indexer needs bool array
+        result = np.asarray(result, dtype=bool)
+        result = check_array_indexer(index, result)
 
     return result
 

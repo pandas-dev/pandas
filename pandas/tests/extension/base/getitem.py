@@ -97,6 +97,15 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data_missing[0]
         assert na_cmp(result, na_value)
 
+    def test_getitem_empty(self, data):
+        # Indexing with empty list
+        result = data[[]]
+        assert len(result) == 0
+        assert isinstance(result, type(data))
+
+        expected = data[np.array([], dtype="int64")]
+        self.assert_extension_array_equal(result, expected)
+
     def test_getitem_mask(self, data):
         # Empty mask, raw array
         mask = np.zeros(len(data), dtype=bool)
@@ -152,13 +161,50 @@ class BaseGetitemTests(BaseExtensionTests):
     def test_getitem_boolean_array_mask_raises(self, data):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
-        with pytest.raises(ValueError):
+
+        msg = (
+            "Cannot mask with a boolean indexer containing NA values|"
+            "cannot mask with array containing NA / NaN values"
+        )
+        with pytest.raises(ValueError, match=msg):
             data[mask]
 
         s = pd.Series(data)
 
         with pytest.raises(ValueError):
             s[mask]
+
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_getitem_integer_array(self, data, idx):
+        result = data[idx]
+        assert len(result) == 3
+        assert isinstance(result, type(data))
+        expected = data.take([0, 1, 2])
+        self.assert_extension_array_equal(result, expected)
+
+        expected = pd.Series(expected)
+        result = pd.Series(data)[idx]
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2, pd.NA], pd.array([0, 1, 2, pd.NA], dtype="Int64")],
+        ids=["list", "integer-array"],
+    )
+    def test_getitem_integer_with_missing_raises(self, data, idx):
+        msg = "Cannot index with an integer indexer containing NA values"
+        with pytest.raises(ValueError, match=msg):
+            data[idx]
+
+        # TODO this raises KeyError about labels not found (it tries label-based)
+        # import pandas._testing as tm
+        # s = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+        # with pytest.raises(ValueError, match=msg):
+        #    s[idx]
 
     def test_getitem_slice(self, data):
         # getitem[slice] should return an array

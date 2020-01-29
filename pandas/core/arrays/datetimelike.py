@@ -42,7 +42,7 @@ from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
-from pandas.core.indexers import check_bool_array_indexer
+from pandas.core.indexers import check_array_indexer
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
@@ -518,11 +518,20 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             return type(self)(val, dtype=self.dtype)
 
         if com.is_bool_indexer(key):
-            key = check_bool_array_indexer(self, key)
+            # first convert to boolean, because check_array_indexer doesn't
+            # allow object dtype
+            key = np.asarray(key, dtype=bool)
+            key = check_array_indexer(self, key)
             if key.all():
                 key = slice(0, None, None)
             else:
                 key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+        elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
+            # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
+            # this for now (would otherwise raise in check_array_indexer)
+            pass
+        else:
+            key = check_array_indexer(self, key)
 
         is_period = is_period_dtype(self)
         if is_period:
