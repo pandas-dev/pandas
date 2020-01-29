@@ -48,7 +48,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_string_like,
 )
 
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, DtypeObj
 
 _POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
@@ -1834,7 +1834,7 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
     return condition(dtype)
 
 
-def _get_dtype(arr_or_dtype):
+def _get_dtype(arr_or_dtype) -> DtypeObj:
     """
     Get the dtype instance associated with an array
     or dtype object.
@@ -2004,7 +2004,7 @@ def _validate_date_like_dtype(dtype) -> None:
         raise ValueError(msg.format(name=dtype.name, type=dtype.type.__name__))
 
 
-def pandas_dtype(dtype):
+def pandas_dtype(dtype) -> DtypeObj:
     """
     Convert input into a pandas only dtype object or a numpy dtype object.
 
@@ -2037,7 +2037,7 @@ def pandas_dtype(dtype):
         npdtype = np.dtype(dtype)
     except SyntaxError:
         # np.dtype uses `eval` which can raise SyntaxError
-        raise TypeError("data type '{}' not understood".format(dtype))
+        raise TypeError("data type '{dtype}' not understood".format(dtype=dtype))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
@@ -2049,6 +2049,6 @@ def pandas_dtype(dtype):
         # here and `dtype` is an array
         return npdtype
     elif npdtype.kind == "O":
-        raise TypeError("dtype '{}' not understood".format(dtype))
+        raise TypeError("dtype '{dtype}' not understood".format(dtype=dtype))
 
     return npdtype
