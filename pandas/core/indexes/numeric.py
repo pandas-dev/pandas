@@ -35,7 +35,6 @@ import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
     InvalidIndexError,
-    _index_shared_docs,
     maybe_extract_name,
 )
 from pandas.core.ops import get_op_result_name
@@ -110,7 +109,7 @@ class NumericIndex(Index):
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
 
-    @Appender(_index_shared_docs["_shallow_copy"])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None and not self._can_hold_na:
             # Ensure we are not returning an Int64Index with float data:
