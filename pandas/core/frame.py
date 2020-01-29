@@ -90,6 +90,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
     needs_i8_conversion,
+    is_datetime64_any_dtype
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -109,9 +110,7 @@ from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
-from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import maybe_droplevels
-from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -4322,8 +4321,15 @@ class DataFrame(NDFrame):
                 try:
                     found = col in self.columns
                     if found:
-                        # get current dtype to preserve through index creation
-                        current_dtype = self.dtypes.get(col).type
+                        # get current dtype to preserve through index creation,
+                        # unless it's datetime64; too much functionality 
+                        # expects type coercion for dates
+                        if not is_datetime64_any_dtype(self[col]):
+                            try:
+                                current_dtype = self.dtypes.get(col).type
+                            except (AttributeError, TypeError):
+                                # leave current_dtype=None if exception occurs
+                                pass
                 except TypeError:
                     raise TypeError(f"{err_msg}. Received column of type {type(col)}")
                 else:
