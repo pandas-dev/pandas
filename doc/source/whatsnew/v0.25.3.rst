@@ -16,6 +16,17 @@ Groupby/resample/rolling
 
 - Bug in :meth:`DataFrameGroupBy.quantile` where NA values in the grouping could cause segfaults or incorrect results (:issue:`28882`)
 
+Enhancements
+~~~~~~~~~~~~
+
+Sanitizing column names
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas DataFrame now has a method ``sanitize_column_names()``
+the method changes the column names to lowercase, strips any leading and trailing white
+space, replaces space between words to underscores and only keeps alphanumeric
+(and underscore) characters (:issue:`31417`)
+
 Contributors
 ~~~~~~~~~~~~
 
