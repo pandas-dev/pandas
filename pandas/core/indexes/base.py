@@ -67,7 +67,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import deprecate_ndim_indexing, maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
@@ -5825,19 +5825,3 @@ def _try_convert_to_int_array(
         pass
 
     raise ValueError
-
-
-def deprecate_ndim_indexing(result):
-    if np.ndim(result) > 1:
-        # GH#27125 indexer like idx[:, None] expands dim, but we
-        #  cannot do that and keep an index, so return ndarray
-        # Deprecation GH#30588
-        # Note: update SingleBlockManager.get_slice when the DeprecationWarning
-        # is elevated to a FutureWarning
-        warnings.warn(
-            "Support for multi-dimensional indexing (e.g. `index[:, None]`) "
-            "on an Index is deprecated and will be removed in a future "
-            "version.  Convert to a numpy array before indexing instead.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
