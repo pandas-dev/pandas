@@ -74,7 +74,7 @@ def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str
 #
 # pprinting utility functions for generating Unicode text or
 # bytes(3.x)/str(2.x) representations of objects.
-# Try to use these as much as possible rather then rolling your own.
+# Try to use these as much as possible rather than rolling your own.
 #
 # When to use
 # -----------
@@ -98,7 +98,7 @@ def _pprint_seq(
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
-    rather then calling this directly.
+    rather than calling this directly.
 
     bounds length of printed sequence, depending on options
     """
@@ -133,7 +133,7 @@ def _pprint_dict(
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
-    rather then calling this directly.
+    rather than calling this directly.
     """
     fmt = "{{{things}}}"
     pairs = []
