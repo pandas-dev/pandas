@@ -737,7 +737,7 @@ def test_preserve_on_ordered_ops(func, values):
     df = pd.DataFrame({"payload": [-1, -2, -1, -2], "col": c})
     g = df.groupby("payload")
     result = getattr(g, func)()
-    expected_col = pd.Categorical(values, ordered=True)
+    expected_col = pd.Categorical(values, dtype=c.dtype)
     expected = pd.DataFrame({"payload": [-2, -1], "col": expected_col}).set_index(
         "payload"
     )
@@ -1361,7 +1361,6 @@ def test_groupby_agg_categorical_columns(func, expected_values):
     result = df.groupby("groups").agg(func)
 
     expected = pd.DataFrame(
-        {"value": pd.Categorical(expected_values)},
-        index=pd.Index([0, 1, 2], name="groups"),
+        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"),
     )
     tm.assert_frame_equal(result, expected)
