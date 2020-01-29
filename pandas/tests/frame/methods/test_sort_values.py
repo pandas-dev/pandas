@@ -397,8 +397,6 @@ class TestDataFrameSortValues:
 
         tm.assert_frame_equal(result, expected)
 
-        # breakpoint()
-
         # sort ascending with na last
         result = df.sort_values(
             by=column_name, ascending=True, na_position=na_position_last
@@ -411,8 +409,6 @@ class TestDataFrameSortValues:
             },
             index=category_indices + na_indices,
         )
-
-        # breakpoint()
 
         tm.assert_frame_equal(result, expected)
 
@@ -541,7 +537,7 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(result, expected)
 
 
-class TestDataFrameSortKey:  # test key sorting (issue 27237), not yet implemented
+class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
         frame = DataFrame(
             np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]

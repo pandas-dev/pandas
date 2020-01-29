@@ -2832,7 +2832,7 @@ Name: Max Speed, dtype: float64
             before sorting. This is similar to the `key` argument in the
             builtin :meth:`sorted` function, with the notable difference that
             this `key` function should be *vectorized*. It should expect a
-            ``Series`` and return an array-like that implements ``argsort``.
+            ``Series`` and return an array-like.
 
             .. versionadded:: 1.0.0
 
@@ -3163,16 +3163,12 @@ Name: Max Speed, dtype: float64
         bar  two    7
         dtype: int64
 
-        >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8])
-        >>> s.sort_index(key=lambda x : -x)
-        7    8
-        6    7
-        5    6
-        4    5
-        3    4
-        2    3
-        1    2
-        0    1
+        >>> s = pd.Series([1, 2, 3, 4], index=['A', 'b', 'C', 'd'])
+        >>> s.sort_index(key=lambda x : x.str.lower())
+        A    1
+        b    2
+        C    3
+        d    4
         dtype: int64
         """
 
