@@ -87,20 +87,6 @@ cdef class IndexEngine:
         else:
             return get_value_at(arr, loc, tz=tz)
 
-    cpdef set_value(self, ndarray arr, object key, object value):
-        """
-        Parameters
-        ----------
-        arr : 1-dimensional ndarray
-        """
-        cdef:
-            object loc
-
-        loc = self.get_loc(key)
-        value = convert_scalar(arr, value)
-
-        arr[loc] = value
-
     cpdef get_loc(self, object val):
         cdef:
             Py_ssize_t loc
@@ -586,16 +572,24 @@ cpdef convert_scalar(ndarray arr, object value):
         raise ValueError("cannot set a Timedelta with a non-timedelta "
                          f"{type(value).__name__}")
 
-    if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
-            not issubclass(arr.dtype.type, np.bool_)):
+    else:
+        validate_numeric_casting(arr.dtype, value)
+
+    return value
+
+
+cpdef validate_numeric_casting(dtype, object value):
+    # Note: we can't type dtype as cnp.dtype because that cases dtype.type
+    #  to integer
+    if (issubclass(dtype.type, (np.integer, np.floating, np.complex)) and
+            not issubclass(dtype.type, np.bool_)):
         if util.is_bool_object(value):
             raise ValueError("Cannot assign bool to float/integer series")
 
-    if issubclass(arr.dtype.type, (np.integer, np.bool_)):
+    if issubclass(dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:
             raise ValueError("Cannot assign nan to integer series")
 
-    return value
 
 
 cdef class BaseMultiIndexCodesEngine:
