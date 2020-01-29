@@ -259,7 +259,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[0] != iNaT:
-                    return self._box_func(i8[0])
+                    return self._data._box_func(i8[0])
 
             if self.hasnans:
                 if skipna:
@@ -268,7 +268,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     return self._na_value
             else:
                 min_stamp = i8.min()
-            return self._box_func(min_stamp)
+            return self._data._box_func(min_stamp)
         except ValueError:
             return self._na_value
 
@@ -316,7 +316,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[-1] != iNaT:
-                    return self._box_func(i8[-1])
+                    return self._data._box_func(i8[-1])
 
             if self.hasnans:
                 if skipna:
@@ -325,7 +325,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     return self._na_value
             else:
                 max_stamp = i8.max()
-            return self._box_func(max_stamp)
+            return self._data._box_func(max_stamp)
         except ValueError:
             return self._na_value
 
