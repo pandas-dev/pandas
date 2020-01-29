@@ -4796,6 +4796,27 @@ class DataFrame(NDFrame):
         else:
             return result
 
+    def sanitize_column_names(self):
+        '''
+        changes the column names to lowercase, strips any leading and trailing white
+        space, replaces space between words to underscores and only keeps alphanumeric
+        (and underscore) characters
+        '''
+        from re import sub
+
+        new_cols = []
+        for col in self.columns:
+            # only keep alphanumeric and space
+            col = sub(r"[^A-Za-z0-9 ]", "", col)
+            # remove multiple consecutive spaces
+            col = sub(r" +", " ", col)
+            # strip leading and trailing white spaces, lowercase
+            # and replace space with underscore
+            col = col.strip().lower().replace(" ", "_")
+            new_cols.append(col)
+
+        self.columns = new_cols
+
     def drop_duplicates(
         self,
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
