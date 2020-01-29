@@ -667,6 +667,8 @@ depending on how the results are cast back to the original dtype.
         A
    0  NaN
 
+*pandas 1.0.0*
+
 .. ipython:: python
 
    df.resample("2D").agg(lambda x: 'c')
