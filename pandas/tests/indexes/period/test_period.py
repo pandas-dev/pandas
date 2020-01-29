@@ -117,7 +117,6 @@ class TestPeriodIndex(DatetimeLike):
         assert isinstance(series, Series)
 
     def test_shallow_copy_empty(self):
-
         # GH13067
         idx = PeriodIndex([], freq="M")
         result = idx._shallow_copy()
@@ -131,11 +130,16 @@ class TestPeriodIndex(DatetimeLike):
         result = pi._shallow_copy(pi.asi8, freq=pi.freq)
         tm.assert_index_equal(result, pi)
 
+    def test_shallow_copy_requires_disallow_period_index(self):
+        pi = period_range("2018-01-01", periods=3, freq="2D")
+        with pytest.raises(TypeError, match="PeriodIndex"):
+            pi._shallow_copy(pi)
+
     def test_shallow_copy_changing_freq_raises(self):
         pi = period_range("2018-01-01", periods=3, freq="2D")
         msg = "specified freq and dtype are different"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            pi._shallow_copy(pi, freq="H")
+            pi._shallow_copy(pi._data, freq="H")
 
     def test_view_asi8(self):
         idx = pd.PeriodIndex([], freq="M")

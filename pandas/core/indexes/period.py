@@ -265,15 +265,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         return True
 
     def _shallow_copy(self, values=None, **kwargs):
-        # TODO: simplify, figure out type of values
         if values is None:
             values = self._data
 
-        if isinstance(values, type(self)):
-            values = values._data
-
         if not isinstance(values, PeriodArray):
             if isinstance(values, np.ndarray) and values.dtype == "i8":
+                if "freq" in kwargs and kwargs["freq"] != self.freq:
+                    raise ValueError(kwargs, self.freq)
                 values = PeriodArray(values, freq=self.freq)
             else:
                 # GH#30713 this should never be reached
@@ -281,12 +279,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         # We don't allow changing `freq` in _shallow_copy.
         validate_dtype_freq(self.dtype, kwargs.get("freq"))
-        attributes = self._get_attributes_dict()
+        name = kwargs.get("name", self.name)
 
-        attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-        return self._simple_new(values, **attributes)
+        return self._simple_new(values, name=name)
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
         """ we always want to return a PeriodIndex """
@@ -385,6 +380,40 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
     @cache_readonly
     def _int64index(self):
         return Int64Index._simple_new(self.asi8, name=self.name)
+
+    # ------------------------------------------------------------------------
+    # NDarray-Like Methods
+
+    def putmask(self, mask, value):
+        """
+        Return a new Index of the values set with the mask.
+
+        Returns
+        -------
+        Index
+
+        See Also
+        --------
+        numpy.putmask
+        """
+        if isinstance(value, Period):
+            if value.freq != self.freq:
+                return self.astype(object).putmask(mask, value)
+            i8val = value.ordinal
+        elif value is NaT:
+            i8val = val.value
+        elif isinstance(value, (PeriodArray, PeriodIndex)):
+            if value.freq != self.freq:
+                return self.astype(object).putmask(mask, value)
+            i8val = value.asi8
+        else:
+            return self.astype(object).putmask(mask, value)
+
+        i8values = self._data.copy()._data
+
+        np.putmask(i8values, mask, i8val)
+        parr = PeriodArray(i8values, dtype=self.dtype)
+        return type(self)._simple_new(parr, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Methods
@@ -702,10 +731,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
-        idx = np.concatenate(
-            (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
-        )
-        return self._shallow_copy(idx)
+        item_arr = type(self._data)._from_sequence([item])
+        to_concat = [self[:loc]._data, item_arr, self[loc:]._data]
+        arr = type(self._data)._concat_same_type(to_concat)
+        return type(self)._simple_new(arr, name=self.name)
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         """
@@ -762,7 +791,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         i8other = Int64Index._simple_new(other.asi8)
         i8result = i8self.intersection(i8other, sort=sort)
 
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
+        result = type(self)._simple_new(parr, name=res_name)
         return result
 
     def difference(self, other, sort=None):
@@ -773,7 +803,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
 
         if self.equals(other):
             # pass an empty PeriodArray with the appropriate dtype
-            return self._shallow_copy(self._data[:0])
+            return type(self)._simple_new(self._data[:0], name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)
@@ -785,7 +815,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         i8other = Int64Index._simple_new(other.asi8)
         i8result = i8self.difference(i8other, sort=sort)
 
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
+        result = type(self)._simple_new(parr, name=res_name)
         return result
 
     def _union(self, other, sort):
@@ -805,7 +836,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
         i8result = i8self._union(i8other, sort=sort)
 
         res_name = get_op_result_name(self, other)
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
+        parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
+        result = type(self)._simple_new(parr, name=res_name)
         return result
 
     # ------------------------------------------------------------------------

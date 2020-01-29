@@ -466,7 +466,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             other = other.view("i8")
 
         result = np.where(cond, values, other).astype("i8")
-        return self._shallow_copy(result)
+        arr = type(self._data)._simple_new(result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
+        # TODO: were we returning incorrect freq by using shallow_copy?
 
     def _summary(self, name=None):
         """
@@ -570,7 +572,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 if loc.start in (0, None) or loc.stop in (len(self), None):
                     freq = self.freq
 
-        return self._shallow_copy(new_i8s, freq=freq)
+        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+        return type(self)._simple_new(arr, name=self.name)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
