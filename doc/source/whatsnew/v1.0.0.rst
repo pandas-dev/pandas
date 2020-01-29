@@ -629,7 +629,7 @@ consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
 Result dtype inference changes for resample operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The rules for the result dtype in :meth:`DataFrame.resample` aggregations have change for extension types (:issue:`31359`).
+The rules for the result dtype in :meth:`DataFrame.resample` aggregations have changed for extension types (:issue:`31359`).
 Previously, pandas would attempt to convert the result back to the original dtype, falling back to the usual
 inference rules if that was not possible. Now, pandas will only return a result of the original dtype if the
 scalar values in the result are instances of the extension dtype's scalar type.
