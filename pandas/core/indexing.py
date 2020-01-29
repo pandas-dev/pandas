@@ -28,6 +28,7 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import Index
+from pandas.core.indexes.base import InvalidIndexError
 
 # "null slice"
 _NS = slice(None, None)
@@ -606,7 +607,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
             try:
                 return ax.get_loc(key)
-            except (TypeError, KeyError):
+            except (TypeError, KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 pass
 
@@ -1509,7 +1510,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # A boolean indexer
             key = check_bool_indexer(labels, key)
             (inds,) = key.nonzero()
-            return self.obj.take(inds, axis=axis)
+            return self.obj._take_with_is_copy(inds, axis=axis)
         else:
             # A collection of keys
             keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
@@ -1694,7 +1695,7 @@ class _LocationIndexer(_NDFrameIndexer):
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
         inds = key.nonzero()[0]
-        return self.obj.take(inds, axis=axis)
+        return self.obj._take_with_is_copy(inds, axis=axis)
 
 
 @Appender(IndexingMixin.loc.__doc__)
@@ -2009,7 +2010,7 @@ class _iLocIndexer(_LocationIndexer):
         `axis` can only be zero.
         """
         try:
-            return self.obj.take(key, axis=axis)
+            return self.obj._take_with_is_copy(key, axis=axis)
         except IndexError:
             # re-raise with different error message
             raise IndexError("positional indexers are out-of-bounds")
