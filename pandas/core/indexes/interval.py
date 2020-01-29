@@ -187,23 +187,10 @@ class SetopCheck:
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
-    [
-        "__len__",
-        "__array__",
-        "overlaps",
-        "contains",
-        "size",
-        "dtype",
-        "left",
-        "right",
-        "length",
-    ],
-    IntervalArray,
+    ["__array__", "overlaps", "contains", "left", "right", "length",], IntervalArray,
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "_ndarray_values", "closed"],
-    IntervalArray,
-    cache=True,
+    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True,
 )
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"

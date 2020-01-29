@@ -70,9 +70,8 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         "_local_timestamps",
         "_has_same_tz",
         "_format_native_types",
-        "__iter__",
     ]
-    _extra_raw_properties = ["_box_func", "tz", "tzinfo", "dtype"]
+    _extra_raw_properties = ["_box_func", "tz", "tzinfo"]
     _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
     _delegated_methods = (
         DatetimeArray._datetimelike_methods + _extra_methods + _extra_raw_methods

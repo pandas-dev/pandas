@@ -205,6 +205,9 @@ class ExtensionIndex(Index):
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
 
+    # ---------------------------------------------------------------------
+    # NDarray-Like Methods
+
     def __getitem__(self, key):
         result = self._data[key]
         if isinstance(result, type(self._data)):
@@ -216,6 +219,19 @@ class ExtensionIndex(Index):
 
     def __iter__(self):
         return self._data.__iter__()
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    @property
+    def size(self) -> int:
+        return self._data.size
+
+    @property
+    def dtype(self):
+        return self._data.dtype
+
+    # ---------------------------------------------------------------------
 
     @property
     def _ndarray_values(self) -> np.ndarray:
