@@ -59,6 +59,7 @@ navbar:
 blog:
   num_posts: 8
   feed:
+  - https://dev.pandas.io/pandas-blog/feeds/all.atom.xml
   - https://wesmckinney.com/feeds/pandas.atom.xml
   - https://tomaugspurger.github.io/feed
   - https://jorisvandenbossche.github.io/feeds/all.atom.xml
