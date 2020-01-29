@@ -1,8 +1,9 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+from datetime import datetime
 import operator
-from typing import Any, List, Optional, Set
+from typing import Any, List, Optional, Set, Union
 
 import numpy as np
 
@@ -31,7 +32,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
@@ -90,7 +91,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[DateOffset]
     freqstr: Optional[str]
     _resolution: int
@@ -376,6 +377,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return attrs
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
@@ -401,6 +403,60 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    def _validate_partial_date_slice(self, reso: str):
+        raise NotImplementedError
+
+    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+        raise NotImplementedError
+
+    def _partial_date_slice(
+        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+    ):
+        """
+        Parameters
+        ----------
+        reso : str
+        parsed : datetime
+        use_lhs : bool, default True
+        use_rhs : bool, default True
+
+        Returns
+        -------
+        slice or ndarray[intp]
+        """
+        self._validate_partial_date_slice(reso)
+
+        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
+        i8vals = self.asi8
+        unbox = self._data._unbox_scalar  # type: ignore
+
+        if self.is_monotonic:
+
+            # we are out of range
+            if len(self) and (
+                (use_lhs and t1 < self[0] and t2 < self[0])
+                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+            ):
+                raise KeyError
+
+            # TODO: does this depend on being monotonic _increasing_?
+            #  If so, DTI will also be affected.
+
+            # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
+            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
+            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            return slice(left, right)
+
+        else:
+            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
+            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+
+            # try to find a the dates
+            return (lhs_mask & rhs_mask).nonzero()[0]
+
+    # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
     __radd__ = make_wrapped_arith_op("__radd__")
@@ -955,7 +1011,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     _raw_methods: Set[str] = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties: Set[str] = set()
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
 
     def _delegate_property_get(self, name, *args, **kwargs):
         result = getattr(self._data, name)
