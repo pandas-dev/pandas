@@ -4322,7 +4322,7 @@ class DataFrame(NDFrame):
                     found = col in self.columns
                     if found:
                         # get current dtype to preserve through index creation,
-                        # unless it's datetime64; too much functionality 
+                        # unless it's datetime64; too much functionality
                         # expects type coercion for dates
                         if not is_datetime64_any_dtype(self[col]):
                             try:
