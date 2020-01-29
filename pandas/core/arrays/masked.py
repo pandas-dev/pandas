@@ -9,8 +9,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.algorithms import take
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-import pandas.core.common as com
-from pandas.core.indexers import check_bool_array_indexer
+from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
@@ -35,8 +34,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
                 return self.dtype.na_value
             return self._data[item]
 
-        elif com.is_bool_indexer(item):
-            item = check_bool_array_indexer(self, item)
+        item = check_array_indexer(self, item)
 
         return type(self)(self._data[item], self._mask[item])
 
