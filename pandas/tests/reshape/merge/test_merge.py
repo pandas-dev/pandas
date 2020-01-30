@@ -2172,25 +2172,25 @@ def test_merge_datetime_upcast_dtype():
 @pytest.mark.parametrize("how", ["left", "right"])
 def test_merge_preserves_row_order(how):
     # GH 27453
-    population = [
-        ("Jenn", "Jamaica", 3),
-        ("Beth", "Bulgaria", 7),
-        ("Carl", "Canada", 30),
-    ]
-    columns = ["name", "country", "population"]
-    population_df = DataFrame(population, columns=columns)
+    population_df = DataFrame(
+        {
+            "name": ["Jenn", "Beth", "Carl"],
+            "country": ["Jamaica", "Bulgaria", "Canada"],
+            "population": [3, 7, 30],
+        }
+    )
 
-    people = [("Abe", "America"), ("Beth", "Bulgaria"), ("Carl", "Canada")]
-    columns = ["name", "country"]
-    people_df = DataFrame(people, columns=columns)
+    people_df = DataFrame(
+        {"name": ["Abe", "Beth", "Carl"], "country": ["America", "Bulgaria", "Canada"]}
+    )
 
-    expected_data = [
-        ("Abe", "America", np.nan),
-        ("Beth", "Bulgaria", 7),
-        ("Carl", "Canada", 30),
-    ]
-    expected_cols = ["name", "country", "population"]
-    expected = DataFrame(expected_data, columns=expected_cols)
+    expected = DataFrame(
+        {
+            "name": ["Abe", "Beth", "Carl"],
+            "country": ["America", "Bulgaria", "Canada"],
+            "population": [np.nan, 7, 30],
+        }
+    )
 
     if how == "right":
         left_df, right_df = population_df, people_df

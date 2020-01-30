@@ -1246,7 +1246,6 @@ Reshaping
 - Bug in :func:`merge_asof` merging on a tz-aware ``left_index`` and ``right_on`` a tz-aware column (:issue:`29864`)
 - Improved error message and docstring in :func:`cut` and :func:`qcut` when `labels=True` (:issue:`13318`)
 - Bug in missing `fill_na` parameter to :meth:`DataFrame.unstack` with list of levels (:issue:`30740`)
-- :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
 
 Sparse
 ^^^^^^
