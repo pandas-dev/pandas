@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -499,7 +499,9 @@ def apply_frame_axis0(object frame, object f, object names,
                 # `piece` might not have an index, could be e.g. an int
                 pass
 
-            if not is_scalar(piece):
+            if isinstance(piece, list):
+                piece = deepcopy(piece)
+            elif not is_scalar(piece):
                 # Need to copy data to avoid appending references
                 if hasattr(piece, "copy"):
                     piece = piece.copy(deep="all")

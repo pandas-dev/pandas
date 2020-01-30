@@ -827,3 +827,10 @@ def test_apply_index_has_complex_internals(index):
     df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
     result = df.groupby("group").apply(lambda x: x)
     tm.assert_frame_equal(result, df)
+
+
+def test_apply_function_returns_list():
+    df = pd.DataFrame(["A", "A", "B", "B"], columns=["groups"])
+    result = df.groupby("groups").apply(lambda x: x.index.to_list())
+    expected = pd.Series([[0, 1], [2, 3]], index=pd.Index(["A", "B"], name="groups"))
+    tm.assert_series_equal(result, expected)
