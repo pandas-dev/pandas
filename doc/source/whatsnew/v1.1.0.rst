@@ -407,6 +407,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
+- Bug in :meth:`MultiIndex.get_indexer` incorrectly handling use of pad and backfill options (:issue:`29896`)
 -
 
 I/O
