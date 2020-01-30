@@ -1378,11 +1378,12 @@ def test_groupby_agg_non_numeric():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_agg_categorical_first():
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_groupby_agg_categorical_first_last(func):
     # GH 31450
     df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
     df["col_cat"] = df["col_num"].astype("category")
 
-    grouped = df.groupby("col_num").agg({"col_cat": "first"})
-    expected = df.groupby("col_num").agg("first")
+    grouped = df.groupby("col_num").agg({"col_cat": func})
+    expected = df.groupby("col_num").agg(func)
     tm.assert_frame_equal(grouped, expected)

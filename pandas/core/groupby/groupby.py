@@ -59,7 +59,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, ops
-from pandas.core.groupby.base import cython_cast_keep_type_list
+from pandas.core.groupby.base import cython_cast_cat_type_list
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
@@ -816,7 +816,7 @@ b  2""",
                 if (
                     len(result)
                     and isinstance(result[0], dtype.type)
-                    or how in cython_cast_keep_type_list
+                    or how in cython_cast_cat_type_list
                 ):
                     cls = dtype.construct_array_type()
                     result = try_cast_to_ea(cls, result, dtype=dtype)
