@@ -559,6 +559,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
     elif is_tzlocal(tz):
         local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False)
         dt64_to_dtstruct(local_val, &obj.dts)
+        # TODO: think on how we can infer fold for local Timezone
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
@@ -573,17 +574,19 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             tz = tz._tzinfos[tz._transition_info[pos]]
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             # Check if we are in a fold
-            od = deltas[pos - 1] - deltas[pos]
-            if obj.value < (trans[pos] + od):
-                obj.fold = 1
+            if pos > 0:
+                od = deltas[pos - 1] - deltas[pos]
+                if obj.value < (trans[pos] + od):
+                    obj.fold = 1
         elif typ == 'dateutil':
             # i.e. treat_tz_as_dateutil(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             # Check if we are in a fold
-            od = deltas[pos - 1] - deltas[pos]
-            if obj.value < (trans[pos] + od):
-                obj.fold = 1
+            if pos > 0:
+                od = deltas[pos - 1] - deltas[pos]
+                if obj.value < (trans[pos] + od):
+                    obj.fold = 1
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
             # either pytz or dateutil have is_fixed_offset(tz) == True,
