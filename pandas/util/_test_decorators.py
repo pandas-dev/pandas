@@ -198,7 +198,9 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-def skip_if_np_lt(ver_str: str, reason: Optional[str] = None, *args, **kwds) -> MarkDecorator:
+def skip_if_np_lt(
+    ver_str: str, reason: Optional[str] = None, *args, **kwds
+) -> MarkDecorator:
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
