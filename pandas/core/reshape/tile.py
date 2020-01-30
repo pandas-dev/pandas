@@ -391,7 +391,7 @@ def _bins_to_cuts(
             bins = unique_bins
 
     side = "left" if right else "right"
-    ids = ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_int64(bins.searchsorted(np.where(~isna(x), x, -1), side=side))
 
     if include_lowest:
         min_mask = x == bins[0]
