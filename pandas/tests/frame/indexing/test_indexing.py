@@ -22,7 +22,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.arrays import SparseArray
-
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 
