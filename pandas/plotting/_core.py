@@ -1144,8 +1144,12 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence, optional
             Column in the DataFrame to group by.
-        bins : int, default 10
+        bins : int, default 10 or string
             Number of histogram bins to be used.
+
+            You can alternatively provide a string describing a binning
+            strategy, such as 'auto', 'sturges', 'fd', 'doane', 'scott', 
+            'rice' or 'sqrt', see `numpy.histogram`.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
