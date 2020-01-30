@@ -572,6 +572,10 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             pos = trans.searchsorted(obj.value, side='right') - 1
             tz = tz._tzinfos[tz._transition_info[pos]]
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
+            # Check if we are in a fold
+            od = deltas[pos - 1] - deltas[pos]
+            if obj.value < (trans[pos] + od):
+                obj.fold = 1
         elif typ == 'dateutil':
             # i.e. treat_tz_as_dateutil(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
