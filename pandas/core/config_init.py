@@ -6,7 +6,7 @@ is invoked inside specific modules, they will not be registered until that
 module is imported, which may or may not be a problem.
 
 If you need to make sure options are available even before a certain
-module is imported, register them here rather then in the module.
+module is imported, register them here rather than in the module.
 
 """
 import pandas._config.config as cf
