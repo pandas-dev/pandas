@@ -813,7 +813,7 @@ b  2""",
                 # datetime64tz is handled correctly in agg_series,
                 #  so is excluded here.
 
-                if len(result) and isinstance(result[0], dtype.type) or how=="first":
+                if len(result) and isinstance(result[0], dtype.type) or how == "first":
                     cls = dtype.construct_array_type()
                     result = try_cast_to_ea(cls, result, dtype=dtype)
 
