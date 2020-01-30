@@ -1376,3 +1376,13 @@ def test_groupby_agg_non_numeric():
 
     result = df.groupby([1, 2, 1]).nunique()
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_categorical_first():
+    # GH 31450
+    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
+    df["col_cat"] = df["col_num"].astype("category")
+
+    grouped = df.groupby("col_num").agg({"col_cat": "first"})
+    expected = df.groupby("col_num").agg("first")
+    tm.assert_frame_equal(grouped, expected)
