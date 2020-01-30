@@ -36,7 +36,7 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
-.. _whatsnew_100.differences:
+.. _whatsnew_110.differences:
 
 Comparing two `DataFrame` or two `Series` and summarizing the differences
 ^^^^^^^^^^^^^^^^^^^^^^
