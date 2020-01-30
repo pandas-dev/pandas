@@ -29,9 +29,9 @@ from functools import wraps
 import locale
 from typing import Callable, Optional
 
+from _pytest.mark.structures import MarkDecorator
 import numpy as np
 import pytest
-from pytest.mark.structures import MarkDecorator
 
 from pandas.compat import is_platform_32bit, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
