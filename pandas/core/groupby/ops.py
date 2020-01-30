@@ -43,6 +43,7 @@ import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, grouper
+from pandas.core.groupby.base import cython_cast_keep_type_list
 from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
@@ -452,8 +453,6 @@ class BaseGrouper:
         # categoricals are only 1d, so we
         # are not setup for dim transforming
         # those four cython agg that should work with categoricals
-        from pandas.core.groupby.base import cython_cast_keep_type_list
-
         if (
             is_categorical_dtype(values)
             and how not in cython_cast_keep_type_list
