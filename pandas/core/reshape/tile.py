@@ -394,7 +394,10 @@ def _bins_to_cuts(
     ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        ids[x == bins[0]] = 1
+        min_mask = x == bins[0]
+        if is_extension_array_dtype(min_mask):
+            min_mask = min_mask.fillna(False).astype(bool)
+        ids[min_mask] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
