@@ -968,9 +968,23 @@ def test_timestamp_constructor_identity():
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
 @pytest.mark.parametrize("fold", [0, 1])
-def test_timestamp_constructor_fold(tz, fold):
+def test_timestamp_constructor_retain_fold(tz, fold):
     # Test for #25057
+    # Check that we retain fold
     ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=tz, fold=fold)
     result = ts.fold
     expected = fold
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
+@pytest.mark.parametrize(
+    "value_fold", [(1572139800000000000, 0), (1572143400000000000, 1)]
+)
+def test_timestamp_constructor_infer_fold_from_value(tz, value_fold):
+    # Test for #25057
+    # Check that we infer fold correctly based on timestamps since utc
+    ts = pd.Timestamp(value_fold[0], tz=tz)
+    result = ts.fold
+    expected = value_fold[1]
     assert result == expected
