@@ -442,10 +442,10 @@ class Timestamp(_Timestamp):
         elif not is_offset_object(freq):
             freq = to_offset(freq)
 
-        if ts.fold is None:
-            ts.fold = fold
+        #if ts.fold is None:
+        #    ts.fold = fold
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
