@@ -665,6 +665,7 @@ def test_maybe_convert_timedelta():
 
 
 def test_is_monotonic_with_nat():
+    # GH#31437
     # PeriodIndex.is_monotonic should behave analogously to DatetimeIndex,
     #  in particular never be monotonic when we have NaT
     dti = pd.date_range("2016-01-01", periods=3)
