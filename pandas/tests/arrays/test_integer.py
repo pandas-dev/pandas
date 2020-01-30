@@ -1074,12 +1074,13 @@ def test_cut(bins, right, include_lowest):
     tm.assert_categorical_equal(result, expected)
 
 
-@pytest.mark.parametrize("q", [2, 10, 50])
-def test_qcut(q):
-    arr = pd.array(np.arange(100), dtype="Int64")
+@pytest.mark.parametrize("q", [2, 5, 10])
+def test_qcut_nullable_integer(q, any_nullable_int_dtype):
+    arr = pd.array(np.random.randint(1, 100, 100), dtype=any_nullable_int_dtype)
+    arr[::2] = pd.NA
 
     result = pd.qcut(arr, q)
-    expected = pd.qcut(arr.astype(int), q)
+    expected = pd.qcut(arr.astype(float), q)
 
     tm.assert_categorical_equal(result, expected)
 
