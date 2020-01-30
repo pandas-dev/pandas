@@ -808,11 +808,14 @@ b  2""",
             dtype = obj.dtype
 
         if not is_scalar(result):
+
+            # The function can return something of any type, so check
+            #  if the type is compatible with the calling EA.
+            # datetime64tz is handled correctly in agg_series,
+            #  so is excluded here.
             if is_extension_array_dtype(dtype) and dtype.kind != "M":
-                # The function can return something of any type, so check
-                #  if the type is compatible with the calling EA.
-                # datetime64tz is handled correctly in agg_series,
-                #  so is excluded here.
+                # if how is in cython_cast_keep_type_list, which means it
+                # should be cast back to return the same type as obj
                 if (
                     len(result)
                     and isinstance(result[0], dtype.type)
