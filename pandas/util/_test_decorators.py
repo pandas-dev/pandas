@@ -23,6 +23,7 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+
 from distutils.version import LooseVersion
 from functools import wraps
 import locale
@@ -30,6 +31,7 @@ from typing import Callable, Optional
 
 import numpy as np
 import pytest
+from pytest.mark.structures import MarkDecorator
 
 from pandas.compat import is_platform_32bit, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
@@ -120,7 +122,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-def skip_if_installed(package: str) -> Callable:
+def skip_if_installed(package: str) -> MarkDecorator:
     """
     Skip a test if a package is installed.
 
@@ -134,7 +136,7 @@ def skip_if_installed(package: str) -> Callable:
     )
 
 
-def skip_if_no(package: str, min_version: Optional[str] = None) -> Callable:
+def skip_if_no(package: str, min_version: Optional[str] = None) -> MarkDecorator:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -196,9 +198,7 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-def skip_if_np_lt(
-    ver_str: str, reason: Optional[str] = None, *args, **kwds
-) -> Callable:
+def skip_if_np_lt(ver_str: str, reason: Optional[str] = None, *args, **kwds) -> MarkDecorator:
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
@@ -254,7 +254,7 @@ def check_file_leaks(func) -> Callable:
     return new_func
 
 
-def async_mark():
+def async_mark() -> MarkDecorator:
     try:
         import_optional_dependency("pytest_asyncio")
         async_mark = pytest.mark.asyncio
