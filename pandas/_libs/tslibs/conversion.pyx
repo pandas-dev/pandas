@@ -292,7 +292,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
                         f'Timestamp')
 
     if tz is not None:
-        localize_tso(obj, tz)
+        localize_tso(obj, tz, fold)
 
     if obj.value != NPY_NAT:
         # check_overflows needs to run after localize_tso
@@ -523,7 +523,7 @@ cdef inline check_overflows(_TSObject obj):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef inline void localize_tso(_TSObject obj, tzinfo tz):
+cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone.
@@ -532,6 +532,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     ----------
     obj : _TSObject
     tz : tzinfo
+    fold: bint
+    TODO: Update docstring with info on how we infer or update fold
 
     Returns
     -------
@@ -574,6 +576,12 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
             # i.e. treat_tz_as_dateutil(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
+            # Check if we are in a fold
+            tti = tz._get_ttinfo(pos - 1)
+            if not(tti.isdst):
+                od = deltas[pos - 1] - deltas[pos]
+                if obj.value < (trans[pos] + od):
+                    obj.fold = 1
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
             # either pytz or dateutil have is_fixed_offset(tz) == True,

@@ -979,7 +979,7 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
 @pytest.mark.parametrize(
-    "value_fold", [(1572139800000000000, 0), (1572143400000000000, 1)]
+    "value_fold", [(1572136200000000000, 0), (1572139800000000000, 1)]
 )
 def test_timestamp_constructor_infer_fold_from_value(tz, value_fold):
     # Test for #25057

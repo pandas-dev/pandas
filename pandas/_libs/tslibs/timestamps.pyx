@@ -446,7 +446,7 @@ class Timestamp(_Timestamp):
         if ts.fold == 0 and fold == 1:
             ts.fold = fold
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, fold)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
