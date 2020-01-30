@@ -581,11 +581,9 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             pos = trans.searchsorted(obj.value, side='right') - 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             # Check if we are in a fold
-            tti = tz._get_ttinfo(pos - 1)
-            if not(tti.isdst):
-                od = deltas[pos - 1] - deltas[pos]
-                if obj.value < (trans[pos] + od):
-                    obj.fold = 1
+            od = deltas[pos - 1] - deltas[pos]
+            if obj.value < (trans[pos] + od):
+                obj.fold = 1
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
             # either pytz or dateutil have is_fixed_offset(tz) == True,
