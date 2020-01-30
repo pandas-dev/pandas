@@ -451,8 +451,14 @@ class BaseGrouper:
 
         # categoricals are only 1d, so we
         # are not setup for dim transforming
-        # GH 31450, except if how is first
-        if is_categorical_dtype(values) and how != "first" or is_sparse(values):
+        # those four cython agg that should work with categoricals
+        from pandas.core.groupby.base import cython_cast_keep_type_list
+
+        if (
+            is_categorical_dtype(values)
+            and how not in cython_cast_keep_type_list
+            or is_sparse(values)
+        ):
             raise NotImplementedError(f"{values.dtype} dtype not supported")
         elif is_datetime64_any_dtype(values):
             if how in ["add", "prod", "cumsum", "cumprod"]:

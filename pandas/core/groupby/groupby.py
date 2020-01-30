@@ -813,7 +813,13 @@ b  2""",
                 # datetime64tz is handled correctly in agg_series,
                 #  so is excluded here.
 
-                if len(result) and isinstance(result[0], dtype.type) or how == "first":
+                from pandas.core.groupby.base import cython_cast_keep_type_list
+
+                if (
+                    len(result)
+                    and isinstance(result[0], dtype.type)
+                    or how in cython_cast_keep_type_list
+                ):
                     cls = dtype.construct_array_type()
                     result = try_cast_to_ea(cls, result, dtype=dtype)
 
@@ -900,7 +906,7 @@ b  2""",
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                output[key] = self._try_cast(result, obj, how=how)
+                output[key] = self._try_cast(result, obj)
                 idx += 1
 
         if len(output) == 0:
