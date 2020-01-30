@@ -1182,8 +1182,8 @@ class PlotAccessor(PandasObject):
             Number of histogram bins to be used.
 
             You can alternatively provide a string describing a binning
-            strategy, such as 'auto', 'sturges', 'fd', 'doane', 'scott', 
-            'rice' or 'sqrt', see `numpy.histogram`.
+            strategy, such as 'auto', 'sturges', 'fd', 'doane', 'scott',
+            'rice' or 'sqrt'. See `numpy.histogram`.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
