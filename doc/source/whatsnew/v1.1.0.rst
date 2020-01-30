@@ -200,9 +200,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
--
-
+- Bug where :meth:`qcut` would raise when passed a nullable integer. (:issue:``)
 
 Other
 ^^^^^
