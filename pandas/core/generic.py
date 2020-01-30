@@ -664,7 +664,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         6        7   8
         10      11  12
 
-        >>> df.droplevel('level2', axis=1)
+        >>> df.droplevel('level_2', axis=1)
         level_1   c   d
         a b
         1 2      3   4
@@ -1235,7 +1235,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.index = pd.MultiIndex.from_product(
         ...                [["mammal"], ['dog', 'cat', 'monkey']])
         >>> df._set_axis_name(["type", "name"])
-                       legs
+                       num_legs
         type   name
         mammal dog        4
                cat        4
@@ -2207,14 +2207,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
+        >>> df = pd.DataFrame(
+        ...     [["a", "b"], ["c", "d"]],
+        ...     index=["row 1", "row 2"],
+        ...     columns=["col 1", "col 2"],
+        ... )
 
-        >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
-        ...                   index=['row 1', 'row 2'],
-        ...                   columns=['col 1', 'col 2'])
         >>> df.to_json(orient='split')
-        '{"columns":["col 1","col 2"],
-          "index":["row 1","row 2"],
-          "data":[["a","b"],["c","d"]]}'
+        '{"columns":["col 1","col 2"],"index":["row 1","row 2"],"data":[["a","b"],["c","d"]]}'
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
@@ -2240,15 +2240,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Encoding with Table Schema
 
         >>> df.to_json(orient='table')
-        '{"schema": {"fields": [{"name": "index", "type": "string"},
-                                {"name": "col 1", "type": "string"},
-                                {"name": "col 2", "type": "string"}],
-                     "primaryKey": "index",
-                     "pandas_version": "0.20.0"},
-          "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
-                   {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
+        '{"schema":{"fields":[{"name":"index","type":"string"},{"name":"col 1","type":"string"},{"name":"col 2","type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},"data":[{"index":"row 1","col 1":"a","col 2":"b"},{"index":"row 2","col 1":"c","col 2":"d"}]}'
         """
-
         from pandas.io import json
 
         if date_format is None and orient == "table":
@@ -4922,18 +4915,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Notes
         -----
-
         Use ``.pipe`` when chaining together functions that expect
         Series, DataFrames or GroupBy objects. Instead of writing
 
-        >>> f(g(h(df), arg1=a), arg2=b, arg3=c)
+        >>> func(g(h(df), arg1=a), arg2=b, arg3=c) # doctest: +SKIP
 
         You can write
 
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
-        ...    .pipe(f, arg2=b, arg3=c)
-        ... )
+        ...    .pipe(func, arg2=b, arg3=c)
+        ... ) # doctest: +SKIP
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
@@ -4941,8 +4933,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
-        ...    .pipe((f, 'arg2'), arg1=a, arg3=c)
-        ...  )
+        ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
+        ...  ) # doctest: +SKIP
     """
 
     @Appender(_shared_docs["pipe"] % _shared_doc_kwargs)
@@ -5290,7 +5282,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: object
         >>> df.values
         array([[  3,  94,  31],
-               [ 29, 170, 115]], dtype=int64)
+               [ 29, 170, 115]])
 
         A DataFrame with mixed type columns(e.g., str/object, int64, float32)
         results in an ndarray of the broadest type that accommodates these
@@ -9547,12 +9539,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...   np.datetime64("2010-01-01")
         ... ])
         >>> s.describe()
-        count                       3
-        unique                      2
-        top       2010-01-01 00:00:00
-        freq                        2
-        first     2000-01-01 00:00:00
-        last      2010-01-01 00:00:00
+        count                      3
+        mean     2006-09-01 08:00:00
+        min      2000-01-01 00:00:00
+        25%      2004-12-31 12:00:00
+        50%      2010-01-01 00:00:00
+        75%      2010-01-01 00:00:00
+        max      2010-01-01 00:00:00
         dtype: object
 
         Describing a ``DataFrame``. By default only numeric fields
@@ -9575,11 +9568,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Describing all columns of a ``DataFrame`` regardless of data type.
 
-        >>> df.describe(include='all')
-                categorical  numeric object
+        >>> df.describe(include='all') # doctest: +SKIP
+               categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
-        top              f      NaN      c
+        top              f      NaN      a
         freq             1      NaN      1
         mean           NaN      2.0    NaN
         std            NaN      1.0    NaN
@@ -9618,11 +9611,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Including only string columns in a ``DataFrame`` description.
 
-        >>> df.describe(include=[np.object])
+        >>> df.describe(include=[np.object]) # doctest: +SKIP
                object
         count       3
         unique      3
-        top         c
+        top         a
         freq        1
 
         Including only categorical columns from a ``DataFrame`` description.
@@ -9636,16 +9629,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Excluding numeric columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.number])
+        >>> df.describe(exclude=[np.number]) # doctest: +SKIP
                categorical object
         count            3      3
         unique           3      3
-        top              f      c
+        top              f      a
         freq             1      1
 
         Excluding object columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.object])
+        >>> df.describe(exclude=[np.object]) # doctest: +SKIP
                categorical  numeric
         count            3      3.0
         unique           3      NaN
