@@ -964,3 +964,13 @@ def test_timestamp_constructor_identity():
     expected = pd.Timestamp("2017-01-01T12")
     result = pd.Timestamp(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
+@pytest.mark.parametrize("fold", [0, 1])
+def test_timestamp_constructor_fold(tz, fold):
+    # Test for #25057
+    ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=tz, fold=fold)
+    result = ts.fold
+    expected = fold
+    assert result == expected

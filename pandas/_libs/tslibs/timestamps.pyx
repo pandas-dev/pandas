@@ -351,7 +351,8 @@ class Timestamp(_Timestamp):
         second=None,
         microsecond=None,
         nanosecond=None,
-        tzinfo=None
+        tzinfo=None,
+        fold=None
     ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
