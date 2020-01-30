@@ -906,7 +906,7 @@ b  2""",
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                output[key] = self._try_cast(result, obj)
+                output[key] = self._try_cast(result, obj, how=how)
                 idx += 1
 
         if len(output) == 0:
