@@ -42,12 +42,12 @@ _no_input = object()
 
 cdef inline object create_timestamp_from_ts(int64_t value,
                                             npy_datetimestruct dts,
-                                            object tz, object freq):
+                                            object tz, object freq, bint fold):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
     ts_base = _Timestamp.__new__(Timestamp, dts.year, dts.month,
                                  dts.day, dts.hour, dts.min,
-                                 dts.sec, dts.us, tz)
+                                 dts.sec, dts.us, tz, fold=fold)
     ts_base.value = value
     ts_base.freq = freq
     ts_base.nanosecond = dts.ps // 1000
@@ -442,7 +442,7 @@ class Timestamp(_Timestamp):
         elif not is_offset_object(freq):
             freq = to_offset(freq)
 
-        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
+        return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
@@ -986,7 +986,7 @@ default 'raise'
         if value != NPY_NAT:
             check_dts_bounds(&dts)
 
-        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq)
+        return create_timestamp_from_ts(value, dts, _tzinfo, self.freq, fold)
 
     def isoformat(self, sep='T'):
         base = super(_Timestamp, self).isoformat(sep=sep)

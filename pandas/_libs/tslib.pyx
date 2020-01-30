@@ -49,7 +49,7 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 cdef inline object create_datetime_from_ts(
         int64_t value, npy_datetimestruct dts,
-        object tz, object freq):
+        object tz, object freq, bint fold):
     """ convenience routine to construct a datetime.datetime from its parts """
     return datetime(dts.year, dts.month, dts.day, dts.hour,
                     dts.min, dts.sec, dts.us, tz)
@@ -57,14 +57,14 @@ cdef inline object create_datetime_from_ts(
 
 cdef inline object create_date_from_ts(
         int64_t value, npy_datetimestruct dts,
-        object tz, object freq):
+        object tz, object freq, bint fold):
     """ convenience routine to construct a datetime.date from its parts """
     return date(dts.year, dts.month, dts.day)
 
 
 cdef inline object create_time_from_ts(
         int64_t value, npy_datetimestruct dts,
-        object tz, object freq):
+        object tz, object freq, bint fold):
     """ convenience routine to construct a datetime.time from its parts """
     return time(dts.hour, dts.min, dts.sec, dts.us, tz)
 
@@ -72,7 +72,7 @@ cdef inline object create_time_from_ts(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
-                       str box="datetime"):
+                       bint fold=0, str box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
@@ -104,7 +104,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
         str typ
         int64_t value, delta, local_value
         ndarray[object] result = np.empty(n, dtype=object)
-        object (*func_create)(int64_t, npy_datetimestruct, object, object)
+        object (*func_create)(int64_t, npy_datetimestruct, object, object, bint)
 
     if box == "date":
         assert (tz is None), "tz should be None when converting to date"
@@ -129,7 +129,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                 result[i] = <object>NaT
             else:
                 dt64_to_dtstruct(value, &dts)
-                result[i] = func_create(value, dts, tz, freq)
+                result[i] = func_create(value, dts, tz, freq, fold)
     elif is_tzlocal(tz):
         for i in range(n):
             value = arr[i]
@@ -141,7 +141,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                 # using the i8 representation.
                 local_value = tz_convert_utc_to_tzlocal(value, tz)
                 dt64_to_dtstruct(local_value, &dts)
-                result[i] = func_create(value, dts, tz, freq)
+                result[i] = func_create(value, dts, tz, freq, fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -155,7 +155,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     dt64_to_dtstruct(value + delta, &dts)
-                    result[i] = func_create(value, dts, tz, freq)
+                    result[i] = func_create(value, dts, tz, freq, fold)
 
         elif typ == 'dateutil':
             # no zone-name change for dateutil tzs - dst etc
@@ -168,7 +168,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     pos = trans.searchsorted(value, side='right') - 1
                     dt64_to_dtstruct(value + deltas[pos], &dts)
-                    result[i] = func_create(value, dts, tz, freq)
+                    result[i] = func_create(value, dts, tz, freq, fold)
         else:
             # pytz
             for i in range(n):
@@ -182,7 +182,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
                     new_tz = tz._tzinfos[tz._transition_info[pos]]
 
                     dt64_to_dtstruct(value + deltas[pos], &dts)
-                    result[i] = func_create(value, dts, new_tz, freq)
+                    result[i] = func_create(value, dts, new_tz, freq, fold)
 
     return result
 
