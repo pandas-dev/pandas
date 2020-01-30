@@ -431,7 +431,7 @@ class Timestamp(_Timestamp):
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
 
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0, fold)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -442,6 +442,7 @@ class Timestamp(_Timestamp):
         elif not is_offset_object(freq):
             freq = to_offset(freq)
 
+        # TODO: remove after incorporating fold into conversion
         if ts.fold == 0 and fold == 1:
             ts.fold = fold
 
