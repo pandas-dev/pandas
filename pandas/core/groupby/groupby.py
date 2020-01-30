@@ -685,7 +685,7 @@ b  2""",
         if not len(inds):
             raise KeyError(name)
 
-        return obj.take(inds, axis=self.axis)
+        return obj._take_with_is_copy(inds, axis=self.axis)
 
     def __iter__(self):
         """
@@ -813,9 +813,10 @@ b  2""",
                 # datetime64tz is handled correctly in agg_series,
                 #  so is excluded here.
 
-                # return the same type (Series) as our caller
-                cls = dtype.construct_array_type()
-                result = try_cast_to_ea(cls, result, dtype=dtype)
+                if len(result) and isinstance(result[0], dtype.type):
+                    cls = dtype.construct_array_type()
+                    result = try_cast_to_ea(cls, result, dtype=dtype)
+
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 
@@ -969,22 +970,17 @@ b  2""",
             result = concat(values, axis=self.axis)
             ax = self._selected_obj._get_axis(self.axis)
 
-            if isinstance(result, Series):
-                result = result.reindex(ax)
+            # this is a very unfortunate situation
+            # we can't use reindex to restore the original order
+            # when the ax has duplicates
+            # so we resort to this
+            # GH 14776, 30667
+            if ax.has_duplicates:
+                indexer, _ = result.index.get_indexer_non_unique(ax.values)
+                indexer = algorithms.unique1d(indexer)
+                result = result.take(indexer, axis=self.axis)
             else:
-
-                # this is a very unfortunate situation
-                # we have a multi-index that is NOT lexsorted
-                # and we have a result which is duplicated
-                # we can't reindex, so we resort to this
-                # GH 14776
-                if isinstance(ax, MultiIndex) and not ax.is_unique:
-                    indexer = algorithms.unique1d(
-                        result.index.get_indexer_for(ax.values)
-                    )
-                    result = result.take(indexer, axis=self.axis)
-                else:
-                    result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis)
 
         elif self.group_keys:
 

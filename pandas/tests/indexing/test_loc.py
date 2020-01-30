@@ -200,10 +200,10 @@ class TestLoc(Base):
     def test_loc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        with pytest.raises(
-            IndexError,
-            match=("Item wrong length {} instead of {}.".format(len(index), len(s))),
-        ):
+        msg = "Boolean index has wrong length: {} instead of {}".format(
+            len(index), len(s)
+        )
+        with pytest.raises(IndexError, match=msg):
             _ = s.loc[index]
 
     def test_loc_getitem_int_slice(self):
@@ -1001,4 +1001,14 @@ def test_loc_axis_1_slice():
             [(2014, 9), (2014, 10), (2015, 7), (2015, 8)]
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_set_dataframe_multiindex():
+    # GH 14592
+    expected = pd.DataFrame(
+        "a", index=range(2), columns=pd.MultiIndex.from_product([range(2), range(2)])
+    )
+    result = expected.copy()
+    result.loc[0, [(0, 1)]] = result.loc[0, [(0, 1)]]
     tm.assert_frame_equal(result, expected)
