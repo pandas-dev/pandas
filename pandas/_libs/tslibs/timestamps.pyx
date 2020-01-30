@@ -442,8 +442,8 @@ class Timestamp(_Timestamp):
         elif not is_offset_object(freq):
             freq = to_offset(freq)
 
-        #if ts.fold is None:
-        #    ts.fold = fold
+        if ts.fold == 0 and fold == 1:
+            ts.fold = fold
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, fold)
 
