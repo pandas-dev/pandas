@@ -164,8 +164,8 @@ class BaseGrouper:
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
             and axis == 0
-            # apply_frame_axis0 doesn't allow MultiIndex
-            and not isinstance(sdata.index, MultiIndex)
+            # fast_apply/libreduction doesn't allow non-numpy backed indexes
+            and not sdata.index._has_complex_internals
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
@@ -543,6 +543,17 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
+        elif (
+            how == "add"
+            and is_integer_dtype(orig_values.dtype)
+            and is_extension_array_dtype(orig_values.dtype)
+        ):
+            # We need this to ensure that Series[Int64Dtype].resample().sum()
+            # remains int64 dtype.
+            # Two options for avoiding this special case
+            # 1. mask-aware ops and avoid casting to float with NaN above
+            # 2. specify the result dtype when calling this method
+            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -616,8 +627,8 @@ class BaseGrouper:
             # TODO: can we get a performant workaround for EAs backed by ndarray?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif isinstance(obj.index, MultiIndex):
-            # MultiIndex; Pre-empt TypeError in _aggregate_series_fast
+        elif obj.index._has_complex_internals:
+            # Pre-empt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:

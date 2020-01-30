@@ -8,7 +8,6 @@ from datetime import datetime
 from io import StringIO
 import os
 import platform
-from tempfile import TemporaryFile
 from urllib.error import URLError
 
 import numpy as np
@@ -1847,16 +1846,15 @@ def test_temporary_file(all_parsers):
     parser = all_parsers
     data = "0 0"
 
-    new_file = TemporaryFile("w+")
-    new_file.write(data)
-    new_file.flush()
-    new_file.seek(0)
+    with tm.ensure_clean(mode="w+", return_filelike=True) as new_file:
+        new_file.write(data)
+        new_file.flush()
+        new_file.seek(0)
 
-    result = parser.read_csv(new_file, sep=r"\s+", header=None)
-    new_file.close()
+        result = parser.read_csv(new_file, sep=r"\s+", header=None)
 
-    expected = DataFrame([[0, 0]])
-    tm.assert_frame_equal(result, expected)
+        expected = DataFrame([[0, 0]])
+        tm.assert_frame_equal(result, expected)
 
 
 def test_internal_eof_byte(all_parsers):

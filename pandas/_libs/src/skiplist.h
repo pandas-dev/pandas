@@ -10,7 +10,7 @@ Flexibly-sized, index-able skiplist data structure for maintaining a sorted
 list of values
 
 Port of Wes McKinney's Cython version of Raymond Hettinger's original pure
-Python recipe (http://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
+Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 */
 
 #ifndef PANDAS__LIBS_SRC_SKIPLIST_H_

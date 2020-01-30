@@ -1,7 +1,7 @@
 """
 Table Schema builders
 
-http://specs.frictionlessdata.io/json-table-schema/
+https://specs.frictionlessdata.io/json-table-schema/
 """
 import warnings
 

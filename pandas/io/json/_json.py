@@ -439,8 +439,17 @@ def read_json(
            Not applicable for ``orient='table'``.
 
     convert_dates : bool or list of str, default True
-        List of columns to parse for dates. If True, then try to parse
-        datelike columns. A column label is datelike if
+        If True then default datelike columns may be converted (depending on
+        keep_default_dates).
+        If False, no dates will be converted.
+        If a list of column names, then those columns will be converted and
+        default datelike columns may also be converted (depending on
+        keep_default_dates).
+
+    keep_default_dates : bool, default True
+        If parsing dates (convert_dates is not False), then try to parse the
+        default datelike columns.
+        A column label is datelike if
 
         * it ends with ``'_at'``,
 
@@ -451,9 +460,6 @@ def read_json(
         * it is ``'modified'``, or
 
         * it is ``'date'``.
-
-    keep_default_dates : bool, default True
-        If parsing dates, then parse the default datelike columns.
 
     numpy : bool, default False
         Direct decoding to numpy arrays. Supports numeric data only, but
@@ -936,7 +942,7 @@ class Parser:
                 if (new_data == data).all():
                     data = new_data
                     result = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         # coerce ints to 64
