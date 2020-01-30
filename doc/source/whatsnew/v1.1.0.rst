@@ -36,6 +36,31 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+.. _whatsnew_100.differences:
+
+Comparing two `DataFrame` or two `Series` and summarizing the differences
+^^^^^^^^^^^^^^^^^^^^^^
+
+We've added :meth:`~DataFrame.differences` and :meth:`~Series.differences` for comparing two `DataFrame`s or two `Series`s (:issue:`30429`)
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "col1": ["a", "a", "b", "b", "a"],
+           "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+           "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+       },
+       columns=["col1", "col2", "col3"],
+   )
+   df
+   df2 = df.copy()
+   df2.loc[0, 'col1'] = 'c'
+   df2.loc[2, 'col3'] = 4.0
+   df2
+   df.differences(df2)
+
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
