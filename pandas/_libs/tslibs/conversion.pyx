@@ -246,6 +246,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         tz = maybe_get_tz(tz)
 
     obj = _TSObject()
+    # TODO: remove after moving to localize_tso and convert_str_to_tsobject
+    obj.fold = None
 
     if isinstance(ts, str):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
