@@ -15,7 +15,7 @@ including other versions of pandas.
 
 Bug fixes
 ~~~~~~~~~
-- bug ``Groupby.apply`` was returning ``TypeError`` if called with TypeError if called with `lambda x: x.index.to_list()` (:issue:`31441`)
+- bug ``Groupby.apply`` was returning ``TypeError`` if called with function which returned list (:issue:`31441`)
 
 Categorical
 ^^^^^^^^^^^
