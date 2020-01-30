@@ -957,3 +957,10 @@ def test_timedelta_constructor_identity():
     expected = pd.Timedelta(np.timedelta64(1, "s"))
     result = pd.Timedelta(expected)
     assert result is expected
+
+
+def test_timestamp_constructor_identity():
+    # Test for #30543
+    expected = pd.Timestamp("2017-01-01T12")
+    result = pd.Timestamp(expected)
+    assert result is expected

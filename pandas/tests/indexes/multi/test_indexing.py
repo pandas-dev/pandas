@@ -396,7 +396,7 @@ def test_get_loc_missing_nan():
         idx.get_loc(3)
     with pytest.raises(KeyError, match=r"^nan$"):
         idx.get_loc(np.nan)
-    with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
+    with pytest.raises(TypeError, match="unhashable type: 'list'"):
         # listlike/non-hashable raises TypeError
         idx.get_loc([np.nan])
 
