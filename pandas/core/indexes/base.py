@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Any, Dict, FrozenSet, Hashable, Optional, Union
+from typing import Any, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -12,6 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -67,7 +68,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import deprecate_ndim_indexing, maybe_convert_indices
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
@@ -75,6 +76,7 @@ from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
+    PrettyDict,
     default_pprint,
     format_object_attrs,
     format_object_summary,
@@ -243,7 +245,7 @@ class Index(IndexOpsMixin, PandasObject):
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
     _id = None
-    _name: Optional[Hashable] = None
+    _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
@@ -277,10 +279,6 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> "Index":
 
         from pandas.core.indexes.range import RangeIndex
-        from pandas import PeriodIndex, DatetimeIndex, TimedeltaIndex
-        from pandas.core.indexes.numeric import Float64Index, Int64Index, UInt64Index
-        from pandas.core.indexes.interval import IntervalIndex
-        from pandas.core.indexes.category import CategoricalIndex
 
         name = maybe_extract_name(name, data, cls)
 
@@ -296,10 +294,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
+            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+            from pandas.core.indexes.category import CategoricalIndex
+
             return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
 
         # interval
         elif is_interval_dtype(data) or is_interval_dtype(dtype):
+            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+            from pandas.core.indexes.interval import IntervalIndex
+
             closed = kwargs.pop("closed", None)
             if is_dtype_equal(_o_dtype, dtype):
                 return IntervalIndex(
@@ -314,6 +318,9 @@ class Index(IndexOpsMixin, PandasObject):
             or is_datetime64_any_dtype(dtype)
             or "tz" in kwargs
         ):
+            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+            from pandas import DatetimeIndex
+
             if is_dtype_equal(_o_dtype, dtype):
                 # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
                 #  will raise in the where `data` is already tz-aware.  So
@@ -328,6 +335,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return DatetimeIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
         elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):
+            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+            from pandas import TimedeltaIndex
+
             if is_dtype_equal(_o_dtype, dtype):
                 # Note we can pass copy=False because the .astype below
                 #  will always make a copy
@@ -338,6 +348,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
 
         elif is_period_dtype(data) or is_period_dtype(dtype):
+            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+            from pandas import PeriodIndex
+
             if is_dtype_equal(_o_dtype, dtype):
                 return PeriodIndex(data, copy=False, name=name, **kwargs).astype(object)
             return PeriodIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
@@ -357,6 +370,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
+            # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
+            from pandas.core.indexes.numeric import (
+                Float64Index,
+                Int64Index,
+                UInt64Index,
+            )
+
             if dtype is not None:
                 # we need to avoid having numpy coerce
                 # things that look like ints/floats to ints unless
@@ -395,7 +415,7 @@ class Index(IndexOpsMixin, PandasObject):
             if subarr.ndim > 1:
                 # GH#13601, GH#20285, GH#27125
                 raise ValueError("Index data must be 1-dimensional")
-            return cls._simple_new(subarr, name, **kwargs)
+            return cls._simple_new(subarr, name)
 
         elif hasattr(data, "__array__"):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
@@ -507,11 +527,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-
-        # _simple_new expects the type of self._data
-        values = getattr(values, "_values", values)
 
         return self._simple_new(values, **attributes)
 
@@ -2354,6 +2369,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self.is_unique:
             values = self.unique()
+            if not isinstance(self, ABCMultiIndex):
+                # extract an array to pass to _shallow_copy
+                values = values._data
 
         if dropna:
             try:
@@ -3119,7 +3137,8 @@ class Index(IndexOpsMixin, PandasObject):
         assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
-            return self._validate_indexer("positional", key, kind)
+            self._validate_indexer("positional", key, "iloc")
+            return key
 
         if len(self) and not isinstance(self, ABCMultiIndex):
 
@@ -3128,11 +3147,11 @@ class Index(IndexOpsMixin, PandasObject):
             # or label indexing if we are using a type able
             # to be represented in the index
 
-            if kind in ["getitem"] and is_float(key):
+            if kind == "getitem" and is_float(key):
                 if not self.is_floating():
                     self._invalid_indexer("label", key)
 
-            elif kind in ["loc"] and is_float(key):
+            elif kind == "loc" and is_float(key):
 
                 # we want to raise KeyError on string/mixed here
                 # technically we *could* raise a TypeError
@@ -3146,7 +3165,7 @@ class Index(IndexOpsMixin, PandasObject):
                 ]:
                     self._invalid_indexer("label", key)
 
-            elif kind in ["loc"] and is_integer(key):
+            elif kind == "loc" and is_integer(key):
                 if not self.holds_integer():
                     self._invalid_indexer("label", key)
 
@@ -3172,11 +3191,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         # validate iloc
         if kind == "iloc":
-            return slice(
-                self._validate_indexer("slice", key.start, kind),
-                self._validate_indexer("slice", key.stop, kind),
-                self._validate_indexer("slice", key.step, kind),
-            )
+            self._validate_indexer("slice", key.start, "iloc")
+            self._validate_indexer("slice", key.stop, "iloc")
+            self._validate_indexer("slice", key.step, "iloc")
+            return key
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
@@ -3197,11 +3215,10 @@ class Index(IndexOpsMixin, PandasObject):
             integers
             """
             if self.is_integer() or is_index_slice:
-                return slice(
-                    self._validate_indexer("slice", key.start, kind),
-                    self._validate_indexer("slice", key.stop, kind),
-                    self._validate_indexer("slice", key.step, kind),
-                )
+                self._validate_indexer("slice", key.start, "getitem")
+                self._validate_indexer("slice", key.stop, "getitem")
+                self._validate_indexer("slice", key.step, "getitem")
+                return key
 
         # convert the slice to an indexer here
 
@@ -3331,7 +3348,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return None
 
-    def _invalid_indexer(self, form, key):
+    def _invalid_indexer(self, form: str_t, key):
         """
         Consistent invalid indexer message.
         """
@@ -4109,6 +4126,14 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_scalar(value):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
+    @property
+    def _has_complex_internals(self) -> bool:
+        """
+        Indicates if an index is not directly backed by a numpy array
+        """
+        # used to avoid libreduction code paths, which raise or require conversion
+        return False
+
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.
@@ -4759,7 +4784,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self.astype("object"), other.astype("object")
         return self, other
 
-    def groupby(self, values) -> Dict[Hashable, np.ndarray]:
+    def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
         """
         Group the index labels by a given array of values.
 
@@ -4784,7 +4809,7 @@ class Index(IndexOpsMixin, PandasObject):
         # map to the label
         result = {k: self.take(v) for k, v in result.items()}
 
-        return result
+        return PrettyDict(result)
 
     def map(self, mapper, na_action=None):
         """
@@ -4981,20 +5006,19 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
         return key
 
-    def _validate_indexer(self, form, key, kind: str_t):
+    def _validate_indexer(self, form: str_t, key, kind: str_t):
         """
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
         """
-        assert kind in ["loc", "getitem", "iloc"]
+        assert kind in ["getitem", "iloc"]
 
         if key is None:
             pass
         elif is_integer(key):
             pass
-        elif kind in ["iloc", "getitem"]:
+        else:
             self._invalid_indexer(form, key)
-        return key
 
     _index_shared_docs[
         "_maybe_cast_slice_bound"
@@ -5019,7 +5043,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str_t, kind):
         assert kind in ["loc", "getitem", None]
 
         # We are a plain index here (sub-class override this method if they
@@ -5050,7 +5074,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side, kind) -> int:
+    def get_slice_bound(self, label, side: str_t, kind) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -5235,7 +5259,7 @@ class Index(IndexOpsMixin, PandasObject):
         idx = np.concatenate((_self[:loc], item, _self[loc:]))
         return self._shallow_copy_with_infer(idx)
 
-    def drop(self, labels, errors="raise"):
+    def drop(self, labels, errors: str_t = "raise"):
         """
         Make new Index with passed list of labels deleted.
 
@@ -5819,17 +5843,3 @@ def _try_convert_to_int_array(
         pass
 
     raise ValueError
-
-
-def deprecate_ndim_indexing(result):
-    if np.ndim(result) > 1:
-        # GH#27125 indexer like idx[:, None] expands dim, but we
-        #  cannot do that and keep an index, so return ndarray
-        # Deprecation GH#30588
-        warnings.warn(
-            "Support for multi-dimensional indexing (e.g. `index[:, None]`) "
-            "on an Index is deprecated and will be removed in a future "
-            "version.  Convert to a numpy array before indexing instead.",
-            DeprecationWarning,
-            stacklevel=3,
-        )

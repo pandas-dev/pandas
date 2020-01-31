@@ -105,3 +105,10 @@ class BaseDtypeTests(BaseExtensionTests):
         msg = f"Cannot construct a '{type(dtype).__name__}' from 'another_type'"
         with pytest.raises(TypeError, match=msg):
             type(dtype).construct_from_string("another_type")
+
+    def test_construct_from_string_wrong_type_raises(self, dtype):
+        with pytest.raises(
+            TypeError,
+            match="'construct_from_string' expects a string, got <class 'int'>",
+        ):
+            type(dtype).construct_from_string(0)
