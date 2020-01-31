@@ -560,6 +560,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
         local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False)
         dt64_to_dtstruct(local_val, &obj.dts)
         # TODO: think on how we can infer fold for local Timezone
+        # and adjust value for fold
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
