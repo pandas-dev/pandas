@@ -5,6 +5,7 @@ from datetime import datetime
 from distutils.version import LooseVersion
 from functools import partial
 import operator
+from typing import Callable, Iterable, Optional, Union
 
 import numpy as np
 
@@ -55,7 +56,7 @@ class UndefinedVariableError(NameError):
     NameError subclass for local variables.
     """
 
-    def __init__(self, name, is_local: bool):
+    def __init__(self, name: str, is_local: Optional[bool] = None):
         base_msg = f"{repr(name)} is not defined"
         if is_local:
             msg = f"local variable {base_msg}"
@@ -199,10 +200,10 @@ class Op:
 
     op: str
 
-    def __init__(self, op: str, operands, *args, **kwargs):
+    def __init__(self, op: str, operands: Iterable[Union[Term, "Op"]], encoding=None):
         self.op = _bool_op_map.get(op, op)
         self.operands = operands
-        self.encoding = kwargs.get("encoding", None)
+        self.encoding = encoding
 
     def __iter__(self):
         return iter(self.operands)
@@ -353,11 +354,11 @@ class BinOp(Op):
     Parameters
     ----------
     op : str
-    left : Term or Op
-    right : Term or Op
+    lhs : Term or Op
+    rhs : Term or Op
     """
 
-    def __init__(self, op: str, lhs, rhs, **kwargs):
+    def __init__(self, op: str, lhs, rhs):
         super().__init__(op, (lhs, rhs))
         self.lhs = lhs
         self.rhs = rhs
@@ -388,7 +389,6 @@ class BinOp(Op):
         object
             The result of an evaluated expression.
         """
-
         # recurse over the left/right nodes
         left = self.lhs(env)
         right = self.rhs(env)
@@ -416,6 +416,7 @@ class BinOp(Op):
             res = self(env)
         else:
             # recurse over the left/right nodes
+
             left = self.lhs.evaluate(
                 env,
                 engine=engine,
@@ -423,6 +424,7 @@ class BinOp(Op):
                 term_type=term_type,
                 eval_in_python=eval_in_python,
             )
+
             right = self.rhs.evaluate(
                 env,
                 engine=engine,
@@ -447,6 +449,7 @@ class BinOp(Op):
         """
 
         def stringify(value):
+            encoder: Callable
             if self.encoding is not None:
                 encoder = partial(pprint_thing_encoded, encoding=self.encoding)
             else:
@@ -501,8 +504,8 @@ class Div(BinOp):
         The Terms or Ops in the ``/`` expression.
     """
 
-    def __init__(self, lhs, rhs, **kwargs):
-        super().__init__("/", lhs, rhs, **kwargs)
+    def __init__(self, lhs, rhs):
+        super().__init__("/", lhs, rhs)
 
         if not isnumeric(lhs.return_type) or not isnumeric(rhs.return_type):
             raise TypeError(
