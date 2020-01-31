@@ -70,6 +70,7 @@ Indexing
 
 -
 -
+- Bug in ``__setitem__`` in ``Array`` which fails with nullable boolean mask (:issue:`31446`)
 
 Missing
 ^^^^^^^
