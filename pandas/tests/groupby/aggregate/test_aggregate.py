@@ -685,19 +685,31 @@ def test_aggregate_udf_na_extension_type():
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
-def test_groupby_aggregate_period(func):
+def test_groupby_aggregate_period_column(func):
     # GH 31471
     groups = [1, 2]
     periods = pd.period_range("2020", periods=2, freq="Y")
-
     df = pd.DataFrame({"a": groups, "b": periods})
 
     result = getattr(df.groupby("a")["b"], func)()
-
     idx = pd.Int64Index([1, 2], name="a")
     expected = pd.Series(periods, index=idx, name="b")
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_groupby_aggregate_period_frame(func):
+    # GH 31471
+    groups = [1, 2]
+    periods = pd.period_range("2020", periods=2, freq="Y")
+    df = pd.DataFrame({"a": groups, "b": periods})
+
+    result = getattr(df.groupby("a"), func)()
+    idx = pd.Int64Index([1, 2], name="a")
+    expected = pd.DataFrame({"b": periods}, index=idx)
+
+    tm.assert_frame_equal(result, expected)
 
 
 class TestLambdaMangling:
