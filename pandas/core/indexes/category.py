@@ -171,6 +171,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     codes: np.ndarray
     categories: Index
+    _data: Categorical
 
     @property
     def _engine_type(self):
@@ -275,7 +276,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["_shallow_copy"])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
@@ -311,7 +312,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return other
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
 
@@ -380,11 +381,11 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self._data
 
     @property
-    def _has_complex_internals(self):
+    def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
         if is_scalar(key) and isna(key):
@@ -397,7 +398,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
@@ -416,7 +417,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """ return if each value is nan"""
         return self._data.codes == -1
 
-    @Appender(ibase._index_shared_docs["fillna"])
+    @Appender(Index.fillna.__doc__)
     def fillna(self, value, downcast=None):
         self._assert_can_do_op(value)
         return CategoricalIndex(self._data.fillna(value), name=self.name)
@@ -429,7 +430,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         codes = self.codes
         return self._engine_type(lambda: codes, len(self))
 
-    @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
+    @Appender(Index.unique.__doc__)
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
@@ -515,7 +516,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         # we might be a positional inexer
         return super().get_value(series, key)
 
-    @Appender(_index_shared_docs["where"])
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         # TODO: Investigate an alternative implementation with
         # 1. copy the underlying Categorical
@@ -665,7 +666,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
 
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
+    @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == "loc":
             try:
@@ -674,7 +675,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 self._invalid_indexer("label", key)
         return super()._convert_scalar_indexer(key, kind=kind)
 
-    @Appender(_index_shared_docs["_convert_list_indexer"])
+    @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr, kind=None):
         # Return our indexer or raise if all of the values are not included in
         # the categories
@@ -691,7 +692,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return self.get_indexer(keyarr)
 
-    @Appender(_index_shared_docs["_convert_arr_indexer"])
+    @Appender(Index._convert_arr_indexer.__doc__)
     def _convert_arr_indexer(self, keyarr):
         keyarr = com.asarray_tuplesafe(keyarr)
 
@@ -700,7 +701,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return self._shallow_copy(keyarr)
 
-    @Appender(_index_shared_docs["_convert_index_indexer"])
+    @Appender(Index._convert_index_indexer.__doc__)
     def _convert_index_indexer(self, keyarr):
         return self._shallow_copy(keyarr)
 
@@ -713,7 +714,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         )
         return self.take(*args, **kwargs)
 
-    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
+    @Appender(Index._maybe_cast_slice_bound.__doc__)
     def _maybe_cast_slice_bound(self, label, side, kind):
         if kind == "loc":
             return label
@@ -844,12 +845,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         prop = getattr(self._values, name)
         return prop  # no wrapping for now
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
         if "inplace" in kwargs:
