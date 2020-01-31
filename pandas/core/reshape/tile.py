@@ -340,6 +340,9 @@ def qcut(
     x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
+    if is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
+        x = x.to_numpy(dtype=np.float64, na_value=np.nan)
+
     if is_integer(q):
         quantiles = np.linspace(0, 1, q + 1)
     else:
@@ -391,7 +394,7 @@ def _bins_to_cuts(
             bins = unique_bins
 
     side = "left" if right else "right"
-    ids = ensure_int64(bins.searchsorted(np.where(~isna(x), x, -1), side=side))
+    ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
         min_mask = x == bins[0]
