@@ -976,12 +976,6 @@ class TestCategoricalIndex(Base):
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
 
-    def test_getitem_2d_deprecated(self):
-        # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
-        idx = self.create_index()
-        with pytest.raises(ValueError, match="cannot mask with array containing NA"):
-            idx[:, None]
-
     @pytest.mark.parametrize(
         "data, categories",
         [

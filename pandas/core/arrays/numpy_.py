@@ -18,9 +18,8 @@ from pandas import compat
 from pandas.core import nanops
 from pandas.core.algorithms import searchsorted, take, unique
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.indexers import check_bool_array_indexer
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import backfill_1d, pad_1d
 
 
@@ -75,9 +74,11 @@ class PandasDtype(ExtensionDtype):
         try:
             return cls(np.dtype(string))
         except TypeError as err:
-            raise TypeError(
-                f"Cannot construct a 'PandasDtype' from '{string}'"
-            ) from err
+            if not isinstance(string, str):
+                msg = f"'construct_from_string' expects a string, got {type(string)}"
+            else:
+                msg = f"Cannot construct a 'PandasDtype' from '{string}'"
+            raise TypeError(msg) from err
 
     @classmethod
     def construct_array_type(cls):
@@ -234,8 +235,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if isinstance(item, type(self)):
             item = item._ndarray
 
-        elif com.is_bool_indexer(item):
-            item = check_bool_array_indexer(self, item)
+        item = check_array_indexer(self, item)
 
         result = self._ndarray[item]
         if not lib.is_scalar(item):
