@@ -371,7 +371,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.dts.ps = nanos * 1000
 
     obj.fold = fold
-    if fold_delta > 0:
+    if obj.fold == 1:
         obj.value += fold_delta
 
     # Datetime puts us into a fold for an ambiguous timestamp
