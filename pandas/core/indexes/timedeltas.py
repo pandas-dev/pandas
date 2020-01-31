@@ -19,12 +19,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import (
-    Index,
-    InvalidIndexError,
-    _index_shared_docs,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimeTimedeltaMixin,
@@ -212,7 +207,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
     # -------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):

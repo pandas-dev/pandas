@@ -345,7 +345,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["_shallow_copy"])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, left=None, right=None, **kwargs):
         result = self._data._shallow_copy(left=left, right=right)
         attributes = self._get_attributes_dict()
@@ -415,7 +415,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
@@ -527,7 +527,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return self.dtype.subtype.kind not in ["m", "M"]
         # TODO: There must already exist something for this?
 
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
+    @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == "iloc":
             return super()._convert_scalar_indexer(key, kind=kind)
@@ -536,7 +536,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _maybe_cast_slice_bound(self, label, side, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
-    @Appender(_index_shared_docs["_convert_list_indexer"])
+    @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr, kind=None):
         """
         we are passed a list-like indexer. Return the
@@ -889,7 +889,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             raise ValueError("cannot support not-default step in a slice")
         return super()._convert_slice_indexer(key, kind)
 
-    @Appender(_index_shared_docs["where"])
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
@@ -1050,7 +1050,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             and self.closed == other.closed
         )
 
-    @Appender(_index_shared_docs["intersection"])
+    @Appender(Index.intersection.__doc__)
     @SetopCheck(op_name="intersection")
     def intersection(
         self, other: "IntervalIndex", sort: bool = False
