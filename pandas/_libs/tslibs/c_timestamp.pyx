@@ -57,11 +57,12 @@ def integer_op_not_supported(obj):
     #  the caller; mypy finds this more palatable.
     cls = type(obj).__name__
 
+    # GH#30886 using an fstring raises SystemError
     int_addsub_msg = (
-        f"Addition/subtraction of integers and integer-arrays with {cls} is "
+        "Addition/subtraction of integers and integer-arrays with {cls} is "
         "no longer supported.  Instead of adding/subtracting `n`, "
         "use `n * obj.freq`"
-    )
+    ).format(cls=cls)
     return TypeError(int_addsub_msg)
 
 
@@ -123,7 +124,7 @@ cdef class _Timestamp(datetime):
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
-        # http://bugs.python.org/issue28730
+        # https://bugs.python.org/issue28730
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 

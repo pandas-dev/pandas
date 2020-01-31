@@ -1143,7 +1143,7 @@ def group_rank(float64_t[:, :] out,
             # Update out only when there is a transition of values or labels.
             # When a new value or group is encountered, go back #dups steps(
             # the number of occurrence of current value) and assign the ranks
-            # based on the the starting index of the current group (grp_start)
+            # based on the starting index of the current group (grp_start)
             # and the current index
             if (i == N - 1 or
                     (masked_vals[_as[i]] != masked_vals[_as[i+1]]) or

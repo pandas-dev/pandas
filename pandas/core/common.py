@@ -72,16 +72,6 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box(indexer, values, obj, key):
-
-    # if we have multiples coming back, box em
-    if isinstance(values, np.ndarray):
-        return obj[indexer.get_loc(key)]
-
-    # return the value
-    return values
-
-
 def maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
@@ -121,8 +111,8 @@ def is_bool_indexer(key: Any) -> bool:
 
     See Also
     --------
-    check_bool_array_indexer : Check that `key`
-        is a valid mask for an array, and convert to an ndarray.
+    check_array_indexer : Check that `key` is a valid array to index,
+        and convert to an ndarray.
     """
     na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
@@ -178,35 +168,35 @@ def not_none(*args):
     return (arg for arg in args if arg is not None)
 
 
-def any_none(*args):
+def any_none(*args) -> bool:
     """
     Returns a boolean indicating if any argument is None.
     """
     return any(arg is None for arg in args)
 
 
-def all_none(*args):
+def all_none(*args) -> bool:
     """
     Returns a boolean indicating if all arguments are None.
     """
     return all(arg is None for arg in args)
 
 
-def any_not_none(*args):
+def any_not_none(*args) -> bool:
     """
     Returns a boolean indicating if any argument is not None.
     """
     return any(arg is not None for arg in args)
 
 
-def all_not_none(*args):
+def all_not_none(*args) -> bool:
     """
     Returns a boolean indicating if all arguments are not None.
     """
     return all(arg is not None for arg in args)
 
 
-def count_not_none(*args):
+def count_not_none(*args) -> int:
     """
     Returns the count of arguments that are not None.
     """
@@ -286,7 +276,7 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     return obj
 
 
-def is_null_slice(obj):
+def is_null_slice(obj) -> bool:
     """
     We have a null slice.
     """
@@ -306,7 +296,7 @@ def is_true_slices(l):
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l):
+def is_full_slice(obj, l) -> bool:
     """
     We have a full length slice.
     """

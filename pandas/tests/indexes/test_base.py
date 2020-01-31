@@ -1915,7 +1915,12 @@ class TestIndex(Base):
         values = np.random.randn(100)
         value = index[67]
 
-        tm.assert_almost_equal(index.get_value(values, value), values[67])
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            # Index.get_value requires a Series, not an ndarray
+            index.get_value(values, value)
+
+        result = index.get_value(Series(values, index=values), value)
+        tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -2408,7 +2413,17 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
         await ip.run_code(code)
-        with tm.assert_produces_warning(None):
+
+        # GH 31324 newer jedi version raises Deprecation warning
+        import jedi
+
+        if jedi.__version__ < "0.16.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with warning:
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
