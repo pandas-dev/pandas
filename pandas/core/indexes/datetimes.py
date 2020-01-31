@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
-from pandas.core.accessor import delegate_names
 from pandas.core.arrays.datetimes import (
     DatetimeArray,
     tz_to_dtype,
@@ -28,10 +27,7 @@ from pandas.core.arrays.datetimes import (
 )
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
-from pandas.core.indexes.datetimelike import (
-    DatetimelikeDelegateMixin,
-    DatetimeTimedeltaMixin,
-)
+from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
@@ -59,32 +55,13 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
-    # Most attrs are dispatched via datetimelike_{ops,methods}
-    # Some are "raw" methods, the result is not not re-boxed in an Index
-    # We also have a few "extra" attrs, which may or may not be raw,
-    # which we we dont' want to expose in the .dt accessor.
-    _extra_methods = ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
-    _extra_raw_methods = [
-        "to_pydatetime",
-        "_local_timestamps",
-        "_has_same_tz",
-        "_format_native_types",
-        "__iter__",
-    ]
-    _extra_raw_properties = ["_box_func", "tz", "tzinfo", "dtype"]
-    _delegated_properties = DatetimeArray._datetimelike_ops + _extra_raw_properties
-    _delegated_methods = (
-        DatetimeArray._datetimelike_methods + _extra_methods + _extra_raw_methods
-    )
-    _raw_properties = (
-        {"date", "time", "timetz"}
-        | set(DatetimeArray._bool_ops)
-        | set(_extra_raw_properties)
-    )
-    _raw_methods = set(_extra_raw_methods)
-
-
+@inherit_names(
+    ["to_period", "to_perioddelta", "to_julian_date", "strftime"]
+    + DatetimeArray._field_ops
+    + DatetimeArray._datetimelike_methods,
+    DatetimeArray,
+    wrap=True,
+)
 @inherit_names(["_timezone", "is_normalized", "_resolution"], DatetimeArray, cache=True)
 @inherit_names(
     [
@@ -93,19 +70,22 @@ class DatetimeDelegateMixin(DatetimelikeDelegateMixin):
         "_field_ops",
         "_datetimelike_ops",
         "_datetimelike_methods",
-    ],
+        "_box_func",
+        "tz",
+        "tzinfo",
+        "dtype",
+        "to_pydatetime",
+        "_local_timestamps",
+        "_has_same_tz",
+        "_format_native_types",
+        "date",
+        "time",
+        "timetz",
+    ]
+    + DatetimeArray._bool_ops,
     DatetimeArray,
 )
-@delegate_names(
-    DatetimeArray, DatetimeDelegateMixin._delegated_properties, typ="property"
-)
-@delegate_names(
-    DatetimeArray,
-    DatetimeDelegateMixin._delegated_methods,
-    typ="method",
-    overwrite=True,
-)
-class DatetimeIndex(DatetimeTimedeltaMixin, DatetimeDelegateMixin):
+class DatetimeIndex(DatetimeTimedeltaMixin):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
