@@ -98,6 +98,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+- Bug in :meth:`DataFrame.groupby` whereby taking the minimum or maximum of a column with period dtype would raise a ``TypeError``. (:issue:`31471`)
 -
 -
 
