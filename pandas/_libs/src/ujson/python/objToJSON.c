@@ -147,7 +147,7 @@ enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
 int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 
-void *initObjToJSON(void) {
+void initObjToJSON(void) {
     PyObject *mod_pandas;
     PyObject *mod_nattype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
