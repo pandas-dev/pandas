@@ -88,6 +88,8 @@ I/O
 
 -
 -
+- Bug in :meth:`pandas.json_normalize` when value in meta path is not iterable (:issue:`31507`)
+
 
 Plotting
 ^^^^^^^^
