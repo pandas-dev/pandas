@@ -274,7 +274,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
         return Index.get_loc(self, key, method, tolerance)
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         """
         If label is a string, cast it to timedelta according to resolution.
 
