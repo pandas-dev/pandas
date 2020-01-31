@@ -590,7 +590,6 @@ cpdef validate_numeric_casting(dtype, object value):
             raise ValueError("Cannot assign nan to integer series")
 
 
-
 cdef class BaseMultiIndexCodesEngine:
     """
     Base class for MultiIndexUIntEngine and MultiIndexPyIntEngine, which
