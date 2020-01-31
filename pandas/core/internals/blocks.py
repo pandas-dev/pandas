@@ -685,7 +685,7 @@ class Block(PandasObject):
 
         if not self.is_object and not quoting and itemsize:
             values = values.astype(str)
-            if values.dtype.itemsize < np.dtype("U1").itemsize:
+            if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
                 # enlarge for the na_rep
                 values = values.astype(f"<U{itemsize}")
         else:
