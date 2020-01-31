@@ -251,7 +251,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     obj.fold = 0
 
     if isinstance(ts, str):
-        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst, fold)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
@@ -438,7 +438,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
 cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
-                                       bint yearfirst=False):
+                                       bint yearfirst=False, bint fold=0):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
@@ -499,8 +499,9 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                     ts = dtstruct_to_dt64(&dts)
                     if tz is not None:
                         # shift for localize_tso
+                        # TODO: maybe change fold type to object to allow None
                         ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                                ambiguous='raise')[0]
+                                                ambiguous=not(fold))[0]
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil
