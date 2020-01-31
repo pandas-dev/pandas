@@ -121,8 +121,8 @@ def is_bool_indexer(key: Any) -> bool:
 
     See Also
     --------
-    check_bool_array_indexer : Check that `key`
-        is a valid mask for an array, and convert to an ndarray.
+    check_array_indexer : Check that `key` is a valid array to index,
+        and convert to an ndarray.
     """
     na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
