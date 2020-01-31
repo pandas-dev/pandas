@@ -32,7 +32,7 @@ check each issue individually, and it's not possible to find the unassigned ones
 
 For this reason, we implemented a workaround consisting of adding a comment with the exact
 text `take`. When you do it, a GitHub action will automatically assign you the issue
-(this will take seconds, and may require refreshint the page to see it).
+(this will take seconds, and may require refreshing the page to see it).
 By doing this, it's possible to filter the list of issues and find only the unassigned ones.
 
 So, a good way to find an issue to start contributing to pandas is to check the list of
@@ -410,7 +410,7 @@ Some other important things to know about the docs:
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
-* Our API documentation in ``doc/source/api.rst`` houses the auto-generated
+* Our API documentation files in ``doc/source/reference`` house the auto-generated
   documentation from the docstrings. For classes, there are a few subtleties
   around controlling which methods and attributes have pages auto-generated.
 
@@ -428,7 +428,8 @@ Some other important things to know about the docs:
      ``Methods`` section in the class docstring. See ``CategoricalIndex`` for an
      example.
 
-  Every method should be included in a ``toctree`` in ``api.rst``, else Sphinx
+  Every method should be included in a ``toctree`` in one of the documentation files in
+  ``doc/source/reference``, else Sphinx
   will emit a warning.
 
 .. note::
@@ -444,11 +445,11 @@ Some other important things to know about the docs:
 The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
 of a specific class, function or method. The summary also compares the list of
-methods documented in ``doc/source/api.rst`` (which is used to generate
+methods documented in the files in ``doc/source/reference`` (which is used to generate
 the `API Reference <https://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
-This will identify methods documented in ``doc/source/api.rst`` that are not actually
-class methods, and existing methods that are not documented in ``doc/source/api.rst``.
+This will identify methods documented in ``doc/source/reference`` that are not actually
+class methods, and existing methods that are not documented in ``doc/source/reference``.
 
 
 Updating a *pandas* docstring
