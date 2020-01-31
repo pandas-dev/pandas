@@ -972,7 +972,7 @@ class MultiIndex(Index):
             )
         return self._shallow_copy(values, **kwargs)
 
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
@@ -981,7 +981,7 @@ class MultiIndex(Index):
         except (LookupError, TypeError, ValueError):
             return False
 
-    @Appender(_index_shared_docs["_shallow_copy"])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
             names = kwargs.pop("names", kwargs.pop("name", self.names))
@@ -1231,7 +1231,7 @@ class MultiIndex(Index):
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
     )
 
-    @Appender(_index_shared_docs["_get_grouper_for_level"])
+    @Appender(Index._get_grouper_for_level.__doc__)
     def _get_grouper_for_level(self, mapper, level):
         indexer = self.codes[level]
         level_index = self.levels[level]
@@ -1448,7 +1448,7 @@ class MultiIndex(Index):
         """
         raise NotImplementedError("isna is not defined for MultiIndex")
 
-    @Appender(_index_shared_docs["dropna"])
+    @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":
@@ -1585,7 +1585,7 @@ class MultiIndex(Index):
         values = self._get_level_values(level)
         return values
 
-    @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
+    @Appender(Index.unique.__doc__)
     def unique(self, level=None):
 
         if level is None:
@@ -3310,7 +3310,7 @@ class MultiIndex(Index):
         else:
             return MultiIndex.from_tuples(difference, sortorder=0, names=result_names)
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_categorical_dtype(dtype):
