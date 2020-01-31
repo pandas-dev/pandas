@@ -80,7 +80,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
+    ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values", "_box_func"],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -257,7 +257,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[0] != iNaT:
-                    return self._data._box_func(i8[0])
+                    return self._box_func(i8[0])
 
             if self.hasnans:
                 if skipna:
@@ -266,7 +266,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     return self._na_value
             else:
                 min_stamp = i8.min()
-            return self._data._box_func(min_stamp)
+            return self._box_func(min_stamp)
         except ValueError:
             return self._na_value
 
@@ -314,7 +314,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # quick check
             if len(i8) and self.is_monotonic:
                 if i8[-1] != iNaT:
-                    return self._data._box_func(i8[-1])
+                    return self._box_func(i8[-1])
 
             if self.hasnans:
                 if skipna:
@@ -323,7 +323,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     return self._na_value
             else:
                 max_stamp = i8.max()
-            return self._data._box_func(max_stamp)
+            return self._box_func(max_stamp)
         except ValueError:
             return self._na_value
 
