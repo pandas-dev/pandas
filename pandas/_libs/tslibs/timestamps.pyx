@@ -431,6 +431,9 @@ class Timestamp(_Timestamp):
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
 
+        if getattr(ts_input, 'fold', None) is not None and fold is None:
+            fold = ts_input.fold
+
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0, fold)
 
         if ts.value == NPY_NAT:
