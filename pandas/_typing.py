@@ -45,6 +45,7 @@ Scalar = Union[PythonScalar, PandasScalar]
 # other
 
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.

@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -1668,7 +1668,7 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
     return condition(dtype)
 
 
-def _get_dtype(arr_or_dtype):
+def _get_dtype(arr_or_dtype) -> DtypeObj:
     """
     Get the dtype instance associated with an array
     or dtype object.
@@ -1840,7 +1840,7 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
-def pandas_dtype(dtype):
+def pandas_dtype(dtype) -> DtypeObj:
     """
     Convert input into a pandas only dtype object or a numpy dtype object.
 
