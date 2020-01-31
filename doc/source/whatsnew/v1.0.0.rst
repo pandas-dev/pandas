@@ -1293,4 +1293,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.25.3..v1.0.0rc0
+.. contributors:: v0.25.3..v1.0.0
