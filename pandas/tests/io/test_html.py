@@ -201,12 +201,6 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    def test_skiprows_range_single_frame(self):
-        df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=range(2))[0]
-        df2 = self.read_html(self.spam_data, match="Unit", skiprows=range(2))[0]
-
-        tm.assert_frame_equal(df1, df2)
-
     def test_skiprows_list(self):
         df1 = self.read_html(self.spam_data, match=".*Water.*", skiprows=[1, 2])
         df2 = self.read_html(self.spam_data, match="Unit", skiprows=[2, 1])
