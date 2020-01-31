@@ -1505,7 +1505,7 @@ class SingleBlockManager(BlockManager):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True)
+        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True,)
 
     @property
     def index(self):
