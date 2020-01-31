@@ -2216,7 +2216,7 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+    def set_data(self, data: ArrayLike):
         assert data is not None
         assert self.dtype is None
 
@@ -2231,7 +2231,7 @@ class DataCol(IndexCol):
         return self.data
 
     @classmethod
-    def _get_atom(cls, values: Union[np.ndarray, ABCExtensionArray]) -> "Col":
+    def _get_atom(cls, values: ArrayLike) -> "Col":
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
@@ -4977,7 +4977,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     return kind
 
 
-def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
+def _get_data_and_dtype_name(data: ArrayLike):
     """
     Convert the passed data into a storable form and a dtype string.
     """

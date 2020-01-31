@@ -4,11 +4,12 @@ ExtensionArrays.
 """
 from functools import partial
 import operator
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import numpy as np
 
 from pandas._libs import Timestamp, lib, ops as libops
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -155,9 +156,7 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op, str_rep: str
-):
+def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -200,9 +199,7 @@ def arithmetic_op(
     return res_values
 
 
-def comparison_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
-) -> Union[np.ndarray, ABCExtensionArray]:
+def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -303,9 +300,7 @@ def na_logical_op(x: np.ndarray, y, op):
     return result.reshape(x.shape)
 
 
-def logical_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
-) -> Union[np.ndarray, ABCExtensionArray]:
+def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a logical operation `|`, `&`, or `^`.
 

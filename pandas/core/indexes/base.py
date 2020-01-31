@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Any, FrozenSet, Hashable, Optional, Union
+from typing import Any, FrozenSet, Hashable, Optional
 import warnings
 
 import numpy as np
@@ -12,7 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import Label
+from pandas._typing import ArrayLike, Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -243,7 +243,7 @@ class Index(IndexOpsMixin, PandasObject):
         return libjoin.outer_join_indexer(left, right)
 
     _typ = "index"
-    _data: Union[ExtensionArray, np.ndarray]
+    _data: ArrayLike
     _id = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -3891,7 +3891,7 @@ class Index(IndexOpsMixin, PandasObject):
         return array
 
     @property
-    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+    def _values(self) -> ArrayLike:
         """
         The best array representation.
 

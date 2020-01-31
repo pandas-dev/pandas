@@ -451,7 +451,7 @@ class ExtensionArray:
 
         Returns
         -------
-        na_values : Union[np.ndarray, ExtensionArray]
+        na_values : ArrayLike
             In most cases, this should return a NumPy ndarray. For
             exceptional cases like ``SparseArray``, where returning
             an ndarray would be expensive, an ExtensionArray may be
@@ -922,7 +922,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
+    def view(self, dtype=None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -1175,7 +1175,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
         Returns
         -------
-        Callable[[Any, Any], Union[ndarray, ExtensionArray]]
+        Callable[[Any, Any], ArrayLike]
             A method that can be bound to a class. When used, the method
             receives the two arguments, one of which is the instance of
             this class, and should return an ExtensionArray or an ndarray.

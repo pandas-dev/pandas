@@ -4,12 +4,12 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional, Union
+from typing import Dict, FrozenSet, List, Optional
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import T
+from pandas._typing import ArrayLike, T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -606,7 +606,7 @@ class IndexOpsMixin:
     )
 
     @property
-    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+    def _values(self) -> ArrayLike:
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
