@@ -39,7 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_array_like, is_hashable
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import ops
@@ -54,7 +54,7 @@ from pandas.core.arrays.base import (
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
-from pandas.core.indexers import check_bool_array_indexer
+from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
@@ -2001,14 +2001,11 @@ class Categorical(ExtensionArray, PandasObject):
             else:
                 return self.categories[i]
 
-        if is_list_like(key) and not is_array_like(key):
-            key = np.asarray(key)
-
-        if com.is_bool_indexer(key):
-            key = check_bool_array_indexer(self, key)
+        key = check_array_indexer(self, key)
 
         result = self._codes[key]
         if result.ndim > 1:
+            deprecate_ndim_indexing(result)
             return result
         return self._constructor(result, dtype=self.dtype, fastpath=True)
 

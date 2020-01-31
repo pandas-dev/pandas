@@ -110,14 +110,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             return self._data[item]
         else:
             # array, slice.
-            if pd.api.types.is_list_like(item):
-                if not pd.api.types.is_array_like(item):
-                    item = pd.array(item)
-                dtype = item.dtype
-                if pd.api.types.is_bool_dtype(dtype):
-                    item = pd.api.indexers.check_bool_array_indexer(self, item)
-                elif pd.api.types.is_integer_dtype(dtype):
-                    item = np.asarray(item, dtype="int")
+            item = pd.api.indexers.check_array_indexer(self, item)
             return type(self)(self._data[item])
 
     def take(self, indexer, allow_fill=False, fill_value=None):

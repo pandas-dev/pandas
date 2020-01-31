@@ -212,6 +212,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
+    _data: IntervalArray
     # --------------------------------------------------------------------
     # Constructors
 
@@ -390,18 +391,18 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return False
 
     @cache_readonly
-    def _multiindex(self):
+    def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
     @cache_readonly
-    def values(self):
+    def values(self) -> IntervalArray:
         """
         Return the IntervalIndex's data as an IntervalArray.
         """
         return self._data
 
     @property
-    def _has_complex_internals(self):
+    def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 

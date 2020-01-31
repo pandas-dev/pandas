@@ -174,6 +174,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     codes: np.ndarray
     categories: Index
+    _data: Categorical
 
     @property
     def _engine_type(self):
@@ -314,7 +315,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return other
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
 
@@ -383,7 +384,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self._data
 
     @property
-    def _has_complex_internals(self):
+    def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
@@ -853,12 +854,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         prop = getattr(self._values, name)
         return prop  # no wrapping for now
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
         if "inplace" in kwargs:
