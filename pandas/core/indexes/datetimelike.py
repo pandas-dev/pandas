@@ -151,7 +151,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return np.array_equal(self.asi8, other.asi8)
 
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
@@ -441,7 +441,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         values = self.view("i8")
 

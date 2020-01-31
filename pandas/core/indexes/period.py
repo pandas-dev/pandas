@@ -355,7 +355,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         period = weakref.ref(self)
         return self._engine_type(period, len(self))
 
-    @Appender(_index_shared_docs["contains"])
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         if isinstance(key, Period):
             if key.freq != self.freq:
@@ -440,7 +440,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return result
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True, how="start"):
         dtype = pandas_dtype(dtype)
 
