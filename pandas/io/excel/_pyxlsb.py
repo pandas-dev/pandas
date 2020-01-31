@@ -8,11 +8,12 @@ from pandas.io.excel._base import _BaseExcelReader
 
 class _PyxlsbReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer: FilePathOrBuffer):
-        """Reader using pyxlsb engine.
+        """
+        Reader using pyxlsb engine.
 
         Parameters
-        __________
-        filepath_or_buffer: string, path object, or Workbook
+        ----------
+        filepath_or_buffer: str, path object, or Workbook
             Object to be parsed.
         """
         import_optional_dependency("pyxlsb")
@@ -29,7 +30,7 @@ class _PyxlsbReader(_BaseExcelReader):
     def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
         from pyxlsb import open_workbook
 
-        # Todo: hack in buffer capability
+        # TODO: hack in buffer capability
         # This might need some modifications to the Pyxlsb library
         # Actual work for opening it is in xlsbpackage.py, line 20-ish
 
@@ -48,7 +49,7 @@ class _PyxlsbReader(_BaseExcelReader):
         return self.book.get_sheet(index + 1)
 
     def _convert_cell(self, cell, convert_float: bool) -> Scalar:
-        # Todo: there is no way to distinguish between floats and datetimes in pyxlsb
+        # TODO: there is no way to distinguish between floats and datetimes in pyxlsb
         # This means that there is no way to read datetime types from an xlsb file yet
         if cell.v is None:
             return ""  # Prevents non-named columns from not showing up as Unnamed: i
