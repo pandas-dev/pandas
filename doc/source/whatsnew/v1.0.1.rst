@@ -1,0 +1,134 @@
+.. _whatsnew_101:
+
+What's new in 1.0.1 (??)
+------------------------
+
+These are the changes in pandas 1.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+
+.. _whatsnew_101.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+
+
+Numeric
+^^^^^^^
+- Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
+-
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+
+
+Interval
+^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+
+Missing
+^^^^^^^
+
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+- Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
+-
+
+
+Other
+^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_101.contributors:
+
+Contributors
+~~~~~~~~~~~~
