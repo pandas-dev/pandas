@@ -1062,9 +1062,15 @@ class TestIndex(Base):
         expected = idx
         tm.assert_index_equal(result, expected)
 
+        result = idx.union(idx[1:], sort=None)
+        tm.assert_index_equal(result, expected)
+
         # if other is not monotonic increasing, _union goes through
         #  a different route
         result = idx._union(idx[1:][::-1], sort=None)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.union(idx[1:][::-1], sort=None)
         tm.assert_index_equal(result, expected)
 
     def test_map_identity_mapping(self, indices):
