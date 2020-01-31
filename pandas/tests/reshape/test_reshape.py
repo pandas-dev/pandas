@@ -86,9 +86,7 @@ class TestGetDummies:
 
         result = get_dummies(s_df, columns=s_df.columns, sparse=sparse, dtype=dtype)
         if sparse:
-            dtype_name = "Sparse[{}, {}]".format(
-                self.effective_dtype(dtype).name, fill_value
-            )
+            dtype_name = f"Sparse[{self.effective_dtype(dtype).name}, {fill_value}]"
         else:
             dtype_name = self.effective_dtype(dtype).name
 
@@ -163,8 +161,7 @@ class TestGetDummies:
         s = [e, eacute, eacute]
         res = get_dummies(s, prefix="letter", sparse=sparse)
         exp = DataFrame(
-            {"letter_e": [1, 0, 0], "letter_{eacute}".format(eacute=eacute): [0, 1, 1]},
-            dtype=np.uint8,
+            {"letter_e": [1, 0, 0], f"letter_{eacute}": [0, 1, 1]}, dtype=np.uint8,
         )
         if sparse:
             exp = exp.apply(SparseArray, fill_value=0)
