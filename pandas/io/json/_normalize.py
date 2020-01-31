@@ -230,7 +230,7 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
+    def _pull_field(js: Dict[str, Any], spec: Union[List, str], is_meta: bool = True) -> Iterable:
         result = js  # type: ignore
         if isinstance(spec, list):
             for field in spec:
@@ -238,7 +238,8 @@ def _json_normalize(
         else:
             result = result[spec]
 
-        if not isinstance(result, Iterable):
+        # GH 31507 iterable limit should only be used on record, not meta
+        if not isinstance(result, Iterable) and not is_meta:
             if pd.isnull(result):
                 result = []  # type: ignore
             else:
@@ -296,7 +297,7 @@ def _json_normalize(
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_field(obj, path[0])
+                recs = _pull_field(obj, path[0], is_meta=False)
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)

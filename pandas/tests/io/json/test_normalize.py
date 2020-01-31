@@ -749,3 +749,13 @@ class TestNestedToRecord:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_meta_non_iterable(self):
+        # GH 31507
+        data = """[{"id": 99, "data": [{"one": 1, "two": 2}]}]"""
+
+        result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
+        expected_values = [[1, 2, "99"]]
+        columns = ["one", "two", "id"]
+        expected = DataFrame(expected_values, columns=columns)
+        tm.assert_frame_equal(result, expected)
