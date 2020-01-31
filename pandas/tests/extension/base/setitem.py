@@ -211,3 +211,11 @@ class BaseSetitemTests(BaseExtensionTests):
         expected = pd.Series([0] * len(data) * 2, dtype="boolean")
 
         self.assert_series_equal(ser, expected)
+
+    def test_setitem_nullable_string(self, data):
+        # GH 31446
+        ser = pd.Series(["a"] * len(data) + ["b"] * len(data), dtype="string")
+        ser[ser == "a"] = "c"
+        expected = pd.Series(["c"] * len(data) + ["b"] * len(data), dtype="string")
+
+        self.assert_series_equal(ser, expected)
