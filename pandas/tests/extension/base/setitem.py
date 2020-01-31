@@ -196,10 +196,10 @@ class BaseSetitemTests(BaseExtensionTests):
         assert view1[0] == data[1]
         assert view2[0] == data[1]
 
-    def test_setitem_nullable_integer(self, data):
+    def test_setitem_nullable_mask(self, data):
         # GH 31446
         arr = data[:5]
         expected = data.take([0, 0, 0, 3, 4])
         mask = pd.array([True, True, True, False, False])
-        arr[mask] = arr[0]
+        arr[mask] = data[0]
         self.assert_extension_array_equal(expected, arr)
