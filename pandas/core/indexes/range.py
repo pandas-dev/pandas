@@ -1,7 +1,7 @@
 from datetime import timedelta
 import operator
 from sys import getsizeof
-from typing import Optional, Union
+from typing import Any, Optional
 import warnings
 
 import numpy as np
@@ -27,11 +27,13 @@ from pandas.core import ops
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.base import _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 from pandas.io.formats.printing import pprint_thing
+
+_empty_range = range(0)
 
 
 class RangeIndex(Int64Index):
@@ -112,7 +114,7 @@ class RangeIndex(Int64Index):
         return cls._simple_new(rng, dtype=dtype, name=name)
 
     @classmethod
-    def from_range(cls, data, name=None, dtype=None):
+    def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
         """
         Create RangeIndex from a range object.
 
@@ -130,15 +132,10 @@ class RangeIndex(Int64Index):
         return cls._simple_new(data, dtype=dtype, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None):
+    def _simple_new(cls, values: range, name=None, dtype=None) -> "RangeIndex":
         result = object.__new__(cls)
 
-        # handle passed None, non-integers
-        if values is None:
-            # empty
-            values = range(0, 0, 1)
-        elif not isinstance(values, range):
-            return Index(values, dtype=dtype, name=name)
+        assert isinstance(values, range)
 
         result._range = values
         result.name = name
@@ -335,7 +332,7 @@ class RangeIndex(Int64Index):
     def has_duplicates(self) -> bool:
         return False
 
-    def __contains__(self, key: Union[int, np.integer]) -> bool:
+    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             key = ensure_python_int(key)
@@ -403,7 +400,7 @@ class RangeIndex(Int64Index):
             name = self.name
         return self.from_range(self._range, name=name)
 
-    def _minmax(self, meth):
+    def _minmax(self, meth: str):
         no_steps = len(self) - 1
         if no_steps == -1:
             return np.nan
@@ -412,19 +409,19 @@ class RangeIndex(Int64Index):
 
         return self.start + self.step * no_steps
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self, axis=None, skipna=True, *args, **kwargs) -> int:
         """The minimum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
         return self._minmax("min")
 
-    def max(self, axis=None, skipna=True, *args, **kwargs):
+    def max(self, axis=None, skipna=True, *args, **kwargs) -> int:
         """The maximum value of the RangeIndex"""
         nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
         return self._minmax("max")
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         """
         Returns the indices that would sort the index and its
         underlying data.
@@ -444,7 +441,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determines if two Index objects contain the same elements.
         """
@@ -482,7 +479,7 @@ class RangeIndex(Int64Index):
             return super().intersection(other, sort=sort)
 
         if not len(self) or not len(other):
-            return self._simple_new(None)
+            return self._simple_new(_empty_range)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range
@@ -492,7 +489,7 @@ class RangeIndex(Int64Index):
         int_low = max(first.start, second.start)
         int_high = min(first.stop, second.stop)
         if int_high <= int_low:
-            return self._simple_new(None)
+            return self._simple_new(_empty_range)
 
         # Method hint: linear Diophantine equation
         # solve intersection problem
@@ -502,7 +499,7 @@ class RangeIndex(Int64Index):
 
         # check whether element sets intersect
         if (first.start - second.start) % gcd:
-            return self._simple_new(None)
+            return self._simple_new(_empty_range)
 
         # calculate parameters for the RangeIndex describing the
         # intersection disregarding the lower bounds
@@ -522,12 +519,12 @@ class RangeIndex(Int64Index):
             new_index = new_index.sort_values()
         return new_index
 
-    def _min_fitting_element(self, lower_limit):
+    def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
         no_steps = -(-(lower_limit - self.start) // abs(self.step))
         return self.start + abs(self.step) * no_steps
 
-    def _max_fitting_element(self, upper_limit):
+    def _max_fitting_element(self, upper_limit: int) -> int:
         """Returns the largest element smaller than or equal to the limit"""
         no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
