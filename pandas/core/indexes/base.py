@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Any, Dict, FrozenSet, Hashable, Optional, Union
+from typing import Any, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -12,6 +12,7 @@ from pandas._libs.lib import is_datetime_array
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import Label
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -75,6 +76,7 @@ from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.strings import StringMethods
 
 from pandas.io.formats.printing import (
+    PrettyDict,
     default_pprint,
     format_object_attrs,
     format_object_summary,
@@ -243,7 +245,7 @@ class Index(IndexOpsMixin, PandasObject):
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
     _id = None
-    _name: Optional[Hashable] = None
+    _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
     # failing silently.
@@ -3135,7 +3137,8 @@ class Index(IndexOpsMixin, PandasObject):
         assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
-            return self._validate_indexer("positional", key, kind)
+            self._validate_indexer("positional", key, "iloc")
+            return key
 
         if len(self) and not isinstance(self, ABCMultiIndex):
 
@@ -3144,11 +3147,11 @@ class Index(IndexOpsMixin, PandasObject):
             # or label indexing if we are using a type able
             # to be represented in the index
 
-            if kind in ["getitem"] and is_float(key):
+            if kind == "getitem" and is_float(key):
                 if not self.is_floating():
                     self._invalid_indexer("label", key)
 
-            elif kind in ["loc"] and is_float(key):
+            elif kind == "loc" and is_float(key):
 
                 # we want to raise KeyError on string/mixed here
                 # technically we *could* raise a TypeError
@@ -3162,7 +3165,7 @@ class Index(IndexOpsMixin, PandasObject):
                 ]:
                     self._invalid_indexer("label", key)
 
-            elif kind in ["loc"] and is_integer(key):
+            elif kind == "loc" and is_integer(key):
                 if not self.holds_integer():
                     self._invalid_indexer("label", key)
 
@@ -3188,11 +3191,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         # validate iloc
         if kind == "iloc":
-            return slice(
-                self._validate_indexer("slice", key.start, kind),
-                self._validate_indexer("slice", key.stop, kind),
-                self._validate_indexer("slice", key.step, kind),
-            )
+            self._validate_indexer("slice", key.start, "iloc")
+            self._validate_indexer("slice", key.stop, "iloc")
+            self._validate_indexer("slice", key.step, "iloc")
+            return key
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
@@ -3213,11 +3215,10 @@ class Index(IndexOpsMixin, PandasObject):
             integers
             """
             if self.is_integer() or is_index_slice:
-                return slice(
-                    self._validate_indexer("slice", key.start, kind),
-                    self._validate_indexer("slice", key.stop, kind),
-                    self._validate_indexer("slice", key.step, kind),
-                )
+                self._validate_indexer("slice", key.start, "getitem")
+                self._validate_indexer("slice", key.stop, "getitem")
+                self._validate_indexer("slice", key.step, "getitem")
+                return key
 
         # convert the slice to an indexer here
 
@@ -3347,7 +3348,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return None
 
-    def _invalid_indexer(self, form, key):
+    def _invalid_indexer(self, form: str_t, key):
         """
         Consistent invalid indexer message.
         """
@@ -4126,7 +4127,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
     @property
-    def _has_complex_internals(self):
+    def _has_complex_internals(self) -> bool:
         """
         Indicates if an index is not directly backed by a numpy array
         """
@@ -4779,7 +4780,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self.astype("object"), other.astype("object")
         return self, other
 
-    def groupby(self, values) -> Dict[Hashable, np.ndarray]:
+    def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
         """
         Group the index labels by a given array of values.
 
@@ -4804,7 +4805,7 @@ class Index(IndexOpsMixin, PandasObject):
         # map to the label
         result = {k: self.take(v) for k, v in result.items()}
 
-        return result
+        return PrettyDict(result)
 
     def map(self, mapper, na_action=None):
         """
@@ -5001,20 +5002,19 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
         return key
 
-    def _validate_indexer(self, form, key, kind: str_t):
+    def _validate_indexer(self, form: str_t, key, kind: str_t):
         """
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
         """
-        assert kind in ["loc", "getitem", "iloc"]
+        assert kind in ["getitem", "iloc"]
 
         if key is None:
             pass
         elif is_integer(key):
             pass
-        elif kind in ["iloc", "getitem"]:
+        else:
             self._invalid_indexer(form, key)
-        return key
 
     _index_shared_docs[
         "_maybe_cast_slice_bound"
@@ -5039,7 +5039,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str_t, kind):
         assert kind in ["loc", "getitem", None]
 
         # We are a plain index here (sub-class override this method if they
@@ -5070,7 +5070,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side, kind) -> int:
+    def get_slice_bound(self, label, side: str_t, kind) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -5255,7 +5255,7 @@ class Index(IndexOpsMixin, PandasObject):
         idx = np.concatenate((_self[:loc], item, _self[loc:]))
         return self._shallow_copy_with_infer(idx)
 
-    def drop(self, labels, errors="raise"):
+    def drop(self, labels, errors: str_t = "raise"):
         """
         Make new Index with passed list of labels deleted.
 
