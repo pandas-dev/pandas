@@ -570,6 +570,8 @@ class PandasSQLTest:
         assert data_from_db == expected
         # Finally, confirm that duplicate values are not removed from original df object
         assert len(self.pkey_table_frame.index) == 4
+        # Clean up
+        self.drop_table("pkey_table")
 
     def _to_sql_upsert_overwrite(self):
         """
@@ -606,6 +608,8 @@ class PandasSQLTest:
             ]
         ).sort()
         assert data_from_db == data_from_df
+        # Clean up
+        self.drop_table("pkey_table")
 
     def _roundtrip(self):
         self.drop_table("test_frame_roundtrip")
@@ -1404,11 +1408,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_method_callable(self):
         self._to_sql_method_callable()
 
-    """
     def test_to_sql_upsert_keep(self):
         self._to_sql_upsert_keep()
-
-    """
 
     def test_to_sql_upsert_overwrite(self):
         self._to_sql_upsert_overwrite()
