@@ -245,6 +245,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
     def __setitem__(self, key, value):
         value = extract_array(value, extract_numpy=True)
 
+        key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)
         scalar_value = lib.is_scalar(value)
 
@@ -254,7 +255,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if not scalar_value:
             value = np.asarray(value, dtype=self._ndarray.dtype)
 
-        key = check_array_indexer(self, key)
         self._ndarray[key] = value
 
     def __len__(self) -> int:
