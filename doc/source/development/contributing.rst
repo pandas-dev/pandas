@@ -32,7 +32,7 @@ check each issue individually, and it's not possible to find the unassigned ones
 
 For this reason, we implemented a workaround consisting of adding a comment with the exact
 text `take`. When you do it, a GitHub action will automatically assign you the issue
-(this will take seconds, and may require refreshint the page to see it).
+(this will take seconds, and may require refreshing the page to see it).
 By doing this, it's possible to filter the list of issues and find only the unassigned ones.
 
 So, a good way to find an issue to start contributing to pandas is to check the list of
