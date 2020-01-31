@@ -68,7 +68,7 @@ Interval
 Indexing
 ^^^^^^^^
 
--
+- Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containg a :class:`datetime.date` (:issue:`31501`)
 -
 
 Missing
