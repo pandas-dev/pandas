@@ -43,7 +43,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
 -
 
 Conversion
@@ -117,7 +117,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
 -
 
 
