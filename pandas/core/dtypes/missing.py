@@ -8,6 +8,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
+from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
@@ -585,7 +586,7 @@ def remove_na_arraylike(arr):
         return arr[notna(lib.values_from_object(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype) -> bool:
+def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 
