@@ -1082,6 +1082,15 @@ def test_array_setitem_nullable_boolean_mask():
     tm.assert_series_equal(result, expected)
 
 
+def test_array_setitem():
+    # GH 31446
+    arr = pd.Series([1, 2], dtype="Int64").array
+    arr[arr > 1] = 1
+
+    expected = pd.array([1, 1], dtype="Int64")
+    tm.assert_extension_array_equal(arr, expected)
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift
