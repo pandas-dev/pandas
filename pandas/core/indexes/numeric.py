@@ -393,7 +393,7 @@ class Float64Index(NumericIndex):
         assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
-            return self._validate_indexer("positional", key, kind)
+            self._validate_indexer("positional", key, "iloc")
 
         return key
 
