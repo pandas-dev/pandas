@@ -279,7 +279,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
     elif PyDateTime_Check(ts):
-        return convert_datetime_to_tsobject(ts, tz, nanos)
+        return convert_datetime_to_tsobject(ts, tz, nanos, fold)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
@@ -367,9 +367,33 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.value += nanos
         obj.dts.ps = nanos * 1000
 
-    if fold_delta:
+    obj.fold = fold
+    if fold_delta > 0:
         obj.value += fold_delta
-        obj.fold = fold
+
+    # Datetime puts us into a fold for an ambiguous timestamp
+    # adjust as necessary
+    print("Started printout")
+    print(obj.value)
+    if obj.fold == 0:
+        if tz is not None:
+            if is_utc(tz):
+                pass
+            elif is_tzlocal(tz):
+                pass
+                # TODO: think on how we can infer fold for local Timezone
+                # and adjust value for fold
+            else:
+                # Adjust datetime64 timestamp, recompute datetimestruct
+                trans, deltas, typ = get_dst_info(tz)
+
+                if typ == 'pytz' or typ == 'dateutil':
+                    pos = trans.searchsorted(obj.value, side='right') - 1
+                    # Check if we are in a fold
+                    if pos > 0:
+                        fold_delta = deltas[pos - 1] - deltas[pos]
+                        if obj.value - fold_delta < trans[pos]:
+                            obj.value -= fold_delta                
 
     check_dts_bounds(&obj.dts)
     check_overflows(obj)
