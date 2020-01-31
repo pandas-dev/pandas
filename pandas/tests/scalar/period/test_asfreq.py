@@ -667,6 +667,12 @@ class TestFreqConversion:
         assert start == expected
         assert start.value == per.ordinal * 1000
 
+        per2 = Period("2300-01-01", "us")
+        with pytest.raises(OutOfBoundsDatetime, match="2300-01-01"):
+            per2.start_time
+        with pytest.raises(OutOfBoundsDatetime, match="2300-01-01"):
+            per2.end_time
+
     def test_asfreq_mult(self):
         # normal freq to mult freq
         p = Period(freq="A", year=2007)

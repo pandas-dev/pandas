@@ -22,7 +22,7 @@ PyDateTime_IMPORT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct,
     pandas_datetime_to_datetimestruct, check_dts_bounds,
-    NPY_DATETIMEUNIT, NPY_FR_D)
+    NPY_DATETIMEUNIT, NPY_FR_D, NPY_FR_us)
 
 cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
@@ -1182,17 +1182,16 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
 cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     cdef:
         npy_datetimestruct dts
-        int64_t value
 
     if ordinal == NPY_NAT:
         return NPY_NAT
 
     if freq == 11000:
         # Microsecond, avoid get_date_info to prevent floating point errors
-        value = ordinal * 1000
-        dt64_to_dtstruct(value, &dts)
+        pandas_datetime_to_datetimestruct(ordinal, NPY_FR_us, &dts)
         check_dts_bounds(&dts)
-        return value
+        # Equivalent: return ordinal * 1000
+        return dtstruct_to_dt64(&dts)
 
     get_date_info(ordinal, freq, &dts)
     check_dts_bounds(&dts)
