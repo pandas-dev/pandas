@@ -657,8 +657,8 @@ class TestFreqConversion:
         assert ival_S.asfreq("S") == ival_S
 
     def test_conv_microsecond(self):
-        # Avoid floating point errors dropping the start_time to before
-        #  the beginning of the Period
+        # GH#31475 Avoid floating point errors dropping the start_time to
+        #  before the beginning of the Period
         per = Period("2020-01-30 15:57:27.576166", freq="U")
         assert per.ordinal == 1580399847576166
 
