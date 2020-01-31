@@ -1888,6 +1888,10 @@ class CParserWrapper(ParserBase):
         if self._reader.header is None:
             self.names = None
         else:
+            if self.prefix:
+                raise ValueError(
+                    "Argument prefix must be None if argument header is not None"
+                )
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
                 (
@@ -1908,10 +1912,6 @@ class CParserWrapper(ParserBase):
                 ]
             else:
                 self.names = list(range(self._reader.table_width))
-        elif self.prefix:
-            raise ValueError(
-                "Argument prefix must be None if argument header is not None"
-            )
 
         # gh-9755
         #
