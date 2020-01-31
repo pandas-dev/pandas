@@ -988,3 +988,21 @@ def test_timestamp_constructor_infer_fold_from_value(tz, value_fold):
     result = ts.fold
     expected = value_fold[1]
     assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
+@pytest.mark.parametrize(
+    "value_fold",
+    [
+        (1572136200000000000, 1, 1572139800000000000),
+        (1572139800000000000, 1, 1572139800000000000),
+    ],
+)
+def test_timestamp_constructor_adjust_value_for_fold(tz, value_fold):
+    # Test for #25057
+    # Check that we adjust value for fold correctly
+    # based on timestamps since utc
+    ts = pd.Timestamp(value_fold[0], tz=tz, fold=value_fold[1])
+    result = ts.value
+    expected = value_fold[2]
+    assert result == expected
