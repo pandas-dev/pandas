@@ -60,6 +60,8 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
   Previously a ``AttributeError`` was raised (:issue:`31126`)
+- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for ``median``, ``std`` and ``var``)
+  now raises a  ``TypeError`` if a not-accepted keyword argument is passed into it. Previously a ``UnsupportedFunctionCall`` was raised. (:issue:`31485`)
 
 
 .. ---------------------------------------------------------------------------

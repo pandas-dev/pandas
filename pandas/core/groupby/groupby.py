@@ -1180,7 +1180,7 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def mean(self, *args, **kwargs):
+    def mean(self, numeric_only: bool = True):
         """
         Compute mean of groups, excluding missing values.
 
@@ -1222,14 +1222,15 @@ class GroupBy(_GroupBy):
         2    4.0
         Name: B, dtype: float64
         """
-        nv.validate_groupby_func("mean", args, kwargs, ["numeric_only"])
         return self._cython_agg_general(
-            "mean", alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs
+            "mean",
+            alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
+            numeric_only=numeric_only,
         )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, **kwargs):
+    def median(self, numeric_only=True, min_count=-1):
         """
         Compute median of groups, excluding missing values.
 
@@ -1242,13 +1243,16 @@ class GroupBy(_GroupBy):
         """
         return self._cython_agg_general(
             "median",
-            alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
-            **kwargs,
+            alt=lambda x, axis: Series(x).median(
+                axis=axis, numeric_only=numeric_only, min_count=numeric_only
+            ),
+            numeric_only=numeric_only,
+            min_count=min_count,
         )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def std(self, ddof: int = 1, *args, **kwargs):
+    def std(self, ddof: int = 1):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -1266,12 +1270,11 @@ class GroupBy(_GroupBy):
         """
 
         # TODO: implement at Cython level?
-        nv.validate_groupby_func("std", args, kwargs)
-        return np.sqrt(self.var(ddof=ddof, **kwargs))
+        return np.sqrt(self.var(ddof=ddof))
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def var(self, ddof: int = 1, *args, **kwargs):
+    def var(self, ddof: int = 1):
         """
         Compute variance of groups, excluding missing values.
 
@@ -1287,15 +1290,14 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Variance of values within each group.
         """
-        nv.validate_groupby_func("var", args, kwargs)
         if ddof == 1:
             return self._cython_agg_general(
-                "var", alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs), **kwargs
+                "var", alt=lambda x, axis: Series(x).var(ddof=ddof)
             )
         else:
-            f = lambda x: x.var(ddof=ddof, **kwargs)
+            func = lambda x: x.var(ddof=ddof)
             with _group_selection_context(self):
-                return self._python_agg_general(f)
+                return self._python_agg_general(func)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
