@@ -6,17 +6,22 @@ from typing import List
 import numpy as np
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_dtype_equal,
+    is_object_dtype,
+)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.indexes.base import Index, deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 
 
-def inherit_from_data(name: str, delegate, cache: bool = False):
+def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
@@ -27,6 +32,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
     delegate : class
     cache : bool, default False
         Whether to convert wrapped properties into cache_readonly
+    wrap : bool, default False
+        Whether to wrap the inherited result in an Index.
 
     Returns
     -------
@@ -37,12 +44,23 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
 
     if isinstance(attr, property):
         if cache:
-            method = cache_readonly(attr.fget)
+
+            def cached(self):
+                return getattr(self._data, name)
+
+            cached.__name__ = name
+            cached.__doc__ = attr.__doc__
+            method = cache_readonly(cached)
 
         else:
 
             def fget(self):
-                return getattr(self._data, name)
+                result = getattr(self._data, name)
+                if wrap:
+                    if isinstance(result, type(self._data)):
+                        return type(self)._simple_new(result, name=self.name)
+                    return Index(result, name=self.name)
+                return result
 
             def fset(self, value):
                 setattr(self._data, name, value)
@@ -60,6 +78,10 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
 
         def method(self, *args, **kwargs):
             result = attr(self._data, *args, **kwargs)
+            if wrap:
+                if isinstance(result, type(self._data)):
+                    return type(self)._simple_new(result, name=self.name)
+                return Index(result, name=self.name)
             return result
 
         method.__name__ = name
@@ -67,7 +89,7 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
     return method
 
 
-def inherit_names(names: List[str], delegate, cache: bool = False):
+def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = False):
     """
     Class decorator to pin attributes from an ExtensionArray to a Index subclass.
 
@@ -76,11 +98,13 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     names : List[str]
     delegate : class
     cache : bool, default False
+    wrap : bool, default False
+        Whether to wrap the inherited result in an Index.
     """
 
     def wrapper(cls):
         for name in names:
-            meth = inherit_from_data(name, delegate, cache=cache)
+            meth = inherit_from_data(name, delegate, cache=cache, wrap=wrap)
             setattr(cls, name, meth)
 
         return cls
@@ -88,7 +112,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     return wrapper
 
 
-def _make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname: str):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -108,8 +132,17 @@ def _make_wrapped_comparison_op(opname):
     return wrapper
 
 
-def make_wrapped_arith_op(opname):
+def make_wrapped_arith_op(opname: str):
     def method(self, other):
+        if (
+            isinstance(other, Index)
+            and is_object_dtype(other.dtype)
+            and type(other) is not Index
+        ):
+            # We return NotImplemented for object-dtype index *subclasses* so they have
+            # a chance to implement ops before we unwrap them.
+            # See https://github.com/pandas-dev/pandas/issues/31109
+            return NotImplemented
         meth = getattr(self._data, opname)
         result = meth(_maybe_unwrap_index(other))
         return _wrap_arithmetic_op(self, other, result)
@@ -188,6 +221,7 @@ class ExtensionIndex(Index):
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
+    @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
@@ -201,6 +235,7 @@ class ExtensionIndex(Index):
         result = self._data.repeat(repeats, axis=axis)
         return self._shallow_copy(result)
 
+    @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
@@ -230,6 +265,24 @@ class ExtensionIndex(Index):
             result = result[~result.isna()]
         return self._shallow_copy(result)
 
+    @Appender(Index.map.__doc__)
+    def map(self, mapper, na_action=None):
+        # Try to run function on index first, and then on elements of index
+        # Especially important for group-by functionality
+        try:
+            result = mapper(self)
+
+            # Try to use this result if we can
+            if isinstance(result, np.ndarray):
+                result = Index(result)
+
+            if not isinstance(result, Index):
+                raise TypeError("The map function must return an Index object")
+            return result
+        except Exception:
+            return self.astype(object).map(mapper)
+
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype) and copy is False:
             # Ensure that self.astype(self.dtype) is self

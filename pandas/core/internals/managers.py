@@ -3,7 +3,7 @@ from functools import partial
 import itertools
 import operator
 import re
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -181,7 +181,7 @@ class BlockManager(PandasObject):
 
         self.axes[axis] = new_labels
 
-    def rename_axis(self, mapper, axis, copy=True, level=None):
+    def rename_axis(self, mapper, axis, copy: bool = True, level=None):
         """
         Rename one of axes.
 
@@ -189,7 +189,7 @@ class BlockManager(PandasObject):
         ----------
         mapper : unary callable
         axis : int
-        copy : boolean, default True
+        copy : bool, default True
         level : int, default None
         """
         obj = self.copy(deep=copy)
@@ -197,7 +197,7 @@ class BlockManager(PandasObject):
         return obj
 
     @property
-    def _is_single_block(self):
+    def _is_single_block(self) -> bool:
         if self.ndim == 1:
             return True
 
@@ -279,30 +279,7 @@ class BlockManager(PandasObject):
                 unpickle_block(b["values"], b["mgr_locs"]) for b in state["blocks"]
             )
         else:
-            # discard anything after 3rd, support beta pickling format for a
-            # little while longer
-            ax_arrays, bvalues, bitems = state[:3]
-
-            self.axes = [ensure_index(ax) for ax in ax_arrays]
-
-            if len(bitems) == 1 and self.axes[0].equals(bitems[0]):
-                # This is a workaround for pre-0.14.1 pickles that didn't
-                # support unpickling multi-block frames/panels with non-unique
-                # columns/items, because given a manager with items ["a", "b",
-                # "a"] there's no way of knowing which block's "a" is where.
-                #
-                # Single-block case can be supported under the assumption that
-                # block items corresponded to manager items 1-to-1.
-                all_mgr_locs = [slice(0, len(bitems[0]))]
-            else:
-                all_mgr_locs = [
-                    self.axes[0].get_indexer(blk_items) for blk_items in bitems
-                ]
-
-            self.blocks = tuple(
-                unpickle_block(values, mgr_locs)
-                for values, mgr_locs in zip(bvalues, all_mgr_locs)
-            )
+            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()
 
@@ -464,9 +441,9 @@ class BlockManager(PandasObject):
         Parameters
         ----------
         axis: reduction axis, default 0
-        consolidate: boolean, default True. Join together blocks having same
+        consolidate: bool, default True. Join together blocks having same
             dtype
-        transposed: boolean, default False
+        transposed: bool, default False
             we are holding transposed data
         interpolation : type of interpolation, default 'linear'
         qs : a scalar or list of the quantiles to be computed
@@ -548,7 +525,9 @@ class BlockManager(PandasObject):
             values = values.take(indexer)
 
         return SingleBlockManager(
-            [make_block(values, ndim=1, placement=np.arange(len(values)))], axes[0]
+            make_block(values, ndim=1, placement=np.arange(len(values))),
+            axes[0],
+            fastpath=True,
         )
 
     def isna(self, func):
@@ -658,30 +637,24 @@ class BlockManager(PandasObject):
         self._known_consolidated = True
 
     @property
-    def is_mixed_type(self):
+    def is_mixed_type(self) -> bool:
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return len(self.blocks) > 1
 
     @property
-    def is_numeric_mixed_type(self):
+    def is_numeric_mixed_type(self) -> bool:
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return all(block.is_numeric for block in self.blocks)
 
     @property
-    def is_datelike_mixed_type(self):
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
-        return any(block.is_datelike for block in self.blocks)
-
-    @property
-    def any_extension_types(self):
+    def any_extension_types(self) -> bool:
         """Whether any of the blocks in this manager are extension blocks"""
         return any(block.is_extension for block in self.blocks)
 
     @property
-    def is_view(self):
+    def is_view(self) -> bool:
         """ return a boolean if we are a single block and are a view """
         if len(self.blocks) == 1:
             return self.blocks[0].is_view
@@ -695,21 +668,21 @@ class BlockManager(PandasObject):
 
         return False
 
-    def get_bool_data(self, copy=False):
+    def get_bool_data(self, copy: bool = False):
         """
         Parameters
         ----------
-        copy : boolean, default False
+        copy : bool, default False
             Whether to copy the blocks
         """
         self._consolidate_inplace()
         return self.combine([b for b in self.blocks if b.is_bool], copy)
 
-    def get_numeric_data(self, copy=False):
+    def get_numeric_data(self, copy: bool = False):
         """
         Parameters
         ----------
-        copy : boolean, default False
+        copy : bool, default False
             Whether to copy the blocks
         """
         self._consolidate_inplace()
@@ -795,16 +768,14 @@ class BlockManager(PandasObject):
         res.axes = new_axes
         return res
 
-    def as_array(self, transpose=False, items=None):
-        """Convert the blockmanager data into an numpy array.
+    def as_array(self, transpose: bool = False) -> np.ndarray:
+        """
+        Convert the blockmanager data into an numpy array.
 
         Parameters
         ----------
-        transpose : boolean, default False
-            If True, transpose the return array
-        items : list of strings or None
-            Names of block items that will be included in the returned
-            array. ``None`` means that all block items will be used
+        transpose : bool, default False
+            If True, transpose the return array,
 
         Returns
         -------
@@ -814,10 +785,7 @@ class BlockManager(PandasObject):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose() if transpose else arr
 
-        if items is not None:
-            mgr = self.reindex_axis(items, axis=0)
-        else:
-            mgr = self
+        mgr = self
 
         if self._is_single_block and mgr.blocks[0].is_datetimetz:
             # TODO(Block.get_values): Make DatetimeTZBlock.get_values
@@ -859,13 +827,13 @@ class BlockManager(PandasObject):
 
         return result
 
-    def to_dict(self, copy=True):
+    def to_dict(self, copy: bool = True):
         """
         Return a dict of str(dtype) -> BlockManager
 
         Parameters
         ----------
-        copy : boolean, default True
+        copy : bool, default True
 
         Returns
         -------
@@ -877,7 +845,7 @@ class BlockManager(PandasObject):
         """
         self._consolidate_inplace()
 
-        bd = {}
+        bd: Dict[str, List[Block]] = {}
         for b in self.blocks:
             bd.setdefault(str(b.dtype), []).append(b)
 
@@ -978,21 +946,18 @@ class BlockManager(PandasObject):
 
     def iget(self, i):
         """
-        Return the data as a SingleBlockManager if possible
-
-        Otherwise return as a ndarray
+        Return the data as a SingleBlockManager.
         """
         block = self.blocks[self._blknos[i]]
         values = block.iget(self._blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(
-            [
-                block.make_block_same_class(
-                    values, placement=slice(0, len(values)), ndim=1
-                )
-            ],
+            block.make_block_same_class(
+                values, placement=slice(0, len(values)), ndim=1
+            ),
             self.axes[1],
+            fastpath=True,
         )
 
     def delete(self, item):
@@ -1341,7 +1306,7 @@ class BlockManager(PandasObject):
                     # only one item and each mgr loc is a copy of that single
                     # item.
                     for mgr_loc in mgr_locs:
-                        newblk = blk.copy(deep=True)
+                        newblk = blk.copy(deep=False)
                         newblk.mgr_locs = slice(mgr_loc, mgr_loc + 1)
                         blocks.append(newblk)
 
@@ -1394,7 +1359,7 @@ class BlockManager(PandasObject):
             new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
         )
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
@@ -1419,7 +1384,8 @@ class BlockManager(PandasObject):
         )
 
     def unstack(self, unstacker_func, fill_value):
-        """Return a blockmanager with all blocks unstacked.
+        """
+        Return a BlockManager with all blocks unstacked..
 
         Parameters
         ----------
@@ -1539,7 +1505,7 @@ class SingleBlockManager(BlockManager):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True)
+        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True,)
 
     @property
     def index(self):
@@ -1560,9 +1526,11 @@ class SingleBlockManager(BlockManager):
         return np.array([self._block.dtype])
 
     def external_values(self):
+        """The array that Series.values returns"""
         return self._block.external_values()
 
     def internal_values(self):
+        """The array that Series._values returns"""
         return self._block.internal_values()
 
     def get_values(self):
@@ -1570,7 +1538,7 @@ class SingleBlockManager(BlockManager):
         return np.array(self._block.to_dense(), copy=False)
 
     @property
-    def _can_hold_na(self):
+    def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
     def is_consolidated(self):
@@ -1599,7 +1567,7 @@ class SingleBlockManager(BlockManager):
         """
         return self._block.values[loc]
 
-    def concat(self, to_concat, new_axis):
+    def concat(self, to_concat, new_axis) -> "SingleBlockManager":
         """
         Concatenate a list of SingleBlockManagers into a single
         SingleBlockManager.
@@ -1614,7 +1582,6 @@ class SingleBlockManager(BlockManager):
         Returns
         -------
         SingleBlockManager
-
         """
         non_empties = [x for x in to_concat if len(x) > 0]
 
