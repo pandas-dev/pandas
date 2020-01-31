@@ -1426,7 +1426,7 @@ class PlotAccessor(PandasObject):
         Examples
         --------
         In the example below we have a DataFrame with the information about
-        planet's mass and radius. We pass the the 'mass' column to the
+        planet's mass and radius. We pass the 'mass' column to the
         pie function to get a pie plot.
 
         .. plot::
