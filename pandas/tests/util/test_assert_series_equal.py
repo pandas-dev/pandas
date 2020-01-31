@@ -162,7 +162,6 @@ Series length are different
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(s1, s2, check_less_precise=check_less_precise)
-        print("No Exception")
 
 
 def test_series_equal_values_mismatch(check_less_precise):
