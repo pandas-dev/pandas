@@ -1351,13 +1351,22 @@ class GroupBy(_GroupBy):
             _local_template = """
             Compute %(f)s of group values.
 
+            Parameters
+            ----------
+            numeric_only : bool, default %(no)s
+                Include only float, int, boolean columns. If None, will attempt to use
+                everything, then use only numeric data.
+            min_count : int, default %(mc)s
+                The required number of valid values to perform the operation. If fewer
+                than ``min_count`` non-NA values are present the result will be NA.
+
             Returns
             -------
             Series or DataFrame
                 Computed %(f)s of values within each group.
             """
 
-            @Substitution(name="groupby", f=name)
+            @Substitution(name="groupby", f=name, no=numeric_only, mc=min_count)
             @Appender(_common_see_also)
             @Appender(_local_template)
             def func(self, numeric_only=numeric_only, min_count=min_count):
