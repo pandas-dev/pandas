@@ -2114,7 +2114,7 @@ void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 
         PyObject_Free(GET_TC(tc)->cStr);
         GET_TC(tc)->cStr = NULL;
-	PyObject_Free(tc->prv);
+        PyObject_Free(tc->prv);
         tc->prv = NULL;
     }
 }
