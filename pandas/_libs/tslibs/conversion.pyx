@@ -578,7 +578,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
                 if pos < len(deltas):
                     fold_delta = deltas[pos] - deltas[pos + 1]
                     if obj.value + fold_delta > trans[pos + 1]:
-                        obj.value += fold_delta                
+                        obj.value += fold_delta
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             # Check if we are in a fold
             if pos > 0:
@@ -594,7 +594,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
                 if pos < len(deltas):
                     fold_delta = deltas[pos] - deltas[pos + 1]
                     if obj.value + fold_delta > trans[pos + 1]:
-                        obj.value += fold_delta       
+                        obj.value += fold_delta
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             # Check if we are in a fold
             if pos > 0:
