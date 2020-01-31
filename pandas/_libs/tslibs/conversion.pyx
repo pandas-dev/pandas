@@ -302,8 +302,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
 
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
-                                            int32_t nanos=0, bint fold=0,
-                                            int64_t fold_delta=0):
+                                            int32_t nanos=0, bint fold=0):
     """
     Convert a datetime (or Timestamp) input `ts`, along with optional timezone
     object `tz` to a _TSObject.
@@ -326,9 +325,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     """
     cdef:
         _TSObject obj = _TSObject()
-
-    # TODO: get fold from datetime if it isn't supplied
-    # change fold to object type first
 
     if tz is not None:
         tz = maybe_get_tz(tz)
@@ -371,8 +367,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.dts.ps = nanos * 1000
 
     obj.fold = fold
-    if obj.fold == 1:
-        obj.value += fold_delta
 
     # Datetime puts us into a fold for an ambiguous timestamp
     # adjust as necessary
@@ -438,8 +432,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         return obj
 
     # Offset supplied, so infer fold
-    obj.fold = 0
-    fold_delta = 0
+    fold = 0
     if is_utc(tz):
         pass
     elif is_tzlocal(tz):
@@ -455,14 +448,14 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
             if pos > 0:
                 fold_delta = deltas[pos - 1] - deltas[pos]
                 if obj.value < (trans[pos] + fold_delta):
-                    obj.fold = 1
+                    fold = 1
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
                   obj.dts.us, obj.tzinfo)
     obj = convert_datetime_to_tsobject(
-        dt, tz, nanos=obj.dts.ps // 1000, fold=obj.fold, fold_delta=fold_delta)
+        dt, tz, nanos=obj.dts.ps // 1000, fold=fold)
     return obj
 
 
