@@ -2045,12 +2045,7 @@ def test_groupby_aggregate_period(func):
     groups = [1, 2]
     periods = pd.period_range("2020", periods=2, freq="Y")
 
-    df = pd.DataFrame(
-        {
-            "a": groups,
-            "b": periods,
-        }
-    )
+    df = pd.DataFrame({"a": groups, "b": periods,})
 
     result = getattr(df.groupby("a")["b"], func)()
 
