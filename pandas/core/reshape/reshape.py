@@ -1,6 +1,6 @@
 from functools import partial
 import itertools
-from typing import List
+from typing import List, Optional, Union
 
 import numpy as np
 
@@ -375,6 +375,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
             unstcols = unstacked.index
         else:
             unstcols = unstacked.columns
+        assert isinstance(unstcols, MultiIndex)  # for mypy
         new_levels = [unstcols.levels[0]] + clevels
         new_names = [data.columns.name] + cnames
 
@@ -433,15 +434,14 @@ def _unstack_frame(obj, level, fill_value=None):
         blocks = obj._data.unstack(unstacker, fill_value=fill_value)
         return obj._constructor(blocks)
     else:
-        unstacker = _Unstacker(
+        return _Unstacker(
             obj.values,
             obj.index,
             level=level,
             value_columns=obj.columns,
             fill_value=fill_value,
             constructor=obj._constructor,
-        )
-        return unstacker.get_result()
+        ).get_result()
 
 
 def _unstack_extension_series(series, level, fill_value):
@@ -902,9 +902,10 @@ def get_dummies(
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
+        with_dummies: List[DataFrame]
         if data_to_encode.shape == data.shape:
             # Encoding the entire df, do not prepend any dropped columns
-            with_dummies: List[DataFrame] = []
+            with_dummies = []
         elif columns is not None:
             # Encoding only cols specified in columns. Get all cols not in
             # columns to prepend to result.
@@ -994,6 +995,7 @@ def _get_dummies_1d(
 
         dummy_cols = [_make_col_name(prefix, prefix_sep, level) for level in levels]
 
+    index: Optional[Index]
     if isinstance(data, Series):
         index = data.index
     else:
@@ -1001,6 +1003,7 @@ def _get_dummies_1d(
 
     if sparse:
 
+        fill_value: Union[bool, float, int]
         if is_integer_dtype(dtype):
             fill_value = 0
         elif dtype == bool:
@@ -1010,7 +1013,7 @@ def _get_dummies_1d(
 
         sparse_series = []
         N = len(data)
-        sp_indices = [[] for _ in range(len(dummy_cols))]
+        sp_indices: List[List] = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
