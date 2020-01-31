@@ -244,11 +244,12 @@ class TestDatetimeTZDtype(Base):
         with pytest.raises(TypeError, match="notatz"):
             DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
 
-        msg = "^Cannot construct a 'DatetimeTZDtype'"
-        with pytest.raises(TypeError, match=msg):
+        msg = "'construct_from_string' expects a string, got <class 'list'>"
+        with pytest.raises(TypeError, match=re.escape(msg)):
             # list instead of string
             DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
 
+        msg = "^Cannot construct a 'DatetimeTZDtype'"
         with pytest.raises(TypeError, match=msg):
             # non-nano unit
             DatetimeTZDtype.construct_from_string("datetime64[ps, UTC]")
@@ -547,9 +548,9 @@ class TestIntervalDtype(Base):
     @pytest.mark.parametrize("string", [0, 3.14, ("a", "b"), None])
     def test_construction_from_string_errors(self, string):
         # these are invalid entirely
-        msg = "a string needs to be passed, got type"
+        msg = f"'construct_from_string' expects a string, got {type(string)}"
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=re.escape(msg)):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize("string", ["foo", "foo[int64]", "IntervalA"])
