@@ -302,7 +302,8 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
 
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
-                                            int32_t nanos=0):
+                                            int32_t nanos=0, bint fold=0,
+                                            int64_t fold_delta=0):
     """
     Convert a datetime (or Timestamp) input `ts`, along with optional timezone
     object `tz` to a _TSObject.
@@ -366,6 +367,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.value += nanos
         obj.dts.ps = nanos * 1000
 
+    if fold_delta:
+        obj.value += fold_delta
+        obj.fold = fold
+
     check_dts_bounds(&obj.dts)
     check_overflows(obj)
     return obj
@@ -401,12 +406,33 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         check_overflows(obj)
         return obj
 
+    # Offset supplied, so infer fold
+    obj.fold = 0
+    fold_delta = 0
+    if is_utc(tz):
+        pass
+    elif is_tzlocal(tz):
+        pass
+        # TODO: think on how we can infer fold for local Timezone
+        # and adjust value for fold
+    else:
+        # Adjust datetime64 timestamp, recompute datetimestruct
+        trans, deltas, typ = get_dst_info(tz)
+
+        if typ == 'pytz' or typ == 'dateutil':
+            pos = trans.searchsorted(obj.value, side='right') - 1
+            # Check if we are in a fold
+            if pos > 0:
+                fold_delta = deltas[pos - 1] - deltas[pos]
+                if obj.value < (trans[pos] + fold_delta):
+                    obj.fold = 1
+
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
                   obj.dts.us, obj.tzinfo)
     obj = convert_datetime_to_tsobject(
-        dt, tz, nanos=obj.dts.ps // 1000)
+        dt, tz, nanos=obj.dts.ps // 1000, fold=obj.fold, fold_delta=fold_delta)
     return obj
 
 
