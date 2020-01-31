@@ -138,6 +138,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             value = [decimal.Decimal(v) for v in value]
         else:
             value = decimal.Decimal(value)
+
+        from pandas.core.indexers import check_array_indexer
+        key = check_array_indexer(self, key)
         self._data[key] = value
 
     def __len__(self) -> int:
