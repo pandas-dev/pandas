@@ -81,6 +81,14 @@ class TestMethods:
         with pytest.raises(ValueError, match=match):
             ser.where([True, False, True], other=other)
 
+    def test_shift(self):
+        # https://github.com/pandas-dev/pandas/issues/31495
+        a = IntervalArray.from_breaks([1, 2, 3])
+        result = a.shift()
+        # int -> float
+        expected = IntervalArray.from_tuples([(np.nan, np.nan), (1.0, 2.0)])
+        tm.assert_interval_array_equal(result, expected)
+
 
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):

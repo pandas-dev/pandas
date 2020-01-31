@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndexClass,
     ABCInterval,
     ABCIntervalIndex,
@@ -787,6 +788,25 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def size(self) -> int:
         # Avoid materializing self.values
         return self.left.size
+
+    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+        if not len(self) or periods == 0:
+            return self.copy()
+
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
+        # Note: The only change from ExtensionArray.shift is the lack of
+        # dtype=self.dtype here, since the shifted dtype may not match the
+        # original dtype.
+        empty = self._from_sequence([fill_value] * min(abs(periods), len(self)))
+        if periods > 0:
+            a = empty
+            b = self[:-periods]
+        else:
+            a = self[abs(periods) :]
+            b = empty
+        return self._concat_same_type([a, b])
 
     def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """

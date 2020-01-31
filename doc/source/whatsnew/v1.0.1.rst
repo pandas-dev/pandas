@@ -62,7 +62,7 @@ Strings
 Interval
 ^^^^^^^^
 
--
+- Bug in :meth:`arrays.IntervalArray.shift` raising a ``TypeError`` when shifting an interval array of integers (:issue:`31495`)
 -
 
 Indexing
