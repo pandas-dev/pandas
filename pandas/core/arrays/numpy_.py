@@ -254,7 +254,6 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
         if not scalar_value:
             value = np.asarray(value, dtype=self._ndarray.dtype)
 
-        from pandas.core.indexers import check_array_indexer
         key = check_array_indexer(self, key)
         self._ndarray[key] = value
 

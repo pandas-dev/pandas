@@ -2074,7 +2074,6 @@ class Categorical(ExtensionArray, PandasObject):
         lindexer = self.categories.get_indexer(rvalue)
         lindexer = self._maybe_coerce_indexer(lindexer)
 
-        from pandas.core.indexers import check_array_indexer
         key = check_array_indexer(self, key)
         self._codes[key] = lindexer
 

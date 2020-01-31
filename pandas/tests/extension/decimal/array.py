@@ -11,6 +11,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
 from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
+from pandas.core.indexers import check_array_indexer
 
 
 @register_extension_dtype
@@ -139,7 +140,6 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         else:
             value = decimal.Decimal(value)
 
-        from pandas.core.indexers import check_array_indexer
         key = check_array_indexer(self, key)
         self._data[key] = value
 

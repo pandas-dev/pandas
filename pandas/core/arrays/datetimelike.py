@@ -602,7 +602,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             )
             raise TypeError(msg)
 
-        from pandas.core.indexers import check_array_indexer
         key = check_array_indexer(self, key)
         self._data[key] = value
         self._maybe_clear_freq()
