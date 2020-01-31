@@ -1262,7 +1262,7 @@ default 'raise'
         "day",
         "D",
         """
-        The month as January=1, December=12.
+        The day of the datetime.
         """,
     )
     hour = _field_accessor(
