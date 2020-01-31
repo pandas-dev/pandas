@@ -760,9 +760,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         # Pandas supports slicing with dates, treated as datetimes at midnight.
         # https://github.com/pandas-dev/pandas/issues/31501
-        if isinstance(start, date):
+        if isinstance(start, date) and not isinstance(start, datetime):
             start = datetime.combine(start, time(0, 0))
-        if isinstance(end, date):
+        if isinstance(end, date) and not isinstance(end, datetime):
             end = datetime.combine(end, time(0, 0))
 
         try:
