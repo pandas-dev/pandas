@@ -198,24 +198,8 @@ class BaseSetitemTests(BaseExtensionTests):
 
     def test_setitem_nullable_integer(self, data):
         # GH 31446
-        ser = pd.Series([1] * len(data) + [2] * len(data), dtype="Int64")
-        ser[ser > 1] = 3
-        expected = pd.Series([1] * len(data) + [3] * len(data), dtype="Int64")
-
-        self.assert_series_equal(ser, expected)
-
-    def test_setitem_nullable_boolean(self, data):
-        # GH 31446
-        ser = pd.Series([1] * len(data) + [0] * len(data), dtype="boolean")
-        ser[ser == 1] = 0
-        expected = pd.Series([0] * len(data) * 2, dtype="boolean")
-
-        self.assert_series_equal(ser, expected)
-
-    def test_setitem_nullable_string(self, data):
-        # GH 31446
-        ser = pd.Series(["a"] * len(data) + ["b"] * len(data), dtype="string")
-        ser[ser == "a"] = "c"
-        expected = pd.Series(["c"] * len(data) + ["b"] * len(data), dtype="string")
-
-        self.assert_series_equal(ser, expected)
+        arr = data[:5]
+        expected = data.take([0, 0, 0, 3, 4])
+        mask = pd.array([True, True, True, False, False])
+        arr[mask] = arr[0]
+        self.assert_extension_array_equal(expected, arr)
