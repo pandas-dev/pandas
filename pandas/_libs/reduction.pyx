@@ -16,7 +16,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects
+from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
 cdef _check_result_array(object obj, Py_ssize_t cnt):
@@ -499,13 +499,14 @@ def apply_frame_axis0(object frame, object f, object names,
                 # `piece` might not have an index, could be e.g. an int
                 pass
 
-            if hasattr(piece, "_typ") and piece._typ in [
-                "series",
-                "dataframe",
-            ]:
-                piece = piece.copy(deep="all")
-            else:
-                piece = copy(piece)
+            if not is_scalar(piece):
+                if hasattr(piece, "_typ") and piece._typ in [
+                    "series",
+                    "dataframe",
+                ]:
+                    piece = piece.copy(deep="all")
+                else:
+                    piece = copy(piece)
 
             results.append(piece)
 
