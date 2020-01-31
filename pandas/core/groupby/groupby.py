@@ -72,7 +72,7 @@ _common_see_also = """
 
 _apply_docs = dict(
     template="""
-    Apply function `func`  group-wise and combine the results together.
+    Apply function `func` group-wise and combine the results together.
 
     The function passed to `apply` must take a {input} as its first
     argument and return a DataFrame, Series or scalar. `apply` will
@@ -685,7 +685,7 @@ b  2""",
         if not len(inds):
             raise KeyError(name)
 
-        return obj.take(inds, axis=self.axis)
+        return obj._take_with_is_copy(inds, axis=self.axis)
 
     def __iter__(self):
         """
@@ -813,9 +813,10 @@ b  2""",
                 # datetime64tz is handled correctly in agg_series,
                 #  so is excluded here.
 
-                # return the same type (Series) as our caller
-                cls = dtype.construct_array_type()
-                result = try_cast_to_ea(cls, result, dtype=dtype)
+                if len(result) and isinstance(result[0], dtype.type):
+                    cls = dtype.construct_array_type()
+                    result = try_cast_to_ea(cls, result, dtype=dtype)
+
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 
@@ -1359,17 +1360,17 @@ class GroupBy(_GroupBy):
             @Substitution(name="groupby", f=name)
             @Appender(_common_see_also)
             @Appender(_local_template)
-            def f(self, **kwargs):
-                if "numeric_only" not in kwargs:
-                    kwargs["numeric_only"] = numeric_only
-                if "min_count" not in kwargs:
-                    kwargs["min_count"] = min_count
-
+            def func(self, numeric_only=numeric_only, min_count=min_count):
                 self._set_group_selection()
 
                 # try a cython aggregation if we can
                 try:
-                    return self._cython_agg_general(alias, alt=npfunc, **kwargs)
+                    return self._cython_agg_general(
+                        how=alias,
+                        alt=npfunc,
+                        numeric_only=numeric_only,
+                        min_count=min_count,
+                    )
                 except DataError:
                     pass
                 except NotImplementedError as err:
@@ -1384,9 +1385,9 @@ class GroupBy(_GroupBy):
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
                 return result
 
-            set_function_name(f, name, cls)
+            set_function_name(func, name, cls)
 
-            return f
+            return func
 
         def first_compat(x, axis=0):
             def first(x):
