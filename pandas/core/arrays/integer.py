@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -31,6 +31,9 @@ from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedArray
 
+if TYPE_CHECKING:
+    import pyarrow  # noqa: F401
+
 
 class _IntegerDtype(ExtensionDtype):
     """
@@ -52,33 +55,33 @@ class _IntegerDtype(ExtensionDtype):
         return f"{sign}Int{8 * self.itemsize}Dtype()"
 
     @cache_readonly
-    def is_signed_integer(self):
+    def is_signed_integer(self) -> bool:
         return self.kind == "i"
 
     @cache_readonly
-    def is_unsigned_integer(self):
+    def is_unsigned_integer(self) -> bool:
         return self.kind == "u"
 
     @property
-    def _is_numeric(self):
+    def _is_numeric(self) -> bool:
         return True
 
     @cache_readonly
-    def numpy_dtype(self):
+    def numpy_dtype(self) -> np.dtype:
         """ Return an instance of our numpy dtype """
         return np.dtype(self.type)
 
     @cache_readonly
-    def kind(self):
+    def kind(self) -> str:
         return self.numpy_dtype.kind
 
     @cache_readonly
-    def itemsize(self):
+    def itemsize(self) -> int:
         """ Return the number of bytes in this dtype """
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["IntegerArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -88,9 +91,13 @@ class _IntegerDtype(ExtensionDtype):
         """
         return IntegerArray
 
-    def __from_arrow__(self, array):
-        """Construct IntegerArray from passed pyarrow Array/ChunkedArray"""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "IntegerArray":
+        """
+        Construct IntegerArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
         if isinstance(array, pyarrow.Array):
@@ -108,7 +115,7 @@ class _IntegerDtype(ExtensionDtype):
         return IntegerArray._concat_same_type(results)
 
 
-def integer_array(values, dtype=None, copy=False):
+def integer_array(values, dtype=None, copy: bool = False,) -> "IntegerArray":
     """
     Infer and return an integer array of the values.
 
@@ -131,7 +138,7 @@ def integer_array(values, dtype=None, copy=False):
     return IntegerArray(values, mask)
 
 
-def safe_cast(values, dtype, copy):
+def safe_cast(values, dtype, copy: bool):
     """
     Safely cast the values to the dtype if they
     are equivalent, meaning floats must be equivalent to the
@@ -152,7 +159,9 @@ def safe_cast(values, dtype, copy):
         )
 
 
-def coerce_to_array(values, dtype, mask=None, copy=False):
+def coerce_to_array(
+    values, dtype, mask=None, copy: bool = False,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask
 
@@ -322,10 +331,10 @@ class IntegerArray(BaseMaskedArray):
     _internal_fill_value = 1
 
     @cache_readonly
-    def dtype(self):
+    def dtype(self) -> _IntegerDtype:
         return _dtypes[str(self._data.dtype)]
 
-    def __init__(self, values, mask, copy=False):
+    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and is_integer_dtype(values.dtype)):
             raise TypeError(
                 "values should be integer numpy array. Use "
@@ -345,21 +354,23 @@ class IntegerArray(BaseMaskedArray):
         self._mask = mask
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, dtype=None, copy: bool = False
+    ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype, copy)
 
     @classmethod
-    def _from_factorized(cls, values, original):
+    def _from_factorized(cls, values, original) -> "IntegerArray":
         return integer_array(values, dtype=original.dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
         # For IntegerArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -697,103 +708,65 @@ None
 """
 
 # create the Dtype
-Int8Dtype = register_extension_dtype(
-    type(
-        "Int8Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.int8,
-            "name": "Int8",
-            "__doc__": _dtype_docstring.format(dtype="int8"),
-        },
-    )
-)
 
-Int16Dtype = register_extension_dtype(
-    type(
-        "Int16Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.int16,
-            "name": "Int16",
-            "__doc__": _dtype_docstring.format(dtype="int16"),
-        },
-    )
-)
 
-Int32Dtype = register_extension_dtype(
-    type(
-        "Int32Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.int32,
-            "name": "Int32",
-            "__doc__": _dtype_docstring.format(dtype="int32"),
-        },
-    )
-)
+@register_extension_dtype
+class Int8Dtype(_IntegerDtype):
+    type = np.int8
+    name = "Int8"
+    __doc__ = _dtype_docstring.format(dtype="int8")
 
-Int64Dtype = register_extension_dtype(
-    type(
-        "Int64Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.int64,
-            "name": "Int64",
-            "__doc__": _dtype_docstring.format(dtype="int64"),
-        },
-    )
-)
 
-UInt8Dtype = register_extension_dtype(
-    type(
-        "UInt8Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.uint8,
-            "name": "UInt8",
-            "__doc__": _dtype_docstring.format(dtype="uint8"),
-        },
-    )
-)
+@register_extension_dtype
+class Int16Dtype(_IntegerDtype):
+    type = np.int16
+    name = "Int16"
+    __doc__ = _dtype_docstring.format(dtype="int16")
 
-UInt16Dtype = register_extension_dtype(
-    type(
-        "UInt16Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.uint16,
-            "name": "UInt16",
-            "__doc__": _dtype_docstring.format(dtype="uint16"),
-        },
-    )
-)
 
-UInt32Dtype = register_extension_dtype(
-    type(
-        "UInt32Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.uint32,
-            "name": "UInt32",
-            "__doc__": _dtype_docstring.format(dtype="uint32"),
-        },
-    )
-)
+@register_extension_dtype
+class Int32Dtype(_IntegerDtype):
+    type = np.int32
+    name = "Int32"
+    __doc__ = _dtype_docstring.format(dtype="int32")
 
-UInt64Dtype = register_extension_dtype(
-    type(
-        "UInt64Dtype",
-        (_IntegerDtype,),
-        {
-            "type": np.uint64,
-            "name": "UInt64",
-            "__doc__": _dtype_docstring.format(dtype="uint64"),
-        },
-    )
-)
 
-_dtypes = {
+@register_extension_dtype
+class Int64Dtype(_IntegerDtype):
+    type = np.int64
+    name = "Int64"
+    __doc__ = _dtype_docstring.format(dtype="int64")
+
+
+@register_extension_dtype
+class UInt8Dtype(_IntegerDtype):
+    type = np.uint8
+    name = "UInt8"
+    __doc__ = _dtype_docstring.format(dtype="uint8")
+
+
+@register_extension_dtype
+class UInt16Dtype(_IntegerDtype):
+    type = np.uint16
+    name = "UInt16"
+    __doc__ = _dtype_docstring.format(dtype="uint16")
+
+
+@register_extension_dtype
+class UInt32Dtype(_IntegerDtype):
+    type = np.uint32
+    name = "UInt32"
+    __doc__ = _dtype_docstring.format(dtype="uint32")
+
+
+@register_extension_dtype
+class UInt64Dtype(_IntegerDtype):
+    type = np.uint64
+    name = "UInt64"
+    __doc__ = _dtype_docstring.format(dtype="uint64")
+
+
+_dtypes: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),
