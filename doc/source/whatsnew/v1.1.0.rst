@@ -39,9 +39,9 @@ For example:
 .. _whatsnew_110.differences:
 
 Comparing two `DataFrame` or two `Series` and summarizing the differences
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added :meth:`~DataFrame.differences` and :meth:`~Series.differences` for comparing two `DataFrame` or two `Series` (:issue:`30429`)
+We've added :meth:`DataFrame.differences` and :meth:`Series.differences` for comparing two `DataFrame` or two `Series` (:issue:`30429`)
 
 .. ipython:: python
 
