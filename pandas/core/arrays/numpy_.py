@@ -74,9 +74,11 @@ class PandasDtype(ExtensionDtype):
         try:
             return cls(np.dtype(string))
         except TypeError as err:
-            raise TypeError(
-                f"Cannot construct a 'PandasDtype' from '{string}'"
-            ) from err
+            if not isinstance(string, str):
+                msg = f"'construct_from_string' expects a string, got {type(string)}"
+            else:
+                msg = f"Cannot construct a 'PandasDtype' from '{string}'"
+            raise TypeError(msg) from err
 
     @classmethod
     def construct_array_type(cls):

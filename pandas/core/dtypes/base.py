@@ -235,8 +235,9 @@ class ExtensionDtype:
         ...             " "'{string}'")
         """
         if not isinstance(string, str):
-            raise TypeError(f"Expects a string, got {type(string).__name__}")
-
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
         # error: Non-overlapping equality check (left operand type: "str", right
         #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
         assert isinstance(cls.name, str), (cls, type(cls.name))
