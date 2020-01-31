@@ -195,3 +195,19 @@ class BaseSetitemTests(BaseExtensionTests):
         data[0] = data[1]
         assert view1[0] == data[1]
         assert view2[0] == data[1]
+
+    def test_setitem_nullable_integer(self, data):
+        # GH 31446
+        ser = pd.Series([1] * len(data) + [2] * len(data), dtype="Int64")
+        ser[ser > 1] = 3
+        expected = pd.Series([1] * len(data) + [3] * len(data), dtype="Int64")
+
+        self.assert_series_equal(ser, expected)
+
+    def test_setitem_nullable_boolean(self, data):
+        # GH 31446
+        ser = pd.Series([1] * len(data) + [0] * len(data), dtype="boolean")
+        ser[ser == 1] = 0
+        expected = pd.Series([0] * len(data) * 2, dtype="boolean")
+
+        self.assert_series_equal(ser, expected)

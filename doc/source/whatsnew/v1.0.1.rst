@@ -70,7 +70,7 @@ Indexing
 
 -
 -
-- Bug in ``__setitem__`` in ``Array`` which fails with nullable boolean mask (:issue:`31446`)
+- Bug where assigning to a ``Series`` using a IntegerArray / BooleanArray as a mask would raise ``TypeError`` (:issue:`31446`)
 
 Missing
 ^^^^^^^
