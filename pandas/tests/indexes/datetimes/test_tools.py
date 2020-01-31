@@ -1583,7 +1583,7 @@ class TestToDatetimeMisc:
         for i in range(5):
             x = series[i]
             if isna(x):
-                expected[i] = iNaT
+                expected[i] = pd.NaT
             else:
                 expected[i] = to_datetime(x, cache=cache)
 
