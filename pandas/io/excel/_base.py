@@ -205,8 +205,8 @@ DataFrame or dict of DataFrames
 
 See Also
 --------
-to_excel : Write DataFrame to an Excel file.
-to_csv : Write DataFrame to a comma-separated values (csv) file.
+DataFrame.to_excel : Write DataFrame to an Excel file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
