@@ -371,7 +371,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 return False
 
     @cache_readonly
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         return Int64Index._simple_new(self.asi8, name=self.name)
 
     # ------------------------------------------------------------------------
@@ -594,7 +594,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             except KeyError:
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind: str):
         """
         If label is a string or a datetime, cast it to Period.ordinal according
         to resolution.
@@ -798,7 +798,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # ------------------------------------------------------------------------
 
-    def _apply_meta(self, rawarr):
+    def _apply_meta(self, rawarr) -> "PeriodIndex":
         if not isinstance(rawarr, PeriodIndex):
             if not isinstance(rawarr, PeriodArray):
                 rawarr = PeriodArray(rawarr, freq=self.freq)
