@@ -352,7 +352,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             If a CategoricalDtype cannot be constructed from the input.
         """
         if not isinstance(string, str):
-            raise TypeError(f"Expects a string, got {type(string)}")
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
         if string != cls.name:
             raise TypeError(f"Cannot construct a 'CategoricalDtype' from '{string}'")
 
@@ -728,22 +730,24 @@ class DatetimeTZDtype(PandasExtensionDtype):
         >>> DatetimeTZDtype.construct_from_string('datetime64[ns, UTC]')
         datetime64[ns, UTC]
         """
-        if isinstance(string, str):
-            msg = f"Cannot construct a 'DatetimeTZDtype' from '{string}'"
-            match = cls._match.match(string)
-            if match:
-                d = match.groupdict()
-                try:
-                    return cls(unit=d["unit"], tz=d["tz"])
-                except (KeyError, TypeError, ValueError) as err:
-                    # KeyError if maybe_get_tz tries and fails to get a
-                    #  pytz timezone (actually pytz.UnknownTimeZoneError).
-                    # TypeError if we pass a nonsense tz;
-                    # ValueError if we pass a unit other than "ns"
-                    raise TypeError(msg) from err
-            raise TypeError(msg)
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
 
-        raise TypeError("Cannot construct a 'DatetimeTZDtype'")
+        msg = f"Cannot construct a 'DatetimeTZDtype' from '{string}'"
+        match = cls._match.match(string)
+        if match:
+            d = match.groupdict()
+            try:
+                return cls(unit=d["unit"], tz=d["tz"])
+            except (KeyError, TypeError, ValueError) as err:
+                # KeyError if maybe_get_tz tries and fails to get a
+                #  pytz timezone (actually pytz.UnknownTimeZoneError).
+                # TypeError if we pass a nonsense tz;
+                # ValueError if we pass a unit other than "ns"
+                raise TypeError(msg) from err
+        raise TypeError(msg)
 
     def __str__(self) -> str_type:
         return f"datetime64[{self.unit}, {self.tz}]"
@@ -1075,7 +1079,9 @@ class IntervalDtype(PandasExtensionDtype):
         if its not possible
         """
         if not isinstance(string, str):
-            raise TypeError(f"a string needs to be passed, got type {type(string)}")
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
 
         if string.lower() == "interval" or cls._match.search(string) is not None:
             return cls(string)
