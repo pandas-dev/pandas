@@ -296,7 +296,7 @@ class TestDataFrameFormatting:
         assert printing.pprint_thing({1}) == "{1}"
 
     def test_repr_is_valid_construction_code(self):
-        # for the case of Index, where the repr is traditional rather then
+        # for the case of Index, where the repr is traditional rather than
         # stylized
         idx = Index(["a", "b"])
         res = eval("pd." + repr(idx))

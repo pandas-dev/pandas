@@ -27,7 +27,7 @@ from pandas.core.arrays.categorical import Categorical, _recode_for_categories, 
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import ExtensionIndex
+from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -35,11 +35,21 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
 
 
-@accessor.delegate_names(
-    delegate=Categorical,
-    accessors=["codes", "categories", "ordered"],
-    typ="property",
-    overwrite=True,
+@inherit_names(
+    [
+        "argsort",
+        "_internal_get_values",
+        "tolist",
+        "codes",
+        "categories",
+        "ordered",
+        "_reverse_indexer",
+        "searchsorted",
+        "is_dtype_equal",
+        "min",
+        "max",
+    ],
+    Categorical,
 )
 @accessor.delegate_names(
     delegate=Categorical,
@@ -52,14 +62,6 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
         "set_categories",
         "as_ordered",
         "as_unordered",
-        "min",
-        "max",
-        "is_dtype_equal",
-        "tolist",
-        "_internal_get_values",
-        "_reverse_indexer",
-        "searchsorted",
-        "argsort",
     ],
     typ="method",
     overwrite=True,
@@ -170,6 +172,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     codes: np.ndarray
     categories: Index
+    _data: Categorical
 
     @property
     def _engine_type(self):
@@ -310,7 +313,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return other
 
-    def equals(self, other):
+    def equals(self, other) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
 
@@ -377,6 +380,11 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def values(self):
         """ return the underlying data, which is a Categorical """
         return self._data
+
+    @property
+    def _has_complex_internals(self) -> bool:
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
@@ -844,12 +852,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         prop = getattr(self._values, name)
         return prop  # no wrapping for now
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
         if "inplace" in kwargs:
