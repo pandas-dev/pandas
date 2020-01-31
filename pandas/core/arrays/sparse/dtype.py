@@ -206,6 +206,10 @@ class SparseDtype(ExtensionDtype):
         -------
         SparseDtype
         """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
         msg = f"Cannot construct a 'SparseDtype' from '{string}'"
         if string.startswith("Sparse"):
             try:
