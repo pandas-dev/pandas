@@ -230,7 +230,9 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js: Dict[str, Any], spec: Union[List, str], is_meta: bool = True) -> Iterable:
+    def _pull_field(
+        js: Dict[str, Any], spec: Union[List, str], is_meta: bool = True
+    ) -> Any:
         result = js  # type: ignore
         if isinstance(spec, list):
             for field in spec:
