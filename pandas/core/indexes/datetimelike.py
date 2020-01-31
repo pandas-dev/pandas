@@ -1,8 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-import operator
-from typing import List, Optional, Set
+from typing import Any, List, Optional, Union
 
 import numpy as np
 
@@ -30,8 +29,7 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
-from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
@@ -90,7 +88,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[DateOffset]
     freqstr: Optional[str]
     _resolution: int
@@ -153,8 +151,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return np.array_equal(self.asi8, other.asi8)
 
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key):
+    @Appender(Index.__contains__.__doc__)
+    def __contains__(self, key: Any) -> bool:
+        hash(key)
         try:
             res = self.get_loc(key)
         except (KeyError, TypeError, ValueError):
@@ -162,22 +161,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return bool(
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
-
-    # Try to run function on index first, and then on elements of index
-    # Especially important for group-by functionality
-    def map(self, mapper, na_action=None):
-        try:
-            result = mapper(self)
-
-            # Try to use this result if we can
-            if isinstance(result, np.ndarray):
-                result = Index(result)
-
-            if not isinstance(result, Index):
-                raise TypeError("The map function must return an Index object")
-            return result
-        except Exception:
-            return self.astype(object).map(mapper)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -458,7 +441,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         values = self.view("i8")
 
@@ -483,7 +466,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
 
-    def _summary(self, name=None):
+    def _summary(self, name=None) -> str:
         """
         Return a summarized representation.
 
@@ -625,8 +608,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self._data
-        if isinstance(values, type(self)):
-            values = values._data
 
         attributes = self._get_attributes_dict()
 
@@ -949,42 +930,3 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             raise TypeError(
                 f"cannot insert {type(self).__name__} with incompatible label"
             )
-
-
-class DatetimelikeDelegateMixin(PandasDelegate):
-    """
-    Delegation mechanism, specific for Datetime, Timedelta, and Period types.
-
-    Functionality is delegated from the Index class to an Array class. A
-    few things can be customized
-
-    * _delegated_methods, delegated_properties : List
-        The list of property / method names being delagated.
-    * raw_methods : Set
-        The set of methods whose results should should *not* be
-        boxed in an index, after being returned from the array
-    * raw_properties : Set
-        The set of properties whose results should should *not* be
-        boxed in an index, after being returned from the array
-    """
-
-    # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods: Set[str] = set()
-    # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties: Set[str] = set()
-    _data: ExtensionArray
-
-    def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
-        if name not in self._raw_properties:
-            result = Index(result, name=self.name)
-        return result
-
-    def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
-
-    def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
-        if name not in self._raw_methods:
-            result = Index(result, name=self.name)
-        return result

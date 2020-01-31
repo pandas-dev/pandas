@@ -112,10 +112,6 @@ def test_ndarray_compat_properties(idx, compat_props):
     idx.values.nbytes
 
 
-def test_compat(indices):
-    assert indices.tolist() == list(indices)
-
-
 def test_pickle_compat_construction(holder):
     # this is testing for pickle compat
     # need an object to create with

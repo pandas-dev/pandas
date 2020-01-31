@@ -342,6 +342,10 @@ class TestPrinting(base.BasePrintingTests):
     pass
 
 
+class TestUnaryOps(base.BaseUnaryOpsTests):
+    pass
+
+
 # TODO parsing not yet supported
 # class TestParsing(base.BaseParsingTests):
 #     pass
