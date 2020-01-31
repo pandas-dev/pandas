@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core.accessor import delegate_names
 from pandas.core.arrays.period import (
     PeriodArray,
     period_array,
@@ -39,11 +38,9 @@ from pandas.core.indexes.base import (
     ensure_index,
     maybe_extract_name,
 )
-from pandas.core.indexes.datetimelike import (
-    DatetimeIndexOpsMixin,
-    DatetimelikeDelegateMixin,
-)
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.indexes.datetimes import DatetimeIndex, Index
+from pandas.core.indexes.extension import inherit_names
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.datetimes import DateParseError
@@ -71,23 +68,14 @@ def _new_PeriodIndex(cls, **d):
         return cls(values, **d)
 
 
-class PeriodDelegateMixin(DatetimelikeDelegateMixin):
-    """
-    Delegate from PeriodIndex to PeriodArray.
-    """
-
-    _raw_methods = {"_format_native_types"}
-    _raw_properties = {"is_leap_year", "freq"}
-
-    _delegated_properties = PeriodArray._datetimelike_ops + list(_raw_properties)
-    _delegated_methods = set(PeriodArray._datetimelike_methods) | _raw_methods
-
-
-@delegate_names(PeriodArray, PeriodDelegateMixin._delegated_properties, typ="property")
-@delegate_names(
-    PeriodArray, PeriodDelegateMixin._delegated_methods, typ="method", overwrite=True
+@inherit_names(
+    ["strftime", "to_timestamp", "asfreq", "start_time", "end_time"]
+    + PeriodArray._field_ops,
+    PeriodArray,
+    wrap=True,
 )
-class PeriodIndex(DatetimeIndexOpsMixin, Int64Index, PeriodDelegateMixin):
+@inherit_names(["is_leap_year", "freq", "_format_native_types"], PeriodArray)
+class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
 
