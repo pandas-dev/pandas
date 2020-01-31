@@ -1356,14 +1356,3 @@ class TestDataFrameToCSV:
                 result = f.read().decode("utf-8")
 
         assert result == expected
-
-    def test_na_rep_truncated(self):
-        # https://github.com/pandas-dev/pandas/issues/31447
-        result = pd.Series(range(8, 12)).to_csv(na_rep="-")
-        assert result == ",0\n0,8\n1,9\n2,10\n3,11\n"
-
-        result = pd.Series([True, False]).to_csv(na_rep="nan")
-        assert result == ",0\n0,True\n1,False\n"
-
-        result = pd.Series([1.1, 2.2]).to_csv(na_rep=".")
-        assert result == ",0\n0,1.1\n1,2.2\n"
