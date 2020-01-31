@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
-from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
@@ -28,7 +27,6 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
-    DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
 from pandas.core.indexes.extension import inherit_names
@@ -36,20 +34,20 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.tseries.frequencies import to_offset
 
 
-class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
-    # Most attrs are dispatched via datetimelike_{ops,methods}
-    # Some are "raw" methods, the result is not re-boxed in an Index
-    # We also have a few "extra" attrs, which may or may not be raw,
-    # which we don't want to expose in the .dt accessor.
-    _raw_properties = {"components", "_box_func"}
-    _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
-
-    _delegated_properties = TimedeltaArray._datetimelike_ops + list(_raw_properties)
-    _delegated_methods = TimedeltaArray._datetimelike_methods + list(_raw_methods)
-
-
 @inherit_names(
-    ["_box_values", "__neg__", "__pos__", "__abs__"], TimedeltaArray, wrap=True
+    [
+        "_box_values",
+        "__neg__",
+        "__pos__",
+        "__abs__",
+        "total_seconds",
+        "round",
+        "floor",
+        "ceil",
+    ]
+    + TimedeltaArray._field_ops,
+    TimedeltaArray,
+    wrap=True,
 )
 @inherit_names(
     [
@@ -59,21 +57,18 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
         "_datetimelike_ops",
         "_datetimelike_methods",
         "_other_ops",
+        "components",
+        "_box_func",
+        "to_pytimedelta",
+        "sum",
+        "std",
+        "median",
+        "_format_native_types",
+        "freq",
     ],
     TimedeltaArray,
 )
-@delegate_names(
-    TimedeltaArray, TimedeltaDelegateMixin._delegated_properties, typ="property"
-)
-@delegate_names(
-    TimedeltaArray,
-    TimedeltaDelegateMixin._delegated_methods,
-    typ="method",
-    overwrite=True,
-)
-class TimedeltaIndex(
-    DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin,
-):
+class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects.
