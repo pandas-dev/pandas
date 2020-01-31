@@ -1007,6 +1007,8 @@ def test_timestamp_constructor_infer_fold_from_value(tz, value_fold):
         ("2019-10-27 01:30:00", 1, 1572139800000000000),
         (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000000),
         (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), None, 1572136200000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), None, 1572139800000000000),
     ],
 )
 def test_timestamp_constructor_adjust_value_for_fold(tz, value_fold):
