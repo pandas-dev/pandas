@@ -327,6 +327,9 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     cdef:
         _TSObject obj = _TSObject()
 
+    # TODO: get fold from datetime if it isn't supplied
+    # change fold to object type first
+
     if tz is not None:
         tz = maybe_get_tz(tz)
 
@@ -373,27 +376,31 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
     # Datetime puts us into a fold for an ambiguous timestamp
     # adjust as necessary
-    print("Started printout")
-    print(obj.value)
-    if obj.fold == 0:
-        if tz is not None:
-            if is_utc(tz):
-                pass
-            elif is_tzlocal(tz):
-                pass
-                # TODO: think on how we can infer fold for local Timezone
-                # and adjust value for fold
-            else:
-                # Adjust datetime64 timestamp, recompute datetimestruct
-                trans, deltas, typ = get_dst_info(tz)
+    if tz is not None:
+        if is_utc(tz):
+            pass
+        elif is_tzlocal(tz):
+            pass
+            # TODO: think on how we can infer fold for local Timezone
+            # and adjust value for fold
+        else:
+            trans, deltas, typ = get_dst_info(tz)
 
-                if typ == 'pytz' or typ == 'dateutil':
-                    pos = trans.searchsorted(obj.value, side='right') - 1
-                    # Check if we are in a fold
-                    if pos > 0:
-                        fold_delta = deltas[pos - 1] - deltas[pos]
-                        if obj.value - fold_delta < trans[pos]:
-                            obj.value -= fold_delta                
+            # pytz assumes we are in a fold, dateutil - that we are not
+            if typ == 'pytz' and obj.fold == 0:
+                pos = trans.searchsorted(obj.value, side='right') - 1
+                # Check if we are in a fold
+                if pos > 0:
+                    fold_delta = deltas[pos - 1] - deltas[pos]
+                    if obj.value - fold_delta < trans[pos]:
+                        obj.value -= fold_delta
+            elif typ == 'dateutil' and obj.fold == 1:
+                pos = trans.searchsorted(obj.value, side='right') - 1
+                # Check if we are before a fold
+                if pos < len(deltas):
+                    fold_delta = deltas[pos] - deltas[pos + 1]
+                    if obj.value + fold_delta > trans[pos + 1]:
+                        obj.value += fold_delta
 
     check_dts_bounds(&obj.dts)
     check_overflows(obj)
@@ -440,7 +447,6 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         # TODO: think on how we can infer fold for local Timezone
         # and adjust value for fold
     else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
         if typ == 'pytz' or typ == 'dateutil':
