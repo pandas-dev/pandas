@@ -2037,19 +2037,3 @@ def test_groupby_list_level():
     expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
     result = expected.groupby(level=[0]).mean()
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("func", ["min", "max"])
-def test_groupby_aggregate_period(func):
-    # GH 31471
-    groups = [1, 2]
-    periods = pd.period_range("2020", periods=2, freq="Y")
-
-    df = pd.DataFrame({"a": groups, "b": periods})
-
-    result = getattr(df.groupby("a")["b"], func)()
-
-    idx = pd.Int64Index([1, 2], name="a")
-    expected = pd.Series(periods, index=idx, name="b")
-
-    tm.assert_series_equal(result, expected)
