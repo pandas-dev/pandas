@@ -499,12 +499,10 @@ def apply_frame_axis0(object frame, object f, object names,
                 # `piece` might not have an index, could be e.g. an int
                 pass
 
-            if isinstance(piece, list):
-                piece = deepcopy(piece)
-            elif not is_scalar(piece):
+            if not is_scalar(piece):
                 # Need to copy data to avoid appending references
                 if hasattr(piece, "copy"):
-                    piece = piece.copy(deep="all")
+                    piece = deepcopy(piece)
                 else:
                     piece = copy(piece)
 

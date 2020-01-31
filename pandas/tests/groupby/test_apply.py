@@ -830,6 +830,7 @@ def test_apply_index_has_complex_internals(index):
 
 
 def test_apply_function_returns_list():
+    # GH 31441
     df = pd.DataFrame(["A", "A", "B", "B"], columns=["groups"])
     result = df.groupby("groups").apply(lambda x: x.index.to_list())
     expected = pd.Series([[0, 1], [2, 3]], index=pd.Index(["A", "B"], name="groups"))

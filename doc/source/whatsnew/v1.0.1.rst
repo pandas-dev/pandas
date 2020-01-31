@@ -15,7 +15,7 @@ including other versions of pandas.
 
 Bug fixes
 ~~~~~~~~~
-- bug ``Groupby.apply`` was returning ``TypeError`` if called with function which returned list (:issue:`31441`)
+- Bug in :meth:`GroupBy.apply` was raising ``TypeError`` if called with function which returned list (:issue:`31441`)
 
 Categorical
 ^^^^^^^^^^^
