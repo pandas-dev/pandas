@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import operator
-from typing import Any, List, Optional, Set
+from typing import Any, List, Optional, Set, Union
 
 import numpy as np
 
@@ -31,7 +31,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
@@ -90,7 +90,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[DateOffset]
     freqstr: Optional[str]
     _resolution: int
@@ -468,7 +468,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
 
-    def _summary(self, name=None):
+    def _summary(self, name=None) -> str:
         """
         Return a summarized representation.
 
@@ -955,7 +955,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
     _raw_methods: Set[str] = set()
     # raw_properties : dispatch properties that shouldn't be boxed in an Index
     _raw_properties: Set[str] = set()
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
 
     def _delegate_property_get(self, name, *args, **kwargs):
         result = getattr(self._data, name)
@@ -963,7 +963,7 @@ class DatetimelikeDelegateMixin(PandasDelegate):
             result = Index(result, name=self.name)
         return result
 
-    def _delegate_property_set(self, name, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs):
         setattr(self._data, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
