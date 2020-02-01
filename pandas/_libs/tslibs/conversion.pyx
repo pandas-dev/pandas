@@ -628,26 +628,11 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             # static/fixed tzinfo; in this case we know len(deltas) == 1
             # This can come back with `typ` of either "fixed" or None
             dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
-        elif typ == 'pytz':
+        elif typ == 'pytz' or typ == 'dateutil':
             # i.e. treat_tz_as_pytz(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
-            tz = tz._tzinfos[tz._transition_info[pos]]
-            # Adjust value if fold was supplied
-            if fold == 1:
-                # Check if valid fold value
-                if pos < len(deltas):
-                    fold_delta = deltas[pos] - deltas[pos + 1]
-                    if obj.value + fold_delta > trans[pos + 1]:
-                        obj.value += fold_delta
-            dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-            # Check if we are in a fold
-            if pos > 0:
-                fold_delta = deltas[pos - 1] - deltas[pos]
-                if obj.value < (trans[pos] + fold_delta):
-                    obj.fold = 1
-        elif typ == 'dateutil':
-            # i.e. treat_tz_as_dateutil(tz)
-            pos = trans.searchsorted(obj.value, side='right') - 1
+            if typ == 'pytz':
+                tz = tz._tzinfos[tz._transition_info[pos]]
             # Adjust value if fold was supplied
             if fold == 1:
                 # Check if valid fold value
