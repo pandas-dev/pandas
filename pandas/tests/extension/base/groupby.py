@@ -26,7 +26,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         _, index = pd.factorize(data_for_grouping, sort=True)
 
         index = pd.Index(index, name="B")
-        expected = pd.Series([3, 1, 4], index=index, name="A")
+        expected = pd.Series([3, 1, 4], dtype="float64", index=index, name="A")
         if as_index:
             self.assert_series_equal(result, expected)
         else:
@@ -39,7 +39,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         _, index = pd.factorize(data_for_grouping, sort=False)
 
         index = pd.Index(index, name="B")
-        expected = pd.Series([1, 3, 4], index=index, name="A")
+        expected = pd.Series([1, 3, 4], dtype="float64", index=index, name="A")
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):

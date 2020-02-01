@@ -900,7 +900,7 @@ b  2""",
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
                     if self._aggregate_should_cast(how):
-                        result = self._try_cast(result_column, obj)
+                        result_column = self._try_cast(result_column, obj)
                     output[key] = result_column
                     idx += 1
             else:
