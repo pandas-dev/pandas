@@ -3726,6 +3726,27 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         except (KeyError, ValueError, IndexError):
             return default
 
+    def get_strict(self, key, default=None):
+        """
+        Get item from object for given key (ex: DataFrame column).
+
+        Will not accept an index value instead of a key.
+
+        Returns default value if not found.
+
+        Parameters
+        ----------
+        key : object
+
+        Returns
+        -------
+        value : same type as items contained in object
+        """
+        try:
+            return self.loc[key]
+        except (KeyError, ValueError, IndexError, TypeError):
+            return default
+
     @property
     def _is_view(self):
         """Return boolean indicating if self is view of another array """

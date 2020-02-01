@@ -2622,8 +2622,8 @@ Name: Max Speed, dtype: float64
             new_name = ops.get_op_result_name(self, other)
             new_values = []
             for idx in new_index:
-                lv = self.get(idx, fill_value)
-                rv = other.get(idx, fill_value)
+                lv = self.get_strict(idx, fill_value)
+                rv = other.get_strict(idx, fill_value)
                 with np.errstate(all="ignore"):
                     new_values.append(func(lv, rv))
         else:
