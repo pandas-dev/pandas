@@ -997,7 +997,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64 dtype.
 
     Examples
@@ -1014,7 +1014,9 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_any_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
+    >>> is_datetime64_any_dtype(np.array([], dtype="datetime64[ns]"))
+    True
+    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
     if arr_or_dtype is None:
@@ -1033,7 +1035,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64[ns] dtype.
 
     Examples
@@ -1050,10 +1052,12 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_ns_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_ns_dtype(np.array([], dtype=np.datetime64))  # no unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64"))  # no unit
     False
     >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))  # wrong unit
     False
+    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
+    True
     """
     if arr_or_dtype is None:
         return False
