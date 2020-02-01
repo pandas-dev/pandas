@@ -793,7 +793,7 @@ b  2""",
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
 
-    def _try_cast(self, result, obj, numeric_only: bool = False):
+    def _try_cast(self, result, obj, numeric_only: bool = False, is_python=False):
         """
         Try to cast the result to our obj original type,
         we may have roundtripped through object in the mean-time.
@@ -815,7 +815,7 @@ b  2""",
             #  so is excluded here.
             if is_extension_array_dtype(dtype) and dtype.kind != "M":
                 from pandas import notna
-                if Series(notna(result)).dtype == dtype.type:
+                if Series(notna(result)).dtype == dtype.type and is_python:
                     cls = dtype.construct_array_type()
                     result = try_cast_to_ea(cls, result, dtype=dtype)
 
@@ -946,7 +946,7 @@ b  2""",
             result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
-            output[key] = self._try_cast(result, obj, numeric_only=True)
+            output[key] = self._try_cast(result, obj, numeric_only=True, is_python=True)
 
         if len(output) == 0:
             return self._python_apply_general(f)
