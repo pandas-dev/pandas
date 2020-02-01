@@ -500,6 +500,7 @@ def apply_frame_axis0(object frame, object f, object names,
                 pass
 
             if not is_scalar(piece):
+            # Need to copy data to avoid appending references
                 try:
                     piece = piece.copy(deep="all")
                 except (TypeError, AttributeError):
