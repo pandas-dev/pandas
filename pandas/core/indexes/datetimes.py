@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta, tzinfo
+from datetime import date, datetime, time, timedelta, tzinfo
 import operator
 from typing import Optional
 import warnings
@@ -757,6 +757,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(start, time) or isinstance(end, time):
             raise KeyError("Cannot mix time and non-time slice keys")
+
+        # Pandas supports slicing with dates, treated as datetimes at midnight.
+        # https://github.com/pandas-dev/pandas/issues/31501
+        if isinstance(start, date) and not isinstance(start, datetime):
+            start = datetime.combine(start, time(0, 0))
+        if isinstance(end, date) and not isinstance(end, datetime):
+            end = datetime.combine(end, time(0, 0))
 
         try:
             return Index.slice_indexer(self, start, end, step, kind=kind)
