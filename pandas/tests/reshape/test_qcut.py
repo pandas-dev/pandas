@@ -3,8 +3,8 @@ import os
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
-    NA,
     Categorical,
     DatetimeIndex,
     Interval,
@@ -13,7 +13,6 @@ from pandas import (
     Series,
     TimedeltaIndex,
     Timestamp,
-    array,
     cut,
     date_range,
     isna,
@@ -292,8 +291,8 @@ def test_qcut_bool_coercion_to_int(bins, box, compare):
 
 @pytest.mark.parametrize("q", [2, 5, 10])
 def test_qcut_nullable_integer(q, any_nullable_int_dtype):
-    arr = array(np.arange(100), dtype=any_nullable_int_dtype)
-    arr[::2] = NA
+    arr = pd.array(np.arange(100), dtype=any_nullable_int_dtype)
+    arr[::2] = pd.NA
 
     result = qcut(arr, q)
     expected = qcut(arr.astype(float), q)
