@@ -1578,6 +1578,43 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 )
 
     def _convert_to_indexer(self, key, axis: int):
+        raise AbstractMethodError(self)
+
+
+class _LocationIndexer(_NDFrameIndexer):
+    _takeable: bool = False
+
+    def __getitem__(self, key):
+        if type(key) is tuple:
+            key = tuple(com.apply_if_callable(x, self.obj) for x in key)
+            if self._is_scalar_access(key):
+                try:
+                    return self.obj._get_value(*key, takeable=self._takeable)
+                except (KeyError, IndexError, AttributeError):
+                    # AttributeError for IntervalTree get_value
+                    pass
+            return self._getitem_tuple(key)
+        else:
+            # we by definition only have the 0th axis
+            axis = self.axis or 0
+
+            maybe_callable = com.apply_if_callable(key, self.obj)
+            return self._getitem_axis(maybe_callable, axis=axis)
+
+    def _is_scalar_access(self, key: Tuple):
+        raise NotImplementedError()
+
+    def _getitem_axis(self, key, axis: int):
+        raise NotImplementedError()
+
+    def _getbool_axis(self, key, axis: int):
+        # caller is responsible for ensuring non-None axis
+        labels = self.obj._get_axis(axis)
+        key = check_bool_indexer(labels, key)
+        inds = key.nonzero()[0]
+        return self.obj._take_with_is_copy(inds, axis=axis)
+
+    def _convert_to_indexer(self, key, axis: int):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on a ndarray.
@@ -1631,15 +1668,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # if we are setting and its not a valid location
             # its an insert which fails by definition
 
-            if self.name == "loc":
-                # always valid
-                return {"key": key}
-
-            if key >= self.obj.shape[axis] and not isinstance(labels, ABCMultiIndex):
-                # a positional
-                raise ValueError("cannot set by positional indexing with enlargement")
-
-            return key
+            # always valid
+            return {"key": key}
 
         if is_nested_tuple(key, labels):
             return labels.get_locs(key)
@@ -1661,40 +1691,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 if not is_list_like_indexer(key):
                     return {"key": key}
                 raise
-
-
-class _LocationIndexer(_NDFrameIndexer):
-    _takeable: bool = False
-
-    def __getitem__(self, key):
-        if type(key) is tuple:
-            key = tuple(com.apply_if_callable(x, self.obj) for x in key)
-            if self._is_scalar_access(key):
-                try:
-                    return self.obj._get_value(*key, takeable=self._takeable)
-                except (KeyError, IndexError, AttributeError):
-                    # AttributeError for IntervalTree get_value
-                    pass
-            return self._getitem_tuple(key)
-        else:
-            # we by definition only have the 0th axis
-            axis = self.axis or 0
-
-            maybe_callable = com.apply_if_callable(key, self.obj)
-            return self._getitem_axis(maybe_callable, axis=axis)
-
-    def _is_scalar_access(self, key: Tuple):
-        raise NotImplementedError()
-
-    def _getitem_axis(self, key, axis: int):
-        raise NotImplementedError()
-
-    def _getbool_axis(self, key, axis: int):
-        # caller is responsible for ensuring non-None axis
-        labels = self.obj._get_axis(axis)
-        key = check_bool_indexer(labels, key)
-        inds = key.nonzero()[0]
-        return self.obj._take_with_is_copy(inds, axis=axis)
 
 
 @Appender(IndexingMixin.loc.__doc__)
