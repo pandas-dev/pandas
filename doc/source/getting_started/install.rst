@@ -182,10 +182,6 @@ using. If it's something like "/usr/bin/python", you're using the Python from th
 It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
 You can find simple installation instructions for pandas in this document: `installation instructions </getting_started.html>`.
 
-Another possible way of fixing the error is by first finding the version of your python installation with::
-
-            python --version
-
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
