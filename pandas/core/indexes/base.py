@@ -2884,6 +2884,10 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(key)
             except KeyError:
                 return self._engine.get_loc(self._maybe_cast_indexer(key))
+
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
+
         indexer = self.get_indexer([key], method=method, tolerance=tolerance)
         if indexer.ndim > 1 or indexer.size > 1:
             raise TypeError("get_loc requires scalar valued input")
