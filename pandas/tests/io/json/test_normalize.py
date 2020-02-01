@@ -755,7 +755,7 @@ class TestNestedToRecord:
         data = """[{"id": 99, "data": [{"one": 1, "two": 2}]}]"""
 
         result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
-        expected_values = [[1, 2, "99"]]
+        expected_values = np.array([[1, 2, 99]], dtype=object)
         columns = ["one", "two", "id"]
         expected = DataFrame(expected_values, columns=columns)
         tm.assert_frame_equal(result, expected)
