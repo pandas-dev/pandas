@@ -1516,3 +1516,14 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
 
     assert except_out_dateutil == except_in_dateutil
     assert result == expected
+
+
+def test_missing_column(all_parsers):
+    parser = all_parsers
+    content = StringIO("time,val\n" "212.23, 32\n")
+    date_cols = ["time"]
+    msg = "'time' is not in list"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(
+            content, sep=",", usecols=["val"], parse_dates=date_cols,
+        )
