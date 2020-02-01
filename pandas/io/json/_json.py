@@ -56,7 +56,11 @@ def to_json(
             "'index=False' is only valid when 'orient' is 'split' or 'table'"
         )
 
-    path_or_buf = stringify_path(path_or_buf)
+    if path_or_buf is not None:
+        path_or_buf, _, _, _ = get_filepath_or_buffer(
+            path_or_buf, compression=compression, mode="w"
+        )
+
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
