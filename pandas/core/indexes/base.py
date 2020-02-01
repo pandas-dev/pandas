@@ -2888,6 +2888,10 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(key)
             except KeyError:
                 return self._engine.get_loc(self._maybe_cast_indexer(key))
+
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
+
         indexer = self.get_indexer([key], method=method, tolerance=tolerance)
         if indexer.ndim > 1 or indexer.size > 1:
             raise TypeError("get_loc requires scalar valued input")
@@ -3586,8 +3590,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
+        self_is_mi = isinstance(self, ABCMultiIndex)
+        other_is_mi = isinstance(other, ABCMultiIndex)
 
         if self_is_mi and other_is_mi:
 
