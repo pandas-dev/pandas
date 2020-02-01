@@ -834,6 +834,7 @@ def test_apply_index_has_complex_internals(index):
     [
         (lambda x: x.index.to_list(), [[0, 1], [2, 3]]),
         (lambda x: set(x.index.to_list()), [{0, 1}, {2, 3}]),
+        (lambda x: tuple(x.index.to_list()), [(0, 1), (2, 3)]),
         (
             lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
             [{0: 0, 1: 1}, {0: 2, 1: 3}],
