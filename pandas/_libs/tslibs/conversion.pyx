@@ -378,30 +378,26 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         else:
             trans, deltas, typ = get_dst_info(tz)
 
-            # adjust value for fold
-            # pytz assumes we are in a fold, dateutil - that we are not
-            if typ == 'pytz' and fold == 0:
-                pos = trans.searchsorted(obj.value, side='right') - 1
-                # Check if we are in a fold
-                if pos > 0:
-                    fold_delta = deltas[pos - 1] - deltas[pos]
-                    if obj.value - fold_delta < trans[pos]:
-                        obj.value -= fold_delta
-            elif typ == 'dateutil' and fold == 1:
-                pos = trans.searchsorted(obj.value, side='right') - 1
-                # Check if we are before a fold
-                if pos < len(deltas):
-                    fold_delta = deltas[pos] - deltas[pos + 1]
-                    if obj.value + fold_delta > trans[pos + 1]:
-                        obj.value += fold_delta
-
-            # Infer fold
             if typ == 'pytz' or typ == 'dateutil':
                 pos = trans.searchsorted(obj.value, side='right') - 1
 
+                # Adjust for fold
+                # pytz assumes we are in a fold, dateutil - that we are not
+                if typ == 'pytz' and fold == 0 and pos > 0:
+                    fold_delta = deltas[pos - 1] - deltas[pos]
+                    if obj.value - fold_delta < trans[pos]:
+                        obj.value -= fold_delta
+                        pos -= 1
+                elif typ == 'dateutil' and fold == 1 and pos < len(deltas):
+                    fold_delta = deltas[pos] - deltas[pos + 1]
+                    if obj.value + fold_delta > trans[pos + 1]:
+                        obj.value += fold_delta
+                        pos += 1
+
+                # Infer fold
                 if pos > 0:
                     fold_delta = deltas[pos - 1] - deltas[pos]
-                    if obj.value < (trans[pos] + fold_delta):
+                    if obj.value - fold_delta < trans[pos]:
                         obj.fold = 1
 
     check_dts_bounds(&obj.dts)
@@ -654,7 +650,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             # Infer fold
             if pos > 0:
                 fold_delta = deltas[pos - 1] - deltas[pos]
-                if obj.value < (trans[pos] + fold_delta):
+                if obj.value - fold_delta < trans[pos]:
                     obj.fold = 1
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
