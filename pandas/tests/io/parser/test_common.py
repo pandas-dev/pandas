@@ -16,7 +16,16 @@ import pytest
 from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    compat,
+    concat,
+    read_csv,
+)
+
 import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
@@ -2038,6 +2047,14 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
 
         for _ in result:
             pass
+
+
+def test_read_csv_raises_on_header_prefix():
+    # gh-27394
+    msg = "Argument prefix must be None if argument header is not None"
+    s = StringIO("0,1\n2,3")
+    with pytest.raises(ValueError, match=msg):
+        read_csv(s, header=0, prefix="_X")
 
 
 def test_read_table_equivalency_to_read_csv(all_parsers):
