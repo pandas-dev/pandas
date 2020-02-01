@@ -13,6 +13,7 @@ import pytest
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
 import pandas._testing as tm
+from pandas.conftest import all_arithmetic_functions
 from pandas.core import ops
 
 
@@ -1284,3 +1285,31 @@ def test_dataframe_div_silenced():
     )
     with tm.assert_produces_warning(None):
         pdf1.div(pdf2, fill_value=0)
+
+
+class TestNumericArraylikeArithmeticWithBool:
+    @pytest.mark.parametrize("num", [1, 1.0])
+    def test_array_like_bool_and_num_op_coerce(
+        self, num, all_arithmetic_functions, box_with_array
+    ):
+        # https://github.com/pandas-dev/pandas/issues/18549
+        op = all_arithmetic_functions
+
+        if op.__name__ in [
+            "floordiv",
+            "mod",
+            "mul",
+            "pow",
+            "rfloordiv",
+            "rpow",
+            "rmod",
+            "rmul",
+            "rtruediv",
+            "truediv",
+        ]:
+            pytest.skip("Arithmetic operation is not supported")
+        expected = [op(num, num)]
+        expected = tm.box_expected(expected, box_with_array)
+        bool_box = tm.box_expected([True], box_with_array)
+        tm.assert_equal(expected, op(bool_box, num))
+        tm.assert_equal(expected, op(num, bool_box))
