@@ -411,7 +411,9 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
-        raise AttributeError("Property constructor_expanddim is not supported for DataFrames!")
+        raise AttributeError(
+            "Property 'constructor_expanddim' is not supported for DataFrames!"
+        )
 
     # ----------------------------------------------------------------------
     # Constructors
