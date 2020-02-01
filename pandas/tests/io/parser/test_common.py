@@ -25,7 +25,6 @@ from pandas import (
     concat,
     read_csv,
 )
-
 import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
