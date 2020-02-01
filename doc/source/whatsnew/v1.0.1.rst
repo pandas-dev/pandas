@@ -70,7 +70,7 @@ Indexing
 
 -
 -
-- Bug where assigning to a ``Series`` using a IntegerArray / BooleanArray as a mask would raise ``TypeError`` (:issue:`31446`)
+- Bug where assigning to a :class:`Series` using a IntegerArray / BooleanArray as a mask would raise ``TypeError`` (:issue:`31446`)
 
 Missing
 ^^^^^^^
