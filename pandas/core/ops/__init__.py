@@ -266,7 +266,7 @@ def _get_opstr(op):
         rtruediv: "/",
         operator.floordiv: "//",
         rfloordiv: "//",
-        operator.mod: None,  # TODO: Why None for mod but '%' for rmod?
+        operator.mod: "%",
         rmod: "%",
         operator.pow: "**",
         rpow: "**",
