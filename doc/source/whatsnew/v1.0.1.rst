@@ -67,6 +67,8 @@ Interval
 
 Indexing
 ^^^^^^^^
+
+- Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containg a :class:`datetime.date` (:issue:`31501`)
 - Fixed regression in :class:`DataFrame` setting values with a slice (e.g. ``df[-4:] = 1``) indexing by label instead of position (:issue:`31469`)
 -
 -
