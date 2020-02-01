@@ -89,6 +89,7 @@ MultiIndex
 I/O
 ^^^
 
+- Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
 -
 -
 
