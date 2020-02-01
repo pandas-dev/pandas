@@ -72,16 +72,6 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box(indexer, values, obj, key):
-
-    # if we have multiples coming back, box em
-    if isinstance(values, np.ndarray):
-        return obj[indexer.get_loc(key)]
-
-    # return the value
-    return values
-
-
 def maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
