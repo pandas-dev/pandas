@@ -3582,8 +3582,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
+        self_is_mi = isinstance(self, ABCMultiIndex)
+        other_is_mi = isinstance(other, ABCMultiIndex)
 
         if self_is_mi and other_is_mi:
 
