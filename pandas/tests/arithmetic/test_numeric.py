@@ -187,7 +187,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ids=lambda x: type(x).__name__,
     )
     def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box):
-        arr = np.arange(2 * 10 ** 4)
+        arr = np.arange(2 * 10 ** 4).astype(np.int64)
         obj = tm.box_expected(arr, box, transpose=False)
 
         expected = arr.view("timedelta64[D]").astype("timedelta64[ns]")
