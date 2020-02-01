@@ -814,8 +814,10 @@ b  2""",
             # datetime64tz is handled correctly in agg_series,
             #  so is excluded here.
             if is_extension_array_dtype(dtype) and dtype.kind != "M":
-                cls = dtype.construct_array_type()
-                result = try_cast_to_ea(cls, result, dtype=dtype)
+                from pandas import notna
+                if Series(notna(result)).dtype == dtype.type:
+                    cls = dtype.construct_array_type()
+                    result = try_cast_to_ea(cls, result, dtype=dtype)
 
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
@@ -871,7 +873,7 @@ b  2""",
     def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
-    def _aggregate_should_cast(self, how: str) -> bool:
+    def _cython_aggregate_should_cast(self, how: str) -> bool:
         should_cast = how in base.cython_cast_keep_type_list
         return should_cast
 
@@ -899,14 +901,14 @@ b  2""",
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
-                    if self._aggregate_should_cast(how):
+                    if self._cython_aggregate_should_cast(how):
                         result_column = self._try_cast(result_column, obj)
                     output[key] = result_column
                     idx += 1
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                if self._aggregate_should_cast(how):
+                if self._cython_aggregate_should_cast(how):
                     result = self._try_cast(result, obj)
                 output[key] = result
                 idx += 1
