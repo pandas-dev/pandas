@@ -98,7 +98,6 @@ from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
 
-from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
@@ -2259,7 +2258,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         config.is_nonnegative_int(indent)
         indent = indent or 0
-
 
         return json.to_json(
             path_or_buf=path_or_buf,
