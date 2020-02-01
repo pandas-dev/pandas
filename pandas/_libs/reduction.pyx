@@ -1,4 +1,4 @@
-from copy import copy
+from copy import deepcopy
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -500,13 +500,10 @@ def apply_frame_axis0(object frame, object f, object names,
                 pass
 
             if not is_scalar(piece):
-                if hasattr(piece, "_typ") and piece._typ in [
-                    "series",
-                    "dataframe",
-                ]:
+                try:
                     piece = piece.copy(deep="all")
-                else:
-                    piece = copy(piece)
+                except (TypeError, AttributeError):
+                    piece = deepcopy(piece)
 
             results.append(piece)
 
