@@ -25,6 +25,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
+from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -425,6 +426,7 @@ class IntegerArray(BaseMaskedArray):
             value = value[0]
             mask = mask[0]
 
+        key = check_array_indexer(self, key)
         self._data[key] = value
         self._mask[key] = mask
 

@@ -26,6 +26,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core.indexers import check_array_indexer
 
 from .masked import BaseMaskedArray
 
@@ -382,6 +383,7 @@ class BooleanArray(BaseMaskedArray):
             value = value[0]
             mask = mask[0]
 
+        key = check_array_indexer(self, key)
         self._data[key] = value
         self._mask[key] = mask
 

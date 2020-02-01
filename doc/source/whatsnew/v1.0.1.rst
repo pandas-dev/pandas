@@ -70,6 +70,7 @@ Indexing
 - Fixed regression in :class:`DataFrame` setting values with a slice (e.g. ``df[-4:] = 1``) indexing by label instead of position (:issue:`31469`)
 -
 -
+- Bug where assigning to a :class:`Series` using a IntegerArray / BooleanArray as a mask would raise ``TypeError`` (:issue:`31446`)
 
 Missing
 ^^^^^^^

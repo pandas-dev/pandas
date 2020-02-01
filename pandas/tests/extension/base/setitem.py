@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.arrays.numpy_ import PandasDtype
 
 from .base import BaseExtensionTests
 
@@ -195,3 +196,14 @@ class BaseSetitemTests(BaseExtensionTests):
         data[0] = data[1]
         assert view1[0] == data[1]
         assert view2[0] == data[1]
+
+    def test_setitem_nullable_mask(self, data):
+        # GH 31446
+        # TODO: there is some issue with PandasArray, therefore,
+        # TODO: skip the setitem test for now, and fix it later
+        if data.dtype != PandasDtype("object"):
+            arr = data[:5]
+            expected = data.take([0, 0, 0, 3, 4])
+            mask = pd.array([True, True, True, False, False])
+            arr[mask] = data[0]
+            self.assert_extension_array_equal(expected, arr)
