@@ -15,7 +15,7 @@ including other versions of pandas.
 
 Bug fixes
 ~~~~~~~~~
-
+- Bug in :meth:`GroupBy.apply` was raising ``TypeError`` if called with function which returned a non-pandas non-scalar object (e.g. a list) (:issue:`31441`)
 
 Categorical
 ^^^^^^^^^^^

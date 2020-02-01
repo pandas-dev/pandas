@@ -827,3 +827,27 @@ def test_apply_index_has_complex_internals(index):
     df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
     result = df.groupby("group").apply(lambda x: x)
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "function, expected_values",
+    [
+        (lambda x: x.index.to_list(), [[0, 1], [2, 3]]),
+        (lambda x: set(x.index.to_list()), [{0, 1}, {2, 3}]),
+        (lambda x: tuple(x.index.to_list()), [(0, 1), (2, 3)]),
+        (
+            lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
+            [{0: 0, 1: 1}, {0: 2, 1: 3}],
+        ),
+        (
+            lambda x: [{n: i} for (n, i) in enumerate(x.index.to_list())],
+            [[{0: 0}, {1: 1}], [{0: 2}, {1: 3}]],
+        ),
+    ],
+)
+def test_apply_function_returns_non_pandas_non_scalar(function, expected_values):
+    # GH 31441
+    df = pd.DataFrame(["A", "A", "B", "B"], columns=["groups"])
+    result = df.groupby("groups").apply(function)
+    expected = pd.Series(expected_values, index=pd.Index(["A", "B"], name="groups"))
+    tm.assert_series_equal(result, expected)
