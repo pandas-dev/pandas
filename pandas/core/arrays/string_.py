@@ -15,6 +15,7 @@ from pandas import compat
 from pandas.core import ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
 if TYPE_CHECKING:
@@ -238,6 +239,7 @@ class StringArray(PandasArray):
             # extract_array doesn't extract PandasArray subclasses
             value = value._ndarray
 
+        key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)
         scalar_value = lib.is_scalar(value)
         if scalar_key and not scalar_value:
