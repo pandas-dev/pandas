@@ -58,7 +58,7 @@ class TestTSPlot(TestPlotBase):
             # Extract H:M component, check first point is in correct timezone.
             # NOTE: this test could be updated once GH 31548 is fixed,
             # so that the last point is checked as well.
-            assert re.findall(r"[^:]*(\d{2}:\d{2})", labels[0]) == ["00:00"]
+            assert re.findall(r"\d{2}:\d{2}", labels[0])[0] == "00:00"
             _check_plot_works(ts.plot)
 
     def test_fontsize_set_correctly(self):
