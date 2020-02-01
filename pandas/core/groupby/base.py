@@ -94,7 +94,7 @@ cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
 cython_cast_cat_type_list = frozenset(["first", "last"])
 cython_cast_keep_type_list = cython_cast_cat_type_list | frozenset(
-    ["sum", "min", "max"]
+    ["sum", "min", "max", "add"]
 )
 
 # List of aggregation/reduction functions.

@@ -871,17 +871,8 @@ b  2""",
     def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
-    def _aggregate_should_cast(self, how: str, result=None, obj=None) -> bool:
-        if obj.ndim > 1:
-            dtype = obj._values.dtype
-        else:
-            dtype = obj.dtype
-
-        should_cast = (
-            len(result)
-            and isinstance(result[0], dtype.type)
-            or how in base.cython_cast_keep_type_list
-        )
+    def _aggregate_should_cast(self, how: str) -> bool:
+        should_cast = how in base.cython_cast_keep_type_list
         return should_cast
 
     def _cython_agg_general(
@@ -908,14 +899,14 @@ b  2""",
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
-                    if self._aggregate_should_cast(how, result, obj):
+                    if self._aggregate_should_cast(how):
                         result = self._try_cast(result_column, obj)
                     output[key] = result_column
                     idx += 1
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                if self._aggregate_should_cast(how, result, obj):
+                if self._aggregate_should_cast(how):
                     result = self._try_cast(result, obj)
                 output[key] = result
                 idx += 1
