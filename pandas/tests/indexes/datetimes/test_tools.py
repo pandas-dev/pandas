@@ -559,9 +559,14 @@ class TestToDatetime:
         assert pd.to_datetime(dt, errors="coerce", cache=cache) is NaT
 
     @pytest.mark.parametrize("cache", [True, False])
-    def test_to_datetime_array_of_dt64s(self, cache):
-        dts = [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
-
+    @pytest.mark.parametrize("unit", ["s", "D"])
+    def test_to_datetime_array_of_dt64s(self, cache, unit):
+        # https://github.com/pandas-dev/pandas/issues/31491
+        # Need at least 50 to ensure cache is used.
+        dts = [
+            np.datetime64("2000-01-01", unit),
+            np.datetime64("2000-01-02", unit),
+        ] * 30
         # Assuming all datetimes are in bounds, to_datetime() returns
         # an array that is equal to Timestamp() parsing
         tm.assert_index_equal(
@@ -579,11 +584,8 @@ class TestToDatetime:
         tm.assert_index_equal(
             pd.to_datetime(dts_with_oob, errors="coerce", cache=cache),
             pd.DatetimeIndex(
-                [
-                    Timestamp(dts_with_oob[0]).asm8,
-                    Timestamp(dts_with_oob[1]).asm8,
-                    pd.NaT,
-                ]
+                [Timestamp(dts_with_oob[0]).asm8, Timestamp(dts_with_oob[1]).asm8] * 30
+                + [pd.NaT],
             ),
         )
 
