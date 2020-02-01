@@ -234,6 +234,8 @@ class MultiIndex(Index):
     _comparables = ["names"]
     rename = Index.set_names
 
+    _tuples = None
+
     # --------------------------------------------------------------------
     # Constructors
 
@@ -1039,6 +1041,7 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
     # Rendering Methods
+
     def _formatter_func(self, tup):
         """
         Formats each item in tup according to its level's formatter function.
@@ -1303,8 +1306,6 @@ class MultiIndex(Index):
                 )
         return level
 
-    _tuples = None
-
     @cache_readonly
     def _engine(self):
         # Calculate the number of bits needed to represent labels in each
@@ -1460,68 +1461,6 @@ class MultiIndex(Index):
 
         new_codes = [level_codes[~indexer] for level_codes in self.codes]
         return self.copy(codes=new_codes, deep=True)
-
-    def get_value(self, series, key):
-        # Label-based
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
-
-        def _try_mi(k):
-            # TODO: what if a level contains tuples??
-            loc = self.get_loc(k)
-            new_values = series._values[loc]
-            new_index = self[loc]
-            new_index = maybe_droplevels(new_index, k)
-            return series._constructor(
-                new_values, index=new_index, name=series.name
-            ).__finalize__(self)
-
-        try:
-            return self._engine.get_value(s, k)
-        except KeyError as e1:
-            try:
-                return _try_mi(key)
-            except KeyError:
-                pass
-
-            try:
-                return libindex.get_value_at(s, k)
-            except IndexError:
-                raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
-                raise e1
-        except TypeError:
-
-            # a Timestamp will raise a TypeError in a multi-index
-            # rather than a KeyError, try it here
-            # note that a string that 'looks' like a Timestamp will raise
-            # a KeyError! (GH5725)
-            if isinstance(key, (datetime.datetime, np.datetime64, str)):
-                try:
-                    return _try_mi(key)
-                except KeyError:
-                    raise
-                except (IndexError, ValueError, TypeError):
-                    pass
-
-                try:
-                    return _try_mi(Timestamp(key))
-                except (
-                    KeyError,
-                    TypeError,
-                    IndexError,
-                    ValueError,
-                    tslibs.OutOfBoundsDatetime,
-                ):
-                    pass
-
-            raise InvalidIndexError(key)
 
     def _get_level_values(self, level, unique=False):
         """
@@ -1883,6 +1822,9 @@ class MultiIndex(Index):
         """
         return tuple(len(x) for x in self.levels)
 
+    # --------------------------------------------------------------------
+    # Pickling Methods
+
     def __reduce__(self):
         """Necessary for making this object picklable"""
         d = dict(
@@ -1914,6 +1856,8 @@ class MultiIndex(Index):
         self._set_names(names)
         self.sortorder = sortorder
         self._reset_identity()
+
+    # --------------------------------------------------------------------
 
     def __getitem__(self, key):
         if is_scalar(key):
@@ -2287,6 +2231,135 @@ class MultiIndex(Index):
 
         return new_index, indexer
 
+    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
+        """
+        Create index with target's values (move/add/delete values as necessary)
+
+        Returns
+        -------
+        new_index : pd.MultiIndex
+            Resulting index
+        indexer : np.ndarray or None
+            Indices of output values in original index.
+
+        """
+        # GH6552: preserve names when reindexing to non-named target
+        # (i.e. neither Index nor Series).
+        preserve_names = not hasattr(target, "names")
+
+        if level is not None:
+            if method is not None:
+                raise TypeError("Fill method not supported if level passed")
+
+            # GH7774: preserve dtype/tz if target is empty and not an Index.
+            # target may be an iterator
+            target = ibase._ensure_has_len(target)
+            if len(target) == 0 and not isinstance(target, Index):
+                idx = self.levels[level]
+                attrs = idx._get_attributes_dict()
+                attrs.pop("freq", None)  # don't preserve freq
+                target = type(idx)._simple_new(np.empty(0, dtype=idx.dtype), **attrs)
+            else:
+                target = ensure_index(target)
+            target, indexer, _ = self._join_level(
+                target, level, how="right", return_indexers=True, keep_order=False
+            )
+        else:
+            target = ensure_index(target)
+            if self.equals(target):
+                indexer = None
+            else:
+                if self.is_unique:
+                    indexer = self.get_indexer(
+                        target, method=method, limit=limit, tolerance=tolerance
+                    )
+                else:
+                    raise ValueError("cannot handle a non-unique multi-index!")
+
+        if not isinstance(target, MultiIndex):
+            if indexer is None:
+                target = self
+            elif (indexer >= 0).all():
+                target = self.take(indexer)
+            else:
+                # hopefully?
+                target = MultiIndex.from_tuples(target)
+
+        if (
+            preserve_names
+            and target.nlevels == self.nlevels
+            and target.names != self.names
+        ):
+            target = target.copy(deep=False)
+            target.names = self.names
+
+        return target, indexer
+
+    # --------------------------------------------------------------------
+    # Indexing Methods
+
+    def get_value(self, series, key):
+        # Label-based
+        s = com.values_from_object(series)
+        k = com.values_from_object(key)
+
+        def _try_mi(k):
+            # TODO: what if a level contains tuples??
+            loc = self.get_loc(k)
+            new_values = series._values[loc]
+            new_index = self[loc]
+            new_index = maybe_droplevels(new_index, k)
+            return series._constructor(
+                new_values, index=new_index, name=series.name
+            ).__finalize__(self)
+
+        try:
+            return self._engine.get_value(s, k)
+        except KeyError as e1:
+            try:
+                return _try_mi(key)
+            except KeyError:
+                pass
+
+            try:
+                return libindex.get_value_at(s, k)
+            except IndexError:
+                raise
+            except TypeError:
+                # generator/iterator-like
+                if is_iterator(key):
+                    raise InvalidIndexError(key)
+                else:
+                    raise e1
+            except Exception:  # pragma: no cover
+                raise e1
+        except TypeError:
+
+            # a Timestamp will raise a TypeError in a multi-index
+            # rather than a KeyError, try it here
+            # note that a string that 'looks' like a Timestamp will raise
+            # a KeyError! (GH5725)
+            if isinstance(key, (datetime.datetime, np.datetime64, str)):
+                try:
+                    return _try_mi(key)
+                except KeyError:
+                    raise
+                except (IndexError, ValueError, TypeError):
+                    pass
+
+                try:
+                    return _try_mi(Timestamp(key))
+                except (
+                    KeyError,
+                    TypeError,
+                    IndexError,
+                    ValueError,
+                    tslibs.OutOfBoundsDatetime,
+                ):
+                    pass
+
+            raise InvalidIndexError(key)
+
     def _convert_listlike_indexer(self, keyarr, kind=None):
         """
         Parameters
@@ -2360,70 +2433,6 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         return super().get_indexer_non_unique(target)
-
-    def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
-        """
-        Create index with target's values (move/add/delete values as necessary)
-
-        Returns
-        -------
-        new_index : pd.MultiIndex
-            Resulting index
-        indexer : np.ndarray or None
-            Indices of output values in original index.
-
-        """
-        # GH6552: preserve names when reindexing to non-named target
-        # (i.e. neither Index nor Series).
-        preserve_names = not hasattr(target, "names")
-
-        if level is not None:
-            if method is not None:
-                raise TypeError("Fill method not supported if level passed")
-
-            # GH7774: preserve dtype/tz if target is empty and not an Index.
-            # target may be an iterator
-            target = ibase._ensure_has_len(target)
-            if len(target) == 0 and not isinstance(target, Index):
-                idx = self.levels[level]
-                attrs = idx._get_attributes_dict()
-                attrs.pop("freq", None)  # don't preserve freq
-                target = type(idx)._simple_new(np.empty(0, dtype=idx.dtype), **attrs)
-            else:
-                target = ensure_index(target)
-            target, indexer, _ = self._join_level(
-                target, level, how="right", return_indexers=True, keep_order=False
-            )
-        else:
-            target = ensure_index(target)
-            if self.equals(target):
-                indexer = None
-            else:
-                if self.is_unique:
-                    indexer = self.get_indexer(
-                        target, method=method, limit=limit, tolerance=tolerance
-                    )
-                else:
-                    raise ValueError("cannot handle a non-unique multi-index!")
-
-        if not isinstance(target, MultiIndex):
-            if indexer is None:
-                target = self
-            elif (indexer >= 0).all():
-                target = self.take(indexer)
-            else:
-                # hopefully?
-                target = MultiIndex.from_tuples(target)
-
-        if (
-            preserve_names
-            and target.nlevels == self.nlevels
-            and target.names != self.names
-        ):
-            target = target.copy(deep=False)
-            target.names = self.names
-
-        return target, indexer
 
     def get_slice_bound(
         self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
@@ -3060,6 +3069,8 @@ class MultiIndex(Index):
             return Int64Index([])._ndarray_values
         return indexer._ndarray_values
 
+    # --------------------------------------------------------------------
+
     def truncate(self, before=None, after=None):
         """
         Slice index between two labels / tuples, return new MultiIndex
@@ -3157,6 +3168,9 @@ class MultiIndex(Index):
             if not self.levels[i].equals(other.levels[i]):
                 return False
         return True
+
+    # --------------------------------------------------------------------
+    # Set Methods
 
     def union(self, other, sort=None):
         """
@@ -3310,21 +3324,6 @@ class MultiIndex(Index):
         else:
             return MultiIndex.from_tuples(difference, sortorder=0, names=result_names)
 
-    @Appender(Index.astype.__doc__)
-    def astype(self, dtype, copy=True):
-        dtype = pandas_dtype(dtype)
-        if is_categorical_dtype(dtype):
-            msg = "> 1 ndim Categorical are not supported at this time"
-            raise NotImplementedError(msg)
-        elif not is_object_dtype(dtype):
-            raise TypeError(
-                f"Setting {type(self)} dtype to anything other "
-                "than object is not supported"
-            )
-        elif copy is True:
-            return self._shallow_copy()
-        return self
-
     def _convert_can_do_setop(self, other):
         result_names = self.names
 
@@ -3344,6 +3343,23 @@ class MultiIndex(Index):
         else:
             result_names = self.names if self.names == other.names else None
         return other, result_names
+
+    # --------------------------------------------------------------------
+
+    @Appender(Index.astype.__doc__)
+    def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
+        if is_categorical_dtype(dtype):
+            msg = "> 1 ndim Categorical are not supported at this time"
+            raise NotImplementedError(msg)
+        elif not is_object_dtype(dtype):
+            raise TypeError(
+                f"Setting {type(self)} dtype to anything other "
+                "than object is not supported"
+            )
+        elif copy is True:
+            return self._shallow_copy()
+        return self
 
     def insert(self, loc: int, item):
         """
