@@ -265,7 +265,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable:
         The string which would be used to format docstring template.
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: F) -> F:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Callable:
             return func(*args, **kwargs)
@@ -282,7 +282,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable:
         wrapper._docstr_template = "".join(dedent(t) for t in templates)  # type: ignore
         wrapper.__doc__ = wrapper._docstr_template.format(**kwargs)  # type: ignore
 
-        return wrapper
+        return cast(F, wrapper)
 
     return decorator
 
