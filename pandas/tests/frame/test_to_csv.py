@@ -575,7 +575,6 @@ class TestDataFrameToCSV:
             recons.reset_index(inplace=True)
             tm.assert_frame_equal(to_df, recons)
 
-
     def test_to_csv_multiindex(self, float_frame, datetime_frame):
 
         frame = float_frame
