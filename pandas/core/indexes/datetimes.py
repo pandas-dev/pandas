@@ -639,18 +639,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
+        orig_key = key
         if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
-
-        if tolerance is not None:
-            # try converting tolerance now, so errors don't get swallowed by
-            # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
         if isinstance(key, (datetime, np.datetime64)):
             # needed to localize naive datetimes
             key = self._maybe_cast_for_get_loc(key)
-            return Index.get_loc(self, key, method, tolerance)
 
         elif isinstance(key, str):
             try:
@@ -659,9 +654,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 pass
 
             try:
-                stamp = self._maybe_cast_for_get_loc(key)
-                return Index.get_loc(self, stamp, method, tolerance)
-            except (KeyError, ValueError):
+                key = self._maybe_cast_for_get_loc(key)
+            except ValueError:
                 raise KeyError(key)
 
         elif isinstance(key, timedelta):
@@ -670,14 +664,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
-        if isinstance(key, time):
+        elif isinstance(key, time):
             if method is not None:
                 raise NotImplementedError(
                     "cannot yet lookup inexact labels when key is a time object"
                 )
             return self.indexer_at_time(key)
 
-        return Index.get_loc(self, key, method, tolerance)
+        else:
+            # unrecognized type
+            raise KeyError(key)
+
+        try:
+            return Index.get_loc(self, key, method, tolerance)
+        except KeyError:
+            raise KeyError(orig_key)
 
     def _maybe_cast_for_get_loc(self, key) -> Timestamp:
         # needed to localize naive datetimes
