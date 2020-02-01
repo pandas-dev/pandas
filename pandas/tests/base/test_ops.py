@@ -31,7 +31,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.ops import _get_op_name, _get_opstr
 
 
 def allow_na_ops(obj: Any) -> bool:
@@ -84,22 +83,30 @@ class Ops:
         self.objs = self.indexes + self.series + self.narrow_series
 
 
+@pytest.mark.parametrize(
+    "op_name, op",
+    [
+        ("add", "+"),
+        ("sub", "-"),
+        ("mul", "*"),
+        ("mod", "%"),
+        ("pow", "**"),
+        ("truediv", "/"),
+        ("floordiv", "//"),
+    ],
+)
 @pytest.mark.parametrize("klass", [Series, DataFrame])
-def test_binary_ops_docs(klass, all_arithmetic_functions):
-    operator = all_arithmetic_functions
-    operator_name = _get_op_name(operator, special=False)
-    operator_symbol = _get_opstr(operator)
-    is_reverse = operator_name.startswith("r")
-
+def test_binary_ops(klass, op_name, op):
+    # not using the all_arithmetic_functions fixture with _get_opstr
+    # as _get_opstr is used internally in the dynamic implementation of the docstring
     operand1 = klass.__name__.lower()
     operand2 = "other"
-    order = [operand1, operator_symbol, operand2]
-    if is_reverse:
-        # switch order of operand1 and operand2
-        order[0], order[2] = order[2], order[0]
+    expected_str = " ".join([operand1, op, operand2])
+    assert expected_str in getattr(klass, op_name).__doc__
 
-    expected_str = " ".join(order)
-    assert expected_str in getattr(klass, operator_name).__doc__
+    # reverse version of the binary ops
+    expected_str = " ".join([operand2, op, operand1])
+    assert expected_str in getattr(klass, "r" + op_name).__doc__
 
 
 class TestTranspose(Ops):
