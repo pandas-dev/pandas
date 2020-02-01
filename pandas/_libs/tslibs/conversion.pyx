@@ -433,7 +433,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         check_overflows(obj)
         return obj
 
-    # Offset supplied, so infer fold
+    # Can infer fold from offset-adjusted obj.value
     fold = 0
     if is_utc(tz):
         pass
@@ -530,7 +530,6 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                     ts = dtstruct_to_dt64(&dts)
                     if tz is not None:
                         # shift for localize_tso
-                        # TODO: maybe change fold type to object to allow None
                         ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
                                                 ambiguous=not(fold))[0]
 
@@ -644,6 +643,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
                     fold_delta = deltas[pos] - deltas[pos + 1]
                     if obj.value + fold_delta > trans[pos + 1]:
                         obj.value += fold_delta
+                        pos += 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
             # Infer fold
             if pos > 0:
