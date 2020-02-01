@@ -177,6 +177,28 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         commute = scalar_td * index
         tm.assert_equal(commute, expected)
 
+    @pytest.mark.parametrize(
+        "scalar_td",
+        [
+            Timedelta(days=1),
+            Timedelta(days=1).to_timedelta64(),
+            Timedelta(days=1).to_pytimedelta(),
+        ],
+        ids=lambda x: type(x).__name__,
+    )
+    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box):
+        arr = np.arange(2 * 10 ** 4).astype(np.int64)
+        obj = tm.box_expected(arr, box, transpose=False)
+
+        expected = arr.view("timedelta64[D]").astype("timedelta64[ns]")
+        expected = tm.box_expected(expected, box, transpose=False)
+
+        result = obj * scalar_td
+        tm.assert_equal(result, expected)
+
+        result = scalar_td * obj
+        tm.assert_equal(result, expected)
+
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
         index = numeric_idx[1:3]
 
