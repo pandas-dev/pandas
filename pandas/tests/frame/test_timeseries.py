@@ -30,7 +30,7 @@ def test_no_idea_how_to_name_this_or_where_to_place_this():
         }
     )
 
-    msg = "unsupported operand type\(s\) for -: 'Timestamp' and 'datetime.time'"
+    msg = r"unsupported operand type\(s\) for -: 'Timestamp' and 'datetime.time'"
 
     with pytest.raises(TypeError, match=msg):
         df["date"] - df["time"]
