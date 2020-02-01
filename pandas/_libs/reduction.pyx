@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -504,7 +504,7 @@ def apply_frame_axis0(object frame, object f, object names,
                 try:
                     piece = piece.copy(deep="all")
                 except (TypeError, AttributeError):
-                    piece = deepcopy(piece)
+                    piece = copy(piece)
 
             results.append(piece)
 
