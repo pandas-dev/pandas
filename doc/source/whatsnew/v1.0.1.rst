@@ -19,7 +19,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-
+- Bug in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)
 -
 -
 
