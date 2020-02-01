@@ -961,7 +961,7 @@ b  2""",
                 if is_numeric_dtype(values.dtype):
                     values = ensure_float(values)
 
-                output[key] = self._try_cast(values[mask], result)
+                output[key] = self._try_cast(values[mask], result, is_python=True)
 
         return self._wrap_aggregated_output(output)
 
