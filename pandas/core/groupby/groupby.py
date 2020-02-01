@@ -793,7 +793,7 @@ b  2""",
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
 
-    def _try_cast(self, result, obj, numeric_only: bool = False, how=None):
+    def _try_cast(self, result, obj, numeric_only: bool = False):
         """
         Try to cast the result to our obj original type,
         we may have roundtripped through object in the mean-time.
@@ -814,15 +814,8 @@ b  2""",
             # datetime64tz is handled correctly in agg_series,
             #  so is excluded here.
             if is_extension_array_dtype(dtype) and dtype.kind != "M":
-                # if how is in cython_cast_keep_type_list, which means it
-                # should be cast back to return the same type as obj
-                if (
-                    len(result)
-                    and isinstance(result[0], dtype.type)
-                    or how in cython_cast_keep_type_list
-                ):
-                    cls = dtype.construct_array_type()
-                    result = try_cast_to_ea(cls, result, dtype=dtype)
+                cls = dtype.construct_array_type()
+                result = try_cast_to_ea(cls, result, dtype=dtype)
 
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
@@ -878,6 +871,19 @@ b  2""",
     def _wrap_applied_output(self, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
+    def _aggregate_should_cast(self, how: str, result=None, obj=None) -> bool:
+        if obj.ndim > 1:
+            dtype = obj._values.dtype
+        else:
+            dtype = obj.dtype
+
+        should_cast = (
+            len(result)
+            and isinstance(result[0], dtype.type)
+            or how in base.cython_cast_keep_type_list
+        )
+        return should_cast
+
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
     ):
@@ -902,12 +908,16 @@ b  2""",
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
-                    output[key] = self._try_cast(result_column, obj)
+                    if self._aggregate_should_cast(how, result, obj):
+                        result = self._try_cast(result_column, obj)
+                    output[key] = result_column
                     idx += 1
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                output[key] = self._try_cast(result, obj, how=how)
+                if self._aggregate_should_cast(how, result, obj):
+                    result = self._try_cast(result, obj)
+                output[key] = result
                 idx += 1
 
         if len(output) == 0:
