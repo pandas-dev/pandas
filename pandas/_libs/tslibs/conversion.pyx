@@ -632,7 +632,6 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             # This can come back with `typ` of either "fixed" or None
             dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
         elif typ == 'pytz' or typ == 'dateutil':
-            # i.e. treat_tz_as_pytz(tz)
             pos = trans.searchsorted(obj.value, side='right') - 1
             if typ == 'pytz':
                 tz = tz._tzinfos[tz._transition_info[pos]]
