@@ -514,8 +514,7 @@ cdef class PeriodEngine(Int64Engine):
         return super(PeriodEngine, self).vgetter().view("i8")
 
     cdef _call_monotonic(self, values):
-        # super(...) pattern doesn't seem to work with `cdef`
-        return Int64Engine._call_monotonic(self, values.view('i8'))
+        return algos.is_monotonic(values, timelike=True)
 
     def get_indexer(self, values):
         cdef:

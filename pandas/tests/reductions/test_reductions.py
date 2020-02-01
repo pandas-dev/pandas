@@ -440,7 +440,8 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = pd.PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        assert idx1.is_monotonic
+        assert not idx1.is_monotonic
+        assert idx1[1:].is_monotonic
 
         # non-monotonic
         idx2 = pd.PeriodIndex(
