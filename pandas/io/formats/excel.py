@@ -14,7 +14,7 @@ from pandas._typing import Label
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex, ABCPeriodIndex
 
 from pandas import Index
 import pandas.core.common as com
@@ -452,7 +452,7 @@ class ExcelFormatter:
                     "index ('index'=False) is not yet implemented."
                 )
 
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if not (has_aliases or self.header):
             return
 
@@ -500,7 +500,7 @@ class ExcelFormatter:
         self.rowcounter = lnum
 
     def _format_header_regular(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if has_aliases or self.header:
             coloffset = 0
 
@@ -550,7 +550,7 @@ class ExcelFormatter:
             return self._format_regular_rows()
 
     def _format_regular_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if has_aliases or self.header:
             self.rowcounter += 1
 
@@ -590,7 +590,7 @@ class ExcelFormatter:
             yield cell
 
     def _format_hierarchical_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if has_aliases or self.header:
             self.rowcounter += 1
 
