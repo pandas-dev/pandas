@@ -366,8 +366,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.dts.ps = nanos * 1000
 
     obj.fold = 0
-    # Datetime puts us into a fold for an ambiguous timestamp
-    # adjust as necessary
     if tz is not None:
         if is_utc(tz):
             pass
@@ -381,7 +379,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             if typ == 'pytz' or typ == 'dateutil':
                 pos = trans.searchsorted(obj.value, side='right') - 1
 
-                # Adjust for fold
+                # obj.value includes tz assumptions, need to adjust
                 # pytz assumes we are in a fold, dateutil - that we are not
                 if typ == 'pytz' and fold == 0 and pos > 0:
                     fold_delta = deltas[pos - 1] - deltas[pos]
