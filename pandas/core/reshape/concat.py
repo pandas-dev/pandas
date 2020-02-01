@@ -1,5 +1,5 @@
 """
-concat routines
+Concat routines.
 """
 
 from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
@@ -7,6 +7,8 @@ from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
 import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
@@ -394,11 +396,11 @@ class _Concatenator:
             axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, DataFrame)
+        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
             axis = 1 if axis == 0 else 0
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
                 "axis must be between 0 and {ndim}, input was "
