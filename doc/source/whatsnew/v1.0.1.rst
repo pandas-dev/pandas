@@ -25,8 +25,8 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
--
+- Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
+- Fixed bug in :meth:`to_datetime` raising when ``cache=True`` and out-of-bound values are present (:issue:`31491`)
 
 Timedelta
 ^^^^^^^^^
