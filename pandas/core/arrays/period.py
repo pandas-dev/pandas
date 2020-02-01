@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass,
+    ABCPeriod,
     ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
@@ -960,8 +961,8 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
     if end is not None:
         end = Period(end, freq)
 
-    is_start_per = isinstance(start, Period)
-    is_end_per = isinstance(end, Period)
+    is_start_per = isinstance(start, ABCPeriod)
+    is_end_per = isinstance(end, ABCPeriod)
 
     if is_start_per and is_end_per and start.freq != end.freq:
         raise ValueError("start and end must have same freq")
