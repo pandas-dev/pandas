@@ -6,7 +6,7 @@ is invoked inside specific modules, they will not be registered until that
 module is imported, which may or may not be a problem.
 
 If you need to make sure options are available even before a certain
-module is imported, register them here rather then in the module.
+module is imported, register them here rather than in the module.
 
 """
 import pandas._config.config as cf
@@ -479,6 +479,7 @@ _xls_options = ["xlrd"]
 _xlsm_options = ["xlrd", "openpyxl"]
 _xlsx_options = ["xlrd", "openpyxl"]
 _ods_options = ["odf"]
+_xlsb_options = ["pyxlsb"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -515,6 +516,13 @@ with cf.config_prefix("io.excel.ods"):
         validator=str,
     )
 
+with cf.config_prefix("io.excel.xlsb"):
+    cf.register_option(
+        "reader",
+        "auto",
+        reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
+        validator=str,
+    )
 
 # Set up the io.excel specific writer configuration.
 writer_engine_doc = """

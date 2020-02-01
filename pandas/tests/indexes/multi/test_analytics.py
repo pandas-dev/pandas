@@ -218,7 +218,7 @@ def test_take_fill_value():
     with pytest.raises(ValueError, match=msg):
         idx.take(np.array([1, 0, -5]), fill_value=True)
 
-    msg = "index -5 is out of bounds for size 4"
+    msg = "index -5 is out of bounds for( axis 0 with)? size 4"
     with pytest.raises(IndexError, match=msg):
         idx.take(np.array([1, -5]))
 
@@ -326,7 +326,7 @@ def test_map_dictlike(idx, mapper):
 )
 def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
-    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     if _np_version_under1p17:
         expected_exception = AttributeError

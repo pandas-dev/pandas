@@ -860,6 +860,15 @@ class TestDataFrameIndexing:
 
         assert (float_frame["C"] == 4).all()
 
+    def test_setitem_slice_position(self):
+        # GH#31469
+        df = pd.DataFrame(np.zeros((100, 1)))
+        df[-4:] = 1
+        arr = np.zeros((100, 1))
+        arr[-4:] = 1
+        expected = pd.DataFrame(arr)
+        tm.assert_frame_equal(df, expected)
+
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
 
@@ -2179,7 +2188,7 @@ class TestDataFrameIndexing:
         dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
 
         with pytest.raises(TypeError, match="is an invalid key"):
-            str(dg[:, 0])
+            dg[:, 0]
 
         index = Index(range(2), name="i")
         columns = MultiIndex(

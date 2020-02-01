@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import Any, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -34,10 +34,8 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import accessor
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
@@ -58,6 +56,10 @@ from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
+
+if TYPE_CHECKING:
+    from pandas import Series
+
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -183,31 +185,27 @@ class SetopCheck:
         ),
     )
 )
-@accessor.delegate_names(
-    delegate=IntervalArray,
-    accessors=["length", "size", "left", "right", "mid", "closed", "dtype"],
-    typ="property",
-    overwrite=True,
-)
-@accessor.delegate_names(
-    delegate=IntervalArray,
-    accessors=[
+@inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
+@inherit_names(
+    [
+        "__len__",
         "__array__",
         "overlaps",
         "contains",
-        "__len__",
-        "set_closed",
-        "to_tuples",
+        "size",
+        "dtype",
+        "left",
+        "right",
+        "length",
     ],
-    typ="method",
-    overwrite=True,
+    IntervalArray,
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "_ndarray_values"],
+    ["is_non_overlapping_monotonic", "mid", "_ndarray_values", "closed"],
     IntervalArray,
     cache=True,
 )
-class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
+class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
     _attributes = ["name", "closed"]
@@ -218,8 +216,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
-    _raw_inherit = {"__array__", "overlaps", "contains"}
-
+    _data: IntervalArray
     # --------------------------------------------------------------------
     # Constructors
 
@@ -259,6 +256,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         closed : Any
             Ignored.
         """
+        assert isinstance(array, IntervalArray), type(array)
+
         result = IntervalMixin.__new__(cls)
         result._data = array
         result.name = name
@@ -350,7 +349,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["_shallow_copy"])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, left=None, right=None, **kwargs):
         result = self._data._shallow_copy(left=left, right=right)
         attributes = self._get_attributes_dict()
@@ -372,7 +371,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         right = self._maybe_convert_i8(self.right)
         return IntervalTree(left, right, closed=self.closed)
 
-    def __contains__(self, key) -> bool:
+    def __contains__(self, key: Any) -> bool:
         """
         return a boolean if this key is IN the index
         We *only* accept an Interval
@@ -385,6 +384,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         -------
         bool
         """
+        hash(key)
         if not isinstance(key, Interval):
             return False
 
@@ -395,19 +395,20 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             return False
 
     @cache_readonly
-    def _multiindex(self):
+    def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
     @cache_readonly
-    def values(self):
+    def values(self) -> IntervalArray:
         """
         Return the IntervalIndex's data as an IntervalArray.
         """
         return self._data
 
-    @cache_readonly
-    def _values(self):
-        return self._data
+    @property
+    def _has_complex_internals(self) -> bool:
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
 
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
@@ -418,7 +419,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
@@ -472,7 +473,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return True
 
     @property
-    def is_overlapping(self):
+    def is_overlapping(self) -> bool:
         """
         Return True if the IntervalIndex has overlapping intervals, else False.
 
@@ -526,7 +527,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         # GH 23309
         return self._engine.is_overlapping
 
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
+    @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == "iloc":
             return super()._convert_scalar_indexer(key, kind=kind)
@@ -535,7 +536,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     def _maybe_cast_slice_bound(self, label, side, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
-    @Appender(_index_shared_docs["_convert_list_indexer"])
+    @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr, kind=None):
         """
         we are passed a list-like indexer. Return the
@@ -566,7 +567,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if self.is_overlapping and len(indexer):
             raise ValueError("cannot reindex from an overlapping axis")
 
-    def _needs_i8_conversion(self, key):
+    def _needs_i8_conversion(self, key) -> bool:
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
         Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
@@ -682,7 +683,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return sub_idx._searchsorted_monotonic(label, side)
 
     def get_loc(
-        self, key: Any, method: Optional[str] = None, tolerance=None
+        self, key, method: Optional[str] = None, tolerance=None
     ) -> Union[int, slice, np.ndarray]:
         """
         Get integer location, slice or boolean mask for requested label.
@@ -724,10 +725,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         """
         self._check_method(method)
 
-        # list-like are invalid labels for II but in some cases may work, e.g
-        # single element array of comparable type, so guard against them early
-        if is_list_like(key):
-            raise KeyError(key)
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
 
         if isinstance(key, Interval):
             if self.closed != key.closed:
@@ -820,6 +819,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
                     loc = self.get_loc(key)
                 except KeyError:
                     loc = -1
+                except InvalidIndexError:
+                    # i.e. non-scalar key
+                    raise TypeError(key)
                 indexer.append(loc)
 
         return ensure_platform_int(indexer)
@@ -883,26 +885,16 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         return self.get_indexer(target, **kwargs)
 
     @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
-    def get_value(self, series: ABCSeries, key: Any) -> Any:
-
-        if com.is_bool_indexer(key):
-            loc = key
-        elif is_list_like(key):
-            if self.is_overlapping:
-                loc, missing = self.get_indexer_non_unique(key)
-                if len(missing):
-                    raise KeyError
-            else:
-                loc = self.get_indexer(key)
-        elif isinstance(key, slice):
-            if not (key.step is None or key.step == 1):
-                raise ValueError("cannot support not-default step in a slice")
-            loc = self._convert_slice_indexer(key, kind="getitem")
-        else:
-            loc = self.get_loc(key)
+    def get_value(self, series: "Series", key):
+        loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Appender(_index_shared_docs["where"])
+    def _convert_slice_indexer(self, key: slice, kind=None):
+        if not (key.step is None or key.step == 1):
+            raise ValueError("cannot support not-default step in a slice")
+        return super()._convert_slice_indexer(key, kind)
+
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
@@ -1040,7 +1032,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    def argsort(self, *args, **kwargs):
+    def argsort(self, *args, **kwargs) -> np.ndarray:
         return np.lexsort((self.right, self.left))
 
     def equals(self, other) -> bool:
@@ -1055,7 +1047,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
         if not isinstance(other, IntervalIndex):
             if not is_interval_dtype(other):
                 return False
-            other = Index(getattr(other, ".values", other))
+            other = Index(other)
 
         return (
             self.left.equals(other.left)
@@ -1063,7 +1055,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
             and self.closed == other.closed
         )
 
-    @Appender(_index_shared_docs["intersection"])
+    @Appender(Index.intersection.__doc__)
     @SetopCheck(op_name="intersection")
     def intersection(
         self, other: "IntervalIndex", sort: bool = False
@@ -1161,21 +1153,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex, accessor.PandasDelegate):
     symmetric_difference = _setop("symmetric_difference")
 
     # TODO: arithmetic operations
-
-    def _delegate_property_get(self, name, *args, **kwargs):
-        """ method delegation to the ._values """
-        prop = getattr(self._data, name)
-        return prop  # no wrapping for now
-
-    def _delegate_method(self, name, *args, **kwargs):
-        """ method delegation to the ._data """
-        method = getattr(self._data, name)
-        res = method(*args, **kwargs)
-        if is_scalar(res) or name in self._raw_inherit:
-            return res
-        if isinstance(res, IntervalArray):
-            return type(self)._simple_new(res, name=self.name)
-        return Index(res)
 
     # GH#30817 until IntervalArray implements inequalities, get them from Index
     def __lt__(self, other):

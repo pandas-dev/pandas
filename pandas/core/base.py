@@ -1,9 +1,10 @@
 """
 Base and utility classes for pandas objects.
 """
+
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional
+from typing import Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -18,13 +19,11 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_datetime64_ns_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_ns_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
@@ -47,11 +46,15 @@ _indexops_doc_kwargs = dict(
 
 
 class PandasObject(DirNamesMixin):
-    """baseclass for various pandas objects"""
+    """
+    Baseclass for various pandas objects.
+    """
 
     @property
     def _constructor(self):
-        """class constructor (for this class it's just `__class__`"""
+        """
+        Class constructor (for this class it's just `__class__`.
+        """
         return type(self)
 
     def __repr__(self) -> str:
@@ -79,16 +82,14 @@ class PandasObject(DirNamesMixin):
         """
         if hasattr(self, "memory_usage"):
             mem = self.memory_usage(deep=True)
-            if not is_scalar(mem):
-                mem = mem.sum()
-            return int(mem)
+            return int(mem if is_scalar(mem) else mem.sum())
 
-        # no memory_usage attribute, so fall back to
-        # object's 'sizeof'
+        # no memory_usage attribute, so fall back to object's 'sizeof'
         return super().__sizeof__()
 
     def _ensure_type(self: T, obj) -> T:
-        """Ensure that an object has same type as self.
+        """
+        Ensure that an object has same type as self.
 
         Used by type checkers.
         """
@@ -97,7 +98,8 @@ class PandasObject(DirNamesMixin):
 
 
 class NoNewAttributesMixin:
-    """Mixin which prevents adding new attributes.
+    """
+    Mixin which prevents adding new attributes.
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
@@ -108,11 +110,13 @@ class NoNewAttributesMixin:
     """
 
     def _freeze(self):
-        """Prevents setting additional attributes"""
+        """
+        Prevents setting additional attributes.
+        """
         object.__setattr__(self, "__frozen", True)
 
     # prevent adding any attribute via s.xxx.new_attribute = ...
-    def __setattr__(self, key, value):
+    def __setattr__(self, key: str, value):
         # _cache is used by a decorator
         # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
         # because
@@ -182,14 +186,12 @@ class SelectionMixin:
     @property
     def _selection_name(self):
         """
-        return a name for myself; this would ideally be called
-        the 'name' property, but we cannot conflict with the
-        Series.name property which can be set
+        Return a name for myself;
+
+        This would ideally be called the 'name' property,
+        but we cannot conflict with the Series.name property which can be set.
         """
-        if self._selection is None:
-            return None  # 'result'
-        else:
-            return self._selection
+        return self._selection
 
     @property
     def _selection_list(self):
@@ -201,7 +203,6 @@ class SelectionMixin:
 
     @cache_readonly
     def _selected_obj(self):
-
         if self._selection is None or isinstance(self.obj, ABCSeries):
             return self.obj
         else:
@@ -241,19 +242,18 @@ class SelectionMixin:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=1)
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         sub-classes to define
         return a sliced object
 
         Parameters
         ----------
-        key : string / list of selections
+        key : str / list of selections
         ndim : 1,2
             requested ndim of result
         subset : object, default None
             subset to act on
-
         """
         raise AbstractMethodError(self)
 
@@ -268,7 +268,6 @@ class SelectionMixin:
         - try to find a function (or attribute) on ourselves
         - try to find a numpy function
         - raise
-
         """
         assert isinstance(arg, str)
 
@@ -583,13 +582,10 @@ class SelectionMixin:
 class ShallowMixin:
     _attributes: List[str] = []
 
-    def _shallow_copy(self, obj=None, **kwargs):
+    def _shallow_copy(self, obj, **kwargs):
         """
         return a new object with the replacement attributes
         """
-        if obj is None:
-            obj = self._selected_obj.copy()
-
         if isinstance(obj, self._constructor):
             obj = obj.obj
         for attr in self._attributes:
@@ -608,6 +604,11 @@ class IndexOpsMixin:
     _deprecations: FrozenSet[str] = frozenset(
         ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
+
+    @property
+    def _values(self) -> Union[ExtensionArray, np.ndarray]:
+        # must be defined here as a property for mypy
+        raise AbstractMethodError(self)
 
     def transpose(self, *args, **kwargs):
         """
@@ -633,6 +634,10 @@ class IndexOpsMixin:
         Return a tuple of the shape of the underlying data.
         """
         return self._values.shape
+
+    def __len__(self) -> int:
+        # We need this defined here for mypy
+        raise AbstractMethodError(self)
 
     @property
     def ndim(self) -> int:
@@ -664,18 +669,17 @@ class IndexOpsMixin:
 
         if len(self) == 1:
             return next(iter(self))
-        else:
-            raise ValueError("can only convert an array of size 1 to a Python scalar")
+        raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
         """
         return self._values.nbytes
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
         Return the number of elements in the underlying data.
         """
@@ -730,7 +734,6 @@ class IndexOpsMixin:
 
         Examples
         --------
-
         For regular NumPy types like int, and float, a PandasArray
         is returned.
 
@@ -747,26 +750,7 @@ class IndexOpsMixin:
         [a, b, a]
         Categories (2, object): [a, b]
         """
-        # As a mixin, we depend on the mixing class having _values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        result = self._values  # type: ignore
-
-        if is_datetime64_ns_dtype(result.dtype):
-            from pandas.arrays import DatetimeArray
-
-            result = DatetimeArray(result)
-        elif is_timedelta64_ns_dtype(result.dtype):
-            from pandas.arrays import TimedeltaArray
-
-            result = TimedeltaArray(result)
-
-        elif not is_extension_array_dtype(result.dtype):
-            from pandas.core.arrays.numpy_ import PandasArray
-
-            result = PandasArray(result)
-
-        return result
+        raise AbstractMethodError(self)
 
     def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default, **kwargs):
         """
@@ -865,12 +849,11 @@ class IndexOpsMixin:
         """
         if is_extension_array_dtype(self.dtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
-        else:
-            if kwargs:
-                msg = "to_numpy() got an unexpected keyword argument '{}'".format(
-                    list(kwargs.keys())[0]
-                )
-                raise TypeError(msg)
+        elif kwargs:
+            bad_keys = list(kwargs.keys())[0]
+            raise TypeError(
+                f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
+            )
 
         result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
@@ -1081,9 +1064,18 @@ class IndexOpsMixin:
         return bool(isna(self).any())
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
-        """ perform the reduction type operation if we can """
+        """
+        Perform the reduction type operation if we can.
+        """
         func = getattr(self, name, None)
         if func is None:
             raise TypeError(
@@ -1110,9 +1102,7 @@ class IndexOpsMixin:
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
-
         """
-
         # we can fastpath dict/Series to an efficient map
         # as we know that we are not going to have to yield
         # python types
@@ -1272,12 +1262,16 @@ class IndexOpsMixin:
         if hasattr(values, "unique"):
 
             result = values.unique()
+            if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
+                # GH#31182 Series._values returns EA, unpack for backward-compat
+                if getattr(self.dtype, "tz", None) is None:
+                    result = np.asarray(result)
         else:
             result = unique1d(values)
 
         return result
 
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True) -> int:
         """
         Return number of unique elements in the object.
 
@@ -1318,7 +1312,7 @@ class IndexOpsMixin:
         return n
 
     @property
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """
         Return boolean if values in the object are unique.
 
@@ -1329,7 +1323,7 @@ class IndexOpsMixin:
         return self.nunique(dropna=False) == len(self)
 
     @property
-    def is_monotonic(self):
+    def is_monotonic(self) -> bool:
         """
         Return boolean if values in the object are
         monotonic_increasing.
@@ -1342,7 +1336,13 @@ class IndexOpsMixin:
 
         return Index(self).is_monotonic
 
-    is_monotonic_increasing = is_monotonic
+    @property
+    def is_monotonic_increasing(self) -> bool:
+        """
+        Alias for is_monotonic.
+        """
+        # mypy complains if we alias directly
+        return self.is_monotonic
 
     @property
     def is_monotonic_decreasing(self) -> bool:
@@ -1454,7 +1454,6 @@ class IndexOpsMixin:
 
         Examples
         --------
-
         >>> x = pd.Series([1, 2, 3])
         >>> x
         0    1
@@ -1495,7 +1494,7 @@ class IndexOpsMixin:
 
     @Substitution(klass="Index")
     @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first", inplace=False):

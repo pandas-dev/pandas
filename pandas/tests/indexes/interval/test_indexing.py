@@ -312,6 +312,18 @@ class TestGetIndexer:
         # TODO we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..
 
+    def test_get_indexer_non_monotonic(self):
+        # GH 16410
+        idx1 = IntervalIndex.from_tuples([(2, 3), (4, 5), (0, 1)])
+        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (6, 7), (8, 9)])
+        result = idx1.get_indexer(idx2)
+        expected = np.array([2, 0, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = idx1.get_indexer(idx1[1:])
+        expected = np.array([1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
