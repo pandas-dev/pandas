@@ -623,28 +623,28 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @property
-    def levels(self):
-        result = [
-            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
-        ]
-        for level in result:
-            # disallow midx.levels[0].name = "foo"
-            level._no_setting_name = True
-        return FrozenList(result)
-
-    @property
     def _values(self):
         # We override here, since our parent uses _data, which we don't use.
         return self.values
 
     @property
-    def shape(self):
-        """
-        Return a tuple of the shape of the underlying data.
-        """
-        # overriding the base Index.shape definition to avoid materializing
-        # the values (GH-27384, GH-27775)
-        return (len(self),)
+    def values(self):
+        if self._tuples is not None:
+            return self._tuples
+
+        values = []
+
+        for i in range(self.nlevels):
+            vals = self._get_level_values(i)
+            if is_categorical_dtype(vals):
+                vals = vals._internal_get_values()
+            if isinstance(vals.dtype, ExtensionDtype) or hasattr(vals, "_box_values"):
+                vals = vals.astype(object)
+            vals = np.array(vals, copy=False)
+            values.append(vals)
+
+        self._tuples = lib.fast_zip(values)
+        return self._tuples
 
     @property
     def array(self):
@@ -660,6 +660,31 @@ class MultiIndex(Index):
             "MultiIndex has no single backing array. Use "
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
+
+    @property
+    def shape(self):
+        """
+        Return a tuple of the shape of the underlying data.
+        """
+        # overriding the base Index.shape definition to avoid materializing
+        # the values (GH-27384, GH-27775)
+        return (len(self),)
+
+    def __len__(self) -> int:
+        return len(self.codes[0])
+
+    # --------------------------------------------------------------------
+    # Levels Methods
+
+    @property
+    def levels(self):
+        result = [
+            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
+        ]
+        for level in result:
+            # disallow midx.levels[0].name = "foo"
+            level._no_setting_name = True
+        return FrozenList(result)
 
     def _set_levels(
         self, levels, level=None, copy=False, validate=True, verify_integrity=False
@@ -788,6 +813,23 @@ class MultiIndex(Index):
             return idx
 
     @property
+    def nlevels(self) -> int:
+        """
+        Integer number of levels in this MultiIndex.
+        """
+        return len(self._levels)
+
+    @property
+    def levshape(self):
+        """
+        A tuple with the length of each level.
+        """
+        return tuple(len(x) for x in self.levels)
+
+    # --------------------------------------------------------------------
+    # Codes Methods
+
+    @property
     def codes(self):
         return self._codes
 
@@ -897,6 +939,57 @@ class MultiIndex(Index):
         if not inplace:
             return idx
 
+    # --------------------------------------------------------------------
+    # Index Internals
+
+    @cache_readonly
+    def _engine(self):
+        # Calculate the number of bits needed to represent labels in each
+        # level, as log2 of their sizes (including -1 for NaN):
+        sizes = np.ceil(np.log2([len(l) + 1 for l in self.levels]))
+
+        # Sum bit counts, starting from the _right_....
+        lev_bits = np.cumsum(sizes[::-1])[::-1]
+
+        # ... in order to obtain offsets such that sorting the combination of
+        # shifted codes (one for each level, resulting in a unique integer) is
+        # equivalent to sorting lexicographically the codes themselves. Notice
+        # that each level needs to be shifted by the number of bits needed to
+        # represent the _previous_ ones:
+        offsets = np.concatenate([lev_bits[1:], [0]]).astype("uint64")
+
+        # Check the total number of bits needed for our representation:
+        if lev_bits[0] > 64:
+            # The levels would overflow a 64 bit uint - use Python integers:
+            return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
+        return MultiIndexUIntEngine(self.levels, self.codes, offsets)
+
+    @property
+    def _constructor(self):
+        return MultiIndex.from_tuples
+
+    @Appender(Index._shallow_copy.__doc__)
+    def _shallow_copy(self, values=None, **kwargs):
+        if values is not None:
+            names = kwargs.pop("names", kwargs.pop("name", self.names))
+            # discards freq
+            kwargs.pop("freq", None)
+            return MultiIndex.from_tuples(values, names=names, **kwargs)
+        return self.copy(**kwargs)
+
+    def _shallow_copy_with_infer(self, values, **kwargs):
+        # On equal MultiIndexes the difference is empty.
+        # Therefore, an empty MultiIndex is returned GH13490
+        if len(values) == 0:
+            return MultiIndex(
+                levels=[[] for _ in range(self.nlevels)],
+                codes=[[] for _ in range(self.nlevels)],
+                **kwargs,
+            )
+        return self._shallow_copy(values, **kwargs)
+
+    # --------------------------------------------------------------------
+
     def copy(
         self,
         names=None,
@@ -963,17 +1056,6 @@ class MultiIndex(Index):
         result._id = self._id
         return result
 
-    def _shallow_copy_with_infer(self, values, **kwargs):
-        # On equal MultiIndexes the difference is empty.
-        # Therefore, an empty MultiIndex is returned GH13490
-        if len(values) == 0:
-            return MultiIndex(
-                levels=[[] for _ in range(self.nlevels)],
-                codes=[[] for _ in range(self.nlevels)],
-                **kwargs,
-            )
-        return self._shallow_copy(values, **kwargs)
-
     @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         hash(key)
@@ -982,15 +1064,6 @@ class MultiIndex(Index):
             return True
         except (LookupError, TypeError, ValueError):
             return False
-
-    @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is not None:
-            names = kwargs.pop("names", kwargs.pop("name", self.names))
-            # discards freq
-            kwargs.pop("freq", None)
-            return MultiIndex.from_tuples(values, names=names, **kwargs)
-        return self.copy(**kwargs)
 
     @cache_readonly
     def dtype(self) -> np.dtype:
@@ -1168,9 +1241,7 @@ class MultiIndex(Index):
             return result_levels
 
     # --------------------------------------------------------------------
-
-    def __len__(self) -> int:
-        return len(self.codes[0])
+    # Names Methods
 
     def _get_names(self):
         return FrozenList(self._names)
@@ -1234,6 +1305,8 @@ class MultiIndex(Index):
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
     )
 
+    # --------------------------------------------------------------------
+
     @Appender(Index._get_grouper_for_level.__doc__)
     def _get_grouper_for_level(self, mapper, level):
         indexer = self.codes[level]
@@ -1271,10 +1344,6 @@ class MultiIndex(Index):
 
         return grouper, codes, level_index
 
-    @property
-    def _constructor(self):
-        return MultiIndex.from_tuples
-
     @cache_readonly
     def inferred_type(self) -> str:
         return "mixed"
@@ -1305,47 +1374,6 @@ class MultiIndex(Index):
                     f"not {level + 1}"
                 )
         return level
-
-    @cache_readonly
-    def _engine(self):
-        # Calculate the number of bits needed to represent labels in each
-        # level, as log2 of their sizes (including -1 for NaN):
-        sizes = np.ceil(np.log2([len(l) + 1 for l in self.levels]))
-
-        # Sum bit counts, starting from the _right_....
-        lev_bits = np.cumsum(sizes[::-1])[::-1]
-
-        # ... in order to obtain offsets such that sorting the combination of
-        # shifted codes (one for each level, resulting in a unique integer) is
-        # equivalent to sorting lexicographically the codes themselves. Notice
-        # that each level needs to be shifted by the number of bits needed to
-        # represent the _previous_ ones:
-        offsets = np.concatenate([lev_bits[1:], [0]]).astype("uint64")
-
-        # Check the total number of bits needed for our representation:
-        if lev_bits[0] > 64:
-            # The levels would overflow a 64 bit uint - use Python integers:
-            return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
-        return MultiIndexUIntEngine(self.levels, self.codes, offsets)
-
-    @property
-    def values(self):
-        if self._tuples is not None:
-            return self._tuples
-
-        values = []
-
-        for i in range(self.nlevels):
-            vals = self._get_level_values(i)
-            if is_categorical_dtype(vals):
-                vals = vals._internal_get_values()
-            if isinstance(vals.dtype, ExtensionDtype) or hasattr(vals, "_box_values"):
-                vals = vals.astype(object)
-            vals = np.array(vals, copy=False)
-            values.append(vals)
-
-        self._tuples = lib.fast_zip(values)
-        return self._tuples
 
     @property
     def _has_complex_internals(self) -> bool:
@@ -1807,20 +1835,6 @@ class MultiIndex(Index):
             result._set_codes(new_codes, validate=False)
 
         return result
-
-    @property
-    def nlevels(self) -> int:
-        """
-        Integer number of levels in this MultiIndex.
-        """
-        return len(self._levels)
-
-    @property
-    def levshape(self):
-        """
-        A tuple with the length of each level.
-        """
-        return tuple(len(x) for x in self.levels)
 
     # --------------------------------------------------------------------
     # Pickling Methods
