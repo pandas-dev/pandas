@@ -179,12 +179,8 @@ and you don't have pandas installed in the Python installation you're currently 
 In Linux/Mac you can run ``which python`` on your terminal and it will tell you which is the Python you're
 using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
 
-If you used Python before you may have used virtual environments and pip. While this is fine for many
-Python projects (e.g. Django), when using data projects (pandas, numpy, tensorflow, etc.) this is discouraged.
-It's easily susceptible to installation errors in non-Python dependencies and the libraries can run slower
-while using pip to perform installations.
-The widely used solution to this problem is to use conda. You can find simple installation instructions
-for pandas in this document: `installation instructions </getting_started.html>`.
+It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
+You can find simple installation instructions for pandas in this document: `installation instructions </getting_started.html>`.
 
 Another possible way of fixing the error is by first finding the version of your python installation with::
 
