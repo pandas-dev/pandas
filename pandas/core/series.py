@@ -846,8 +846,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0, kind=None) -> "Series":
-        slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
+    def _slice(self, slobj: slice, axis: int = 0, kind: str = "getitem") -> "Series":
+        # in practice kind is either "getitem" or "iloc"
+        slobj = self.index._convert_slice_indexer(slobj, kind=kind)
         return self._get_values(slobj)
 
     def __getitem__(self, key):

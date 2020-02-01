@@ -591,12 +591,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         return self.obj._xs(label, axis=axis)
 
-    def _get_loc(self, key: int, axis: int):
-        return self.obj._ixs(key, axis=axis)
-
-    def _slice(self, obj, axis: int, kind=None):
-        return self.obj._slice(obj, axis=axis, kind=kind)
-
     def _get_setitem_indexer(self, key):
         if self.axis is not None:
             return self._convert_tuple(key)
@@ -1865,7 +1859,7 @@ class _LocIndexer(_LocationIndexer):
         )
 
         if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis, kind="iloc")
+            return self.obj._slice(indexer, axis=axis, kind="iloc")
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
@@ -2038,7 +2032,7 @@ class _iLocIndexer(_LocationIndexer):
             # validate the location
             self._validate_integer(key, axis)
 
-            return self._get_loc(key, axis=axis)
+            return self.obj._ixs(key, axis=axis)
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
         # caller is responsible for ensuring non-None axis
@@ -2048,7 +2042,7 @@ class _iLocIndexer(_LocationIndexer):
             return obj.copy(deep=False)
 
         indexer = self._convert_slice_indexer(slice_obj, axis)
-        return self._slice(indexer, axis=axis, kind="iloc")
+        return self.obj._slice(indexer, axis=axis, kind="iloc")
 
     def _convert_to_indexer(self, key, axis: int):
         """
