@@ -21,6 +21,21 @@ import pandas._testing as tm
 import pandas.tseries.offsets as offsets
 
 
+def test_no_idea_how_to_name_this_or_where_to_place_this():
+    # https://github.com/pandas-dev/pandas/issues/10329
+    df = pd.DataFrame(
+        {
+            "date": pd.date_range("2012-01-01", periods=3),
+            "time": [time(i, i, i) for i in range(3)],
+        }
+    )
+
+    msg = "unsupported operand type\(s\) for -: 'Timestamp' and 'datetime.time'"
+
+    with pytest.raises(TypeError, match=msg):
+        df["date"] - df["time"]
+
+
 @pytest.fixture(params=product([True, False], [True, False]))
 def close_open_fixture(request):
     return request.param
