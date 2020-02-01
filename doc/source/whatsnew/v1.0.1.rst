@@ -44,6 +44,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
+- Bug in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31467`)
 -
 
 Conversion
