@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional
+from typing import Dict, FrozenSet, Generic, List, Optional
 
 import numpy as np
 
@@ -594,7 +594,7 @@ class ShallowMixin:
         return self._constructor(obj, **kwargs)
 
 
-class IndexOpsMixin:
+class IndexOpsMixin(Generic[ArrayLike]):
     """
     Common ops mixin to support a unified interface / docs for Series / Index
     """
@@ -1154,10 +1154,9 @@ class IndexOpsMixin:
             values = self.astype(object)
             values = getattr(values, "values", values)
             if na_action == "ignore":
-
-                def map_f(values, f):
-                    return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
-
+                map_f = lambda values, f: lib.map_infer_mask(
+                    values, f, isna(values).view(np.uint8)
+                )
             else:
                 map_f = lib.map_infer
 

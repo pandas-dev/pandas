@@ -18,6 +18,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -2245,6 +2246,7 @@ class DataCol(IndexCol):
             shape = (1, values.size)
 
         if is_categorical_dtype(dtype):
+            values = cast(Categorical, values)
             codes = values.codes
             atom = cls.get_atom_data(shape, kind=codes.dtype.name)
         elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
@@ -4982,6 +4984,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
     Convert the passed data into a storable form and a dtype string.
     """
     if is_categorical_dtype(data.dtype):
+        data = cast(Categorical, data)
         data = data.codes
 
     # For datetime64tz we need to drop the TZ in tests TODO: why?

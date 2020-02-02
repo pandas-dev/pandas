@@ -70,6 +70,7 @@ class ExtensionArray:
     nbytes
     ndim
     shape
+    size
 
     Methods
     -------
@@ -341,6 +342,13 @@ class ExtensionArray:
         Returns
         -------
         length : int
+        """
+        raise AbstractMethodError(self)
+
+    @property
+    def size(self) -> int:
+        """
+        The number of elements in this array.
         """
         raise AbstractMethodError(self)
 
