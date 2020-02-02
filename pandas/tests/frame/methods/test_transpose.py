@@ -41,3 +41,10 @@ class TestTranspose:
         assert (df2.dtypes == object).all()
         res2 = df2.T
         assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()
+
+    def test_transpose_uint64(self, uint64_frame):
+
+        result = uint64_frame.T
+        expected = pd.DataFrame(uint64_frame.values.T)
+        expected.index = ["A", "B"]
+        tm.assert_frame_equal(result, expected)
