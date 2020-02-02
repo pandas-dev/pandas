@@ -71,10 +71,9 @@ def test_slice_float64():
 def test_getitem_negative_out_of_bounds():
     s = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
-    msg = "index out of bounds"
+    msg = "index -11 is out of bounds for axis 0 with size 10"
     with pytest.raises(IndexError, match=msg):
         s[-11]
-    msg = "index -11 is out of bounds for axis 0 with size 10"
     with pytest.raises(IndexError, match=msg):
         s[-11] = "foo"
 

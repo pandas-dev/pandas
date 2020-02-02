@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex, lib, properties, reshape, tslibs
+from pandas._libs import lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -838,13 +838,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         scalar (int) or Series (slice, sequence)
         """
-
-        # dispatch to the values if we need
-        values = self._values
-        if isinstance(values, np.ndarray):
-            return libindex.get_value_at(values, i)
-        else:
-            return values[i]
+        return self._values[i]
 
     def _slice(self, slobj: slice, axis: int = 0, kind=None) -> "Series":
         slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
@@ -981,7 +975,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         scalar value
         """
         if takeable:
-            return com.maybe_box_datetimelike(self._values[label])
+            return self._values[label]
         return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):

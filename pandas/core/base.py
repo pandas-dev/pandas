@@ -1027,12 +1027,10 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.tolist
         """
-        if self.dtype.kind in ["m", "M"]:
-            return [com.maybe_box_datetimelike(x) for x in self._values]
-        elif is_extension_array_dtype(self._values):
+        if not isinstance(self._values, np.ndarray):
+            # check for ndarray instead of dtype to catch DTA/TDA
             return list(self._values)
-        else:
-            return self._values.tolist()
+        return self._values.tolist()
 
     to_list = tolist
 
@@ -1049,9 +1047,8 @@ class IndexOpsMixin:
         iterator
         """
         # We are explicitly making element iterators.
-        if self.dtype.kind in ["m", "M"]:
-            return map(com.maybe_box_datetimelike, self._values)
-        elif is_extension_array_dtype(self._values):
+        if not isinstance(self._values, np.ndarray):
+            # Check type instead of dtype to catch DTA/TDA
             return iter(self._values)
         else:
             return map(self._values.item, range(self._values.size))

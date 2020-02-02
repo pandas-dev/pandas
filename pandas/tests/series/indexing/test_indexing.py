@@ -17,10 +17,9 @@ from pandas.tseries.offsets import BDay
 def test_basic_indexing():
     s = Series(np.random.randn(5), index=["a", "b", "a", "a", "b"])
 
-    msg = "index out of bounds"
+    msg = "index 5 is out of bounds for axis 0 with size 5"
     with pytest.raises(IndexError, match=msg):
         s[5]
-    msg = "index 5 is out of bounds for axis 0 with size 5"
     with pytest.raises(IndexError, match=msg):
         s[5] = 0
 
@@ -29,7 +28,6 @@ def test_basic_indexing():
 
     s = s.sort_index()
 
-    msg = r"index out of bounds|^5$"
     with pytest.raises(IndexError, match=msg):
         s[5]
     msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
@@ -165,11 +163,12 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
 
 def test_getitem_out_of_bounds(datetime_series):
     # don't segfault, GH #495
-    msg = "index out of bounds"
+    msg = r"index \d+ is out of bounds for axis 0 with size \d+"
     with pytest.raises(IndexError, match=msg):
         datetime_series[len(datetime_series)]
 
     # GH #917
+    msg = r"index -\d+ is out of bounds for axis 0 with size \d+"
     s = Series([], dtype=object)
     with pytest.raises(IndexError, match=msg):
         s[-1]
