@@ -23,7 +23,6 @@ from pandas.io.common import (
     get_filepath_or_buffer,
     get_handle,
     infer_compression,
-    stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
