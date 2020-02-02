@@ -3730,9 +3730,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Get item from object for given key (ex: DataFrame column).
 
-        Will not accept an index value instead of a key.
-
-        Returns default value if not found.
+        Returns default value if key not found, or if it is passed an
+        index value instead of a key.
 
         Parameters
         ----------
