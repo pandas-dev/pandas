@@ -486,15 +486,17 @@ class TestIndexing:
             assert ser.loc[ts2] == 7
 
     def test_get_value_integer(self):
+        msg = "index 16801 is out of bounds for axis 0 with size 3"
         dti = pd.date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
         ser = pd.Series(range(3), index=pi)
-        with pytest.raises(IndexError, match="index out of bounds"):
+        with pytest.raises(IndexError, match=msg):
             pi.get_value(ser, 16801)
 
+        msg = "index 46 is out of bounds for axis 0 with size 3"
         pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
         ser2 = pd.Series(range(3), index=pi2)
-        with pytest.raises(IndexError, match="index out of bounds"):
+        with pytest.raises(IndexError, match=msg):
             pi2.get_value(ser2, 46)
 
     def test_is_monotonic_increasing(self):

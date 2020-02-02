@@ -17,10 +17,9 @@ from pandas.tseries.offsets import BDay
 def test_basic_indexing():
     s = Series(np.random.randn(5), index=["a", "b", "a", "a", "b"])
 
-    msg = "index out of bounds"
+    msg = "index 5 is out of bounds for axis 0 with size 5"
     with pytest.raises(IndexError, match=msg):
         s[5]
-    msg = "index 5 is out of bounds for axis 0 with size 5"
     with pytest.raises(IndexError, match=msg):
         s[5] = 0
 
@@ -29,7 +28,6 @@ def test_basic_indexing():
 
     s = s.sort_index()
 
-    msg = r"index out of bounds|^5$"
     with pytest.raises(IndexError, match=msg):
         s[5]
     msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
@@ -165,11 +163,12 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
 
 def test_getitem_out_of_bounds(datetime_series):
     # don't segfault, GH #495
-    msg = "index out of bounds"
+    msg = r"index \d+ is out of bounds for axis 0 with size \d+"
     with pytest.raises(IndexError, match=msg):
         datetime_series[len(datetime_series)]
 
     # GH #917
+    msg = r"index -\d+ is out of bounds for axis 0 with size \d+"
     s = Series([], dtype=object)
     with pytest.raises(IndexError, match=msg):
         s[-1]
@@ -881,41 +880,6 @@ def test_pop():
 
     expected = Series([0, 0], index=["A", "C"], name=4)
     tm.assert_series_equal(k, expected)
-
-
-def test_take():
-    s = Series([-1, 5, 6, 2, 4])
-
-    actual = s.take([1, 3, 4])
-    expected = Series([5, 2, 4], index=[1, 3, 4])
-    tm.assert_series_equal(actual, expected)
-
-    actual = s.take([-1, 3, 4])
-    expected = Series([4, 2, 4], index=[4, 3, 4])
-    tm.assert_series_equal(actual, expected)
-
-    msg = "index {} is out of bounds for( axis 0 with)? size 5"
-    with pytest.raises(IndexError, match=msg.format(10)):
-        s.take([1, 10])
-    with pytest.raises(IndexError, match=msg.format(5)):
-        s.take([2, 5])
-
-
-def test_take_categorical():
-    # https://github.com/pandas-dev/pandas/issues/20664
-    s = Series(pd.Categorical(["a", "b", "c"]))
-    result = s.take([-2, -2, 0])
-    expected = Series(
-        pd.Categorical(["b", "b", "a"], categories=["a", "b", "c"]), index=[1, 1, 0]
-    )
-    tm.assert_series_equal(result, expected)
-
-
-def test_head_tail(string_series):
-    tm.assert_series_equal(string_series.head(), string_series[:5])
-    tm.assert_series_equal(string_series.head(0), string_series[0:0])
-    tm.assert_series_equal(string_series.tail(), string_series[-5:])
-    tm.assert_series_equal(string_series.tail(0), string_series[0:0])
 
 
 def test_uint_drop(any_int_dtype):
