@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
     is_sequence,
-    is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
@@ -23,7 +22,7 @@ from pandas.core.dtypes.missing import _infer_fill_value, isna
 
 import pandas.core.common as com
 from pandas.core.indexers import (
-    check_bool_array_indexer,
+    check_array_indexer,
     is_list_like_indexer,
     length_of_indexer,
 )
@@ -606,7 +605,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
             try:
                 return ax.get_loc(key)
-            except (TypeError, KeyError):
+            except (TypeError, KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 pass
 
@@ -1512,7 +1511,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # A boolean indexer
             key = check_bool_indexer(labels, key)
             (inds,) = key.nonzero()
-            return self.obj.take(inds, axis=axis)
+            return self.obj._take_with_is_copy(inds, axis=axis)
         else:
             # A collection of keys
             keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
@@ -1704,7 +1703,7 @@ class _LocationIndexer(_NDFrameIndexer):
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
         inds = key.nonzero()[0]
-        return self.obj.take(inds, axis=axis)
+        return self.obj._take_with_is_copy(inds, axis=axis)
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
         """
@@ -1725,7 +1724,7 @@ class _LocationIndexer(_NDFrameIndexer):
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
-            return self.obj.take(indexer, axis=axis)
+            return self.obj._take_with_is_copy(indexer, axis=axis)
 
 
 @Appender(IndexingMixin.loc.__doc__)
@@ -2020,7 +2019,7 @@ class _iLocIndexer(_LocationIndexer):
         `axis` can only be zero.
         """
         try:
-            return self.obj.take(key, axis=axis)
+            return self.obj._take_with_is_copy(key, axis=axis)
         except IndexError:
             # re-raise with different error message
             raise IndexError("positional indexers are out-of-bounds")
@@ -2233,9 +2232,9 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
             )
         result = result.astype(bool)._values
     else:
-        if is_sparse(result):
-            result = result.to_dense()
-        result = check_bool_array_indexer(index, result)
+        # key might be sparse / object-dtype bool, check_array_indexer needs bool array
+        result = np.asarray(result, dtype=bool)
+        result = check_array_indexer(index, result)
 
     return result
 

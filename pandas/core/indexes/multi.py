@@ -1256,6 +1256,10 @@ class MultiIndex(Index):
         if len(uniques) < len(level_index):
             # Remove unobserved levels from level_index
             level_index = level_index.take(uniques)
+        else:
+            # break references back to us so that setting the name
+            # on the output of a groupby doesn't reflect back here.
+            level_index = level_index.copy()
 
         if len(level_index):
             grouper = level_index.take(codes)
@@ -1341,6 +1345,11 @@ class MultiIndex(Index):
 
         self._tuples = lib.fast_zip(values)
         return self._tuples
+
+    @property
+    def _has_complex_internals(self):
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
 
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
@@ -2054,7 +2063,7 @@ class MultiIndex(Index):
 
         if not isinstance(codes, (np.ndarray, Index)):
             try:
-                codes = com.index_labels_to_array(codes)
+                codes = com.index_labels_to_array(codes, dtype=object)
             except ValueError:
                 pass
 
@@ -2537,7 +2546,7 @@ class MultiIndex(Index):
         for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
 
-            if lab not in lev and not isna(lab):
+            if lab not in lev and np.ndim(lab) == 0 and not isna(lab):
                 if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
                     raise TypeError(f"Level type mismatch: {lab}")
 
@@ -2639,7 +2648,8 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
-        if not isinstance(key, tuple):
+        if not isinstance(key, (tuple, list)):
+            # not including list here breaks some indexing, xref #30892
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
 

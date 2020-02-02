@@ -575,7 +575,7 @@ class TestTimestampConstructors:
 
         for date_string in out_of_bounds_dates:
             for unit in time_units:
-                dt64 = np.datetime64(date_string, dtype="M8[{unit}]".format(unit=unit))
+                dt64 = np.datetime64(date_string, unit)
                 with pytest.raises(ValueError):
                     Timestamp(dt64)
 
@@ -583,7 +583,7 @@ class TestTimestampConstructors:
 
         for date_string in in_bounds_dates:
             for unit in time_units:
-                dt64 = np.datetime64(date_string, dtype="M8[{unit}]".format(unit=unit))
+                dt64 = np.datetime64(date_string, unit)
                 Timestamp(dt64)
 
     def test_min_valid(self):
@@ -751,7 +751,7 @@ class TestTimestamp:
 
     def test_class_ops_pytz(self):
         def compare(x, y):
-            assert int(Timestamp(x).value / 1e9) == int(Timestamp(y).value / 1e9)
+            assert int((Timestamp(x).value - Timestamp(y).value) / 1e9) == 0
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(timezone("UTC")))
@@ -775,8 +775,12 @@ class TestTimestamp:
 
     def test_class_ops_dateutil(self):
         def compare(x, y):
-            assert int(np.round(Timestamp(x).value / 1e9)) == int(
-                np.round(Timestamp(y).value / 1e9)
+            assert (
+                int(
+                    np.round(Timestamp(x).value / 1e9)
+                    - np.round(Timestamp(y).value / 1e9)
+                )
+                == 0
             )
 
         compare(Timestamp.now(), datetime.now())
