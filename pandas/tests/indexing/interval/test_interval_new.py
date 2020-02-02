@@ -128,6 +128,7 @@ class TestIntervalIndex:
         with pytest.raises(NotImplementedError, match=msg):
             s[Interval(3, 4, closed="left") :]
 
+        # FIXME: dont leave commented-out
         # TODO with non-existing intervals ?
         # s.loc[Interval(-1, 0):Interval(2, 3)]
 
@@ -143,9 +144,16 @@ class TestIntervalIndex:
         tm.assert_series_equal(expected, s[:2.5])
         tm.assert_series_equal(expected, s[0.1:2.5])
 
+    def test_slice_step_ne1(self):
         # slice of scalar with step != 1
-        with pytest.raises(ValueError):
-            s[0:4:2]
+        s = self.s
+        expected = s.iloc[0:4:2]
+
+        result = s[0:4:2]
+        tm.assert_series_equal(result, expected)
+
+        result2 = s[0:4][::2]
+        tm.assert_series_equal(result2, expected)
 
     def test_loc_with_overlap(self):
 

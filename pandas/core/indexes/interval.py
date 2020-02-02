@@ -889,11 +889,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         loc = self.get_loc(key)
         return series.iloc[loc]
 
-    def _convert_slice_indexer(self, key: slice, kind=None):
-        if not (key.step is None or key.step == 1):
-            raise ValueError("cannot support not-default step in a slice")
-        return super()._convert_slice_indexer(key, kind)
-
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
