@@ -1033,7 +1033,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     def argsort(self, *args, **kwargs) -> np.ndarray:
-        return np.lexsort((self.right, self.left))
+        return self._data.argsort()
 
     def equals(self, other) -> bool:
         """

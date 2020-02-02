@@ -701,6 +701,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg)
 
+    def argsort(self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs):
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+
+        if not ascending or kind != "quicksort":
+            # fall back to base class implementation
+            return super().argsort(ascending, kind)
+
+        return np.lexsort((self.right, self.left))
+
     @classmethod
     def _concat_same_type(cls, to_concat):
         """
