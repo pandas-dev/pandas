@@ -1,7 +1,5 @@
 """ implement the TimedeltaIndex """
 
-import numpy as np
-
 from pandas._libs import NaT, Timedelta, index as libindex
 from pandas.util._decorators import Appender
 
@@ -19,12 +17,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import (
-    Index,
-    InvalidIndexError,
-    _index_shared_docs,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimeTimedeltaMixin,
@@ -212,7 +205,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
     # -------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
@@ -266,11 +259,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
         else:
             raise KeyError(key)
-
-        if tolerance is not None:
-            # try converting tolerance now, so errors don't get swallowed by
-            # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
         return Index.get_loc(self, key, method, tolerance)
 

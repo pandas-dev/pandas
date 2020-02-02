@@ -92,6 +92,18 @@ class TestLoc(Base):
         expected = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         tm.assert_frame_equal(df2, expected)
 
+    def test_loc_setitem_dtype(self):
+        # GH31340
+        df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
+        cols = ["a", "b", "c"]
+        df.loc[:, cols] = df.loc[:, cols].astype("float32")
+
+        expected = DataFrame(
+            {"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]}, dtype="float32"
+        )  # id is inferred as object
+
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_getitem_int(self):
 
         # int label
