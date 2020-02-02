@@ -353,7 +353,7 @@ class _Concatenator:
             if not isinstance(obj, (Series, DataFrame)):
                 msg = (
                     f"cannot concatenate object of type '{type(obj)}'; "
-                    f"only Series and DataFrame objs are valid"
+                    "only Series and DataFrame objs are valid"
                 )
                 raise TypeError(msg)
 
