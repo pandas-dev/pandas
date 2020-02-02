@@ -618,7 +618,7 @@ def test_cut_incorrect_labels(labels):
 @pytest.mark.parametrize("right", [True, False])
 @pytest.mark.parametrize("include_lowest", [True, False])
 def test_cut_nullable_integer(bins, right, include_lowest):
-    a = np.random.randint(0, 10, size=50).astype(object)
+    a = np.random.randint(0, 10, size=50).astype(float)
     a[::2] = np.nan
     result = cut(
         pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
