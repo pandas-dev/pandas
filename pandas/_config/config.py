@@ -158,6 +158,7 @@ def _describe_option(pat: str = "", _print_desc: bool = True):
     s = ""
     for k in keys:  # filter by pat
         s += _build_option_description(k)
+        s += "\n"
 
     if _print_desc:
         print(s)
