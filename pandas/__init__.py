@@ -135,6 +135,7 @@ from pandas.core.reshape.api import (
     get_dummies,
     cut,
     qcut,
+    from_dummies,
 )
 
 import pandas.api

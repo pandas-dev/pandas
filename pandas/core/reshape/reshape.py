@@ -751,6 +751,138 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
+def from_dummies(data, columns=None, prefix_sep="_", dtype="category", fill_first=None):
+    """
+    The inverse transformation of ``pandas.get_dummies``.
+
+    Parameters
+    ----------
+    data : DataFrame
+    columns : list-like, default None
+        Column names in the DataFrame to be decoded.
+        If `columns` is None then all the columns will be converted.
+    prefix_sep : str, default '_'
+        Separator between original column name and dummy variable
+    dtype : dtype, default 'category'
+        Data dtype for new columns - only a single data type is allowed
+    fill_first : str, list, or dict, default None
+        Used to fill rows for which all the dummy variables are 0
+
+    Returns
+    -------
+    transformed : DataFrame
+
+    Examples
+    --------
+    Say we have a dataframe where some variables have been dummified:
+
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "animal_baboon": [0, 0, 1],
+    ...         "animal_lemur": [0, 1, 0],
+    ...         "animal_zebra": [1, 0, 0],
+    ...         "other_col": ["a", "b", "c"],
+    ...     }
+    ... )
+    >>> df
+       animal_baboon  animal_lemur  animal_zebra other_col
+    0              0             0             1         a
+    1              0             1             0         b
+    2              1             0             0         c
+
+    We can recover the original dataframe using `from_dummies`:
+
+    >>> pd.from_dummies(df, columns=['animal'])
+      other_col  animal
+    0         a   zebra
+    1         b   lemur
+    2         c  baboon
+
+    Suppose our dataframe has one column from each dummified column
+    dropped:
+
+    >>> df = df.drop('animal_zebra', axis=1)
+    >>> df
+       animal_baboon  animal_lemur other_col
+    0              0             0         a
+    1              0             1         b
+    2              1             0         c
+
+    We can still recover the original dataframe, by using the argument
+    `fill_first`:
+
+    >>> pd.from_dummies(df, columns=["animal"], fill_first=["zebra"])
+      other_col  animal
+    0         a   zebra
+    1         b   lemur
+    2         c  baboon
+    """
+    if dtype is None:
+        dtype = "category"
+
+    if columns is None:
+        data_to_decode = data.copy()
+        columns = data.columns.tolist()
+        columns = list(
+            {i.split(prefix_sep)[0] for i in data.columns if prefix_sep in i}
+        )
+
+    data_to_decode = data[
+        [i for i in data.columns for c in columns if i.startswith(c + prefix_sep)]
+    ]
+
+    # Check each row sums to 1 or 0
+    if not all(i in [0, 1] for i in data_to_decode.sum(axis=1).unique().tolist()):
+        raise ValueError(
+            "Data cannot be decoded! Each row must contain only 0s and"
+            " 1s, and each row may have at most one 1"
+        )
+
+    if fill_first is None:
+        fill_first = [None] * len(columns)
+    elif isinstance(fill_first, str):
+        fill_first = itertools.cycle([fill_first])
+    elif isinstance(fill_first, dict):
+        fill_first = [fill_first[col] for col in columns]
+
+    out = data.copy()
+    for column, fill_first_ in zip(columns, fill_first):
+        cols, labels = [
+            [
+                i.replace(x, "")
+                for i in data_to_decode.columns
+                if column + prefix_sep in i
+            ]
+            for x in ["", column + prefix_sep]
+        ]
+        if not cols:
+            continue
+        out = out.drop(cols, axis=1)
+        if fill_first_:
+            cols = [column + prefix_sep + fill_first_] + cols
+            labels = [fill_first_] + labels
+            data[cols[0]] = (1 - data[cols[1:]]).all(axis=1)
+        out[column] = Series(
+            np.array(labels)[np.argmax(data[cols].to_numpy(), axis=1)], dtype=dtype
+        )
+    return out
+
+
+def _check_len(item, name, data_to_encode):
+    """ Validate prefixes and separator to avoid silently dropping cols. """
+    len_msg = (
+        "Length of '{name}' ({len_item}) did not match the "
+        "length of the columns being encoded ({len_enc})."
+    )
+
+    if is_list_like(item):
+        if not len(item) == data_to_encode.shape[1]:
+            len_msg = len_msg.format(
+                name=name, len_item=len(item), len_enc=data_to_encode.shape[1]
+            )
+            raise ValueError(len_msg)
+
+
 def get_dummies(
     data,
     prefix=None,
@@ -871,20 +1003,8 @@ def get_dummies(
         else:
             data_to_encode = data[columns]
 
-        # validate prefixes and separator to avoid silently dropping cols
-        def check_len(item, name):
-
-            if is_list_like(item):
-                if not len(item) == data_to_encode.shape[1]:
-                    len_msg = (
-                        f"Length of '{name}' ({len(item)}) did not match the "
-                        "length of the columns being encoded "
-                        f"({data_to_encode.shape[1]})."
-                    )
-                    raise ValueError(len_msg)
-
-        check_len(prefix, "prefix")
-        check_len(prefix_sep, "prefix_sep")
+        _check_len(prefix, "prefix", data_to_encode)
+        _check_len(prefix_sep, "prefix_sep", data_to_encode)
 
         if isinstance(prefix, str):
             prefix = itertools.cycle([prefix])
