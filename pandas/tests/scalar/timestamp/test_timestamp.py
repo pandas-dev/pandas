@@ -2,7 +2,6 @@
 
 import calendar
 from datetime import datetime, timedelta
-from distutils.version import LooseVersion
 import locale
 import unicodedata
 
@@ -1088,20 +1087,13 @@ def test_constructor_ambigous_dst():
     assert result == expected
 
 
-@pytest.mark.xfail(
-    LooseVersion(compat._optional._get_version(dateutil)) < LooseVersion("2.7.0"),
-    reason="dateutil moved to Timedelta.total_seconds() in 2.7.0",
-)
 @pytest.mark.parametrize("epoch", [1552211999999999872, 1552211999999999999])
 def test_constructor_before_dst_switch(epoch):
     # GH 31043
     # Make sure that calling Timestamp constructor
     # on time just before DST switch doesn't lead to
     # nonexistent time or value change
-    # Works only with dateutil >= 2.7.0 as dateutil overrid
-    # pandas.Timedelta.total_seconds with
-    # datetime.timedelta.total_seconds before
-    ts = Timestamp(epoch, tz="dateutil/US/Pacific")
+    ts = Timestamp(epoch, tz="dateutil/America/Los_Angeles")
     result = ts.tz.dst(ts)
     expected = timedelta(seconds=0)
     assert Timestamp(ts).value == epoch
