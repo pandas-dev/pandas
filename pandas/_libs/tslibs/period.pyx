@@ -1172,11 +1172,9 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     if freq == 11000:
         # Microsecond, avoid get_date_info to prevent floating point errors
         pandas_datetime_to_datetimestruct(ordinal, NPY_FR_us, &dts)
-        check_dts_bounds(&dts)
-        # Equivalent: return ordinal * 1000
-        return dtstruct_to_dt64(&dts)
+    else:
+        get_date_info(ordinal, freq, &dts)
 
-    get_date_info(ordinal, freq, &dts)
     check_dts_bounds(&dts)
     return dtstruct_to_dt64(&dts)
 
