@@ -616,17 +616,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             other = DatetimeIndex(other)
         return self, other
 
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -642,7 +631,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
 
-        if isinstance(key, (datetime, np.datetime64)):
+        if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
             key = self._maybe_cast_for_get_loc(key)
 

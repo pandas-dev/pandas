@@ -416,6 +416,7 @@ class Float64Index(NumericIndex):
         )
         return formatter.get_result_as_array()
 
+    @Appender(Index.get_value.__doc__)
     def get_value(self, series: "Series", key):
         """
         We always want to get an index value, never a value.

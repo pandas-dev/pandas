@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -56,10 +56,6 @@ from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
-
-if TYPE_CHECKING:
-    from pandas import Series
-
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -527,6 +523,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
+    def holds_integer(self):
+        return self.dtype.subtype.kind not in ["m", "M"]
+        # TODO: There must already exist something for this?
+
     @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == "iloc":
@@ -883,11 +883,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if self.is_overlapping:
             return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
-
-    @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
-    def get_value(self, series: "Series", key):
-        loc = self.get_loc(key)
-        return series.iloc[loc]
 
     def _convert_slice_indexer(self, key: slice, kind=None):
         if not (key.step is None or key.step == 1):

@@ -383,6 +383,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return attrs
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
@@ -408,6 +409,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
     __radd__ = make_wrapped_arith_op("__radd__")
