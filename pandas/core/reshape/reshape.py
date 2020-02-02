@@ -877,9 +877,9 @@ def get_dummies(
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
                     len_msg = (
-                f"Length of '{name}' ({len(item)}) did not match the "
-                f"length of the columns being encoded ({data_to_encode.shape[1]})."
-            )
+                        f"Length of '{name}' ({len(item)}) did not match the "
+                        f"length of the columns being encoded ({data_to_encode.shape[1]})."
+                    )
                     raise ValueError(len_msg)
 
         check_len(prefix, "prefix")

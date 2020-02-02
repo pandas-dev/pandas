@@ -611,7 +611,8 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 f"merging between different levels can give an unintended "
-                f"result ({left.columns.nlevels} levels on the left, {right.columns.nlevels} on the right)"
+                f"result ({left.columns.nlevels} levels on the left," 
+                f"{right.columns.nlevels} on the right)"
             )
             warnings.warn(msg, UserWarning)
 
@@ -1185,8 +1186,10 @@ class _MergeOperation:
                 if len(common_cols) == 0:
                     raise MergeError(
                         f"No common columns to perform merge on. "
-                        f"Merge options: left_on={self.left_on}, right_on={self.right_on}, "
-                        f"left_index={self.left_index}, right_index={self.right_index}"
+                        f"Merge options: left_on={self.left_on}," 
+                        f"right_on={self.right_on}, "
+                        f"left_index={self.left_index}, "
+                        f"right_index={self.right_index}"
                     )
                 if not common_cols.is_unique:
                     raise MergeError(f"Data columns not unique: {repr(common_cols)}")
@@ -1669,7 +1672,8 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
-            msg = f"allow_exact_matches must be boolean, passed {self.allow_exact_matches}"
+            msg = f"allow_exact_matches must be boolean, " \
+                f"passed {self.allow_exact_matches}"
             raise MergeError(msg)
 
         return left_join_keys, right_join_keys, join_names
