@@ -1,5 +1,5 @@
 
-def test_iat(self, float_frame):
+def test_iat(float_frame):
 
     for i, row in enumerate(float_frame.index):
         for j, col in enumerate(float_frame.columns):
