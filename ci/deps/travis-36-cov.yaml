@@ -27,8 +27,7 @@ dependencies:
   - numexpr
   - numpy=1.15.*
   - odfpy
-  - openpyxl<=3.0.1
-  # https://github.com/pandas-dev/pandas/pull/30009 openpyxl 3.0.2 broke
+  - openpyxl
   - pandas-gbq
   - psycopg2
   - pyarrow>=0.13.0
