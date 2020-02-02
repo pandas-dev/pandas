@@ -14,15 +14,15 @@ import pandas._testing as tm
 
 
 class TestDataFrameMisc:
-    def test_copy_index_name_checking(self, float_frame):
+    @pytest.mark.parametrize("attr", ["index", "columns"])
+    def test_copy_index_name_checking(self, float_frame, attr):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
-        for attr in ("index", "columns"):
-            ind = getattr(float_frame, attr)
-            ind.name = None
-            cp = float_frame.copy()
-            getattr(cp, attr).name = "foo"
-            assert getattr(float_frame, attr).name is None
+        ind = getattr(float_frame, attr)
+        ind.name = None
+        cp = float_frame.copy()
+        getattr(cp, attr).name = "foo"
+        assert getattr(float_frame, attr).name is None
 
     def test_getitem_pop_assign_name(self, float_frame):
         s = float_frame["A"]
@@ -358,24 +358,6 @@ class TestDataFrameMisc:
         assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is None
 
-    def test_transpose(self, float_frame):
-        frame = float_frame
-        dft = frame.T
-        for idx, series in dft.items():
-            for col, value in series.items():
-                if np.isnan(value):
-                    assert np.isnan(frame[col][idx])
-                else:
-                    assert value == frame[col][idx]
-
-        # mixed type
-        index, data = tm.getMixedTypeDict()
-        mixed = DataFrame(data, index=index)
-
-        mixed_T = mixed.T
-        for col, s in mixed_T.items():
-            assert s.dtype == np.object_
-
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
         tm.assert_frame_equal(df.T, df.swapaxes(0, 1))
@@ -469,12 +451,6 @@ class TestDataFrameMisc:
         series[:] = 10
         for idx, value in series.items():
             assert float_frame["A"][idx] != value
-
-    def test_transpose_get_view(self, float_frame):
-        dft = float_frame.T
-        dft.values[:, 5:10] = 5
-
-        assert (float_frame.values[5:10] == 5).all()
 
     def test_inplace_return_self(self):
         # GH 1893
