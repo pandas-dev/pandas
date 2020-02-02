@@ -1400,14 +1400,14 @@ class ParserBase:
                         "when specifying a multi-index header"
                     )
         elif self.header is not None:
-            # GH 16338
-            if not is_integer(self.header):
-                raise ValueError("header must be integer or list of integers")
             # GH 27394
-            elif self.prefix is not None:
+            if self.prefix is not None:
                 raise ValueError(
                     "Argument prefix must be None if argument header is not None"
                 )
+            # GH 16338
+            elif not is_integer(self.header):
+                raise ValueError("header must be integer or list of integers")
             # GH 27779
             elif self.header < 0:
                 raise ValueError(

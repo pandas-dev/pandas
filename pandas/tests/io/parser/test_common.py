@@ -2043,7 +2043,7 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
 def test_read_csv_raises_on_header_prefix(all_parsers):
     # gh-27394
     parser = all_parsers
-    msg = ("Argument prefix must be None if argument header is not None")
+    msg = "Argument prefix must be None if argument header is not None"
     s = StringIO("0,1\n2,3")
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(s, header=0, prefix="_X")
