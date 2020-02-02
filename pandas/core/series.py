@@ -1026,17 +1026,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value):
-        values = self._values
-        if is_extension_array_dtype(values.dtype):
-            # The cython indexing engine does not support ExtensionArrays.
-            values[self.index.get_loc(key)] = value
-            return
-        try:
-            self.index._engine.set_value(values, key, value)
-            return
-        except KeyError:
-            values[self.index.get_loc(key)] = value
-            return
+        # fails with AttributeError for IntervalIndex
+        loc = self.index._engine.get_loc(key)
+        libindex.validate_numeric_casting(self.dtype, value)
+        self._values[loc] = value
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
@@ -1116,11 +1109,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             if takeable:
                 self._values[label] = value
-            elif isinstance(self._values, np.ndarray):
-                # i.e. not EA, so we can use _engine
-                self.index._engine.set_value(self._values, label, value)
             else:
-                self.loc[label] = value
+                loc = self.index.get_loc(label)
+                libindex.validate_numeric_casting(self.dtype, value)
+                self._values[loc] = value
         except KeyError:
 
             # set using a non-recursive method

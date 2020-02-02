@@ -4650,9 +4650,9 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        self._engine.set_value(
-            com.values_from_object(arr), com.values_from_object(key), value
-        )
+        loc = self._engine.get_loc(key)
+        libindex.validate_numeric_casting(arr.dtype, value)
+        arr[loc] = value
 
     _index_shared_docs[
         "get_indexer_non_unique"
