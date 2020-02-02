@@ -272,6 +272,8 @@ cdef int64_t DtoB_weekday(int64_t unix_date) nogil:
 
 cdef int64_t DtoB(npy_datetimestruct *dts, int roll_back,
                   int64_t unix_date) nogil:
+    # calculate the current week (counting from 1970-01-01) treating
+    # sunday as last day of a week
     cdef:
         int day_of_week = dayofweek(dts.year, dts.month, dts.day)
 
@@ -506,7 +508,11 @@ cdef int64_t asfreq_DTtoM(int64_t ordinal, asfreq_info *af_info) nogil:
 
 cdef int64_t asfreq_DTtoW(int64_t ordinal, asfreq_info *af_info) nogil:
     ordinal = downsample_daytime(ordinal, af_info)
-    return (ordinal + 3 - af_info.to_end) // 7 + 1
+    return unix_date_to_week(ordinal, af_info.to_end)
+
+
+cdef int64_t unix_date_to_week(int64_t unix_date, int to_end) nogil:
+    return (unix_date + 3 - to_end) // 7 + 1
 
 
 # --------------------------------------------------------------------
@@ -787,22 +793,10 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) nogil:
         return unix_date
 
     elif freq == FR_BUS:
-        # calculate the current week (counting from 1970-01-01) treating
-        # sunday as last day of a week
-        weeks = (unix_date + 3) // 7
-        # calculate the current weekday (in range 1 .. 7)
-        delta = (unix_date + 3) % 7 + 1
-        # return the number of business days in full weeks plus the business
-        # days in the last - possible partial - week
-        if delta > 6:
-            # We have a Sunday, which rolls back to the previous Friday,
-            # just like Saturday, so decrement delta by 1 to treat as saturday
-            delta = 6
-        return (5 * weeks) + delta - 4
+        return DtoB(dts, 0, unix_date)
 
     elif freq_group == FR_WK:
-        day_adj = freq - FR_WK
-        return (unix_date + 3 - day_adj) // 7 + 1
+        return unix_date_to_week(unix_date, freq - FR_WK)
 
 
 cdef void get_date_info(int64_t ordinal, int freq,
