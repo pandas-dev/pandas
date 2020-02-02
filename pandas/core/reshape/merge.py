@@ -1626,13 +1626,13 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        f"incompatible merge keys [{i}] {lk.dtype!r} and "
-                        f"{rk.dtype!r}, both sides category, but not equal ones"
+                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
+                        f"{repr(rk.dtype)}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        f"incompatible merge keys [{i}] {lk.dtype!r} and "
-                        f"{rk.dtype!r}, must be the same type"
+                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
+                        f"{repr(rk.dtype)}, must be the same type"
                     )
                 raise MergeError(msg)
 
@@ -1646,7 +1646,7 @@ class _AsOfMerge(_OrderedMerge):
 
             msg = (
                 f"incompatible tolerance {self.tolerance}, must be compat "
-                f"with type {lk.dtype!r}"
+                f"with type {repr(lk.dtype)}"
             )
 
             if needs_i8_conversion(lt):
