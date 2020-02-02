@@ -1400,16 +1400,21 @@ class ParserBase:
                         "when specifying a multi-index header"
                     )
 
-        # GH 16338
-        elif self.header is not None and not is_integer(self.header):
-            raise ValueError("header must be integer or list of integers")
-
-        # GH 27779
-        elif self.header is not None and self.header < 0:
-            raise ValueError(
-                "Passing negative integer to header is invalid. "
-                "For no header, use header=None instead"
-            )
+        elif self.header:
+            # GH 16338
+            if not is_integer(self.header):
+                raise ValueError("header must be integer or list of integers")
+            # GH 27394
+            elif self.prefix:
+                raise ValueError(
+                    "Argument prefix must be None if argument header is not None"
+                )
+            # GH 27779
+            elif self.header < 0:
+                raise ValueError(
+                    "Passing negative integer to header is invalid. "
+                    "For no header, use header=None instead"
+                )
 
         self._name_processed = False
 
@@ -1888,10 +1893,6 @@ class CParserWrapper(ParserBase):
         if self._reader.header is None:
             self.names = None
         else:
-            if self.prefix:
-                raise ValueError(
-                    "Argument prefix must be None if argument header is not None"
-                )
             if len(self._reader.header) > 1:
                 # we have a multi index in the columns
                 (
