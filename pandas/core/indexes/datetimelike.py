@@ -1,8 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-import operator
-from typing import Any, List, Optional, Set, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
 
@@ -29,7 +28,6 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
-from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import _shared_docs
@@ -81,7 +79,16 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
+    [
+        "__iter__",
+        "mean",
+        "freq",
+        "freqstr",
+        "_ndarray_values",
+        "asi8",
+        "_box_values",
+        "_box_func",
+    ],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -152,7 +159,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return np.array_equal(self.asi8, other.asi8)
 
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
@@ -375,6 +382,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return attrs
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
@@ -400,6 +408,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
     __radd__ = make_wrapped_arith_op("__radd__")
@@ -442,7 +452,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         values = self.view("i8")
 
@@ -779,11 +789,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if this._can_fast_union(other):
             return this._fast_union(other, sort=sort)
         else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, type(self)):
-                assert result._data.dtype == this.dtype
-                if result.freq is None:
-                    result._set_freq("infer")
+            i8self = Int64Index._simple_new(self.asi8, name=self.name)
+            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8result = i8self._union(i8other, sort=sort)
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------
@@ -920,42 +929,3 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             raise TypeError(
                 f"cannot insert {type(self).__name__} with incompatible label"
             )
-
-
-class DatetimelikeDelegateMixin(PandasDelegate):
-    """
-    Delegation mechanism, specific for Datetime, Timedelta, and Period types.
-
-    Functionality is delegated from the Index class to an Array class. A
-    few things can be customized
-
-    * _delegated_methods, delegated_properties : List
-        The list of property / method names being delagated.
-    * raw_methods : Set
-        The set of methods whose results should should *not* be
-        boxed in an index, after being returned from the array
-    * raw_properties : Set
-        The set of properties whose results should should *not* be
-        boxed in an index, after being returned from the array
-    """
-
-    # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods: Set[str] = set()
-    # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties: Set[str] = set()
-    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-
-    def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
-        if name not in self._raw_properties:
-            result = Index(result, name=self.name)
-        return result
-
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
-        setattr(self._data, name, value)
-
-    def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
-        if name not in self._raw_methods:
-            result = Index(result, name=self.name)
-        return result
