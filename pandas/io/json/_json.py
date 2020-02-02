@@ -942,7 +942,7 @@ class Parser:
                 if (new_data == data).all():
                     data = new_data
                     result = True
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         # coerce ints to 64

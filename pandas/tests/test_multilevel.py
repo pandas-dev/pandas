@@ -891,6 +891,31 @@ Thur,Lunch,Yes,51.51,17"""
         )
         manual_compare_stacked(df, df.stack(0), 0, 1)
 
+    def test_stack_unstack_unordered_multiindex(self):
+        # GH 18265
+        values = np.arange(5)
+        data = np.vstack(
+            [
+                ["b{}".format(x) for x in values],  # b0, b1, ..
+                ["a{}".format(x) for x in values],
+            ]
+        )  # a0, a1, ..
+        df = pd.DataFrame(data.T, columns=["b", "a"])
+        df.columns.name = "first"
+        second_level_dict = {"x": df}
+        multi_level_df = pd.concat(second_level_dict, axis=1)
+        multi_level_df.columns.names = ["second", "first"]
+        df = multi_level_df.reindex(sorted(multi_level_df.columns), axis=1)
+        result = df.stack(["first", "second"]).unstack(["first", "second"])
+        expected = DataFrame(
+            [["a0", "b0"], ["a1", "b1"], ["a2", "b2"], ["a3", "b3"], ["a4", "b4"]],
+            index=[0, 1, 2, 3, 4],
+            columns=MultiIndex.from_tuples(
+                [("a", "x"), ("b", "x")], names=["first", "second"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_corner(self):
         midx = MultiIndex(
             levels=[["foo"], ["bar"], ["baz"]],
@@ -956,6 +981,10 @@ Thur,Lunch,Yes,51.51,17"""
         swapped = ft.swaplevel("first", "second", axis=1)
         exp = self.frame.swaplevel("first", "second").T
         tm.assert_frame_equal(swapped, exp)
+
+        msg = "Can only swap levels on a hierarchical axis."
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(range(3)).swaplevel()
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(["month", "day", "year"])
@@ -2146,6 +2175,40 @@ class TestSorted(Base):
             sorted_before.drop([("foo", "three")], axis=1),
             sorted_after.drop([("foo", "three")], axis=1),
         )
+
+    def test_sort_index_categorical_multiindex(self):
+        # GH 15058
+        df = DataFrame(
+            {
+                "a": range(6),
+                "l1": pd.Categorical(
+                    ["a", "a", "b", "b", "c", "c"],
+                    categories=["c", "a", "b"],
+                    ordered=True,
+                ),
+                "l2": [0, 1, 0, 1, 0, 1],
+            }
+        )
+        result = df.set_index(["l1", "l2"]).sort_index()
+        expected = DataFrame(
+            [4, 5, 0, 1, 2, 3],
+            columns=["a"],
+            index=MultiIndex(
+                levels=[
+                    pd.CategoricalIndex(
+                        ["c", "a", "b"],
+                        categories=["c", "a", "b"],
+                        ordered=True,
+                        name="l1",
+                        dtype="category",
+                    ),
+                    [0, 1],
+                ],
+                codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                names=["l1", "l2"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_is_lexsorted(self):
         levels = [[0, 1], [0, 1, 2]]

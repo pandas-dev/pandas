@@ -92,6 +92,18 @@ class TestLoc(Base):
         expected = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         tm.assert_frame_equal(df2, expected)
 
+    def test_loc_setitem_dtype(self):
+        # GH31340
+        df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
+        cols = ["a", "b", "c"]
+        df.loc[:, cols] = df.loc[:, cols].astype("float32")
+
+        expected = DataFrame(
+            {"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]}, dtype="float32"
+        )  # id is inferred as object
+
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_getitem_int(self):
 
         # int label
@@ -200,10 +212,10 @@ class TestLoc(Base):
     def test_loc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        with pytest.raises(
-            IndexError,
-            match=("Item wrong length {} instead of {}.".format(len(index), len(s))),
-        ):
+        msg = "Boolean index has wrong length: {} instead of {}".format(
+            len(index), len(s)
+        )
+        with pytest.raises(IndexError, match=msg):
             _ = s.loc[index]
 
     def test_loc_getitem_int_slice(self):
@@ -1001,4 +1013,14 @@ def test_loc_axis_1_slice():
             [(2014, 9), (2014, 10), (2015, 7), (2015, 8)]
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_set_dataframe_multiindex():
+    # GH 14592
+    expected = pd.DataFrame(
+        "a", index=range(2), columns=pd.MultiIndex.from_product([range(2), range(2)])
+    )
+    result = expected.copy()
+    result.loc[0, [(0, 1)]] = result.loc[0, [(0, 1)]]
     tm.assert_frame_equal(result, expected)

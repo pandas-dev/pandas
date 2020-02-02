@@ -22,12 +22,13 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._libs import index as libindex, lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
+from pandas.core.dtypes.cast import convert_dtypes
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
@@ -46,6 +47,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
     ABCSparseArray,
 )
@@ -75,6 +78,7 @@ from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
+    IntervalIndex,
     InvalidIndexError,
     MultiIndex,
     ensure_index,
@@ -176,6 +180,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _name: Optional[Hashable]
     _metadata: List[str] = ["name"]
+    _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _deprecations = (
         base.IndexOpsMixin._deprecations
@@ -387,7 +392,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _index = None
 
-    def _set_axis(self, axis, labels, fastpath=False) -> None:
+    def _set_axis(self, axis, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
         """
@@ -408,17 +413,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # or not be a DatetimeIndex
                     pass
 
-        self._set_subtyp(is_all_dates)
-
         object.__setattr__(self, "_index", labels)
         if not fastpath:
             self._data.set_axis(axis, labels)
-
-    def _set_subtyp(self, is_all_dates):
-        if is_all_dates:
-            object.__setattr__(self, "_subtyp", "time_series")
-        else:
-            object.__setattr__(self, "_subtyp", "series")
 
     def _update_inplace(self, result, **kwargs):
         # we want to call the generic version and not the IndexOpsMixin
@@ -494,9 +491,45 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @property
     def _values(self):
         """
-        Return the internal repr of this data.
+        Return the internal repr of this data (defined by Block.interval_values).
+        This are the values as stored in the Block (ndarray or ExtensionArray
+        depending on the Block class), with datetime64[ns] and timedelta64[ns]
+        wrapped in ExtensionArrays to match Index._values behavior.
+
+        Differs from the public ``.values`` for certain data types, because of
+        historical backwards compatibility of the public attribute (e.g. period
+        returns object ndarray and datetimetz a datetime64[ns] ndarray for
+        ``.values`` while it returns an ExtensionArray for ``._values`` in those
+        cases).
+
+        Differs from ``.array`` in that this still returns the numpy array if
+        the Block is backed by a numpy array (except for datetime64 and
+        timedelta64 dtypes), while ``.array`` ensures to always return an
+        ExtensionArray.
+
+        Differs from ``._ndarray_values``, as that ensures to always return a
+        numpy array (it will call ``_ndarray_values`` on the ExtensionArray, if
+        the Series was backed by an ExtensionArray).
+
+        Overview:
+
+        dtype       | values        | _values       | array         | _ndarray_values |
+        ----------- | ------------- | ------------- | ------------- | --------------- |
+        Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
+        Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] | ndarray[m8ns]   |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
+        Nullable    | EA            | EA            | EA            | ndarray         |
+
         """
         return self._data.internal_values()
+
+    @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore
+    @property
+    def array(self) -> ExtensionArray:
+        return self._data._block.array_values()
 
     def _internal_get_values(self):
         """
@@ -756,7 +789,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Indexing Methods
 
     @Appender(generic.NDFrame.take.__doc__)
-    def take(self, indices, axis=0, is_copy=False, **kwargs) -> "Series":
+    def take(self, indices, axis=0, is_copy=None, **kwargs) -> "Series":
+        if is_copy is not None:
+            warnings.warn(
+                "is_copy is deprecated and will be removed in a future version. "
+                "'take' always returns a copy, so there is no need to specify this.",
+                FutureWarning,
+                stacklevel=2,
+            )
         nv.validate_take(tuple(), kwargs)
 
         indices = ensure_platform_int(indices)
@@ -771,16 +811,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             kwargs = {}
         new_values = self._values.take(indices, **kwargs)
 
-        result = self._constructor(
+        return self._constructor(
             new_values, index=new_index, fastpath=True
         ).__finalize__(self)
 
-        # Maybe set copy if we didn't actually change the index.
-        if is_copy:
-            if not result._get_axis(axis).equals(self._get_axis(axis)):
-                result._set_is_copy(self)
+    def _take_with_is_copy(self, indices, axis=0, **kwargs):
+        """
+        Internal version of the `take` method that sets the `_is_copy`
+        attribute to keep track of the parent dataframe (using in indexing
+        for the SettingWithCopyWarning). For Series this does the same
+        as the public take (it never sets `_is_copy`).
 
-        return result
+        See the docstring of `take` for full explanation of the parameters.
+        """
+        return self.take(indices=indices, axis=axis, **kwargs)
 
     def _ixs(self, i: int, axis: int = 0):
         """
@@ -872,6 +916,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
+            elif isinstance(self.index, IntervalIndex):
+                indexer = self.index.get_indexer_for(key)
+                return self.iloc[indexer]
             else:
                 return self._get_values(key)
         elif key_type == "boolean":
@@ -893,7 +940,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
-            return self._get_values(key)
+            # suppress warning from slicing the index with a 2d indexer.
+            # eventually we'll want Series itself to warn.
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", "Support for multi-dim", DeprecationWarning
+                )
+                return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):
             raise ValueError("Can only tuple-index with a MultiIndex")
@@ -947,6 +1000,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self[:] = value
             else:
                 self.loc[key] = value
+        except InvalidIndexError:
+            # e.g. slice
+            self._set_with(key, value)
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
@@ -1060,9 +1116,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             if takeable:
                 self._values[label] = value
-            else:
+            elif isinstance(self._values, np.ndarray):
+                # i.e. not EA, so we can use _engine
                 self.index._engine.set_value(self._values, label, value)
-        except (KeyError, TypeError):
+            else:
+                self.loc[label] = value
+        except KeyError:
 
             # set using a non-recursive method
             self.loc[label] = value
@@ -2241,6 +2300,11 @@ Name: Max Speed, dtype: float64
             optional time freq.
         DataFrame.diff: First discrete difference of object.
 
+        Notes
+        -----
+        For boolean dtypes, this uses :meth:`operator.xor` rather than
+        :meth:`operator.sub`.
+
         Examples
         --------
         Difference with previous row
@@ -2277,7 +2341,7 @@ Name: Max Speed, dtype: float64
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com.values_from_object(self), periods)
+        result = algorithms.diff(self.array, periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1) -> float:
@@ -2423,7 +2487,7 @@ Name: Max Speed, dtype: float64
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False) -> "Series":
+    def append(self, to_append, ignore_index=False, verify_integrity=False):
         """
         Concatenate two or more Series.
 
@@ -2500,10 +2564,8 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
-        return self._ensure_type(
-            concat(
-                to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
-            )
+        return concat(
+            to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
 
     def _binop(self, other, func, level=None, fill_value=None):
@@ -3347,6 +3409,7 @@ Name: Max Speed, dtype: float64
         Series
             Series with levels swapped in MultiIndex.
         """
+        assert isinstance(self.index, ABCMultiIndex)
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index, copy=copy).__finalize__(
             self
@@ -3371,6 +3434,7 @@ Name: Max Speed, dtype: float64
             raise Exception("Can only reorder levels on a hierarchical axis.")
 
         result = self.copy()
+        assert isinstance(result.index, ABCMultiIndex)
         result.index = result.index.reorder_levels(order)
         return result
 
@@ -3432,7 +3496,7 @@ Name: Max Speed, dtype: float64
 
     def unstack(self, level=-1, fill_value=None):
         """
-        Unstack, a.k.a. pivot, Series with MultiIndex to produce DataFrame.
+        Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
         The level involved will automatically get sorted.
 
         Parameters
@@ -3948,6 +4012,32 @@ Name: Max Speed, dtype: float64
         else:
             return self._set_name(index, inplace=inplace)
 
+    @Appender(
+        """
+        >>> s = pd.Series([1, 2, 3])
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+
+        >>> s.set_axis(['a', 'b', 'c'], axis=0)
+        a    1
+        b    2
+        c    3
+        dtype: int64
+    """
+    )
+    @Substitution(
+        **_shared_doc_kwargs,
+        extended_summary_sub="",
+        axis_description_sub="",
+        see_also_sub="",
+    )
+    @Appender(generic.NDFrame.set_axis.__doc__)
+    def set_axis(self, labels, axis=0, inplace=False):
+        return super().set_axis(labels, axis=axis, inplace=inplace)
+
     @Substitution(**_shared_doc_kwargs)
     @Appender(generic.NDFrame.reindex.__doc__)
     def reindex(self, index=None, **kwargs):
@@ -4293,6 +4383,34 @@ Name: Max Speed, dtype: float64
 
         return lmask & rmask
 
+    # ----------------------------------------------------------------------
+    # Convert to types that support pd.NA
+
+    def _convert_dtypes(
+        self: ABCSeries,
+        infer_objects: bool = True,
+        convert_string: bool = True,
+        convert_integer: bool = True,
+        convert_boolean: bool = True,
+    ) -> "Series":
+        input_series = self
+        if infer_objects:
+            input_series = input_series.infer_objects()
+            if is_object_dtype(input_series):
+                input_series = input_series.copy()
+
+        if convert_string or convert_integer or convert_boolean:
+            inferred_dtype = convert_dtypes(
+                input_series._values, convert_string, convert_integer, convert_boolean
+            )
+            try:
+                result = input_series.astype(inferred_dtype)
+            except TypeError:
+                result = input_series.copy()
+        else:
+            result = input_series.copy()
+        return result
+
     @Appender(generic._shared_docs["isna"] % _shared_doc_kwargs)
     def isna(self) -> "Series":
         return super().isna()
@@ -4422,6 +4540,7 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
         new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(self)
 
@@ -4446,8 +4565,15 @@ Name: Max Speed, dtype: float64
         if copy:
             new_values = new_values.copy()
 
+        assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
+
+    # ----------------------------------------------------------------------
+    # Add index
+    index: "Index" = properties.AxisProperty(
+        axis=0, doc="The index (axis labels) of the Series."
+    )
 
     # ----------------------------------------------------------------------
     # Accessor Methods

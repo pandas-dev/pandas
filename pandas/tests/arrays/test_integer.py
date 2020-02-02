@@ -680,6 +680,13 @@ class TestCasting:
         tm.assert_numpy_array_equal(a.astype(str), expected)
         tm.assert_numpy_array_equal(a.astype("str"), expected)
 
+    def test_astype_boolean(self):
+        # https://github.com/pandas-dev/pandas/issues/31102
+        a = pd.array([1, 0, -1, 2, None], dtype="Int64")
+        result = a.astype("boolean")
+        expected = pd.array([True, False, True, True, None], dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
+
 
 def test_frame_repr(data_missing):
 
@@ -935,6 +942,8 @@ def test_astype_nansafe():
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
+# np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
+@pytest.mark.filterwarnings("ignore:invalid value encountered in sign")
 def test_ufuncs_single_int(ufunc):
     a = integer_array([1, 2, -3, np.nan])
     result = ufunc(a)
@@ -1050,6 +1059,36 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("bins", [3, [0, 5, 15]])
+@pytest.mark.parametrize("right", [True, False])
+@pytest.mark.parametrize("include_lowest", [True, False])
+def test_cut(bins, right, include_lowest):
+    a = np.random.randint(0, 10, size=50).astype(object)
+    a[::2] = np.nan
+    result = pd.cut(
+        pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
+    )
+    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)
+    tm.assert_categorical_equal(result, expected)
+
+
+def test_array_setitem_nullable_boolean_mask():
+    # GH 31446
+    ser = pd.Series([1, 2], dtype="Int64")
+    result = ser.where(ser > 1)
+    expected = pd.Series([pd.NA, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_array_setitem():
+    # GH 31446
+    arr = pd.Series([1, 2], dtype="Int64").array
+    arr[arr > 1] = 1
+
+    expected = pd.array([1, 1], dtype="Int64")
+    tm.assert_extension_array_equal(arr, expected)
 
 
 # TODO(jreback) - these need testing / are broken

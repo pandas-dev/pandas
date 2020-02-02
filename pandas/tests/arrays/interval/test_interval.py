@@ -152,7 +152,7 @@ def test_arrow_array():
     assert result.equals(expected)
 
     # unsupported conversions
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="Not supported to convert IntervalArray"):
         pa.array(intervals, type="float64")
 
     with pytest.raises(TypeError, match="different 'subtype'"):

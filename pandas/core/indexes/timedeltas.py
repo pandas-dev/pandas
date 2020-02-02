@@ -1,32 +1,25 @@
 """ implement the TimedeltaIndex """
-from datetime import datetime
-
-import numpy as np
 
 from pandas._libs import NaT, Timedelta, index as libindex
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
     is_float,
     is_integer,
-    is_list_like,
     is_scalar,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
-from pandas.core.accessor import delegate_names
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.timedeltas import TimedeltaArray, _is_convertible_to_td
-from pandas.core.base import _shared_docs
+from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
+from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
-    DatetimelikeDelegateMixin,
     DatetimeTimedeltaMixin,
 )
 from pandas.core.indexes.extension import inherit_names
@@ -34,22 +27,21 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.tseries.frequencies import to_offset
 
 
-class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
-    # Most attrs are dispatched via datetimelike_{ops,methods}
-    # Some are "raw" methods, the result is not re-boxed in an Index
-    # We also have a few "extra" attrs, which may or may not be raw,
-    # which we don't want to expose in the .dt accessor.
-    _raw_properties = {"components", "_box_func"}
-    _raw_methods = {"to_pytimedelta", "sum", "std", "median", "_format_native_types"}
-
-    _delegated_properties = TimedeltaArray._datetimelike_ops + list(_raw_properties)
-    _delegated_methods = (
-        TimedeltaArray._datetimelike_methods
-        + list(_raw_methods)
-        + ["_box_values", "__neg__", "__pos__", "__abs__"]
-    )
-
-
+@inherit_names(
+    [
+        "_box_values",
+        "__neg__",
+        "__pos__",
+        "__abs__",
+        "total_seconds",
+        "round",
+        "floor",
+        "ceil",
+    ]
+    + TimedeltaArray._field_ops,
+    TimedeltaArray,
+    wrap=True,
+)
 @inherit_names(
     [
         "_bool_ops",
@@ -58,21 +50,18 @@ class TimedeltaDelegateMixin(DatetimelikeDelegateMixin):
         "_datetimelike_ops",
         "_datetimelike_methods",
         "_other_ops",
+        "components",
+        "_box_func",
+        "to_pytimedelta",
+        "sum",
+        "std",
+        "median",
+        "_format_native_types",
+        "freq",
     ],
     TimedeltaArray,
 )
-@delegate_names(
-    TimedeltaArray, TimedeltaDelegateMixin._delegated_properties, typ="property"
-)
-@delegate_names(
-    TimedeltaArray,
-    TimedeltaDelegateMixin._delegated_methods,
-    typ="method",
-    overwrite=True,
-)
-class TimedeltaIndex(
-    DatetimeTimedeltaMixin, dtl.TimelikeOps, TimedeltaDelegateMixin,
-):
+class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects.
@@ -134,6 +123,8 @@ class TimedeltaIndex(
     _is_numeric_dtype = True
     _infer_as_myclass = True
 
+    _data: TimedeltaArray
+
     # -------------------------------------------------------------------
     # Constructors
 
@@ -161,7 +152,7 @@ class TimedeltaIndex(
                 "represent unambiguous timedelta values durations."
             )
 
-        if isinstance(data, TimedeltaArray):
+        if isinstance(data, TimedeltaArray) and freq is None:
             if copy:
                 data = data.copy()
             return cls._simple_new(data, name=name, freq=freq)
@@ -214,7 +205,7 @@ class TimedeltaIndex(
 
     # -------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
@@ -237,30 +228,11 @@ class TimedeltaIndex(
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-
-        if _is_convertible_to_td(key):
-            key = Timedelta(key)
-            return self.get_value_maybe_box(series, key)
-
-        try:
-            value = Index.get_value(self, series, key)
-        except KeyError:
-            try:
-                loc = self._get_string_slice(key)
-                return series[loc]
-            except (TypeError, ValueError, KeyError):
-                pass
-
-            try:
-                return self.get_value_maybe_box(series, key)
-            except (TypeError, ValueError, KeyError):
-                raise KeyError(key)
+        if is_integer(key):
+            loc = key
         else:
-            return com.maybe_box(self, value, series, key)
-
-    def get_value_maybe_box(self, series, key: Timedelta):
-        values = self._engine.get_value(com.values_from_object(series), key)
-        return com.maybe_box(self, values, series, key)
+            loc = self.get_loc(key)
+        return self._get_values_for_loc(series, loc)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -268,42 +240,29 @@ class TimedeltaIndex(
 
         Returns
         -------
-        loc : int
+        loc : int, slice, or ndarray[int]
         """
-        if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):
-            # GH#20464 datetime check here is to ensure we don't allow
-            #   datetime objects to be incorrectly treated as timedelta
-            #   objects; NaT is a special case because it plays a double role
-            #   as Not-A-Timedelta
-            raise TypeError
+        if not is_scalar(key):
+            raise InvalidIndexError(key)
 
-        if isna(key):
+        if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
 
-        if tolerance is not None:
-            # try converting tolerance now, so errors don't get swallowed by
-            # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-
-        if _is_convertible_to_td(key) or key is NaT:
-            key = Timedelta(key)
-            return Index.get_loc(self, key, method, tolerance)
-
-        try:
-            return Index.get_loc(self, key, method, tolerance)
-        except (KeyError, ValueError, TypeError):
+        elif isinstance(key, str):
             try:
-                return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError):
-                pass
-
-            try:
-                stamp = Timedelta(key)
-                return Index.get_loc(self, stamp, method, tolerance)
-            except (KeyError, ValueError):
+                key = Timedelta(key)
+            except ValueError:
                 raise KeyError(key)
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+        elif isinstance(key, self._data._recognized_scalars) or key is NaT:
+            key = Timedelta(key)
+
+        else:
+            raise KeyError(key)
+
+        return Index.get_loc(self, key, method, tolerance)
+
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         """
         If label is a string, cast it to timedelta according to resolution.
 
@@ -331,32 +290,11 @@ class TimedeltaIndex(
 
         return label
 
-    def _get_string_slice(self, key):
-        if is_integer(key) or is_float(key) or key is NaT:
-            self._invalid_indexer("slice", key)
-        loc = self._partial_td_slice(key)
-        return loc
-
-    def _partial_td_slice(self, key):
-
+    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+        # TODO: Check for non-True use_lhs/use_rhs
+        assert isinstance(key, str), type(key)
         # given a key, try to figure out a location for a partial slice
-        if not isinstance(key, str):
-            return key
-
         raise NotImplementedError
-
-    @Substitution(klass="TimedeltaIndex")
-    @Appender(_shared_docs["searchsorted"])
-    def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, str):
-            raise TypeError(
-                "searchsorted requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
-            )
-        if isinstance(value, Index):
-            value = value._data
-
-        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
@@ -364,62 +302,6 @@ class TimedeltaIndex(
     @property
     def inferred_type(self) -> str:
         return "timedelta64"
-
-    def insert(self, loc, item):
-        """
-        Make new Index inserting new item at location
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-            If not either a Python datetime or a numpy integer-like, returned
-            Index dtype will be object rather than datetime.
-
-        Returns
-        -------
-        new_index : Index
-        """
-        # try to convert if possible
-        if isinstance(item, self._data._recognized_scalars):
-            item = self._data._scalar_type(item)
-        elif is_valid_nat_for_dtype(item, self.dtype):
-            # GH 18295
-            item = self._na_value
-        elif is_scalar(item) and isna(item):
-            # i.e. datetime64("NaT")
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            )
-
-        freq = None
-        if isinstance(item, self._data._scalar_type) or item is NaT:
-            self._data._check_compatible_with(item, setitem=True)
-
-            # check freq can be preserved on edge cases
-            if self.size and self.freq is not None:
-                if item is NaT:
-                    pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
-                    freq = self.freq
-                elif (loc == len(self)) and item - self.freq == self[-1]:
-                    freq = self.freq
-            item = item.asm8
-
-        try:
-            new_i8s = np.concatenate(
-                (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
-            )
-            tda = type(self._data)._simple_new(new_i8s, freq=freq)
-            return self._shallow_copy(tda)
-        except (AttributeError, TypeError):
-
-            # fall back to object index
-            if isinstance(item, str):
-                return self.astype(object).insert(loc, item)
-            raise TypeError(
-                f"cannot insert {type(self).__name__} with incompatible label"
-            )
 
 
 TimedeltaIndex._add_logical_methods_disabled()
