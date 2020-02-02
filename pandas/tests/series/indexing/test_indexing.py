@@ -911,13 +911,6 @@ def test_take_categorical():
     tm.assert_series_equal(result, expected)
 
 
-def test_head_tail(string_series):
-    tm.assert_series_equal(string_series.head(), string_series[:5])
-    tm.assert_series_equal(string_series.head(0), string_series[0:0])
-    tm.assert_series_equal(string_series.tail(), string_series[-5:])
-    tm.assert_series_equal(string_series.tail(0), string_series[0:0])
-
-
 def test_uint_drop(any_int_dtype):
     # see GH18311
     # assigning series.loc[0] = 4 changed series.dtype to int
