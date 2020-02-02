@@ -852,6 +852,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
+        key = self.index._convert_scalar_indexer(key, kind="getitem")
 
         if key is Ellipsis:
             return self
@@ -869,11 +870,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif com.is_bool_indexer(key):
                 pass
             else:
-
-                # we can try to coerce the indexer (or this will raise)
-                new_key = self.index._convert_scalar_indexer(key, kind="getitem")
-                if type(new_key) != type(key):
-                    return self.__getitem__(new_key)
                 raise
 
         if is_iterator(key):
