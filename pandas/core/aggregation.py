@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
+from pandas.core.dtypes.generic import ABCDataFrame
 
 
 def reconstruct_func(
@@ -253,3 +254,23 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
         mangled_aggspec = _managle_lambda_list(agg_spec)
 
     return mangled_aggspec
+
+
+def _relabel_result(result, reordered_result, func, columns, order):
+    """Internal function to reorder result if relabelling for dataframe.agg."""
+
+    reordered_indexes = [
+        pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
+    ]
+    idx = 0
+
+    # The reason is self._aggregate outputs different type of result if
+    # any column is only used once in aggregation
+    mask = isinstance(result, ABCDataFrame) and result.isna().any().any()
+
+    for col, fun in func.items():
+        s = result[col][::-1].dropna() if mask else result[col]
+        s.index = reordered_indexes[idx : idx + len(fun)]
+        reordered_result[col] = s.reindex(columns)
+        idx = idx + len(fun)
+    return reordered_result
