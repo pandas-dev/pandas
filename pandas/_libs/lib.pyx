@@ -1289,13 +1289,16 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # e.g. categoricals
         # begin by checking if there is a tz attribute
         # in which case we have a Series with dtype DatetimeTZDtype
-        if hasattr(value.dtype, 'tz'):
-            return "datetimetz"
         try:
             values = getattr(value, '_values', getattr(value, 'values', value))
         except TypeError:
             # This gets hit if we have an EA, since cython expects `values`
             #  to be an ndarray
+            # before using try_infer_map check if there is a tz attribute
+            # because try_infer_map cannot be used to differentiate dtypes
+            # such as "datetime64[ns]" and "datetime64[ns, {timezone}]"
+            if hasattr(value.dtype, 'tz'):
+                return "datetimetz"
             value = _try_infer_map(value)
             if value is not None:
                 return value
@@ -1348,11 +1351,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_datetime64_object(val):
         if is_datetime64_array(values):
-            # only check for non nulls to avoid numpy nat
-            if is_datetimetz_array(values[~isnaobj(values)]):
-                return "datetimetz"
-            else:
-                return "datetime64"
+            return "datetime64"
 
     elif is_timedelta(val):
         if is_timedelta_or_timedelta64_array(values):
@@ -1373,8 +1372,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     elif PyDateTime_Check(val):
         if is_datetime_array(values):
-            # only check for non nulls to avoid numpy nat
-            if is_datetimetz_array(values[~isnaobj(values)]):
+            if (is_datetimetz_na_array(values)
+                or is_datetimetz_array(values)):
                 return "datetimetz"
             else:
                 return "datetime"
@@ -1767,6 +1766,21 @@ cpdef bint is_datetimetz_array(ndarray values):
     cdef:
         DatetimeTZValidator validator = DatetimeTZValidator(len(values),
                                                             skipna=True)
+    return validator.validate(values)
+
+
+cdef class DatetimeTZNaValidator(TemporalValidator):
+    cdef bint is_value_typed(self, object value) except -1:
+        return (PyDateTime_Check(value) and (value.tzinfo is not None)
+                or util.is_nan(value))
+
+    cdef inline bint is_valid_null(self, object value) except -1:
+        return is_null_datetime64(value)
+
+
+cpdef bint is_datetimetz_na_array(ndarray values):
+    cdef:
+        DatetimeTZNaValidator validator = DatetimeTZNaValidator(len(values))
     return validator.validate(values)
 
 
