@@ -1649,10 +1649,12 @@ Starting in 0.25 pandas can be extended with third-party plotting backends.
 The main idea is letting users select a plotting backend different than the provided one based on Matplotlib.
 For example:
 .. ipython:: python
+
     pd.set_option('plotting.backend', 'backend.module')
     pd.Series([1, 2, 3]).plot()
 This would be more or less equivalent to:
 .. ipython:: python
+
     import backend.module
     backend.module.plot(pd.Series([1, 2, 3]))
 The backend module can then use other visualization tools (Bokeh, Altair,…) to generate the plots.
@@ -1660,6 +1662,7 @@ Libraries implementing the plotting backend should use entry points to make thei
 For example, pandas registers the default “matplotlib” backend as follows.
 # in setup.py
 .. ipython:: python
+
 setup(  # noqa: F821
     ...,
     entry_points={
