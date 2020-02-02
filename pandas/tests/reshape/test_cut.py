@@ -637,6 +637,8 @@ def test_cut_object_dtype_with_na(bins, right, include_lowest):
     arr[::3] = np.nan
 
     result = cut(arr, bins, right=right, include_lowest=include_lowest)
-    expected = cut(arr.astype(np.float64), bins, right=right, include_lowest=include_lowest)
+    expected = cut(
+        arr.astype(np.float64), bins, right=right, include_lowest=include_lowest
+    )
 
     tm.assert_categorical_equal(result, expected)
