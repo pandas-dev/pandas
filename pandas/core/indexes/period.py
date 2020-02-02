@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import Any
 import weakref
 
 import numpy as np
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_integer_dtype,
-    is_list_like,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -50,9 +49,6 @@ from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 # --- Period index sketch
 
@@ -455,17 +451,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # indexing
         return "period"
 
-    def get_value(self, series: "Series", key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
-
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
@@ -560,9 +545,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             key = Period(key, freq=self.freq)
         except ValueError:
             # we cannot construct the Period
-            # as we have an invalid type
-            if is_list_like(key):
-                raise TypeError(f"'{key}' is an invalid key")
             raise KeyError(key)
 
         ordinal = key.ordinal if key is not NaT else key.value
