@@ -148,7 +148,6 @@ def test_frame_datetime64_duplicated():
 
 def test_getitem_setitem_datetime_tz_pytz():
     from pytz import timezone as tz
-    from pandas import date_range
 
     N = 50
     # testing with timezone, GH #2785
@@ -188,8 +187,6 @@ def test_getitem_setitem_datetime_tz_dateutil():
     tz = (
         lambda x: tzutc() if x == "UTC" else gettz(x)
     )  # handle special case for utc in dateutil
-
-    from pandas import date_range
 
     N = 50
 
@@ -373,7 +370,6 @@ def test_getitem_median_slice_bug():
 
 
 def test_datetime_indexing():
-    from pandas import date_range
 
     index = date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)

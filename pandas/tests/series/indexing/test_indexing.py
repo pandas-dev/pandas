@@ -883,41 +883,6 @@ def test_pop():
     tm.assert_series_equal(k, expected)
 
 
-def test_take():
-    s = Series([-1, 5, 6, 2, 4])
-
-    actual = s.take([1, 3, 4])
-    expected = Series([5, 2, 4], index=[1, 3, 4])
-    tm.assert_series_equal(actual, expected)
-
-    actual = s.take([-1, 3, 4])
-    expected = Series([4, 2, 4], index=[4, 3, 4])
-    tm.assert_series_equal(actual, expected)
-
-    msg = "index {} is out of bounds for( axis 0 with)? size 5"
-    with pytest.raises(IndexError, match=msg.format(10)):
-        s.take([1, 10])
-    with pytest.raises(IndexError, match=msg.format(5)):
-        s.take([2, 5])
-
-
-def test_take_categorical():
-    # https://github.com/pandas-dev/pandas/issues/20664
-    s = Series(pd.Categorical(["a", "b", "c"]))
-    result = s.take([-2, -2, 0])
-    expected = Series(
-        pd.Categorical(["b", "b", "a"], categories=["a", "b", "c"]), index=[1, 1, 0]
-    )
-    tm.assert_series_equal(result, expected)
-
-
-def test_head_tail(string_series):
-    tm.assert_series_equal(string_series.head(), string_series[:5])
-    tm.assert_series_equal(string_series.head(0), string_series[0:0])
-    tm.assert_series_equal(string_series.tail(), string_series[-5:])
-    tm.assert_series_equal(string_series.tail(0), string_series[0:0])
-
-
 def test_uint_drop(any_int_dtype):
     # see GH18311
     # assigning series.loc[0] = 4 changed series.dtype to int
