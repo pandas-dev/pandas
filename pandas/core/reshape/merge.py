@@ -611,7 +611,7 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 f"merging between different levels can give an unintended "
-                f"result ({left.columns.nlevels} levels on the left," 
+                f"result ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
             warnings.warn(msg, UserWarning)
@@ -1186,7 +1186,7 @@ class _MergeOperation:
                 if len(common_cols) == 0:
                     raise MergeError(
                         f"No common columns to perform merge on. "
-                        f"Merge options: left_on={self.left_on}," 
+                        f"Merge options: left_on={self.left_on},"
                         f"right_on={self.right_on}, "
                         f"left_index={self.left_index}, "
                         f"right_index={self.right_index}"
