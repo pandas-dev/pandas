@@ -451,10 +451,6 @@ class Timestamp(_Timestamp):
         elif not is_offset_object(freq):
             freq = to_offset(freq)
 
-        # TODO: remove after incorporating fold into conversion
-        if ts.fold == 0 and fold == 1:
-            ts.fold = fold
-
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq, ts.fold)
 
     def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
