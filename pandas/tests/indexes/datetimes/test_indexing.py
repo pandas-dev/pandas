@@ -639,18 +639,19 @@ class TestDatetimeIndex:
         result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
 
-    def test_get_loc(self):
+    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    def test_get_loc_method_exact_match(self, method):
         idx = pd.date_range("2000-01-01", periods=3)
 
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].to_pydatetime(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
+        assert idx.get_loc(idx[1], method) == 1
+        assert idx.get_loc(idx[1].to_pydatetime(), method) == 1
+        assert idx.get_loc(str(idx[1]), method) == 1
 
-            if method is not None:
-                assert (
-                    idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
-                )
+        if method is not None:
+            assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
+
+    def test_get_loc(self):
+        idx = pd.date_range("2000-01-01", periods=3)
 
         assert idx.get_loc("2000-01-01", method="nearest") == 0
         assert idx.get_loc("2000-01-01T12", method="nearest") == 1
