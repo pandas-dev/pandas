@@ -70,7 +70,6 @@ def _new_DatetimeIndex(cls, d):
         "_field_ops",
         "_datetimelike_ops",
         "_datetimelike_methods",
-        "_box_func",
         "tz",
         "tzinfo",
         "dtype",
