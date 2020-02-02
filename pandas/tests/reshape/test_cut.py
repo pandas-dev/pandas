@@ -632,6 +632,7 @@ def test_cut_nullable_integer(bins, right, include_lowest):
 @pytest.mark.parametrize("right", [True, False])
 @pytest.mark.parametrize("include_lowest", [True, False])
 def test_cut_object_dtype_with_na(bins, right, include_lowest):
+    # https://github.com/pandas-dev/pandas/issues/31586
     arr = np.arange(100).astype(object)
     arr[::3] = np.nan
 
