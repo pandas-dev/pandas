@@ -601,6 +601,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                 f"or array of those. Got '{type(value).__name__}' instead."
             )
             raise TypeError(msg)
+
+        key = check_array_indexer(self, key)
         self._data[key] = value
         self._maybe_clear_freq()
 
@@ -929,7 +931,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     @property
     def freqstr(self):
         """
-        Return the frequency object as a string if its set, otherwise None
+        Return the frequency object as a string if its set, otherwise None.
         """
         if self.freq is None:
             return None

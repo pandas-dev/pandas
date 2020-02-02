@@ -2073,6 +2073,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         lindexer = self.categories.get_indexer(rvalue)
         lindexer = self._maybe_coerce_indexer(lindexer)
+
+        key = check_array_indexer(self, key)
         self._codes[key] = lindexer
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
@@ -2401,8 +2403,8 @@ class Categorical(ExtensionArray, PandasObject):
         if not is_list_like(values):
             values_type = type(values).__name__
             raise TypeError(
-                "only list-like objects are allowed to be passed"
-                f" to isin(), you passed a [{values_type}]"
+                "only list-like objects are allowed to be passed "
+                f"to isin(), you passed a [{values_type}]"
             )
         values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))

@@ -305,8 +305,7 @@ class _Concatenator:
         if isinstance(objs, (NDFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
-                "objects, you passed an object of type "
-                '"{name}"'.format(name=type(objs).__name__)
+                f'objects, you passed an object of type "{type(objs).__name__}"'
             )
 
         if join == "outer":
@@ -577,10 +576,7 @@ class _Concatenator:
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
-                raise ValueError(
-                    "Indexes have overlapping values: "
-                    "{overlap!s}".format(overlap=overlap)
-                )
+                raise ValueError(f"Indexes have overlapping values: {overlap}")
 
 
 def _concat_indexes(indexes) -> Index:
@@ -648,8 +644,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             # make sure that all of the passed indices have the same nlevels
             if not len({idx.nlevels for idx in indexes}) == 1:
                 raise AssertionError(
-                    "Cannot concat indices that do "
-                    "not have the same number of levels"
+                    "Cannot concat indices that do not have the same number of levels"
                 )
 
             # also copies

@@ -409,8 +409,8 @@ class TestIndexing:
             idx0.get_loc(1.1)
 
         msg = (
-            r"'PeriodIndex\(\['2017-09-01', '2017-09-02', '2017-09-03'\],"
-            r" dtype='period\[D\]', freq='D'\)' is an invalid key"
+            r"'PeriodIndex\(\['2017-09-01', '2017-09-02', '2017-09-03'\], "
+            r"dtype='period\[D\]', freq='D'\)' is an invalid key"
         )
         with pytest.raises(TypeError, match=msg):
             idx0.get_loc(idx0)
@@ -434,8 +434,8 @@ class TestIndexing:
             idx1.get_loc(1.1)
 
         msg = (
-            r"'PeriodIndex\(\['2017-09-02', '2017-09-02', '2017-09-03'\],"
-            r" dtype='period\[D\]', freq='D'\)' is an invalid key"
+            r"'PeriodIndex\(\['2017-09-02', '2017-09-02', '2017-09-03'\], "
+            r"dtype='period\[D\]', freq='D'\)' is an invalid key"
         )
         with pytest.raises(TypeError, match=msg):
             idx1.get_loc(idx1)

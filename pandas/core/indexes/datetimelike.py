@@ -156,13 +156,11 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return (
-                is_scalar(res)
-                or isinstance(res, slice)
-                or (is_list_like(res) and len(res))
-            )
         except (KeyError, TypeError, ValueError):
             return False
+        return bool(
+            is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
+        )
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -372,10 +370,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'ix', 'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem', 'iloc'} or None
         """
 
-        assert kind in ["ix", "loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", "iloc", None]
 
         # we don't allow integer/float indexing for loc
         # we don't allow float indexing for ix/getitem
@@ -384,7 +382,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             is_flt = is_float(key)
             if kind in ["loc"] and (is_int or is_flt):
                 self._invalid_indexer("index", key)
-            elif kind in ["ix", "getitem"] and is_flt:
+            elif kind in ["getitem"] and is_flt:
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
@@ -859,11 +857,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _wrap_joined_index(self, joined, other):
         name = get_op_result_name(self, other)
-        if (
-            isinstance(other, type(self))
-            and self.freq == other.freq
-            and self._can_fast_union(other)
-        ):
+        if self._can_fast_union(other):
             joined = self._shallow_copy(joined)
             joined.name = name
             return joined

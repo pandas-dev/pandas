@@ -267,8 +267,9 @@ cdef class Parser:
             elif column_types[j] == b's':
                 self.column_types[j] = column_type_string
             else:
-                raise ValueError("unknown column type: "
-                                 f"{self.parser.columns[j].ctype}")
+                raise ValueError(
+                    f"unknown column type: {self.parser.columns[j].ctype}"
+                )
 
         # compression
         if parser.compression == const.rle_compression:

@@ -319,8 +319,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case len(title) > len(df)
         msg = (
-            "The length of `title` must equal the number of columns if"
-            " using `title` of type `list` and `subplots=True`"
+            "The length of `title` must equal the number of columns if "
+            "using `title` of type `list` and `subplots=True`"
         )
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, title=title + ["kittens > puppies"])
@@ -331,8 +331,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # Case subplots=False and title is of type list
         msg = (
-            "Using `title` of type `list` is not supported unless"
-            " `subplots=True` is passed"
+            "Using `title` of type `list` is not supported unless "
+            "`subplots=True` is passed"
         )
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=False, title=title)

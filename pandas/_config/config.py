@@ -165,8 +165,7 @@ def _reset_option(pat, silent=False):
         raise ValueError(
             "You must specify at least 4 characters when "
             "resetting multiple keys, use the special keyword "
-            '"all" to reset all the options to their default '
-            "value"
+            '"all" to reset all the options to their default value'
         )
 
     for k in keys:

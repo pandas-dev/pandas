@@ -78,8 +78,7 @@ def _expand_user(
 def validate_header_arg(header) -> None:
     if isinstance(header, bool):
         raise TypeError(
-            "Passing a bool to header is invalid. "
-            "Use header=None for no header or "
+            "Passing a bool to header is invalid. Use header=None for no header or "
             "header=int or list-like of ints to specify "
             "the row(s) making up the column names"
         )
@@ -407,8 +406,8 @@ def get_handle(
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
                     raise ValueError(
-                        "Multiple files found in ZIP file."
-                        f" Only one file per ZIP: {zip_names}"
+                        "Multiple files found in ZIP file. "
+                        f"Only one file per ZIP: {zip_names}"
                     )
 
         # XZ Compression
