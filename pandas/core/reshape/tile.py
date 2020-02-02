@@ -202,10 +202,6 @@ def cut(
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
-    # for handling the cut for datetime and timedelta objects
-    # Also to support cut(IntegerArray) we convert to float dtype
-    # Will properly support in the future.
-    # https://github.com/pandas-dev/pandas/pull/31290
     original = x
     x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
@@ -448,6 +444,10 @@ def _coerce_to_type(x):
     elif is_bool_dtype(x):
         # GH 20303
         x = x.astype(np.int64)
+    # To support cut and qcut for IntegerArray we convert to float dtype.
+    # Will properly support in the future.
+    # https://github.com/pandas-dev/pandas/pull/31290
+    # https://github.com/pandas-dev/pandas/issues/31389
     elif is_extension_array_dtype(x) and is_integer_dtype(x):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
