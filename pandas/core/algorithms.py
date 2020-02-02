@@ -2,6 +2,7 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 from warnings import catch_warnings, simplefilter, warn
@@ -28,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
     is_float_dtype,
@@ -190,6 +192,11 @@ def _reconstruct_data(values, dtype, original):
         if isinstance(original, ABCIndexClass):
             values = values.astype(object, copy=False)
     elif dtype is not None:
+        if is_datetime64_dtype(dtype):
+            dtype = "datetime64[ns]"
+        elif is_timedelta64_dtype(dtype):
+            dtype = "timedelta64[ns]"
+
         values = values.astype(dtype, copy=False)
 
     return values
@@ -201,7 +208,7 @@ def _ensure_arraylike(values):
     """
     if not is_array_like(values):
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "unicode"]:
+        if inferred in ["mixed", "string"]:
             if isinstance(values, tuple):
                 values = list(values)
             values = construct_1d_object_array_from_listlike(values)
@@ -1812,7 +1819,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0):
+def diff(arr, n: int, axis: int = 0, stacklevel=3):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1824,15 +1831,41 @@ def diff(arr, n: int, axis: int = 0):
         number of periods
     axis : int
         axis to shift on
+    stacklevel : int
+        The stacklevel for the lost dtype warning.
 
     Returns
     -------
     shifted
     """
+    from pandas.core.arrays import PandasDtype
 
     n = int(n)
     na = np.nan
     dtype = arr.dtype
+
+    if dtype.kind == "b":
+        op = operator.xor
+    else:
+        op = operator.sub
+
+    if isinstance(dtype, PandasDtype):
+        # PandasArray cannot necessarily hold shifted versions of itself.
+        arr = np.asarray(arr)
+        dtype = arr.dtype
+
+    if is_extension_array_dtype(dtype):
+        if hasattr(arr, f"__{op.__name__}__"):
+            return op(arr, arr.shift(n))
+        else:
+            warn(
+                "dtype lost in 'diff()'. In the future this will raise a "
+                "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
+            arr = np.asarray(arr)
+            dtype = arr.dtype
 
     is_timedelta = False
     is_bool = False

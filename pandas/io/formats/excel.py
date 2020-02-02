@@ -1,17 +1,20 @@
-"""Utilities for conversion to writer-agnostic Excel representation
+"""
+Utilities for conversion to writer-agnostic Excel representation.
 """
 
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, Optional, Sequence, Union
 import warnings
 
 import numpy as np
 
+from pandas._typing import Label
+
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex, ABCPeriodIndex
 
 from pandas import Index
 import pandas.core.common as com
@@ -371,10 +374,10 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: Optional[str] = None,
-        cols: Optional[Sequence] = None,
-        header: Union[bool, List[str]] = True,
+        cols: Optional[Sequence[Label]] = None,
+        header: Union[Sequence[Label], bool] = True,
         index: bool = True,
-        index_label: Union[str, Sequence, None] = None,
+        index_label: Optional[Union[Label, Sequence[Label]]] = None,
         merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Optional[Callable] = None,
@@ -449,7 +452,7 @@ class ExcelFormatter:
                     "index ('index'=False) is not yet implemented."
                 )
 
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if not (has_aliases or self.header):
             return
 
@@ -497,7 +500,7 @@ class ExcelFormatter:
         self.rowcounter = lnum
 
     def _format_header_regular(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if has_aliases or self.header:
             coloffset = 0
 
@@ -547,7 +550,7 @@ class ExcelFormatter:
             return self._format_regular_rows()
 
     def _format_regular_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if has_aliases or self.header:
             self.rowcounter += 1
 
@@ -587,7 +590,7 @@ class ExcelFormatter:
             yield cell
 
     def _format_hierarchical_rows(self):
-        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
         if has_aliases or self.header:
             self.rowcounter += 1
 

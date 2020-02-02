@@ -353,7 +353,7 @@ DataFrame or TextParser
 
 See Also
 --------
-to_csv : Write DataFrame to a comma-separated values (csv) file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
@@ -754,7 +754,7 @@ def read_fwf(
 
     See Also
     --------
-    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Examples
@@ -1304,7 +1304,7 @@ def _validate_usecols_arg(usecols):
 
         usecols_dtype = lib.infer_dtype(usecols, skipna=False)
 
-        if usecols_dtype not in ("empty", "integer", "string", "unicode"):
+        if usecols_dtype not in ("empty", "integer", "string"):
             raise ValueError(msg)
 
         usecols = set(usecols)

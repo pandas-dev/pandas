@@ -1,5 +1,5 @@
 """
-concat routines
+Concat routines.
 """
 
 from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
@@ -7,6 +7,8 @@ from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
 import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
@@ -394,11 +396,11 @@ class _Concatenator:
             axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, DataFrame)
+        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
             axis = 1 if axis == 0 else 0
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
                 "axis must be between 0 and {ndim}, input was "
@@ -499,9 +501,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = self.objs[0]._constructor
-            return cons._from_axes(new_data, self.new_axes).__finalize__(
-                self, method="concat"
-            )
+            return cons(new_data).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:
@@ -519,7 +519,11 @@ class _Concatenator:
     def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
-            self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
+            self.objs,
+            axis=data_axis,
+            intersect=self.intersect,
+            sort=self.sort,
+            copy=self.copy,
         )
 
     def _get_concat_axis(self) -> Index:

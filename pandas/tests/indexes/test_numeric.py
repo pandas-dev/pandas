@@ -389,8 +389,51 @@ class TestFloat64Index(Numeric):
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(KeyError, match=r"^\[nan\]$"):
+        with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
+            # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
+
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            pd.date_range("2016-01-01", periods=3),
+            pd.timedelta_range("1 Day", periods=3),
+        ],
+    )
+    def test_lookups_datetimelike_values(self, vals):
+        # If we have datetime64 or timedelta64 values, make sure they are
+        #  wrappped correctly  GH#31163
+        ser = pd.Series(vals, index=range(3, 6))
+        ser.index = ser.index.astype("float64")
+
+        expected = vals[1]
+
+        result = ser.index.get_value(ser, 4.0)
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.index.get_value(ser, 4)
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.loc[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.loc[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.at[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        # GH#31329 .at[4] should cast to 4.0, matching .loc behavior
+        result = ser.at[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.iloc[1]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.iat[1]
+        assert isinstance(result, type(expected)) and result == expected
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])

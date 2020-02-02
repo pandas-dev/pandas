@@ -7,6 +7,7 @@ import pytz
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
 import pandas._testing as tm
+from pandas.core.indexes.base import InvalidIndexError
 
 from pandas.tseries.offsets import BDay, CDay
 
@@ -621,17 +622,21 @@ class TestDatetimeIndex:
         # specifically make sure we have test for np.datetime64 key
         dti = pd.date_range("2016-01-01", periods=3)
 
-        arr = np.arange(6, 8)
+        arr = np.arange(6, 9)
+        ser = pd.Series(arr, index=dti)
 
         key = dti[1]
 
-        result = dti.get_value(arr, key)
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            dti.get_value(arr, key)
+
+        result = dti.get_value(ser, key)
         assert result == 7
 
-        result = dti.get_value(arr, key.to_pydatetime())
+        result = dti.get_value(ser, key.to_pydatetime())
         assert result == 7
 
-        result = dti.get_value(arr, key.to_datetime64())
+        result = dti.get_value(ser, key.to_datetime64())
         assert result == 7
 
     def test_get_loc(self):
@@ -693,7 +698,7 @@ class TestDatetimeIndex:
 
         with pytest.raises(KeyError, match="'foobar'"):
             idx.get_loc("foobar")
-        with pytest.raises(TypeError):
+        with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
             idx.get_loc(slice(2))
 
         idx = pd.to_datetime(["2000-01-01", "2000-01-04"])
@@ -769,3 +774,14 @@ class TestDatetimeIndex:
         # GH#20464
         index = DatetimeIndex(["1/3/2000", "NaT"])
         assert index.get_loc(pd.NaT) == 1
+
+        assert index.get_loc(None) == 1
+
+        assert index.get_loc(np.nan) == 1
+
+        assert index.get_loc(pd.NA) == 1
+
+        assert index.get_loc(np.datetime64("NaT")) == 1
+
+        with pytest.raises(KeyError, match="NaT"):
+            index.get_loc(np.timedelta64("NaT"))

@@ -115,6 +115,11 @@ echo "we use the one from the CI"
 conda remove postgresql -y --force || true
 
 echo
+echo "remove qt"
+echo "causes problems with the clipboard, we use xsel for that"
+conda remove qt -y --force || true
+
+echo
 echo "conda list pandas"
 conda list pandas
 
