@@ -103,7 +103,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func
+from pandas.core.aggregation import reconstruct_func, _relabel_result
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -6782,33 +6782,12 @@ Wild         185.0
             return self.apply(func, axis=axis, args=args, **kwargs)
 
         if relabeling:
-            result = self._relabel_result(result, func, columns, order)
+            # This is to keep the order to columns occurrence unchanged, and also
+            # keep the order of new columns occurrence unchanged
+            reordered_result = DataFrame(index=columns)
+            result = _relabel_result(result, reordered_result, func, columns, order)
 
         return result
-
-    @staticmethod
-    def _relabel_result(result, func, columns, order):
-        """Internal function to reorder result if relabelling."""
-
-        reordered_indexes = [
-            pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
-        ]
-
-        # This is to keep the order to columns occurrence unchanged, and also
-        # keep the order of new columns occurrence unchanged
-        reordered_result = DataFrame(index=columns)
-        idx = 0
-
-        # The reason is self._aggregate outputs different type of result if
-        # any column is only used once in aggregation
-        mask = isinstance(result, ABCDataFrame) and result.isna().any().any()
-
-        for col, fun in func.items():
-            s = result[col][::-1].dropna() if mask else result[col]
-            s.index = reordered_indexes[idx : idx + len(fun)]
-            reordered_result[col] = s.reindex(columns)
-            idx = idx + len(fun)
-        return reordered_result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
         if axis == 1:
