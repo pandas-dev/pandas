@@ -123,7 +123,7 @@ def _skip_if_no_scipy() -> bool:
 def _skip_if_low_mpl():
     # GH 30588 matplotlib after 3.1.2 will no longer raise warning
     # from 2D indexing on Index
-    import matplotlib as mpl
+    mpl = safe_import("matplotlib")
 
     return LooseVersion(mpl.__version__) <= LooseVersion("3.1.2")
 
