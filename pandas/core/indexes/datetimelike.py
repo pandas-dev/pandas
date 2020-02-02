@@ -801,11 +801,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if this._can_fast_union(other):
             return this._fast_union(other, sort=sort)
         else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, type(self)):
-                assert result._data.dtype == this.dtype
-                if result.freq is None:
-                    result._set_freq("infer")
+            i8self = Int64Index._simple_new(self.asi8, name=self.name)
+            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8result = i8self._union(i8other, sort=sort)
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------

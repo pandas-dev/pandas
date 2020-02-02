@@ -28,7 +28,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -387,12 +386,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return True
-
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        # We use _shallow_copy rather than the Index implementation
-        #  (which uses _constructor) in order to preserve dtype.
-        return self._shallow_copy(result, name=name)
 
     @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
