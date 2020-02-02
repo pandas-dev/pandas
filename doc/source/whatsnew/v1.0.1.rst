@@ -118,7 +118,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 
--
+- Bug where :meth:`cut` improperly handled arrays with object dtype containing ``NaN`` values. (:issue:`31586`)
 -
 
 Sparse
