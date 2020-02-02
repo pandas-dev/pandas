@@ -202,7 +202,8 @@ skip_if_no_ne = pytest.mark.skipif(
     reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{_NUMEXPR_INSTALLED}",
 )
 skip_if_lower_3_1_2_mpl = pytest.mark.skipif(
-    _skip_if_low_3_1_2_mpl(), reason="Matplotlib after 3.1.2 will no longer raise warning"
+    _skip_if_lower_3_1_2_mpl(),
+    reason="Matplotlib after 3.1.2 will no longer raise warning",
 )
 
 
