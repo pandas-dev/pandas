@@ -1185,7 +1185,7 @@ class _MergeOperation:
                 common_cols = self.left.columns.intersection(self.right.columns)
                 if len(common_cols) == 0:
                     raise MergeError(
-                        f"No common columns to perform merge on. "
+                        "No common columns to perform merge on. "
                         f"Merge options: left_on={self.left_on},"
                         f"right_on={self.right_on}, "
                         f"left_index={self.left_index}, "
