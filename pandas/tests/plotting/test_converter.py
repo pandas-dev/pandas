@@ -67,8 +67,15 @@ class TestRegistration:
         # Set to the "warn" state, in case this isn't the first test run
         register_matplotlib_converters()
 
-        # GH 30588, after new release of matplotlib, no warning is here
-        ax.plot(s.index, s.values)
+        import matplotlib as mpl
+
+        version = mpl.__version__
+        if version > "3.1.2":
+            ax.plot(s.index, s.values)
+        else:
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                # GH#30588 DeprecationWarning from 2D indexing
+                ax.plot(s.index, s.values)
 
     def test_pandas_plots_register(self):
         pytest.importorskip("matplotlib.pyplot")
@@ -98,10 +105,21 @@ class TestRegistration:
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
+        import matplotlib as mpl
+
+        version = mpl.__version__
+
         # Test without registering first, no warning
         with ctx:
-            # GH#30588 should be no warning after new release
-            ax.plot(s.index, s.values)
+            if version > "3.1.2":
+                # GH#30588 DeprecationWarning from 2D indexing on Index
+                with tm.assert_produces_warning(
+                    DeprecationWarning, check_stacklevel=False
+                ):
+                    ax.plot(s.index, s.values)
+            else:
+                # GH#30588 should be no warning after new release
+                ax.plot(s.index, s.values)
 
         # Now test with registering
         register_matplotlib_converters()
