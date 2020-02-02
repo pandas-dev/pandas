@@ -103,7 +103,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, _relabel_result
+from pandas.core.aggregation import _relabel_result, reconstruct_func
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
