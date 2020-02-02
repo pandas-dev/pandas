@@ -355,7 +355,7 @@ with cf.config_prefix("display"):
             )
 
     cf.register_option(
-        # FIXME: change `validator=is_int` to `validator=is_nonnegative_int`
+        # FIXME: change `validator=is_nonnegative_int`
         # in version 1.2
         "max_colwidth",
         50,
