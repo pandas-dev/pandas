@@ -132,6 +132,10 @@ from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
 
+# Customized "cover all bases" local Exception
+class DataFrameError(NotImplementedError, TypeError, AttributeError):
+    pass
+
 if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.io.formats.style import Styler
@@ -411,7 +415,7 @@ class DataFrame(NDFrame):
 
     @property
     def _constructor_expanddim(self):
-        raise AttributeError(
+        raise DataFrameError(
             "Property 'constructor_expanddim' is not supported for DataFrames!"
         )
 
