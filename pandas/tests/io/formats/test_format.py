@@ -243,8 +243,10 @@ class TestDataFrameFormatting:
         # FIXME: remove in version 1.2 after deprecation cycle
         # Non-regression test for:
         # https://github.com/pandas-dev/pandas/issues/31532
+        value = get_option("display.max_colwidth")
         with tm.assert_produces_warning(FutureWarning):
             set_option("display.max_colwidth", -1)
+        set_option("display.max_colwidth", value)
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
