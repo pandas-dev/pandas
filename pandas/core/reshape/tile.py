@@ -202,16 +202,9 @@ def cut(
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
-    # for handling the cut for datetime and timedelta objects
     original = x
     x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
-
-    # To support cut(IntegerArray), we convert to object dtype with NaN
-    # Will properly support in the future.
-    # https://github.com/pandas-dev/pandas/pull/31290
-    if is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
-        x = x.to_numpy(dtype=object, na_value=np.nan)
 
     if not np.iterable(bins):
         if is_scalar(bins) and bins < 1:
@@ -434,7 +427,7 @@ def _bins_to_cuts(
 
 def _coerce_to_type(x):
     """
-    if the passed data is of datetime/timedelta or bool type,
+    if the passed data is of datetime/timedelta, bool or nullable int type,
     this method converts it to numeric so that cut or qcut method can
     handle it
     """
@@ -451,6 +444,12 @@ def _coerce_to_type(x):
     elif is_bool_dtype(x):
         # GH 20303
         x = x.astype(np.int64)
+    # To support cut and qcut for IntegerArray we convert to float dtype.
+    # Will properly support in the future.
+    # https://github.com/pandas-dev/pandas/pull/31290
+    # https://github.com/pandas-dev/pandas/issues/31389
+    elif is_extension_array_dtype(x) and is_integer_dtype(x):
+        x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
