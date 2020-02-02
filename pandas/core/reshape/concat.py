@@ -403,7 +403,7 @@ class _Concatenator:
         self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
-                f"axis must be between 0 and {sample.ndim}, input was " f"{axis}"
+                f"axis must be between 0 and {sample.ndim}, input was {axis}"
             )
 
         # if we have mixed ndims, then convert to highest ndim
