@@ -983,3 +983,11 @@ class TestDataFrameInterpolate:
         result = expected.interpolate(axis=0, method="time")
         expected.interpolate(axis=0, method="time", inplace=True)
         tm.assert_frame_equal(result, expected)
+
+    def test_interp_string_axis(self):
+        # GH 25190
+        x = np.linspace(0, 100, 1000)
+        y = np.sin(x)
+        df = pd.DataFrame(data=np.tile(y, (10, 1)), index=np.arange(10), columns=x)
+        df.reindex(columns=x * 1.005).interpolate(method="linear", axis="columns")
+        df.reindex(columns=x * 1.005).interpolate(method="linear", axis="index")
