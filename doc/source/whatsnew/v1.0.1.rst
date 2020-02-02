@@ -128,7 +128,7 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Fixed a regression where setting ``display.max_colwidth`` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
 -
 
 .. ---------------------------------------------------------------------------
