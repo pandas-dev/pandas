@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -380,7 +381,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     stamp = Timestamp("1/8/2000")
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=re.escape(repr(stamp))):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -389,7 +390,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     s = s[::-1]
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=re.escape(repr(stamp))):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -495,8 +496,9 @@ def test_duplicate_dates_indexing(dups):
         expected = Series(np.where(mask, 0, ts), index=ts.index)
         tm.assert_series_equal(cp, expected)
 
-    with pytest.raises(KeyError, match=r"^947116800000000000$"):
-        ts[datetime(2000, 1, 6)]
+    key = datetime(2000, 1, 6)
+    with pytest.raises(KeyError, match=re.escape(repr(key))):
+        ts[key]
 
     # new index
     ts[datetime(2000, 1, 6)] = 0
