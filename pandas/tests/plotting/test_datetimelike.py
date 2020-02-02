@@ -1,7 +1,6 @@
 """ Test cases for time series specific (freq conversion, etc) """
 from datetime import date, datetime, time, timedelta
 import pickle
-import re
 import sys
 
 import numpy as np
@@ -51,15 +50,6 @@ class TestTSPlot(TestPlotBase):
         index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
         ts = Series([188.5, 328.25], index=index)
         with tm.assert_produces_warning(None):
-            fig, ax = self.plt.subplots()
-            ts.plot(ax=ax)
-            fig.canvas.draw()
-            labels = [i.get_text() for i in ax.get_xticklabels()]
-            # Extract H:M component, check first point is in correct timezone.
-            # NOTE: this test could be updated once GH 31548 is fixed,
-            # so that the last point is checked as well.
-            assert labels == []
-            assert re.findall(r"[^:]?(\d{2}:\d{2})", labels[0])[0] == "00:00"
             _check_plot_works(ts.plot)
 
     def test_fontsize_set_correctly(self):
