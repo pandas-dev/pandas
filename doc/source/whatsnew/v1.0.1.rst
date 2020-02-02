@@ -136,6 +136,7 @@ ExtensionArray
 
 Other
 ^^^^^
+- Regression fixed in objTOJSON.c fix return-type warning (:issue:`31463`)
 - Fixed a regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
 -
 
