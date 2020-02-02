@@ -137,7 +137,7 @@ class TestFancy(Base):
             r"Buffer has wrong number of dimensions \(expected 1, "
             r"got 3\)|"
             "'pandas._libs.interval.IntervalTree' object has no attribute "
-            "'set_value'|"  # AttributeError
+            "'get_loc'|"  # AttributeError
             "unhashable type: 'numpy.ndarray'|"  # TypeError
             "No matching signature found|"  # TypeError
             r"^\[\[\[|"  # pandas.core.indexing.IndexingError
