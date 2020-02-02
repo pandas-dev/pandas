@@ -22,16 +22,9 @@ class TestFloatIndexers:
 
         tm.assert_almost_equal(result, expected)
 
-    def test_scalar_error(self):
-
-        # GH 4892
-        # float_indexers should raise exceptions
-        # on appropriate Index types & accessors
-        # this duplicates the code below
-        # but is specifically testing for the error
-        # message
-
-        for index in [
+    @pytest.mark.parametrize(
+        "index_func",
+        [
             tm.makeStringIndex,
             tm.makeUnicodeIndex,
             tm.makeCategoricalIndex,
@@ -40,22 +33,31 @@ class TestFloatIndexers:
             tm.makePeriodIndex,
             tm.makeIntIndex,
             tm.makeRangeIndex,
-        ]:
+        ],
+    )
+    def test_scalar_error(self, index_func):
 
-            i = index(5)
+        # GH 4892
+        # float_indexers should raise exceptions
+        # on appropriate Index types & accessors
+        # this duplicates the code below
+        # but is specifically testing for the error
+        # message
 
-            s = Series(np.arange(len(i)), index=i)
+        i = index_func(5)
 
-            msg = "Cannot index by location index"
-            with pytest.raises(TypeError, match=msg):
-                s.iloc[3.0]
+        s = Series(np.arange(len(i)), index=i)
 
-            msg = (
-                "cannot do positional indexing on {klass} with these "
-                r"indexers \[3\.0\] of {kind}".format(klass=type(i), kind=str(float))
-            )
-            with pytest.raises(TypeError, match=msg):
-                s.iloc[3.0] = 0
+        msg = "Cannot index by location index"
+        with pytest.raises(TypeError, match=msg):
+            s.iloc[3.0]
+
+        msg = (
+            "cannot do positional indexing on {klass} with these "
+            r"indexers \[3\.0\] of {kind}".format(klass=type(i), kind=str(float))
+        )
+        with pytest.raises(TypeError, match=msg):
+            s.iloc[3.0] = 0
 
     def test_scalar_non_numeric(self):
 
