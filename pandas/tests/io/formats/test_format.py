@@ -246,8 +246,10 @@ class TestDataFrameFormatting:
         with pytest.warns(FutureWarning) as records:
             set_option("display.max_colwidth", -1)
         assert len(records) == 1
-        assert ("Instead, use None to not limit the column width." in
-                records[0].message.args[0])
+        assert (
+            "Instead, use None to not limit the column width."
+            in records[0].message.args[0]
+        )
 
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])

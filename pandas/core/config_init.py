@@ -349,14 +349,18 @@ with cf.config_prefix("display"):
             warnings.warn(
                 "Passing a negative integer is deprecated in version 1.0 and "
                 "will not be supported from version 1.2. Instead, use None to "
-                "not limit the column width.", FutureWarning
+                "not limit the column width.",
+                FutureWarning,
             )
 
     cf.register_option(
         # FIXME: change `validator=is_int` to `validator=is_nonnegative_int`
         # in version 1.2
-        "max_colwidth", 50, max_colwidth_doc, validator=is_int,
-        cb=_deprecate_negative_int_max_colwidth
+        "max_colwidth",
+        50,
+        max_colwidth_doc,
+        validator=is_int,
+        cb=_deprecate_negative_int_max_colwidth,
     )
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
