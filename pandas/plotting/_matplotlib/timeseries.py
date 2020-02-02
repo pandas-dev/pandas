@@ -251,11 +251,7 @@ def _maybe_convert_index(ax, data):
         freq = frequencies.get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):
-            if data.index.tz is not None:
-                data = data.tz_convert(None).to_period(freq=freq)
-            else:
-                # can't convert tz-naive
-                data = data.to_period(freq=freq)
+            data = data.tz_localize(None).to_period(freq=freq)
         elif isinstance(data.index, ABCPeriodIndex):
             data.index = data.index.asfreq(freq=freq)
     return data
