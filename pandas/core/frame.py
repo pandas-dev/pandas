@@ -132,9 +132,11 @@ from pandas.io.formats import console, format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting
 
+
 # Customized "cover all bases" local Exception
 class DataFrameError(NotImplementedError, TypeError, AttributeError):
     pass
+
 
 if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
