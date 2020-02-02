@@ -28,6 +28,29 @@ from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
 
 
+class TestGet:
+    def test_get(self, float_frame):
+        b = float_frame.get("B")
+        tm.assert_series_equal(b, float_frame["B"])
+
+        assert float_frame.get("foo") is None
+        tm.assert_series_equal(
+            float_frame.get("foo", float_frame["B"]), float_frame["B"]
+        )
+
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame(),
+            DataFrame(columns=list("AB")),
+            DataFrame(columns=list("AB"), index=range(3)),
+        ],
+    )
+    def test_get_none(self, df):
+        # see gh-5652
+        assert df.get(None) is None
+
+
 class TestDataFrameIndexing:
     def test_getitem(self, float_frame):
         # Slicing
@@ -63,27 +86,6 @@ class TestDataFrameIndexing:
         msg = "\"None of [Index(['baf'], dtype='object')] are in the [columns]\""
         with pytest.raises(KeyError, match=re.escape(msg)):
             df[["baf"]]
-
-    def test_get(self, float_frame):
-        b = float_frame.get("B")
-        tm.assert_series_equal(b, float_frame["B"])
-
-        assert float_frame.get("foo") is None
-        tm.assert_series_equal(
-            float_frame.get("foo", float_frame["B"]), float_frame["B"]
-        )
-
-    @pytest.mark.parametrize(
-        "df",
-        [
-            DataFrame(),
-            DataFrame(columns=list("AB")),
-            DataFrame(columns=list("AB"), index=range(3)),
-        ],
-    )
-    def test_get_none(self, df):
-        # see gh-5652
-        assert df.get(None) is None
 
     @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
     def test_loc_iterable(self, float_frame, key_type):
@@ -1547,14 +1549,6 @@ class TestDataFrameIndexing:
         df.loc[trange[bool_idx], "A"] += 6
         tm.assert_frame_equal(df, expected)
 
-    def test_iat(self, float_frame):
-
-        for i, row in enumerate(float_frame.index):
-            for j, col in enumerate(float_frame.columns):
-                result = float_frame.iat[i, j]
-                expected = float_frame.at[row, col]
-                assert result == expected
-
     @pytest.mark.parametrize(
         "method,expected_values",
         [
@@ -1916,89 +1910,6 @@ class TestDataFrameIndexing:
         result.loc[bkey] = df.iloc[binds]
         tm.assert_frame_equal(result, df)
 
-    def test_xs(self, float_frame, datetime_frame):
-        idx = float_frame.index[5]
-        xs = float_frame.xs(idx)
-        for item, value in xs.items():
-            if np.isnan(value):
-                assert np.isnan(float_frame[item][idx])
-            else:
-                assert value == float_frame[item][idx]
-
-        # mixed-type xs
-        test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
-        frame = DataFrame(test_data)
-        xs = frame.xs("1")
-        assert xs.dtype == np.object_
-        assert xs["A"] == 1
-        assert xs["B"] == "1"
-
-        with pytest.raises(
-            KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00', freq='B')")
-        ):
-            datetime_frame.xs(datetime_frame.index[0] - BDay())
-
-        # xs get column
-        series = float_frame.xs("A", axis=1)
-        expected = float_frame["A"]
-        tm.assert_series_equal(series, expected)
-
-        # view is returned if possible
-        series = float_frame.xs("A", axis=1)
-        series[:] = 5
-        assert (expected == 5).all()
-
-    def test_xs_corner(self):
-        # pathological mixed-type reordering case
-        df = DataFrame(index=[0])
-        df["A"] = 1.0
-        df["B"] = "foo"
-        df["C"] = 2.0
-        df["D"] = "bar"
-        df["E"] = 3.0
-
-        xs = df.xs(0)
-        exp = pd.Series([1.0, "foo", 2.0, "bar", 3.0], index=list("ABCDE"), name=0)
-        tm.assert_series_equal(xs, exp)
-
-        # no columns but Index(dtype=object)
-        df = DataFrame(index=["a", "b", "c"])
-        result = df.xs("a")
-        expected = Series([], name="a", index=pd.Index([]), dtype=np.float64)
-        tm.assert_series_equal(result, expected)
-
-    def test_xs_duplicates(self):
-        df = DataFrame(np.random.randn(5, 2), index=["b", "b", "c", "b", "a"])
-
-        cross = df.xs("c")
-        exp = df.iloc[2]
-        tm.assert_series_equal(cross, exp)
-
-    def test_xs_keep_level(self):
-        df = DataFrame(
-            {
-                "day": {0: "sat", 1: "sun"},
-                "flavour": {0: "strawberry", 1: "strawberry"},
-                "sales": {0: 10, 1: 12},
-                "year": {0: 2008, 1: 2008},
-            }
-        ).set_index(["year", "flavour", "day"])
-        result = df.xs("sat", level="day", drop_level=False)
-        expected = df[:1]
-        tm.assert_frame_equal(result, expected)
-
-        result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
-        tm.assert_frame_equal(result, expected)
-
-    def test_xs_view(self):
-        # in 0.14 this will return a view if possible a copy otherwise, but
-        # this is numpy dependent
-
-        dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
-
-        dm.xs(2)[:] = 10
-        assert (dm.xs(2) == 10).all()
-
     def test_index_namedtuple(self):
         from collections import namedtuple
 
@@ -2154,31 +2065,6 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, exp)
         tm.assert_frame_equal(result, (df + 2).mask((df + 2) > 8, (df + 2) + 10))
 
-    def test_head_tail(self, float_frame):
-        tm.assert_frame_equal(float_frame.head(), float_frame[:5])
-        tm.assert_frame_equal(float_frame.tail(), float_frame[-5:])
-
-        tm.assert_frame_equal(float_frame.head(0), float_frame[0:0])
-        tm.assert_frame_equal(float_frame.tail(0), float_frame[0:0])
-
-        tm.assert_frame_equal(float_frame.head(-1), float_frame[:-1])
-        tm.assert_frame_equal(float_frame.tail(-1), float_frame[1:])
-        tm.assert_frame_equal(float_frame.head(1), float_frame[:1])
-        tm.assert_frame_equal(float_frame.tail(1), float_frame[-1:])
-        # with a float index
-        df = float_frame.copy()
-        df.index = np.arange(len(float_frame)) + 0.1
-        tm.assert_frame_equal(df.head(), df.iloc[:5])
-        tm.assert_frame_equal(df.tail(), df.iloc[-5:])
-        tm.assert_frame_equal(df.head(0), df[0:0])
-        tm.assert_frame_equal(df.tail(0), df[0:0])
-        tm.assert_frame_equal(df.head(-1), df.iloc[:-1])
-        tm.assert_frame_equal(df.tail(-1), df.iloc[1:])
-        # test empty dataframe
-        empty_df = DataFrame()
-        tm.assert_frame_equal(empty_df.tail(), empty_df)
-        tm.assert_frame_equal(empty_df.head(), empty_df)
-
     def test_type_error_multiindex(self):
         # See gh-12218
         df = DataFrame(
@@ -2269,10 +2155,3 @@ class TestDataFrameIndexingUInt64:
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
-
-    def test_transpose(self, uint64_frame):
-
-        result = uint64_frame.T
-        expected = DataFrame(uint64_frame.values.T)
-        expected.index = ["A", "B"]
-        tm.assert_frame_equal(result, expected)
