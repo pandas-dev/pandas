@@ -1672,8 +1672,10 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
-            msg = f"allow_exact_matches must be boolean, " \
+            msg = (
+                f"allow_exact_matches must be boolean, " 
                 f"passed {self.allow_exact_matches}"
+            )
             raise MergeError(msg)
 
         return left_join_keys, right_join_keys, join_names
