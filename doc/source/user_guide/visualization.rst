@@ -1664,5 +1664,4 @@ This would be more or less equivalent to:
 The backend module can then use other visualization tools (Bokeh, Altair,…) to generate the plots.
 Libraries implementing the plotting backend should use entry points to make their backend discoverable to pandas. The key is "pandas_plotting_backends".
 
-More information on how to implement a third-party plotting backend can be found at
-<https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.>
+More information on how to implement a third-party plotting backend can be found in its documentation.
