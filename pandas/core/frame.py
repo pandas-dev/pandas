@@ -607,7 +607,7 @@ class DataFrame(NDFrame):
         Check if full repr fits in horizontal boundaries imposed by the display
         options width and max_columns.
 
-        In case off non-interactive session, no boundaries apply.
+        In case of non-interactive session, no boundaries apply.
 
         `ignore_width` is here so ipnb+HTML output can behave the way
         users expect. display.max_columns remains in effect.
@@ -874,8 +874,8 @@ class DataFrame(NDFrame):
         polar   bear      22000
         koala   marsupial 80000
         >>> for label, content in df.items():
-        ...     print('label:', label)
-        ...     print('content:', content, sep='\n')
+        ...     print(f'label: {label}')
+        ...     print(f'content: {content}', sep='\n')
         ...
         label: species
         content:
@@ -2805,7 +2805,7 @@ class DataFrame(NDFrame):
         if getattr(indexer, "dtype", None) == bool:
             indexer = np.where(indexer)[0]
 
-        data = self.take(indexer, axis=1)
+        data = self._take_with_is_copy(indexer, axis=1)
 
         if is_single_key:
             # What does looking for a single key in a non-unique index return?
@@ -2838,7 +2838,7 @@ class DataFrame(NDFrame):
         # be reindexed to match DataFrame rows
         key = check_bool_indexer(self.index, key)
         indexer = key.nonzero()[0]
-        return self.take(indexer, axis=0)
+        return self._take_with_is_copy(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
@@ -2937,8 +2937,11 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
+        # NB: we can't just use self.loc[key] = value because that
+        #  operates on labels and we need to operate positional for
+        #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.loc[key] = value
+        self.loc._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values

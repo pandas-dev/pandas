@@ -116,7 +116,7 @@ def _json_normalize(
     meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
     meta_prefix: Optional[str] = None,
     record_prefix: Optional[str] = None,
-    errors: Optional[str] = "raise",
+    errors: str = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
 ) -> "DataFrame":

@@ -54,7 +54,7 @@ Other API changes
 
 - :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
   will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
--
+- :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -109,7 +109,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
--
+- Bug in constructing a :class:`Timedelta` with a high precision integer that would round the :class:`Timedelta` components (:issue:`31354`)
 -
 
 Timezones
@@ -148,6 +148,9 @@ Indexing
 ^^^^^^^^
 - Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
 - Bug in :meth:`PeriodIndex.get_loc` treating higher-resolution strings differently from :meth:`PeriodIndex.get_value` (:issue:`31172`)
+- Bug in :meth:`Series.at` and :meth:`DataFrame.at` not matching ``.loc`` behavior when looking up an integer in a :class:`Float64Index` (:issue:`31329`)
+- Bug in :meth:`PeriodIndex.is_monotonic` incorrectly returning ``True`` when containing leading ``NaT`` entries (:issue:`31437`)
+- Bug in :meth:`DatetimeIndex.get_loc` raising ``KeyError`` with converted-integer key instead of the user-passed key (:issue:`31425`)
 -
 
 Missing
