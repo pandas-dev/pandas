@@ -171,3 +171,63 @@ class TestGetLoc:
         for i in [cidx3, idx3]:
             with pytest.raises(KeyError, match="'c'"):
                 i.get_loc("c")
+
+
+class TestGetIndexer:
+    def test_get_indexer_base(self):
+        # Determined by cat ordering.
+        idx = CategoricalIndex(list("cab"), categories=list("cab"))
+        expected = np.arange(len(idx), dtype=np.intp)
+
+        actual = idx.get_indexer(idx)
+        tm.assert_numpy_array_equal(expected, actual)
+
+        with pytest.raises(ValueError, match="Invalid fill method"):
+            idx.get_indexer(idx, method="invalid")
+
+    def test_get_indexer_non_unique(self):
+        np.random.seed(123456789)
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
+        oidx = Index(np.array(ci))
+
+        for n in [1, 2, 5, len(ci)]:
+            finder = oidx[np.random.randint(0, len(ci), size=n)]
+            expected = oidx.get_indexer_non_unique(finder)[0]
+
+            actual = ci.get_indexer(finder)
+            tm.assert_numpy_array_equal(expected, actual)
+
+        # see gh-17323
+        #
+        # Even when indexer is equal to the
+        # members in the index, we should
+        # respect duplicates instead of taking
+        # the fast-track path.
+        for finder in [list("aabbca"), list("aababca")]:
+            expected = oidx.get_indexer_non_unique(finder)[0]
+
+            actual = ci.get_indexer(finder)
+            tm.assert_numpy_array_equal(expected, actual)
+
+    def test_get_indexer(self):
+
+        idx1 = CategoricalIndex(list("aabcde"), categories=list("edabc"))
+        idx2 = CategoricalIndex(list("abf"))
+
+        for indexer in [idx2, list("abf"), Index(list("abf"))]:
+            r1 = idx1.get_indexer(idx2)
+            tm.assert_almost_equal(r1, np.array([0, 1, 2, -1], dtype=np.intp))
+
+        msg = (
+            "method='pad' and method='backfill' not implemented yet for "
+            "CategoricalIndex"
+        )
+        with pytest.raises(NotImplementedError, match=msg):
+            idx2.get_indexer(idx1, method="pad")
+        with pytest.raises(NotImplementedError, match=msg):
+            idx2.get_indexer(idx1, method="backfill")
+
+        msg = "method='nearest' not implemented yet for CategoricalIndex"
+        with pytest.raises(NotImplementedError, match=msg):
+            idx2.get_indexer(idx1, method="nearest")
