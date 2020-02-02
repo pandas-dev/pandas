@@ -128,7 +128,7 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Regression fixed in objTOJSON.c fix return-type warning (:issue:`31463`)
 -
 
 .. ---------------------------------------------------------------------------
