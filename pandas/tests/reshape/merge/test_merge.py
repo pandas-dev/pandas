@@ -370,12 +370,12 @@ class TestMerge:
         df2 = DataFrame({"y": ["b", "c"]}, index=[dt, dt])
 
         msg = (
-                "No common columns to perform merge on. "
-                f"Merge options: left_on={self.left_on},"
-                f"right_on={self.right_on}, "
-                f"left_index={self.left_index}, "
-                f"right_index={self.right_index}"
-            )
+            "No common columns to perform merge on. "
+            f"Merge options: left_on={self.left_on},"
+            f"right_on={self.right_on}, "
+            f"left_index={self.left_index}, "
+            f"right_index={self.right_index}"
+        )
 
         with pytest.raises(MergeError, match=msg):
             merge(df1, df2)
