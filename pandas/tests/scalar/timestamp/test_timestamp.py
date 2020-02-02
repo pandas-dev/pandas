@@ -1106,3 +1106,10 @@ def test_constructor_before_dst_switch(epoch):
     expected = timedelta(seconds=0)
     assert Timestamp(ts).value == epoch
     assert result == expected
+
+
+def test_timestamp_constructor_identity():
+    # Test for #30543
+    expected = Timestamp("2017-01-01T12")
+    result = Timestamp(expected)
+    assert result is expected
