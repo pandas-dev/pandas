@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -147,7 +148,6 @@ def test_frame_datetime64_duplicated():
 
 def test_getitem_setitem_datetime_tz_pytz():
     from pytz import timezone as tz
-    from pandas import date_range
 
     N = 50
     # testing with timezone, GH #2785
@@ -187,8 +187,6 @@ def test_getitem_setitem_datetime_tz_dateutil():
     tz = (
         lambda x: tzutc() if x == "UTC" else gettz(x)
     )  # handle special case for utc in dateutil
-
-    from pandas import date_range
 
     N = 50
 
@@ -372,7 +370,6 @@ def test_getitem_median_slice_bug():
 
 
 def test_datetime_indexing():
-    from pandas import date_range
 
     index = date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)
@@ -380,7 +377,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     stamp = Timestamp("1/8/2000")
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=re.escape(repr(stamp))):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -389,7 +386,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     s = s[::-1]
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=re.escape(repr(stamp))):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -495,8 +492,9 @@ def test_duplicate_dates_indexing(dups):
         expected = Series(np.where(mask, 0, ts), index=ts.index)
         tm.assert_series_equal(cp, expected)
 
-    with pytest.raises(KeyError, match=r"^947116800000000000$"):
-        ts[datetime(2000, 1, 6)]
+    key = datetime(2000, 1, 6)
+    with pytest.raises(KeyError, match=re.escape(repr(key))):
+        ts[key]
 
     # new index
     ts[datetime(2000, 1, 6)] = 0
