@@ -1,11 +1,12 @@
-""":func:`~pandas.eval` parsers
+"""
+:func:`~pandas.eval` parsers.
 """
 
 import ast
 from functools import partial, reduce
 from keyword import iskeyword
 import tokenize
-from typing import Optional, Type
+from typing import Callable, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
@@ -34,8 +35,9 @@ from pandas.core.computation.scope import Scope
 import pandas.io.formats.printing as printing
 
 
-def _rewrite_assign(tok):
-    """Rewrite the assignment operator for PyTables expressions that use ``=``
+def _rewrite_assign(tok: Tuple[int, str]) -> Tuple[int, str]:
+    """
+    Rewrite the assignment operator for PyTables expressions that use ``=``
     as a substitute for ``==``.
 
     Parameters
@@ -45,15 +47,16 @@ def _rewrite_assign(tok):
 
     Returns
     -------
-    t : tuple of int, str
+    tuple of int, str
         Either the input or token or the replacement values
     """
     toknum, tokval = tok
     return toknum, "==" if tokval == "=" else tokval
 
 
-def _replace_booleans(tok):
-    """Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
+def _replace_booleans(tok: Tuple[int, str]) -> Tuple[int, str]:
+    """
+    Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
     precedence is changed to boolean precedence.
 
     Parameters
@@ -63,7 +66,7 @@ def _replace_booleans(tok):
 
     Returns
     -------
-    t : tuple of int, str
+    tuple of int, str
         Either the input or token or the replacement values
     """
     toknum, tokval = tok
@@ -76,8 +79,9 @@ def _replace_booleans(tok):
     return toknum, tokval
 
 
-def _replace_locals(tok):
-    """Replace local variables with a syntactically valid name.
+def _replace_locals(tok: Tuple[int, str]) -> Tuple[int, str]:
+    """
+    Replace local variables with a syntactically valid name.
 
     Parameters
     ----------
@@ -86,7 +90,7 @@ def _replace_locals(tok):
 
     Returns
     -------
-    t : tuple of int, str
+    tuple of int, str
         Either the input or token or the replacement values
 
     Notes
@@ -102,12 +106,16 @@ def _replace_locals(tok):
 
 
 def _compose2(f, g):
-    """Compose 2 callables"""
+    """
+    Compose 2 callables.
+    """
     return lambda *args, **kwargs: f(g(*args, **kwargs))
 
 
 def _compose(*funcs):
-    """Compose 2 or more callables"""
+    """
+    Compose 2 or more callables.
+    """
     assert len(funcs) > 1, "At least 2 callables must be passed to compose"
     return reduce(_compose2, funcs)
 
@@ -117,8 +125,9 @@ def _preparse(
     f=_compose(
         _replace_locals, _replace_booleans, _rewrite_assign, clean_backtick_quoted_toks
     ),
-):
-    """Compose a collection of tokenization functions
+) -> str:
+    """
+    Compose a collection of tokenization functions.
 
     Parameters
     ----------
@@ -132,7 +141,7 @@ def _preparse(
 
     Returns
     -------
-    s : str
+    str
         Valid Python source code
 
     Notes
@@ -146,7 +155,9 @@ def _preparse(
 
 
 def _is_type(t):
-    """Factory for a type checking function of type ``t`` or tuple of types."""
+    """
+    Factory for a type checking function of type ``t`` or tuple of types.
+    """
     return lambda x: isinstance(x.value, t)
 
 
@@ -164,7 +175,9 @@ _all_nodes = frozenset(
 
 
 def _filter_nodes(superclass, all_nodes=_all_nodes):
-    """Filter out AST nodes that are subclasses of ``superclass``."""
+    """
+    Filter out AST nodes that are subclasses of ``superclass``.
+    """
     node_names = (node.__name__ for node in all_nodes if issubclass(node, superclass))
     return frozenset(node_names)
 
@@ -227,30 +240,35 @@ _msg = f"cannot both support and not support {intersection}"
 assert not intersection, _msg
 
 
-def _node_not_implemented(node_name, cls):
-    """Return a function that raises a NotImplementedError with a passed node
-    name.
+# TODO: Python 3.6.2: replace Callable[..., None] with Callable[..., NoReturn]
+def _node_not_implemented(node_name: str) -> Callable[..., None]:
+    """
+    Return a function that raises a NotImplementedError with a passed node name.
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError(f"{repr(node_name)} nodes are not implemented")
+        raise NotImplementedError(f"'{node_name}' nodes are not implemented")
 
     return f
 
 
-def disallow(nodes):
-    """Decorator to disallow certain nodes from parsing. Raises a
+_T = TypeVar("_T", bound="BaseExprVisitor")
+
+
+def disallow(nodes: Set[str]) -> Callable[[Type[_T]], Type[_T]]:
+    """
+    Decorator to disallow certain nodes from parsing. Raises a
     NotImplementedError instead.
 
     Returns
     -------
-    disallowed : callable
+    callable
     """
 
-    def disallowed(cls):
+    def disallowed(cls: Type[_T]) -> Type[_T]:
         cls.unsupported_nodes = ()
         for node in nodes:
-            new_method = _node_not_implemented(node, cls)
+            new_method = _node_not_implemented(node)
             name = f"visit_{node}"
             cls.unsupported_nodes += (name,)
             setattr(cls, name, new_method)
@@ -260,20 +278,21 @@ def disallow(nodes):
 
 
 def _op_maker(op_class, op_symbol):
-    """Return a function to create an op class with its symbol already passed.
+    """
+    Return a function to create an op class with its symbol already passed.
 
     Returns
     -------
-    f : callable
+    callable
     """
 
     def f(self, node, *args, **kwargs):
-        """Return a partial function with an Op subclass with an operator
-        already passed.
+        """
+        Return a partial function with an Op subclass with an operator already passed.
 
         Returns
         -------
-        f : callable
+        callable
         """
         return partial(op_class, op_symbol, *args, **kwargs)
 
@@ -284,7 +303,9 @@ _op_classes = {"binary": BinOp, "unary": UnaryOp}
 
 
 def add_ops(op_classes):
-    """Decorator to add default implementation of ops."""
+    """
+    Decorator to add default implementation of ops.
+    """
 
     def f(cls):
         for op_attr_name, op_class in op_classes.items():
@@ -352,6 +373,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         ast.In: ast.In,
         ast.NotIn: ast.NotIn,
     }
+
+    unsupported_nodes: Tuple[str, ...]
 
     def __init__(self, env, engine, parser, preparser=_preparse):
         self.env = env
@@ -647,7 +670,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     f'Function "{res.name}" does not support keyword arguments'
                 )
 
-            return res(*new_args, **kwargs)
+            return res(*new_args)
 
         else:
 
@@ -777,12 +800,16 @@ class Expr:
         return len(self.expr)
 
     def parse(self):
-        """Parse an expression"""
+        """
+        Parse an expression.
+        """
         return self._visitor.visit(self.expr)
 
     @property
     def names(self):
-        """Get the names in an expression"""
+        """
+        Get the names in an expression.
+        """
         if is_term(self.terms):
             return frozenset([self.terms.name])
         return frozenset(term.name for term in com.flatten(self.terms))

@@ -78,11 +78,6 @@ four calls) using the `prun ipython magic function <https://ipython.readthedocs.
 By far the majority of time is spend inside either ``integrate_f`` or ``f``,
 hence we'll concentrate our efforts cythonizing these two functions.
 
-.. note::
-
-  In Python 2 replacing the ``range`` with its generator counterpart (``xrange``)
-  would mean the ``range`` line would vanish. In Python 3 ``range`` is already a generator.
-
 .. _enhancingperf.plain:
 
 Plain Cython
