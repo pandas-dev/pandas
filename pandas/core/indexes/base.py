@@ -4929,13 +4929,8 @@ class Index(IndexOpsMixin, PandasObject):
         to an int if equivalent.
         """
 
-        if is_float(key) and not self.is_floating():
-            try:
-                ckey = int(key)
-                if ckey == key:
-                    key = ckey
-            except (OverflowError, ValueError, TypeError):
-                pass
+        if not self.is_floating():
+            return com.cast_scalar_indexer(key)
         return key
 
     def _validate_indexer(self, form: str_t, key, kind: str_t):

@@ -156,7 +156,7 @@ def cast_scalar_indexer(val):
     outval : scalar
     """
     # assumes lib.is_scalar(val)
-    if lib.is_float(val) and val == int(val):
+    if lib.is_float(val) and val.is_integer():
         return int(val)
     return val
 
