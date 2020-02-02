@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_timedelta64_dtype,
 )
@@ -450,6 +451,8 @@ def _coerce_to_type(x):
     # https://github.com/pandas-dev/pandas/issues/31389
     elif is_extension_array_dtype(x) and is_integer_dtype(x):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
+    elif is_object_dtype(x):
+        x = x.astype(np.float64)
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
