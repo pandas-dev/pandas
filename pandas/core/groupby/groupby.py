@@ -1184,6 +1184,12 @@ class GroupBy(_GroupBy):
         """
         Compute mean of groups, excluding missing values.
 
+        Parameters
+        ----------
+        numeric_only : bool, default True
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
+
         Returns
         -------
         pandas.Series or pandas.DataFrame
@@ -1230,11 +1236,17 @@ class GroupBy(_GroupBy):
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, numeric_only=True, min_count=-1):
+    def median(self, numeric_only=True):
         """
         Compute median of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Parameters
+        ----------
+        numeric_only : bool, default True
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
 
         Returns
         -------
@@ -1243,11 +1255,8 @@ class GroupBy(_GroupBy):
         """
         return self._cython_agg_general(
             "median",
-            alt=lambda x, axis: Series(x).median(
-                axis=axis, numeric_only=numeric_only, min_count=numeric_only
-            ),
+            alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
             numeric_only=numeric_only,
-            min_count=min_count,
         )
 
     @Substitution(name="groupby")
