@@ -360,7 +360,7 @@ with cf.config_prefix("display"):
         "max_colwidth",
         50,
         max_colwidth_doc,
-        validator=is_int,
+        validator=is_instance_factory([type(None), int]),
         cb=_deprecate_negative_int_max_colwidth,
     )
     if is_terminal():
