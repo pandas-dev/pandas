@@ -280,22 +280,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
-    @property
-    def _box_func(self):
-        """Maybe box an ordinal or Period"""
-        # TODO(DatetimeArray): Avoid double-boxing
-        # PeriodArray takes care of boxing already, so we need to check
-        # whether we're given an ordinal or a Period. It seems like some
-        # places outside of indexes/period.py are calling this _box_func,
-        # but passing data that's already boxed.
-        def func(x):
-            if isinstance(x, Period) or x is NaT:
-                return x
-            else:
-                return Period._from_ordinal(ordinal=x, freq=self.freq)
-
-        return func
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
