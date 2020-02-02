@@ -109,7 +109,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
--
+- Bug in constructing a :class:`Timedelta` with a high precision integer that would round the :class:`Timedelta` components (:issue:`31354`)
 -
 
 Timezones

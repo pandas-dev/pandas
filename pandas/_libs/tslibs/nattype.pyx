@@ -2,7 +2,7 @@ from cpython.object cimport (
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
-from cpython.datetime cimport (datetime,
+from cpython.datetime cimport (datetime, timedelta,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 
@@ -276,13 +276,6 @@ cdef class _NaT(datetime):
     def __long__(self):
         return NPY_NAT
 
-    def total_seconds(self):
-        """
-        Total duration of timedelta in seconds (to microsecond precision).
-        """
-        # GH#10939
-        return np.nan
-
     @property
     def is_leap_year(self):
         return False
@@ -386,6 +379,7 @@ class NaTType(_NaT):
     # nan methods
     weekday = _make_nan_func('weekday', datetime.weekday.__doc__)
     isoweekday = _make_nan_func('isoweekday', datetime.isoweekday.__doc__)
+    total_seconds = _make_nan_func('total_seconds', timedelta.total_seconds.__doc__)
     month_name = _make_nan_func('month_name',  # noqa:E128
         """
         Return the month name of the Timestamp with specified locale.

@@ -625,6 +625,8 @@ def test_cut_nullable_integer(bins, right, include_lowest):
     )
     expected = cut(a, bins, right=right, include_lowest=include_lowest)
 
+    tm.assert_categorical_equal(result, expected)
+
 
 @pytest.mark.parametrize("bins", [2, [0, 50, 100]])
 @pytest.mark.parametrize("right", [True, False])
