@@ -36,7 +36,26 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+.. _whatsnew_110.timestamp_fold_support:
+
+Fold argument support in Timestamp constructor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Timestamp: now supports the fold argument according to PEP 495 similar to parent `pydatetime` class. It supports both accepting fold as an initialization argument and inferring fold from other constructor arguments.
+
+For example:
+
 .. _whatsnew_110.enhancements.other:
+
+.. ipython:: python
+
+	ts = Timestamp("2019-10-27 01:30:00+00:00")
+	ts.fold
+
+.. ipython:: python
+
+	ts = Timestamp("2019-10-27 01:30:00", fold=1)
+	ts
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
