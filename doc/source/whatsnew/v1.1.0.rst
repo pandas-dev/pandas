@@ -161,8 +161,14 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`Dataframe.loc` when used with a :class:`MultiIndex`. The returned values were not in the same order as the given inputs (:issue:`22797`)
 
--
+.. ipython:: python
+
+        df = pd.DataFrame(np.arange(4),
+                          index=[["a", "a", "b", "b"], [1, 2, 1, 2]])
+        # Rows are now ordered as the requested keys
+        df.loc[(['b', 'a'], [2, 1]), :]
 -
 
 I/O
