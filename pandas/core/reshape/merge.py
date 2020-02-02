@@ -1186,7 +1186,7 @@ class _MergeOperation:
                 if len(common_cols) == 0:
                     raise MergeError(
                         "No common columns to perform merge on. "
-                        f"Merge options: left_on={self.left_on},"
+                        f"Merge options: left_on={self.left_on}, "
                         f"right_on={self.right_on}, "
                         f"left_index={self.left_index}, "
                         f"right_index={self.right_index}"
