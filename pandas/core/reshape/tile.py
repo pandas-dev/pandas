@@ -345,6 +345,18 @@ def qcut(
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
+
+    # Added code
+    # ------------------------------
+    unique_bins = set(bins)
+
+    for i, b in enumerate(bins):
+        if(b in unique_bins):
+            unique_bins.remove(b)
+        else:
+            bins[i] = np.nextafter(x[x>bins[i]].min(), bins[i])
+    # ------------------------------
+    
     fac, bins = _bins_to_cuts(
         x,
         bins,
