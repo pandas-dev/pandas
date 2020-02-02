@@ -610,7 +610,7 @@ class _MergeOperation:
         # warn user when merging between different levels
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                f"merging between different levels can give an unintended "
+                "merging between different levels can give an unintended "
                 f"result ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
