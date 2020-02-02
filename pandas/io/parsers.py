@@ -1399,13 +1399,12 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-
-        elif self.header:
+        elif self.header is not None:
             # GH 16338
             if not is_integer(self.header):
                 raise ValueError("header must be integer or list of integers")
             # GH 27394
-            elif self.prefix:
+            elif self.prefix is not None:
                 raise ValueError(
                     "Argument prefix must be None if argument header is not None"
                 )

@@ -2046,7 +2046,7 @@ def test_read_csv_raises_on_header_prefix(all_parsers):
     msg = ("Argument prefix must be None if argument header is not None")
     s = StringIO("0,1\n2,3")
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(s, header=0, prefix = "_X")
+        parser.read_csv(s, header=0, prefix="_X")
 
 
 def test_read_table_equivalency_to_read_csv(all_parsers):
