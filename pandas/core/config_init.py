@@ -349,8 +349,8 @@ with cf.config_prefix("display"):
         if value is not None and value < 0:
             warnings.warn(
                 "Passing a negative integer is deprecated in version 1.0 and "
-                "will not be supported from version 1.2. Instead, use None to "
-                "not limit the column width.",
+                "will not be supported in future version. Instead, use None "
+                "to not limit the column width.",
                 FutureWarning,
                 stacklevel=4,
             )
