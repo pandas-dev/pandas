@@ -132,7 +132,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
-- Bug in :meth:`DataFrame.replace` was changing other columns' dtypes when values in one column were being replaced with ``NaN`` (:issue:`30512`)
+-
 -
 
 Strings
