@@ -624,4 +624,13 @@ def test_cut_nullable_integer(bins, right, include_lowest):
         pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
     )
     expected = cut(a, bins, right=right, include_lowest=include_lowest)
+
+
+def test_cut_object_dtype_with_na():
+    arr = np.arange(100).astype(object)
+    arr[::3] = np.nan
+
+    result = cut(arr, 3)
+    expected = cut(arr.astype(float), 3)
+
     tm.assert_categorical_equal(result, expected)
