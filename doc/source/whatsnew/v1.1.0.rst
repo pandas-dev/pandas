@@ -174,7 +174,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`read_json` where integer overflow was occuring when json contains big number strings. (:issue:`30320`)
--
+- Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
 -
 
 Plotting
