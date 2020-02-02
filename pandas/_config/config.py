@@ -159,6 +159,8 @@ def _describe_option(pat: str = "", _print_desc: bool = True):
     for k in keys:  # filter by pat
         s += _build_option_description(k)
         s += "\n"
+    # strip the last newline
+    s = s[:s.rfind("\n")]
 
     if _print_desc:
         print(s)
