@@ -127,7 +127,6 @@ typedef struct __PyObjectEncoder {
     // pass-through to encode numpy data directly
     int npyType;
     void *npyValue;
-    TypeContext basicTypeContext;
 
     int datetimeIso;
     NPY_DATETIMEUNIT datetimeUnit;
@@ -2117,10 +2116,7 @@ void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 
         PyObject_Free(GET_TC(tc)->cStr);
         GET_TC(tc)->cStr = NULL;
-        if (tc->prv !=
-            &(((PyObjectEncoder *)tc->encoder)->basicTypeContext)) { // NOLINT
-            PyObject_Free(tc->prv);
-        }
+        PyObject_Free(tc->prv);
         tc->prv = NULL;
     }
 }
@@ -2218,16 +2214,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     pyEncoder.datetimeUnit = NPY_FR_ms;
     pyEncoder.outputFormat = COLUMNS;
     pyEncoder.defaultHandler = 0;
-    pyEncoder.basicTypeContext.newObj = NULL;
-    pyEncoder.basicTypeContext.dictObj = NULL;
-    pyEncoder.basicTypeContext.itemValue = NULL;
-    pyEncoder.basicTypeContext.itemName = NULL;
-    pyEncoder.basicTypeContext.attrList = NULL;
-    pyEncoder.basicTypeContext.iterator = NULL;
-    pyEncoder.basicTypeContext.cStr = NULL;
-    pyEncoder.basicTypeContext.npyarr = NULL;
-    pyEncoder.basicTypeContext.rowLabels = NULL;
-    pyEncoder.basicTypeContext.columnLabels = NULL;
 
     PRINTMARK();
 
