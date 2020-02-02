@@ -131,6 +131,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
+- Bug where :meth:`qcut` would raise when passed a nullable integer. (:issue:`31389`)
 -
 
 
