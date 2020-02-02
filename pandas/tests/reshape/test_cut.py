@@ -626,11 +626,14 @@ def test_cut_nullable_integer(bins, right, include_lowest):
     expected = cut(a, bins, right=right, include_lowest=include_lowest)
 
 
-def test_cut_object_dtype_with_na():
+@pytest.mark.parametrize("bins", [2, [0, 50, 100]])
+@pytest.mark.parametrize("right", [True, False])
+@pytest.mark.parametrize("include_lowest", [True, False])
+def test_cut_object_dtype_with_na(bins, right, include_lowest):
     arr = np.arange(100).astype(object)
     arr[::3] = np.nan
 
-    result = cut(arr, 3)
-    expected = cut(arr.astype(float), 3)
+    result = cut(arr, bins, right=right, include_lowest=include_lowest)
+    expected = cut(arr.astype(np.float64), bins, right=right, include_lowest=include_lowest)
 
     tm.assert_categorical_equal(result, expected)
