@@ -859,14 +859,6 @@ cdef class _Timedelta(timedelta):
         """
         return self.to_timedelta64()
 
-    def total_seconds(self):
-        """
-        Total duration of timedelta in seconds (to microsecond precision).
-        """
-        # GH 31043
-        # Microseconds precision to avoid confusing tzinfo.utcoffset
-        return (self.value - self.value % 1000) / 1e9
-
     def view(self, dtype):
         """
         Array view compatibility.
@@ -1250,7 +1242,7 @@ class Timedelta(_Timedelta):
             return NaT
 
         # make timedelta happy
-        td_base = _Timedelta.__new__(cls, microseconds=int(value) / 1000)
+        td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
         td_base.value = value
         td_base.is_populated = 0
         return td_base
