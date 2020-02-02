@@ -671,7 +671,7 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
 
 
-@pytest.mark.parametrize("func", ["mean", "var", "std", "cumprod", "cumsum"])
+@pytest.mark.parametrize("func", ["cumprod", "cumsum"])
 def test_numpy_compat(func):
     # see gh-12811
     df = pd.DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})
