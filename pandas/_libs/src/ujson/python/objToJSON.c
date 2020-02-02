@@ -178,6 +178,8 @@ void *initObjToJSON(void) {
 
     /* Initialise numpy API */
     import_array();
+    // GH 31463
+    return NULL;
 }
 
 static TypeContext *createTypeContext(void) {
