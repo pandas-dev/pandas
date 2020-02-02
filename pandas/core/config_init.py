@@ -10,6 +10,7 @@ module is imported, register them here rather than in the module.
 
 """
 import warnings
+
 import pandas._config.config as cf
 from pandas._config.config import (
     is_bool,
