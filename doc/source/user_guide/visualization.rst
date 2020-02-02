@@ -1645,11 +1645,11 @@ when plotting a large number of points.
 
 Plotting Backend
 --------------------------------
-Starting in 0.25 pandas can be extended with third-party plotting backends. 
-The main idea is letting users select a plotting backend different than the provided one based on Matplotlib. 
+Starting in 0.25 pandas can be extended with third-party plotting backends.
+The main idea is letting users select a plotting backend different than the provided one based on Matplotlib.
 For example:
 .. ipython:: python
-    pd.set_option('plotting.backend', 'backend.module') 
+    pd.set_option('plotting.backend', 'backend.module')
     pd.Series([1, 2, 3]).plot()
 This would be more or less equivalent to:
 .. ipython:: python
@@ -1667,7 +1667,6 @@ setup(  # noqa: F821
             "matplotlib = pandas:plotting._matplotlib",
         ],
     },
-
 )
-More information on how to implement a third-party plotting backend can be found at 
+More information on how to implement a third-party plotting backend can be found at
 https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
