@@ -268,8 +268,8 @@ class TestSeriesCombine:
 
     def test_series_combine(self):
         # GH 31142
-        s0 = pd.Series([1,2,3], index=['a', 'b', 'c'])
-        s1 = pd.Series([10,20,30], index=[0, 'e', 'f'])
-        rs = s0.combine(s1, lambda x,y: x+y, fill_value=0)
-        expected = pd.Series([10, 1, 2, 3, 20, 30], index=[0, 'a', 'b', 'c','e', 'f'])
+        s0 = pd.Series([1, 2, 3], index=["a", "b", "c"])
+        s1 = pd.Series([10, 20, 30], index=[0, "e", "f"])
+        rs = s0.combine(s1, lambda x, y: x + y, fill_value=0)
+        expected = pd.Series([10, 1, 2, 3, 20, 30], index=[0, "a", "b", "c", "e", "f"])
         tm.assert_series_equal(rs, expected)
