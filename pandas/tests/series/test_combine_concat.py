@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_datetime
 import pandas._testing as tm
 
 
@@ -252,7 +252,6 @@ class TestSeriesCombine:
         assert result.dtype == expected
 
     def test_combine_first_dt64(self):
-        from pandas.core.tools.datetimes import to_datetime
 
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = to_datetime(Series([np.NaN, "2011"]))

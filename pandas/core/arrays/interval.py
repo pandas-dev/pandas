@@ -40,6 +40,7 @@ from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
@@ -495,6 +496,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self.left)
 
     def __getitem__(self, value):
+        value = check_array_indexer(self, value)
         left = self.left[value]
         right = self.right[value]
 
@@ -539,6 +541,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 msg = f"'value' should be an interval type, got {type(value)} instead."
                 raise TypeError(msg)
 
+        key = check_array_indexer(self, key)
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
@@ -727,11 +730,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Parameters
         ----------
         left : array-like
-            Values to be used for the left-side of the the intervals.
+            Values to be used for the left-side of the intervals.
             If None, the existing left and right values will be used.
 
         right : array-like
-            Values to be used for the right-side of the the intervals.
+            Values to be used for the right-side of the intervals.
             If None and left is IntervalArray-like, the left and right
             of the IntervalArray-like will be used.
 

@@ -1922,10 +1922,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     Parameters
     ----------
-    buf : writable buffer, defaults to sys.stdout
-        Where to send the output. By default, the output is printed to
-        sys.stdout. Pass a writable buffer if you need to further process
-        the output.
+    buf : str, Path or StringIO-like, optional, default None
+        Buffer to write to. If None, the output is returned as a string.
     mode : str, optional
         Mode in which file is opened.
     **kwargs
@@ -2681,7 +2679,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ... # 0,1,2,3
         ... # 1,4,5,6
 
-        We can omit the the index by passing the keyword `index` and setting
+        We can omit the index by passing the keyword `index` and setting
         it to false.
 
         >>> df.to_clipboard(sep=',', index=False)
@@ -3077,10 +3075,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
 
-        # create 'out.zip' containing 'out.csv'
+        Create 'out.zip' containing 'out.csv'
+
         >>> compression_opts = dict(method='zip',
         ...                         archive_name='out.csv')  # doctest: +SKIP
-
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
         """
@@ -7206,7 +7204,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if isinstance(self, ABCSeries):
                 threshold = self._constructor(threshold, index=self.index)
             else:
-                threshold = _align_method_FRAME(self, threshold, axis)
+                threshold = _align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
     def clip(

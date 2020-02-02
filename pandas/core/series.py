@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex, lib, properties, reshape, tslibs
+from pandas._libs import lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -838,13 +838,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         scalar (int) or Series (slice, sequence)
         """
-
-        # dispatch to the values if we need
-        values = self._values
-        if isinstance(values, np.ndarray):
-            return libindex.get_value_at(values, i)
-        else:
-            return values[i]
+        return self._values[i]
 
     def _slice(self, slobj: slice, axis: int = 0, kind=None) -> "Series":
         slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
@@ -945,7 +939,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_values_tuple(self, key):
         # mpl hackaround
         if com.any_none(*key):
-            return self._get_values(key)
+            # suppress warning from slicing the index with a 2d indexer.
+            # eventually we'll want Series itself to warn.
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", "Support for multi-dim", DeprecationWarning
+                )
+                return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):
             raise ValueError("Can only tuple-index with a MultiIndex")
@@ -980,7 +980,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         scalar value
         """
         if takeable:
-            return com.maybe_box_datetimelike(self._values[label])
+            return self._values[label]
         return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):
@@ -1025,17 +1025,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value):
-        values = self._values
-        if is_extension_array_dtype(values.dtype):
-            # The cython indexing engine does not support ExtensionArrays.
-            values[self.index.get_loc(key)] = value
-            return
-        try:
-            self.index._engine.set_value(values, key, value)
-            return
-        except KeyError:
-            values[self.index.get_loc(key)] = value
-            return
+        # fails with AttributeError for IntervalIndex
+        loc = self.index._engine.get_loc(key)
+        libindex.validate_numeric_casting(self.dtype, value)
+        self._values[loc] = value
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
@@ -1115,11 +1108,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             if takeable:
                 self._values[label] = value
-            elif isinstance(self._values, np.ndarray):
-                # i.e. not EA, so we can use _engine
-                self.index._engine.set_value(self._values, label, value)
             else:
-                self.loc[label] = value
+                loc = self.index.get_loc(label)
+                libindex.validate_numeric_casting(self.dtype, value)
+                self._values[loc] = value
         except KeyError:
 
             # set using a non-recursive method
