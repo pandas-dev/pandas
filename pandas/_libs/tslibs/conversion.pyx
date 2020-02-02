@@ -29,7 +29,8 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare, treat_tz_as_dateutil)
+    get_timezone, maybe_get_tz, tz_compare, treat_tz_as_dateutil,
+    treat_tz_as_pytz)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -367,36 +368,31 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
     obj.fold = 0
     if tz is not None:
-        if is_utc(tz):
-            pass
-        elif is_tzlocal(tz):
-            pass
-            # TODO: think on how we can infer fold for local Timezone
-            # and adjust value for fold
-        else:
+        # TODO: think on how we can infer fold for local Timezone
+        # and adjust value for fold
+        if treat_tz_as_dateutil(tz) or treat_tz_as_pytz(tz):
             trans, deltas, typ = get_dst_info(tz)
 
-            if typ == 'pytz' or typ == 'dateutil':
-                pos = trans.searchsorted(obj.value, side='right') - 1
+            pos = trans.searchsorted(obj.value, side='right') - 1
 
-                # obj.value includes tz assumptions, need to adjust
-                # pytz assumes we are in a fold, dateutil - that we are not
-                if typ == 'pytz' and fold == 0 and pos > 0:
-                    fold_delta = deltas[pos - 1] - deltas[pos]
-                    if obj.value - fold_delta < trans[pos]:
-                        obj.value -= fold_delta
-                        pos -= 1
-                elif typ == 'dateutil' and fold == 1 and pos < len(deltas):
-                    fold_delta = deltas[pos] - deltas[pos + 1]
-                    if obj.value + fold_delta > trans[pos + 1]:
-                        obj.value += fold_delta
-                        pos += 1
+            # obj.value includes tz assumptions, need to adjust
+            # pytz assumes we are in a fold, dateutil - that we are not
+            if typ == 'pytz' and fold == 0 and pos > 0:
+                fold_delta = deltas[pos - 1] - deltas[pos]
+                if obj.value - fold_delta < trans[pos]:
+                    obj.value -= fold_delta
+                    pos -= 1
+            elif typ == 'dateutil' and fold == 1 and pos < len(deltas):
+                fold_delta = deltas[pos] - deltas[pos + 1]
+                if obj.value + fold_delta > trans[pos + 1]:
+                    obj.value += fold_delta
+                    pos += 1
 
-                # Infer fold
-                if pos > 0:
-                    fold_delta = deltas[pos - 1] - deltas[pos]
-                    if obj.value - fold_delta < trans[pos]:
-                        obj.fold = 1
+            # Infer fold
+            if pos > 0:
+                fold_delta = deltas[pos - 1] - deltas[pos]
+                if obj.value - fold_delta < trans[pos]:
+                    obj.fold = 1
 
     check_dts_bounds(&obj.dts)
     check_overflows(obj)
