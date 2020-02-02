@@ -10,6 +10,14 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_101.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+- Support for negative integer for :attr:`pd.options.display.max_colwidth` is deprecated in favor of using ``None`` (:issue:`31532`)
+
+.. ---------------------------------------------------------------------------
 
 .. _whatsnew_101.bug_fixes:
 
@@ -44,6 +52,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
+- Bug in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31467`)
 -
 
 Conversion
@@ -89,6 +98,7 @@ MultiIndex
 I/O
 ^^^
 
+- Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
 -
 -
 
@@ -127,7 +137,8 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Regression fixed in objTOJSON.c fix return-type warning (:issue:`31463`)
+- Fixed a regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
 -
 
 .. ---------------------------------------------------------------------------
