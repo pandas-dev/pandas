@@ -351,6 +351,7 @@ with cf.config_prefix("display"):
                 "will not be supported from version 1.2. Instead, use None to "
                 "not limit the column width.",
                 FutureWarning,
+                stacklevel=4,
             )
 
     cf.register_option(
