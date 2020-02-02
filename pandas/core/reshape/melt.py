@@ -88,9 +88,7 @@ def melt(
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
-                var_name = [
-                    f"variable_{i}" for i in range(len(frame.columns.names))
-                ]
+                var_name = [f"variable_{i}" for i in range(len(frame.columns.names))]
         else:
             var_name = [
                 frame.columns.name if frame.columns.name is not None else "variable"

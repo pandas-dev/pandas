@@ -403,8 +403,7 @@ class _Concatenator:
         self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
-                f"axis must be between 0 and {sample.ndim}, input was "
-                f"{axis}"
+                f"axis must be between 0 and {sample.ndim}, input was " f"{axis}"
             )
 
         # if we have mixed ndims, then convert to highest ndim
@@ -622,9 +621,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 try:
                     i = level.get_loc(key)
                 except KeyError:
-                    raise ValueError(
-                        f"Key {key!s} not in level {level!s}"
-                    )
+                    raise ValueError(f"Key {key!s} not in level {level!s}")
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))
@@ -675,9 +672,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError(
-                f"Values not found in passed level: {hlevel[mask]!s}"
-            )
+            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
 
         new_codes.append(np.repeat(mapped, n))
 

@@ -1599,9 +1599,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # check 'direction' is valid
         if self.direction not in ["backward", "forward", "nearest"]:
-            raise MergeError(
-                f"direction invalid: {self.direction}"
-            )
+            raise MergeError(f"direction invalid: {self.direction}")
 
     @property
     def _asof_key(self):
