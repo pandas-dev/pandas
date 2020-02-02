@@ -274,3 +274,10 @@ def test_td_constructor_on_nanoseconds(constructed_td, conversion):
 def test_td_constructor_value_error():
     with pytest.raises(TypeError):
         Timedelta(nanoseconds="abc")
+
+
+def test_timedelta_constructor_identity():
+    # Test for #30543
+    expected = Timedelta(np.timedelta64(1, "s"))
+    result = Timedelta(expected)
+    assert result is expected
