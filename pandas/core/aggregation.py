@@ -8,11 +8,11 @@ from functools import partial
 from typing import Any, DefaultDict, List, Optional, Sequence, Tuple, Union
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.dtypes.generic import ABCDataFrame
 
 
 def reconstruct_func(
