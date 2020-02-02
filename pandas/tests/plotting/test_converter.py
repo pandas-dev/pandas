@@ -60,7 +60,7 @@ class TestRegistration:
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
 
-    @td.skip_if_low_mpl
+    @td.skip_if_lower_3_1_2_mpl
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -91,7 +91,7 @@ class TestRegistration:
                 assert Timestamp not in units.registry
             assert Timestamp in units.registry
 
-    @td.skip_if_low_mpl
+    @td.skip_if_lower_3_1_2_mpl
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
@@ -106,8 +106,7 @@ class TestRegistration:
         # Now test with registering
         register_matplotlib_converters()
         with ctx:
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-                ax.plot(s.index, s.values)
+            ax.plot(s.index, s.values)
 
     def test_registry_resets(self):
         units = pytest.importorskip("matplotlib.units")

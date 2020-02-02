@@ -120,7 +120,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-def _skip_if_low_mpl():
+def _skip_if_lower_3_1_2_mpl():
     # GH 30588 matplotlib after 3.1.2 will no longer raise warning
     # from 2D indexing on Index
     mpl = safe_import("matplotlib")
@@ -201,8 +201,8 @@ skip_if_no_ne = pytest.mark.skipif(
     not _USE_NUMEXPR,
     reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{_NUMEXPR_INSTALLED}",
 )
-skip_if_low_mpl = pytest.mark.skipif(
-    _skip_if_low_mpl(), reason="Matplotlib after 3.1.2 will no longer raise warning"
+skip_if_lower_3_1_2_mpl = pytest.mark.skipif(
+    _skip_if_low_3_1_2_mpl(), reason="Matplotlib after 3.1.2 will no longer raise warning"
 )
 
 
