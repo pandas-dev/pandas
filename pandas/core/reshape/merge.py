@@ -679,7 +679,7 @@ class _MergeOperation:
         for i in ["_left_indicator", "_right_indicator"]:
             if i in columns:
                 raise ValueError(
-                    f"Cannot use `indicator=True` option when "
+                    "Cannot use `indicator=True` option when "
                     f"data contains a column named {i}"
                 )
         if self.indicator_name in columns:
