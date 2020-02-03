@@ -799,7 +799,7 @@ class TestPeriodIndex:
         expected_index = period_range(
             "1970-01-01 00:00:00", periods=len(expected_values), freq=freq
         )
-        expected = DataFrame(expected_values, index=expected_index)
+        expected = DataFrame(expected_values, index=expected_index, dtype="float64")
         result = frame.resample(freq).mean()
         tm.assert_frame_equal(result, expected)
 

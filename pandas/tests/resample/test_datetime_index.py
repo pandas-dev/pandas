@@ -1062,7 +1062,7 @@ def test_resample_median_bug_1688():
         exp = df.asfreq("T")
         tm.assert_frame_equal(result, exp)
 
-        result = df.resample("T").median()
+        result = df.resample("T").apply(lambda x: x.median())
         exp = df.asfreq("T")
         tm.assert_frame_equal(result, exp)
 
@@ -1456,15 +1456,15 @@ def test_resample_with_nat():
     index_1s = DatetimeIndex(
         ["1970-01-01 00:00:00", "1970-01-01 00:00:01", "1970-01-01 00:00:02"]
     )
-    frame_1s = DataFrame([3, 7, 11], index=index_1s)
+    frame_1s = DataFrame([3, 7, 11], index=index_1s, dtype="float64")
     tm.assert_frame_equal(frame.resample("1s").mean(), frame_1s)
 
     index_2s = DatetimeIndex(["1970-01-01 00:00:00", "1970-01-01 00:00:02"])
-    frame_2s = DataFrame([5, 11], index=index_2s)
+    frame_2s = DataFrame([5, 11], index=index_2s, dtype="float64")
     tm.assert_frame_equal(frame.resample("2s").mean(), frame_2s)
 
     index_3s = DatetimeIndex(["1970-01-01 00:00:00"])
-    frame_3s = DataFrame([7], index=index_3s)
+    frame_3s = DataFrame([7], index=index_3s, dtype="float64")
     tm.assert_frame_equal(frame.resample("3s").mean(), frame_3s)
 
     tm.assert_frame_equal(frame.resample("60s").mean(), frame_3s)
@@ -1509,6 +1509,10 @@ def test_resample_apply_with_additional_args(series):
     df = pd.DataFrame({"A": 1, "B": 2}, index=pd.date_range("2017", periods=10))
     result = df.groupby("A").resample("D").agg(f, multiplier)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
+
+    # GH 31450 cython_agg will keep float for mean, python_agg will cast to the
+    # type of obj
+    expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 

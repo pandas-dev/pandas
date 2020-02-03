@@ -241,8 +241,13 @@ class TestPivotTable:
         )
 
         result = df.pivot_table(index="A", values="B", dropna=dropna)
+
+        if not dropna:
+            expected_b = np.array([2, 3], dtype="float64")
+        else:
+            expected_b = [2, 3]
         expected = pd.DataFrame(
-            {"B": [2, 3]},
+            {"B": expected_b},
             index=pd.Index(
                 pd.Categorical.from_codes(
                     [0, 1], categories=["low", "high"], ordered=True
@@ -266,8 +271,12 @@ class TestPivotTable:
         )
 
         result = df.pivot_table(index="A", values="B", dropna=dropna)
+        if not dropna:
+            expected_b = np.array([2, 3, 0], dtype="float64")
+        else:
+            expected_b = [2, 3, 0]
         expected = pd.DataFrame(
-            {"B": [2, 3, 0]},
+            {"B": expected_b},
             index=pd.Index(
                 pd.Categorical.from_codes(
                     [0, 1, 2], categories=["low", "high", "left"], ordered=True
@@ -282,7 +291,13 @@ class TestPivotTable:
         # GH 25814
         df = DataFrame({"A": interval_values, "B": 1})
         result = df.pivot_table(index="A", values="B", dropna=dropna)
-        expected = DataFrame({"B": 1}, index=Index(interval_values.unique(), name="A"))
+        if not dropna:
+            expected_b = 1.0
+        else:
+            expected_b = 1
+        expected = DataFrame(
+            {"B": expected_b}, index=Index(interval_values.unique(), name="A")
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_with_interval_index_margins(self):
@@ -384,10 +399,7 @@ class TestPivotTable:
         )
 
         result = dict(df_res.dtypes)
-        expected = {
-            col: np.dtype("O") if col[0].startswith("b") else np.dtype("float64")
-            for col in df_res
-        }
+        expected = {col: np.dtype("float64") for col in df_res}
         assert result == expected
 
     def test_pivot_no_values(self):
@@ -1701,7 +1713,6 @@ class TestPivotTable:
         expected = pd.DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)")
     def test_categorical_margins(self, observed):
         # GH 10989
         df = pd.DataFrame(
@@ -1713,9 +1724,10 @@ class TestPivotTable:
         expected.columns = Index([0, 1, "All"], name="z")
 
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
+        if observed:
+            table = table.astype("float64")
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.xfail(reason="GH#17035 (np.mean of ints is casted back to ints)")
     def test_categorical_margins_category(self, observed):
         df = pd.DataFrame(
             {"x": np.arange(8), "y": np.arange(8) // 4, "z": np.arange(8) % 2}
@@ -1728,6 +1740,8 @@ class TestPivotTable:
         df.y = df.y.astype("category")
         df.z = df.z.astype("category")
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
+        if observed:
+            table = table.astype("float64")
         tm.assert_frame_equal(table, expected)
 
     def test_margins_casted_to_float(self, observed):
