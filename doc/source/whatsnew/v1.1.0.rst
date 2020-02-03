@@ -60,6 +60,9 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
   Previously a ``AttributeError`` was raised (:issue:`31126`)
+- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std`` and :meth:`~DataFrameGroupby.var``)
+  now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
+  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median``) (:issue:`31485`)
 
 
 .. ---------------------------------------------------------------------------
@@ -217,7 +220,7 @@ Other
 ^^^^^
 - Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
--
+- Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 
 .. ---------------------------------------------------------------------------
 
