@@ -42,113 +42,19 @@ Deprecations
 Bug fixes
 ~~~~~~~~~
 
-Categorical
-^^^^^^^^^^^
-
--
--
-
-Datetimelike
-^^^^^^^^^^^^
+**Datetimelike**
 
 - Fixed bug in :meth:`to_datetime` raising when ``cache=True`` and out-of-bound values are present (:issue:`31491`)
 
-Timedelta
-^^^^^^^^^
-
--
--
-
-Timezones
-^^^^^^^^^
-
--
--
-
-
-Numeric
-^^^^^^^
+**Numeric*
 
 - Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
--
+  and for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
 
-Conversion
-^^^^^^^^^^
-
--
--
-
-Strings
-^^^^^^^
-
--
--
-
-
-Interval
-^^^^^^^^
-
--
--
-
-Indexing
-^^^^^^^^
-
--
-
-Missing
-^^^^^^^
-
--
--
-
-MultiIndex
-^^^^^^^^^^
-
--
--
-
-I/O
-^^^
-
--
--
-
-Plotting
-^^^^^^^^
+**Plotting**
 
 - Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`)
--
 
-Groupby/resample/rolling
-^^^^^^^^^^^^^^^^^^^^^^^^
-
--
--
-
-
-Reshaping
-^^^^^^^^^
-
--
--
-
-Sparse
-^^^^^^
-
--
--
-
-ExtensionArray
-^^^^^^^^^^^^^^
-
-- Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
--
-
-
-Other
-^^^^^
--
 
 .. ---------------------------------------------------------------------------
 
