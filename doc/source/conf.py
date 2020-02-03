@@ -209,6 +209,7 @@ html_theme_options = {
     "external_links": [],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
+    "google_analytics_id": "UA-27880019-2",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
