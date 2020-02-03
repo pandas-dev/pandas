@@ -262,7 +262,7 @@ class TestPeriodIndex:
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
         expected_index = pd.period_range(start=start, end=end, freq="D") - offsets.Day()
-        expected = Series(1, index=expected_index)
+        expected = Series(1, index=expected_index, dtype="float64")
         tm.assert_series_equal(result, expected)
 
     def test_resample_with_pytz(self):
@@ -272,7 +272,9 @@ class TestPeriodIndex:
         )
         result = s.resample("D").mean()
         expected = Series(
-            2, index=pd.DatetimeIndex(["2017-01-01", "2017-01-02"], tz="US/Eastern")
+            2,
+            index=pd.DatetimeIndex(["2017-01-01", "2017-01-02"], tz="US/Eastern"),
+            dtype="float64",
         )
         tm.assert_series_equal(result, expected)
         # Especially assert that the timezone is LMT for pytz
@@ -302,7 +304,7 @@ class TestPeriodIndex:
         expected_index = (
             pd.period_range(start=start, end=end, freq="D", name="idx") - offsets.Day()
         )
-        expected = Series(1, index=expected_index)
+        expected = Series(1, index=expected_index, dtype="float64")
         tm.assert_series_equal(result, expected)
 
     def test_resample_nonexistent_time_bin_edge(self):

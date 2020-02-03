@@ -926,7 +926,7 @@ def test_nanosecond_resample_error():
     result = r.agg("mean")
 
     exp_indx = pd.date_range(start=pd.to_datetime(exp_start), periods=10, freq="100n")
-    exp = Series(range(len(exp_indx)), index=exp_indx)
+    exp = Series(range(len(exp_indx)), index=exp_indx, dtype="float64")
 
     tm.assert_series_equal(result, exp)
 

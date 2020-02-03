@@ -73,7 +73,7 @@ def test_resample_timedelta_idempotency():
 
     # GH 12072
     index = pd.timedelta_range("0", periods=9, freq="10L")
-    series = Series(range(9), index=index)
+    series = Series(range(9), index=index, dtype="float64")
     result = series.resample("10L").mean()
     expected = series
     tm.assert_series_equal(result, expected)
@@ -105,7 +105,7 @@ def test_resample_categorical_data_with_timedeltaindex():
         index=pd.to_timedelta([0, 10], unit="s"),
     )
     expected = expected.reindex(["Group_obj", "Group"], axis=1)
-    expected["Group"] = expected["Group_obj"]
+    expected["Group"] = expected["Group_obj"].astype("category")
     tm.assert_frame_equal(result, expected)
 
 

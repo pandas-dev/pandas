@@ -93,7 +93,7 @@ cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"
 cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
 cython_cast_cat_type_list = frozenset(["first", "last"])
-cython_cast_keep_type_list = cython_cast_cat_type_list | frozenset(["min", "max", "add"])
+cython_cast_keep_type_list = cython_cast_cat_type_list | frozenset(["min", "max", "add", "prod", "ohlc"])
 
 # List of aggregation/reduction functions.
 # These map each group to a single numeric value
