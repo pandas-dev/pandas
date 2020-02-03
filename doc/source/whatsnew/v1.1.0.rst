@@ -168,7 +168,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`read_json` where integer overflow was occuring when json contains big number strings. (:issue:`30320`)
-- `read_csv` will now raise a ``ValueError`` when arguments `header` and `prefix` both are not None. (:issue:`27394`)
+- `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
 -
 
 Plotting
