@@ -80,7 +80,8 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["mean", "freq", "freqstr", "asi8", "_box_values"], DatetimeLikeArrayMixin,
+    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
+    DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
     """
@@ -373,6 +374,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return attrs
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
@@ -398,6 +400,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
     __radd__ = make_wrapped_arith_op("__radd__")
@@ -788,11 +792,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if this._can_fast_union(other):
             return this._fast_union(other, sort=sort)
         else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, type(self)):
-                assert result._data.dtype == this.dtype
-                if result.freq is None:
-                    result._set_freq("infer")
+            i8self = Int64Index._simple_new(self.asi8, name=self.name)
+            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8result = i8self._union(i8other, sort=sort)
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------
