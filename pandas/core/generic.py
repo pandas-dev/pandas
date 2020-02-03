@@ -1922,10 +1922,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     Parameters
     ----------
-    buf : writable buffer, defaults to sys.stdout
-        Where to send the output. By default, the output is printed to
-        sys.stdout. Pass a writable buffer if you need to further process
-        the output.
+    buf : str, Path or StringIO-like, optional, default None
+        Buffer to write to. If None, the output is returned as a string.
     mode : str, optional
         Mode in which file is opened.
     **kwargs
@@ -2681,7 +2679,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ... # 0,1,2,3
         ... # 1,4,5,6
 
-        We can omit the the index by passing the keyword `index` and setting
+        We can omit the index by passing the keyword `index` and setting
         it to false.
 
         >>> df.to_clipboard(sep=',', index=False)
