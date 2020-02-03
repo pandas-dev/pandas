@@ -256,10 +256,6 @@ class ExtensionIndex(Index):
         return self._shallow_copy(result)
 
     def _concat_same_dtype(self, to_concat, name):
-        """
-        assert that we all have the same .closed
-        we allow a 0-len index here as well
-        """
         arr = type(self._data)._concat_same_type(to_concat)
         return type(self)._simple_new(arr, name=name)
 
