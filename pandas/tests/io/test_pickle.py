@@ -61,7 +61,7 @@ def compare_element(result, expected, typ, version=None):
             assert result.freq == expected.freq
     else:
         comparator = getattr(
-            tm, f"assert_{typ=typ}_equal", tm.assert_almost_equal
+            tm, f"assert_{typ}_equal", tm.assert_almost_equal
         )
         comparator(result, expected)
 
@@ -77,7 +77,7 @@ def compare(data, vf, version):
 
             # use a specific comparator
             # if available
-            comparator = f"compare_{typ=typ}_{dt=dt}"
+            comparator = f"compare_{typ}_{dt}"
 
             comparator = m.get(comparator, m["compare_element"])
             comparator(result, expected, typ, version)
