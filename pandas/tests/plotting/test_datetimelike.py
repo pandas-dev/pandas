@@ -43,19 +43,14 @@ class TestTSPlot(TestPlotBase):
     def teardown_method(self, method):
         tm.close()
 
-    # Ignore warning
-    # ```
-    # Converting to PeriodArray/Index representation will drop timezone information.
-    # ```
-    # which occurs for UTC-like timezones.
     @pytest.mark.slow
-    @pytest.mark.filterwarnings("ignore:msg:UserWarning")
     def test_ts_plot_with_tz(self, tz_aware_fixture):
-        # GH2877, GH17173
+        # GH2877, GH17173, GH31205
         tz = tz_aware_fixture
         index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
         ts = Series([188.5, 328.25], index=index)
-        _check_plot_works(ts.plot)
+        with tm.assert_produces_warning(None):
+            _check_plot_works(ts.plot)
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
