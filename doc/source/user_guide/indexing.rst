@@ -920,6 +920,10 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
    df2.loc[criterion & (df2['b'] == 'x'), 'b':'c']
 
+Note- pandas does not allow indexing with NA values. Attempting to do so
+will raise a ``ValueError``.
+For more information refer to Nullable Boolean data type.
+
 .. _indexing.basics.indexing_isin:
 
 Indexing with isin
