@@ -38,6 +38,7 @@ class Base:
     def test_hash(self):
         hash(self.dtype)
 
+<<<<<<< HEAD
     def test_equality_invalid(self):
         assert not self.dtype == "foo"
         assert not is_dtype_equal(self.dtype, np.int64)
@@ -45,6 +46,16 @@ class Base:
     def test_numpy_informed(self):
         with pytest.raises(TypeError, match="data type not understood"):
             np.dtype(self.dtype)
+=======
+    def test_numpy_informed(self, dtype):
+        # npdev 2020-02-02 changed from "data type not understood" to
+        #  "Cannot interpret 'foo' as a data type"
+        msg = "|".join(
+            ["data type not understood", "Cannot interpret '.*' as a data type"]
+        )
+        with pytest.raises(TypeError, match=msg):
+            np.dtype(dtype)
+>>>>>>> 27f365d4d... TST: troubleshoot npdev build (#31594)
 
         assert not self.dtype == np.str_
         assert not np.str_ == self.dtype

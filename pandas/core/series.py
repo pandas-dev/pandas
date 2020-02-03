@@ -11,7 +11,9 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import index as libindex, lib, reshape, tslibs
+from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs.index import validate_numeric_casting
+from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -1045,6 +1047,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value):
+<<<<<<< HEAD
         values = self._values
         if is_extension_array_dtype(values.dtype):
             # The cython indexing engine does not support ExtensionArrays.
@@ -1056,6 +1059,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except KeyError:
             values[self.index.get_loc(key)] = value
             return
+=======
+        # fails with AttributeError for IntervalIndex
+        loc = self.index._engine.get_loc(key)
+        validate_numeric_casting(self.dtype, value)
+        self._values[loc] = value
+>>>>>>> 27f365d4d... TST: troubleshoot npdev build (#31594)
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
@@ -1136,8 +1145,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if takeable:
                 self._values[label] = value
             else:
-                self.index._engine.set_value(self._values, label, value)
-        except (KeyError, TypeError):
+                loc = self.index.get_loc(label)
+                validate_numeric_casting(self.dtype, value)
+                self._values[loc] = value
+        except KeyError:
 
             # set using a non-recursive method
             self.loc[label] = value
