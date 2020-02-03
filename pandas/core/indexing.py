@@ -2234,9 +2234,9 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
     elif is_extension_array_dtype(key) and is_bool_dtype(key):
         mask = isna(key)
         if mask.any():
-            result = np.asarray(np.where(~mask, result, False), dtype=bool)
+            result = np.asarray(key.fillna(False), dtype=bool)
         else:
-            result = np.asarray(result, dtype=bool)
+            result = np.asarray(key, dtype=bool)
     else:
         # key might be sparse / object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
