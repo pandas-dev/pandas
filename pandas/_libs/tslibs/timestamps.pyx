@@ -440,7 +440,8 @@ class Timestamp(_Timestamp):
         if getattr(ts_input, 'fold', None) is not None and fold is None:
             fold = ts_input.fold
 
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0, fold)
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0,
+                                 fold or 0)
 
         if ts.value == NPY_NAT:
             return NaT
