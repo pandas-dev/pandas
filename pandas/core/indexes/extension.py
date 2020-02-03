@@ -229,7 +229,8 @@ class ExtensionIndex(Index):
 
     @property
     def size(self) -> int:
-        return self._data.size
+        # If EA ever requires size, this can become self._data.size
+        return len(self)
 
     @property
     def dtype(self):
