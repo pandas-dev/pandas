@@ -46,7 +46,10 @@ developer,development/developer
 extending,development/extending
 internals,development/internals
 
-# api
+# api moved function
+reference/api/pandas.io.json.json_normalize,pandas.json_normalize
+
+# api rename
 api,reference/index
 generated/pandas.api.extensions.ExtensionArray.argsort,../reference/api/pandas.api.extensions.ExtensionArray.argsort
 generated/pandas.api.extensions.ExtensionArray.astype,../reference/api/pandas.api.extensions.ExtensionArray.astype
