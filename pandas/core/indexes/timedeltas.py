@@ -1,7 +1,5 @@
 """ implement the TimedeltaIndex """
 
-import numpy as np
-
 from pandas._libs import NaT, Timedelta, index as libindex
 from pandas.util._decorators import Appender
 
@@ -53,7 +51,6 @@ from pandas.tseries.frequencies import to_offset
         "_datetimelike_methods",
         "_other_ops",
         "components",
-        "_box_func",
         "to_pytimedelta",
         "sum",
         "std",
@@ -225,17 +222,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
             other = TimedeltaIndex(other)
         return self, other
 
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -261,11 +247,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
         else:
             raise KeyError(key)
-
-        if tolerance is not None:
-            # try converting tolerance now, so errors don't get swallowed by
-            # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
         return Index.get_loc(self, key, method, tolerance)
 

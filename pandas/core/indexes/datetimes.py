@@ -29,7 +29,6 @@ import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
-from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
 from pandas.tseries.frequencies import Resolution, to_offset
@@ -70,7 +69,6 @@ def _new_DatetimeIndex(cls, d):
         "_field_ops",
         "_datetimelike_ops",
         "_datetimelike_methods",
-        "_box_func",
         "tz",
         "tzinfo",
         "dtype",
@@ -348,17 +346,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if this._can_fast_union(other):
                 this = this._fast_union(other)
             else:
-                dtype = this.dtype
                 this = Index.union(this, other)
-                if isinstance(this, DatetimeIndex):
-                    # TODO: we shouldn't be setting attributes like this;
-                    #  in all the tests this equality already holds
-                    this._data._dtype = dtype
         return this
-
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        return self._shallow_copy(result, name=name, freq=None)
 
     # --------------------------------------------------------------------
 
@@ -617,17 +606,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             other = DatetimeIndex(other)
         return self, other
 
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -639,18 +617,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
+        orig_key = key
         if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
 
-        if tolerance is not None:
-            # try converting tolerance now, so errors don't get swallowed by
-            # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-
-        if isinstance(key, (datetime, np.datetime64)):
+        if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
             key = self._maybe_cast_for_get_loc(key)
-            return Index.get_loc(self, key, method, tolerance)
 
         elif isinstance(key, str):
             try:
@@ -659,9 +632,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 pass
 
             try:
-                stamp = self._maybe_cast_for_get_loc(key)
-                return Index.get_loc(self, stamp, method, tolerance)
-            except (KeyError, ValueError):
+                key = self._maybe_cast_for_get_loc(key)
+            except ValueError:
                 raise KeyError(key)
 
         elif isinstance(key, timedelta):
@@ -670,14 +642,21 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 f"Cannot index {type(self).__name__} with {type(key).__name__}"
             )
 
-        if isinstance(key, time):
+        elif isinstance(key, time):
             if method is not None:
                 raise NotImplementedError(
                     "cannot yet lookup inexact labels when key is a time object"
                 )
             return self.indexer_at_time(key)
 
-        return Index.get_loc(self, key, method, tolerance)
+        else:
+            # unrecognized type
+            raise KeyError(key)
+
+        try:
+            return Index.get_loc(self, key, method, tolerance)
+        except KeyError:
+            raise KeyError(orig_key)
 
     def _maybe_cast_for_get_loc(self, key) -> Timestamp:
         # needed to localize naive datetimes
