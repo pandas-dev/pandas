@@ -36,6 +36,11 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+Indexing with Nullable Boolean Arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously indexing with a nullable Boolean array would raise a ``ValueError``, however this is now permitted with ``NA`` being treated as ``False``. (:issue:`31503`)
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
@@ -212,7 +217,6 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
-- Enabled filtering with nullable Boolean arrays. (:issue:`31503`)
 -
 -
 
