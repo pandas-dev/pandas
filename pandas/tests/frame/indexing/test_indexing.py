@@ -860,6 +860,15 @@ class TestDataFrameIndexing:
 
         assert (float_frame["C"] == 4).all()
 
+    def test_setitem_slice_position(self):
+        # GH#31469
+        df = pd.DataFrame(np.zeros((100, 1)))
+        df[-4:] = 1
+        arr = np.zeros((100, 1))
+        arr[-4:] = 1
+        expected = pd.DataFrame(arr)
+        tm.assert_frame_equal(df, expected)
+
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
 
