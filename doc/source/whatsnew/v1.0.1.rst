@@ -34,7 +34,6 @@ Deprecations
 ~~~~~~~~~~~~
 
 - Support for negative integer for :attr:`pd.options.display.max_colwidth` is deprecated in favor of using ``None`` (:issue:`31532`)
->>>>>>> a2721fd602e43128314d4efd056dae56a89197bf
 
 .. ---------------------------------------------------------------------------
 
