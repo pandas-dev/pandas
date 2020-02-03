@@ -53,7 +53,11 @@ Bug fixes
 
 **Plotting**
 
-- Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`)
+- Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`**
+
+**Interval**
+
+- Bug in :meth:`arrays.IntervalArray.shift` raising a ``TypeError`` when shifting an interval array of integers (:issue:`31495`) 
 
 
 .. ---------------------------------------------------------------------------
