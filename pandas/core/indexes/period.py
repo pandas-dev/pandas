@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import Any
 import weakref
 
 import numpy as np
@@ -49,9 +49,6 @@ from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 # --- Period index sketch
 
@@ -279,22 +276,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
-    @property
-    def _box_func(self):
-        """Maybe box an ordinal or Period"""
-        # TODO(DatetimeArray): Avoid double-boxing
-        # PeriodArray takes care of boxing already, so we need to check
-        # whether we're given an ordinal or a Period. It seems like some
-        # places outside of indexes/period.py are calling this _box_func,
-        # but passing data that's already boxed.
-        def func(x):
-            if isinstance(x, Period) or x is NaT:
-                return x
-            else:
-                return Period._from_ordinal(ordinal=x, freq=self.freq)
-
-        return func
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -469,17 +450,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # b/c data is represented as ints make sure we can't have ambiguous
         # indexing
         return "period"
-
-    def get_value(self, series: "Series", key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
