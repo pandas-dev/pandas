@@ -5,7 +5,7 @@ import weakref
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import NaT, frequencies as libfrequencies, resolution
+from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
 from pandas.util._decorators import Appender, cache_readonly
@@ -468,6 +468,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
+            if self_index is not self:
+                # convert tolerance to i8
+                tolerance = self._maybe_convert_timedelta(tolerance)
+
         return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
@@ -638,12 +642,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             # try to find a the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
-
-    def _convert_tolerance(self, tolerance, target):
-        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return self._maybe_convert_timedelta(tolerance)
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:

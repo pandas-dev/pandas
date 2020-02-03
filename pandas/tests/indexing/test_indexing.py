@@ -153,7 +153,6 @@ class TestFancy(Base):
                     "floating",
                     "string",
                     "datetime64",
-                    "period",
                     "timedelta64",
                     "boolean",
                     "categorical",
