@@ -114,14 +114,13 @@ def show_versions(as_json=False):
 
     else:
         maxlen = max(len(x) for x in deps)
-        tpl = f"{k}:<{maxlen}: {stat}"
         print("\nINSTALLED VERSIONS")
         print("------------------")
         for k, stat in sys_info:
-            print(tpl)
+            print(f"{k}:<{maxlen}: {stat}")
         print("")
         for k, stat in deps_blob:
-            print(tpl)
+            print(f"{k}:<{maxlen}: {stat}")
 
 
 def main() -> int:
