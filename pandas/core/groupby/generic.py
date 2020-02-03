@@ -1062,15 +1062,10 @@ class DataFrameGroupBy(GroupBy):
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
                     if len(result._data.blocks) != 1:
-                        # An input (P, N)-shape block was split into P
-                        # (1, n_groups) blocks. This is problematic since it breaks
-                        # the assumption that one input block is aggregated
-                        # to one output block. We should be OK as long as
-                        # the split output can be put back into a single block below
-                        assert len(result._data.blocks) == result.shape[1]
-                        result = np.asarray(result)
-                    else:
-                        result = result._data.blocks[0].values
+                        result._consolidate_inplace()
+
+                    assert len(result._data.blocks) == 1
+                    result = result._data.blocks[0].values
                     if isinstance(result, np.ndarray) and result.ndim == 1:
                         result = result.reshape(1, -1)
 

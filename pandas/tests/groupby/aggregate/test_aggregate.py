@@ -391,8 +391,8 @@ def test_agg_split_block():
     result = df.groupby("key1").min()
     expected = pd.DataFrame(
         {
-            "key2": ["one", "six"],
-            "key3": ["one", "six"],
+            "key2": ["one", "one"],
+            "key3": ["six", "six"],
             "data1": [0.0, 2.0],
             "data2": [0.0, 2.0],
         },
