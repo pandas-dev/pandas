@@ -809,6 +809,10 @@ a DataFrame or Series, or when reading in data), so you need to specify
 the dtype explicitly.  An easy way to convert to those dtypes is explained
 :ref:`here <missing_data.NA.conversion>`.
 
+Note - Pandas does not allow indexing with NA values. Attempting to do so will 
+raise a ``ValueError``.
+For more information refer to Nullable boolean data type.
+
 Propagation in arithmetic and comparison operations
 ---------------------------------------------------
 
