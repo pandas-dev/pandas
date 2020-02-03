@@ -666,8 +666,8 @@ def test__get_dtype(input_param, result):
     "input_param,expected_error_message",
     [
         (None, "Cannot deduce dtype from null object"),
-        (1, "data type not understood"),
-        (1.2, "data type not understood"),
+        (1, "data type not understood|Cannot interpret '1' as a data type"),
+        (1.2, "data type not understood|Cannot interpret '1.2' as a data type"),
         # numpy dev changed from double-quotes to single quotes
         ("random string", "data type [\"']random string[\"'] not understood"),
         (pd.DataFrame([1, 2]), "data type not understood"),
