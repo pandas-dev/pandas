@@ -797,10 +797,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isna(fill_value):
             fill_value = self.dtype.na_value
 
-        # Note: The only change from ExtensionArray.shift is the lack of
-        # dtype=self.dtype here, since the shifted dtype may not match the
-        # original dtype.
-        empty = self._from_sequence([fill_value] * min(abs(periods), len(self)))
+        # ExtensionArray.shift doesn't work for two reasons
+        # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
+        # 2. IntervalArray._from_sequence only accepts NaN for missing values,
+        #    not other values like NaT
+
+        empty_len = min(abs(periods), len(self))
+        if isna(fill_value):
+            fill_value = self.left._na_value
+            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
+        else:
+            empty = self._from_sequence([fill_value] * empty_len)
+
         if periods > 0:
             a = empty
             b = self[:-periods]
