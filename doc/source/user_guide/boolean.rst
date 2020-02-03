@@ -14,6 +14,29 @@ Nullable Boolean Data Type
 
 .. versionadded:: 1.0.0
 
+
+.. _boolean.indexing:
+
+Indexing with NA values
+-----------------------
+
+pandas does not allow indexing with NA values. Attempting to do so
+will raise a ``ValueError``.
+
+.. ipython:: python
+   :okexcept:
+
+   s = pd.Series([1, 2, 3])
+   mask = pd.array([True, False, pd.NA], dtype="boolean")
+   s[mask]
+
+The missing values will need to be explicitly filled with True or False prior
+to using the array as a mask.
+
+.. ipython:: python
+
+   s[mask.fillna(False)]
+
 .. _boolean.kleene:
 
 Kleene Logical Operations

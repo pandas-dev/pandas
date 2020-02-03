@@ -17,7 +17,7 @@ from pandas import (
     offsets,
     period_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from ..datetimelike import DatetimeLike
 
@@ -223,8 +223,8 @@ class TestPeriodIndex(DatetimeLike):
         i1 = period_range(start=start, end=end_intv)
 
         msg = (
-            "Of the three parameters: start, end, and periods, exactly two"
-            " must be specified"
+            "Of the three parameters: start, end, and periods, exactly two "
+            "must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             period_range(start=start)
@@ -427,8 +427,8 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_periods_number_check(self):
         msg = (
-            "Of the three parameters: start, end, and periods, exactly two"
-            " must be specified"
+            "Of the three parameters: start, end, and periods, exactly two "
+            "must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             period_range("2011-1-1", "2012-1-1", "B")
@@ -451,7 +451,7 @@ class TestPeriodIndex(DatetimeLike):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
         ts = Series(np.random.randn(len(idx)), index=idx)
 
-        result = ts[2007]
+        result = ts["2007"]
         expected = ts[1:3]
         tm.assert_series_equal(result, expected)
         result[:] = 1
@@ -461,8 +461,8 @@ class TestPeriodIndex(DatetimeLike):
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
         ts = Series(np.random.randn(len(idx)), index=idx)
 
-        result = ts[2007]
-        expected = ts[idx == 2007]
+        result = ts["2007"]
+        expected = ts[idx == "2007"]
         tm.assert_series_equal(result, expected)
 
     def test_index_unique(self):
@@ -662,3 +662,44 @@ def test_maybe_convert_timedelta():
     msg = r"Input has different freq=B from PeriodIndex\(freq=D\)"
     with pytest.raises(ValueError, match=msg):
         pi._maybe_convert_timedelta(offset)
+
+
+def test_is_monotonic_with_nat():
+    # GH#31437
+    # PeriodIndex.is_monotonic should behave analogously to DatetimeIndex,
+    #  in particular never be monotonic when we have NaT
+    dti = pd.date_range("2016-01-01", periods=3)
+    pi = dti.to_period("D")
+    tdi = pd.Index(dti.view("timedelta64[ns]"))
+
+    for obj in [pi, pi._engine, dti, dti._engine, tdi, tdi._engine]:
+        if isinstance(obj, pd.Index):
+            # i.e. not Engines
+            assert obj.is_monotonic
+        assert obj.is_monotonic_increasing
+        assert not obj.is_monotonic_decreasing
+        assert obj.is_unique
+
+    dti1 = dti.insert(0, pd.NaT)
+    pi1 = dti1.to_period("D")
+    tdi1 = pd.Index(dti1.view("timedelta64[ns]"))
+
+    for obj in [pi1, pi1._engine, dti1, dti1._engine, tdi1, tdi1._engine]:
+        if isinstance(obj, pd.Index):
+            # i.e. not Engines
+            assert not obj.is_monotonic
+        assert not obj.is_monotonic_increasing
+        assert not obj.is_monotonic_decreasing
+        assert obj.is_unique
+
+    dti2 = dti.insert(3, pd.NaT)
+    pi2 = dti2.to_period("H")
+    tdi2 = pd.Index(dti2.view("timedelta64[ns]"))
+
+    for obj in [pi2, pi2._engine, dti2, dti2._engine, tdi2, tdi2._engine]:
+        if isinstance(obj, pd.Index):
+            # i.e. not Engines
+            assert not obj.is_monotonic
+        assert not obj.is_monotonic_increasing
+        assert not obj.is_monotonic_decreasing
+        assert obj.is_unique

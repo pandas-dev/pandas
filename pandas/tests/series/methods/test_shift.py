@@ -13,7 +13,7 @@ from pandas import (
     date_range,
     offsets,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
 

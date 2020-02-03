@@ -1076,10 +1076,9 @@ class DatetimeIndexResampler(Resampler):
             raise AssertionError("axis must be 0")
         if self._from_selection:
             raise ValueError(
-                "Upsampling from level= or on= selection"
-                " is not supported, use .set_index(...)"
-                " to explicitly set index to"
-                " datetime-like"
+                "Upsampling from level= or on= selection "
+                "is not supported, use .set_index(...) "
+                "to explicitly set index to datetime-like"
             )
 
         ax = self.ax
@@ -1135,9 +1134,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self._from_selection:
             # see GH 14008, GH 12871
             msg = (
-                "Resampling from level= or on= selection"
-                " with a PeriodIndex is not currently supported,"
-                " use .set_index(...) to explicitly set index"
+                "Resampling from level= or on= selection "
+                "with a PeriodIndex is not currently supported, "
+                "use .set_index(...) to explicitly set index"
             )
             raise NotImplementedError(msg)
 
@@ -1263,7 +1262,7 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
         return TimedeltaIndexResampler
 
 
-def resample(obj, kind=None, **kwds):
+def get_resampler(obj, kind=None, **kwds):
     """
     Create a TimeGrouper and return our resampler.
     """
@@ -1271,7 +1270,7 @@ def resample(obj, kind=None, **kwds):
     return tg._get_resampler(obj, kind=kind)
 
 
-resample.__doc__ = Resampler.__doc__
+get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
@@ -1587,7 +1586,10 @@ class TimeGrouper(Grouper):
         rng += freq_mult
         # adjust bin edge indexes to account for base
         rng -= bin_shift
-        bins = memb.searchsorted(rng, side="left")
+
+        # Wrap in PeriodArray for PeriodArray.searchsorted
+        prng = type(memb._data)(rng, dtype=memb.dtype)
+        bins = memb.searchsorted(prng, side="left")
 
         if nat_count > 0:
             # NaT handling as in pandas._lib.lib.generate_bins_dt64()

@@ -3,14 +3,14 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameQuantile:
     def test_quantile_sparse(self):
         # GH#17198
-        s = pd.Series(pd.SparseArray([1, 2]))
-        s1 = pd.Series(pd.SparseArray([3, 4]))
+        s = pd.Series(pd.arrays.SparseArray([1, 2]))
+        s1 = pd.Series(pd.arrays.SparseArray([3, 4]))
         df = pd.DataFrame({0: s, 1: s1})
         result = df.quantile()
 
@@ -103,8 +103,8 @@ class TestDataFrameQuantile:
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis=-1)
         msg = (
-            "No axis named column for object type"
-            " <class 'pandas.core.frame.DataFrame'>"
+            "No axis named column for object type "
+            "<class 'pandas.core.frame.DataFrame'>"
         )
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis="column")

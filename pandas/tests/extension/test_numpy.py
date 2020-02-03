@@ -4,8 +4,8 @@ import pytest
 from pandas.compat.numpy import _np_version_under1p16
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
-import pandas.util.testing as tm
 
 from . import base
 
@@ -247,6 +247,10 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_repeat(self, data, repeats, as_series, use_numpy):
         # Fails creating expected
         super().test_repeat(data, repeats, as_series, use_numpy)
+
+    @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
+    def test_diff(self, data, periods):
+        return super().test_diff(data, periods)
 
 
 @skip_nested

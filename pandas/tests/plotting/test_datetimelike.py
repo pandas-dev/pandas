@@ -9,12 +9,12 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, NaT, Series, isna
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import DateOffset
 
@@ -45,11 +45,12 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_ts_plot_with_tz(self, tz_aware_fixture):
-        # GH2877, GH17173
+        # GH2877, GH17173, GH31205
         tz = tz_aware_fixture
         index = date_range("1/1/2011", periods=2, freq="H", tz=tz)
         ts = Series([188.5, 328.25], index=index)
-        _check_plot_works(ts.plot)
+        with tm.assert_produces_warning(None):
+            _check_plot_works(ts.plot)
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
@@ -121,8 +122,8 @@ class TestTSPlot(TestPlotBase):
         ts = tm.makeTimeSeries()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' "
-            "keyword argument. Please use one or the other or pass 'style'"
-            " without a color symbol"
+            "keyword argument. Please use one or the other or pass 'style' "
+            "without a color symbol"
         )
         with pytest.raises(ValueError, match=msg):
             ts.plot(style="b-", color="#000099")

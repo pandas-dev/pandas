@@ -12,6 +12,7 @@ import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
+from pandas.util._test_decorators import async_mark
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.generic import ABCIndex
@@ -32,6 +33,7 @@ from pandas import (
     isna,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.api import (
     Index,
@@ -42,7 +44,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.tests.indexes.common import Base
 from pandas.tests.indexes.conftest import indices_dict
-import pandas.util.testing as tm
 
 
 class TestIndex(Base):
@@ -70,7 +71,9 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        new_index = index[None, :]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
@@ -108,8 +111,8 @@ class TestIndex(Base):
     def test_constructor_corner(self):
         # corner case
         msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some"
-            " kind, 0 was passed"
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            "kind, 0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Index(0)
@@ -244,7 +247,7 @@ class TestIndex(Base):
             def __init__(self, array):
                 self.array = array
 
-            def __array__(self, dtype=None):
+            def __array__(self, dtype=None) -> np.ndarray:
                 return self.array
 
         expected = pd.Index(array)
@@ -1043,6 +1046,32 @@ class TestIndex(Base):
 
         with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
             getattr(idx1, method)(idx2, sort=True)
+
+    def test_setops_preserve_object_dtype(self):
+        idx = pd.Index([1, 2, 3], dtype=object)
+        result = idx.intersection(idx[1:])
+        expected = idx[1:]
+        tm.assert_index_equal(result, expected)
+
+        # if other is not monotonic increasing, intersection goes through
+        #  a different route
+        result = idx.intersection(idx[1:][::-1])
+        tm.assert_index_equal(result, expected)
+
+        result = idx._union(idx[1:], sort=None)
+        expected = idx
+        tm.assert_index_equal(result, expected)
+
+        result = idx.union(idx[1:], sort=None)
+        tm.assert_index_equal(result, expected)
+
+        # if other is not monotonic increasing, _union goes through
+        #  a different route
+        result = idx._union(idx[1:][::-1], sort=None)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.union(idx[1:][::-1], sort=None)
+        tm.assert_index_equal(result, expected)
 
     def test_map_identity_mapping(self, indices):
         # GH 12766
@@ -1912,7 +1941,12 @@ class TestIndex(Base):
         values = np.random.randn(100)
         value = index[67]
 
-        tm.assert_almost_equal(index.get_value(values, value), values[67])
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            # Index.get_value requires a Series, not an ndarray
+            index.get_value(values, value)
+
+        result = index.get_value(Series(values, index=values), value)
+        tm.assert_almost_equal(result, values[67])
 
     @pytest.mark.parametrize("values", [["foo", "bar", "quux"], {"foo", "bar", "quux"}])
     @pytest.mark.parametrize(
@@ -2397,14 +2431,25 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        ip.run_code(code)
-        with tm.assert_produces_warning(None):
+        await ip.run_code(code)
+
+        # GH 31324 newer jedi version raises Deprecation warning
+        import jedi
+
+        if jedi.__version__ < "0.16.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with warning:
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
@@ -2782,9 +2827,35 @@ def test_shape_of_invalid_index():
     # about this). However, as long as this is not solved in general,this test ensures
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
-    a = np.arange(8).reshape(2, 2, 2)
-    idx = pd.Index(a)
-    assert idx.shape == a.shape
-
     idx = pd.Index([0, 1, 2, 3])
-    assert idx[:, None].shape == (4, 1)
+    with tm.assert_produces_warning(DeprecationWarning):
+        # GH#30588 multi-dimensional indexing deprecated
+        assert idx[:, None].shape == (4, 1)
+
+
+def test_validate_1d_input():
+    # GH#27125 check that we do not have >1-dimensional input
+    msg = "Index data must be 1-dimensional"
+
+    arr = np.arange(8).reshape(2, 2, 2)
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(arr)
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Float64Index(arr.astype(np.float64))
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Int64Index(arr.astype(np.int64))
+
+    with pytest.raises(ValueError, match=msg):
+        pd.UInt64Index(arr.astype(np.uint64))
+
+    df = pd.DataFrame(arr.reshape(4, 2))
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(df)
+
+    # GH#13601 trying to assign a multi-dimensional array to an index is not
+    #  allowed
+    ser = pd.Series(0, range(4))
+    with pytest.raises(ValueError, match=msg):
+        ser.index = np.array([[2, 3]] * 4)

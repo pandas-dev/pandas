@@ -8,10 +8,10 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, concat, date_range, isna
+import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
-import pandas.util.testing as tm
 
 
 class TestiLoc(Base):
@@ -249,10 +249,10 @@ class TestiLoc(Base):
     def test_iloc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        with pytest.raises(
-            IndexError,
-            match=("Item wrong length {} instead of {}.".format(len(index), len(s))),
-        ):
+        msg = "Boolean index has wrong length: {} instead of {}".format(
+            len(index), len(s)
+        )
+        with pytest.raises(IndexError, match=msg):
             _ = s.iloc[index]
 
     def test_iloc_getitem_slice(self):
@@ -437,9 +437,9 @@ class TestiLoc(Base):
 
         # trying to use a label
         msg = (
-            r"Location based indexing can only have \[integer, integer"
-            r" slice \(START point is INCLUDED, END point is EXCLUDED\),"
-            r" listlike of integers, boolean array\] types"
+            r"Location based indexing can only have \[integer, integer "
+            r"slice \(START point is INCLUDED, END point is EXCLUDED\), "
+            r"listlike of integers, boolean array\] types"
         )
         with pytest.raises(ValueError, match=msg):
             df.iloc["j", "D"]

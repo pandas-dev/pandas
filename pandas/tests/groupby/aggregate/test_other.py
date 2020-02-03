@@ -18,15 +18,15 @@ from pandas import (
     date_range,
     period_range,
 )
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 from pandas.io.formats.printing import pprint_thing
 
 
 def test_agg_api():
     # GH 6337
-    # http://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
+    # https://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
     # different api for agg when passed custom function with mixed frame
 
     df = DataFrame(
@@ -473,8 +473,7 @@ def test_agg_timezone_round_trip():
     assert result3 == ts
 
     dates = [
-        pd.Timestamp("2016-01-0{i:d} 12:00:00".format(i=i), tz="US/Pacific")
-        for i in range(1, 5)
+        pd.Timestamp(f"2016-01-0{i:d} 12:00:00", tz="US/Pacific") for i in range(1, 5)
     ]
     df = pd.DataFrame({"A": ["a", "b"] * 2, "B": dates})
     grouped = df.groupby("A")

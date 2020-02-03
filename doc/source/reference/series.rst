@@ -46,6 +46,7 @@ Conversion
    :toctree: api/
 
    Series.astype
+   Series.convert_dtypes
    Series.infer_objects
    Series.copy
    Series.bool
@@ -524,6 +525,8 @@ Metadata
 ~~~~~~~~
 
 :attr:`Series.attrs` is a dictionary for storing global metadata for this Series.
+
+.. warning:: ``Series.attrs`` is considered experimental and may change without warning.
 
 .. autosummary::
    :toctree: api/

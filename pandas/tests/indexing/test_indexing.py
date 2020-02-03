@@ -13,11 +13,11 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
+import pandas._testing as tm
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import Base, _mklbl
-import pandas.util.testing as tm
 
 # ------------------------------------------------------------------------
 # Indexing test cases
@@ -81,14 +81,11 @@ class TestFancy(Base):
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
         msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
+            r"Buffer has wrong number of dimensions \(expected 1, "
+            r"got 3\)|"
             "Cannot index with multidimensional key|"
             r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
-            "No matching signature found|"  # TypeError
-            "unhashable type: 'numpy.ndarray'"  # TypeError
+            "Index data must be 1-dimensional"
         )
 
         if (
@@ -104,21 +101,12 @@ class TestFancy(Base):
                 "categorical",
             ]
         ):
-            idxr[nd3]
-        else:
-            if (
-                isinstance(obj, DataFrame)
-                and idxr_id == "getitem"
-                and index.inferred_type == "boolean"
-            ):
-                error = TypeError
-            elif idxr_id == "getitem" and index.inferred_type == "interval":
-                error = TypeError
-            else:
-                error = ValueError
-
-            with pytest.raises(error, match=msg):
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
+        else:
+            with pytest.raises(ValueError, match=msg):
+                with tm.assert_produces_warning(DeprecationWarning):
+                    idxr[nd3]
 
     @pytest.mark.parametrize(
         "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
@@ -146,16 +134,14 @@ class TestFancy(Base):
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
         msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
-            "Only 1-dimensional input arrays are supported|"
-            "'pandas._libs.interval.IntervalTree' object has no attribute"
-            " 'set_value'|"  # AttributeError
+            r"Buffer has wrong number of dimensions \(expected 1, "
+            r"got 3\)|"
+            "'pandas._libs.interval.IntervalTree' object has no attribute "
+            "'get_loc'|"  # AttributeError
             "unhashable type: 'numpy.ndarray'|"  # TypeError
             "No matching signature found|"  # TypeError
-            r"^\[\[\["  # pandas.core.indexing.IndexingError
+            r"^\[\[\[|"  # pandas.core.indexing.IndexingError
+            "Index data must be 1-dimensional"
         )
 
         if (idxr_id == "iloc") or (
@@ -176,10 +162,8 @@ class TestFancy(Base):
         ):
             idxr[nd3] = 0
         else:
-            with pytest.raises(
-                (ValueError, AttributeError, TypeError, pd.core.indexing.IndexingError),
-                match=msg,
-            ):
+            err = (ValueError, AttributeError)
+            with pytest.raises(err, match=msg):
                 idxr[nd3] = 0
 
     def test_inf_upcast(self):

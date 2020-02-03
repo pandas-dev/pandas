@@ -20,8 +20,9 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 import pandas.core.nanops as nanops
-from pandas.util import _test_decorators as td, testing as tm
+from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -680,7 +681,7 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
 
 
-@pytest.mark.parametrize("func", ["mean", "var", "std", "cumprod", "cumsum"])
+@pytest.mark.parametrize("func", ["cumprod", "cumsum"])
 def test_numpy_compat(func):
     # see gh-12811
     df = pd.DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})

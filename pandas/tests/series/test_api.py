@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -19,8 +21,8 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
-import pandas.util.testing as tm
 
 import pandas.io.formats.printing as printing
 
@@ -491,13 +493,14 @@ class TestSeriesMisc:
         for full_series in [pd.Series([1]), s2]:
             assert not full_series.empty
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; s = pd.Series()"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("s.", 1))
@@ -508,6 +511,13 @@ class TestSeriesMisc:
         assert s.size == 9
         s = Series(range(9), dtype="Int64")
         assert s.size == 9
+
+    def test_attrs(self):
+        s = pd.Series([0, 1], name="abc")
+        assert s.attrs == {}
+        s.attrs["version"] = 1
+        result = s + 1
+        assert result.attrs == {"version": 1}
 
 
 class TestCategoricalSeries:

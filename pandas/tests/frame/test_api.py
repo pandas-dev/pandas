@@ -6,22 +6,23 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY37
+from pandas.util._test_decorators import async_mark
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameMisc:
-    def test_copy_index_name_checking(self, float_frame):
+    @pytest.mark.parametrize("attr", ["index", "columns"])
+    def test_copy_index_name_checking(self, float_frame, attr):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
-        for attr in ("index", "columns"):
-            ind = getattr(float_frame, attr)
-            ind.name = None
-            cp = float_frame.copy()
-            getattr(cp, attr).name = "foo"
-            assert getattr(float_frame, attr).name is None
+        ind = getattr(float_frame, attr)
+        ind.name = None
+        cp = float_frame.copy()
+        getattr(cp, attr).name = "foo"
+        assert getattr(float_frame, attr).name is None
 
     def test_getitem_pop_assign_name(self, float_frame):
         s = float_frame["A"]
@@ -357,32 +358,14 @@ class TestDataFrameMisc:
         assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is None
 
-    def test_transpose(self, float_frame):
-        frame = float_frame
-        dft = frame.T
-        for idx, series in dft.items():
-            for col, value in series.items():
-                if np.isnan(value):
-                    assert np.isnan(frame[col][idx])
-                else:
-                    assert value == frame[col][idx]
-
-        # mixed type
-        index, data = tm.getMixedTypeDict()
-        mixed = DataFrame(data, index=index)
-
-        mixed_T = mixed.T
-        for col, s in mixed_T.items():
-            assert s.dtype == np.object_
-
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
         tm.assert_frame_equal(df.T, df.swapaxes(0, 1))
         tm.assert_frame_equal(df.T, df.swapaxes(1, 0))
         tm.assert_frame_equal(df, df.swapaxes(0, 0))
         msg = (
-            "No axis named 2 for object type"
-            r" <class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
+            "No axis named 2 for object type "
+            r"<class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>"
         )
         with pytest.raises(ValueError, match=msg):
             df.swapaxes(2, 5)
@@ -469,12 +452,6 @@ class TestDataFrameMisc:
         for idx, value in series.items():
             assert float_frame["A"][idx] != value
 
-    def test_transpose_get_view(self, float_frame):
-        dft = float_frame.T
-        dft.values[:, 5:10] = 5
-
-        assert (float_frame.values[5:10] == 5).all()
-
     def test_inplace_return_self(self):
         # GH 1893
 
@@ -539,13 +516,22 @@ class TestDataFrameMisc:
         f = lambda x: x.rename({1: "foo"}, inplace=True)
         _check_f(d.copy(), f)
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; df = pd.DataFrame()"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("df.", 1))
+
+    def test_attrs(self):
+        df = pd.DataFrame({"A": [2, 3]})
+        assert df.attrs == {}
+        df.attrs["version"] = 1
+
+        result = df.rename(columns=str)
+        assert result.attrs == {"version": 1}

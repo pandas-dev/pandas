@@ -8,8 +8,9 @@ from pandas._config import get_option
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
+from pandas._typing import DtypeObj
 
-from .common import (
+from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
     ensure_object,
@@ -31,7 +32,7 @@ from .common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from .generic import (
+from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCGeneric,
@@ -40,7 +41,7 @@ from .generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from .inference import is_list_like
+from pandas.core.dtypes.inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
@@ -212,7 +213,7 @@ def _use_inf_as_na(key):
     This approach to setting global module values is discussed and
     approved here:
 
-    * http://stackoverflow.com/questions/4859217/
+    * https://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
     flag = get_option(key)
@@ -585,7 +586,7 @@ def remove_na_arraylike(arr):
         return arr[notna(lib.values_from_object(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype) -> bool:
+def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 

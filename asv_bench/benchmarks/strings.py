@@ -3,7 +3,8 @@ import warnings
 import numpy as np
 
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class Methods:
