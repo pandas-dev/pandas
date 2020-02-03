@@ -621,7 +621,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 try:
                     i = level.get_loc(key)
                 except KeyError:
-                    raise ValueError(f"Key {key!s} not in level {level!s}")
+                    raise ValueError(f"Key {key} not in level {level}")
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))

@@ -1671,7 +1671,7 @@ class _AsOfMerge(_OrderedMerge):
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
             msg = (
-                f"allow_exact_matches must be boolean, "
+                "allow_exact_matches must be boolean, "
                 f"passed {self.allow_exact_matches}"
             )
             raise MergeError(msg)
@@ -1701,23 +1701,20 @@ class _AsOfMerge(_OrderedMerge):
         tolerance = self.tolerance
 
         # we require sortedness and non-null values in the join keys
-        def _msg_sorted(side):
-            return f"{side} keys must be sorted"
-
-        def _msg_missings(side):
-            return f"Merge keys contain null values on {side} side"
+        msg_sorted = "{side} keys must be sorted"
+        msg_missings = "Merge keys contain null values on {side} side"
 
         if not Index(left_values).is_monotonic:
             if isna(left_values).any():
-                raise ValueError(_msg_missings(side="left"))
+                raise ValueError(msg_missings.format(side="left"))
             else:
-                raise ValueError(_msg_sorted(side="left"))
+                raise ValueError(msg_sorted.format(side="left"))
 
         if not Index(right_values).is_monotonic:
             if isna(right_values).any():
-                raise ValueError(_msg_missings(side="right"))
+                raise ValueError(msg_missings.format(side="right"))
             else:
-                raise ValueError(_msg_sorted(side="right"))
+                raise ValueError(msg_sorted.format(side="right"))
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):

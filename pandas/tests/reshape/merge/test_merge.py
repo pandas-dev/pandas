@@ -370,7 +370,7 @@ class TestMerge:
         df2 = DataFrame({"y": ["b", "c"]}, index=[dt, dt])
 
         msg = (
-            f"No common columns to perform merge on. "
+            "No common columns to perform merge on. "
             f"Merge options: left_on={None}, right_on={None}, "
             f"left_index={False}, right_index={False}"
         )
