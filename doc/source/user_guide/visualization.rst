@@ -1645,7 +1645,7 @@ when plotting a large number of points.
 Plotting backends
 -----------------
 
-Starting in 0.25 pandas can be extended with third-party plotting backends. The
+Starting in version 0.25, pandas can be extended with third-party plotting backends. The
 main idea is letting users select a plotting backend different than the provided
 one based on Matplotlib. For example:
 
@@ -1674,6 +1674,3 @@ to generate the plots.
 
 Developers guide can be found at
 https://dev.pandas.io/docs/development/extending.html#plotting-backends
-
-More information on how to implement a third-party plotting backend can be found at
-https://github.com/pandas-dev/pandas/blob/master/pandas/plotting/__init__.py#L1.
