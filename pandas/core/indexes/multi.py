@@ -2375,7 +2375,7 @@ class MultiIndex(Index):
 
             raise InvalidIndexError(key)
 
-    def _convert_listlike_indexer(self, keyarr, kind=None):
+    def _convert_listlike_indexer(self, keyarr):
         """
         Parameters
         ----------
@@ -2388,7 +2388,7 @@ class MultiIndex(Index):
             indexer is an ndarray or None if cannot convert
             keyarr are tuple-safe keys
         """
-        indexer, keyarr = super()._convert_listlike_indexer(keyarr, kind=kind)
+        indexer, keyarr = super()._convert_listlike_indexer(keyarr)
 
         # are we indexing a specific level
         if indexer is None and len(keyarr) and not isinstance(keyarr[0], tuple):
