@@ -2184,10 +2184,12 @@ class TestMySQLAlchemy(_TestMySQLAlchemy, _TestSQLAlchemy):
     pass
 
 
+"""
 @pytest.mark.single
 @pytest.mark.db
 class TestMySQLAlchemyConn(_TestMySQLAlchemy, _TestSQLAlchemyConn):
     pass
+"""
 
 
 @pytest.mark.single
