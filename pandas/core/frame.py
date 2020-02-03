@@ -40,7 +40,7 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs import algos as libalgos, index as libindex, lib, properties
 from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
@@ -2900,12 +2900,8 @@ class DataFrame(NDFrame):
         engine = self.index._engine
 
         try:
-            if isinstance(series._values, np.ndarray):
-                # i.e. not EA, we can use engine
-                return engine.get_value(series._values, index)
-            else:
-                loc = series.index.get_loc(index)
-                return series._values[loc]
+            loc = engine.get_loc(index)
+            return series._values[loc]
         except KeyError:
             # GH 20629
             if self.index.nlevels > 1:
@@ -2937,8 +2933,11 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
+        # NB: we can't just use self.loc[key] = value because that
+        #  operates on labels and we need to operate positional for
+        #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.loc[key] = value
+        self.loc._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3025,10 +3024,14 @@ class DataFrame(NDFrame):
 
             series = self._get_item_cache(col)
             engine = self.index._engine
-            engine.set_value(series._values, index, value)
+            loc = engine.get_loc(index)
+            libindex.validate_numeric_casting(series.dtype, value)
+
+            series._values[loc] = value
+            # Note: trying to use series._set_value breaks tests in
+            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
             return self
         except (KeyError, TypeError):
-
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
