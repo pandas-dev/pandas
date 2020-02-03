@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Any, FrozenSet, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -82,6 +82,10 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
+
+if TYPE_CHECKING:
+    from pandas import Series
+
 
 __all__ = ["Index"]
 
@@ -522,6 +526,7 @@ class Index(IndexOpsMixin, PandasObject):
             values = self.values
 
         attributes = self._get_attributes_dict()
+
         attributes.update(kwargs)
 
         return self._simple_new(values, **attributes)
@@ -2566,6 +2571,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
+                result = Index(result)._values  # do type inference here
         else:
             # find indexes of things in "other" that are not in "self"
             if self.is_unique:
@@ -2595,7 +2601,8 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     def _wrap_setop_result(self, other, result):
-        return self._constructor(result, name=get_op_result_name(self, other))
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name)
 
     # TODO: standardize return type of non-union setops type(self vs other)
     def intersection(self, other, sort=False):
@@ -2652,9 +2659,10 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(lvals, rvals)[0]
-                return self._wrap_setop_result(other, result)
             except TypeError:
                 pass
+            else:
+                return self._wrap_setop_result(other, result)
 
         try:
             indexer = Index(rvals).get_indexer(lvals)
@@ -2884,6 +2892,10 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(key)
             except KeyError:
                 return self._engine.get_loc(self._maybe_cast_indexer(key))
+
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
+
         indexer = self.get_indexer([key], method=method, tolerance=tolerance)
         if indexer.ndim > 1 or indexer.size > 1:
             raise TypeError("get_loc requires scalar valued input")
@@ -3061,9 +3073,8 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        target = np.asarray(target)
-        left_distances = abs(self.values[left_indexer] - target)
-        right_distances = abs(self.values[right_indexer] - target)
+        left_distances = np.abs(self[left_indexer] - target)
+        right_distances = np.abs(self[right_indexer] - target)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3582,8 +3593,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
+        self_is_mi = isinstance(self, ABCMultiIndex)
+        other_is_mi = isinstance(other, ABCMultiIndex)
 
         if self_is_mi and other_is_mi:
 
@@ -4573,21 +4584,15 @@ class Index(IndexOpsMixin, PandasObject):
             result = np.array(self)
         return result.argsort(*args, **kwargs)
 
-    _index_shared_docs[
-        "get_value"
-    ] = """
+    def get_value(self, series: "Series", key):
+        """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing.
 
         Returns
         -------
-        scalar
-            A value in the Series with the index of the key value in self.
+        scalar or Series
         """
-
-    @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
-    def get_value(self, series, key):
-
         if not is_scalar(key):
             # if key is not a scalar, directly raise an error (the code below
             # would convert to numpy arrays and raise later any way) - GH29926
@@ -4612,7 +4617,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._get_values_for_loc(series, loc)
 
-    def _get_values_for_loc(self, series, loc):
+    def _get_values_for_loc(self, series: "Series", loc):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
@@ -4620,10 +4625,6 @@ class Index(IndexOpsMixin, PandasObject):
         Assumes that `series.index is self`
         """
         if is_integer(loc):
-            if isinstance(series._values, np.ndarray):
-                # Since we have an ndarray and not DatetimeArray, we dont
-                #  have to worry about a tz.
-                return libindex.get_value_at(series._values, loc, tz=None)
             return series._values[loc]
 
         return series.iloc[loc]
@@ -4646,9 +4647,9 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        self._engine.set_value(
-            com.values_from_object(arr), com.values_from_object(key), value
-        )
+        loc = self._engine.get_loc(key)
+        libindex.validate_numeric_casting(arr.dtype, value)
+        arr[loc] = value
 
     _index_shared_docs[
         "get_indexer_non_unique"
@@ -4929,13 +4930,8 @@ class Index(IndexOpsMixin, PandasObject):
         to an int if equivalent.
         """
 
-        if is_float(key) and not self.is_floating():
-            try:
-                ckey = int(key)
-                if ckey == key:
-                    key = ckey
-            except (OverflowError, ValueError, TypeError):
-                pass
+        if not self.is_floating():
+            return com.cast_scalar_indexer(key)
         return key
 
     def _validate_indexer(self, form: str_t, key, kind: str_t):
