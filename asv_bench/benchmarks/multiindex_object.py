@@ -160,4 +160,30 @@ class Equals:
         self.mi_large_slow.equals(self.idx_non_object)
 
 
+class SetOperations:
+
+    params = [
+        ("monotonic", "non_monotonic"),
+        ("intersection", "union", "symmetric_difference"),
+    ]
+    param_names = ["index_structure", "method"]
+
+    def setup(self, index_structure, method):
+        N = 10 ** 5
+        values = np.arange(N)
+
+        if index_structure == "monotonic":
+            mi = MultiIndex.from_arrays([values, values])
+        else:
+            mi = MultiIndex.from_arrays(
+                [np.concatenate([values[::2], values[1::2]]), values]
+            )
+
+        self.left = mi
+        self.right = mi[:-1]
+
+    def time_operation(self, index_structure, method):
+        getattr(self.left, method)(self.right)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -3314,10 +3314,16 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        uniq_other = set(other.values)
+        lvals = self._ndarray_values
+        rvals = other._ndarray_values
+
+        if self.is_monotonic and other.is_monotonic:
+            return self._inner_indexer(lvals, rvals)[0]
+
+        other_uniq = set(rvals)
         seen = set()
         uniq_tuples = [
-            x for x in self.values if x in uniq_other and not (x in seen or seen.add(x))
+            x for x in lvals if x in other_uniq and not (x in seen or seen.add(x))
         ]
 
         if sort is None:
