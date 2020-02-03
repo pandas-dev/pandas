@@ -121,8 +121,6 @@ def is_bool_indexer(key: Any) -> bool:
             key = np.asarray(values_from_object(key))
 
             if not lib.is_bool_array(key):
-                if isna(key).any():
-                    raise ValueError(na_msg)
                 return False
             return True
         elif is_bool_dtype(key.dtype):
