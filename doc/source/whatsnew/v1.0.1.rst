@@ -24,6 +24,7 @@ Fixed regressions
 - Fixed regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
 - Fixed regression in objTOJSON.c fix return-type warning (:issue:`31463`)
 - Fixed regression in :meth:`qcut` when passed a nullable integer. (:issue:`31389`)
+- Fixed regression in assigning to a :class:`Series` using a nullable integer dtype (:issue:`31446`)
 
 .. ---------------------------------------------------------------------------
 
@@ -93,7 +94,7 @@ Interval
 Indexing
 ^^^^^^^^
 
-- Bug where assigning to a :class:`Series` using a IntegerArray / BooleanArray as a mask would raise ``TypeError`` (:issue:`31446`)
+-
 
 Missing
 ^^^^^^^
