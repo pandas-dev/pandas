@@ -43,7 +43,7 @@ def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
                 ("python-bits", struct.calcsize("P") * 8),
                 ("OS", f"{sysname}"),
                 ("OS-release", f"{release}"),
-                # ("Version", "{version}".format(version=version)),
+                # ("Version", f"{version}"),
                 ("machine", f"{machine}"),
                 ("processor", f"{processor}"),
                 ("byteorder", f"{sys.byteorder}"),
@@ -114,14 +114,14 @@ def show_versions(as_json=False):
 
     else:
         maxlen = max(len(x) for x in deps)
-        tpl = "{{k:<{maxlen}}}: {{stat}}".format(maxlen=maxlen)
+        tpl = f"{k}:<{maxlen}: {stat}"
         print("\nINSTALLED VERSIONS")
         print("------------------")
         for k, stat in sys_info:
-            print(tpl.format(k=k, stat=stat))
+            print(tpl)
         print("")
         for k, stat in deps_blob:
-            print(tpl.format(k=k, stat=stat))
+            print(tpl)
 
 
 def main() -> int:
