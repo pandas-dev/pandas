@@ -10,7 +10,7 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_0241.regressions:
+.. _whatsnew_101.regressions:
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
