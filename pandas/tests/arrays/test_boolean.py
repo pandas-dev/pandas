@@ -931,7 +931,7 @@ def test_diff():
     tm.assert_series_equal(result, expected)
 
 
-def test_nullable_boolean_filter():
+def test_nullable_boolean_index_series():
     s = pd.Series([1, 2, 3])
     mask = pd.array([True, True, None], dtype="boolean")
 
@@ -939,3 +939,13 @@ def test_nullable_boolean_filter():
     expected = s.iloc[:2]
 
     tm.assert_series_equal(result, expected)
+
+
+def test_nullable_boolean_index_frame():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    mask = pd.array([True, True, None], dtype="boolean")
+
+    result = df[mask]
+    expected = df.iloc[:2, :]
+
+    tm.assert_frame_equal(result, expected)
