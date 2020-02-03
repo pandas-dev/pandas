@@ -52,7 +52,7 @@ Bug fixes
   and for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
 
 **Categorical**
-- Bug in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)
+- Fixed regression in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)
 
 
 **Plotting**
