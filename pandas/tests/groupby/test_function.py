@@ -373,6 +373,11 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
+
+    # in this case, cython_agg should cast it to float, while python_agg
+    # should not because it is aligned with the original type of obj
+    if observed:
+        result = result.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 

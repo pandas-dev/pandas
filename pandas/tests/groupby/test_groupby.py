@@ -1209,7 +1209,7 @@ def test_groupby_keys_same_size_as_index():
     )
     df = pd.DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
     result = df.groupby([pd.Grouper(level=0, freq=freq), "metric"]).mean()
-    expected = df.set_index([df.index, "metric"])
+    expected = df.set_index([df.index, "metric"]).astype("float64")
 
     tm.assert_frame_equal(result, expected)
 
@@ -1295,7 +1295,7 @@ def test_groupby_2d_malformed():
     d["ones"] = [1, 1]
     d["label"] = ["l1", "l2"]
     tmp = d.groupby(["group"]).mean()
-    res_values = np.array([[0, 1], [0, 1]], dtype=np.int64)
+    res_values = np.array([[0, 1], [0, 1]], dtype=np.float64)
     tm.assert_index_equal(tmp.columns, Index(["zeros", "ones"]))
     tm.assert_numpy_array_equal(tmp.values, res_values)
 
@@ -2034,7 +2034,7 @@ def test_groupby_crash_on_nunique(axis):
 
 def test_groupby_list_level():
     # GH 9790
-    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
+    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3), dtype="float64")
     result = expected.groupby(level=[0]).mean()
     tm.assert_frame_equal(result, expected)
 

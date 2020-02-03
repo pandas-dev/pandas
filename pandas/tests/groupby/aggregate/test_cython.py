@@ -186,6 +186,11 @@ def test_cython_agg_empty_buckets(op, targop, observed):
 
     g = df.groupby(pd.cut(df[0], grps), observed=observed)
     expected = g.agg(lambda x: targop(x))
+
+    # when these three cases, cython_agg should cast it to float, while python_agg
+    # should not because it is aligned with the original type of obj
+    if op in ["mean", "median", "var"] and observed:
+        result = result.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
