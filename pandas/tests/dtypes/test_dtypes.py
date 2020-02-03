@@ -43,7 +43,12 @@ class Base:
         assert not is_dtype_equal(self.dtype, np.int64)
 
     def test_numpy_informed(self):
-        with pytest.raises(TypeError, match="data type not understood"):
+        # npdev 2020-02-02 changed from "data type not understood" to
+        #  "Cannot interpret 'foo' as a data type"
+        msg = "|".join(
+            ["data type not understood", "Cannot interpret '.*' as a data type"]
+        )
+        with pytest.raises(TypeError, match=msg):
             np.dtype(self.dtype)
 
         assert not self.dtype == np.str_
