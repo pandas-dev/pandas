@@ -22,7 +22,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs import index as libindex, lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
