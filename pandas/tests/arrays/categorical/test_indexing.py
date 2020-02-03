@@ -239,17 +239,6 @@ def test_mask_with_boolean(index):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("index", [True, False])
-def test_mask_with_boolean_raises(index):
-    s = Series(range(3))
-    idx = Categorical([True, False, None])
-    if index:
-        idx = CategoricalIndex(idx)
-
-    with pytest.raises(ValueError, match="NA / NaN"):
-        s[idx]
-
-
 @pytest.fixture
 def non_coercible_categorical(monkeypatch):
     """
