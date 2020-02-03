@@ -72,21 +72,6 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
         return val in self.mapping
 
-    cpdef get_value(self, ndarray arr, object key, object tz=None):
-        """
-        Parameters
-        ----------
-        arr : 1-dimensional ndarray
-        """
-        cdef:
-            object loc
-
-        loc = self.get_loc(key)
-        if isinstance(loc, slice) or util.is_array(loc):
-            return arr[loc]
-        else:
-            return get_value_at(arr, loc, tz=tz)
-
     cpdef get_loc(self, object val):
         cdef:
             Py_ssize_t loc

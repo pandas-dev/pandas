@@ -2329,7 +2329,8 @@ class MultiIndex(Index):
             ).__finalize__(self)
 
         try:
-            return self._engine.get_value(s, k)
+            loc = self._engine.get_loc(k)
+            return series.iloc[loc]
         except KeyError as e1:
             try:
                 return _try_mi(key)
