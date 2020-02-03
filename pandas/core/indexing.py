@@ -1500,8 +1500,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
         #  handled before we get here.
         self._validate_key(key, axis)
 
-        labels = self.obj._get_axis(axis)
-
         # A collection of keys
         keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
         return self.obj._reindex_with_indexers(
