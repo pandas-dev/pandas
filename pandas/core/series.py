@@ -23,6 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
+from pandas._libs.index import validate_numeric_casting
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
@@ -846,7 +847,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
-        key = self.index._convert_scalar_indexer(key, kind="getitem")
+        if is_scalar(key):
+            key = self.index._convert_scalar_indexer(key, kind="getitem")
 
         if key is Ellipsis:
             return self
@@ -1018,7 +1020,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with_engine(self, key, value):
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
-        libindex.validate_numeric_casting(self.dtype, value)
+        validate_numeric_casting(self.dtype, value)
         self._values[loc] = value
 
     def _set_with(self, key, value):
@@ -1101,7 +1103,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._values[label] = value
             else:
                 loc = self.index.get_loc(label)
-                libindex.validate_numeric_casting(self.dtype, value)
+                validate_numeric_casting(self.dtype, value)
                 self._values[loc] = value
         except KeyError:
 
