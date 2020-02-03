@@ -10,6 +10,14 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_101.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+- Support for negative integer for :attr:`pd.options.display.max_colwidth` is deprecated in favor of using ``None`` (:issue:`31532`)
+
+.. ---------------------------------------------------------------------------
 
 .. _whatsnew_101.bug_fixes:
 
@@ -123,12 +131,14 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
+- Bug where :meth:`qcut` would raise when passed a nullable integer. (:issue:`31389`)
 -
 
 
 Other
 ^^^^^
--
+- Regression fixed in objTOJSON.c fix return-type warning (:issue:`31463`)
+- Fixed a regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
 -
 
 .. ---------------------------------------------------------------------------

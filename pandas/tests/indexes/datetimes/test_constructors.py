@@ -950,6 +950,7 @@ class TestTimeSeries:
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+<<<<<<< HEAD
 
 
 def test_timedelta_constructor_identity():
