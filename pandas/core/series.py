@@ -1138,7 +1138,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 self.index._engine.set_value(self._values, label, value)
         except (KeyError, TypeError):
-
             # set using a non-recursive method
             self.loc[label] = value
 
