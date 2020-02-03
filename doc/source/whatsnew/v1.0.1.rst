@@ -53,7 +53,7 @@ Bug fixes
 
 **Plotting**
 
-- Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`**
+- Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`)
 
 **Interval**
 
