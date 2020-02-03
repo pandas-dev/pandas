@@ -60,9 +60,7 @@ def compare_element(result, expected, typ, version=None):
             assert result == expected
             assert result.freq == expected.freq
     else:
-        comparator = getattr(
-            tm, f"assert_{typ}_equal", tm.assert_almost_equal
-        )
+        comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
 
 
