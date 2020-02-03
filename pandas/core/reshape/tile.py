@@ -452,7 +452,7 @@ def _coerce_to_type(x):
     elif is_extension_array_dtype(x) and is_integer_dtype(x):
         x = x.to_numpy(dtype=np.float64, na_value=np.nan)
     elif is_object_dtype(x):
-        x = x.astype(np.float64)
+        x = x.astype(np.float64, casting="safe")
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
