@@ -366,37 +366,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.dts.ps = nanos * 1000
 
     obj.fold = 0
-    if tz is not None:
-        if is_utc(tz):
-            pass
-        elif is_tzlocal(tz):
-            pass
-            # TODO: think on how we can infer fold for local Timezone
-            # and adjust value for fold
-        else:
-            trans, deltas, typ = get_dst_info(tz)
-
-            if typ == 'pytz' or typ == 'dateutil':
-                pos = trans.searchsorted(obj.value, side='right') - 1
-
-                # obj.value includes tz assumptions, need to adjust
-                # pytz assumes we are in a fold, dateutil - that we are not
-                if typ == 'pytz' and fold == 0 and pos > 0:
-                    fold_delta = deltas[pos - 1] - deltas[pos]
-                    if obj.value - fold_delta < trans[pos]:
-                        obj.value -= fold_delta
-                        pos -= 1
-                elif typ == 'dateutil' and fold == 1 and pos < len(deltas):
-                    fold_delta = deltas[pos] - deltas[pos + 1]
-                    if obj.value + fold_delta > trans[pos + 1]:
-                        obj.value += fold_delta
-                        pos += 1
-
-                # Infer fold
-                if pos > 0:
-                    fold_delta = deltas[pos - 1] - deltas[pos]
-                    if obj.value - fold_delta < trans[pos]:
-                        obj.fold = 1
 
     check_dts_bounds(&obj.dts)
     check_overflows(obj)
@@ -435,22 +404,6 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
     # Can infer fold from offset-adjusted obj.value
     fold = 0
-    if is_utc(tz):
-        pass
-    elif is_tzlocal(tz):
-        pass
-        # TODO: think on how we can infer fold for local Timezone
-        # and adjust value for fold
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ == 'pytz' or typ == 'dateutil':
-            pos = trans.searchsorted(obj.value, side='right') - 1
-            # Infer fold
-            if pos > 0:
-                fold_delta = deltas[pos - 1] - deltas[pos]
-                if obj.value < (trans[pos] + fold_delta):
-                    fold = 1
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -635,20 +588,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             pos = trans.searchsorted(obj.value, side='right') - 1
             if typ == 'pytz':
                 tz = tz._tzinfos[tz._transition_info[pos]]
-            # Adjust value if fold was supplied
-            if fold == 1:
-                # Check if valid fold value
-                if pos < len(deltas):
-                    fold_delta = deltas[pos] - deltas[pos + 1]
-                    if obj.value + fold_delta > trans[pos + 1]:
-                        obj.value += fold_delta
-                        pos += 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-            # Infer fold
-            if pos > 0:
-                fold_delta = deltas[pos - 1] - deltas[pos]
-                if obj.value - fold_delta < trans[pos]:
-                    obj.fold = 1
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
             # either pytz or dateutil have is_fixed_offset(tz) == True,
