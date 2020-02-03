@@ -10,6 +10,24 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_101.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :class:`DataFrame` setting values with a slice (e.g. ``df[-4:] = 1``) indexing by label instead of position (:issue:`31469`)
+- Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containg a :class:`datetime.date` (:issue:`31501`)
+- Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)
+- Fixed regression in :meth:`GroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
+- Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
+- Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
+- Fixed regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
+- Fixed regression in objTOJSON.c fix return-type warning (:issue:`31463`)
+- Fixed regression in :meth:`qcut` when passed a nullable integer. (:issue:`31389`)
+- Fixed regression in assigning to a :class:`Series` using a nullable integer dtype (:issue:`31446`)
+
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_101.deprecations:
 
 Deprecations
@@ -23,123 +41,20 @@ Deprecations
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :meth:`GroupBy.apply` was raising ``TypeError`` if called with function which returned a non-pandas non-scalar object (e.g. a list) (:issue:`31441`)
 
-Categorical
-^^^^^^^^^^^
+**Datetimelike**
 
--
--
-
-Datetimelike
-^^^^^^^^^^^^
-- Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
 - Fixed bug in :meth:`to_datetime` raising when ``cache=True`` and out-of-bound values are present (:issue:`31491`)
 
-Timedelta
-^^^^^^^^^
+**Numeric**
 
--
--
-
-Timezones
-^^^^^^^^^
-
--
--
-
-
-Numeric
-^^^^^^^
 - Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
-- Bug in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31467`)
--
+  and for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
 
-Conversion
-^^^^^^^^^^
-
--
--
-
-Strings
-^^^^^^^
-
--
--
-
-
-Interval
-^^^^^^^^
-
--
--
-
-Indexing
-^^^^^^^^
-
-- Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containg a :class:`datetime.date` (:issue:`31501`)
-- Fixed regression in :class:`DataFrame` setting values with a slice (e.g. ``df[-4:] = 1``) indexing by label instead of position (:issue:`31469`)
--
--
-- Bug where assigning to a :class:`Series` using a IntegerArray / BooleanArray as a mask would raise ``TypeError`` (:issue:`31446`)
-
-Missing
-^^^^^^^
-
--
--
-
-MultiIndex
-^^^^^^^^^^
-
--
--
-
-I/O
-^^^
-
-- Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
--
--
-
-Plotting
-^^^^^^^^
+**Plotting**
 
 - Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`)
--
 
-Groupby/resample/rolling
-^^^^^^^^^^^^^^^^^^^^^^^^
-
--
--
-
-
-Reshaping
-^^^^^^^^^
-
--
--
-
-Sparse
-^^^^^^
-
--
--
-
-ExtensionArray
-^^^^^^^^^^^^^^
-
-- Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
-- Bug where :meth:`qcut` would raise when passed a nullable integer. (:issue:`31389`)
--
-
-
-Other
-^^^^^
-- Regression fixed in objTOJSON.c fix return-type warning (:issue:`31463`)
-- Fixed a regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
--
 
 .. ---------------------------------------------------------------------------
 
