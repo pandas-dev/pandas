@@ -1047,24 +1047,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value):
-<<<<<<< HEAD
-        values = self._values
-        if is_extension_array_dtype(values.dtype):
-            # The cython indexing engine does not support ExtensionArrays.
-            values[self.index.get_loc(key)] = value
-            return
-        try:
-            self.index._engine.set_value(values, key, value)
-            return
-        except KeyError:
-            values[self.index.get_loc(key)] = value
-            return
-=======
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
         validate_numeric_casting(self.dtype, value)
         self._values[loc] = value
->>>>>>> 27f365d4d... TST: troubleshoot npdev build (#31594)
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
