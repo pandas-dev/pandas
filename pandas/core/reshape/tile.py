@@ -354,9 +354,9 @@ def qcut(
         if(b in unique_bins):
             unique_bins.remove(b)
         else:
-            bins[i] = np.nextafter(x[x>bins[i]].min(), bins[i])
+            bins[i] = np.nextafter(x[x > bins[i]].min(), bins[i])
     # ------------------------------
-    
+
     fac, bins = _bins_to_cuts(
         x,
         bins,
