@@ -815,7 +815,10 @@ b  2""",
             #  so is excluded here.
             if is_extension_array_dtype(dtype) and dtype.kind != "M":
                 from pandas import notna
-                if Series(notna(result)).dtype == dtype.type and is_python:
+
+                if (
+                    Series(notna(result)).dtype == dtype.type and is_python
+                ) or not is_python:
                     cls = dtype.construct_array_type()
                     result = try_cast_to_ea(cls, result, dtype=dtype)
 
