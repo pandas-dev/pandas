@@ -1071,7 +1071,8 @@ class DataFrameGroupBy(GroupBy):
 
                 if result is not no_result:
                     # see if we can cast the block back to the original dtype
-                    result = maybe_downcast_numeric(result, block.dtype)
+                    if how in base.cython_cast_keep_type_list:
+                        result = maybe_downcast_numeric(result, block.dtype)
 
                     if block.is_extension and isinstance(result, np.ndarray):
                         # e.g. block.values was an IntegerArray
