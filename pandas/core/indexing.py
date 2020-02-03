@@ -8,6 +8,8 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_extension_array_dtype,
     is_float,
     is_integer,
     is_iterator,
@@ -2229,6 +2231,11 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "the indexed object do not match)."
             )
         result = result.astype(bool)._values
+    elif is_extension_array_dtype(key) and is_bool_dtype(key):
+        mask = isna(key)
+        if mask.any():
+            result[mask] = False
+        result = np.asarray(result, dtype=bool)
     else:
         # key might be sparse / object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
