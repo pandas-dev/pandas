@@ -51,7 +51,6 @@ from pandas.tseries.frequencies import to_offset
         "_datetimelike_methods",
         "_other_ops",
         "components",
-        "_box_func",
         "to_pytimedelta",
         "sum",
         "std",
@@ -222,17 +221,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         if other.inferred_type == "timedelta":
             other = TimedeltaIndex(other)
         return self, other
-
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
