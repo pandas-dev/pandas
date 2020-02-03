@@ -235,7 +235,6 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         - iso8601 string object
         - python datetime object
         - another timestamp object
-    TODO: update docstring in general and with information on fold
 
     Raises
     ------
