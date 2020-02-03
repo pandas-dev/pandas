@@ -61,7 +61,7 @@ def compare_element(result, expected, typ, version=None):
             assert result.freq == expected.freq
     else:
         comparator = getattr(
-            tm, "assert_{typ}_equal".format(typ=typ), tm.assert_almost_equal
+            tm, f"assert_{typ=typ}_equal", tm.assert_almost_equal
         )
         comparator(result, expected)
 
@@ -77,7 +77,7 @@ def compare(data, vf, version):
 
             # use a specific comparator
             # if available
-            comparator = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+            comparator = f"compare_{typ=typ}_{dt=dt}"
 
             comparator = m.get(comparator, m["compare_element"])
             comparator(result, expected, typ, version)
@@ -234,7 +234,7 @@ def test_legacy_sparse_warning(datapath):
 
 @pytest.fixture
 def get_random_path():
-    return "__{}__.pickle".format(tm.rands(10))
+    return f"__{tm.rands(10)}__.pickle"
 
 
 class TestCompression:
@@ -262,7 +262,7 @@ class TestCompression:
         elif compression == "xz":
             f = _get_lzma_file(lzma)(dest_path, "w")
         else:
-            msg = "Unrecognized compression type: {}".format(compression)
+            msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
 
         if compression != "zip":
