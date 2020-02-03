@@ -1602,6 +1602,16 @@ class TestDataFrameIndexing:
         actual = df.reindex(target, method="nearest", tolerance=[0.5, 0.01, 0.4, 0.1])
         tm.assert_frame_equal(expected, actual)
 
+    def test_reindex_nearest_tz(self, tz_aware_fixture):
+        # GH26683
+        tz = tz_aware_fixture
+        idx = pd.date_range("2019-01-01", periods=5, tz=tz)
+        df = pd.DataFrame({"x": list(range(5))}, index=idx)
+
+        expected = df.head(3)
+        actual = df.reindex(idx[:3], method="nearest")
+        tm.assert_frame_equal(expected, actual)
+
     def test_reindex_frame_add_nat(self):
         rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
         df = DataFrame({"A": np.random.randn(len(rng)), "B": rng})
