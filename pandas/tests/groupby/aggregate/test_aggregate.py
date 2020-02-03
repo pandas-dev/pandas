@@ -377,6 +377,30 @@ def test_agg_index_has_complex_internals(index):
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_split_block():
+    # https://github.com/pandas-dev/pandas/issues/31522
+    df = pd.DataFrame(
+        {
+            "key1": ["a", "a", "b", "b", "a"],
+            "key2": ["one", "two", "one", "two", "one"],
+            "key3": ["three", "three", "three", "six", "six"],
+            "data1": [0.0, 1, 2, 3, 4],
+            "data2": [0.0, 1, 2, 3, 4],
+        }
+    )
+    result = df.groupby("key1").min()
+    expected = pd.DataFrame(
+        {
+            "key2": ["one", "six"],
+            "key3": ["one", "six"],
+            "data1": [0.0, 2.0],
+            "data2": [0.0, 2.0],
+        },
+        index=pd.Index(["a", "b"], name="key1"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])

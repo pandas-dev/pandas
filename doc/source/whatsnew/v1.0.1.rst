@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containg a :class:`datetime.date` (:issue:`31501`)
 - Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)
 - Fixed regression in :meth:`GroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
+- Fixed regression in ``.groupby().agg()`` raising an ``AssertionError`` for some reductions like ``min`` on object-dtype columns (:issue:`31522`)
 - Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
 - Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
 - Fixed regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
