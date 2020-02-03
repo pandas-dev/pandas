@@ -155,9 +155,7 @@ def _describe_option(pat: str = "", _print_desc: bool = True):
     if len(keys) == 0:
         raise OptionError("No such keys(s)")
 
-    s = ""
-    for k in keys:  # filter by pat
-        s += _build_option_description(k)
+    s = "\n".join([_build_option_description(k) for k in keys])
 
     if _print_desc:
         print(s)
