@@ -1973,7 +1973,7 @@ Pandas has two ways to store strings.
 1. ``object`` dtype, which can hold any Python object, including strings.
 2. :class:`StringDtype`, which is dedicated to strings.
 
-Generally, we recommend using :class:`StringDtype`. See :ref:`text.types` fore more.
+Generally, we recommend using :class:`StringDtype`. See :ref:`text.types` for more.
 
 Finally, arbitrary objects may be stored using the ``object`` dtype, but should
 be avoided to the extent possible (for performance and interoperability with
