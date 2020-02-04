@@ -66,6 +66,23 @@ baz|7|8|9
     tm.assert_frame_equal(result, expected)
 
 
+def test_sniff_delimiter_comment(python_parser_only):
+    parser = python_parser_only
+    data = """index|A|B|C
+foo|1|2|3
+# line with comment
+bar|4|5|6 # ignore | this
+baz|7|8|9
+"""
+    result = parser.read_csv(StringIO(data), index_col=0, sep=None, comment="#")
+    expected = DataFrame(
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        columns=["A", "B", "C"],
+        index=Index(["foo", "bar", "baz"], name="index"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
 def test_sniff_delimiter_encoding(python_parser_only, encoding):
     parser = python_parser_only
