@@ -436,7 +436,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         i8vals = self.asi8
-        unbox = self._data._unbox_scalar  # type: ignore
+        unbox = self._data._unbox_scalar
 
         if self.is_monotonic:
 
