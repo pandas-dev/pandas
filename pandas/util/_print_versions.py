@@ -43,6 +43,7 @@ def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
                 ("python-bits", struct.calcsize("P") * 8),
                 ("OS", f"{sysname}"),
                 ("OS-release", f"{release}"),
+                # FIXME: dont leave commented-out
                 # ("Version", f"{version}"),
                 ("machine", f"{machine}"),
                 ("processor", f"{processor}"),
