@@ -299,12 +299,10 @@ class FrameApply(metaclass=abc.ABCMeta):
                 result = libreduction.compute_reduction(
                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
                 )
-            except ValueError:
-                # TODO there are still cases that give another error (eg GH-31505)
-                # if "Function does not reduce" not in str(err):
-                #     # catch only ValueError raised intentionally in libreduction
-                #     raise
-                pass
+            except ValueError as err:
+                if "Function does not reduce" not in str(err):
+                    # catch only ValueError raised intentionally in libreduction
+                    raise
             except TypeError:
                 # e.g. test_apply_ignore_failures we just ignore
                 if not self.ignore_failures:
