@@ -197,7 +197,7 @@ class Timestamp(_Timestamp):
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
     fold : int, default is None
-        whether we are in a fold or not. Due to daylight saving time,
+        Due to daylight saving time,
         one wall clock time can occur twice when shifting from summer to
         winter time; fold describes whether the datetime-like corresponds
         to the first (0) or the second time (1) the wall clock hits the
