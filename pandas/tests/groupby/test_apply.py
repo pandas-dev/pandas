@@ -512,7 +512,7 @@ def test_apply_with_duplicated_non_sorted_axis(test_series):
         expected = ser.sort_index()
         tm.assert_series_equal(result, expected)
     else:
-        result = df.groupby("Y").apply(lambda x: x)
+        result = df.groupby("Y", as_index=False).apply(lambda x: x)
 
         # not expecting the order to remain the same for duplicated axis
         result = result.sort_values("Y")
@@ -847,7 +847,7 @@ def test_groupby_apply_datetime_result_dtypes():
         ],
         columns=["observation", "color", "mood", "intensity", "score"],
     )
-    result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
+    result = data.groupby("color", as_index=False).apply(lambda g: g.iloc[0]).dtypes
     expected = Series(
         [np.dtype("datetime64[ns]"), np.object, np.object, np.int64, np.object],
         index=["observation", "color", "mood", "intensity", "score"],
@@ -867,7 +867,7 @@ def test_groupby_apply_datetime_result_dtypes():
 def test_apply_index_has_complex_internals(index):
     # GH 31248
     df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
-    result = df.groupby("group").apply(lambda x: x)
+    result = df.groupby("group", as_index=False).apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
 
