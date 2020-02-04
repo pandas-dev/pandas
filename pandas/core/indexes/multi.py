@@ -2314,29 +2314,19 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # Label-based
+        if not is_hashable(key):
+            # We allow tuples if they are hashable, whereas other Index
+            #  subclasses require scalar.
+            raise InvalidIndexError(key)
 
         if is_iterator(key):
             # Unlike other Index classes, we accept non-scalar, but do
-            #  exclude generators.
-            raise InvalidIndexError(key)
-
-        if isinstance(key, slice):
-            # try_mi will incorrectly convert slice(None, 0, None) to
-            #  slice(0, 1, None) in get_loc, so we have to rule that out explcitly.
-            raise InvalidIndexError(key)
-
-        if com.is_bool_indexer(key):
+            #  exclude generators.  (generators are hashable)
             raise InvalidIndexError(key)
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
-            try:
-                loc = self.get_loc(k)
-            except TypeError:
-                # non-hashable, e.g. (slice(None), "two")
-                #  In Series.__getitem__ we want to fall back Series._get_with
-                # TODO: do this within get_loc?
-                raise InvalidIndexError(k)
+            loc = self.get_loc(k)
 
             new_values = series._values[loc]
             if is_scalar(loc):
