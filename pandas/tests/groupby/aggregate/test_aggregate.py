@@ -401,6 +401,21 @@ def test_agg_split_block():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_split_object_part_datetime():
+    # https://github.com/pandas-dev/pandas/pull/31616
+    df = pd.DataFrame(
+        {
+            "A": pd.date_range("2000", periods=4),
+            "B": ["a", "b", "c", "d"],
+            "C": ["b", "c", "d", "e"],
+            "D": pd.date_range("2000", periods=4),
+        }
+    ).astype(object)
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame({"A": [pd.Timestamp("2000")], "B": ["a"]})
+    tm.assert_frame_equal(result, expected)
+
+
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
