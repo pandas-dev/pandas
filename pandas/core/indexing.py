@@ -1477,14 +1477,12 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
     def _getitem_iterable(self, key, axis: int):
         """
-        Index current object with an an iterable key.
-
-        The iterable key can be a boolean indexer or a collection of keys.
+        Index current object with an an iterable collection of keys.
 
         Parameters
         ----------
         key : iterable
-            Targeted labels or boolean indexer.
+            Targeted labels.
         axis: int
             Dimension on which the indexing is being made.
 
@@ -1493,30 +1491,20 @@ class _LocationIndexer(_NDFrameIndexerBase):
         KeyError
             If no key was found. Will change in the future to raise if not all
             keys were found.
-        IndexingError
-            If the boolean indexer is unalignable with the object being
-            indexed.
 
         Returns
         -------
         scalar, DataFrame, or Series: indexed value(s).
         """
-        # caller is responsible for ensuring non-None axis
+        # we assume that not com.is_bool_indexer(key), as that is
+        #  handled before we get here.
         self._validate_key(key, axis)
 
-        labels = self.obj._get_axis(axis)
-
-        if com.is_bool_indexer(key):
-            # A boolean indexer
-            key = check_bool_indexer(labels, key)
-            (inds,) = key.nonzero()
-            return self.obj._take_with_is_copy(inds, axis=axis)
-        else:
-            # A collection of keys
-            keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
-            return self.obj._reindex_with_indexers(
-                {axis: [keyarr, indexer]}, copy=True, allow_dups=True
-            )
+        # A collection of keys
+        keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
+        return self.obj._reindex_with_indexers(
+            {axis: [keyarr, indexer]}, copy=True, allow_dups=True
+        )
 
     def _validate_read_indexer(
         self, key, indexer, axis: int, raise_missing: bool = False
@@ -2055,11 +2043,8 @@ class _iLocIndexer(_LocationIndexer):
         elif is_float(key):
             return self._convert_scalar_indexer(key, axis)
 
-        try:
-            self._validate_key(key, axis)
-            return key
-        except ValueError:
-            raise ValueError(f"Can only index by location with a [{self._valid_types}]")
+        self._validate_key(key, axis)
+        return key
 
 
 class _ScalarAccessIndexer(_NDFrameIndexerBase):
