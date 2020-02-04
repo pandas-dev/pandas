@@ -1,6 +1,6 @@
 import datetime
 from sys import getsizeof
-from typing import TYPE_CHECKING, Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -56,9 +56,6 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
-
-if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -2316,9 +2313,8 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_value(self, series: "Series", key):
+    def get_value(self, series, key):
         # Label-based
-        assert isinstance(series, ABCSeries), type(series)
         s = com.values_from_object(series)
         k = com.values_from_object(key)
 
@@ -2327,12 +2323,24 @@ class MultiIndex(Index):
             #  exclude generators.
             raise InvalidIndexError(key)
 
+        if isinstance(key, slice):
+            # try_mi will incorrectly convert slice(None, 0, None) to slice(0, 1, None)
+            #  in get_loc, so we have to rule that out explcitly.
+            raise InvalidIndexError(key)
+
         if com.is_bool_indexer(key):
             return series.iloc[key]
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
-            loc = self.get_loc(k)
+            try:
+                loc = self.get_loc(k)
+            except TypeError:
+                # non-hashable, e.g. (slice(None), "two")
+                #  In Series.__getitem__ we want to fall back Series._get_with
+                # TODO: do this within get_loc?
+                raise InvalidIndexError(k)
+
             new_values = series._values[loc]
             if is_scalar(loc):
                 return new_values
@@ -2341,63 +2349,17 @@ class MultiIndex(Index):
             new_index = maybe_droplevels(new_index, k)
             return series._constructor(
                 new_values, index=new_index, name=series.name
-            ).__finalize__(series)
+            ).__finalize__(self)
 
-        #return _try_mi(k)
 
         try:
-            result = self._engine.get_value(s, k)
-            if not (is_scalar(result) or np.ndim(result) == 0):
-                # FIXME: this is still going to be wrong if we have listlike in the series
-                assert False, result
-            return _try_mi(k)
+            result = _try_mi(k)
             return result
-        except KeyError as e1:
-            try:
-                return _try_mi(key)
-            except KeyError:
-                pass
-
-            try:
-                if is_integer(k):
-                    return series._values[k]
-                else:
-                    raise
-                #result = libindex.get_value_at(s, k)
-                #if not (is_scalar(result) or np.ndim(result) == 0):
-                #    # FIXME: this is still going to be wrong if we have listlike in the series
-                #    assert False, result
-                #return result
-            except IndexError:
+        except KeyError:
+            if is_integer(k):
+                return series._values[k]
+            else:
                 raise
-            except Exception:
-                raise e1
-        except TypeError:
-            #raise
-            # a Timestamp will raise a TypeError in a multi-index
-            # rather than a KeyError, try it here
-            # note that a string that 'looks' like a Timestamp will raise
-            # a KeyError! (GH5725)
-            if isinstance(key, (datetime.datetime, np.datetime64, str)):
-                try:
-                    return _try_mi(key)
-                except KeyError:
-                    raise
-                except (IndexError, ValueError, TypeError):
-                    pass
-
-                try:
-                    return _try_mi(Timestamp(key))
-                except (
-                    KeyError,
-                    TypeError,
-                    IndexError,
-                    ValueError,
-                    tslibs.OutOfBoundsDatetime,
-                ):
-                    pass
-
-            raise InvalidIndexError(key)
 
     def _convert_listlike_indexer(self, keyarr, kind=None):
         """
