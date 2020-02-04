@@ -44,7 +44,7 @@ def test_parse_time_quarter_with_dash(dashed, normal):
 def test_parse_time_quarter_with_dash_error(dashed):
     msg = f"Unknown datetime string format, unable to parse: {dashed}"
 
-    with pytest.raises(parsing.DateParseError, match=msg:
+    with pytest.raises(parsing.DateParseError, match=msg):
         parse_time_string(dashed)
 
 
