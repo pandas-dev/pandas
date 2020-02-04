@@ -795,10 +795,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return self.fill_value
         else:
             val = self.sp_values[sp_loc]
-            if self.sp_values.dtype.kind in ["m", "M"]:
-                # TODO: this can be avoided if we ever have sp_values
-                #  of DatetimeArray/TimedeltaArray
-                val = com.maybe_box_datetimelike(val)
+            val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
     def take(self, indices, allow_fill=False, fill_value=None):
