@@ -1651,10 +1651,17 @@ one based on Matplotlib. For example:
 
 .. code-block:: python
 
+    >>> Series([1,2,3]).plot(backend='backend.module')
+
+This can also be done by passsing 'backend.module' as the argument ``backend`` in ``plot``
+function. For example:
+
+.. code-block:: python
+
     >>> pd.set_option('plotting.backend', 'backend.module')
     >>> pd.Series([1, 2, 3]).plot()
 
-Same thing can be done by setting the ``pd.options.plotting.backend`` keyword
+Same thing can also be done by setting the ``pd.options.plotting.backend`` keyword
 equals to 'backend.module'. For example:
 
 .. code-block:: python
