@@ -59,3 +59,21 @@ def test_series_mask_boolean(values, dtype, mask, box_mask, frame):
 
     result = ser.loc[mask]
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("frame", [True, False])
+def test_indexing_with_na_raises(frame):
+    s = pd.Series([1, 2, 3], name="name")
+
+    if frame:
+        s = s.to_frame()
+    mask = pd.array([True, False, None], dtype="boolean")
+    match = "cannot mask with array containing NA / NaN values"
+    with pytest.raises(ValueError, match=match):
+        s[mask]
+
+    with pytest.raises(ValueError, match=match):
+        s.loc[mask]
+
+    with pytest.raises(ValueError, match=match):
+        s.iloc[mask]
