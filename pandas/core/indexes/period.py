@@ -547,7 +547,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             # we cannot construct the Period
             raise KeyError(key)
 
-        ordinal = key.ordinal if key is not NaT else key.value
+        ordinal = self._data._unbox_scalar(key)
         try:
             return self._engine.get_loc(ordinal)
         except KeyError:
