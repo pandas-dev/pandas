@@ -120,16 +120,13 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
     table = str.maketrans("", "", "*`_")
 
     for i, line in enumerate(lines):
-        if line and lines[i - 1]:
-            line_chars = set(line)
-            if len(line_chars) == 1 and line_chars.pop() in symbols:
-                if i >= 2:
-                    if line == lines[i - 2]:
-                        if len(line) == len(lines[i - 1]):
-                            yield lines[i - 1].translate(table), i
-                        continue
-                if len(line) >= len(lines[i - 1]):
-                    yield lines[i - 1].translate(table), i
+        line_chars = set(line)
+        if (
+            len(line_chars) == 1
+            and line_chars.pop() in symbols
+            and len(line) == len(lines[i - 1])
+        ):
+            yield lines[i - 1].translate(table), i
 
 
 def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
