@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
+    is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -567,7 +568,12 @@ class BaseGrouper:
         if swapped:
             result = result.swapaxes(0, axis)
 
-        if is_datetime64tz_dtype(orig_values.dtype):
+        if is_datetime64tz_dtype(orig_values.dtype) or is_period_dtype(
+            orig_values.dtype
+        ):
+            # We need to use the constructors directly for these dtypes
+            # since numpy won't recognize them
+            # https://github.com/pandas-dev/pandas/issues/31471
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)

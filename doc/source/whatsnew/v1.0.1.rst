@@ -20,6 +20,7 @@ Fixed regressions
 - Fixed regression in ``DataFrame.__setitem__`` raising an ``AttributeError`` with a :class:`MultiIndex` and a non-monotonic indexer (:issue:`31449`)
 - Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)
 - Fixed regression in :meth:`GroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
+- Fixed regression in :meth:`DataFrame.groupby` whereby taking the minimum or maximum of a column with period dtype would raise a ``TypeError``. (:issue:`31471`)
 - Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
 - Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
 - Fixed regression in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)
