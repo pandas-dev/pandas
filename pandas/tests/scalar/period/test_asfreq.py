@@ -667,8 +667,6 @@ class TestFreqConversion:
         assert start == expected
         assert start.value == per.ordinal * 1000
 
-    def test_conv_microsecond_out_of_bounds(self):
-        # GH#31475
         per2 = Period("2300-01-01", "us")
         with pytest.raises(OutOfBoundsDatetime, match="2300-01-01"):
             per2.start_time
