@@ -677,8 +677,11 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Levels Methods
 
-    @property
+    @cache_readonly
     def levels(self):
+        # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
+        # create new IndexEngine
+        # https://github.com/pandas-dev/pandas/issues/31648
         result = [
             x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
         ]
@@ -1301,6 +1304,9 @@ class MultiIndex(Index):
                         f"{type(self).__name__}.name must be a hashable type"
                     )
             self._names[lev] = name
+
+        # If .levels has been accessed, the names in our cache will be stale.
+        self._reset_cache()
 
     names = property(
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
