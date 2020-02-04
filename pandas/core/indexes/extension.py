@@ -297,26 +297,3 @@ class ExtensionIndex(Index):
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
-
-    # --------------------------------------------------------------------
-    # Indexing Methods
-
-    @Appender(Index.get_value.__doc__)
-    def get_value(self, series: "Series", key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        try:
-            loc = self.get_loc(key)
-        except KeyError:
-            # e.g. DatetimeIndex doesn't hold integers
-            if is_integer(key) and not self.holds_integer():
-                # Fall back to positional
-                loc = key
-            else:
-                raise
-
-        return self._get_values_for_loc(series, loc)
-
-    # --------------------------------------------------------------------
