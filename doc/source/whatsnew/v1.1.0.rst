@@ -42,7 +42,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
--
+- :func:`Timestamp` now raises more explanatory error message when year, month or day is missing (:issue:`31200`)
 -
 
 .. ---------------------------------------------------------------------------

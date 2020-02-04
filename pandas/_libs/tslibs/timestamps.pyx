@@ -412,6 +412,17 @@ class Timestamp(_Timestamp):
                 )
 
         elif ts_input is _no_input:
+            # GH 31200
+            # When year, month or day is not given, we call the datetime
+            # constructor to make sure we get the same error message
+            # since Timestamp inherits datetime
+            if year is None:
+                datetime(month=month, day=day)
+            elif month is None:
+                datetime(year=year, day=day)
+            elif day is None:
+                datetime(year=year, month=month)
+
             # User passed keyword arguments.
             ts_input = datetime(year, month, day, hour or 0,
                                 minute or 0, second or 0,
