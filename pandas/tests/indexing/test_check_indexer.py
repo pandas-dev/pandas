@@ -31,15 +31,16 @@ def test_valid_input(indexer, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "indexer", [[True, False, None], pd.array([True, False, None], dtype="boolean")],
-)
-def test_bool_raise_missing_values(indexer):
-    array = np.array([1, 2, 3])
+def test_boolean_na_returns_indexer():
+    # TODO: What to do now about list input that contains
+    # bools and None?
+    arr = np.array([1, 2, 3])
+    indexer = pd.array([True, False, None], dtype="boolean")
 
-    msg = "Cannot mask with a boolean indexer containing NA values"
-    with pytest.raises(ValueError, match=msg):
-        check_array_indexer(array, indexer)
+    result = check_array_indexer(arr, indexer)
+    expected = np.array([True, False, False], dtype=bool)
+
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
