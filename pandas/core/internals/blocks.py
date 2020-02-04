@@ -12,7 +12,6 @@ from pandas._libs.index import validate_numeric_casting
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -3208,7 +3207,7 @@ def _putmask_smart(v, mask, n):
     return _putmask_preserve(v, n)
 
 
-def _convert_scalar_for_putitemlike(scalar, dtype: DtypeObj):
+def _convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
     """
     Convert datetimelike scalar if we are setting into a datetime64
     or timedelta64 ndarray.
@@ -3216,7 +3215,7 @@ def _convert_scalar_for_putitemlike(scalar, dtype: DtypeObj):
     Parameters
     ----------
     scalar : scalar
-    dtype : np.dtpye or ExtensionDtype
+    dtype : np.dtpye
 
     Returns
     -------
