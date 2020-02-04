@@ -384,18 +384,11 @@ def test_agg_split_block():
             "key1": ["a", "a", "b", "b", "a"],
             "key2": ["one", "two", "one", "two", "one"],
             "key3": ["three", "three", "three", "six", "six"],
-            "data1": [0.0, 1, 2, 3, 4],
-            "data2": [0.0, 1, 2, 3, 4],
         }
     )
     result = df.groupby("key1").min()
     expected = pd.DataFrame(
-        {
-            "key2": ["one", "one"],
-            "key3": ["six", "six"],
-            "data1": [0.0, 2.0],
-            "data2": [0.0, 2.0],
-        },
+        {"key2": ["one", "one"], "key3": ["six", "six"]},
         index=pd.Index(["a", "b"], name="key1"),
     )
     tm.assert_frame_equal(result, expected)

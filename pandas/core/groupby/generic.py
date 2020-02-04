@@ -1079,28 +1079,27 @@ class DataFrameGroupBy(GroupBy):
                     if isinstance(result, np.ndarray) and result.ndim == 1:
                         result = result.reshape(1, -1)
 
-            finally:
-                assert not isinstance(result, DataFrame)
+            assert not isinstance(result, DataFrame)
 
-                if result is not no_result:
-                    # see if we can cast the block back to the original dtype
-                    result = maybe_downcast_numeric(result, block.dtype)
+            if result is not no_result:
+                # see if we can cast the block back to the original dtype
+                result = maybe_downcast_numeric(result, block.dtype)
 
-                    if block.is_extension and isinstance(result, np.ndarray):
-                        # e.g. block.values was an IntegerArray
-                        # (1, N) case can occur if block.values was Categorical
-                        #  and result is ndarray[object]
-                        assert result.ndim == 1 or result.shape[0] == 1
-                        try:
-                            # Cast back if feasible
-                            result = type(block.values)._from_sequence(
-                                result.ravel(), dtype=block.values.dtype
-                            )
-                        except ValueError:
-                            # reshape to be valid for non-Extension Block
-                            result = result.reshape(1, -1)
+                if block.is_extension and isinstance(result, np.ndarray):
+                    # e.g. block.values was an IntegerArray
+                    # (1, N) case can occur if block.values was Categorical
+                    #  and result is ndarray[object]
+                    assert result.ndim == 1 or result.shape[0] == 1
+                    try:
+                        # Cast back if feasible
+                        result = type(block.values)._from_sequence(
+                            result.ravel(), dtype=block.values.dtype
+                        )
+                    except ValueError:
+                        # reshape to be valid for non-Extension Block
+                        result = result.reshape(1, -1)
 
-                    agg_block: Block = block.make_block(result)
+                agg_block: Block = block.make_block(result)
 
             new_items.append(locs)
             agg_blocks.append(agg_block)
