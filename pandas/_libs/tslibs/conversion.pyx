@@ -319,11 +319,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     nanos : int32_t, default is 0
         nanoseconds supplement the precision of the datetime input ts
     fold : bint, default is 0
-        Due to daylight saving time,
-        one wall clock time can occur twice when shifting from summer to
-        winter time; fold describes whether the datetime-like corresponds
-        to the first (0) or the second time (1) the wall clock hits the
-        ambiguous time
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
 
     Returns
     -------
@@ -483,11 +482,10 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
         When parsing an ambiguous date string, interpret e.g. "01/05/09"
         as "May 9, 2001", as opposed to the default "Jan 5, 2009"
     fold : bint, default is 0
-        Due to daylight saving time,
-        one wall clock time can occur twice when shifting from summer to
-        winter time; fold describes whether the datetime-like corresponds
-        to the first (0) or the second time (1) the wall clock hits the
-        ambiguous time
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
 
     Returns
     -------
@@ -589,11 +587,10 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
     obj : _TSObject
     tz : tzinfo
     fold : bint
-        Due to daylight saving time,
-        one wall clock time can occur twice when shifting from summer to
-        winter time; fold describes whether the datetime-like corresponds
-        to the first (0) or the second time (1) the wall clock hits the
-        ambiguous time
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
 
     Returns
     -------

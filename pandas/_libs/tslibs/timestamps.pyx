@@ -196,7 +196,7 @@ class Timestamp(_Timestamp):
     nanosecond : int, optional, default 0
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
-    fold : int, default is None
+    fold : int, default is 0
         Due to daylight saving time,
         one wall clock time can occur twice when shifting from summer to
         winter time; fold describes whether the datetime-like corresponds
@@ -358,7 +358,7 @@ class Timestamp(_Timestamp):
         microsecond=None,
         nanosecond=None,
         tzinfo=None,
-        fold=None
+        fold=0
     ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
