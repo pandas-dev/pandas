@@ -293,13 +293,13 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             raise TypeError(msg)
 
         msg = (
-            f"Interpreting call\n\t'.{method_name}(a, b)' as "
-            f"\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
-            f"arguments to remove any ambiguity. In the future, using "
-            f"positional arguments for 'index' or 'columns' will raise "
-            f"a 'TypeError'."
+            "Interpreting call\n\t'.{method_name}(a, b)' as "
+            "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
+            "arguments to remove any ambiguity. In the future, using "
+            "positional arguments for 'index' or 'columns' will raise "
+            "a 'TypeError'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=4)
+        warnings.warn(msg.format(method_name=method_name), FutureWarning, stacklevel=4)
         out[data._AXIS_NAMES[0]] = args[0]
         out[data._AXIS_NAMES[1]] = args[1]
     else:
@@ -367,13 +367,12 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
     ------
     ValueError if percentiles are not in given interval([0, 1]).
     """
+    msg = "percentiles should all be in the interval [0, 1]. Try {0} instead."
     q_arr = np.asarray(q)
-    msg = (f"percentiles should all be in the interval [0, 1]."
-           f" Try {q_arr/100.0} instead.")
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
-            raise ValueError(msg)
+            raise ValueError(msg.format(q_arr / 100.0))
     else:
         if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg)
+            raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
