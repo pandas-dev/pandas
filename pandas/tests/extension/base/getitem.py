@@ -165,14 +165,14 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data[mask]
         expected = data[mask.fillna(False)]
 
-        tm.assert_frame_equal(result, expected)
+        self.assert_frame_equal(result, expected)
 
         s = pd.Series(data)
 
         result = s[mask]
         expected = s[mask.fillna(False)]
 
-        tm.assert_series_equal(result, expected)
+        self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "idx",
