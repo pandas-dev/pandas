@@ -621,16 +621,6 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @property
-    def levels(self):
-        result = [
-            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
-        ]
-        for level in result:
-            # disallow midx.levels[0].name = "foo"
-            level._no_setting_name = True
-        return FrozenList(result)
-
-    @property
     def _values(self):
         # We override here, since our parent uses _data, which we don't use.
         return self.values
@@ -658,6 +648,22 @@ class MultiIndex(Index):
             "MultiIndex has no single backing array. Use "
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
+
+    # --------------------------------------------------------------------
+    # Levels Methods
+
+    @cache_readonly
+    def levels(self):
+        # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
+        # create new IndexEngine
+        # https://github.com/pandas-dev/pandas/issues/31648
+        result = [
+            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
+        ]
+        for level in result:
+            # disallow midx.levels[0].name = "foo"
+            level._no_setting_name = True
+        return FrozenList(result)
 
     def _set_levels(
         self, levels, level=None, copy=False, validate=True, verify_integrity=False
@@ -1226,6 +1232,9 @@ class MultiIndex(Index):
                         f"{type(self).__name__}.name must be a hashable type"
                     )
             self._names[lev] = name
+
+        # If .levels has been accessed, the names in our cache will be stale.
+        self._reset_cache()
 
     names = property(
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
