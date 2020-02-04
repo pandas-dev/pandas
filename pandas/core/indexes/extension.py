@@ -1,22 +1,31 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import numpy as np
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_dtype_equal,
+    is_integer,
+    is_object_dtype,
+)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.indexes.base import Index, deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 
+if TYPE_CHECKING:
+    from pandas import Series
 
-def inherit_from_data(name: str, delegate, cache: bool = False):
+
+def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
@@ -27,6 +36,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
     delegate : class
     cache : bool, default False
         Whether to convert wrapped properties into cache_readonly
+    wrap : bool, default False
+        Whether to wrap the inherited result in an Index.
 
     Returns
     -------
@@ -37,12 +48,23 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
 
     if isinstance(attr, property):
         if cache:
-            method = cache_readonly(attr.fget)
+
+            def cached(self):
+                return getattr(self._data, name)
+
+            cached.__name__ = name
+            cached.__doc__ = attr.__doc__
+            method = cache_readonly(cached)
 
         else:
 
             def fget(self):
-                return getattr(self._data, name)
+                result = getattr(self._data, name)
+                if wrap:
+                    if isinstance(result, type(self._data)):
+                        return type(self)._simple_new(result, name=self.name)
+                    return Index(result, name=self.name)
+                return result
 
             def fset(self, value):
                 setattr(self._data, name, value)
@@ -60,6 +82,10 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
 
         def method(self, *args, **kwargs):
             result = attr(self._data, *args, **kwargs)
+            if wrap:
+                if isinstance(result, type(self._data)):
+                    return type(self)._simple_new(result, name=self.name)
+                return Index(result, name=self.name)
             return result
 
         method.__name__ = name
@@ -67,7 +93,7 @@ def inherit_from_data(name: str, delegate, cache: bool = False):
     return method
 
 
-def inherit_names(names: List[str], delegate, cache: bool = False):
+def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = False):
     """
     Class decorator to pin attributes from an ExtensionArray to a Index subclass.
 
@@ -76,11 +102,13 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     names : List[str]
     delegate : class
     cache : bool, default False
+    wrap : bool, default False
+        Whether to wrap the inherited result in an Index.
     """
 
     def wrapper(cls):
         for name in names:
-            meth = inherit_from_data(name, delegate, cache=cache)
+            meth = inherit_from_data(name, delegate, cache=cache, wrap=wrap)
             setattr(cls, name, meth)
 
         return cls
@@ -88,7 +116,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False):
     return wrapper
 
 
-def _make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname: str):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -108,8 +136,17 @@ def _make_wrapped_comparison_op(opname):
     return wrapper
 
 
-def make_wrapped_arith_op(opname):
+def make_wrapped_arith_op(opname: str):
     def method(self, other):
+        if (
+            isinstance(other, Index)
+            and is_object_dtype(other.dtype)
+            and type(other) is not Index
+        ):
+            # We return NotImplemented for object-dtype index *subclasses* so they have
+            # a chance to implement ops before we unwrap them.
+            # See https://github.com/pandas-dev/pandas/issues/31109
+            return NotImplemented
         meth = getattr(self._data, opname)
         result = meth(_maybe_unwrap_index(other))
         return _wrap_arithmetic_op(self, other, result)
@@ -260,3 +297,26 @@ class ExtensionIndex(Index):
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
+
+    # --------------------------------------------------------------------
+    # Indexing Methods
+
+    @Appender(Index.get_value.__doc__)
+    def get_value(self, series: "Series", key):
+        """
+        Fast lookup of value from 1-dimensional ndarray. Only use this if you
+        know what you're doing
+        """
+        try:
+            loc = self.get_loc(key)
+        except KeyError:
+            # e.g. DatetimeIndex doesn't hold integers
+            if is_integer(key) and not self.holds_integer():
+                # Fall back to positional
+                loc = key
+            else:
+                raise
+
+        return self._get_values_for_loc(series, loc)
+
+    # --------------------------------------------------------------------
