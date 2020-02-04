@@ -640,14 +640,14 @@ cdef inline int32_t _adjust_tsobject_for_fold(_TSObject obj, object trans,
     """
     Adjust _TSObject value for fold is possible. Return updated last offset
     transition position in the trans list.
-    
+
     Parameters
     ----------
     obj : _TSObject
     trans : object
         List of offset transition points in nanoseconds since epoch.
     deltas : object
-        List of offsets corresponding to transition points in trans.  
+        List of offsets corresponding to transition points in trans.
     pos : int32_t
         Position of the last transition point before taking fold into account.
     fold : bint
