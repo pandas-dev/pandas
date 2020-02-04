@@ -1,6 +1,6 @@
 import datetime
 from sys import getsizeof
-from typing import Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -56,6 +56,9 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -2313,23 +2316,42 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_value(self, series, key):
+    def get_value(self, series: "Series", key):
         # Label-based
+        assert isinstance(series, ABCSeries), type(series)
         s = com.values_from_object(series)
         k = com.values_from_object(key)
+
+        if is_iterator(key):
+            # Unlike other Index classes, we accept non-scalar, but do
+            #  exclude generators.
+            raise InvalidIndexError(key)
+
+        if com.is_bool_indexer(key):
+            return series.iloc[key]
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
             loc = self.get_loc(k)
             new_values = series._values[loc]
+            if is_scalar(loc):
+                return new_values
+
             new_index = self[loc]
             new_index = maybe_droplevels(new_index, k)
             return series._constructor(
                 new_values, index=new_index, name=series.name
-            ).__finalize__(self)
+            ).__finalize__(series)
+
+        #return _try_mi(k)
 
         try:
-            return self._engine.get_value(s, k)
+            result = self._engine.get_value(s, k)
+            if not (is_scalar(result) or np.ndim(result) == 0):
+                # FIXME: this is still going to be wrong if we have listlike in the series
+                assert False, result
+            return _try_mi(k)
+            return result
         except KeyError as e1:
             try:
                 return _try_mi(key)
@@ -2337,19 +2359,21 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return libindex.get_value_at(s, k)
+                if is_integer(k):
+                    return series._values[k]
+                else:
+                    raise
+                #result = libindex.get_value_at(s, k)
+                #if not (is_scalar(result) or np.ndim(result) == 0):
+                #    # FIXME: this is still going to be wrong if we have listlike in the series
+                #    assert False, result
+                #return result
             except IndexError:
                 raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
+            except Exception:
                 raise e1
         except TypeError:
-
+            #raise
             # a Timestamp will raise a TypeError in a multi-index
             # rather than a KeyError, try it here
             # note that a string that 'looks' like a Timestamp will raise
@@ -2658,24 +2682,10 @@ class MultiIndex(Index):
                 "currently supported for MultiIndex"
             )
 
-        def _maybe_to_slice(loc):
-            """convert integer indexer to boolean mask or slice if possible"""
-            if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
-                return loc
-
-            loc = lib.maybe_indices_to_slice(loc, len(self))
-            if isinstance(loc, slice):
-                return loc
-
-            mask = np.empty(len(self), dtype="bool")
-            mask.fill(False)
-            mask[loc] = True
-            return mask
-
         if not isinstance(key, (tuple, list)):
             # not including list here breaks some indexing, xref #30892
             loc = self._get_level_indexer(key, level=0)
-            return _maybe_to_slice(loc)
+            return _maybe_to_slice(loc, len(self))
 
         keylen = len(key)
         if self.nlevels < keylen:
@@ -2719,7 +2729,9 @@ class MultiIndex(Index):
             if not len(loc):
                 raise KeyError(key)
 
-        return _maybe_to_slice(loc) if len(loc) != stop - start else slice(start, stop)
+        if len(loc) != stop - start:
+            return _maybe_to_slice(loc, len(self))
+        return slice(start, stop)
 
     def get_loc_level(self, key, level=0, drop_level: bool = True):
         """
@@ -3545,6 +3557,21 @@ def _sparsify(label_list, start: int = 0, sentinel=""):
 
 def _get_na_rep(dtype) -> str:
     return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
+
+
+def _maybe_to_slice(loc, length):
+    """convert integer indexer to boolean mask or slice if possible"""
+    if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
+        return loc
+
+    loc = lib.maybe_indices_to_slice(loc, length)
+    if isinstance(loc, slice):
+        return loc
+
+    mask = np.empty(length, dtype="bool")
+    mask.fill(False)
+    mask[loc] = True
+    return mask
 
 
 def maybe_droplevels(index, key):
