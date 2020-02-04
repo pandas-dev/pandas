@@ -1654,7 +1654,7 @@ function. For example:
 
 .. code-block:: python
 
-    >>> Series([1,2,3]).plot(backend='backend.module')
+    >>> Series([1, 2, 3]).plot(backend='backend.module')
 
 Alternatively, you can also set this option globally, do you don't need to specify
 the keyword in each ``plot`` call. For example:
