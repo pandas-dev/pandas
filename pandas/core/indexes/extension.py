@@ -200,6 +200,9 @@ class ExtensionIndex(Index):
     Index subclass for indexes backed by ExtensionArray.
     """
 
+    # The base class already passes through to _data:
+    #  size, __len__, dtype
+
     _data: ExtensionArray
 
     __eq__ = _make_wrapped_comparison_op("__eq__")
@@ -223,11 +226,6 @@ class ExtensionIndex(Index):
 
     def __iter__(self):
         return self._data.__iter__()
-
-    @property
-    def size(self) -> int:
-        # If EA ever requires size, this can become self._data.size
-        return len(self)
 
     # ---------------------------------------------------------------------
 
