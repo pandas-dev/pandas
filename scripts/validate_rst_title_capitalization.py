@@ -120,7 +120,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
     table = str.maketrans("", "", "*`_")
 
     for i, line in enumerate(lines):
-        if len(line) != 0 and len(lines[i - 1]) != 0:
+        if line and lines[i - 1]:
             line_chars = set(line)
             if len(line_chars) == 1 and line_chars.pop() in symbols:
                 if i >= 2:
