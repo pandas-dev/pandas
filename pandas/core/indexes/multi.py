@@ -2314,14 +2314,10 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # Label-based
-        if not is_hashable(key):
+        if not is_hashable(key) or is_iterator(key):
             # We allow tuples if they are hashable, whereas other Index
             #  subclasses require scalar.
-            raise InvalidIndexError(key)
-
-        if is_iterator(key):
-            # Unlike other Index classes, we accept non-scalar, but do
-            #  exclude generators.  (generators are hashable)
+            # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
         def _try_mi(k):
@@ -2339,8 +2335,7 @@ class MultiIndex(Index):
             ).__finalize__(self)
 
         try:
-            result = _try_mi(key)
-            return result
+            return _try_mi(key)
         except KeyError:
             if is_integer(key):
                 return series._values[key]
