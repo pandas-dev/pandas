@@ -386,11 +386,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                     pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos,
                                                     fold)
 
-                # Infer fold
-                if pos > 0:
-                    fold_delta = deltas[pos - 1] - deltas[pos]
-                    if obj.value - fold_delta < trans[pos]:
-                        obj.fold = 1
+                obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     check_dts_bounds(&obj.dts)
     check_overflows(obj)
@@ -440,11 +436,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
         if typ == 'pytz' or typ == 'dateutil':
             pos = trans.searchsorted(obj.value, side='right') - 1
-            # Infer fold
-            if pos > 0:
-                fold_delta = deltas[pos - 1] - deltas[pos]
-                if obj.value < (trans[pos] + fold_delta):
-                    fold = 1
+            fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
@@ -631,11 +623,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             if fold == 1:
                 pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos, fold)
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-            # Infer fold
-            if pos > 0:
-                fold_delta = deltas[pos - 1] - deltas[pos]
-                if obj.value - fold_delta < trans[pos]:
-                    obj.fold = 1
+
+            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
         else:
             # Note: as of 2018-07-17 all tzinfo objects that are _not_
             # either pytz or dateutil have is_fixed_offset(tz) == True,
@@ -690,6 +679,41 @@ cdef inline int32_t _adjust_tsobject_for_fold(_TSObject obj, object trans,
                 pos += 1
 
     return pos
+
+
+cdef inline bint _infer_tsobject_fold(_TSObject obj, object trans,
+                                      object deltas, int32_t pos):
+    """
+    Infer _TSObject fold property from value by assuming 0 and then setting
+    to 1 if necessary.
+
+    Parameters
+    ----------
+    obj : _TSObject
+    trans : object
+        List of offset transition points in nanoseconds since epoch.
+    deltas : object
+        List of offsets corresponding to transition points in trans.
+    pos : int32_t
+        Position of the last transition point before taking fold into account.
+
+    Returns
+    -------
+    bint
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+    """
+    cdef:
+        bint fold = 0
+
+    if pos > 0:
+        fold_delta = deltas[pos - 1] - deltas[pos]
+        if obj.value - fold_delta < trans[pos]:
+            fold = 1
+
+    return fold
 
 cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
