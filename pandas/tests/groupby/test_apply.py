@@ -940,3 +940,20 @@ def test_apply_fast_slow_identical():
     slow_df = df.groupby("A").apply(slow)
 
     tm.assert_frame_equal(fast_df, slow_df)
+
+
+def test_gh14927():
+    # GH 14927
+    df = pd.DataFrame({"g": [1, 2, 2, 2], "a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+
+    df1 = df.groupby("g").apply(lambda x: x)
+
+    df2 = df.groupby("g").apply(lambda x: x[:])
+
+    df3 = df.groupby("g").apply(lambda x: x.copy(deep=False))
+
+    df4 = df.groupby("g").apply(lambda x: x.copy(deep=True))
+
+    tm.assert_frame_equal(df1, df2)
+    tm.assert_frame_equal(df2, df3)
+    tm.assert_frame_equal(df3, df4)
