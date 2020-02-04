@@ -10336,13 +10336,11 @@ Parameters
 ----------
 axis : %(axis_descr)s
     Axis for the function to be applied on.
-skipna : bool, default True
+skipna : bool, default None
     Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s.
-**kwargs
-    Additional keyword arguments to be passed to the function.
 
 Returns
 -------
