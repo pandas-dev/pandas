@@ -393,14 +393,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
         if is_extension_array_dtype(dtype):
             indexer = indexer.to_numpy(dtype=bool, na_value=False)
         else:
-            try:
-                indexer = np.asarray(indexer, dtype=bool)
-            except ValueError:
-                msg = (
-                    "Cannot mask with a non-ExtensionArray boolean indexer "
-                    " containing missing values"
-                )
-                raise ValueError(msg)
+            indexer = np.asarray(indexer, dtype=bool)
 
         # GH26658
         if len(indexer) != len(array):
