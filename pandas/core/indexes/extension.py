@@ -224,17 +224,10 @@ class ExtensionIndex(Index):
     def __iter__(self):
         return self._data.__iter__()
 
-    def __len__(self) -> int:
-        return len(self._data)
-
     @property
     def size(self) -> int:
         # If EA ever requires size, this can become self._data.size
         return len(self)
-
-    @property
-    def dtype(self):
-        return self._data.dtype
 
     # ---------------------------------------------------------------------
 
