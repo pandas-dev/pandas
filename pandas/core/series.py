@@ -851,29 +851,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key is Ellipsis:
             return self
 
-        if is_scalar(key):
+        key_is_scalar = is_scalar(key)
+        if key_is_scalar:
             key = self.index._convert_scalar_indexer(key, kind="getitem")
 
-        try:
-            result = self.index.get_value(self, key)
+        if key_is_scalar or isinstance(self.index, MultiIndex):
+            # Otherwise index.get_value will raise InvalidIndexError
+            try:
+                result = self.index.get_value(self, key)
 
-            return result
-        except InvalidIndexError:
-            pass
-        except (KeyError, ValueError):
-            if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
-                # kludge
+                return result
+            except InvalidIndexError:
                 pass
-            elif com.is_bool_indexer(key):
-                pass
-            else:
-                raise
+            except (KeyError, ValueError):
+                if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+                    # kludge
+                    pass
+                else:
+                    raise
 
-        if is_iterator(key):
-            key = list(key)
+        if not key_is_scalar:
+            # avoid expensive checks if we know we have a scalar
+            if is_iterator(key):
+                key = list(key)
 
-        if com.is_bool_indexer(key):
-            key = check_bool_indexer(self.index, key)
+            if com.is_bool_indexer(key):
+                key = check_bool_indexer(self.index, key)
+                return self._get_values(key)
 
         return self._get_with(key)
 
@@ -906,6 +910,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             key_type = lib.infer_dtype(key, skipna=False)
 
+        # Note: The key_type == "boolean" case should be caught by the
+        #  com.is_bool_indexer check in __getitem__
         if key_type == "integer":
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
@@ -914,8 +920,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.iloc[indexer]
             else:
                 return self._get_values(key)
-        elif key_type == "boolean":
-            return self._get_values(key)
 
         if isinstance(key, (list, tuple)):
             # TODO: de-dup with tuple case handled above?
