@@ -1,6 +1,16 @@
 import datetime
 from sys import getsizeof
-from typing import Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import numpy as np
@@ -28,7 +38,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -56,6 +66,9 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -2313,10 +2326,17 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def get_value(self, series, key):
+    def get_value(self, series: "Series", key):
         # Label-based
+        assert isinstance(series, ABCSeries)
+
         s = com.values_from_object(series)
         k = com.values_from_object(key)
+
+        if is_iterator(key):
+            # Unlike other Index classes, we accept non-scalar, but do
+            #  exclude generators.
+            raise InvalidIndexError(key)
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
@@ -2326,7 +2346,7 @@ class MultiIndex(Index):
             new_index = maybe_droplevels(new_index, k)
             return series._constructor(
                 new_values, index=new_index, name=series.name
-            ).__finalize__(self)
+            ).__finalize__(series)
 
         try:
             return self._engine.get_value(s, k)
@@ -2340,13 +2360,7 @@ class MultiIndex(Index):
                 return libindex.get_value_at(s, k)
             except IndexError:
                 raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
+            except Exception:
                 raise e1
         except TypeError:
 
