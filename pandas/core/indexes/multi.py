@@ -2314,7 +2314,6 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # Label-based
-        k = com.values_from_object(key)
 
         if is_iterator(key):
             # Unlike other Index classes, we accept non-scalar, but do
@@ -2322,12 +2321,12 @@ class MultiIndex(Index):
             raise InvalidIndexError(key)
 
         if isinstance(key, slice):
-            # try_mi will incorrectly convert slice(None, 0, None) to slice(0, 1, None)
-            #  in get_loc, so we have to rule that out explcitly.
+            # try_mi will incorrectly convert slice(None, 0, None) to
+            #  slice(0, 1, None) in get_loc, so we have to rule that out explcitly.
             raise InvalidIndexError(key)
 
         if com.is_bool_indexer(key):
-            return series.iloc[key]
+            raise InvalidIndexError(key)
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
@@ -2350,11 +2349,11 @@ class MultiIndex(Index):
             ).__finalize__(self)
 
         try:
-            result = _try_mi(k)
+            result = _try_mi(key)
             return result
         except KeyError:
-            if is_integer(k):
-                return series._values[k]
+            if is_integer(key):
+                return series._values[key]
             else:
                 raise
 
@@ -2641,10 +2640,24 @@ class MultiIndex(Index):
                 "currently supported for MultiIndex"
             )
 
+        def _maybe_to_slice(loc):
+            """convert integer indexer to boolean mask or slice if possible"""
+            if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
+                return loc
+
+            loc = lib.maybe_indices_to_slice(loc, len(self))
+            if isinstance(loc, slice):
+                return loc
+
+            mask = np.empty(len(self), dtype="bool")
+            mask.fill(False)
+            mask[loc] = True
+            return mask
+
         if not isinstance(key, (tuple, list)):
             # not including list here breaks some indexing, xref #30892
             loc = self._get_level_indexer(key, level=0)
-            return _maybe_to_slice(loc, len(self))
+            return _maybe_to_slice(loc)
 
         keylen = len(key)
         if self.nlevels < keylen:
@@ -2688,9 +2701,7 @@ class MultiIndex(Index):
             if not len(loc):
                 raise KeyError(key)
 
-        if len(loc) != stop - start:
-            return _maybe_to_slice(loc, len(self))
-        return slice(start, stop)
+        return _maybe_to_slice(loc) if len(loc) != stop - start else slice(start, stop)
 
     def get_loc_level(self, key, level=0, drop_level: bool = True):
         """
@@ -3516,21 +3527,6 @@ def _sparsify(label_list, start: int = 0, sentinel=""):
 
 def _get_na_rep(dtype) -> str:
     return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
-
-
-def _maybe_to_slice(loc, length):
-    """convert integer indexer to boolean mask or slice if possible"""
-    if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
-        return loc
-
-    loc = lib.maybe_indices_to_slice(loc, length)
-    if isinstance(loc, slice):
-        return loc
-
-    mask = np.empty(length, dtype="bool")
-    mask.fill(False)
-    mask[loc] = True
-    return mask
 
 
 def maybe_droplevels(index, key):
