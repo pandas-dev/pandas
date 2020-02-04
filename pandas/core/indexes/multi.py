@@ -1,4 +1,3 @@
-import datetime
 from sys import getsizeof
 from typing import Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 import warnings
@@ -7,7 +6,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import Timestamp, algos as libalgos, index as libindex, lib, tslibs
+from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, ArrayLike, Scalar
 from pandas.compat.numpy import function as nv
@@ -28,7 +27,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 import pandas.core.algorithms as algos
@@ -2315,7 +2314,6 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # Label-based
-        s = com.values_from_object(series)
         k = com.values_from_object(key)
 
         if is_iterator(key):
@@ -2350,7 +2348,6 @@ class MultiIndex(Index):
             return series._constructor(
                 new_values, index=new_index, name=series.name
             ).__finalize__(self)
-
 
         try:
             result = _try_mi(k)
