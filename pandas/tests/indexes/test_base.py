@@ -1047,6 +1047,32 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
             getattr(idx1, method)(idx2, sort=True)
 
+    def test_setops_preserve_object_dtype(self):
+        idx = pd.Index([1, 2, 3], dtype=object)
+        result = idx.intersection(idx[1:])
+        expected = idx[1:]
+        tm.assert_index_equal(result, expected)
+
+        # if other is not monotonic increasing, intersection goes through
+        #  a different route
+        result = idx.intersection(idx[1:][::-1])
+        tm.assert_index_equal(result, expected)
+
+        result = idx._union(idx[1:], sort=None)
+        expected = idx
+        tm.assert_index_equal(result, expected)
+
+        result = idx.union(idx[1:], sort=None)
+        tm.assert_index_equal(result, expected)
+
+        # if other is not monotonic increasing, _union goes through
+        #  a different route
+        result = idx._union(idx[1:][::-1], sort=None)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.union(idx[1:][::-1], sort=None)
+        tm.assert_index_equal(result, expected)
+
     def test_map_identity_mapping(self, indices):
         # GH 12766
         tm.assert_index_equal(indices, indices.map(lambda x: x))

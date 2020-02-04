@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import Any, FrozenSet, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
@@ -82,6 +82,10 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
+
+if TYPE_CHECKING:
+    from pandas import Series
+
 
 __all__ = ["Index"]
 
@@ -505,9 +509,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    _index_shared_docs[
-        "_shallow_copy"
-    ] = """
+    def _shallow_copy(self, values=None, **kwargs):
+        """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
         precedence.
@@ -519,13 +522,11 @@ class Index(IndexOpsMixin, PandasObject):
         values : the values to create the new Index, optional
         kwargs : updates the default attributes for this Index
         """
-
-    @Appender(_index_shared_docs["_shallow_copy"])
-    def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self.values
 
         attributes = self._get_attributes_dict()
+
         attributes.update(kwargs)
 
         return self._simple_new(values, **attributes)
@@ -659,9 +660,8 @@ class Index(IndexOpsMixin, PandasObject):
             result._id = self._id
         return result
 
-    _index_shared_docs[
-        "astype"
-    ] = """
+    def astype(self, dtype, copy=True):
+        """
         Create an Index with values cast to dtypes. The class of a new Index
         is determined by dtype. When conversion is impossible, a ValueError
         exception is raised.
@@ -683,9 +683,6 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             Index with values cast to specified dtype.
         """
-
-    @Appender(_index_shared_docs["astype"])
-    def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
@@ -823,9 +820,8 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Copying Methods
 
-    _index_shared_docs[
-        "copy"
-    ] = """
+    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+        """
         Make a copy of this object.  Name and dtype sets those attributes on
         the new object.
 
@@ -844,9 +840,6 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
-
-    @Appender(_index_shared_docs["copy"])
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
         if deep:
             new_index = self._shallow_copy(self._data.copy())
         else:
@@ -1537,9 +1530,8 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    _index_shared_docs[
-        "_get_grouper_for_level"
-    ] = """
+    def _get_grouper_for_level(self, mapper, level=None):
+        """
         Get index grouper corresponding to an index level
 
         Parameters
@@ -1558,9 +1550,6 @@ class Index(IndexOpsMixin, PandasObject):
         uniques : Index or None
             Index of unique values for level.
         """
-
-    @Appender(_index_shared_docs["_get_grouper_for_level"])
-    def _get_grouper_for_level(self, mapper, level=None):
         assert level is None or level == 0
         if mapper is None:
             grouper = self
@@ -2156,9 +2145,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     notnull = notna
 
-    _index_shared_docs[
-        "fillna"
-    ] = """
+    def fillna(self, value=None, downcast=None):
+        """
         Fill NA/NaN values with the specified value.
 
         Parameters
@@ -2175,9 +2163,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         filled : Index
         """
-
-    @Appender(_index_shared_docs["fillna"])
-    def fillna(self, value=None, downcast=None):
         self._assert_can_do_op(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
@@ -2187,9 +2172,8 @@ class Index(IndexOpsMixin, PandasObject):
                 return Index(result, name=self.name)
         return self._shallow_copy()
 
-    _index_shared_docs[
-        "dropna"
-    ] = """
+    def dropna(self, how="any"):
+        """
         Return Index without NA/NaN values.
 
         Parameters
@@ -2202,9 +2186,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         valid : Index
         """
-
-    @Appender(_index_shared_docs["dropna"])
-    def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
 
@@ -2215,9 +2196,8 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Uniqueness Methods
 
-    _index_shared_docs[
-        "index_unique"
-    ] = """
+    def unique(self, level=None):
+        """
         Return unique values in the index. Uniques are returned in order
         of appearance, this does NOT sort.
 
@@ -2237,9 +2217,6 @@ class Index(IndexOpsMixin, PandasObject):
         unique
         Series.unique
         """
-
-    @Appender(_index_shared_docs["index_unique"] % _index_doc_kwargs)
-    def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
         result = super().unique()
@@ -2594,6 +2571,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # worth making this faster? a very unusual case
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
+                result = Index(result)._values  # do type inference here
         else:
             # find indexes of things in "other" that are not in "self"
             if self.is_unique:
@@ -2623,11 +2601,12 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     def _wrap_setop_result(self, other, result):
-        return self._constructor(result, name=get_op_result_name(self, other))
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name)
 
-    _index_shared_docs[
-        "intersection"
-    ] = """
+    # TODO: standardize return type of non-union setops type(self vs other)
+    def intersection(self, other, sort=False):
+        """
         Form the intersection of two Index objects.
 
         This returns a new Index with elements common to the index and `other`.
@@ -2661,10 +2640,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
         """
-
-    # TODO: standardize return type of non-union setops type(self vs other)
-    @Appender(_index_shared_docs["intersection"])
-    def intersection(self, other, sort=False):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         other = ensure_index(other)
@@ -2684,9 +2659,10 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(lvals, rvals)[0]
-                return self._wrap_setop_result(other, result)
             except TypeError:
                 pass
+            else:
+                return self._wrap_setop_result(other, result)
 
         try:
             indexer = Index(rvals).get_indexer(lvals)
@@ -2868,9 +2844,8 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    _index_shared_docs[
-        "get_loc"
-    ] = """
+    def get_loc(self, key, method=None, tolerance=None):
+        """
         Get integer location, slice or boolean mask for requested label.
 
         Parameters
@@ -2907,9 +2882,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-
-    @Appender(_index_shared_docs["get_loc"])
-    def get_loc(self, key, method=None, tolerance=None):
         if method is None:
             if tolerance is not None:
                 raise ValueError(
@@ -2920,6 +2892,10 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(key)
             except KeyError:
                 return self._engine.get_loc(self._maybe_cast_indexer(key))
+
+        if tolerance is not None:
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
+
         indexer = self.get_indexer([key], method=method, tolerance=tolerance)
         if indexer.ndim > 1 or indexer.size > 1:
             raise TypeError("get_loc requires scalar valued input")
@@ -3097,9 +3073,8 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        target = np.asarray(target)
-        left_distances = abs(self.values[left_indexer] - target)
-        right_distances = abs(self.values[right_indexer] - target)
+        left_distances = np.abs(self[left_indexer] - target)
+        right_distances = np.abs(self[right_indexer] - target)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3121,19 +3096,15 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
 
-    _index_shared_docs[
-        "_convert_scalar_indexer"
-    ] = """
+    def _convert_scalar_indexer(self, key, kind=None):
+        """
         Convert a scalar indexer.
 
         Parameters
         ----------
         key : label of the slice bound
         kind : {'loc', 'getitem', 'iloc'} or None
-    """
-
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
-    def _convert_scalar_indexer(self, key, kind=None):
+        """
         assert kind in ["loc", "getitem", "iloc", None]
 
         if kind == "iloc":
@@ -3171,9 +3142,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         return key
 
-    _index_shared_docs[
-        "_convert_slice_indexer"
-    ] = """
+    def _convert_slice_indexer(self, key: slice, kind=None):
+        """
         Convert a slice indexer.
 
         By definition, these are labels unless 'iloc' is passed in.
@@ -3183,10 +3153,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         key : label of the slice bound
         kind : {'loc', 'getitem', 'iloc'} or None
-    """
-
-    @Appender(_index_shared_docs["_convert_slice_indexer"])
-    def _convert_slice_indexer(self, key: slice, kind=None):
+        """
         assert kind in ["loc", "getitem", "iloc", None]
 
         # validate iloc
@@ -3266,9 +3233,8 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = self._convert_list_indexer(keyarr, kind=kind)
         return indexer, keyarr
 
-    _index_shared_docs[
-        "_convert_arr_indexer"
-    ] = """
+    def _convert_arr_indexer(self, keyarr):
+        """
         Convert an array-like indexer to the appropriate dtype.
 
         Parameters
@@ -3279,16 +3245,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         converted_keyarr : array-like
-    """
-
-    @Appender(_index_shared_docs["_convert_arr_indexer"])
-    def _convert_arr_indexer(self, keyarr):
+        """
         keyarr = com.asarray_tuplesafe(keyarr)
         return keyarr
 
-    _index_shared_docs[
-        "_convert_index_indexer"
-    ] = """
+    def _convert_index_indexer(self, keyarr):
+        """
         Convert an Index indexer to the appropriate dtype.
 
         Parameters
@@ -3299,15 +3261,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         converted_keyarr : Index (or sub-class)
-    """
-
-    @Appender(_index_shared_docs["_convert_index_indexer"])
-    def _convert_index_indexer(self, keyarr):
+        """
         return keyarr
 
-    _index_shared_docs[
-        "_convert_list_indexer"
-    ] = """
+    def _convert_list_indexer(self, keyarr, kind=None):
+        """
         Convert a list-like indexer to the appropriate dtype.
 
         Parameters
@@ -3319,10 +3277,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         positional indexer or None
-    """
-
-    @Appender(_index_shared_docs["_convert_list_indexer"])
-    def _convert_list_indexer(self, keyarr, kind=None):
+        """
         if (
             kind in [None, "iloc"]
             and is_integer_dtype(keyarr)
@@ -3502,9 +3457,8 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
-    _index_shared_docs[
-        "join"
-    ] = """
+    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
+        """
         Compute join_index and indexers to conform data
         structures to the new index.
 
@@ -3522,9 +3476,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         join_index, (left_indexer, right_indexer)
         """
-
-    @Appender(_index_shared_docs["join"])
-    def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         self_is_mi = isinstance(self, ABCMultiIndex)
         other_is_mi = isinstance(other, ABCMultiIndex)
 
@@ -3642,8 +3593,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
-        self_is_mi = isinstance(self, MultiIndex)
-        other_is_mi = isinstance(other, MultiIndex)
+        self_is_mi = isinstance(self, ABCMultiIndex)
+        other_is_mi = isinstance(other, ABCMultiIndex)
 
         if self_is_mi and other_is_mi:
 
@@ -4033,9 +3984,8 @@ class Index(IndexOpsMixin, PandasObject):
         result += self._engine.sizeof(deep=deep)
         return result
 
-    _index_shared_docs[
-        "where"
-    ] = """
+    def where(self, cond, other=None):
+        """
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
         other.
@@ -4049,9 +3999,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
-
-    @Appender(_index_shared_docs["where"])
-    def where(self, cond, other=None):
         if other is None:
             other = self._na_value
 
@@ -4146,9 +4093,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return kind == self.inferred_type
 
-    _index_shared_docs[
-        "contains"
-    ] = """
+    def __contains__(self, key: Any) -> bool:
+        """
         Return a boolean indicating whether the provided key is in the index.
 
         Parameters
@@ -4177,9 +4123,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> 6 in idx
         False
         """
-
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
             return key in self._engine
@@ -4641,21 +4584,15 @@ class Index(IndexOpsMixin, PandasObject):
             result = np.array(self)
         return result.argsort(*args, **kwargs)
 
-    _index_shared_docs[
-        "get_value"
-    ] = """
+    def get_value(self, series: "Series", key):
+        """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing.
 
         Returns
         -------
-        scalar
-            A value in the Series with the index of the key value in self.
+        scalar or Series
         """
-
-    @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
-    def get_value(self, series, key):
-
         if not is_scalar(key):
             # if key is not a scalar, directly raise an error (the code below
             # would convert to numpy arrays and raise later any way) - GH29926
@@ -4680,7 +4617,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._get_values_for_loc(series, loc)
 
-    def _get_values_for_loc(self, series, loc):
+    def _get_values_for_loc(self, series: "Series", loc):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
@@ -4688,10 +4625,6 @@ class Index(IndexOpsMixin, PandasObject):
         Assumes that `series.index is self`
         """
         if is_integer(loc):
-            if isinstance(series._values, np.ndarray):
-                # Since we have an ndarray and not DatetimeArray, we dont
-                #  have to worry about a tz.
-                return libindex.get_value_at(series._values, loc, tz=None)
             return series._values[loc]
 
         return series.iloc[loc]
@@ -4714,9 +4647,9 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        self._engine.set_value(
-            com.values_from_object(arr), com.values_from_object(key), value
-        )
+        loc = self._engine.get_loc(key)
+        libindex.validate_numeric_casting(arr.dtype, value)
+        arr[loc] = value
 
     _index_shared_docs[
         "get_indexer_non_unique"
@@ -4997,13 +4930,8 @@ class Index(IndexOpsMixin, PandasObject):
         to an int if equivalent.
         """
 
-        if is_float(key) and not self.is_floating():
-            try:
-                ckey = int(key)
-                if ckey == key:
-                    key = ckey
-            except (OverflowError, ValueError, TypeError):
-                pass
+        if not self.is_floating():
+            return com.cast_scalar_indexer(key)
         return key
 
     def _validate_indexer(self, form: str_t, key, kind: str_t):
@@ -5020,9 +4948,8 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             self._invalid_indexer(form, key)
 
-    _index_shared_docs[
-        "_maybe_cast_slice_bound"
-    ] = """
+    def _maybe_cast_slice_bound(self, label, side: str_t, kind):
+        """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
         strings containing formatted datetimes.
@@ -5041,9 +4968,6 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         Value of `side` parameter should be validated in caller.
         """
-
-    @Appender(_index_shared_docs["_maybe_cast_slice_bound"])
-    def _maybe_cast_slice_bound(self, label, side: str_t, kind):
         assert kind in ["loc", "getitem", None]
 
         # We are a plain index here (sub-class override this method if they
