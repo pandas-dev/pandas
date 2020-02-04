@@ -2393,7 +2393,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
 
-                line = self._check_comments([line])[0]
+                line = self._check_comments([[line]])[0][0]
 
                 self.pos += 1
                 self.line_pos += 1
