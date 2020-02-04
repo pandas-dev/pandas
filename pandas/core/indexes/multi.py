@@ -1305,6 +1305,9 @@ class MultiIndex(Index):
                     )
             self._names[lev] = name
 
+        # If .levels has been accessed, the names in our cache will be stale.
+        self._reset_cache()
+
     names = property(
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
     )
