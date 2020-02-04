@@ -165,7 +165,7 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data[mask]
         expected = data[mask.fillna(False)]
 
-        self.assert_frame_equal(result, expected)
+        self.assert_extension_array_equal(result, expected)
 
         s = pd.Series(data)
 
