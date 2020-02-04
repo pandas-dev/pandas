@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
+from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
@@ -794,7 +794,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return libindex.get_value_at(self.sp_values, sp_loc)
+            val = self.sp_values[sp_loc]
+            if self.sp_values.dtype.kind in ["m", "M"]:
+                # TODO: this can be avoided if we ever have sp_values
+                #  of DatetimeArray/TimedeltaArray
+                val = com.maybe_box_datetimelike(val)
+            return val
 
     def take(self, indices, allow_fill=False, fill_value=None):
         if is_scalar(indices):

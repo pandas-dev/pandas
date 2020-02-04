@@ -35,16 +35,6 @@ cdef inline bint is_definitely_invalid_key(object val):
     return False
 
 
-cpdef get_value_at(ndarray arr, object loc, object tz=None):
-    obj = util.get_value_at(arr, loc)
-
-    if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(obj, tz=tz)
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(obj)
-    return obj
-
-
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1_000_000
 

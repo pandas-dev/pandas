@@ -2330,7 +2330,11 @@ class MultiIndex(Index):
 
         try:
             loc = self._engine.get_loc(k)
-            return series.iloc[loc]
+            if not is_scalar(loc):
+                # TODO: Not the right error to raise, but we can't let this through here.
+                raise KeyError
+            result = series.iloc[loc]
+            return result
         except KeyError as e1:
             try:
                 return _try_mi(key)
@@ -2338,7 +2342,9 @@ class MultiIndex(Index):
                 pass
 
             try:
-                return libindex.get_value_at(s, k)
+                if is_integer(k):
+                    return series._values[k]
+                raise TypeError
             except IndexError:
                 raise
             except TypeError:
