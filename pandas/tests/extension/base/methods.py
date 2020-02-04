@@ -280,6 +280,13 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = empty
         self.assert_extension_array_equal(result, expected)
 
+    def test_shift_zero_copies(self, data):
+        result = data.shift(0)
+        assert result is not data
+
+        result = data[:0].shift(2)
+        assert result is not data
+
     def test_shift_fill_value(self, data):
         arr = data[:4]
         fill_value = data[0]

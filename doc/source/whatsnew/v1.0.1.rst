@@ -57,6 +57,9 @@ Bug fixes
 
 - Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`)
 
+**Interval**
+
+- Bug in :meth:`Series.shift` with ``interval`` dtype raising a ``TypeError`` when shifting an interval array of integers or datetimes (:issue:`34195`)
 
 .. ---------------------------------------------------------------------------
 
