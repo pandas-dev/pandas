@@ -405,7 +405,7 @@ def test_agg_misc():
     ]
 
     # passed lambda
-    for i, t in enumerate(cases):
+    for t in cases:
         result = t.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
         rcustom = t["B"].apply(lambda x: np.std(x, ddof=1))
         expected = pd.concat([r["A"].sum(), rcustom], axis=1)
