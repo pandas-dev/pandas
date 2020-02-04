@@ -611,8 +611,9 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels can give an unintended "
-                "result ({left} levels on the left, {right} on the right)"
-            ).format(left=_left.columns.nlevels, right=_right.columns.nlevels)
+                f"result ({left.columns.nlevels} levels on the left,"
+                f"{right.columns.nlevels} on the right)"
+            )
             warnings.warn(msg, UserWarning)
 
         self._validate_specification()
@@ -679,7 +680,7 @@ class _MergeOperation:
             if i in columns:
                 raise ValueError(
                     "Cannot use `indicator=True` option when "
-                    "data contains a column named {name}".format(name=i)
+                    f"data contains a column named {i}"
                 )
         if self.indicator_name in columns:
             raise ValueError(
@@ -831,7 +832,7 @@ class _MergeOperation:
                     else:
                         result.index = Index(key_col, name=name)
                 else:
-                    result.insert(i, name or "key_{i}".format(i=i), key_col)
+                    result.insert(i, name or f"key_{i}", key_col)
 
     def _get_join_indexers(self):
         """ return the join indexers """
@@ -1185,13 +1186,10 @@ class _MergeOperation:
                 if len(common_cols) == 0:
                     raise MergeError(
                         "No common columns to perform merge on. "
-                        "Merge options: left_on={lon}, right_on={ron}, "
-                        "left_index={lidx}, right_index={ridx}".format(
-                            lon=self.left_on,
-                            ron=self.right_on,
-                            lidx=self.left_index,
-                            ridx=self.right_index,
-                        )
+                        f"Merge options: left_on={self.left_on}, "
+                        f"right_on={self.right_on}, "
+                        f"left_index={self.left_index}, "
+                        f"right_index={self.right_index}"
                     )
                 if not common_cols.is_unique:
                     raise MergeError(f"Data columns not unique: {repr(common_cols)}")
@@ -1486,12 +1484,12 @@ class _OrderedMerge(_MergeOperation):
 
 
 def _asof_function(direction: str):
-    name = "asof_join_{dir}".format(dir=direction)
+    name = f"asof_join_{direction}"
     return getattr(libjoin, name, None)
 
 
 def _asof_by_function(direction: str):
-    name = "asof_join_{dir}_on_X_by_Y".format(dir=direction)
+    name = f"asof_join_{direction}_on_X_by_Y"
     return getattr(libjoin, name, None)
 
 
@@ -1601,9 +1599,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # check 'direction' is valid
         if self.direction not in ["backward", "forward", "nearest"]:
-            raise MergeError(
-                "direction invalid: {direction}".format(direction=self.direction)
-            )
+            raise MergeError(f"direction invalid: {self.direction}")
 
     @property
     def _asof_key(self):
@@ -1628,17 +1624,13 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        "incompatible merge keys [{i}] {lkdtype} and "
-                        "{rkdtype}, both sides category, but not equal ones".format(
-                            i=i, lkdtype=repr(lk.dtype), rkdtype=repr(rk.dtype)
-                        )
+                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
+                        f"{repr(rk.dtype)}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        "incompatible merge keys [{i}] {lkdtype} and "
-                        "{rkdtype}, must be the same type".format(
-                            i=i, lkdtype=repr(lk.dtype), rkdtype=repr(rk.dtype)
-                        )
+                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
+                        f"{repr(rk.dtype)}, must be the same type"
                     )
                 raise MergeError(msg)
 
@@ -1651,10 +1643,8 @@ class _AsOfMerge(_OrderedMerge):
                 lt = left_join_keys[-1]
 
             msg = (
-                "incompatible tolerance {tolerance}, must be compat "
-                "with type {lkdtype}".format(
-                    tolerance=type(self.tolerance), lkdtype=repr(lt.dtype)
-                )
+                f"incompatible tolerance {self.tolerance}, must be compat "
+                f"with type {repr(lk.dtype)}"
             )
 
             if needs_i8_conversion(lt):
@@ -1680,8 +1670,11 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
-            msg = "allow_exact_matches must be boolean, passed {passed}"
-            raise MergeError(msg.format(passed=self.allow_exact_matches))
+            msg = (
+                "allow_exact_matches must be boolean, "
+                f"passed {self.allow_exact_matches}"
+            )
+            raise MergeError(msg)
 
         return left_join_keys, right_join_keys, join_names
 

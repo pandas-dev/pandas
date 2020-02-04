@@ -371,10 +371,8 @@ class TestMerge:
 
         msg = (
             "No common columns to perform merge on. "
-            "Merge options: left_on={lon}, right_on={ron}, "
-            "left_index={lidx}, right_index={ridx}".format(
-                lon=None, ron=None, lidx=False, ridx=False
-            )
+            f"Merge options: left_on={None}, right_on={None}, "
+            f"left_index={False}, right_index={False}"
         )
 
         with pytest.raises(MergeError, match=msg):
