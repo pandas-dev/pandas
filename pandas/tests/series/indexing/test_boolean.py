@@ -70,6 +70,14 @@ def test_getitem_boolean_object(string_series):
     s2[mask] = 5
     tm.assert_series_equal(cop, s2)
 
+    # nans raise exception
+    omask[5:10] = np.nan
+    msg = "cannot mask with array containing NA / NaN values"
+    with pytest.raises(ValueError, match=msg):
+        s[omask]
+    with pytest.raises(ValueError, match=msg):
+        s[omask] = 5
+
 
 def test_getitem_setitem_boolean_corner(datetime_series):
     ts = datetime_series
