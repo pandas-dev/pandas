@@ -2889,9 +2889,9 @@ class Index(IndexOpsMixin, PandasObject):
                     "backfill or nearest lookups"
                 )
             try:
-                return self._engine.get_loc(key)
-            except KeyError:
                 return self._engine.get_loc(self._maybe_cast_indexer(key))
+            except KeyError:
+                raise KeyError(key)
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
