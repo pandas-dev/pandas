@@ -567,7 +567,7 @@ class TestParquetPyArrow(Base):
     @td.skip_if_no("pyarrow", min_version="0.14")
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.0, pyarrow defaults to writing the nanoseconds, so
-        # this should work with error
+        # this should work without error
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
