@@ -851,3 +851,17 @@ def test_apply_function_returns_non_pandas_non_scalar(function, expected_values)
     result = df.groupby("groups").apply(function)
     expected = pd.Series(expected_values, index=pd.Index(["A", "B"], name="groups"))
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_returns_numpy_array():
+    # GH 31605
+    def fct(group):
+        return group["B"].values.flatten()
+
+    df = pd.DataFrame({"A": ["a", "a", "b", "none"], "B": [1, 2, 3, np.nan]})
+
+    result = df.groupby("A").apply(fct)
+    expected = pd.Series(
+        [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
+    )
+    tm.assert_series_equal(result, expected)
