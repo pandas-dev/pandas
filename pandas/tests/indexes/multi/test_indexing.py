@@ -212,7 +212,7 @@ class TestGetIndexer:
         with pytest.raises(NotImplementedError, match=msg):
             midx.get_indexer(["a"], method="pad", tolerance=2)
 
-    def test_get_indexer_categorical_time():
+    def test_get_indexer_categorical_time(self):
         # https://github.com/pandas-dev/pandas/issues/21390
         midx = MultiIndex.from_product(
             [
@@ -441,7 +441,7 @@ class TestGetLoc:
         # GH 8569
         idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
         assert isinstance(idx.get_loc(1), slice)
-        with pytest.raises(KeyError, match=r"^3\.0$"):
+        with pytest.raises(KeyError, match=r"^3$"):
             idx.get_loc(3)
         with pytest.raises(KeyError, match=r"^nan$"):
             idx.get_loc(np.nan)

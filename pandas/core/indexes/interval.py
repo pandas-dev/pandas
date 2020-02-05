@@ -537,7 +537,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr, kind=None):
+    def _convert_list_indexer(self, keyarr):
         """
         we are passed a list-like indexer. Return the
         indexer for matching intervals.
