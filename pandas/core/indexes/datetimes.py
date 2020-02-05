@@ -590,6 +590,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 raise KeyError
 
             # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating
             left = stamps.searchsorted(t1.value, side="left") if use_lhs else None
             right = stamps.searchsorted(t2.value, side="right") if use_rhs else None
 
