@@ -3100,7 +3100,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
 
-    def _convert_scalar_indexer(self, key, kind: str):
+    def _convert_scalar_indexer(self, key, kind: str_t):
         """
         Convert a scalar indexer.
 
