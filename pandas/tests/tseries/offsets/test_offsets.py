@@ -419,7 +419,7 @@ class TestCommon(Base):
             with pytest.raises(ValueError, match="^N cannot be 0"):
                 0 * offset_s
             return
-        if isinstance(offset_s, Week):
+        if isinstance(offset_s, (Week, Tick)):
             exp_warning = None
         else:
             exp_warning = FutureWarning

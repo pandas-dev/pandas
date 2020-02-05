@@ -477,13 +477,15 @@ class _BaseOffset:
             raise ValueError(f'`n` argument must be an integer, got {n}')
         if n == 0:
             if hasattr(self, "_prefix") and self._prefix == "W":
+                pass  # we allow Week(0), xref GH31185
+            elif isinstance(self, _Tick):
                 pass
             else:
                 warnings.warn(
                     "Initialising a DateOffset with n=0 is deprecated and "
                     "will be removed in a future version.",
                     FutureWarning,
-                    stacklevel=5
+                    stacklevel=5,
                 )
         return nint
 
