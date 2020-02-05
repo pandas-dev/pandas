@@ -8,8 +8,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_extension_array_dtype,
     is_float,
     is_integer,
     is_iterator,
