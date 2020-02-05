@@ -69,6 +69,7 @@ from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     maybe_upcast,
     maybe_upcast_putmask,
+    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -607,7 +608,7 @@ class DataFrame(NDFrame):
         Check if full repr fits in horizontal boundaries imposed by the display
         options width and max_columns.
 
-        In case off non-interactive session, no boundaries apply.
+        In case of non-interactive session, no boundaries apply.
 
         `ignore_width` is here so ipnb+HTML output can behave the way
         users expect. display.max_columns remains in effect.
@@ -874,8 +875,8 @@ class DataFrame(NDFrame):
         polar   bear      22000
         koala   marsupial 80000
         >>> for label, content in df.items():
-        ...     print('label:', label)
-        ...     print('content:', content, sep='\n')
+        ...     print(f'label: {label}')
+        ...     print(f'content: {content}', sep='\n')
         ...
         label: species
         content:
@@ -2900,12 +2901,8 @@ class DataFrame(NDFrame):
         engine = self.index._engine
 
         try:
-            if isinstance(series._values, np.ndarray):
-                # i.e. not EA, we can use engine
-                return engine.get_value(series._values, index)
-            else:
-                loc = series.index.get_loc(index)
-                return series._values[loc]
+            loc = engine.get_loc(index)
+            return series._values[loc]
         except KeyError:
             # GH 20629
             if self.index.nlevels > 1:
@@ -2937,8 +2934,11 @@ class DataFrame(NDFrame):
             self._set_item(key, value)
 
     def _setitem_slice(self, key, value):
+        # NB: we can't just use self.loc[key] = value because that
+        #  operates on labels and we need to operate positional for
+        #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.loc[key] = value
+        self.loc._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -3025,10 +3025,14 @@ class DataFrame(NDFrame):
 
             series = self._get_item_cache(col)
             engine = self.index._engine
-            engine.set_value(series._values, index, value)
+            loc = engine.get_loc(index)
+            validate_numeric_casting(series.dtype, value)
+
+            series._values[loc] = value
+            # Note: trying to use series._set_value breaks tests in
+            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
             return self
         except (KeyError, TypeError):
-
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value

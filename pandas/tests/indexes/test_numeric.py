@@ -385,7 +385,7 @@ class TestFloat64Index(Numeric):
         # GH 8569
         idx = Float64Index([1, 2])
         assert idx.get_loc(1) == 0
-        with pytest.raises(KeyError, match=r"^3\.0$"):
+        with pytest.raises(KeyError, match=r"^3$"):
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)
@@ -402,7 +402,7 @@ class TestFloat64Index(Numeric):
     )
     def test_lookups_datetimelike_values(self, vals):
         # If we have datetime64 or timedelta64 values, make sure they are
-        #  wrappped correctly
+        #  wrappped correctly  GH#31163
         ser = pd.Series(vals, index=range(3, 6))
         ser.index = ser.index.astype("float64")
 
@@ -425,7 +425,9 @@ class TestFloat64Index(Numeric):
 
         result = ser.at[4.0]
         assert isinstance(result, type(expected)) and result == expected
-        # Note: ser.at[4] raises ValueError; TODO: should we make this match loc?
+        # GH#31329 .at[4] should cast to 4.0, matching .loc behavior
+        result = ser.at[4]
+        assert isinstance(result, type(expected)) and result == expected
 
         result = ser.iloc[1]
         assert isinstance(result, type(expected)) and result == expected

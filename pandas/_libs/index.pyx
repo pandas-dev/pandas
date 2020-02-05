@@ -87,20 +87,6 @@ cdef class IndexEngine:
         else:
             return get_value_at(arr, loc, tz=tz)
 
-    cpdef set_value(self, ndarray arr, object key, object value):
-        """
-        Parameters
-        ----------
-        arr : 1-dimensional ndarray
-        """
-        cdef:
-            object loc
-
-        loc = self.get_loc(key)
-        value = convert_scalar(arr, value)
-
-        arr[loc] = value
-
     cpdef get_loc(self, object val):
         cdef:
             Py_ssize_t loc
@@ -514,8 +500,7 @@ cdef class PeriodEngine(Int64Engine):
         return super(PeriodEngine, self).vgetter().view("i8")
 
     cdef _call_monotonic(self, values):
-        # super(...) pattern doesn't seem to work with `cdef`
-        return Int64Engine._call_monotonic(self, values.view('i8'))
+        return algos.is_monotonic(values, timelike=True)
 
     def get_indexer(self, values):
         cdef:
@@ -548,54 +533,6 @@ cdef class PeriodEngine(Int64Engine):
         ordinal_array = np.asarray(ordinal)
 
         return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
-
-
-cpdef convert_scalar(ndarray arr, object value):
-    # we don't turn integers
-    # into datetimes/timedeltas
-
-    # we don't turn bools into int/float/complex
-
-    if arr.descr.type_num == NPY_DATETIME:
-        if util.is_array(value):
-            pass
-        elif isinstance(value, (datetime, np.datetime64, date)):
-            return Timestamp(value).to_datetime64()
-        elif util.is_timedelta64_object(value):
-            # exclude np.timedelta64("NaT") from value != value below
-            pass
-        elif value is None or value != value:
-            return np.datetime64("NaT", "ns")
-        raise ValueError("cannot set a Timestamp with a non-timestamp "
-                         f"{type(value).__name__}")
-
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        if util.is_array(value):
-            pass
-        elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
-            value = Timedelta(value)
-            if value is NaT:
-                return np.timedelta64("NaT", "ns")
-            return value.to_timedelta64()
-        elif util.is_datetime64_object(value):
-            # exclude np.datetime64("NaT") which would otherwise be picked up
-            #  by the `value != value check below
-            pass
-        elif value is None or value != value:
-            return np.timedelta64("NaT", "ns")
-        raise ValueError("cannot set a Timedelta with a non-timedelta "
-                         f"{type(value).__name__}")
-
-    if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
-            not issubclass(arr.dtype.type, np.bool_)):
-        if util.is_bool_object(value):
-            raise ValueError("Cannot assign bool to float/integer series")
-
-    if issubclass(arr.dtype.type, (np.integer, np.bool_)):
-        if util.is_float_object(value) and value != value:
-            raise ValueError("Cannot assign nan to integer series")
-
-    return value
 
 
 cdef class BaseMultiIndexCodesEngine:

@@ -72,16 +72,6 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box(indexer, values, obj, key):
-
-    # if we have multiples coming back, box em
-    if isinstance(values, np.ndarray):
-        return obj[indexer.get_loc(key)]
-
-    # return the value
-    return values
-
-
 def maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
@@ -121,8 +111,8 @@ def is_bool_indexer(key: Any) -> bool:
 
     See Also
     --------
-    check_bool_array_indexer : Check that `key`
-        is a valid mask for an array, and convert to an ndarray.
+    check_array_indexer : Check that `key` is a valid array to index,
+        and convert to an ndarray.
     """
     na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
@@ -166,7 +156,7 @@ def cast_scalar_indexer(val):
     outval : scalar
     """
     # assumes lib.is_scalar(val)
-    if lib.is_float(val) and val == int(val):
+    if lib.is_float(val) and val.is_integer():
         return int(val)
     return val
 
