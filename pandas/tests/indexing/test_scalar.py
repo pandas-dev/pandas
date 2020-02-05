@@ -136,29 +136,33 @@ class TestScalar2:
         result = s.at["a"]
         assert result == 1
         msg = (
-            "At based indexing on an non-integer index can only have "
-            "non-integer indexers"
+            "cannot do label indexing on <class 'pandas.core.indexes.base.Index'> "
+            r"with these indexers \[0\] of <class 'int'>"
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             s.at[0]
+        with pytest.raises(TypeError, match=msg):
+            s.loc[0]
 
         df = DataFrame({"A": [1, 2, 3]}, index=list("abc"))
         result = df.at["a", "A"]
         assert result == 1
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.at["a", 0]
+        with pytest.raises(TypeError, match=msg):
+            df.loc["a", 0]
 
         s = Series([1, 2, 3], index=[3, 2, 1])
         result = s.at[1]
         assert result == 3
         msg = "At based indexing on an integer index can only have integer indexers"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(KeyError, match="a"):
             s.at["a"]
 
         df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
         result = df.at[1, 0]
         assert result == 3
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(KeyError, match="a"):
             df.at["a", 0]
 
         # GH 13822, incorrect error string with non-unique columns when missing

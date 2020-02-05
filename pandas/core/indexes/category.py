@@ -478,35 +478,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         except KeyError:
             raise KeyError(key)
 
-    def get_value(self, series: "Series", key: Any):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-
-        Parameters
-        ----------
-        series : Series
-            1-dimensional array to take values from
-        key: : scalar
-            The value of this index at the position of the desired value,
-            otherwise the positional index of the desired value
-
-        Returns
-        -------
-        Any
-            The element of the series at the position indicated by the key
-        """
-        k = key
-        try:
-            k = self._convert_scalar_indexer(k, kind="getitem")
-            indexer = self.get_loc(k)
-            return series.take([indexer])[0]
-        except (KeyError, TypeError):
-            pass
-
-        # we might be a positional inexer
-        return Index.get_value(self, series, key)
-
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         # TODO: Investigate an alternative implementation with
