@@ -1,5 +1,4 @@
 import collections
-import textwrap
 
 import cython
 
