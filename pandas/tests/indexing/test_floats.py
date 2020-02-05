@@ -107,7 +107,7 @@ class TestFloatIndexers:
                     "mixed",
                 }:
                     error = KeyError
-                    msg = r"^3$"
+                    msg = r"^3\.0$"
                 else:
                     error = TypeError
                     msg = (
@@ -187,7 +187,7 @@ class TestFloatIndexers:
             with pytest.raises(TypeError, match=msg):
                 idxr(s2)[1.0]
 
-        with pytest.raises(KeyError, match=r"^1$"):
+        with pytest.raises(KeyError, match=r"^1\.0$"):
             s2.loc[1.0]
 
         result = s2.loc["b"]
@@ -213,7 +213,7 @@ class TestFloatIndexers:
         msg = "Cannot index by location index with a non-integer key"
         with pytest.raises(TypeError, match=msg):
             s3.iloc[1.0]
-        with pytest.raises(KeyError, match=r"^1$"):
+        with pytest.raises(KeyError, match=r"^1\.0$"):
             s3.loc[1.0]
 
         result = s3.loc[1.5]
@@ -666,11 +666,11 @@ class TestFloatIndexers:
         # value not found (and no fallbacking at all)
 
         # scalar integers
-        with pytest.raises(KeyError, match=r"^4\.0$"):
+        with pytest.raises(KeyError, match=r"^4$"):
             s.loc[4]
-        with pytest.raises(KeyError, match=r"^4\.0$"):
+        with pytest.raises(KeyError, match=r"^4$"):
             s.loc[4]
-        with pytest.raises(KeyError, match=r"^4\.0$"):
+        with pytest.raises(KeyError, match=r"^4$"):
             s[4]
 
         # fancy floats/integers create the correct entry (as nan)

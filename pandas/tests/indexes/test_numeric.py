@@ -385,7 +385,7 @@ class TestFloat64Index(Numeric):
         # GH 8569
         idx = Float64Index([1, 2])
         assert idx.get_loc(1) == 0
-        with pytest.raises(KeyError, match=r"^3\.0$"):
+        with pytest.raises(KeyError, match=r"^3$"):
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)

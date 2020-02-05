@@ -2888,10 +2888,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "tolerance argument only valid if using pad, "
                     "backfill or nearest lookups"
                 )
+            casted_key = self._maybe_cast_indexer(key)
             try:
-                return self._engine.get_loc(key)
+                return self._engine.get_loc(casted_key)
             except KeyError:
-                return self._engine.get_loc(self._maybe_cast_indexer(key))
+                raise KeyError(key)
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
