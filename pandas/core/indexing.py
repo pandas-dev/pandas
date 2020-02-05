@@ -702,12 +702,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _convert_scalar_indexer(self, key, axis: int):
-        # if we are accessing via lowered dim, use the last dim
-        ax = self.obj._get_axis(min(axis, self.ndim - 1))
-        # a scalar
-        return ax._convert_scalar_indexer(key, kind=self.name)
-
     def _convert_slice_indexer(self, key: slice, axis: int):
         # if we are accessing via lowered dim, use the last dim
         ax = self.obj._get_axis(min(axis, self.ndim - 1))
@@ -1627,7 +1621,8 @@ class _LocIndexer(_LocationIndexer):
             return
 
         if not is_list_like_indexer(key):
-            self._convert_scalar_indexer(key, axis)
+            labels = self.obj._get_axis(axis)
+            labels._convert_scalar_indexer(key, kind="loc")
 
     def _is_scalar_access(self, key: Tuple) -> bool:
         """
@@ -1801,7 +1796,7 @@ class _LocIndexer(_LocationIndexer):
         if is_scalar(key):
             # try to find out correct indexer, if not type correct raise
             try:
-                key = self._convert_scalar_indexer(key, axis)
+                key = labels._convert_scalar_indexer(key, kind="loc")
             except TypeError:
                 # but we will allow setting
                 if not setting:
@@ -2046,7 +2041,8 @@ class _iLocIndexer(_LocationIndexer):
             return self._convert_slice_indexer(key, axis)
 
         elif is_float(key):
-            return self._convert_scalar_indexer(key, axis)
+            labels = self.obj._get_axis(axis)
+            return labels._convert_scalar_indexer(key, kind="iloc")
 
         self._validate_key(key, axis)
         return key
