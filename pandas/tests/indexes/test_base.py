@@ -587,44 +587,12 @@ class TestIndex(Base):
     def test_not_equals_object(self, comp):
         assert not Index(["a", "b", "c"]).equals(comp)
 
-    def test_insert(self):
-
-        # GH 7256
-        # validate neg/pos inserts
-        result = Index(["b", "c", "d"])
-
-        # test 0th element
-        tm.assert_index_equal(Index(["a", "b", "c", "d"]), result.insert(0, "a"))
-
-        # test Nth element that follows Python list behavior
-        tm.assert_index_equal(Index(["b", "c", "e", "d"]), result.insert(-1, "e"))
-
-        # test loc +/- neq (0, -1)
-        tm.assert_index_equal(result.insert(1, "z"), result.insert(-2, "z"))
-
-        # test empty
-        null_index = Index([])
-        tm.assert_index_equal(Index(["a"]), null_index.insert(0, "a"))
-
     def test_insert_missing(self, nulls_fixture):
         # GH 22295
         # test there is no mangling of NA values
         expected = Index(["a", nulls_fixture, "b", "c"])
         result = Index(list("abc")).insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "pos,expected",
-        [
-            (0, Index(["b", "c", "d"], name="index")),
-            (-1, Index(["a", "b", "c"], name="index")),
-        ],
-    )
-    def test_delete(self, pos, expected):
-        index = Index(["a", "b", "c", "d"], name="index")
-        result = index.delete(pos)
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
 
     def test_delete_raises(self):
         index = Index(["a", "b", "c", "d"], name="index")
@@ -839,16 +807,6 @@ class TestIndex(Base):
 
         assert len(result) == 0
 
-    def test_intersect_nosort(self):
-        result = pd.Index(["c", "b", "a"]).intersection(["b", "a"])
-        expected = pd.Index(["b", "a"])
-        tm.assert_index_equal(result, expected)
-
-    def test_intersection_equal_sort(self):
-        idx = pd.Index(["c", "a", "b"])
-        tm.assert_index_equal(idx.intersection(idx, sort=False), idx)
-        tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
-
     @pytest.mark.xfail(reason="Not implemented")
     def test_intersection_equal_sort_true(self):
         # TODO decide on True behaviour
@@ -909,32 +867,6 @@ class TestIndex(Base):
         result = idx.union(other, sort=True)
         expected = pd.Index([0, 1, 2])
         tm.assert_index_equal(result, expected)
-
-    def test_union_sort_other_incomparable(self):
-        # https://github.com/pandas-dev/pandas/issues/24959
-        idx = pd.Index([1, pd.Timestamp("2000")])
-        # default (sort=None)
-        with tm.assert_produces_warning(RuntimeWarning):
-            result = idx.union(idx[:1])
-
-        tm.assert_index_equal(result, idx)
-
-        # sort=None
-        with tm.assert_produces_warning(RuntimeWarning):
-            result = idx.union(idx[:1], sort=None)
-        tm.assert_index_equal(result, idx)
-
-        # sort=False
-        result = idx.union(idx[:1], sort=False)
-        tm.assert_index_equal(result, idx)
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_union_sort_other_incomparable_true(self):
-        # TODO decide on True behaviour
-        # sort=True
-        idx = pd.Index([1, pd.Timestamp("2000")])
-        with pytest.raises(TypeError, match=".*"):
-            idx.union(idx[:1], sort=True)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
     @pytest.mark.parametrize("sort", [None, False])
@@ -1007,42 +939,6 @@ class TestIndex(Base):
         tm.assert_contains_all(index, first_cat)
         tm.assert_contains_all(index, second_cat)
         tm.assert_contains_all(date_index, first_cat)
-
-    @pytest.mark.parametrize(
-        "method", ["union", "intersection", "difference", "symmetric_difference"]
-    )
-    def test_setops_disallow_true(self, method):
-        idx1 = pd.Index(["a", "b"])
-        idx2 = pd.Index(["b", "c"])
-
-        with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
-            getattr(idx1, method)(idx2, sort=True)
-
-    def test_setops_preserve_object_dtype(self):
-        idx = pd.Index([1, 2, 3], dtype=object)
-        result = idx.intersection(idx[1:])
-        expected = idx[1:]
-        tm.assert_index_equal(result, expected)
-
-        # if other is not monotonic increasing, intersection goes through
-        #  a different route
-        result = idx.intersection(idx[1:][::-1])
-        tm.assert_index_equal(result, expected)
-
-        result = idx._union(idx[1:], sort=None)
-        expected = idx
-        tm.assert_index_equal(result, expected)
-
-        result = idx.union(idx[1:], sort=None)
-        tm.assert_index_equal(result, expected)
-
-        # if other is not monotonic increasing, _union goes through
-        #  a different route
-        result = idx._union(idx[1:][::-1], sort=None)
-        tm.assert_index_equal(result, expected)
-
-        result = idx.union(idx[1:][::-1], sort=None)
-        tm.assert_index_equal(result, expected)
 
     def test_map_identity_mapping(self, indices):
         # GH 12766
@@ -1150,17 +1046,6 @@ class TestIndex(Base):
         result = index.map(default_dict)
         expected = Index(["stuff", "blank", "blank"])
         tm.assert_index_equal(result, expected)
-
-    def test_append_multiple(self):
-        index = Index(["a", "b", "c", "d", "e", "f"])
-
-        foos = [index[:2], index[2:4], index[4:]]
-        result = foos[0].append(foos[1:])
-        tm.assert_index_equal(result, index)
-
-        # empty
-        result = index.append([])
-        tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("name,expected", [("foo", "foo"), ("bar", None)])
     def test_append_empty_preserve_name(self, name, expected):
@@ -2437,7 +2322,6 @@ class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
     # in py2 and py3 because ints and strings are uncomparable in py3
     # (GH 13514)
-
     _holder = Index
 
     @pytest.fixture(params=[[0, "a", 1, "b", 2, "c"]], ids=["mixedIndex"])
@@ -2571,14 +2455,6 @@ class TestMixedIntIndex(Base):
     def test_get_combined_index(self):
         result = _get_combined_index([])
         expected = Index([])
-        tm.assert_index_equal(result, expected)
-
-    def test_repeat(self):
-        repeats = 2
-        index = pd.Index([1, 2, 3])
-        expected = pd.Index([1, 1, 2, 2, 3, 3])
-
-        result = index.repeat(repeats)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
