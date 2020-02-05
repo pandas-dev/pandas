@@ -18,7 +18,10 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes import concat as _concat
-from pandas.core.dtypes.cast import maybe_cast_to_integer_array
+from pandas.core.dtypes.cast import (
+    maybe_cast_to_integer_array,
+    validate_numeric_casting,
+)
 from pandas.core.dtypes.common import (
     ensure_categorical,
     ensure_int64,
@@ -68,7 +71,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.indexers import deprecate_ndim_indexing, maybe_convert_indices
+from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
@@ -2888,10 +2891,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "tolerance argument only valid if using pad, "
                     "backfill or nearest lookups"
                 )
+            casted_key = self._maybe_cast_indexer(key)
             try:
-                return self._engine.get_loc(key)
+                return self._engine.get_loc(casted_key)
             except KeyError:
-                return self._engine.get_loc(self._maybe_cast_indexer(key))
+                raise KeyError(key)
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
@@ -3211,7 +3215,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return indexer
 
-    def _convert_listlike_indexer(self, keyarr, kind=None):
+    def _convert_listlike_indexer(self, keyarr):
         """
         Parameters
         ----------
@@ -3230,7 +3234,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
-        indexer = self._convert_list_indexer(keyarr, kind=kind)
+        indexer = self._convert_list_indexer(keyarr)
         return indexer, keyarr
 
     def _convert_arr_indexer(self, keyarr):
@@ -3264,7 +3268,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return keyarr
 
-    def _convert_list_indexer(self, keyarr, kind=None):
+    def _convert_list_indexer(self, keyarr):
         """
         Convert a list-like indexer to the appropriate dtype.
 
@@ -3278,29 +3282,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         positional indexer or None
         """
-        if (
-            kind in [None, "iloc"]
-            and is_integer_dtype(keyarr)
-            and not self.is_floating()
-        ):
-
-            if self.inferred_type == "mixed-integer":
-                indexer = self.get_indexer(keyarr)
-                if (indexer >= 0).all():
-                    return indexer
-                # missing values are flagged as -1 by get_indexer and negative
-                # indices are already converted to positive indices in the
-                # above if-statement, so the negative flags are changed to
-                # values outside the range of indices so as to trigger an
-                # IndexError in maybe_convert_indices
-                indexer[indexer < 0] = len(self)
-
-                return maybe_convert_indices(indexer, len(self))
-
-            elif not self.inferred_type == "integer":
-                keyarr = np.where(keyarr < 0, len(self) + keyarr, keyarr)
-                return keyarr
-
         return None
 
     def _invalid_indexer(self, form: str_t, key):
@@ -4107,6 +4088,11 @@ class Index(IndexOpsMixin, PandasObject):
         bool
             Whether the key search is in the index.
 
+        Raises
+        ------
+        TypeError
+            If the key is not hashable.
+
         See Also
         --------
         Index.isin : Returns an ndarray of boolean dtype indicating whether the
@@ -4648,7 +4634,7 @@ class Index(IndexOpsMixin, PandasObject):
             stacklevel=2,
         )
         loc = self._engine.get_loc(key)
-        libindex.validate_numeric_casting(arr.dtype, value)
+        validate_numeric_casting(arr.dtype, value)
         arr[loc] = value
 
     _index_shared_docs[
