@@ -99,7 +99,7 @@ I/O
 ^^^
 
 - Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
--
+- Bug in :meth:`read_csv` used in file like object ``RawIOBase`` is not recognize ``encoding`` option (:issue:`31575`)
 -
 
 Plotting
