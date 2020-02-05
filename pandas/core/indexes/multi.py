@@ -1014,7 +1014,7 @@ class MultiIndex(Index):
         levels : sequence, optional
         codes : sequence, optional
         deep : bool, default False
-        name : Optional[Hashable]
+        name : Label
             Kept for compatibility with 1-dimensional Index. Should not be used.
 
         Returns

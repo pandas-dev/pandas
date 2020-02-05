@@ -830,7 +830,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        name : Optional[Hashable]
+        name : Label
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
         names : list-like, optional
