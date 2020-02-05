@@ -68,7 +68,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.indexers import deprecate_ndim_indexing, maybe_convert_indices
+from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
@@ -3212,7 +3212,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return indexer
 
-    def _convert_listlike_indexer(self, keyarr, kind=None):
+    def _convert_listlike_indexer(self, keyarr):
         """
         Parameters
         ----------
@@ -3231,7 +3231,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
-        indexer = self._convert_list_indexer(keyarr, kind=kind)
+        indexer = self._convert_list_indexer(keyarr)
         return indexer, keyarr
 
     def _convert_arr_indexer(self, keyarr):
@@ -3265,7 +3265,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return keyarr
 
-    def _convert_list_indexer(self, keyarr, kind=None):
+    def _convert_list_indexer(self, keyarr):
         """
         Convert a list-like indexer to the appropriate dtype.
 
@@ -3279,29 +3279,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         positional indexer or None
         """
-        if (
-            kind in [None, "iloc"]
-            and is_integer_dtype(keyarr)
-            and not self.is_floating()
-        ):
-
-            if self.inferred_type == "mixed-integer":
-                indexer = self.get_indexer(keyarr)
-                if (indexer >= 0).all():
-                    return indexer
-                # missing values are flagged as -1 by get_indexer and negative
-                # indices are already converted to positive indices in the
-                # above if-statement, so the negative flags are changed to
-                # values outside the range of indices so as to trigger an
-                # IndexError in maybe_convert_indices
-                indexer[indexer < 0] = len(self)
-
-                return maybe_convert_indices(indexer, len(self))
-
-            elif not self.inferred_type == "integer":
-                keyarr = np.where(keyarr < 0, len(self) + keyarr, keyarr)
-                return keyarr
-
         return None
 
     def _invalid_indexer(self, form: str_t, key):
