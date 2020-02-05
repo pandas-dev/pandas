@@ -6969,7 +6969,6 @@ Wild         185.0
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame.
 
-
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
