@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from pandas import DatetimeIndex, offsets, to_datetime
+from pandas import DatetimeIndex, Series, offsets, to_datetime
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (
@@ -108,4 +108,5 @@ def test_no_holidays_calendar():
 
     cal = NoHolidaysCalendar()
     holidays = cal.holidays(Timestamp("01-Jan-2020"), Timestamp("01-Jan-2021"))
-    assert holidays.empty
+    empty_series = Series(index=DatetimeIndex([]), dtype=object)
+    tm.assert_series_equal(holidays, empty_series)
