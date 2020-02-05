@@ -145,7 +145,7 @@ Strings
 
 Interval
 ^^^^^^^^
-
+- Bug in :class:`IntervalIndex` slicing that prevented slicing with ``step > 1`` (:issue:`31658`)
 -
 -
 
