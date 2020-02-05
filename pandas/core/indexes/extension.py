@@ -1,7 +1,7 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import numpy as np
 
@@ -11,7 +11,6 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_dtype_equal,
-    is_integer,
     is_object_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -20,9 +19,6 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
