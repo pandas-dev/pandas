@@ -216,6 +216,11 @@ cdef class _TSObject:
     #    npy_datetimestruct dts      # npy_datetimestruct
     #    int64_t value               # numpy dt64
     #    object tzinfo
+    #    bint fold, default 0
+
+    # Set fold to 0 by default
+    def __cinit__(self):
+        self.fold = 0
 
     @property
     def value(self):
@@ -247,8 +252,6 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         tz = maybe_get_tz(tz)
 
     obj = _TSObject()
-
-    obj.fold = 0
 
     if isinstance(ts, str):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst, fold)
@@ -363,7 +366,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.value += nanos
         obj.dts.ps = nanos * 1000
 
-    obj.fold = 0
     if tz is not None:
         if is_utc(tz):
             pass
@@ -593,7 +595,6 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
 
     assert obj.tzinfo is None
 
-    obj.fold = 0
     if is_utc(tz):
         pass
     elif obj.value == NPY_NAT:
