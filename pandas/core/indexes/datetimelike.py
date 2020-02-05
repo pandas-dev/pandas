@@ -398,15 +398,17 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         assert kind in ["loc", "getitem", "iloc", None]
 
+        if not is_scalar(key):
+            raise TypeError(key)
+
         # we don't allow integer/float indexing for loc
-        # we don't allow float indexing for ix/getitem
-        if is_scalar(key):
-            is_int = is_integer(key)
-            is_flt = is_float(key)
-            if kind in ["loc"] and (is_int or is_flt):
-                self._invalid_indexer("index", key)
-            elif kind in ["getitem"] and is_flt:
-                self._invalid_indexer("index", key)
+        # we don't allow float indexing for getitem
+        is_int = is_integer(key)
+        is_flt = is_float(key)
+        if kind == "loc" and (is_int or is_flt):
+            self._invalid_indexer("index", key)
+        elif kind == "getitem" and is_flt:
+            self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
 
