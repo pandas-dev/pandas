@@ -2224,11 +2224,11 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "the indexed object do not match)."
             )
         result = result.astype(bool)._values
-    elif is_extension_array_dtype(key) and is_bool_dtype(key):
-        result = key.to_numpy(dtype=bool, na_value=False)
-    else:
+    elif is_object_dtype(key):
         # key might be sparse / object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
+        result = check_array_indexer(index, result)
+    else:
         result = check_array_indexer(index, result)
 
     return result
