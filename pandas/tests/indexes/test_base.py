@@ -34,7 +34,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.core.algorithms import safe_sort
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -107,23 +106,6 @@ class TestIndex(Base):
         # what to do here?
         # arr = np.array(5.)
         # pytest.raises(Exception, arr.view, Index)
-
-    def test_constructor_corner(self):
-        # corner case
-        msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some "
-            "kind, 0 was passed"
-        )
-        with pytest.raises(TypeError, match=msg):
-            Index(0)
-
-    @pytest.mark.parametrize("index_vals", [[("A", 1), "B"], ["B", ("A", 1)]])
-    def test_construction_list_mixed_tuples(self, index_vals):
-        # see gh-10697: if we are constructing from a mixed list of tuples,
-        # make sure that we are independent of the sorting order.
-        index = Index(index_vals)
-        assert isinstance(index, Index)
-        assert not isinstance(index, MultiIndex)
 
     @pytest.mark.parametrize("na_value", [None, np.nan])
     @pytest.mark.parametrize("vtype", [list, tuple, iter])
@@ -359,11 +341,6 @@ class TestIndex(Base):
         result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
-    def test_constructor_wrong_kwargs(self):
-        # GH #19348
-        with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
-            Index([], foo="bar")
-
     @pytest.mark.parametrize(
         "vals",
         [
@@ -553,12 +530,6 @@ class TestIndex(Base):
         )
         with pytest.raises(OverflowError, match=msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
-
-    @pytest.mark.xfail(reason="see GH#21311: Index doesn't enforce dtype argument")
-    def test_constructor_cast(self):
-        msg = "could not convert string to float"
-        with pytest.raises(ValueError, match=msg):
-            Index(["a", "b", "c"], dtype=float)
 
     @pytest.mark.parametrize(
         "index",
@@ -2528,76 +2499,10 @@ class TestMixedIntIndex(Base):
         assert index3.name == "NewName"
         assert index3.names == ["NewName"]
 
-    def test_union_base(self):
-        index = self.create_index()
-        first = index[3:]
-        second = index[:5]
-
-        result = first.union(second)
-
-        expected = Index([0, 1, 2, "a", "b", "c"])
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("klass", [np.array, Series, list])
-    def test_union_different_type_base(self, klass):
-        # GH 10149
-        index = self.create_index()
-        first = index[3:]
-        second = index[:5]
-
-        result = first.union(klass(second.values))
-
-        assert tm.equalContents(result, index)
-
     def test_unique_na(self):
         idx = pd.Index([2, np.nan, 2, 1], name="my_index")
         expected = pd.Index([2, np.nan, 1], name="my_index")
         result = idx.unique()
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_intersection_base(self, sort):
-        # (same results for py2 and py3 but sortedness not tested elsewhere)
-        index = self.create_index()
-        first = index[:5]
-        second = index[:3]
-
-        expected = Index([0, 1, "a"]) if sort is None else Index([0, "a", 1])
-        result = first.intersection(second, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("klass", [np.array, Series, list])
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_intersection_different_type_base(self, klass, sort):
-        # GH 10149
-        index = self.create_index()
-        first = index[:5]
-        second = index[:3]
-
-        result = first.intersection(klass(second.values), sort=sort)
-        assert tm.equalContents(result, second)
-
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_difference_base(self, sort):
-        # (same results for py2 and py3 but sortedness not tested elsewhere)
-        index = self.create_index()
-        first = index[:4]
-        second = index[3:]
-
-        result = first.difference(second, sort)
-        expected = Index([0, "a", 1])
-        if sort is None:
-            expected = Index(safe_sort(expected))
-        tm.assert_index_equal(result, expected)
-
-    def test_symmetric_difference(self):
-        # (same results for py2 and py3 but sortedness not tested elsewhere)
-        index = self.create_index()
-        first = index[:4]
-        second = index[3:]
-
-        result = first.symmetric_difference(second)
-        expected = Index([0, 1, 2, "a", "c"])
         tm.assert_index_equal(result, expected)
 
     def test_logical_compat(self):
