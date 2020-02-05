@@ -361,8 +361,7 @@ class TestCommon(Base):
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             with warnings.catch_warnings():
-                # e.g. if values is float64 and `val` is a str, suppress warning
-                warnings.filterwarnings("ignore", category=FutureWarning)
+                warnings.filterwarnings("ignore", ".*deprecated.*", category=FutureWarning)
                 result = func(ts)
         assert isinstance(result, Timestamp)
         if normalize is False:
@@ -400,19 +399,28 @@ class TestCommon(Base):
 
             # test nanosecond is preserved
             with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-                result = func(ts)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", ".*deprecated.*", category=FutureWarning)
+                    result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:
                 assert result == expected_localize + Nano(5)
             else:
                 assert result == expected_localize
 
-    # def test_zero_offset(self, offset_types):
-    #     offset_s = self._get_offset(offset_types)
-    #     with pytest.raises(
-    #         ValueError, match="`n` argument must be an nonzero integer, got 0"
-    #     ):
-    #         0 * offset_s
+    def test_zero_offset(self, offset_types):
+        offset_s = self._get_offset(offset_types)
+        if isinstance(offset_s, (LastWeekOfMonth, FY5253Quarter, FY5253)):
+            with pytest.raises(ValueError, match="^N cannot be 0"):
+                0 * offset_s
+            return
+        if isinstance(offset_s, Week):
+            exp_warning = None
+        else:
+            exp_warning = FutureWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            0 * offset_s
+
 
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
@@ -860,6 +868,19 @@ class TestBusinessDay(Base):
                 datetime(2008, 1, 7): datetime(2008, 1, 3),
                 datetime(2008, 1, 8): datetime(2008, 1, 4),
                 datetime(2008, 1, 9): datetime(2008, 1, 7),
+            },
+        )
+    )
+
+    apply_cases.append(
+        (
+            BDay(0),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 1),
+                datetime(2008, 1, 4): datetime(2008, 1, 4),
+                datetime(2008, 1, 5): datetime(2008, 1, 7),
+                datetime(2008, 1, 6): datetime(2008, 1, 7),
+                datetime(2008, 1, 7): datetime(2008, 1, 7),
             },
         )
     )
@@ -2739,6 +2760,19 @@ class TestCustomBusinessDay(Base):
         )
     )
 
+    apply_cases.append(
+        (
+            CDay(0),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 1),
+                datetime(2008, 1, 4): datetime(2008, 1, 4),
+                datetime(2008, 1, 5): datetime(2008, 1, 7),
+                datetime(2008, 1, 6): datetime(2008, 1, 7),
+                datetime(2008, 1, 7): datetime(2008, 1, 7),
+            },
+        )
+    )
+
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -2958,6 +2992,16 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         )
     )
 
+    apply_cases.append(
+        (
+            CBMonthEnd(0),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 31),
+                datetime(2008, 2, 7): datetime(2008, 2, 29),
+            },
+        )
+    )
+
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -3097,6 +3141,16 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         )
     )
 
+    apply_cases.append(
+        (
+            CBMonthBegin(0),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 1),
+                datetime(2008, 1, 7): datetime(2008, 2, 1),
+            },
+        )
+    )
+
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -3194,6 +3248,21 @@ class TestWeek(Base):
         )
     )
 
+    # n=0 -> roll forward. Mon
+    offset_cases.append(
+        (
+            Week(0, weekday=0),
+            {
+                datetime(2007, 12, 31): datetime(2007, 12, 31),
+                datetime(2008, 1, 4): datetime(2008, 1, 7),
+                datetime(2008, 1, 5): datetime(2008, 1, 7),
+                datetime(2008, 1, 6): datetime(2008, 1, 7),
+                datetime(2008, 1, 7): datetime(2008, 1, 7),
+            },
+        )
+    )
+
+    # n=0 -> roll forward. Mon
     offset_cases.append(
         (
             Week(-2, weekday=1),
@@ -3492,6 +3561,36 @@ class TestSemiMonthEnd(Base):
 
     offset_cases.append(
         (
+            SemiMonthEnd(0),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 15),
+                datetime(2008, 1, 16): datetime(2008, 1, 31),
+                datetime(2008, 1, 15): datetime(2008, 1, 15),
+                datetime(2008, 1, 31): datetime(2008, 1, 31),
+                datetime(2006, 12, 29): datetime(2006, 12, 31),
+                datetime(2006, 12, 31): datetime(2006, 12, 31),
+                datetime(2007, 1, 1): datetime(2007, 1, 15),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            SemiMonthEnd(0, day_of_month=16),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 16),
+                datetime(2008, 1, 16): datetime(2008, 1, 16),
+                datetime(2008, 1, 15): datetime(2008, 1, 16),
+                datetime(2008, 1, 31): datetime(2008, 1, 31),
+                datetime(2006, 12, 29): datetime(2006, 12, 31),
+                datetime(2006, 12, 31): datetime(2006, 12, 31),
+                datetime(2007, 1, 1): datetime(2007, 1, 16),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
             SemiMonthEnd(2),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
@@ -3715,6 +3814,37 @@ class TestSemiMonthBegin(Base):
                 datetime(2007, 1, 1): datetime(2007, 1, 20),
                 datetime(2006, 12, 1): datetime(2006, 12, 20),
                 datetime(2006, 12, 15): datetime(2006, 12, 20),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            SemiMonthBegin(0),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 1),
+                datetime(2008, 1, 16): datetime(2008, 2, 1),
+                datetime(2008, 1, 15): datetime(2008, 1, 15),
+                datetime(2008, 1, 31): datetime(2008, 2, 1),
+                datetime(2006, 12, 29): datetime(2007, 1, 1),
+                datetime(2006, 12, 2): datetime(2006, 12, 15),
+                datetime(2007, 1, 1): datetime(2007, 1, 1),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            SemiMonthBegin(0, day_of_month=16),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 1),
+                datetime(2008, 1, 16): datetime(2008, 1, 16),
+                datetime(2008, 1, 15): datetime(2008, 1, 16),
+                datetime(2008, 1, 31): datetime(2008, 2, 1),
+                datetime(2006, 12, 29): datetime(2007, 1, 1),
+                datetime(2006, 12, 31): datetime(2007, 1, 1),
+                datetime(2007, 1, 5): datetime(2007, 1, 16),
+                datetime(2007, 1, 1): datetime(2007, 1, 1),
             },
         )
     )

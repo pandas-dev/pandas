@@ -476,11 +476,15 @@ class _BaseOffset:
         if n != nint:
             raise ValueError(f'`n` argument must be an integer, got {n}')
         if n == 0:
-            warnings.warn(
-                "Initialising a DateOffset with n=0 is deprecated and "
-                "will be removed in a future version.",
-                FutureWarning,
-            )
+            if hasattr(self, "_prefix") and self._prefix == "W":
+                pass
+            else:
+                warnings.warn(
+                    "Initialising a DateOffset with n=0 is deprecated and "
+                    "will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=5
+                )
         return nint
 
     def __setstate__(self, state):
