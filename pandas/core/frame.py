@@ -40,7 +40,7 @@ import numpy.ma as ma
 
 from pandas._config import get_option
 
-from pandas._libs import algos as libalgos, index as libindex, lib, properties
+from pandas._libs import algos as libalgos, lib, properties
 from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
@@ -69,6 +69,7 @@ from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     maybe_upcast,
     maybe_upcast_putmask,
+    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -3025,7 +3026,7 @@ class DataFrame(NDFrame):
             series = self._get_item_cache(col)
             engine = self.index._engine
             loc = engine.get_loc(index)
-            libindex.validate_numeric_casting(series.dtype, value)
+            validate_numeric_casting(series.dtype, value)
 
             series._values[loc] = value
             # Note: trying to use series._set_value breaks tests in

@@ -8,7 +8,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
-from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -16,6 +15,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
+    convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
@@ -762,7 +762,7 @@ class Block(PandasObject):
             # The only non-DatetimeLike class that also has a non-trivial
             #  try_coerce_args is ObjectBlock, but that overrides replace,
             #  so does not get here.
-            to_replace = convert_scalar(values, to_replace)
+            to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
@@ -841,7 +841,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(value):
-                value = convert_scalar(values, value)
+                value = convert_scalar_for_putitemlike(value, values.dtype)
 
         else:
             # current dtype cannot store value, coerce to common dtype
@@ -957,7 +957,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(new):
-                new = convert_scalar(new_values, new)
+                new = convert_scalar_for_putitemlike(new, new_values.dtype)
 
             if transpose:
                 new_values = new_values.T
@@ -1200,7 +1200,7 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
 
         # We only get here for non-ExtensionBlock
-        fill_value = convert_scalar(self.values, fill_value)
+        fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
 
         values = missing.interpolate_2d(
             values,
@@ -1405,7 +1405,7 @@ class Block(PandasObject):
                     raise TypeError
                 if lib.is_scalar(other) and isinstance(values, np.ndarray):
                     # convert datetime to datetime64, timedelta to timedelta64
-                    other = convert_scalar(values, other)
+                    other = convert_scalar_for_putitemlike(other, values.dtype)
 
             # By the time we get here, we should have all Series/Index
             #  args extracted to  ndarray

@@ -535,61 +535,6 @@ cdef class PeriodEngine(Int64Engine):
         return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
 
 
-cpdef convert_scalar(ndarray arr, object value):
-    # we don't turn integers
-    # into datetimes/timedeltas
-
-    # we don't turn bools into int/float/complex
-
-    if arr.descr.type_num == NPY_DATETIME:
-        if util.is_array(value):
-            pass
-        elif isinstance(value, (datetime, np.datetime64, date)):
-            return Timestamp(value).to_datetime64()
-        elif util.is_timedelta64_object(value):
-            # exclude np.timedelta64("NaT") from value != value below
-            pass
-        elif value is None or value != value:
-            return np.datetime64("NaT", "ns")
-        raise ValueError("cannot set a Timestamp with a non-timestamp "
-                         f"{type(value).__name__}")
-
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        if util.is_array(value):
-            pass
-        elif isinstance(value, timedelta) or util.is_timedelta64_object(value):
-            value = Timedelta(value)
-            if value is NaT:
-                return np.timedelta64("NaT", "ns")
-            return value.to_timedelta64()
-        elif util.is_datetime64_object(value):
-            # exclude np.datetime64("NaT") which would otherwise be picked up
-            #  by the `value != value check below
-            pass
-        elif value is None or value != value:
-            return np.timedelta64("NaT", "ns")
-        raise ValueError("cannot set a Timedelta with a non-timedelta "
-                         f"{type(value).__name__}")
-
-    else:
-        validate_numeric_casting(arr.dtype, value)
-
-    return value
-
-
-cpdef validate_numeric_casting(dtype, object value):
-    # Note: we can't annotate dtype as cnp.dtype because that cases dtype.type
-    #  to integer
-    if issubclass(dtype.type, (np.integer, np.bool_)):
-        if util.is_float_object(value) and value != value:
-            raise ValueError("Cannot assign nan to integer series")
-
-    if (issubclass(dtype.type, (np.integer, np.floating, np.complex)) and
-            not issubclass(dtype.type, np.bool_)):
-        if util.is_bool_object(value):
-            raise ValueError("Cannot assign bool to float/integer series")
-
-
 cdef class BaseMultiIndexCodesEngine:
     """
     Base class for MultiIndexUIntEngine and MultiIndexPyIntEngine, which

@@ -18,7 +18,10 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes import concat as _concat
-from pandas.core.dtypes.cast import maybe_cast_to_integer_array
+from pandas.core.dtypes.cast import (
+    maybe_cast_to_integer_array,
+    validate_numeric_casting,
+)
 from pandas.core.dtypes.common import (
     ensure_categorical,
     ensure_int64,
@@ -4631,7 +4634,7 @@ class Index(IndexOpsMixin, PandasObject):
             stacklevel=2,
         )
         loc = self._engine.get_loc(key)
-        libindex.validate_numeric_casting(arr.dtype, value)
+        validate_numeric_casting(arr.dtype, value)
         arr[loc] = value
 
     _index_shared_docs[
