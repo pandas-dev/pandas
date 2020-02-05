@@ -535,19 +535,6 @@ cdef class PeriodEngine(Int64Engine):
         return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
 
 
-cpdef validate_numeric_casting(dtype, object value):
-    # Note: we can't annotate dtype as cnp.dtype because that cases dtype.type
-    #  to integer
-    if issubclass(dtype.type, (np.integer, np.bool_)):
-        if util.is_float_object(value) and value != value:
-            raise ValueError("Cannot assign nan to integer series")
-
-    if (issubclass(dtype.type, (np.integer, np.floating, np.complex)) and
-            not issubclass(dtype.type, np.bool_)):
-        if util.is_bool_object(value):
-            raise ValueError("Cannot assign bool to float/integer series")
-
-
 cdef class BaseMultiIndexCodesEngine:
     """
     Base class for MultiIndexUIntEngine and MultiIndexPyIntEngine, which

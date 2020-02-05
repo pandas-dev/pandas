@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import functools
 import inspect
 import re
@@ -8,7 +8,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
-from pandas._libs.index import validate_numeric_casting
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -16,6 +15,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
+    convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -763,7 +762,7 @@ class Block(PandasObject):
             # The only non-DatetimeLike class that also has a non-trivial
             #  try_coerce_args is ObjectBlock, but that overrides replace,
             #  so does not get here.
-            to_replace = _convert_scalar_for_putitemlike(to_replace, values.dtype)
+            to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
@@ -842,7 +841,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(value):
-                value = _convert_scalar_for_putitemlike(value, values.dtype)
+                value = convert_scalar_for_putitemlike(value, values.dtype)
 
         else:
             # current dtype cannot store value, coerce to common dtype
@@ -958,7 +957,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(new):
-                new = _convert_scalar_for_putitemlike(new, new_values.dtype)
+                new = convert_scalar_for_putitemlike(new, new_values.dtype)
 
             if transpose:
                 new_values = new_values.T
@@ -1201,7 +1200,7 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
 
         # We only get here for non-ExtensionBlock
-        fill_value = _convert_scalar_for_putitemlike(fill_value, self.values.dtype)
+        fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
 
         values = missing.interpolate_2d(
             values,
@@ -1406,7 +1405,7 @@ class Block(PandasObject):
                     raise TypeError
                 if lib.is_scalar(other) and isinstance(values, np.ndarray):
                     # convert datetime to datetime64, timedelta to timedelta64
-                    other = _convert_scalar_for_putitemlike(other, values.dtype)
+                    other = convert_scalar_for_putitemlike(other, values.dtype)
 
             # By the time we get here, we should have all Series/Index
             #  args extracted to  ndarray
@@ -3215,34 +3214,3 @@ def _putmask_smart(v, mask, n):
         v = v.astype(dtype)
 
     return _putmask_preserve(v, n)
-
-
-def _convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
-    """
-    Convert datetimelike scalar if we are setting into a datetime64
-    or timedelta64 ndarray.
-
-    Parameters
-    ----------
-    scalar : scalar
-    dtype : np.dtpye
-
-    Returns
-    -------
-    scalar
-    """
-    if dtype.kind == "m":
-        if isinstance(scalar, (timedelta, np.timedelta64)):
-            # We have to cast after asm8 in case we have NaT
-            return Timedelta(scalar).asm8.view("timedelta64[ns]")
-        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
-            return np.timedelta64("NaT", "ns")
-    if dtype.kind == "M":
-        if isinstance(scalar, (date, np.datetime64)):
-            # Note: we include date, not just datetime
-            return Timestamp(scalar).to_datetime64()
-        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
-            return np.datetime64("NaT", "ns")
-    else:
-        validate_numeric_casting(dtype, scalar)
-    return scalar

@@ -23,13 +23,12 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._libs.index import validate_numeric_casting
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
-from pandas.core.dtypes.cast import convert_dtypes
+from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
