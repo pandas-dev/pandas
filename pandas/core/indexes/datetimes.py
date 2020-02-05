@@ -5,15 +5,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    Timedelta,
-    Timestamp,
-    index as libindex,
-    lib,
-    tslib as libts,
-)
-from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
+from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
+from pandas._libs.tslibs import fields, parsing, timezones
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
@@ -465,7 +458,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        reso : Resolution
+        reso : str
             Resolution provided by parsed string.
         parsed : datetime
             Datetime from parsed string.
@@ -473,7 +466,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         lower, upper: pd.Timestamp
-
         """
         valid_resos = {
             "year",
@@ -489,50 +481,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         }
         if reso not in valid_resos:
             raise KeyError
-        if reso == "year":
-            start = Timestamp(parsed.year, 1, 1)
-            end = Timestamp(parsed.year + 1, 1, 1) - Timedelta(nanoseconds=1)
-        elif reso == "month":
-            d = ccalendar.get_days_in_month(parsed.year, parsed.month)
-            start = Timestamp(parsed.year, parsed.month, 1)
-            end = start + Timedelta(days=d, nanoseconds=-1)
-        elif reso == "quarter":
-            qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
-            d = ccalendar.get_days_in_month(parsed.year, qe)  # at end of month
-            start = Timestamp(parsed.year, parsed.month, 1)
-            end = Timestamp(parsed.year, qe, 1) + Timedelta(days=d, nanoseconds=-1)
-        elif reso == "day":
-            start = Timestamp(parsed.year, parsed.month, parsed.day)
-            end = start + Timedelta(days=1, nanoseconds=-1)
-        elif reso == "hour":
-            start = Timestamp(parsed.year, parsed.month, parsed.day, parsed.hour)
-            end = start + Timedelta(hours=1, nanoseconds=-1)
-        elif reso == "minute":
-            start = Timestamp(
-                parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute
-            )
-            end = start + Timedelta(minutes=1, nanoseconds=-1)
-        elif reso == "second":
-            start = Timestamp(
-                parsed.year,
-                parsed.month,
-                parsed.day,
-                parsed.hour,
-                parsed.minute,
-                parsed.second,
-            )
-            end = start + Timedelta(seconds=1, nanoseconds=-1)
-        elif reso == "microsecond":
-            start = Timestamp(
-                parsed.year,
-                parsed.month,
-                parsed.day,
-                parsed.hour,
-                parsed.minute,
-                parsed.second,
-                parsed.microsecond,
-            )
-            end = start + Timedelta(microseconds=1, nanoseconds=-1)
+
+        grp = Resolution.get_freq_group(reso)
+        per = Period(parsed, freq=(grp, 1))
+        start, end = per.start_time, per.end_time
+
         # GH 24076
         # If an incoming date string contained a UTC offset, need to localize
         # the parsed date to this offset first before aligning with the index's
