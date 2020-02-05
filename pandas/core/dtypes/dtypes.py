@@ -9,7 +9,6 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    TypeVar,
     Union,
     cast,
 )
@@ -36,10 +35,8 @@ if TYPE_CHECKING:
 
 str_type = str
 
-ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound=ExtensionDtype)
 
-
-def register_extension_dtype(cls: Type[ExtensionDtypeT]) -> Type[ExtensionDtypeT]:
+def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -97,7 +94,7 @@ class Registry:
 
     def find(
         self, dtype: Union[Type[ExtensionDtype], str]
-    ) -> Optional[Union[ExtensionDtype, Type[ExtensionDtype]]]:
+    ) -> Optional[Type[ExtensionDtype]]:
         """
         Parameters
         ----------
@@ -680,34 +677,34 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __init__(self, unit: Union[str_type, "DatetimeTZDtype"] = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
-            self._unit, self._tz = unit.unit, unit.tz
-        else:
-            if unit != "ns":
-                if isinstance(unit, str) and tz is None:
-                    # maybe a string like datetime64[ns, tz], which we support for
-                    # now.
-                    result = type(self).construct_from_string(unit)
-                    unit = result.unit
-                    tz = result.tz
-                    msg = (
-                        f"Passing a dtype alias like 'datetime64[ns, {tz}]' "
-                        "to DatetimeTZDtype is no longer supported. Use "
-                        "'DatetimeTZDtype.construct_from_string()' instead."
-                    )
-                    raise ValueError(msg)
-                else:
-                    raise ValueError("DatetimeTZDtype only supports ns units")
+            unit, tz = unit.unit, unit.tz  # type: ignore
 
-            if tz:
-                tz = timezones.maybe_get_tz(tz)
-                tz = timezones.tz_standardize(tz)
-            elif tz is not None:
-                raise pytz.UnknownTimeZoneError(tz)
-            if tz is None:
-                raise TypeError("A 'tz' is required.")
+        if unit != "ns":
+            if isinstance(unit, str) and tz is None:
+                # maybe a string like datetime64[ns, tz], which we support for
+                # now.
+                result = type(self).construct_from_string(unit)
+                unit = result.unit
+                tz = result.tz
+                msg = (
+                    f"Passing a dtype alias like 'datetime64[ns, {tz}]' "
+                    "to DatetimeTZDtype is no longer supported. Use "
+                    "'DatetimeTZDtype.construct_from_string()' instead."
+                )
+                raise ValueError(msg)
+            else:
+                raise ValueError("DatetimeTZDtype only supports ns units")
 
-            self._unit = unit
-            self._tz = tz
+        if tz:
+            tz = timezones.maybe_get_tz(tz)
+            tz = timezones.tz_standardize(tz)
+        elif tz is not None:
+            raise pytz.UnknownTimeZoneError(tz)
+        if tz is None:
+            raise TypeError("A 'tz' is required.")
+
+        self._unit = unit
+        self._tz = tz
 
     @property
     def unit(self) -> str_type:
