@@ -24,6 +24,7 @@ Fixed regressions
 - Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
 - Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
 - Fixed regression in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)
+- Fixed regression in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a row containing a single ``datetime64`` or ``timedelta64`` column (:issue:`31649`)
 - Fixed regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
 - Fixed regression in objTOJSON.c fix return-type warning (:issue:`31463`)
 - Fixed regression in :meth:`qcut` when passed a nullable integer. (:issue:`31389`)

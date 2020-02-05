@@ -2165,3 +2165,41 @@ class TestDataFrameIndexingUInt64:
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
+
+
+def test_object_casting_indexing_wraps_datetimelike():
+    # GH#31649, check the indexing methods all the way down the stack
+    df = pd.DataFrame(
+        {
+            "A": [1, 2],
+            "B": pd.date_range("2000", periods=2),
+            "C": pd.timedelta_range("1 Day", periods=2),
+        }
+    )
+
+    ser = df.loc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.iloc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.xs(0, axis=0)
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    mgr = df._data
+    arr = mgr.fast_xs(0)
+    assert isinstance(arr[1], pd.Timestamp)
+    assert isinstance(arr[2], pd.Timedelta)
+
+    blk = mgr.blocks[mgr._blknos[1]]
+    assert blk.dtype == "M8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timestamp)
+
+    blk = mgr.blocks[mgr._blknos[2]]
+    assert blk.dtype == "m8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timedelta)
