@@ -852,6 +852,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         key_is_scalar = is_scalar(key)
+        if key_is_scalar:
+            key = self.index._convert_scalar_indexer(key, kind="getitem")
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
             # Otherwise index.get_value will raise InvalidIndexError
@@ -866,11 +868,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # kludge
                     pass
                 else:
-
-                    # we can try to coerce the indexer (or this will raise)
-                    new_key = self.index._convert_scalar_indexer(key, kind="getitem")
-                    if type(new_key) != type(key):
-                        return self.__getitem__(new_key)
                     raise
 
         if not key_is_scalar:
