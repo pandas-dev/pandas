@@ -376,16 +376,12 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
             if typ == 'pytz' or typ == 'dateutil':
                 pos = trans.searchsorted(obj.value, side='right') - 1
-
-                # obj.value includes tz assumptions, need to adjust
-                # pytz assumes we are in a fold, dateutil - that we are not
-                if (typ == 'pytz' and fold == 0):
+                # pytz assumes fold == 1, dateutil fold == 0
+                # adjust only if necessary
+                if (typ == 'pytz' and fold == 0) or \
+                       (typ == 'dateutil' and fold == 1):
                     pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos,
                                                     fold)
-                elif (typ == 'dateutil' and fold == 1):
-                    pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos,
-                                                    fold)
-
                 obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     check_dts_bounds(&obj.dts)
