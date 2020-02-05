@@ -270,26 +270,6 @@ def test_getitem_group_select(idx):
     assert sorted_idx.get_loc("foo") == slice(0, 2)
 
 
-def test_get_indexer_consistency(idx):
-    # See GH 16819
-    assert isinstance(idx, MultiIndex)
-    if isinstance(idx, IntervalIndex):
-        pass
-
-    if idx.is_unique or isinstance(idx, CategoricalIndex):
-        indexer = idx.get_indexer(idx[0:2])
-        assert isinstance(indexer, np.ndarray)
-        assert indexer.dtype == np.intp
-    else:
-        e = "Reindexing only valid with uniquely valued Index objects"
-        with pytest.raises(InvalidIndexError, match=e):
-            idx.get_indexer(idx[0:2])
-
-    indexer, _ = idx.get_indexer_non_unique(idx[0:2])
-    assert isinstance(indexer, np.ndarray)
-    assert indexer.dtype == np.intp
-
-
 @pytest.mark.parametrize("ind1", [[True] * 5, pd.Index([True] * 5)])
 @pytest.mark.parametrize(
     "ind2",

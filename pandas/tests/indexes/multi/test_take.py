@@ -11,7 +11,7 @@ def test_take(idx):
     expected = idx[indexer]
     assert result.equals(expected)
 
-    # TODO: Remove Commented Code
+    # FIXME: Remove Commented Code
     # if not isinstance(idx,
     #                   (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
     # GH 10791
