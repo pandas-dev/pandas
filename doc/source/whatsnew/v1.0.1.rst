@@ -33,6 +33,7 @@ Fixed regressions
 - Fixed regression in :meth:`qcut` when passed a nullable integer. (:issue:`31389`)
 - Fixed regression in assigning to a :class:`Series` using a nullable integer dtype (:issue:`31446`)
 - Fixed performance regression when indexing a ``DataFrame`` or ``Series`` with a :class:`MultiIndex` for the index using a list of labels (:issue:`31648`)
+- Fixed regression in :meth:`read_csv` used in file like object ``RawIOBase`` is not recognize ``encoding`` option (:issue:`31575`)
 
 .. ---------------------------------------------------------------------------
 

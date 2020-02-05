@@ -3,7 +3,7 @@
 import bz2
 from collections import abc
 import gzip
-from io import BufferedIOBase, BytesIO
+from io import BufferedIOBase, BytesIO, RawIOBase
 import mmap
 import os
 import pathlib
@@ -359,9 +359,9 @@ def get_handle(
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BufferedIOBase, S3File)
+        need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
     except ImportError:
-        need_text_wrapping = BufferedIOBase  # type: ignore
+        need_text_wrapping = (BufferedIOBase, RawIOBase)  # type: ignore
 
     handles: List[IO] = list()
     f = path_or_buf
@@ -437,7 +437,7 @@ def get_handle(
         from io import TextIOWrapper
 
         g = TextIOWrapper(f, encoding=encoding, newline="")
-        if not isinstance(f, BufferedIOBase):
+        if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g
 
