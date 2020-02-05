@@ -87,8 +87,8 @@ def test_series_getitem_returns_scalar(
         (lambda s: s[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4, 5)], IndexingError, "Too many indexers"),
-        (lambda s: s.__getitem__(len(s)), IndexError, "index out of bounds"),
-        (lambda s: s[len(s)], IndexError, "index out of bounds"),
+        (lambda s: s.__getitem__(len(s)), IndexError, "is out of bounds"),
+        (lambda s: s[len(s)], IndexError, "is out of bounds"),
         (
             lambda s: s.iloc[len(s)],
             IndexError,

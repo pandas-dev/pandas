@@ -1,4 +1,3 @@
-import datetime
 from sys import getsizeof
 from typing import Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
 import warnings
@@ -7,7 +6,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import Timestamp, algos as libalgos, index as libindex, lib, tslibs
+from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, ArrayLike, Scalar
 from pandas.compat.numpy import function as nv
@@ -2321,13 +2320,20 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # Label-based
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
+        if not is_hashable(key) or is_iterator(key):
+            # We allow tuples if they are hashable, whereas other Index
+            #  subclasses require scalar.
+            # We have to explicitly exclude generators, as these are hashable.
+            raise InvalidIndexError(key)
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
             loc = self.get_loc(k)
+
             new_values = series._values[loc]
+            if is_scalar(loc):
+                return new_values
+
             new_index = self[loc]
             new_index = maybe_droplevels(new_index, k)
             return series._constructor(
@@ -2335,51 +2341,12 @@ class MultiIndex(Index):
             ).__finalize__(self)
 
         try:
-            return self._engine.get_value(s, k)
-        except KeyError as e1:
-            try:
-                return _try_mi(key)
-            except KeyError:
-                pass
-
-            try:
-                return libindex.get_value_at(s, k)
-            except IndexError:
+            return _try_mi(key)
+        except KeyError:
+            if is_integer(key):
+                return series._values[key]
+            else:
                 raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
-                raise e1
-        except TypeError:
-
-            # a Timestamp will raise a TypeError in a multi-index
-            # rather than a KeyError, try it here
-            # note that a string that 'looks' like a Timestamp will raise
-            # a KeyError! (GH5725)
-            if isinstance(key, (datetime.datetime, np.datetime64, str)):
-                try:
-                    return _try_mi(key)
-                except KeyError:
-                    raise
-                except (IndexError, ValueError, TypeError):
-                    pass
-
-                try:
-                    return _try_mi(Timestamp(key))
-                except (
-                    KeyError,
-                    TypeError,
-                    IndexError,
-                    ValueError,
-                    tslibs.OutOfBoundsDatetime,
-                ):
-                    pass
-
-            raise InvalidIndexError(key)
 
     def _convert_listlike_indexer(self, keyarr, kind=None):
         """
