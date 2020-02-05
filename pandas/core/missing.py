@@ -5,7 +5,7 @@ Routines for filling missing data.
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import Dtype, Hashable, Optional
+from pandas._typing import ArrayLike, Dtype, Hashable, Optional
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -225,8 +225,6 @@ def interpolate_1d(
 
     preserve_nans = _derive_indices_of_nans_to_preserve(
         yvalues=yvalues,
-        valid=valid,
-        invalid=invalid,
         limit=limit,
         limit_area=limit_area,
         limit_direction=limit_direction,
@@ -290,14 +288,34 @@ def interpolate_1d(
 
 
 def _derive_indices_of_nans_to_preserve(
-    yvalues, valid, invalid, limit, limit_area, limit_direction
+    yvalues: ArrayLike,
+    limit: int,
+    limit_area: str,
+    limit_direction: str,
 ):
-    """ Derive the indices of NaNs that shall be preserved after interpolation
+    """
+    Derive the indices of NaNs that shall be preserved after interpolation
     This function is called by `interpolate_1d` and takes the arguments with
     the same name from there. In `interpolate_1d`, after performing the
-    interpolation the list of indices of NaNs to preserve is used to put
+    interpolation, the list of indices of NaNs to preserve is used to put
     NaNs in the desired locations.
+
+    Parameters
+    ----------
+    yvalues: ArrayLike
+        1-d array of values of the initial Series or DataFrame
+    limit: int
+    limit_area: str
+    limit_direction: str
+
+    Returns
+    -------
+    preserve_nans: set
+        Set of index pointers to where NaNs should be preserved in `yvalues`
     """
+
+    invalid = isna(yvalues)
+    valid = ~invalid
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
@@ -539,8 +557,6 @@ def interpolate_1d_fill(
 
     preserve_nans = _derive_indices_of_nans_to_preserve(
         yvalues=yvalues,
-        valid=valid,
-        invalid=invalid,
         limit=limit,
         limit_area=limit_area,
         limit_direction=limit_direction,
