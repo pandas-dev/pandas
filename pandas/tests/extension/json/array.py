@@ -16,7 +16,7 @@ import numbers
 import random
 import string
 import sys
-from typing import Type
+from typing import Any, Mapping, Type
 
 import numpy as np
 
@@ -27,7 +27,7 @@ from pandas.api.extensions import ExtensionArray, ExtensionDtype
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
     name = "json"
-    na_value = UserDict()
+    na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
     def construct_array_type(cls) -> Type["JSONArray"]:
