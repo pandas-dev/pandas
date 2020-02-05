@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timedelta, tzinfo
 import operator
-from typing import Optional
+from typing import Callable, Optional
 import warnings
 
 import numpy as np
@@ -191,6 +191,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _data: DatetimeArray
     tz: Optional[tzinfo]
+    tz_localize: Callable[..., "DatetimeIndex"]
 
     # --------------------------------------------------------------------
     # Constructors
