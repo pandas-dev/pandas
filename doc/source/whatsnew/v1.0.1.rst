@@ -22,6 +22,7 @@ Fixed regressions
 - Fixed regression in ``.groupby()`` aggregations with categorical dtype using Cythonized reduction functions (e.g. ``first``) (:issue:`31450`)
 - Fixed regression in :meth:`GroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
 - Fixed regression in :meth:`DataFrame.groupby` whereby taking the minimum or maximum of a column with period dtype would raise a ``TypeError``. (:issue:`31471`)
+- Fixed regression in :meth:`DataFrame.groupby` with an empty DataFrame grouping by a level of a MultiIndex (:issue:`31670`).
 - Fixed regression in :meth:`DataFrame.apply` with object dtype and non-reducing function (:issue:`31505`)
 - Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
 - Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
