@@ -1,5 +1,6 @@
 import calendar
 from datetime import datetime, timedelta
+import re
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -550,3 +551,18 @@ def test_timestamp_constructor_identity():
     expected = Timestamp("2017-01-01T12")
     result = Timestamp(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"year": 2020}, {"year": 2020, "month": 1}])
+def test_constructor_missing_keyword(kwargs):
+    # GH 31200
+
+    # The exact error message of datetime() depends on its version
+    # We use this instead of explicit message for backward and forward compatibility
+    try:
+        datetime(**kwargs)
+    except TypeError as e:
+        msg = str(e)
+
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        Timestamp(**kwargs)
