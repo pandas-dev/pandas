@@ -65,6 +65,10 @@ class TestScalar(Base):
             for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
                 _check(f, "at")
 
+
+class TestScalar2:
+    # TODO: Better name, just separating things that dont need Base class
+
     def test_at_iat_coercion(self):
 
         # as timestamp is not a tuple!

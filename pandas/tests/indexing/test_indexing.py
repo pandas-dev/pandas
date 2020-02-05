@@ -17,13 +17,13 @@ import pandas._testing as tm
 from pandas.core.generic import NDFrame
 from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
-from pandas.tests.indexing.common import Base, _mklbl
+from pandas.tests.indexing.common import _mklbl
 
 # ------------------------------------------------------------------------
 # Indexing test cases
 
 
-class TestFancy(Base):
+class TestFancy:
     """ pure get/set item & fancy indexing """
 
     def test_setitem_ndarray_1d(self):
@@ -750,7 +750,7 @@ class TestFancy(Base):
                 assert s2.index.is_object()
 
 
-class TestMisc(Base):
+class TestMisc:
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
         df["a"] = 10
@@ -875,21 +875,21 @@ class TestMisc(Base):
         assert df2.loc[:, "a"].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, "a"], df2.iloc[:, 0])
 
-    def test_range_in_series_indexing(self):
+    @pytest.mark.parametrize("size", [5, 999999, 1000000])
+    def test_range_in_series_indexing(self, size):
         # range can cause an indexing error
         # GH 11652
-        for x in [5, 999999, 1000000]:
-            s = Series(index=range(x), dtype=np.float64)
-            s.loc[range(1)] = 42
-            tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
+        s = Series(index=range(size), dtype=np.float64)
+        s.loc[range(1)] = 42
+        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
 
-            s.loc[range(2)] = 43
-            tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
+        s.loc[range(2)] = 43
+        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
 
-    def test_non_reducing_slice(self):
-        df = DataFrame([[0, 1], [2, 3]])
-
-        slices = [
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            # FIXME: dont leave commented-out
             # pd.IndexSlice[:, :],
             pd.IndexSlice[:, 1],
             pd.IndexSlice[1, :],
@@ -902,10 +902,13 @@ class TestMisc(Base):
             [0, 1],
             np.array([0, 1]),
             Series([0, 1]),
-        ]
-        for slice_ in slices:
-            tslice_ = _non_reducing_slice(slice_)
-            assert isinstance(df.loc[tslice_], DataFrame)
+        ],
+    )
+    def test_non_reducing_slice(self, slc):
+        df = DataFrame([[0, 1], [2, 3]])
+
+        tslice_ = _non_reducing_slice(slc)
+        assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_list_slice(self):
         # like dataframe getitem
@@ -965,37 +968,37 @@ class TestSeriesNoneCoercion:
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
 
-    def test_coercion_with_setitem(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series[0] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_setitem(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series[0] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_loc_setitem(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series.loc[0] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_loc_setitem(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series.loc[0] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_setitem_and_series(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series[start_series == start_series[0]] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_setitem_and_series(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series[start_series == start_series[0]] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_loc_and_series(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series.loc[start_series == start_series[0]] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_loc_and_series(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series.loc[start_series == start_series[0]] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
 
 class TestDataframeNoneCoercion:
@@ -1012,31 +1015,35 @@ class TestDataframeNoneCoercion:
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
 
-    def test_coercion_with_loc(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe.loc[0, ["foo"]] = None
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_coercion_with_loc(self, expected):
+        start_data, expected_result = expected
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe.loc[0, ["foo"]] = None
 
-    def test_coercion_with_setitem_and_dataframe(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_coercion_with_setitem_and_dataframe(self, expected):
+        start_data, expected_result = expected
 
-    def test_none_coercion_loc_and_dataframe(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe.loc[
-                start_dataframe["foo"] == start_dataframe["foo"][0]
-            ] = None
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
+
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_none_coercion_loc_and_dataframe(self, expected):
+        start_data, expected_result = expected
+
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe.loc[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     def test_none_coercion_mixed_dtypes(self):
         start_dataframe = DataFrame(
