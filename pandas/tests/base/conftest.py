@@ -20,7 +20,7 @@ def _create_narrow_series(data_dtype):
     """ Helper for the _narrow_series dict """
     index = indices_dict["int"].copy()
     size = len(index)
-    if np.issubdtype(data_dtype, np.float):
+    if np.issubdtype(data_dtype, np.floating):
         data = np.random.choice(size, size=size, replace=False)
     elif np.issubdtype(data_dtype, np.integer):
         data = np.random.randn(size)
