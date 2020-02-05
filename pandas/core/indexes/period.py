@@ -5,7 +5,7 @@ import weakref
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import NaT, frequencies as libfrequencies, resolution
+from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
 from pandas.util._decorators import Appender, cache_readonly
@@ -547,7 +547,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             # we cannot construct the Period
             raise KeyError(key)
 
-        ordinal = key.ordinal if key is not NaT else key.value
+        ordinal = self._data._unbox_scalar(key)
         try:
             return self._engine.get_loc(ordinal)
         except KeyError:

@@ -4107,6 +4107,11 @@ class Index(IndexOpsMixin, PandasObject):
         bool
             Whether the key search is in the index.
 
+        Raises
+        ------
+        TypeError
+            If the key is not hashable.
+
         See Also
         --------
         Index.isin : Returns an ndarray of boolean dtype indicating whether the

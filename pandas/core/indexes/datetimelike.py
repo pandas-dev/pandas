@@ -200,7 +200,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             arr = type(self._data)._simple_new(
                 sorted_values, dtype=self.dtype, freq=freq
             )
-            return self._simple_new(arr, name=self.name)
+            return type(self)._simple_new(arr, name=self.name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -526,7 +526,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             if is_diff_evenly_spaced:
                 new_data._freq = self.freq
 
-        return self._simple_new(new_data, name=name)
+        return type(self)._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -629,7 +629,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                     del attributes["freq"]
 
         attributes.update(kwargs)
-        return self._simple_new(values, **attributes)
+        return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -886,7 +886,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             kwargs = {}
             if hasattr(self, "tz"):
                 kwargs["tz"] = getattr(other, "tz", None)
-            return self._simple_new(joined, name, **kwargs)
+            return type(self)._simple_new(joined, name, **kwargs)
 
     # --------------------------------------------------------------------
     # List-Like Methods
