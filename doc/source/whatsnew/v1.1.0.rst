@@ -73,7 +73,7 @@ Backwards incompatible API changes
 Deprecations
 ~~~~~~~~~~~~
 
-- Initialising a :class:`DateOffset` (other than :class:`Week`) with `n=0` (e.g. ``dt.datetime(2019, 3, 6, 13, 0) + 0 * pd.offsets.MonthEnd()`` will raise ``FutureWarning`` (:issue:`31184`)
+- Initialising a :class:`DateOffset` (other than :class:`Week` or subclasses of :class:`Tick`) with `n=0` (e.g. ``dt.datetime(2019, 3, 6, 13, 0) + 0 * pd.offsets.MonthEnd()`` will raise ``FutureWarning`` (:issue:`31184`)
 -
 
 .. ---------------------------------------------------------------------------
