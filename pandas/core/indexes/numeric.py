@@ -253,8 +253,8 @@ class IntegerIndex(NumericIndex):
         return self.values.view(self._default_dtype)
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["loc", "getitem", None]
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["loc", "getitem"]
 
         # never iloc, which we don't coerce to integers
         key = self._maybe_cast_indexer(key)
@@ -383,8 +383,8 @@ class Float64Index(NumericIndex):
         return super().astype(dtype, copy=copy)
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["loc", "getitem", None]
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["loc", "getitem"]
         # no-op for non-iloc
         return key
 

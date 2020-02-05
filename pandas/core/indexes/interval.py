@@ -528,8 +528,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # TODO: There must already exist something for this?
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["getitem", "loc", None]
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["getitem", "loc"]
         # never iloc, so no-op
         return key
 
