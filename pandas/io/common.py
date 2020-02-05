@@ -7,7 +7,19 @@ from io import BufferedIOBase, BytesIO, RawIOBase
 import mmap
 import os
 import pathlib
-from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    AnyStr,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
@@ -35,6 +47,10 @@ lzma = _import_lzma()
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+
+
+if TYPE_CHECKING:
+    from io import IOBase  # noqa: F401
 
 
 def is_url(url) -> bool:
@@ -356,12 +372,13 @@ def get_handle(
     handles : list of file-like objects
         A list of file-like object that were opened in this function.
     """
+    need_text_wrapping: Tuple[Type["IOBase"], ...]
     try:
         from s3fs import S3File
 
         need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
     except ImportError:
-        need_text_wrapping = (BufferedIOBase, RawIOBase)  # type: ignore
+        need_text_wrapping = (BufferedIOBase, RawIOBase)
 
     handles: List[IO] = list()
     f = path_or_buf
