@@ -84,11 +84,10 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
     freq : str/Offset, default None
          freq to convert
     fold : bint, default is 0
-        whether we are in a fold or not. Due to daylight saving time,
-        one wall clock time can occur twice when shifting from summer to
-        winter time; fold describes whether the datetime-like corresponds
-        to the first (0) or the second time (1) the wall clock hits the
-        ambiguous time
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
     box  : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
          If datetime, convert to datetime.datetime
          If date, convert to datetime.date
