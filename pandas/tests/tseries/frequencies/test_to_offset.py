@@ -86,7 +86,7 @@ def test_to_offset_invalid(freqstr):
 
     # We escape string because some of our
     # inputs contain regex special characters.
-    msg = re.escape("Invalid frequency: {freqstr}".format(freqstr=freqstr))
+    msg = re.escape(f"Invalid frequency: {freqstr}")
     with pytest.raises(ValueError, match=msg):
         frequencies.to_offset(freqstr)
 
