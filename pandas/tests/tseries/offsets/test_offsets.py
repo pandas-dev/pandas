@@ -361,7 +361,9 @@ class TestCommon(Base):
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", ".*deprecated.*", category=FutureWarning)
+                warnings.filterwarnings(
+                    "ignore", ".*deprecated.*", category=FutureWarning
+                )
                 result = func(ts)
         assert isinstance(result, Timestamp)
         if normalize is False:
@@ -400,7 +402,9 @@ class TestCommon(Base):
             # test nanosecond is preserved
             with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
                 with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", ".*deprecated.*", category=FutureWarning)
+                    warnings.filterwarnings(
+                        "ignore", ".*deprecated.*", category=FutureWarning
+                    )
                     result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:
@@ -409,6 +413,7 @@ class TestCommon(Base):
                 assert result == expected_localize
 
     def test_zero_offset(self, offset_types):
+        # GH 31184
         offset_s = self._get_offset(offset_types)
         if isinstance(offset_s, (LastWeekOfMonth, FY5253Quarter, FY5253)):
             with pytest.raises(ValueError, match="^N cannot be 0"):
@@ -420,7 +425,6 @@ class TestCommon(Base):
             exp_warning = FutureWarning
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             0 * offset_s
-
 
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
