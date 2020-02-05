@@ -6997,7 +6997,6 @@ Wild         185.0
         0   1.000000   4.494400
         1  11.262736  20.857489
         """
-
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if x.empty:
