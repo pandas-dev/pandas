@@ -296,21 +296,3 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
-
-
-def test_sniff_delimiter_comment(python_parser_only):
-    # see gh-31396
-    parser = python_parser_only
-    data = """index|A|B|C
-foo|1|2|3
-# line with comment
-bar|4|5|6 # ignore | this
-baz|7|8|9
-"""
-    result = parser.read_csv(StringIO(data), index_col=0, sep=None, comment="#")
-    expected = DataFrame(
-        [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-        columns=["A", "B", "C"],
-        index=Index(["foo", "bar", "baz"], name="index"),
-    )
-    tm.assert_frame_equal(result, expected)

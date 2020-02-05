@@ -26,7 +26,13 @@ def test_comment(all_parsers, na_values):
 
 
 @pytest.mark.parametrize(
-    "read_kwargs", [dict(), dict(lineterminator="*"), dict(delim_whitespace=True)]
+    "read_kwargs",
+    [
+        dict(),
+        dict(lineterminator="*"),
+        dict(delim_whitespace=True),
+        dict(sep=None),  # gh-31396
+    ],
 )
 def test_line_comment(all_parsers, read_kwargs):
     parser = all_parsers
@@ -41,8 +47,10 @@ A,B,C
     elif read_kwargs.get("lineterminator"):
         if parser.engine != "c":
             pytest.skip("Custom terminator not supported with Python engine")
-
         data = data.replace("\n", read_kwargs.get("lineterminator"))
+    elif "sep" in read_kwargs and read_kwargs.get("sep") is None:
+        if parser.engine == "c":
+            pytest.skip("Delimiter sniffing not supported with C engine")
 
     read_kwargs["comment"] = "#"
     result = parser.read_csv(StringIO(data), **read_kwargs)
