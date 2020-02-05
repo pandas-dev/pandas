@@ -860,6 +860,15 @@ class TestDataFrameIndexing:
 
         assert (float_frame["C"] == 4).all()
 
+    def test_setitem_slice_position(self):
+        # GH#31469
+        df = pd.DataFrame(np.zeros((100, 1)))
+        df[-4:] = 1
+        arr = np.zeros((100, 1))
+        arr[-4:] = 1
+        expected = pd.DataFrame(arr)
+        tm.assert_frame_equal(df, expected)
+
     def test_getitem_setitem_non_ix_labels(self):
         df = tm.makeTimeDataFrame()
 
@@ -2267,3 +2276,41 @@ class TestDataFrameIndexingUInt64:
         expected = DataFrame(uint64_frame.values.T)
         expected.index = ["A", "B"]
         tm.assert_frame_equal(result, expected)
+
+
+def test_object_casting_indexing_wraps_datetimelike():
+    # GH#31649, check the indexing methods all the way down the stack
+    df = pd.DataFrame(
+        {
+            "A": [1, 2],
+            "B": pd.date_range("2000", periods=2),
+            "C": pd.timedelta_range("1 Day", periods=2),
+        }
+    )
+
+    ser = df.loc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.iloc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.xs(0, axis=0)
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    mgr = df._data
+    arr = mgr.fast_xs(0)
+    assert isinstance(arr[1], pd.Timestamp)
+    assert isinstance(arr[2], pd.Timedelta)
+
+    blk = mgr.blocks[mgr._blknos[1]]
+    assert blk.dtype == "M8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timestamp)
+
+    blk = mgr.blocks[mgr._blknos[2]]
+    assert blk.dtype == "m8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timedelta)

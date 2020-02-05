@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
+    is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -164,8 +165,8 @@ class BaseGrouper:
             com.get_callable_name(f) not in base.plotting_methods
             and isinstance(splitter, FrameSplitter)
             and axis == 0
-            # apply_frame_axis0 doesn't allow MultiIndex
-            and not isinstance(sdata.index, MultiIndex)
+            # fast_apply/libreduction doesn't allow non-numpy backed indexes
+            and not sdata.index._has_complex_internals
         ):
             try:
                 result_values, mutated = splitter.fast_apply(f, group_keys)
@@ -543,6 +544,17 @@ class BaseGrouper:
             if mask.any():
                 result = result.astype("float64")
                 result[mask] = np.nan
+        elif (
+            how == "add"
+            and is_integer_dtype(orig_values.dtype)
+            and is_extension_array_dtype(orig_values.dtype)
+        ):
+            # We need this to ensure that Series[Int64Dtype].resample().sum()
+            # remains int64 dtype.
+            # Two options for avoiding this special case
+            # 1. mask-aware ops and avoid casting to float with NaN above
+            # 2. specify the result dtype when calling this method
+            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
@@ -556,7 +568,12 @@ class BaseGrouper:
         if swapped:
             result = result.swapaxes(0, axis)
 
-        if is_datetime64tz_dtype(orig_values.dtype):
+        if is_datetime64tz_dtype(orig_values.dtype) or is_period_dtype(
+            orig_values.dtype
+        ):
+            # We need to use the constructors directly for these dtypes
+            # since numpy won't recognize them
+            # https://github.com/pandas-dev/pandas/issues/31471
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
@@ -616,8 +633,8 @@ class BaseGrouper:
             # TODO: can we get a performant workaround for EAs backed by ndarray?
             return self._aggregate_series_pure_python(obj, func)
 
-        elif isinstance(obj.index, MultiIndex):
-            # MultiIndex; Pre-empt TypeError in _aggregate_series_fast
+        elif obj.index._has_complex_internals:
+            # Pre-empt TypeError in _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
 
         try:

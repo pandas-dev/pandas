@@ -1470,8 +1470,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # inv fails with 0 len
             return self
 
-        arr = operator.inv(com.values_from_object(self))
-        return self.__array_wrap__(arr)
+        new_data = self._data.apply(operator.invert)
+        result = self._constructor(new_data).__finalize__(self)
+        return result
 
     def __nonzero__(self):
         raise ValueError(
@@ -3166,10 +3167,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
 
-        # create 'out.zip' containing 'out.csv'
+        Create 'out.zip' containing 'out.csv'
+
         >>> compression_opts = dict(method='zip',
         ...                         archive_name='out.csv')  # doctest: +SKIP
-
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
         """

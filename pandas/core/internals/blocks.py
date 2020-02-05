@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos as libalgos, lib, tslib, writers
+from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 from pandas._libs.index import convert_scalar
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
@@ -680,7 +680,10 @@ class Block(PandasObject):
         itemsize = writers.word_len(na_rep)
 
         if not self.is_object and not quoting and itemsize:
-            values = values.astype(f"<U{itemsize}")
+            values = values.astype(str)
+            if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
+                # enlarge for the na_rep
+                values = values.astype(f"<U{itemsize}")
         else:
             values = np.array(values, dtype="object")
 
@@ -872,7 +875,11 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-
+        exact_match = (
+            len(arr_value.shape)
+            and arr_value.shape[0] == values.shape[0]
+            and arr_value.size == values.size
+        )
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
             pass
@@ -882,14 +889,21 @@ class Block(PandasObject):
             #  be e.g. a list; see GH#6043
             values[indexer] = value
 
+        elif (
+            exact_match
+            and is_categorical_dtype(arr_value.dtype)
+            and not is_categorical_dtype(values)
+        ):
+            # GH25495 - If the current dtype is not categorical,
+            # we need to create a new categorical block
+            values[indexer] = value
+            return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
+
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
-        elif (
-            len(arr_value.shape)
-            and arr_value.shape[0] == values.shape[0]
-            and arr_value.size == values.size
-        ):
+        elif exact_match:
             values[indexer] = value
+
             try:
                 values = values.astype(arr_value.dtype)
             except ValueError:
@@ -2133,6 +2147,16 @@ class DatetimeLikeBlockMixin:
             result = self._holder(values).astype(object)
             return result.reshape(self.values.shape)
         return self.values
+
+    def iget(self, key):
+        # GH#31649 we need to wrap scalars in Timestamp/Timedelta
+        # TODO: this can be removed if we ever have 2D EA
+        result = super().iget(key)
+        if isinstance(result, np.datetime64):
+            result = Timestamp(result)
+        elif isinstance(result, np.timedelta64):
+            result = Timedelta(result)
+        return result
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):

@@ -114,7 +114,8 @@ cdef class Reducer:
                     if self.typ is not None:
                         # In this case, we also have self.index
                         name = labels[i]
-                        cached_typ = self.typ(chunk, index=self.index, name=name)
+                        cached_typ = self.typ(
+                            chunk, index=self.index, name=name, dtype=arr.dtype)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
@@ -501,9 +502,9 @@ def apply_frame_axis0(object frame, object f, object names,
 
             if not is_scalar(piece):
                 # Need to copy data to avoid appending references
-                if hasattr(piece, "copy"):
+                try:
                     piece = piece.copy(deep="all")
-                else:
+                except (TypeError, AttributeError):
                     piece = copy(piece)
 
             results.append(piece)

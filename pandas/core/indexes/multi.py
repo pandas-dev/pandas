@@ -621,16 +621,6 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @property
-    def levels(self):
-        result = [
-            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
-        ]
-        for level in result:
-            # disallow midx.levels[0].name = "foo"
-            level._no_setting_name = True
-        return FrozenList(result)
-
-    @property
     def _values(self):
         # We override here, since our parent uses _data, which we don't use.
         return self.values
@@ -658,6 +648,22 @@ class MultiIndex(Index):
             "MultiIndex has no single backing array. Use "
             "'MultiIndex.to_numpy()' to get a NumPy array of tuples."
         )
+
+    # --------------------------------------------------------------------
+    # Levels Methods
+
+    @cache_readonly
+    def levels(self):
+        # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
+        # create new IndexEngine
+        # https://github.com/pandas-dev/pandas/issues/31648
+        result = [
+            x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
+        ]
+        for level in result:
+            # disallow midx.levels[0].name = "foo"
+            level._no_setting_name = True
+        return FrozenList(result)
 
     def _set_levels(
         self, levels, level=None, copy=False, validate=True, verify_integrity=False
@@ -1227,6 +1233,9 @@ class MultiIndex(Index):
                     )
             self._names[lev] = name
 
+        # If .levels has been accessed, the names in our cache will be stale.
+        self._reset_cache()
+
     names = property(
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
     )
@@ -1261,10 +1270,10 @@ class MultiIndex(Index):
             # on the output of a groupby doesn't reflect back here.
             level_index = level_index.copy()
 
-        if len(level_index):
-            grouper = level_index.take(codes)
-        else:
+        if level_index._can_hold_na:
             grouper = level_index.take(codes, fill_value=True)
+        else:
+            grouper = level_index.take(codes)
 
         return grouper, codes, level_index
 
@@ -1345,6 +1354,11 @@ class MultiIndex(Index):
 
         self._tuples = lib.fast_zip(values)
         return self._tuples
+
+    @property
+    def _has_complex_internals(self):
+        # used to avoid libreduction code paths, which raise or require conversion
+        return True
 
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
@@ -2541,7 +2555,7 @@ class MultiIndex(Index):
         for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
 
-            if lab not in lev and not isna(lab):
+            if lab not in lev and np.ndim(lab) == 0 and not isna(lab):
                 if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
                     raise TypeError(f"Level type mismatch: {lab}")
 
