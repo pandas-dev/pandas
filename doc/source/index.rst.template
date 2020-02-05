@@ -117,7 +117,7 @@ programming language.
     :hidden:
 {% endif %}
 {% if not single_doc %}
-    What's New in 1.0.0 <whatsnew/v1.0.0>
+    What's New in 1.0.1 <whatsnew/v1.0.1>
     getting_started/index
     user_guide/index
     {% endif -%}
