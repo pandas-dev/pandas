@@ -1,7 +1,7 @@
 .. _whatsnew_101:
 
-What's new in 1.0.1 (??)
-------------------------
+What's new in 1.0.1 (February 5, 2020)
+--------------------------------------
 
 These are the changes in pandas 1.0.1. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -74,3 +74,5 @@ Bug fixes
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v0.25.3..v1.0.1|HEAD
