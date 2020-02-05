@@ -396,7 +396,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         kind : {'loc', 'getitem', 'iloc'} or None
         """
 
-        assert kind in ["loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", None]
 
         if not is_scalar(key):
             raise TypeError(key)

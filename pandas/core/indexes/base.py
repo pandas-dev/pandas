@@ -3109,7 +3109,7 @@ class Index(IndexOpsMixin, PandasObject):
         key : label of the slice bound
         kind : {'loc', 'getitem', 'iloc'} or None
         """
-        assert kind in ["loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem", None]
 
         if kind == "iloc":
             self._validate_indexer("positional", key, "iloc")

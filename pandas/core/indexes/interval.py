@@ -529,8 +529,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
-        if kind == "iloc":
-            return super()._convert_scalar_indexer(key, kind=kind)
+        assert kind in ["getitem", "loc", None]
+        # never iloc, so no-op
         return key
 
     def _maybe_cast_slice_bound(self, label, side, kind):
