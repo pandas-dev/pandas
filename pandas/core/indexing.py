@@ -1462,7 +1462,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         # Have the index compute an indexer or return None
         # if it cannot handle:
-        indexer, keyarr = ax._convert_listlike_indexer(key, kind=self.name)
+        assert self.name == "loc"
+        indexer, keyarr = ax._convert_listlike_indexer(key)
         # We only act on all found values:
         if indexer is not None and (indexer != -1).all():
             self._validate_read_indexer(key, indexer, axis, raise_missing=raise_missing)
