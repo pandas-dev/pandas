@@ -2270,13 +2270,6 @@ class TestDataFrameIndexingUInt64:
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
 
-    def test_transpose(self, uint64_frame):
-
-        result = uint64_frame.T
-        expected = DataFrame(uint64_frame.values.T)
-        expected.index = ["A", "B"]
-        tm.assert_frame_equal(result, expected)
-
 
 def test_object_casting_indexing_wraps_datetimelike():
     # GH#31649, check the indexing methods all the way down the stack
