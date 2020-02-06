@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
--
+- Fixed regression in :meth:`DataFrame.to_excel` when ``columns`` kwarg is passed (:issue:`31677`)
 -
 
 .. ---------------------------------------------------------------------------

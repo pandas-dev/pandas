@@ -1048,6 +1048,27 @@ class TestExcelWriter:
         ):
             write_frame.to_excel(path, "test1", columns=["C", "D"])
 
+    @pytest.mark.parametrize(
+        "to_excel_index,read_excel_index_col",
+        [
+            (True, 0),  # Include index in write to file
+            (False, None),  # Dont include index in write to file
+        ],
+    )
+    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):
+        # GH 31677
+        write_frame = DataFrame({"A": [1, 1, 1], "B": [2, 2, 2], "C": [3, 3, 3]})
+        write_frame.to_excel(
+            path, "col_subset_bug", columns=["A", "B"], index=to_excel_index
+        )
+
+        expected = write_frame[["A", "B"]]
+        read_frame = pd.read_excel(
+            path, "col_subset_bug", index_col=read_excel_index_col
+        )
+
+        tm.assert_frame_equal(expected, read_frame)
+
     def test_comment_arg(self, path):
         # see gh-18735
         #
