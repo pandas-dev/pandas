@@ -1671,3 +1671,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert target_file in (
             obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
         )
+
+    @pytest.mark.parametrize(
+        "dataframe,expected", [(pd.DataFrame([[pd.NA]]), '{"0":{"0":null}}',)],
+    )
+    def test_json_pandas_na(self, dataframe, expected):
+        # GH 31615
+        result = dataframe.to_json()
+        assert result == expected
