@@ -2330,11 +2330,11 @@ class MultiIndex(Index):
             loc = self.get_loc(key)
         except KeyError:
             if is_integer(key):
-                return series._values[key]
+                loc = key
             else:
                 raise
-        else:
-            return self._get_values_for_loc(series, loc, key)
+
+        return self._get_values_for_loc(series, loc, key)
 
     def _get_values_for_loc(self, series: "Series", loc, key):
         """
