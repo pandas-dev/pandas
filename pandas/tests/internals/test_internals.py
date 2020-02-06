@@ -92,7 +92,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
         values = 1.0j * (mat.astype(typestr) + num_offset)
     elif typestr in ("object", "string", "O"):
         values = np.reshape(
-            ["A{i:d}".format(i=i) for i in mat.ravel() + num_offset], shape
+            [f"A{i:d}" for i in mat.ravel() + num_offset], shape
         )
     elif typestr in ("b", "bool"):
         values = np.ones(shape, dtype=np.bool_)
@@ -101,7 +101,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
     elif typestr.startswith("M8[ns"):
         # datetime with tz
         m = re.search(r"M8\[ns,\s*(\w+\/?\w*)\]", typestr)
-        assert m is not None, "incompatible typestr -> {0}".format(typestr)
+        assert m is not None, f"incompatible typestr -> {typestr}"
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
         values = DatetimeIndex(np.arange(N) * 1e9, tz=tz)
@@ -610,9 +610,9 @@ class TestBlockManager:
 
         # self
         for dtype in ["f8", "i8", "object", "bool", "complex", "M8[ns]", "m8[ns]"]:
-            mgr = create_mgr("a: {0}".format(dtype))
+            mgr = create_mgr(f"a: {dtype}")
             assert mgr.as_array().dtype == dtype
-            mgr = create_mgr("a: {0}; b: {0}".format(dtype))
+            mgr = create_mgr(f"a: {dtype}; b: {dtype}")
             assert mgr.as_array().dtype == dtype
 
         # will be converted according the actual dtype of the underlying
@@ -1164,7 +1164,7 @@ class DummyElement:
         return np.array(self.value, dtype=self.dtype)
 
     def __str__(self) -> str:
-        return "DummyElement({}, {})".format(self.value, self.dtype)
+        return f"DummyElement({self.value}, {self.value})"
 
     def __repr__(self) -> str:
         return str(self)
