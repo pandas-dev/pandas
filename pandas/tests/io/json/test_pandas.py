@@ -1673,7 +1673,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
 
     @pytest.mark.parametrize(
-        "dataframe,expected", [(pd.DataFrame([[pd.NA]]), '{"0":{"0":null}}',)],
+        "dataframe,expected",
+        [
+            (pd.DataFrame([[pd.NA]]), '{"0":{"0":null}}',),
+            (pd.DataFrame({pd.NA: ["a"]}), '{"<NA>":{"0":"a"}}',),
+        ],
     )
     def test_json_pandas_na(self, dataframe, expected):
         # GH 31615
