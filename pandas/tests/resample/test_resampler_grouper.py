@@ -312,9 +312,17 @@ def test_same_grouper_on_different_frames():
     df1.groupby(groupbys).sum()
     result = df2.groupby(groupbys).count()
 
-    expected = pd.DataFrame({'num1': {('c', Timestamp('2018-02-12 00:00:00', freq='D')): 1,
-                                      ('d', Timestamp('2018-03-13 00:00:00', freq='D')): 1},
-                             'num2': {('c', Timestamp('2018-02-12 00:00:00', freq='D')): 1,
-                                      ('d', Timestamp('2018-03-13 00:00:00', freq='D')): 1}})
+    expected = pd.DataFrame(
+        {
+            "num1": {
+                ("c", Timestamp("2018-02-12 00:00:00", freq="D")): 1,
+                ("d", Timestamp("2018-03-13 00:00:00", freq="D")): 1,
+            },
+            "num2": {
+                ("c", Timestamp("2018-02-12 00:00:00", freq="D")): 1,
+                ("d", Timestamp("2018-03-13 00:00:00", freq="D")): 1,
+            },
+        }
+    )
     expected.index.set_names(["type", "date"], inplace=True)
     tm.assert_frame_equal(result, expected)
