@@ -172,6 +172,23 @@ class TestGetLoc:
             with pytest.raises(KeyError, match="'c'"):
                 i.get_loc("c")
 
+    def test_get_loc_unique(self):
+        cidx = pd.CategoricalIndex(list("abc"))
+        result = cidx.get_loc("b")
+        assert result == 1
+
+    def test_get_loc_monotonic_nonunique(self):
+        cidx = pd.CategoricalIndex(list("abbc"))
+        result = cidx.get_loc("b")
+        expected = slice(1, 3, None)
+        assert result == expected
+
+    def test_get_loc_nonmonotonic_nonunique(self):
+        cidx = pd.CategoricalIndex(list("abcb"))
+        result = cidx.get_loc("b")
+        expected = np.array([False, True, False, True], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestGetIndexer:
     def test_get_indexer_base(self):
