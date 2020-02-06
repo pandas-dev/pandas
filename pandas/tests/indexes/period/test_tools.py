@@ -5,10 +5,11 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 
-import pandas as pd
 from pandas import (
     DatetimeIndex,
+    NaT,
     Period,
     PeriodIndex,
     Series,
@@ -110,9 +111,9 @@ class TestPeriodIndex:
         assert result.name == "foo"
 
     def test_to_timestamp_freq(self):
-        idx = pd.period_range("2017", periods=12, freq="A-DEC")
+        idx = period_range("2017", periods=12, freq="A-DEC")
         result = idx.to_timestamp()
-        expected = pd.date_range("2017", periods=12, freq="AS-JAN")
+        expected = date_range("2017", periods=12, freq="AS-JAN")
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_repr_is_code(self):
@@ -126,7 +127,7 @@ class TestPeriodIndex:
             assert eval(repr(z)) == z
 
     def test_to_timestamp_to_period_astype(self):
-        idx = DatetimeIndex([pd.NaT, "2011-01-01", "2011-02-01"], name="idx")
+        idx = DatetimeIndex([NaT, "2011-01-01", "2011-02-01"], name="idx")
 
         res = idx.astype("period[M]")
         exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="M", name="idx")
@@ -137,7 +138,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(res, exp)
 
     def test_dti_to_period(self):
-        dti = pd.date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
         pi1 = dti.to_period()
         pi2 = dti.to_period(freq="D")
         pi3 = dti.to_period(freq="3D")
@@ -190,8 +191,7 @@ class TestPeriodIndex:
         prng = rng.to_period()
         assert prng.freq == "M"
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")
 
     def test_period_dt64_round_trip(self):
@@ -203,46 +203,31 @@ class TestPeriodIndex:
         pi = dti.to_period(freq="H")
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
-    def test_combine_first(self):
-        # GH#3367
-        didx = pd.date_range(start="1950-01-31", end="1950-07-31", freq="M")
-        pidx = pd.period_range(
-            start=pd.Period("1950-1"), end=pd.Period("1950-7"), freq="M"
-        )
-        # check to be consistent with DatetimeIndex
-        for idx in [didx, pidx]:
-            a = pd.Series([1, np.nan, np.nan, 4, 5, np.nan, 7], index=idx)
-            b = pd.Series([9, 9, 9, 9, 9, 9, 9], index=idx)
-
-            result = a.combine_first(b)
-            expected = pd.Series([1, 9, 9, 4, 5, 9, 7], index=idx, dtype=np.float64)
-            tm.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize("freq", ["D", "2D"])
     def test_searchsorted(self, freq):
-        pidx = pd.PeriodIndex(
+        pidx = PeriodIndex(
             ["2014-01-01", "2014-01-02", "2014-01-03", "2014-01-04", "2014-01-05"],
             freq=freq,
         )
 
-        p1 = pd.Period("2014-01-01", freq=freq)
+        p1 = Period("2014-01-01", freq=freq)
         assert pidx.searchsorted(p1) == 0
 
-        p2 = pd.Period("2014-01-04", freq=freq)
+        p2 = Period("2014-01-04", freq=freq)
         assert pidx.searchsorted(p2) == 3
 
-        assert pidx.searchsorted(pd.NaT) == 0
+        assert pidx.searchsorted(NaT) == 0
 
         msg = "Input has different freq=H from PeriodArray"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            pidx.searchsorted(pd.Period("2014-01-01", freq="H"))
+            pidx.searchsorted(Period("2014-01-01", freq="H"))
 
         msg = "Input has different freq=5D from PeriodArray"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            pidx.searchsorted(pd.Period("2014-01-01", freq="5D"))
+            pidx.searchsorted(Period("2014-01-01", freq="5D"))
 
     def test_searchsorted_invalid(self):
-        pidx = pd.PeriodIndex(
+        pidx = PeriodIndex(
             ["2014-01-01", "2014-01-02", "2014-01-03", "2014-01-04", "2014-01-05"],
             freq="D",
         )
@@ -290,7 +275,7 @@ class TestPeriodIndexConversion:
 
         result = index.to_timestamp("D")
         expected = DatetimeIndex(
-            [pd.NaT, datetime(2011, 1, 1), datetime(2011, 2, 1)], name="idx"
+            [NaT, datetime(2011, 1, 1), datetime(2011, 2, 1)], name="idx"
         )
         tm.assert_index_equal(result, expected)
         assert result.name == "idx"
@@ -357,22 +342,22 @@ class TestPeriodIndexConversion:
         tm.assert_index_equal(result, expected)
 
     def test_period_astype_to_timestamp(self):
-        pi = pd.PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
+        pi = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
 
-        exp = pd.DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"])
+        exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"])
         tm.assert_index_equal(pi.astype("datetime64[ns]"), exp)
 
-        exp = pd.DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"])
+        exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"])
         exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
         tm.assert_index_equal(pi.astype("datetime64[ns]", how="end"), exp)
 
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern"
         )
         res = pi.astype("datetime64[ns, US/Eastern]")
         tm.assert_index_equal(pi.astype("datetime64[ns, US/Eastern]"), exp)
 
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2011-01-31", "2011-02-28", "2011-03-31"], tz="US/Eastern"
         )
         exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
