@@ -269,7 +269,7 @@ def test_value_counts_na():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max", "sum"])
+@pytest.mark.parametrize("func", ["min", "max"])
 def test_reduction(func):
     strings = ["x", "y", "z"]
     arr = pd.array(strings, dtype="string")
