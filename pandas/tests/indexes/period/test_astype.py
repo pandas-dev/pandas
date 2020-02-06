@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Int64Index,
+    NaT,
+    Period,
+    PeriodIndex,
+    Timedelta,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -126,3 +135,22 @@ class TestPeriodIndexAsType:
         result = obj._data.astype(bool)
         expected = np.array([True, True])
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_period_astype_to_timestamp(self):
+        pi = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
+
+        exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"])
+        tm.assert_index_equal(pi.astype("datetime64[ns]"), exp)
+
+        exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"])
+        exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
+        tm.assert_index_equal(pi.astype("datetime64[ns]", how="end"), exp)
+
+        exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern")
+        res = pi.astype("datetime64[ns, US/Eastern]")
+        tm.assert_index_equal(pi.astype("datetime64[ns, US/Eastern]"), exp)
+
+        exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"], tz="US/Eastern")
+        exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
+        res = pi.astype("datetime64[ns, US/Eastern]", how="end")
+        tm.assert_index_equal(res, exp)

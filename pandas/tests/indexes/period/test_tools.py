@@ -107,6 +107,8 @@ class TestPeriodIndexConversion:
         recon = PeriodIndex(rs)
         tm.assert_index_equal(index, recon)
 
+
+class TestToTimestamp:
     def test_to_timestamp_freq(self):
         idx = period_range("2017", periods=12, freq="A-DEC")
         result = idx.to_timestamp()
@@ -184,25 +186,6 @@ class TestPeriodIndexConversion:
         expected = DatetimeIndex(["2011-01-02 00:00", "2011-01-03 01:00"], name="idx")
         expected = expected + Timedelta(1, "h") - Timedelta(1, "ns")
         tm.assert_index_equal(result, expected)
-
-    def test_period_astype_to_timestamp(self):
-        pi = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
-
-        exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"])
-        tm.assert_index_equal(pi.astype("datetime64[ns]"), exp)
-
-        exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"])
-        exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
-        tm.assert_index_equal(pi.astype("datetime64[ns]", how="end"), exp)
-
-        exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern")
-        res = pi.astype("datetime64[ns, US/Eastern]")
-        tm.assert_index_equal(pi.astype("datetime64[ns, US/Eastern]"), exp)
-
-        exp = DatetimeIndex(["2011-01-31", "2011-02-28", "2011-03-31"], tz="US/Eastern")
-        exp = exp + Timedelta(1, "D") - Timedelta(1, "ns")
-        res = pi.astype("datetime64[ns, US/Eastern]", how="end")
-        tm.assert_index_equal(res, exp)
 
     def test_to_timestamp_1703(self):
         index = period_range("1/1/2012", periods=4, freq="D")
