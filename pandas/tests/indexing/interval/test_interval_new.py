@@ -128,10 +128,6 @@ class TestIntervalIndex:
         with pytest.raises(NotImplementedError, match=msg):
             s[Interval(3, 4, closed="left") :]
 
-        # FIXME: dont leave commented-out
-        # TODO with non-existing intervals ?
-        # s.loc[Interval(-1, 0):Interval(2, 3)]
-
         # slice of scalar
 
         expected = s.iloc[:3]
