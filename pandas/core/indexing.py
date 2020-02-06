@@ -591,12 +591,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         return self.obj._xs(label, axis=axis)
 
-    def _get_loc(self, key: int, axis: int):
-        return self.obj._ixs(key, axis=axis)
-
-    def _slice(self, obj, axis: int, kind=None):
-        return self.obj._slice(obj, axis=axis, kind=kind)
-
     def _get_setitem_indexer(self, key):
         if self.axis is not None:
             return self._convert_tuple(key, is_setter=True)
@@ -701,17 +695,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
         return tuple(keyidx)
-
-    def _convert_scalar_indexer(self, key, axis: int):
-        # if we are accessing via lowered dim, use the last dim
-        ax = self.obj._get_axis(min(axis, self.ndim - 1))
-        # a scalar
-        return ax._convert_scalar_indexer(key, kind=self.name)
-
-    def _convert_slice_indexer(self, key: slice, axis: int):
-        # if we are accessing via lowered dim, use the last dim
-        ax = self.obj._get_axis(min(axis, self.ndim - 1))
-        return ax._convert_slice_indexer(key, kind=self.name)
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
@@ -1627,7 +1610,8 @@ class _LocIndexer(_LocationIndexer):
             return
 
         if not is_list_like_indexer(key):
-            self._convert_scalar_indexer(key, axis)
+            labels = self.obj._get_axis(axis)
+            labels._convert_scalar_indexer(key, kind="loc")
 
     def _is_scalar_access(self, key: Tuple) -> bool:
         """
@@ -1772,7 +1756,7 @@ class _LocIndexer(_LocationIndexer):
         )
 
         if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis, kind="iloc")
+            return self.obj._slice(indexer, axis=axis, kind="iloc")
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
@@ -1796,12 +1780,12 @@ class _LocIndexer(_LocationIndexer):
         labels = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
-            return self._convert_slice_indexer(key, axis)
+            return labels._convert_slice_indexer(key, kind="loc")
 
         if is_scalar(key):
             # try to find out correct indexer, if not type correct raise
             try:
-                key = self._convert_scalar_indexer(key, axis)
+                key = labels._convert_scalar_indexer(key, kind="loc")
             except TypeError:
                 # but we will allow setting
                 if not is_setter:
@@ -2025,7 +2009,7 @@ class _iLocIndexer(_LocationIndexer):
             # validate the location
             self._validate_integer(key, axis)
 
-            return self._get_loc(key, axis=axis)
+            return self.obj._ixs(key, axis=axis)
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
         # caller is responsible for ensuring non-None axis
@@ -2034,19 +2018,22 @@ class _iLocIndexer(_LocationIndexer):
         if not need_slice(slice_obj):
             return obj.copy(deep=False)
 
-        indexer = self._convert_slice_indexer(slice_obj, axis)
-        return self._slice(indexer, axis=axis, kind="iloc")
+        labels = obj._get_axis(axis)
+        indexer = labels._convert_slice_indexer(slice_obj, kind="iloc")
+        return self.obj._slice(indexer, axis=axis, kind="iloc")
 
     def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         """
         Much simpler as we only have to deal with our valid types.
         """
+        labels = self.obj._get_axis(axis)
+
         # make need to convert a float key
         if isinstance(key, slice):
-            return self._convert_slice_indexer(key, axis)
+            return labels._convert_slice_indexer(key, kind="iloc")
 
         elif is_float(key):
-            return self._convert_scalar_indexer(key, axis)
+            return labels._convert_scalar_indexer(key, kind="iloc")
 
         self._validate_key(key, axis)
         return key

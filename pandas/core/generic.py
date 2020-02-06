@@ -3498,7 +3498,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(self: FrameOrSeries, slobj: slice, axis=0, kind=None) -> FrameOrSeries:
+    def _slice(
+        self: FrameOrSeries, slobj: slice, axis=0, kind: str = "getitem"
+    ) -> FrameOrSeries:
         """
         Construct a slice of this container.
 
