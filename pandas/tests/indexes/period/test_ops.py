@@ -2,25 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series
+from pandas import Index, NaT, PeriodIndex, Series
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
-from pandas.tests.base.test_ops import Ops
 
 
-class TestPeriodIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: (isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex))
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = [o for o in self.objs if not mask(o)]
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, PeriodIndex)
-        self.check_ops_properties(PeriodArray._field_ops, f)
-        self.check_ops_properties(PeriodArray._object_ops, f)
-        self.check_ops_properties(PeriodArray._bool_ops, f)
-
+class TestPeriodIndexOps:
     def test_resolution(self):
         for freq, expected in zip(
             ["A", "Q", "M", "D", "H", "T", "S", "L", "U"],

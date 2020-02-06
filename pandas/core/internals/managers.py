@@ -1565,7 +1565,7 @@ class SingleBlockManager(BlockManager):
         fast path for getting a cross-section
         return a view of the data
         """
-        return self._block.values[loc]
+        raise NotImplementedError("Use series._values[loc] instead")
 
     def concat(self, to_concat, new_axis) -> "SingleBlockManager":
         """
