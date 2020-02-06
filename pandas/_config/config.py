@@ -49,7 +49,6 @@ Implementation
 """
 
 from collections import namedtuple
-from contextlib import contextmanager
 import re
 from typing import (
     Any,
@@ -64,6 +63,7 @@ from typing import (
     cast,
 )
 import warnings
+from contextlib import contextmanager
 
 DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
