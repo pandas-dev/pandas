@@ -6,7 +6,16 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Int64Index, NaT, Series, Timestamp, date_range
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Int64Index,
+    NaT,
+    PeriodIndex,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -268,15 +277,19 @@ class TestDatetimeIndex:
         expected = pd.DatetimeIndex(["2018-01-01"], tz=tz)
         tm.assert_index_equal(result, expected)
 
+    def test_dti_astype_period(self):
+        idx = DatetimeIndex([NaT, "2011-01-01", "2011-02-01"], name="idx")
 
-class TestToPeriod:
-    def setup_method(self, method):
-        data = [
-            Timestamp("2007-01-01 10:11:12.123456Z"),
-            Timestamp("2007-01-01 10:11:13.789123Z"),
-        ]
-        self.index = DatetimeIndex(data)
+        res = idx.astype("period[M]")
+        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="M", name="idx")
+        tm.assert_index_equal(res, exp)
 
+        res = idx.astype("period[3M]")
+        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3M", name="idx")
+        tm.assert_index_equal(res, exp)
+
+
+class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
         obj = pd.date_range("2000", periods=2, tz=tz)
