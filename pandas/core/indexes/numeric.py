@@ -383,6 +383,7 @@ class Float64Index(NumericIndex):
     # ----------------------------------------------------------------
     # Indexing Methods
 
+    @Appender(Index._should_fallback_to_positional.__doc__)
     def _should_fallback_to_positional(self):
         return False
 
