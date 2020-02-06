@@ -160,17 +160,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     _typ = "categoricalindex"
 
-    _raw_inherit = {
-        "argsort",
-        "_internal_get_values",
-        "tolist",
-        "codes",
-        "categories",
-        "ordered",
-        "_reverse_indexer",
-        "searchsorted",
-    }
-
     codes: np.ndarray
     categories: Index
     _data: Categorical
@@ -678,12 +667,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr, kind=None):
+    def _convert_list_indexer(self, keyarr):
         # Return our indexer or raise if all of the values are not included in
         # the categories
 
         if self.categories._defer_to_indexing:
-            indexer = self.categories._convert_list_indexer(keyarr, kind=kind)
+            indexer = self.categories._convert_list_indexer(keyarr)
             return Index(self.codes).get_indexer_for(indexer)
 
         indexer = self.categories.get_indexer(np.asarray(keyarr))
@@ -847,18 +836,13 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _delegate_property_get(self, name: str, *args, **kwargs):
-        """ method delegation to the ._values """
-        prop = getattr(self._values, name)
-        return prop  # no wrapping for now
-
     def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
         if "inplace" in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")
         res = method(*args, **kwargs)
-        if is_scalar(res) or name in self._raw_inherit:
+        if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
 
