@@ -6557,7 +6557,9 @@ Wild         185.0
     @Appender(
         _shared_docs["melt"]
         % dict(
-            caller="df.melt(", versionadded=".. versionadded:: 0.20.0\n", other="melt"
+            caller="df.melt(",
+            versionadded="\n    .. versionadded:: 0.20.0\n",
+            other="melt",
         )
     )
     def melt(
