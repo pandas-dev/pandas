@@ -145,7 +145,7 @@ class TestIntervalIndex:
         tm.assert_series_equal(expected, s[0.1:2.5])
 
     def test_slice_step_ne1(self):
-        # slice of scalar with step != 1
+        # GH#31658 slice of scalar with step != 1
         s = self.s
         expected = s.iloc[0:4:2]
 
@@ -154,6 +154,17 @@ class TestIntervalIndex:
 
         result2 = s[0:4][::2]
         tm.assert_series_equal(result2, expected)
+
+    def test_slice_interval_step(self):
+        # GH#31658 allows for integer step!=1, not Interval step
+        s = self.s
+        msg = (
+            "cannot do slice indexing on "
+            "<class 'pandas.core.indexes.interval.IntervalIndex'> with "
+            "these indexers .* of <class 'pandas._libs.interval.Interval'>"
+        )
+        with pytest.raises(TypeError, match=msg):
+            s[0 : 4 : Interval(0, 1)]
 
     def test_loc_with_overlap(self):
 
