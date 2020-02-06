@@ -274,7 +274,16 @@ class StringArray(PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+        if name in ["min", "max", "sum"]:
+            na_mask = isna(self)
+            if not na_mask.any():
+                return getattr(self, name)(skipna=False, **kwargs)
+            elif skipna:
+                return getattr(self[~na_mask], name)(skipna=False, **kwargs)
+            else:
+                return libmissing.NA
+        else:
+            raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
