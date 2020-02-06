@@ -476,8 +476,15 @@ class _BaseOffset:
         if n != nint:
             raise ValueError(f'`n` argument must be an integer, got {n}')
         if n == 0:
-            if hasattr(self, "_prefix") and self._prefix == "W":
-                pass  # we allow Week(0), xref GH31185
+            if hasattr(self, "_prefix") and self._prefix in [
+                "W",
+                "LWOM",
+                "REQ",
+                "RE",
+            ]:
+                # we allow Week(0) (xref GH31185) and for the others
+                # we already raise ValueError
+                pass
             elif isinstance(self, _Tick):
                 pass
             else:

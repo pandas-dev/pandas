@@ -3326,7 +3326,11 @@ class TestWeekOfMonth(Base):
         ]
 
         for n, week, weekday, dt, expected in test_cases:
-            offset = WeekOfMonth(n, week=week, weekday=weekday)
+            if n == 0:
+                with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+                    offset = WeekOfMonth(n, week=week, weekday=weekday)
+            else:
+                offset = WeekOfMonth(n, week=week, weekday=weekday)
             assert_offset_equal(offset, dt, expected)
 
         # try subtracting
@@ -3742,21 +3746,6 @@ class TestSemiMonthBegin(Base):
                 datetime(2007, 1, 1): datetime(2007, 1, 20),
                 datetime(2006, 12, 1): datetime(2006, 12, 20),
                 datetime(2006, 12, 15): datetime(2006, 12, 20),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            SemiMonthBegin(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 16): datetime(2008, 2, 1),
-                datetime(2008, 1, 15): datetime(2008, 1, 15),
-                datetime(2008, 1, 31): datetime(2008, 2, 1),
-                datetime(2006, 12, 29): datetime(2007, 1, 1),
-                datetime(2006, 12, 2): datetime(2006, 12, 15),
-                datetime(2007, 1, 1): datetime(2007, 1, 1),
             },
         )
     )
