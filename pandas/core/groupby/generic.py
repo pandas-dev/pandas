@@ -72,7 +72,6 @@ from pandas.core.groupby.groupby import (
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
-from pandas.core.internals.blocks import _block_shape
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
@@ -1023,9 +1022,6 @@ class DataFrameGroupBy(GroupBy):
         agg_blocks: List[Block] = []
         new_items: List[np.ndarray] = []
         deleted_items: List[np.ndarray] = []
-        # Some object-dtype blocks might be split into List[Block[T], Block[U]]
-        split_items: List[np.ndarray] = []
-        split_frames: List[DataFrame] = []
 
         def _recast_result(result, values):
             # see if we can cast the block back to the original dtype
@@ -1091,43 +1087,31 @@ class DataFrameGroupBy(GroupBy):
                     deleted_items.append(locs)
                     continue
                 else:
-                    if result.ndim == 1:
+                    if isinstance(result, Series):
                         result = result.to_frame()
 
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
-                    if len(result._data.blocks) != 1:
-                        # We've split an object block! Everything we've assumed
-                        # about a single block input returning a single block output
-                        # is a lie. To keep the code-path for the typical non-split case
-                        # clean, we choose to clean up this mess later on.
-                        split_items.append(locs)
-                        split_frames.append(result)
-                        continue
 
-                    assert len(result._data.blocks) == 1
-                    result = result._data.blocks[0].values
-                    result = _recast_result(result, block.values)
-                    agg_block: Block = block.make_block(result)
+                    for i, col in enumerate(result.columns):
+                        nb = result.iloc[:, [i]]._data.blocks[0]
+                        loc = data.items.get_loc(col)
+                        # FIXME: requires unique?  GH#31735
+                        res = _recast_result(nb.values, data.iget(loc).blocks[0].values)
+                        nb2 = make_block(res, placement=[loc], ndim=2)
+                        agg_blocks.append(nb2)
+
             else:
                 assert not isinstance(result, DataFrame)
                 assert result is not no_result
                 result = _recast_result(result, block.values)
                 agg_block: Block = block.make_block(result)
+                agg_blocks.append(agg_block)
 
             new_items.append(locs)
-            agg_blocks.append(agg_block)
 
-        if not (agg_blocks or split_frames):
+        if not agg_blocks:
             raise DataError("No numeric types to aggregate")
-
-        if split_items:
-            # Clean up the mess left over from split blocks.
-            for locs, result in zip(split_items, split_frames):
-                assert len(locs) == result.shape[1]
-                for i, loc in enumerate(locs):
-                    new_items.append(np.array([loc], dtype=locs.dtype))
-                    agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])
 
         # reset the locs in the blocks to correspond to our
         # current ordering
