@@ -953,6 +953,25 @@ class TestTimeSeries:
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
+@pytest.mark.parametrize(
+    "ts_input,fold",
+    [
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 1),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), 0),
+    ],
+)
+def test_timestamp_constructor_fold_conflict(tz, ts_input, fold):
+    # Test for #25057
+    # Check that we raise on fold conflict
+    msg = (
+        "Cannot pass datetime or Timestamp with fold "
+        "attribute no matching passed fold argument."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(ts_input, tz=tz, fold=fold)
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
 @pytest.mark.parametrize("fold", [0, 1])
 def test_timestamp_constructor_retain_fold(tz, fold):
     # Test for #25057
@@ -993,8 +1012,7 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
         (1572139800000000000, 1, 1572139800000000000),
         ("2019-10-27 01:30:00", 0, 1572136200000000000),
         ("2019-10-27 01:30:00", 1, 1572139800000000000),
-        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000000),
-        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 0, 1572136200000000000),
         (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), None, 1572136200000000000),
         (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), None, 1572139800000000000),
     ],

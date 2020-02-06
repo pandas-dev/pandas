@@ -397,6 +397,14 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
+        if getattr(ts_input, 'fold', None) is not None:
+            if fold is not None:
+                if ts_input.fold != fold:
+                    raise ValueError("Cannot pass datetime or Timestamp with fold "
+                                     "attribute no matching passed fold argument.")
+            else:
+                fold = ts_input.fold
+
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
@@ -435,9 +443,6 @@ class Timestamp(_Timestamp):
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
-
-        if getattr(ts_input, 'fold', None) is not None and fold is None:
-            fold = ts_input.fold
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0,
                                  fold or 0)
