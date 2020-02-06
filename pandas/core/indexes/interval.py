@@ -523,9 +523,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
-    def holds_integer(self):
-        return self.dtype.subtype.kind not in ["m", "M"]
-        # TODO: There must already exist something for this?
+    def _should_fallback_to_positional(self):
+        # integer lookups in Series.__getitem__ are unambiguously
+        #  positional in this case
+        return self.dtype.subtype.kind in ["m", "M"]
 
     @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
