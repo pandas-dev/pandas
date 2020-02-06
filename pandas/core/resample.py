@@ -1569,9 +1569,12 @@ class TimeGrouper(Grouper):
             )
 
             # Get offset for bin edge (not label edge) adjustment
-            start_offset = Period(start, self.freq) - Period(p_start, self.freq)
-            bin_shift = start_offset.n % freq_mult
-            start = p_start
+            if start != p_start:
+                start_offset = Period(start, self.freq) - Period(p_start, self.freq)
+                bin_shift = start_offset.n % freq_mult
+                start = p_start
+            else:
+                bin_shift = 0
 
         labels = binner = period_range(
             start=start, end=end, freq=self.freq, name=ax.name
@@ -1708,8 +1711,14 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
         first, last, offset, closed=closed, base=base
     )
 
-    first = (first + adjust_first * offset).to_period(offset)
-    last = (last - adjust_last * offset).to_period(offset)
+    if adjust_first:
+        first = (first + adjust_first * offset).to_period(offset)
+    else:
+        first = first.to_period(offset)
+    if adjust_last:
+        last = (last - adjust_last * offset).to_period(offset)
+    else:
+        last = last.to_period(offset)
     return first, last
 
 

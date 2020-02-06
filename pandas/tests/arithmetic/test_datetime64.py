@@ -1246,7 +1246,7 @@ class TestDatetime64DateOffsetArithmetic:
         ],
     )
     @pytest.mark.parametrize("normalize", [True, False])
-    @pytest.mark.parametrize("n", [0, 5])
+    @pytest.mark.parametrize("n", [5])
     def test_dt64arr_add_sub_DateOffsets(
         self, box_with_array, n, normalize, cls_and_kwargs
     ):

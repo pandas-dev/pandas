@@ -1251,11 +1251,11 @@ class TestPeriodIndexSeriesMethods:
 
         result = idx - Period("2011-01", freq="M")
         off = idx.freq
-        exp = pd.Index([0 * off, 1 * off, 2 * off, 3 * off], name="idx")
+        exp = pd.Index([off, 1 * off, 2 * off, 3 * off], name="idx")
         tm.assert_index_equal(result, exp)
 
         result = Period("2011-01", freq="M") - idx
-        exp = pd.Index([0 * off, -1 * off, -2 * off, -3 * off], name="idx")
+        exp = pd.Index([-1 * off, -1 * off, -2 * off, -3 * off], name="idx")
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize("ng", ["str", 1.5])
