@@ -25,7 +25,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
--
+- Fixed issue where taking the minimum, maximum, or sum of a ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 -
 
 .. ---------------------------------------------------------------------------
