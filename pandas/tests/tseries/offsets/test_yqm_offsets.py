@@ -115,18 +115,6 @@ class TestMonthBegin(Base):
 
     offset_cases.append(
         (
-            MonthBegin(0),
-            {
-                datetime(2008, 1, 31): datetime(2008, 2, 1),
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2006, 12, 3): datetime(2007, 1, 1),
-                datetime(2007, 1, 31): datetime(2007, 2, 1),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             MonthBegin(2),
             {
                 datetime(2008, 2, 29): datetime(2008, 4, 1),
@@ -190,19 +178,6 @@ class TestMonthEnd(Base):
                 datetime(2006, 12, 31): datetime(2007, 1, 31),
                 datetime(2007, 1, 1): datetime(2007, 1, 31),
                 datetime(2006, 12, 1): datetime(2006, 12, 31),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            MonthEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 31),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2006, 12, 29): datetime(2006, 12, 31),
-                datetime(2006, 12, 31): datetime(2006, 12, 31),
-                datetime(2007, 1, 1): datetime(2007, 1, 31),
             },
         )
     )
@@ -273,20 +248,6 @@ class TestBMonthBegin(Base):
                 datetime(2006, 9, 1): datetime(2006, 10, 2),
                 datetime(2007, 1, 1): datetime(2007, 2, 1),
                 datetime(2006, 12, 1): datetime(2007, 1, 1),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            BMonthBegin(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2006, 10, 2): datetime(2006, 10, 2),
-                datetime(2008, 1, 31): datetime(2008, 2, 1),
-                datetime(2006, 12, 29): datetime(2007, 1, 1),
-                datetime(2006, 12, 31): datetime(2007, 1, 1),
-                datetime(2006, 9, 15): datetime(2006, 10, 2),
             },
         )
     )
@@ -367,19 +328,6 @@ class TestBMonthEnd(Base):
                 datetime(2006, 12, 31): datetime(2007, 1, 31),
                 datetime(2007, 1, 1): datetime(2007, 1, 31),
                 datetime(2006, 12, 1): datetime(2006, 12, 29),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            BMonthEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 31),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2006, 12, 29): datetime(2006, 12, 29),
-                datetime(2006, 12, 31): datetime(2007, 1, 31),
-                datetime(2007, 1, 1): datetime(2007, 1, 31),
             },
         )
     )
@@ -487,23 +435,6 @@ class TestQuarterBegin(Base):
 
     offset_cases.append(
         (
-            QuarterBegin(startingMonth=1, n=0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 12, 1): datetime(2009, 1, 1),
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 2, 15): datetime(2008, 4, 1),
-                datetime(2008, 2, 29): datetime(2008, 4, 1),
-                datetime(2008, 3, 15): datetime(2008, 4, 1),
-                datetime(2008, 3, 31): datetime(2008, 4, 1),
-                datetime(2008, 4, 15): datetime(2008, 7, 1),
-                datetime(2008, 4, 30): datetime(2008, 7, 1),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             QuarterBegin(startingMonth=1, n=-1),
             {
                 datetime(2008, 1, 1): datetime(2007, 10, 1),
@@ -591,22 +522,6 @@ class TestQuarterEnd(Base):
                 datetime(2008, 3, 31): datetime(2008, 5, 31),
                 datetime(2008, 4, 15): datetime(2008, 5, 31),
                 datetime(2008, 4, 30): datetime(2008, 5, 31),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            QuarterEnd(startingMonth=1, n=0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 31),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2008, 2, 15): datetime(2008, 4, 30),
-                datetime(2008, 2, 29): datetime(2008, 4, 30),
-                datetime(2008, 3, 15): datetime(2008, 4, 30),
-                datetime(2008, 3, 31): datetime(2008, 4, 30),
-                datetime(2008, 4, 15): datetime(2008, 4, 30),
-                datetime(2008, 4, 30): datetime(2008, 4, 30),
             },
         )
     )
@@ -754,26 +669,6 @@ class TestBQuarterBegin(Base):
 
     offset_cases.append(
         (
-            BQuarterBegin(startingMonth=1, n=0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2007, 12, 31): datetime(2008, 1, 1),
-                datetime(2008, 2, 15): datetime(2008, 4, 1),
-                datetime(2008, 2, 29): datetime(2008, 4, 1),
-                datetime(2008, 1, 15): datetime(2008, 4, 1),
-                datetime(2008, 2, 27): datetime(2008, 4, 1),
-                datetime(2008, 3, 15): datetime(2008, 4, 1),
-                datetime(2007, 4, 1): datetime(2007, 4, 2),
-                datetime(2007, 4, 2): datetime(2007, 4, 2),
-                datetime(2007, 7, 1): datetime(2007, 7, 2),
-                datetime(2007, 4, 15): datetime(2007, 7, 2),
-                datetime(2007, 7, 2): datetime(2007, 7, 2),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             BQuarterBegin(startingMonth=1, n=-1),
             {
                 datetime(2008, 1, 1): datetime(2007, 10, 1),
@@ -863,22 +758,6 @@ class TestBQuarterEnd(Base):
                 datetime(2008, 3, 31): datetime(2008, 5, 30),
                 datetime(2008, 4, 15): datetime(2008, 5, 30),
                 datetime(2008, 4, 30): datetime(2008, 5, 30),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            BQuarterEnd(startingMonth=1, n=0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 31),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2008, 2, 15): datetime(2008, 4, 30),
-                datetime(2008, 2, 29): datetime(2008, 4, 30),
-                datetime(2008, 3, 15): datetime(2008, 4, 30),
-                datetime(2008, 3, 31): datetime(2008, 4, 30),
-                datetime(2008, 4, 15): datetime(2008, 4, 30),
-                datetime(2008, 4, 30): datetime(2008, 4, 30),
             },
         )
     )
@@ -983,19 +862,6 @@ class TestYearBegin(Base):
 
     offset_cases.append(
         (
-            YearBegin(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 6, 30): datetime(2009, 1, 1),
-                datetime(2008, 12, 31): datetime(2009, 1, 1),
-                datetime(2005, 12, 30): datetime(2006, 1, 1),
-                datetime(2005, 12, 31): datetime(2006, 1, 1),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             YearBegin(3),
             {
                 datetime(2008, 1, 1): datetime(2011, 1, 1),
@@ -1039,18 +905,6 @@ class TestYearBegin(Base):
             {
                 datetime(2007, 4, 1): datetime(2008, 4, 1),
                 datetime(2007, 4, 15): datetime(2008, 4, 1),
-                datetime(2007, 3, 1): datetime(2007, 4, 1),
-                datetime(2007, 12, 15): datetime(2008, 4, 1),
-                datetime(2012, 1, 31): datetime(2012, 4, 1),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            YearBegin(0, month=4),
-            {
-                datetime(2007, 4, 1): datetime(2007, 4, 1),
                 datetime(2007, 3, 1): datetime(2007, 4, 1),
                 datetime(2007, 12, 15): datetime(2008, 4, 1),
                 datetime(2012, 1, 31): datetime(2012, 4, 1),
@@ -1137,18 +991,6 @@ class TestYearEnd(Base):
 
     offset_cases.append(
         (
-            YearEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 12, 31),
-                datetime(2008, 6, 30): datetime(2008, 12, 31),
-                datetime(2008, 12, 31): datetime(2008, 12, 31),
-                datetime(2005, 12, 30): datetime(2005, 12, 31),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             YearEnd(-1),
             {
                 datetime(2007, 1, 1): datetime(2006, 12, 31),
@@ -1203,18 +1045,6 @@ class TestYearEndDiffMonth(Base):
                 datetime(2008, 3, 30): datetime(2008, 3, 31),
                 datetime(2005, 3, 31): datetime(2006, 3, 31),
                 datetime(2006, 7, 30): datetime(2007, 3, 31),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            YearEnd(0, month=3),
-            {
-                datetime(2008, 1, 1): datetime(2008, 3, 31),
-                datetime(2008, 2, 28): datetime(2008, 3, 31),
-                datetime(2008, 3, 31): datetime(2008, 3, 31),
-                datetime(2005, 3, 30): datetime(2005, 3, 31),
             },
         )
     )
@@ -1291,19 +1121,6 @@ class TestBYearBegin(Base):
 
     offset_cases.append(
         (
-            BYearBegin(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 6, 30): datetime(2009, 1, 1),
-                datetime(2008, 12, 31): datetime(2009, 1, 1),
-                datetime(2005, 12, 30): datetime(2006, 1, 2),
-                datetime(2005, 12, 31): datetime(2006, 1, 2),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             BYearBegin(-1),
             {
                 datetime(2007, 1, 1): datetime(2006, 1, 2),
@@ -1348,18 +1165,6 @@ class TestBYearEnd(Base):
                 datetime(2008, 6, 30): datetime(2008, 12, 31),
                 datetime(2008, 12, 31): datetime(2009, 12, 31),
                 datetime(2005, 12, 30): datetime(2006, 12, 29),
-                datetime(2005, 12, 31): datetime(2006, 12, 29),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            BYearEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 12, 31),
-                datetime(2008, 6, 30): datetime(2008, 12, 31),
-                datetime(2008, 12, 31): datetime(2008, 12, 31),
                 datetime(2005, 12, 31): datetime(2006, 12, 29),
             },
         )
