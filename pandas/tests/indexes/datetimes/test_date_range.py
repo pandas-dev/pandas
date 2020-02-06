@@ -20,7 +20,6 @@ from pandas.tseries.offsets import (
     BDay,
     CDay,
     DateOffset,
-    MonthEnd,
     generate_range,
     prefix_mapping,
 )
@@ -429,18 +428,13 @@ class TestDateRanges:
         )
         tm.assert_index_equal(result, expected)
 
-    def test_error_with_zero_monthends(self):
-        msg = r"Offset <0 \* MonthEnds> did not increment date"
-        with pytest.raises(ValueError, match=msg):
-            date_range("1/1/2000", "1/1/2001", freq=MonthEnd(0))
-
     def test_range_bug(self):
         # GH #770
         offset = DateOffset(months=3)
         result = date_range("2011-1-1", "2012-1-31", freq=offset)
 
         start = datetime(2011, 1, 1)
-        expected = DatetimeIndex([start + i * offset for i in range(5)])
+        expected = DatetimeIndex([start + i * offset if i else start for i in range(5)])
         tm.assert_index_equal(result, expected)
 
     def test_range_tz_pytz(self):
@@ -922,10 +916,19 @@ class TestCustomDateRange:
     )
     def test_all_custom_freq(self, freq):
         # should not raise
-        bdate_range(
-            START, END, freq=freq, weekmask="Mon Wed Fri", holidays=["2009-03-14"]
-        )
-
+        if freq not in [
+            "W",
+            "LWOM",
+            "REQ",
+            "RE",
+        ]:
+            exp_warning = None
+        else:
+            exp_warning = FutureWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            bdate_range(
+                START, END, freq=freq, weekmask="Mon Wed Fri", holidays=["2009-03-14"],
+            )
         bad_freq = freq + "FOO"
         msg = "invalid custom frequency string: {freq}"
         with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):

@@ -1287,7 +1287,7 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         compare_date = self.cbday_roll(cur_month_offset_date)
         n = liboffsets.roll_convention(other.day, self.n, compare_date.day)
 
-        if n == 0:
+        if n != 0:
             new = cur_month_offset_date + n * self.m_offset
         else:
             new = cur_month_offset_date
@@ -2767,10 +2767,16 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
         periods = 0
 
     if end is None:
-        end = start + (periods - 1) * offset
+        if periods != 1:
+            end = start + (periods - 1) * offset
+        else:
+            end = start
 
     if start is None:
-        start = end - (periods - 1) * offset
+        if periods != 1:
+            start = end - (periods - 1) * offset
+        else:
+            start = end
 
     cur = start
     if offset.n >= 0:
