@@ -876,19 +876,6 @@ class TestBusinessDay(Base):
         )
     )
 
-    apply_cases.append(
-        (
-            BDay(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 4): datetime(2008, 1, 4),
-                datetime(2008, 1, 5): datetime(2008, 1, 7),
-                datetime(2008, 1, 6): datetime(2008, 1, 7),
-                datetime(2008, 1, 7): datetime(2008, 1, 7),
-            },
-        )
-    )
-
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -2764,19 +2751,6 @@ class TestCustomBusinessDay(Base):
         )
     )
 
-    apply_cases.append(
-        (
-            CDay(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 4): datetime(2008, 1, 4),
-                datetime(2008, 1, 5): datetime(2008, 1, 7),
-                datetime(2008, 1, 6): datetime(2008, 1, 7),
-                datetime(2008, 1, 7): datetime(2008, 1, 7),
-            },
-        )
-    )
-
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -2996,16 +2970,6 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         )
     )
 
-    apply_cases.append(
-        (
-            CBMonthEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 31),
-                datetime(2008, 2, 7): datetime(2008, 2, 29),
-            },
-        )
-    )
-
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
         offset, cases = case
@@ -3141,16 +3105,6 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
             {
                 datetime(2008, 1, 1): datetime(2007, 11, 1),
                 datetime(2008, 2, 9): datetime(2008, 1, 1),
-            },
-        )
-    )
-
-    apply_cases.append(
-        (
-            CBMonthBegin(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 7): datetime(2008, 2, 1),
             },
         )
     )
@@ -3565,36 +3519,6 @@ class TestSemiMonthEnd(Base):
 
     offset_cases.append(
         (
-            SemiMonthEnd(0),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 15),
-                datetime(2008, 1, 16): datetime(2008, 1, 31),
-                datetime(2008, 1, 15): datetime(2008, 1, 15),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2006, 12, 29): datetime(2006, 12, 31),
-                datetime(2006, 12, 31): datetime(2006, 12, 31),
-                datetime(2007, 1, 1): datetime(2007, 1, 15),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            SemiMonthEnd(0, day_of_month=16),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 16),
-                datetime(2008, 1, 16): datetime(2008, 1, 16),
-                datetime(2008, 1, 15): datetime(2008, 1, 16),
-                datetime(2008, 1, 31): datetime(2008, 1, 31),
-                datetime(2006, 12, 29): datetime(2006, 12, 31),
-                datetime(2006, 12, 31): datetime(2006, 12, 31),
-                datetime(2007, 1, 1): datetime(2007, 1, 16),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
             SemiMonthEnd(2),
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 31),
@@ -3832,22 +3756,6 @@ class TestSemiMonthBegin(Base):
                 datetime(2008, 1, 31): datetime(2008, 2, 1),
                 datetime(2006, 12, 29): datetime(2007, 1, 1),
                 datetime(2006, 12, 2): datetime(2006, 12, 15),
-                datetime(2007, 1, 1): datetime(2007, 1, 1),
-            },
-        )
-    )
-
-    offset_cases.append(
-        (
-            SemiMonthBegin(0, day_of_month=16),
-            {
-                datetime(2008, 1, 1): datetime(2008, 1, 1),
-                datetime(2008, 1, 16): datetime(2008, 1, 16),
-                datetime(2008, 1, 15): datetime(2008, 1, 16),
-                datetime(2008, 1, 31): datetime(2008, 2, 1),
-                datetime(2006, 12, 29): datetime(2007, 1, 1),
-                datetime(2006, 12, 31): datetime(2007, 1, 1),
-                datetime(2007, 1, 5): datetime(2007, 1, 16),
                 datetime(2007, 1, 1): datetime(2007, 1, 1),
             },
         )
