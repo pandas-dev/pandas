@@ -1,0 +1,38 @@
+.. _whatsnew_102:
+
+What's new in 1.0.2 (February ??, 2020)
+---------------------------------------
+
+These are the changes in pandas 1.0.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.0.1..v1.0.2|HEAD
