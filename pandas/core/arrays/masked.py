@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional, Type, TypeVar
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import Scalar
 
 from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
 from pandas.core.dtypes.missing import isna, notna
@@ -12,7 +13,6 @@ from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
-    from pandas._typing import Scalar
     from pandas import Series
 
 
@@ -27,7 +27,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
     """
 
     # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value: "Scalar"
+    _internal_fill_value: Scalar
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if copy:
@@ -61,7 +61,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: "Scalar" = lib.no_default,
+        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -189,7 +189,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         self: BaseMaskedArrayT,
         indexer,
         allow_fill: bool = False,
-        fill_value: Optional["Scalar"] = None,
+        fill_value: Optional[Scalar] = None,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting

@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
@@ -382,7 +383,7 @@ class BooleanArray(BaseMaskedArray):
         self._data[key] = value
         self._mask[key] = mask
 
-    def astype(self, dtype, copy: bool = True) -> Union[np.ndarray, BaseMaskedArray]:
+    def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -397,7 +398,7 @@ class BooleanArray(BaseMaskedArray):
 
         Returns
         -------
-        array : ndarray or ExtensionArray
+        ndarray or ExtensionArray
             NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
 
         Raises
