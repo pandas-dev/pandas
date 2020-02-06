@@ -965,7 +965,7 @@ def test_timestamp_constructor_retain_fold(tz, fold):
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
 @pytest.mark.parametrize(
-    "value_fold",
+    "ts_input,fold_out",
     [
         (1572136200000000000, 0),
         (1572139800000000000, 1),
@@ -975,19 +975,19 @@ def test_timestamp_constructor_retain_fold(tz, fold):
         (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), 1),
     ],
 )
-def test_timestamp_constructor_infer_fold_from_value(tz, value_fold):
+def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
     # Test for #25057
     # Check that we infer fold correctly based on timestamps since utc
     # or strings
-    ts = pd.Timestamp(value_fold[0], tz=tz)
+    ts = pd.Timestamp(ts_input, tz=tz)
     result = ts.fold
-    expected = value_fold[1]
+    expected = fold_out
     assert result == expected
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
 @pytest.mark.parametrize(
-    "value_fold",
+    "ts_input,fold,value_out",
     [
         (1572136200000000000, 1, 1572139800000000000),
         (1572139800000000000, 1, 1572139800000000000),
@@ -999,11 +999,11 @@ def test_timestamp_constructor_infer_fold_from_value(tz, value_fold):
         (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), None, 1572139800000000000),
     ],
 )
-def test_timestamp_constructor_adjust_value_for_fold(tz, value_fold):
+def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_out):
     # Test for #25057
     # Check that we adjust value for fold correctly
     # based on timestamps since utc
-    ts = pd.Timestamp(value_fold[0], tz=tz, fold=value_fold[1])
+    ts = pd.Timestamp(ts_input, tz=tz, fold=fold)
     result = ts.value
-    expected = value_fold[2]
+    expected = value_out
     assert result == expected
