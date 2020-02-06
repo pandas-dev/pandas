@@ -667,12 +667,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr, kind=None):
+    def _convert_list_indexer(self, keyarr):
         # Return our indexer or raise if all of the values are not included in
         # the categories
 
         if self.categories._defer_to_indexing:
-            indexer = self.categories._convert_list_indexer(keyarr, kind=kind)
+            indexer = self.categories._convert_list_indexer(keyarr)
             return Index(self.codes).get_indexer_for(indexer)
 
         indexer = self.categories.get_indexer(np.asarray(keyarr))
