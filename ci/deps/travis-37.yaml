@@ -2,7 +2,6 @@ name: pandas-dev
 channels:
   - defaults
   - conda-forge
-  - c3i_test
 dependencies:
   - python=3.7.*
 
