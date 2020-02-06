@@ -317,6 +317,6 @@ class ExtensionIndex(Index):
             else:
                 raise
 
-        return self._get_values_for_loc(series, loc)
+        return self._get_values_for_loc(series, loc, key)
 
     # --------------------------------------------------------------------

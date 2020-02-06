@@ -425,7 +425,7 @@ class Float64Index(NumericIndex):
             raise InvalidIndexError
 
         loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
+        return self._get_values_for_loc(series, loc, key)
 
     def equals(self, other) -> bool:
         """
