@@ -92,25 +92,20 @@ class BaseSetitemTests(BaseExtensionTests):
         df.iloc[10, 1] = data[1]
         assert df.loc[10, "B"] == data[1]
 
-    def test_setitem_mask(self, data, box_in_series):
-        # numpy bool mask
+    @pytest.mark.parametrize(
+        "mask",
+        [
+            np.array([True, True, True, False, False]),
+            pd.array([True, True, True, False, False], dtype="boolean"),
+        ],
+        ids=["numpy-array", "boolean-array"],
+    )
+    def test_setitem_mask(self, data, mask, box_in_series):
         arr = data[:5].copy()
         expected = arr.take([0, 0, 0, 3, 4])
         if box_in_series:
             arr = pd.Series(arr)
             expected = pd.Series(expected)
-        mask = np.array([True, True, True, False, False])
-        arr[mask] = data[0]
-        self.assert_equal(expected, arr)
-
-    def test_setitem_mask_boolean_array(self, data, box_in_series):
-        # GH 31446 - nullable boolean mask
-        arr = data[:5].copy()
-        expected = arr.take([0, 0, 0, 3, 4])
-        if box_in_series:
-            arr = pd.Series(arr)
-            expected = pd.Series(expected)
-        mask = pd.array([True, True, True, False, False], dtype="boolean")
         arr[mask] = data[0]
         self.assert_equal(expected, arr)
 
