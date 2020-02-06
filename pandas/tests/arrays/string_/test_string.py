@@ -270,13 +270,14 @@ def test_value_counts_na():
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
+@pytest.mark.parametrize("skipna", [True, False])
 def test_reduction(func):
     strings = ["x", "y", "z"]
-    arr = pd.array(strings, dtype="string")
+    arr = pd.Series(strings, dtype="string")
     ser = pd.Series(strings)
 
-    result = getattr(arr, func)()
-    expected = getattr(ser, func)()
+    result = getattr(arr, func)(skipna=skipna)
+    expected = getattr(ser, func)(skipna=skipna)
 
     assert result == expected
 
