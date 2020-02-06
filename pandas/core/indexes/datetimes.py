@@ -5,15 +5,8 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    Timedelta,
-    Timestamp,
-    index as libindex,
-    lib,
-    tslib as libts,
-)
-from pandas._libs.tslibs import ccalendar, fields, parsing, timezones
+from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
+from pandas._libs.tslibs import fields, parsing, timezones
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
@@ -29,7 +22,6 @@ import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
-from pandas.core.ops import get_op_result_name
 import pandas.core.tools.datetimes as tools
 
 from pandas.tseries.frequencies import Resolution, to_offset
@@ -70,7 +62,6 @@ def _new_DatetimeIndex(cls, d):
         "_field_ops",
         "_datetimelike_ops",
         "_datetimelike_methods",
-        "_box_func",
         "tz",
         "tzinfo",
         "dtype",
@@ -348,17 +339,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if this._can_fast_union(other):
                 this = this._fast_union(other)
             else:
-                dtype = this.dtype
                 this = Index.union(this, other)
-                if isinstance(this, DatetimeIndex):
-                    # TODO: we shouldn't be setting attributes like this;
-                    #  in all the tests this equality already holds
-                    this._data._dtype = dtype
         return this
-
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        return self._shallow_copy(result, name=name, freq=None)
 
     # --------------------------------------------------------------------
 
@@ -476,7 +458,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        reso : Resolution
+        reso : str
             Resolution provided by parsed string.
         parsed : datetime
             Datetime from parsed string.
@@ -484,7 +466,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         lower, upper: pd.Timestamp
-
         """
         valid_resos = {
             "year",
@@ -500,50 +481,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         }
         if reso not in valid_resos:
             raise KeyError
-        if reso == "year":
-            start = Timestamp(parsed.year, 1, 1)
-            end = Timestamp(parsed.year + 1, 1, 1) - Timedelta(nanoseconds=1)
-        elif reso == "month":
-            d = ccalendar.get_days_in_month(parsed.year, parsed.month)
-            start = Timestamp(parsed.year, parsed.month, 1)
-            end = start + Timedelta(days=d, nanoseconds=-1)
-        elif reso == "quarter":
-            qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
-            d = ccalendar.get_days_in_month(parsed.year, qe)  # at end of month
-            start = Timestamp(parsed.year, parsed.month, 1)
-            end = Timestamp(parsed.year, qe, 1) + Timedelta(days=d, nanoseconds=-1)
-        elif reso == "day":
-            start = Timestamp(parsed.year, parsed.month, parsed.day)
-            end = start + Timedelta(days=1, nanoseconds=-1)
-        elif reso == "hour":
-            start = Timestamp(parsed.year, parsed.month, parsed.day, parsed.hour)
-            end = start + Timedelta(hours=1, nanoseconds=-1)
-        elif reso == "minute":
-            start = Timestamp(
-                parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute
-            )
-            end = start + Timedelta(minutes=1, nanoseconds=-1)
-        elif reso == "second":
-            start = Timestamp(
-                parsed.year,
-                parsed.month,
-                parsed.day,
-                parsed.hour,
-                parsed.minute,
-                parsed.second,
-            )
-            end = start + Timedelta(seconds=1, nanoseconds=-1)
-        elif reso == "microsecond":
-            start = Timestamp(
-                parsed.year,
-                parsed.month,
-                parsed.day,
-                parsed.hour,
-                parsed.minute,
-                parsed.second,
-                parsed.microsecond,
-            )
-            end = start + Timedelta(microseconds=1, nanoseconds=-1)
+
+        grp = Resolution.get_freq_group(reso)
+        per = Period(parsed, freq=(grp, 1))
+        start, end = per.start_time, per.end_time
+
         # GH 24076
         # If an incoming date string contained a UTC offset, need to localize
         # the parsed date to this offset first before aligning with the index's
@@ -601,6 +543,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 raise KeyError
 
             # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating
             left = stamps.searchsorted(t1.value, side="left") if use_lhs else None
             right = stamps.searchsorted(t2.value, side="right") if use_rhs else None
 
@@ -617,17 +560,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             other = DatetimeIndex(other)
         return self, other
 
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -643,7 +575,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if is_valid_nat_for_dtype(key, self.dtype):
             key = NaT
 
-        if isinstance(key, (datetime, np.datetime64)):
+        if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
             key = self._maybe_cast_for_get_loc(key)
 

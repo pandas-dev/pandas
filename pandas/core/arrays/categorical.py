@@ -2504,10 +2504,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.as_unordered()
     """
 
-    _deprecations = PandasObject._deprecations | frozenset(
-        ["categorical", "index", "name"]
-    )
-
     def __init__(self, data):
         self._validate(data)
         self._parent = data.values

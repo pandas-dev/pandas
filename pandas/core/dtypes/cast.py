@@ -1,11 +1,18 @@
 """ routings for casting """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
-from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
+from pandas._libs.tslibs import (
+    NaT,
+    OutOfBoundsDatetime,
+    Period,
+    Timedelta,
+    Timestamp,
+    iNaT,
+)
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import Dtype
 from pandas.util._validators import validate_bool_kwarg
@@ -1599,3 +1606,59 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
 
     if is_integer_dtype(dtype) and (is_float_dtype(arr) or is_object_dtype(arr)):
         raise ValueError("Trying to coerce float values to integers")
+
+
+def convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
+    """
+    Convert datetimelike scalar if we are setting into a datetime64
+    or timedelta64 ndarray.
+
+    Parameters
+    ----------
+    scalar : scalar
+    dtype : np.dtpye
+
+    Returns
+    -------
+    scalar
+    """
+    if dtype.kind == "m":
+        if isinstance(scalar, (timedelta, np.timedelta64)):
+            # We have to cast after asm8 in case we have NaT
+            return Timedelta(scalar).asm8.view("timedelta64[ns]")
+        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
+            return np.timedelta64("NaT", "ns")
+    if dtype.kind == "M":
+        if isinstance(scalar, (date, np.datetime64)):
+            # Note: we include date, not just datetime
+            return Timestamp(scalar).to_datetime64()
+        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
+            return np.datetime64("NaT", "ns")
+    else:
+        validate_numeric_casting(dtype, scalar)
+    return scalar
+
+
+def validate_numeric_casting(dtype: np.dtype, value):
+    """
+    Check that we can losslessly insert the given value into an array
+    with the given dtype.
+
+    Parameters
+    ----------
+    dtype : np.dtype
+    value : scalar
+
+    Raises
+    ------
+    ValueError
+    """
+    if issubclass(dtype.type, (np.integer, np.bool_)):
+        if is_float(value) and np.isnan(value):
+            raise ValueError("Cannot assign nan to integer series")
+
+    if issubclass(dtype.type, (np.integer, np.floating, np.complex)) and not issubclass(
+        dtype.type, np.bool_
+    ):
+        if is_bool(value):
+            raise ValueError("Cannot assign bool to float/integer series")
