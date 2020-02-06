@@ -8,7 +8,7 @@ from typing import Any, Optional, Union
 
 import numpy as np
 
-from pandas._libs import Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -95,7 +95,9 @@ def masked_arith_op(x, y, op):
 
     else:
         if not is_scalar(y):
-            raise TypeError(type(y))
+            raise TypeError(
+                f"Cannot broadcast np.ndarray with operand of type { type(y) }"
+            )
 
         # mask is only meaningful for x
         result = np.empty(x.size, dtype=x.dtype)
@@ -184,11 +186,12 @@ def arithmetic_op(
     rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(left, rvalues) or isinstance(
-        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp, Timedelta)
     ):
         # TimedeltaArray, DatetimeArray, and Timestamp are included here
         #  because they have `freq` attribute which is handled correctly
         #  by dispatch_to_extension_op.
+        # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = dispatch_to_extension_op(op, lvalues, rvalues)
 
     else:
@@ -246,7 +249,7 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = "__{op}__".format(op=op.__name__)
+        op_name = f"__{op.__name__}__"
         method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
             res_values = method(rvalues)
@@ -254,9 +257,8 @@ def comparison_op(
         if res_values is NotImplemented:
             res_values = invalid_comparison(lvalues, rvalues, op)
         if is_scalar(res_values):
-            raise TypeError(
-                "Could not compare {typ} type with Series".format(typ=type(rvalues))
-            )
+            typ = type(rvalues)
+            raise TypeError(f"Could not compare {typ} type with Series")
 
     return res_values
 
@@ -278,7 +280,7 @@ def na_logical_op(x: np.ndarray, y, op):
             assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
             x = ensure_object(x)
             y = ensure_object(y)
-            result = libops.vec_binop(x, y, op)
+            result = libops.vec_binop(x.ravel(), y.ravel(), op)
         else:
             # let null fall thru
             assert lib.is_scalar(y)
@@ -293,14 +295,13 @@ def na_logical_op(x: np.ndarray, y, op):
                 OverflowError,
                 NotImplementedError,
             ):
+                typ = type(y).__name__
                 raise TypeError(
-                    "Cannot perform '{op}' with a dtyped [{dtype}] array "
-                    "and scalar of type [{typ}]".format(
-                        op=op.__name__, dtype=x.dtype, typ=type(y).__name__
-                    )
+                    f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
+                    f"and scalar of type [{typ}]"
                 )
 
-    return result
+    return result.reshape(x.shape)
 
 
 def logical_op(

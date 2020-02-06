@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameDiff:
@@ -15,7 +15,7 @@ class TestDataFrameDiff:
         )
 
         # int dtype
-        a = 10000000000000000
+        a = 10_000_000_000_000_000
         b = a + 1
         s = Series([a, b])
 

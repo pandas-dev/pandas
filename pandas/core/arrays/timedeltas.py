@@ -11,9 +11,7 @@ from pandas._libs.tslibs.timedeltas import (
     parse_timedelta_unit,
     precision_from_unit,
 )
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
@@ -21,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
-    is_list_like,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -40,20 +37,11 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
-from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
-
-from . import datetimelike as dtl
-
-_BAD_DTYPE = "dtype {dtype} cannot be converted to timedelta64[ns]"
-
-
-def _is_convertible_to_td(key):
-    return isinstance(key, (Tick, timedelta, np.timedelta64, str))
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -70,54 +58,6 @@ def _field_accessor(name, alias, docstring=None):
     f.__name__ = name
     f.__doc__ = f"\n{docstring}\n"
     return property(f)
-
-
-def _td_array_cmp(cls, op):
-    """
-    Wrap comparison operations to convert timedelta-like to timedelta64
-    """
-    opname = f"__{op.__name__}__"
-    nat_result = opname == "__ne__"
-
-    @unpack_zerodim_and_defer(opname)
-    def wrapper(self, other):
-
-        if _is_convertible_to_td(other) or other is NaT:
-            try:
-                other = Timedelta(other)
-            except ValueError:
-                # failed to parse as timedelta
-                return invalid_comparison(self, other, op)
-
-            result = op(self.view("i8"), other.value)
-            if isna(other):
-                result.fill(nat_result)
-
-        elif not is_list_like(other):
-            return invalid_comparison(self, other, op)
-
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
-
-        else:
-            try:
-                other = type(self)._from_sequence(other)._data
-            except (ValueError, TypeError):
-                return invalid_comparison(self, other, op)
-
-            result = op(self.view("i8"), other.view("i8"))
-            result = com.values_from_object(result)
-
-            o_mask = np.array(isna(other))
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self._hasnans:
-            result[self._isnan] = nat_result
-
-        return result
-
-    return compat.set_function_name(wrapper, opname, cls)
 
 
 class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
@@ -155,6 +95,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     _typ = "timedeltaarray"
     _scalar_type = Timedelta
+    _recognized_scalars = (timedelta, np.timedelta64, Tick)
+    _is_recognized_dtype = is_timedelta64_dtype
+
     __array_priority__ = 1000
     # define my properties & methods for delegation
     _other_ops: List[str] = []
@@ -213,8 +156,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         if not isinstance(values, np.ndarray):
             msg = (
-                f"Unexpected type '{type(values).__name__}'. 'values' must be a"
-                " TimedeltaArray ndarray, or Series or Index containing one of those."
+                f"Unexpected type '{type(values).__name__}'. 'values' must be a "
+                "TimedeltaArray ndarray, or Series or Index containing one of those."
             )
             raise ValueError(msg)
         if values.ndim not in [1, 2]:
@@ -332,7 +275,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _scalar_from_string(self, value):
         return Timedelta(value)
 
-    def _check_compatible_with(self, other):
+    def _check_compatible_with(self, other, setitem: bool = False):
         # we don't have anything to validate.
         pass
 
@@ -341,16 +284,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
-
-    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
-    def _validate_fill_value(self, fill_value):
-        if isna(fill_value):
-            fill_value = iNaT
-        elif isinstance(fill_value, (timedelta, np.timedelta64, Tick)):
-            fill_value = Timedelta(fill_value).value
-        else:
-            raise ValueError(f"'fill_value' should be a Timedelta. Got '{fill_value}'.")
-        return fill_value
 
     def astype(self, dtype, copy=True):
         # We handle
@@ -453,8 +386,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
-
-    _create_comparison_method = classmethod(_td_array_cmp)
 
     def _add_offset(self, other):
         assert not isinstance(other, Tick)
@@ -951,9 +882,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
 
-TimedeltaArray._add_comparison_ops()
-
-
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
@@ -1130,7 +1058,7 @@ def _validate_td64_dtype(dtype):
         raise ValueError(msg)
 
     if not is_dtype_equal(dtype, _TD_DTYPE):
-        raise ValueError(_BAD_DTYPE.format(dtype=dtype))
+        raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
 
     return dtype
 

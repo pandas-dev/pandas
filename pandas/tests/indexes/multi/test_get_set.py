@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import CategoricalIndex, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def assert_matching(actual, expected, check_dtype=False):
@@ -159,7 +159,7 @@ def test_set_levels_codes_directly(idx):
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
-    msg = "can't set attribute"
+    msg = "[Cc]an't set attribute"
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
     with pytest.raises(AttributeError, match=msg):

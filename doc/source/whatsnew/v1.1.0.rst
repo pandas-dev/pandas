@@ -1,0 +1,235 @@
+.. _whatsnew_110:
+
+What's new in 1.1.0 (??)
+------------------------
+
+These are the changes in pandas 1.1.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_110.period_index_partial_string_slicing:
+
+Nonmonotonic PeriodIndex Partial String Slicing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
+
+For example:
+
+.. ipython:: python
+
+   dti = pd.date_range("2014-01-01", periods=30, freq="30D")
+   pi = dti.to_period("D")
+   ser_monotonic = pd.Series(np.arange(30), index=pi)
+   shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
+   ser = ser_monotonic[shuffler]
+   ser
+
+.. ipython:: python
+
+   ser["2014"]
+   ser.loc["May 2015"]
+
+.. _whatsnew_110.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- :meth:`Series.describe` will now show distribution percentiles for ``datetime`` dtypes, statistics ``first`` and ``last``
+  will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
+- :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
+  Previously a ``AttributeError`` was raised (:issue:`31126`)
+- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std`` and :meth:`~DataFrameGroupby.var``)
+  now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
+  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median``) (:issue:`31485`)
+
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+
+.. _whatsnew_110.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
+- Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+
+- Bug in :class:`Timestamp` where constructing :class:`Timestamp` from ambiguous epoch time and calling constructor again changed :meth:`Timestamp.value` property (:issue:`24329`)
+- :meth:`DatetimeArray.searchsorted`, :meth:`TimedeltaArray.searchsorted`, :meth:`PeriodArray.searchsorted` not recognizing non-pandas scalars and incorrectly raising ``ValueError`` instead of ``TypeError`` (:issue:`30950`)
+- Bug in :class:`Timestamp` where constructing :class:`Timestamp` with dateutil timezone less than 128 nanoseconds before daylight saving time switch from winter to summer would result in nonexistent time (:issue:`31043`)
+- Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with a tz-aware index (:issue:`26683`)
+- Bug in :meth:`Period.to_timestamp`, :meth:`Period.start_time` with microsecond frequency returning a timestamp one nanosecond earlier than the correct time (:issue:`31475`)
+
+Timedelta
+^^^^^^^^^
+
+- Bug in constructing a :class:`Timedelta` with a high precision integer that would round the :class:`Timedelta` components (:issue:`31354`)
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+
+
+Numeric
+^^^^^^^
+- Bug in :meth:`DataFrame.floordiv` with ``axis=0`` not treating division-by-zero like :meth:`Series.floordiv` (:issue:`31271`)
+-
+-
+
+Conversion
+^^^^^^^^^^
+- Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+
+
+Interval
+^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+- Bug in slicing on a :class:`DatetimeIndex` with a partial-timestamp dropping high-resolution indices near the end of a year, quarter, or month (:issue:`31064`)
+- Bug in :meth:`PeriodIndex.get_loc` treating higher-resolution strings differently from :meth:`PeriodIndex.get_value` (:issue:`31172`)
+- Bug in :meth:`Series.at` and :meth:`DataFrame.at` not matching ``.loc`` behavior when looking up an integer in a :class:`Float64Index` (:issue:`31329`)
+- Bug in :meth:`PeriodIndex.is_monotonic` incorrectly returning ``True`` when containing leading ``NaT`` entries (:issue:`31437`)
+- Bug in :meth:`DatetimeIndex.get_loc` raising ``KeyError`` with converted-integer key instead of the user-passed key (:issue:`31425`)
+- Bug in :meth:`Series.xs` incorrectly returning ``Timestamp`` instead of ``datetime64`` in some object-dtype cases (:issue:`31630`)
+
+Missing
+^^^^^^^
+
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+- Bug in :meth:`Dataframe.loc` when used with a :class:`MultiIndex`. The returned values were not in the same order as the given inputs (:issue:`22797`)
+
+.. ipython:: python
+
+        df = pd.DataFrame(np.arange(4),
+                          index=[["a", "a", "b", "b"], [1, 2, 1, 2]])
+        # Rows are now ordered as the requested keys
+        df.loc[(['b', 'a'], [2, 1]), :]
+-
+
+I/O
+^^^
+- Bug in :meth:`read_json` where integer overflow was occuring when json contains big number strings. (:issue:`30320`)
+- `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
+- Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
+- Bug in :meth:`DataFrame.to_parquet` overwriting pyarrow's default for
+  ``coerce_timestamps``; following pyarrow's default allows writing nanosecond
+  timestamps with ``version="2.0"`` (:issue:`31652`).
+
+Plotting
+^^^^^^^^
+
+- :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
+- Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
+
+Reshaping
+^^^^^^^^^
+
+- Bug effecting all numeric and boolean reduction methods not returning subclassed data type. (:issue:`25596`)
+- Bug in :meth:`DataFrame.pivot_table` when only MultiIndexed columns is set (:issue:`17038`)
+- Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` can take tuple names in MultiIndexed data (:issue:`19966`)
+- Bug in :meth:`DataFrame.pivot_table` when ``margin`` is ``True`` and only ``column`` is defined (:issue:`31016`)
+- Fix incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
+- Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
+- Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
+
+Sparse
+^^^^^^
+
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+-
+-
+
+
+Other
+^^^^^
+- Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
+  instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
+- Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.contributors:
+
+Contributors
+~~~~~~~~~~~~

@@ -17,6 +17,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_interval,
     is_interval_dtype,
+    is_list_like,
+    is_object_dtype,
     is_scalar,
     is_string_dtype,
     is_timedelta64_dtype,
@@ -25,6 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndexClass,
     ABCInterval,
     ABCIntervalIndex,
@@ -37,6 +40,8 @@ from pandas.core.algorithms import take, value_counts
 from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
+from pandas.core.construction import array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
@@ -105,7 +110,7 @@ qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
 Notes
 -----
 See the `user guide
-<http://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`_
+<https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`_
 for more.
 
 %(examples)s\
@@ -492,13 +497,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self.left)
 
     def __getitem__(self, value):
+        value = check_array_indexer(self, value)
         left = self.left[value]
         right = self.right[value]
 
         # scalar
         if not isinstance(left, ABCIndexClass):
-            if isna(left):
+            if is_scalar(left) and isna(left):
                 return self._fill_value
+            if np.ndim(left) > 1:
+                # GH#30588 multi-dimensional indexer disallowed
+                raise ValueError("multi-dimensional indexing not allowed")
             return Interval(left, right, self.closed)
 
         return self._shallow_copy(left, right)
@@ -533,6 +542,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 msg = f"'value' should be an interval type, got {type(value)} instead."
                 raise TypeError(msg)
 
+        key = check_array_indexer(self, key)
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
@@ -546,6 +556,58 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             right = right.astype("float")
         right.values[key] = value_right
         self._right = right
+
+    def __eq__(self, other):
+        # ensure pandas array for list-like and eliminate non-interval scalars
+        if is_list_like(other):
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+            other = array(other)
+        elif not isinstance(other, Interval):
+            # non-interval scalar -> no matches
+            return np.zeros(len(self), dtype=bool)
+
+        # determine the dtype of the elements we want to compare
+        if isinstance(other, Interval):
+            other_dtype = "interval"
+        elif not is_categorical_dtype(other):
+            other_dtype = other.dtype
+        else:
+            # for categorical defer to categories for dtype
+            other_dtype = other.categories.dtype
+
+            # extract intervals if we have interval categories with matching closed
+            if is_interval_dtype(other_dtype):
+                if self.closed != other.categories.closed:
+                    return np.zeros(len(self), dtype=bool)
+                other = other.categories.take(other.codes)
+
+        # interval-like -> need same closed and matching endpoints
+        if is_interval_dtype(other_dtype):
+            if self.closed != other.closed:
+                return np.zeros(len(self), dtype=bool)
+            return (self.left == other.left) & (self.right == other.right)
+
+        # non-interval/non-object dtype -> no matches
+        if not is_object_dtype(other_dtype):
+            return np.zeros(len(self), dtype=bool)
+
+        # object dtype -> iteratively check for intervals
+        result = np.zeros(len(self), dtype=bool)
+        for i, obj in enumerate(other):
+            # need object to be an Interval with same closed and endpoints
+            if (
+                isinstance(obj, Interval)
+                and self.closed == obj.closed
+                and self.left[i] == obj.left
+                and self.right[i] == obj.right
+            ):
+                result[i] = True
+
+        return result
+
+    def __ne__(self, other):
+        return ~self.__eq__(other)
 
     def fillna(self, value=None, method=None, limit=None):
         """
@@ -669,11 +731,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Parameters
         ----------
         left : array-like
-            Values to be used for the left-side of the the intervals.
+            Values to be used for the left-side of the intervals.
             If None, the existing left and right values will be used.
 
         right : array-like
-            Values to be used for the right-side of the the intervals.
+            Values to be used for the right-side of the intervals.
             If None and left is IntervalArray-like, the left and right
             of the IntervalArray-like will be used.
 
@@ -727,6 +789,33 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def size(self) -> int:
         # Avoid materializing self.values
         return self.left.size
+
+    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+        if not len(self) or periods == 0:
+            return self.copy()
+
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
+        # ExtensionArray.shift doesn't work for two reasons
+        # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
+        # 2. IntervalArray._from_sequence only accepts NaN for missing values,
+        #    not other values like NaT
+
+        empty_len = min(abs(periods), len(self))
+        if isna(fill_value):
+            fill_value = self.left._na_value
+            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
+        else:
+            empty = self._from_sequence([fill_value] * empty_len)
+
+        if periods > 0:
+            a = empty
+            b = self[:-periods]
+        else:
+            a = self[abs(periods) :]
+            b = empty
+        return self._concat_same_type([a, b])
 
     def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """
@@ -1008,7 +1097,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     # Conversion
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
@@ -1025,6 +1114,59 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             else:
                 result[i] = Interval(left[i], right[i], closed)
         return result
+
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow
+        from pandas.core.arrays._arrow_utils import ArrowIntervalType
+
+        try:
+            subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
+        except TypeError:
+            raise TypeError(
+                "Conversion to arrow with subtype '{}' "
+                "is not supported".format(self.dtype.subtype)
+            )
+        interval_type = ArrowIntervalType(subtype, self.closed)
+        storage_array = pyarrow.StructArray.from_arrays(
+            [
+                pyarrow.array(self.left, type=subtype, from_pandas=True),
+                pyarrow.array(self.right, type=subtype, from_pandas=True),
+            ],
+            names=["left", "right"],
+        )
+        mask = self.isna()
+        if mask.any():
+            # if there are missing values, set validity bitmap also on the array level
+            null_bitmap = pyarrow.array(~mask).buffers()[1]
+            storage_array = pyarrow.StructArray.from_buffers(
+                storage_array.type,
+                len(storage_array),
+                [null_bitmap],
+                children=[storage_array.field(0), storage_array.field(1)],
+            )
+
+        if type is not None:
+            if type.equals(interval_type.storage_type):
+                return storage_array
+            elif isinstance(type, ArrowIntervalType):
+                # ensure we have the same subtype and closed attributes
+                if not type.equals(interval_type):
+                    raise TypeError(
+                        "Not supported to convert IntervalArray to type with "
+                        "different 'subtype' ({0} vs {1}) and 'closed' ({2} vs {3}) "
+                        "attributes".format(
+                            self.dtype.subtype, type.subtype, self.closed, type.closed
+                        )
+                    )
+            else:
+                raise TypeError(
+                    "Not supported to convert IntervalArray to '{0}' type".format(type)
+                )
+
+        return pyarrow.ExtensionArray.from_storage(interval_type, storage_array)
 
     _interval_shared_docs[
         "to_tuples"

@@ -4,9 +4,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
-import pandas.util.testing as tm
 
 
 @pytest.fixture

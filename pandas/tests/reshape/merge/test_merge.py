@@ -25,10 +25,10 @@ from pandas import (
     TimedeltaIndex,
     UInt64Index,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import MergeError, merge
-import pandas.util.testing as tm
 
 N = 50
 NGROUPS = 8
@@ -201,8 +201,8 @@ class TestMerge:
             merge(self.left, self.right, right_index=True)
 
         msg = (
-            'Can only pass argument "on" OR "left_on" and "right_on", not'
-            " a combination of both"
+            'Can only pass argument "on" OR "left_on" and "right_on", not '
+            "a combination of both"
         )
         with pytest.raises(pd.errors.MergeError, match=msg):
             merge(self.left, self.left, left_on="key", on="key")
@@ -371,10 +371,8 @@ class TestMerge:
 
         msg = (
             "No common columns to perform merge on. "
-            "Merge options: left_on={lon}, right_on={ron}, "
-            "left_index={lidx}, right_index={ridx}".format(
-                lon=None, ron=None, lidx=False, ridx=False
-            )
+            f"Merge options: left_on={None}, right_on={None}, "
+            f"left_index={False}, right_index={False}"
         )
 
         with pytest.raises(MergeError, match=msg):
@@ -1013,10 +1011,9 @@ class TestMerge:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
             msg = (
-                "Cannot use `indicator=True` option when data contains a"
-                " column named {}|"
-                "Cannot use name of an existing column for indicator"
-                " column"
+                "Cannot use `indicator=True` option when data contains a "
+                "column named {}|"
+                "Cannot use name of an existing column for indicator column"
             ).format(i)
             with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
@@ -1235,8 +1232,8 @@ class TestMerge:
         )
 
         msg = (
-            "Merge keys are not unique in either left or right dataset;"
-            " not a one-to-one merge"
+            "Merge keys are not unique in either left or right dataset; "
+            "not a one-to-one merge"
         )
         with pytest.raises(MergeError, match=msg):
             merge(left, right, on="a", validate="1:1")
@@ -2152,4 +2149,21 @@ def test_merge_multiindex_columns():
     expected = pd.DataFrame(columns=expected_index)
     expected["id"] = ""
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_upcast_dtype():
+    # https://github.com/pandas-dev/pandas/issues/31208
+    df1 = pd.DataFrame({"x": ["a", "b", "c"], "y": ["1", "2", "4"]})
+    df2 = pd.DataFrame(
+        {"y": ["1", "2", "3"], "z": pd.to_datetime(["2000", "2001", "2002"])}
+    )
+    result = pd.merge(df1, df2, how="left", on="y")
+    expected = pd.DataFrame(
+        {
+            "x": ["a", "b", "c"],
+            "y": ["1", "2", "4"],
+            "z": pd.to_datetime(["2000", "2001", "NaT"]),
+        }
+    )
     tm.assert_frame_equal(result, expected)

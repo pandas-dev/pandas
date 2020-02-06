@@ -149,7 +149,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     influence of all dimensions.
 
     More info available at the `original article
-    <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
+    <https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.135.889>`_
     describing RadViz.
 
     Parameters
@@ -453,7 +453,7 @@ class _Options(dict):
             raise ValueError(f"Cannot remove default parameter {key}")
         return super().__delitem__(key)
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         key = self._get_canonical_key(key)
         return super().__contains__(key)
 

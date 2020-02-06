@@ -17,8 +17,8 @@ from pandas import (
     notna,
     timedelta_range,
 )
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])
@@ -586,8 +586,8 @@ class TestIntervalIndex:
         assert idx.equals(idx2)
 
         msg = (
-            "missing values must be missing in the same location both left"
-            " and right sides"
+            "missing values must be missing in the same location both left "
+            "and right sides"
         )
         with pytest.raises(ValueError, match=msg):
             IntervalIndex.from_arrays(

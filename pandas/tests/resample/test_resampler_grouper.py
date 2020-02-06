@@ -2,10 +2,12 @@ from textwrap import dedent
 
 import numpy as np
 
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 test_frame = DataFrame(
     {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
@@ -13,17 +15,18 @@ test_frame = DataFrame(
 )
 
 
-def test_tab_complete_ipython6_warning(ip):
+@async_mark()
+async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
     code = dedent(
         """\
-    import pandas.util.testing as tm
+    import pandas._testing as tm
     s = tm.makeTimeSeries()
     rs = s.resample("D")
     """
     )
-    ip.run_code(code)
+    await ip.run_code(code)
 
     with tm.assert_produces_warning(None):
         with provisionalcompleter("ignore"):
@@ -225,6 +228,23 @@ def test_apply_with_mutated_index():
     expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
     result = df["col1"].resample("M").apply(f)
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_columns_multilevel():
+    # GH 16231
+    cols = pd.MultiIndex.from_tuples([("A", "a", "", "one"), ("B", "b", "i", "two")])
+    ind = date_range(start="2017-01-01", freq="15Min", periods=8)
+    df = DataFrame(np.array([0] * 16).reshape(8, 2), index=ind, columns=cols)
+    agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
+    result = df.resample("H").apply(lambda x: agg_dict[x.name](x))
+    expected = DataFrame(
+        np.array([0] * 4).reshape(2, 2),
+        index=date_range(start="2017-01-01", freq="1H", periods=2),
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a", "", "one"), ("B", "b", "i", "two")]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_resample_groupby_with_label():

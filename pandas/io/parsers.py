@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO
+from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -62,7 +62,6 @@ from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
 from pandas.io.common import (
-    UTF8Recoder,
     get_filepath_or_buffer,
     get_handle,
     infer_compression,
@@ -84,7 +83,7 @@ Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the online docs for
-`IO Tools <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+`IO Tools <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
 
 Parameters
 ----------
@@ -272,7 +271,7 @@ iterator : bool, default False
 chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
-    <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
+    <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
 compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
@@ -354,7 +353,7 @@ DataFrame or TextParser
 
 See Also
 --------
-to_csv : Write DataFrame to a comma-separated values (csv) file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
@@ -612,9 +611,8 @@ def _make_parser_function(name, default_sep=","):
 
         if delim_whitespace and delimiter != default_sep:
             raise ValueError(
-                "Specified a delimiter with both sep and"
-                " delim_whitespace=True; you can only"
-                " specify one."
+                "Specified a delimiter with both sep and "
+                "delim_whitespace=True; you can only specify one."
             )
 
         if engine is not None:
@@ -685,7 +683,7 @@ read_csv = _make_parser_function("read_csv", default_sep=",")
 read_csv = Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
-        summary=("Read a comma-separated values (csv) file into DataFrame."),
+        summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
     )
 )(read_csv)
@@ -715,7 +713,7 @@ def read_fwf(
     into chunks.
 
     Additional help can be found in the `online docs for IO Tools
-    <http://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -756,7 +754,7 @@ def read_fwf(
 
     See Also
     --------
-    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Examples
@@ -908,8 +906,8 @@ class TextFileReader(abc.Iterator):
                         pass
                     else:
                         raise ValueError(
-                            f"The {repr(argname)} option is not supported with the"
-                            f" {repr(engine)} engine"
+                            f"The {repr(argname)} option is not supported with the "
+                            f"{repr(engine)} engine"
                         )
             else:
                 value = _deprecated_defaults.get(argname, default)
@@ -956,8 +954,8 @@ class TextFileReader(abc.Iterator):
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (
-                    "the 'c' engine does not support"
-                    " sep=None with delim_whitespace=False"
+                    "the 'c' engine does not support "
+                    "sep=None with delim_whitespace=False"
                 )
                 engine = "python"
         elif sep is not None and len(sep) > 1:
@@ -969,8 +967,7 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = (
                     "the 'c' engine does not support "
                     "regex separators (separators > 1 char and "
-                    r"different from '\s+' are "
-                    "interpreted as regex)"
+                    r"different from '\s+' are interpreted as regex)"
                 )
                 engine = "python"
         elif delim_whitespace:
@@ -1001,8 +998,7 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = (
                     "ord(quotechar) > 127, meaning the "
                     "quotechar is larger than one byte, "
-                    "and the 'c' engine does not support "
-                    "such quotechars"
+                    "and the 'c' engine does not support such quotechars"
                 )
                 engine = "python"
 
@@ -1120,9 +1116,8 @@ class TextFileReader(abc.Iterator):
                 klass = FixedWidthFieldParser
             else:
                 raise ValueError(
-                    f"Unknown engine: {engine} (valid options are"
-                    ' "c", "python", or'
-                    ' "python-fwf")'
+                    f"Unknown engine: {engine} (valid options "
+                    'are "c", "python", or "python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 
@@ -1231,8 +1226,7 @@ def _validate_usecols_names(usecols, names):
     missing = [c for c in usecols if c not in names]
     if len(missing) > 0:
         raise ValueError(
-            "Usecols do not match columns, "
-            f"columns expected but not found: {missing}"
+            f"Usecols do not match columns, columns expected but not found: {missing}"
         )
 
     return usecols
@@ -1310,7 +1304,7 @@ def _validate_usecols_arg(usecols):
 
         usecols_dtype = lib.infer_dtype(usecols, skipna=False)
 
-        if usecols_dtype not in ("empty", "integer", "string", "unicode"):
+        if usecols_dtype not in ("empty", "integer", "string"):
             raise ValueError(msg)
 
         usecols = set(usecols)
@@ -1326,8 +1320,7 @@ def _validate_parse_dates_arg(parse_dates):
     that is the case.
     """
     msg = (
-        "Only booleans, lists, and "
-        "dictionaries are accepted "
+        "Only booleans, lists, and dictionaries are accepted "
         "for the 'parse_dates' parameter"
     )
 
@@ -1406,17 +1399,21 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-
-        # GH 16338
-        elif self.header is not None and not is_integer(self.header):
-            raise ValueError("header must be integer or list of integers")
-
-        # GH 27779
-        elif self.header is not None and self.header < 0:
-            raise ValueError(
-                "Passing negative integer to header is invalid. "
-                "For no header, use header=None instead"
-            )
+        elif self.header is not None:
+            # GH 27394
+            if self.prefix is not None:
+                raise ValueError(
+                    "Argument prefix must be None if argument header is not None"
+                )
+            # GH 16338
+            elif not is_integer(self.header):
+                raise ValueError("header must be integer or list of integers")
+            # GH 27779
+            elif self.header < 0:
+                raise ValueError(
+                    "Passing negative integer to header is invalid. "
+                    "For no header, use header=None instead"
+                )
 
         self._name_processed = False
 
@@ -1681,8 +1678,7 @@ class ParserBase:
                     warnings.warn(
                         (
                             "Both a converter and dtype were specified "
-                            f"for column {c} - only the converter will "
-                            "be used"
+                            f"for column {c} - only the converter will be used"
                         ),
                         ParserWarning,
                         stacklevel=7,
@@ -1827,8 +1823,7 @@ class ParserBase:
             except NotImplementedError:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
-                    "_from_sequence_of_strings in order "
-                    "to be used in parser methods"
+                    "_from_sequence_of_strings in order to be used in parser methods"
                 )
 
         else:
@@ -1868,12 +1863,18 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        if kwds.get("compression") is None and "utf-16" in (kwds.get("encoding") or ""):
-            # if source is utf-16 plain text, convert source to utf-8
+        encoding = kwds.get("encoding")
+
+        if kwds.get("compression") is None and encoding:
             if isinstance(src, str):
                 src = open(src, "rb")
                 self.handles.append(src)
-            src = UTF8Recoder(src, kwds["encoding"])
+
+            # Handle the file object with universal line mode enabled.
+            # We will handle the newline character ourselves later on.
+            if isinstance(src, (BufferedIOBase, RawIOBase)):
+                src = TextIOWrapper(src, encoding=encoding, newline="")
+
             kwds["encoding"] = "utf-8"
 
         # #2442

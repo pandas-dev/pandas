@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesAppend:
@@ -60,6 +60,16 @@ class TestSeriesAppend:
         result = s.append(tuple_input)
 
         tm.assert_series_equal(expected, result)
+
+    def test_append_dataframe_regression(self):
+        # GH 30975
+        df = pd.DataFrame({"A": [1, 2]})
+        result = df.A.append([df])
+        expected = pd.DataFrame(
+            {0: [1.0, 2.0, None, None], "A": [None, None, 1.0, 2.0]}, index=[0, 1, 0, 1]
+        )
+
+        tm.assert_frame_equal(expected, result)
 
 
 class TestSeriesAppendWithDatetimeIndex:

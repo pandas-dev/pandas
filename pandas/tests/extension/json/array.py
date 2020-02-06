@@ -16,21 +16,21 @@ import numbers
 import random
 import string
 import sys
+from typing import Any, Mapping, Type
 
 import numpy as np
 
-from pandas.core.dtypes.base import ExtensionDtype
-
-from pandas.core.arrays import ExtensionArray
+import pandas as pd
+from pandas.api.extensions import ExtensionArray, ExtensionDtype
 
 
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
     name = "json"
-    na_value = UserDict()
+    na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["JSONArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -39,13 +39,6 @@ class JSONDtype(ExtensionDtype):
         type
         """
         return JSONArray
-
-    @classmethod
-    def construct_from_string(cls, string):
-        if string == cls.name:
-            return cls()
-        else:
-            raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
 
 class JSONArray(ExtensionArray):
@@ -76,17 +69,18 @@ class JSONArray(ExtensionArray):
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
-        elif isinstance(item, np.ndarray) and item.dtype == "bool":
-            return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, abc.Iterable):
-            # fancy indexing
-            return type(self)([self.data[i] for i in item])
         elif isinstance(item, slice) and item == slice(None):
             # Make sure we get a view
             return type(self)(self.data)
-        else:
+        elif isinstance(item, slice):
             # slice
             return type(self)(self.data[item])
+        else:
+            item = pd.api.indexers.check_array_indexer(self, item)
+            if pd.api.types.is_bool_dtype(item.dtype):
+                return self._from_sequence([x for x, m in zip(self, item) if m])
+            # integer
+            return type(self)([self.data[i] for i in item])
 
     def __setitem__(self, key, value):
         if isinstance(key, numbers.Integral):
@@ -109,6 +103,11 @@ class JSONArray(ExtensionArray):
 
     def __len__(self) -> int:
         return len(self.data)
+
+    def __array__(self, dtype=None):
+        if dtype is None:
+            dtype = object
+        return np.asarray(self.data, dtype=dtype)
 
     @property
     def nbytes(self) -> int:
