@@ -215,7 +215,6 @@ def test_from_sequence_no_mutate(copy):
 
 
 @pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna):
     arr = pd.Series(["a", "b", "c"], dtype="string")
     result = arr.sum(skipna=skipna)
@@ -223,7 +222,6 @@ def test_reduce(skipna):
 
 
 @pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype="string")
     result = arr.sum(skipna=skipna)
@@ -269,3 +267,30 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max", "sum"])
+def test_reduction(func):
+    strings = ["x", "y", "z"]
+    arr = pd.array(strings, dtype="string")
+    ser = pd.Series(strings)
+
+    result = getattr(arr, func)()
+    expected = getattr(ser, func)()
+
+    assert result == expected
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_reduction_with_na(func, skipna):
+    arr = pd.Series([pd.NA, "y", "z"], dtype="string")
+    ser = pd.Series(["y", "z"])
+
+    result = getattr(arr, func)(skipna=skipna)
+
+    if skipna:
+        expected = getattr(ser, func)()
+        assert result == expected
+    else:
+        assert result is pd.NA
