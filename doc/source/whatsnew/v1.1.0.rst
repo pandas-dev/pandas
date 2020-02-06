@@ -42,6 +42,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
+- Bug in :class:`IntervalIndex` slicing that prevented slicing with ``step > 1`` (:issue:`31658`)
 -
 -
 
@@ -145,7 +146,6 @@ Strings
 
 Interval
 ^^^^^^^^
-- Bug in :class:`IntervalIndex` slicing that prevented slicing with ``step > 1`` (:issue:`31658`)
 -
 -
 
