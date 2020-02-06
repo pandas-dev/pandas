@@ -189,7 +189,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         self: BaseMaskedArrayT,
         indexer,
         allow_fill: bool = False,
-        fill_value: Optional[Scalar] = None,
+        fill_value: Optional["Scalar"] = None,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
