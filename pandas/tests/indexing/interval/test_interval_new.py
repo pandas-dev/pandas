@@ -151,15 +151,20 @@ class TestIntervalIndex:
         result2 = s[0:4][::2]
         tm.assert_series_equal(result2, expected)
 
+    def test_slice_float_start_stop(self):
+        # GH#31658 slicing with integers is positional, with floats is not
+        #  supported
+        ser = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
+
+        msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+        with pytest.raises(ValueError, match=msg):
+            ser[1.5:9.5:2]
+
     def test_slice_interval_step(self):
         # GH#31658 allows for integer step!=1, not Interval step
         s = self.s
-        msg = (
-            "cannot do slice indexing on "
-            "<class 'pandas.core.indexes.interval.IntervalIndex'> with "
-            "these indexers .* of <class 'pandas._libs.interval.Interval'>"
-        )
-        with pytest.raises(TypeError, match=msg):
+        msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+        with pytest.raises(ValueError, match=msg):
             s[0 : 4 : Interval(0, 1)]
 
     def test_loc_with_overlap(self):
