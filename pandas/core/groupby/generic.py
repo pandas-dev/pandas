@@ -72,6 +72,7 @@ from pandas.core.groupby.groupby import (
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
+from pandas.core.internals.blocks import _block_shape
 from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
@@ -1026,6 +1027,32 @@ class DataFrameGroupBy(GroupBy):
         split_items: List[np.ndarray] = []
         split_frames: List[DataFrame] = []
 
+        def _recast_result(result, values):
+            # see if we can cast the block back to the original dtype
+            assert not isinstance(result, DataFrame)
+            assert result is not no_result
+
+            result = maybe_downcast_numeric(result, values.dtype)
+
+            if not isinstance(values, np.ndarray) and isinstance(result, np.ndarray):
+                # e.g. block.values was an IntegerArray
+                # (1, N) case can occur if block.values was Categorical
+                #  and result is ndarray[object]
+                assert result.ndim == 1 or result.shape[0] == 1
+                try:
+                    # Cast back if feasible
+                    result = type(values)._from_sequence(
+                        result.ravel(), dtype=values.dtype
+                    )
+                except ValueError:
+                    # reshape to be valid for non-Extension Block
+                    result = result.reshape(1, -1)
+
+            elif isinstance(result, np.ndarray) and result.ndim == 1:
+                result = result.reshape(1, -1)
+
+            return result
+
         no_result = object()
         for block in data.blocks:
             # Avoid inheriting result from earlier in the loop
@@ -1048,6 +1075,7 @@ class DataFrameGroupBy(GroupBy):
                     continue
 
                 # call our grouper again with only this block
+                # TODO: will this mess up if we have duplicate columns?
                 obj = self.obj[data.items[locs]]
                 if obj.shape[1] == 1:
                     # Avoid call to self.values that can occur in DataFrame
@@ -1063,6 +1091,9 @@ class DataFrameGroupBy(GroupBy):
                     deleted_items.append(locs)
                     continue
                 else:
+                    if result.ndim == 1:
+                        result = result.to_frame()
+
                     result = cast(DataFrame, result)
                     # unwrap DataFrame to get array
                     if len(result._data.blocks) != 1:
@@ -1076,29 +1107,12 @@ class DataFrameGroupBy(GroupBy):
 
                     assert len(result._data.blocks) == 1
                     result = result._data.blocks[0].values
-                    if isinstance(result, np.ndarray) and result.ndim == 1:
-                        result = result.reshape(1, -1)
-
-            assert not isinstance(result, DataFrame)
-
-            if result is not no_result:
-                # see if we can cast the block back to the original dtype
-                result = maybe_downcast_numeric(result, block.dtype)
-
-                if block.is_extension and isinstance(result, np.ndarray):
-                    # e.g. block.values was an IntegerArray
-                    # (1, N) case can occur if block.values was Categorical
-                    #  and result is ndarray[object]
-                    assert result.ndim == 1 or result.shape[0] == 1
-                    try:
-                        # Cast back if feasible
-                        result = type(block.values)._from_sequence(
-                            result.ravel(), dtype=block.values.dtype
-                        )
-                    except ValueError:
-                        # reshape to be valid for non-Extension Block
-                        result = result.reshape(1, -1)
-
+                    result = _recast_result(result, block.values)
+                    agg_block: Block = block.make_block(result)
+            else:
+                assert not isinstance(result, DataFrame)
+                assert result is not no_result
+                result = _recast_result(result, block.values)
                 agg_block: Block = block.make_block(result)
 
             new_items.append(locs)
