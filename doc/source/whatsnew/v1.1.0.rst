@@ -128,6 +128,7 @@ Datetimelike
 - :meth:`DatetimeArray.searchsorted`, :meth:`TimedeltaArray.searchsorted`, :meth:`PeriodArray.searchsorted` not recognizing non-pandas scalars and incorrectly raising ``ValueError`` instead of ``TypeError`` (:issue:`30950`)
 - Bug in :class:`Timestamp` where constructing :class:`Timestamp` with dateutil timezone less than 128 nanoseconds before daylight saving time switch from winter to summer would result in nonexistent time (:issue:`31043`)
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with a tz-aware index (:issue:`26683`)
+- Bug in :meth:`Period.to_timestamp`, :meth:`Period.start_time` with microsecond frequency returning a timestamp one nanosecond earlier than the correct time (:issue:`31475`)
 
 Timedelta
 ^^^^^^^^^
@@ -174,6 +175,7 @@ Indexing
 - Bug in :meth:`Series.at` and :meth:`DataFrame.at` not matching ``.loc`` behavior when looking up an integer in a :class:`Float64Index` (:issue:`31329`)
 - Bug in :meth:`PeriodIndex.is_monotonic` incorrectly returning ``True`` when containing leading ``NaT`` entries (:issue:`31437`)
 - Bug in :meth:`DatetimeIndex.get_loc` raising ``KeyError`` with converted-integer key instead of the user-passed key (:issue:`31425`)
+- Bug in :meth:`Series.xs` incorrectly returning ``Timestamp`` instead of ``datetime64`` in some object-dtype cases (:issue:`31630`)
 
 Missing
 ^^^^^^^
@@ -196,8 +198,11 @@ MultiIndex
 I/O
 ^^^
 - Bug in :meth:`read_json` where integer overflow was occuring when json contains big number strings. (:issue:`30320`)
+- `read_csv` will now raise a ``ValueError`` when the arguments `header` and `prefix` both are not `None`. (:issue:`27394`)
 - Bug in :meth:`DataFrame.to_json` was raising ``NotFoundError`` when ``path_or_buf`` was an S3 URI (:issue:`28375`)
--
+- Bug in :meth:`DataFrame.to_parquet` overwriting pyarrow's default for
+  ``coerce_timestamps``; following pyarrow's default allows writing nanosecond
+  timestamps with ``version="2.0"`` (:issue:`31652`).
 
 Plotting
 ^^^^^^^^
