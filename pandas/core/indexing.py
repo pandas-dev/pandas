@@ -591,15 +591,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         return self.obj._xs(label, axis=axis)
 
-    def _get_loc(self, key: int, axis: int):
-        return self.obj._ixs(key, axis=axis)
-
-    def _slice(self, obj, axis: int, kind=None):
-        return self.obj._slice(obj, axis=axis, kind=kind)
-
     def _get_setitem_indexer(self, key):
         if self.axis is not None:
-            return self._convert_tuple(key)
+            return self._convert_tuple(key, is_setter=True)
 
         ax = self.obj._get_axis(0)
 
@@ -612,7 +606,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         if isinstance(key, tuple):
             try:
-                return self._convert_tuple(key)
+                return self._convert_tuple(key, is_setter=True)
             except IndexingError:
                 pass
 
@@ -620,7 +614,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             return list(key)
 
         try:
-            return self._convert_to_indexer(key, axis=0)
+            return self._convert_to_indexer(key, axis=0, is_setter=True)
         except TypeError as e:
 
             # invalid indexer type vs 'other' indexing errors
@@ -683,33 +677,24 @@ class _LocationIndexer(_NDFrameIndexerBase):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
-    def _convert_tuple(self, key):
+    def _convert_tuple(self, key, is_setter: bool = False):
         keyidx = []
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
             for i in range(self.ndim):
                 if i == axis:
-                    keyidx.append(self._convert_to_indexer(key, axis=axis))
+                    keyidx.append(
+                        self._convert_to_indexer(key, axis=axis, is_setter=is_setter)
+                    )
                 else:
                     keyidx.append(slice(None))
         else:
             for i, k in enumerate(key):
                 if i >= self.ndim:
                     raise IndexingError("Too many indexers")
-                idx = self._convert_to_indexer(k, axis=i)
+                idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
         return tuple(keyidx)
-
-    def _convert_scalar_indexer(self, key, axis: int):
-        # if we are accessing via lowered dim, use the last dim
-        ax = self.obj._get_axis(min(axis, self.ndim - 1))
-        # a scalar
-        return ax._convert_scalar_indexer(key, kind=self.name)
-
-    def _convert_slice_indexer(self, key: slice, axis: int):
-        # if we are accessing via lowered dim, use the last dim
-        ax = self.obj._get_axis(min(axis, self.ndim - 1))
-        return ax._convert_slice_indexer(key, kind=self.name)
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
@@ -1460,7 +1445,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         # Have the index compute an indexer or return None
         # if it cannot handle:
-        indexer, keyarr = ax._convert_listlike_indexer(key, kind=self.name)
+        assert self.name == "loc"
+        indexer, keyarr = ax._convert_listlike_indexer(key)
         # We only act on all found values:
         if indexer is not None and (indexer != -1).all():
             self._validate_read_indexer(key, indexer, axis, raise_missing=raise_missing)
@@ -1566,7 +1552,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                     "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
                 )
 
-    def _convert_to_indexer(self, key, axis: int):
+    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         raise AbstractMethodError(self)
 
     def __getitem__(self, key):
@@ -1624,7 +1610,8 @@ class _LocIndexer(_LocationIndexer):
             return
 
         if not is_list_like_indexer(key):
-            self._convert_scalar_indexer(key, axis)
+            labels = self.obj._get_axis(axis)
+            labels._convert_scalar_indexer(key, kind="loc")
 
     def _is_scalar_access(self, key: Tuple) -> bool:
         """
@@ -1769,13 +1756,13 @@ class _LocIndexer(_LocationIndexer):
         )
 
         if isinstance(indexer, slice):
-            return self._slice(indexer, axis=axis, kind="iloc")
+            return self.obj._slice(indexer, axis=axis, kind="iloc")
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
             return self.obj.take(indexer, axis=axis)
 
-    def _convert_to_indexer(self, key, axis: int):
+    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on a ndarray.
@@ -1793,14 +1780,16 @@ class _LocIndexer(_LocationIndexer):
         labels = self.obj._get_axis(axis)
 
         if isinstance(key, slice):
-            return self._convert_slice_indexer(key, axis)
+            return labels._convert_slice_indexer(key, kind="loc")
 
-        # try to find out correct indexer, if not type correct raise
-        try:
-            key = self._convert_scalar_indexer(key, axis)
-        except TypeError:
-            # but we will allow setting
-            pass
+        if is_scalar(key):
+            # try to find out correct indexer, if not type correct raise
+            try:
+                key = labels._convert_scalar_indexer(key, kind="loc")
+            except TypeError:
+                # but we will allow setting
+                if not is_setter:
+                    raise
 
         # see if we are positional in nature
         is_int_index = labels.is_integer()
@@ -2020,7 +2009,7 @@ class _iLocIndexer(_LocationIndexer):
             # validate the location
             self._validate_integer(key, axis)
 
-            return self._get_loc(key, axis=axis)
+            return self.obj._ixs(key, axis=axis)
 
     def _get_slice_axis(self, slice_obj: slice, axis: int):
         # caller is responsible for ensuring non-None axis
@@ -2029,19 +2018,23 @@ class _iLocIndexer(_LocationIndexer):
         if not need_slice(slice_obj):
             return obj.copy(deep=False)
 
-        indexer = self._convert_slice_indexer(slice_obj, axis)
-        return self._slice(indexer, axis=axis, kind="iloc")
+        labels = obj._get_axis(axis)
+        indexer = labels._convert_slice_indexer(slice_obj, kind="iloc")
+        return self.obj._slice(indexer, axis=axis, kind="iloc")
 
-    def _convert_to_indexer(self, key, axis: int):
+    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         """
         Much simpler as we only have to deal with our valid types.
         """
+        labels = self.obj._get_axis(axis)
+
         # make need to convert a float key
         if isinstance(key, slice):
-            return self._convert_slice_indexer(key, axis)
+            return labels._convert_slice_indexer(key, kind="iloc")
 
         elif is_float(key):
-            return self._convert_scalar_indexer(key, axis)
+            labels._validate_indexer("positional", key, "iloc")
+            return key
 
         self._validate_key(key, axis)
         return key
@@ -2095,21 +2088,11 @@ class _AtIndexer(_ScalarAccessIndexer):
         if is_setter:
             return list(key)
 
-        for ax, i in zip(self.obj.axes, key):
-            if ax.is_integer():
-                if not is_integer(i):
-                    raise ValueError(
-                        "At based indexing on an integer index "
-                        "can only have integer indexers"
-                    )
-            else:
-                if is_integer(i) and not (ax.holds_integer() or ax.is_floating()):
-                    raise ValueError(
-                        "At based indexing on an non-integer "
-                        "index can only have non-integer "
-                        "indexers"
-                    )
-        return key
+        lkey = list(key)
+        for n, (ax, i) in enumerate(zip(self.obj.axes, key)):
+            lkey[n] = ax._convert_scalar_indexer(i, kind="loc")
+
+        return tuple(lkey)
 
 
 @Appender(IndexingMixin.iat.__doc__)
