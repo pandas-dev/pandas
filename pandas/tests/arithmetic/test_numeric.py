@@ -1312,10 +1312,6 @@ def test_dataframe_div_silenced():
 
 
 class TestNumericArraylikeArithmeticWithBool:
-    @pytest.mark.skipif(
-        compat.is_platform_32bit(),
-        reason="Arithmetic operations are not supported on 32bit",
-    )
     @pytest.mark.parametrize("num", [1, 1.0])
     def test_array_like_bool_and_num_op_coerce(
         self, num, all_arithmetic_functions, box_with_array
