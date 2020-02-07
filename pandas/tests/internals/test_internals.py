@@ -298,7 +298,7 @@ class TestBlock:
 
         newb = self.fblock.copy()
 
-        with pytest.raises(IndexError, match=None):
+        with tm.external_error_raised(IndexError):
             newb.delete(3)
 
 
