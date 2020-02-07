@@ -1677,21 +1677,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = pd.DataFrame([[pd.NA]]).to_json()
         assert result == '{"0":{"0":null}}'
 
-    def test_json_pandas_na_label(self):
-        # GH 31615
-        result = pd.DataFrame({pd.NA: ["a"]}).to_json()
-        assert result == '{"<NA>":{"0":"a"}}'
-
     def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615
         result = pd.DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
-
-    def test_json_pandas_nulls_labels(self, nulls_fixture):
-        # GH 31615
-        result = pd.DataFrame({nulls_fixture: ["a"]}).to_json()
-        if nulls_fixture is pd.NaT:
-            null_string = "null"
-        else:
-            null_string = str(nulls_fixture)
-        assert result == '{"' + null_string + '":{"0":"a"}}'
