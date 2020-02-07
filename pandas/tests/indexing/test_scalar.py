@@ -129,38 +129,79 @@ class TestScalar2:
         result = df.iat[2, 0]
         assert result == 2
 
-    def test_at_to_fail(self):
+    def test_series_at_raises_type_error(self):
         # at should not fallback
         # GH 7814
-        s = Series([1, 2, 3], index=list("abc"))
-        result = s.at["a"]
+        # GH#31724 .at should match .loc
+        ser = Series([1, 2, 3], index=list("abc"))
+        result = ser.at["a"]
         assert result == 1
-        msg = (
-            "At based indexing on an non-integer index can only have "
-            "non-integer indexers"
-        )
-        with pytest.raises(ValueError, match=msg):
-            s.at[0]
+        result = ser.loc["a"]
+        assert result == 1
 
+        msg = (
+            "cannot do label indexing on <class 'pandas.core.indexes.base.Index'> "
+            r"with these indexers \[0\] of <class 'int'>"
+        )
+        with pytest.raises(TypeError, match=msg):
+            ser.at[0]
+        with pytest.raises(TypeError, match=msg):
+            ser.loc[0]
+
+    def test_frame_raises_type_error(self):
+        # GH#31724 .at should match .loc
         df = DataFrame({"A": [1, 2, 3]}, index=list("abc"))
         result = df.at["a", "A"]
         assert result == 1
-        with pytest.raises(ValueError, match=msg):
-            df.at["a", 0]
+        result = df.loc["a", "A"]
+        assert result == 1
 
-        s = Series([1, 2, 3], index=[3, 2, 1])
-        result = s.at[1]
+        msg = (
+            "cannot do label indexing on <class 'pandas.core.indexes.base.Index'> "
+            r"with these indexers \[0\] of <class 'int'>"
+        )
+        with pytest.raises(TypeError, match=msg):
+            df.at["a", 0]
+        with pytest.raises(TypeError, match=msg):
+            df.loc["a", 0]
+
+    def test_series_at_raises_key_error(self):
+        # GH#31724 .at should match .loc
+
+        ser = Series([1, 2, 3], index=[3, 2, 1])
+        result = ser.at[1]
         assert result == 3
-        msg = "At based indexing on an integer index can only have integer indexers"
-        with pytest.raises(ValueError, match=msg):
-            s.at["a"]
+        result = ser.loc[1]
+        assert result == 3
+
+        with pytest.raises(KeyError, match="a"):
+            ser.at["a"]
+        with pytest.raises(KeyError, match="a"):
+            # .at should match .loc
+            ser.loc["a"]
+
+    def test_frame_at_raises_key_error(self):
+        # GH#31724 .at should match .loc
 
         df = DataFrame({0: [1, 2, 3]}, index=[3, 2, 1])
+
         result = df.at[1, 0]
         assert result == 3
-        with pytest.raises(ValueError, match=msg):
-            df.at["a", 0]
+        result = df.loc[1, 0]
+        assert result == 3
 
+        with pytest.raises(KeyError, match="a"):
+            df.at["a", 0]
+        with pytest.raises(KeyError, match="a"):
+            df.loc["a", 0]
+
+        with pytest.raises(KeyError, match="a"):
+            df.at[1, "a"]
+        with pytest.raises(KeyError, match="a"):
+            df.loc[1, "a"]
+
+    # TODO: belongs somewhere else?
+    def test_getitem_list_missing_key(self):
         # GH 13822, incorrect error string with non-unique columns when missing
         # column is accessed
         df = DataFrame({"x": [1.0], "y": [2.0], "z": [3.0]})
