@@ -26,8 +26,7 @@ from pandas.core.indexers import (
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index
-from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.api import Index, InvalidIndexError
 
 # "null slice"
 _NS = slice(None, None)
@@ -592,6 +591,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         return self.obj._xs(label, axis=axis)
 
     def _get_setitem_indexer(self, key):
+        """
+        Convert a potentially-label-based key into a positional indexer.
+        """
         if self.axis is not None:
             return self._convert_tuple(key, is_setter=True)
 
