@@ -85,7 +85,7 @@ class Registry:
         """
         Parameters
         ----------
-        dtype : Type[ExtensionDtype]
+        dtype : ExtensionDtype class
         """
         if not issubclass(dtype, ExtensionDtype):
             raise ValueError("can only register pandas extension dtypes")
