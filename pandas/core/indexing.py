@@ -792,7 +792,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                                     "defined index and a scalar"
                                 )
                             self.obj[key] = value
-                            return self.obj
+                            return
 
                         # add a new item with the dtype setup
                         self.obj[key] = _infer_fill_value(value)
@@ -802,7 +802,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                         )
                         self._setitem_with_indexer(new_indexer, value)
 
-                        return self.obj
+                        return
 
                     # reindex the axis
                     # make sure to clear the cache because we are
@@ -825,7 +825,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                return self._setitem_with_indexer_missing(indexer, value)
+                self._setitem_with_indexer_missing(indexer, value)
+                return
 
         # set
         item_labels = self.obj._get_axis(info_axis)
@@ -1051,7 +1052,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 new_values, index=new_index, name=self.obj.name
             )._data
             self.obj._maybe_update_cacher(clear=True)
-            return self.obj
 
         elif self.ndim == 2:
 
@@ -1075,7 +1075,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
             self.obj._data = self.obj.append(value)._data
             self.obj._maybe_update_cacher(clear=True)
-            return self.obj
 
     def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer: bool = False):
         """
