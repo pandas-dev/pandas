@@ -624,10 +624,11 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return ensure_platform_int(indexer), missing
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["loc", "getitem"]
         if kind == "loc":
             try:
-                return self.categories._convert_scalar_indexer(key, kind=kind)
+                return self.categories._convert_scalar_indexer(key, kind="loc")
             except TypeError:
                 self._invalid_indexer("label", key)
         return super()._convert_scalar_indexer(key, kind=kind)
