@@ -944,10 +944,12 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: python
 
-    pi = pd.period_range('June 2018', freq='M', periods=3)
-    pi - pi[0]
+    In [89]: pi = pd.period_range('June 2018', freq='M', periods=3)
+
+    In [90]: pi - pi[0]
+    Out[90]: Index([<0 * MonthEnds>, <MonthEnd>, <2 * MonthEnds>], dtype='object')
 
 
 .. _whatsnew_0240.api.timedelta64_subtract_nan:
