@@ -455,13 +455,11 @@ class TestPandasContainer:
         df["modified"] = df["date"]
         df.iloc[1, df.columns.get_loc("modified")] = pd.NaT
 
-        v12_json = os.path.join("tsframe_v012.json")
-        df_unser = pd.read_json(v12_json)
+        df_unser = pd.read_json("tsframe_v012.json")
         tm.assert_frame_equal(df, df_unser)
 
         df_iso = df.drop(["modified"], axis=1)
-        v12_iso_json = os.path.join("tsframe_iso_v012.json")
-        df_unser_iso = pd.read_json(v12_iso_json)
+        df_unser_iso = pd.read_json("tsframe_iso_v012.json")
         tm.assert_frame_equal(df_iso, df_unser_iso)
 
     def test_blocks_compat_GH9037(self):
@@ -622,7 +620,6 @@ class TestPandasContainer:
     def test_series_roundtrip_simple(self, orient, numpy, string_series):
         data = string_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
-        expected = string_series.copy()
 
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
@@ -638,7 +635,6 @@ class TestPandasContainer:
         result = pd.read_json(
             data, typ="series", orient=orient, numpy=numpy, dtype=dtype
         )
-        expected = object_series.copy()
 
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
@@ -651,7 +647,6 @@ class TestPandasContainer:
     def test_series_roundtrip_empty(self, orient, numpy, empty_series):
         data = empty_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
-        expected = empty_series.copy()
 
         # TODO: see what causes inconsistency
         if orient in ("values", "records"):
@@ -665,7 +660,6 @@ class TestPandasContainer:
     def test_series_roundtrip_timeseries(self, orient, numpy, datetime_series):
         data = datetime_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
-        expected = datetime_series.copy()
 
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
