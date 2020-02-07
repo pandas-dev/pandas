@@ -1,6 +1,5 @@
 from datetime import date, datetime, time as dt_time, timedelta
 from typing import Dict, List, Optional, Tuple, Type
-import warnings
 
 import numpy as np
 import pytest
@@ -360,11 +359,7 @@ class TestCommon(Base):
 
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore", ".*deprecated.*", category=FutureWarning
-                )
-                result = func(ts)
+            result = func(ts)
         assert isinstance(result, Timestamp)
         if normalize is False:
             assert result == expected + Nano(5)
@@ -401,11 +396,7 @@ class TestCommon(Base):
 
             # test nanosecond is preserved
             with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore", ".*deprecated.*", category=FutureWarning
-                    )
-                    result = func(ts)
+                result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:
                 assert result == expected_localize + Nano(5)
