@@ -902,7 +902,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         return self._get_values(key)
                 raise
 
-        if not isinstance(key, (list, np.ndarray, Series, Index)):
+        if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
 
         if isinstance(key, Index):
