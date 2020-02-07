@@ -35,15 +35,7 @@ navbar:
   - name: "Getting started"
     target: /getting_started.html
   - name: "Documentation"
-    target:
-    - name: "User guide"
-      target: /docs/user_guide/index.html
-    - name: "API reference"
-      target: /docs/reference/index.html
-    - name: "Release notes"
-      target: /docs/whatsnew/index.html
-    - name: "Older versions"
-      target: https://pandas.pydata.org/pandas-docs/version/
+    target: /docs/
   - name: "Community"
     target:
     - name: "Blog"
