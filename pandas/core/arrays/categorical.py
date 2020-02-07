@@ -2073,6 +2073,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         lindexer = self.categories.get_indexer(rvalue)
         lindexer = self._maybe_coerce_indexer(lindexer)
+
+        key = check_array_indexer(self, key)
         self._codes[key] = lindexer
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
@@ -2501,10 +2503,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.as_ordered()
     >>> s.cat.as_unordered()
     """
-
-    _deprecations = PandasObject._deprecations | frozenset(
-        ["categorical", "index", "name"]
-    )
 
     def __init__(self, data):
         self._validate(data)
