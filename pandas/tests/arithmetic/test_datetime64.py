@@ -1056,6 +1056,20 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
+    def test_timestamp_and_time_dtype_raises():
+    # https://github.com/pandas-dev/pandas/issues/10329
+    df = pd.DataFrame(
+        {
+            "date": pd.date_range("2012-01-01", periods=3),
+            "time": [time(i, i, i) for i in range(3)],
+        }
+    )
+
+    msg = r"unsupported operand type\(s\) for -: 'Timestamp' and 'datetime.time'"
+
+    with pytest.raises(TypeError, match=msg):
+        df["date"] - df["time"]
+
 
 class TestDatetime64DateOffsetArithmetic:
 
