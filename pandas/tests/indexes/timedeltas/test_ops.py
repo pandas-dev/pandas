@@ -8,26 +8,13 @@ from pandas.core.dtypes.generic import ABCDateOffset
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
-from pandas.tests.base.test_ops import Ops
 
 from pandas.tseries.offsets import Day, Hour
 
 
-class TestTimedeltaIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: isinstance(x, TimedeltaIndex)
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = []
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, TimedeltaIndex)
-        self.check_ops_properties(TimedeltaIndex._field_ops, f)
-        self.check_ops_properties(TimedeltaIndex._object_ops, f)
-
+class TestTimedeltaIndexOps:
     def test_value_counts_unique(self):
         # GH 7735
-
         idx = timedelta_range("1 days 09:00:00", freq="H", periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
         idx = TimedeltaIndex(np.repeat(idx.values, range(1, len(idx) + 1)))
