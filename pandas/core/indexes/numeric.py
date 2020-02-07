@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 
@@ -32,11 +32,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
+from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.ops import get_op_result_name
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 _num_index_shared_docs = dict()
 
@@ -383,6 +380,13 @@ class Float64Index(NumericIndex):
             return Int64Index(arr)
         return super().astype(dtype, copy=copy)
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
+    @Appender(Index._should_fallback_to_positional.__doc__)
+    def _should_fallback_to_positional(self):
+        return False
+
     @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         assert kind in ["loc", "getitem", "iloc", None]
@@ -401,6 +405,8 @@ class Float64Index(NumericIndex):
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
+    # ----------------------------------------------------------------
+
     def _format_native_types(
         self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
     ):
@@ -415,17 +421,6 @@ class Float64Index(NumericIndex):
             fixed_width=False,
         )
         return formatter.get_result_as_array()
-
-    @Appender(Index.get_value.__doc__)
-    def get_value(self, series: "Series", key):
-        """
-        We always want to get an index value, never a value.
-        """
-        if not is_scalar(key):
-            raise InvalidIndexError
-
-        loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
 
     def equals(self, other) -> bool:
         """
