@@ -108,5 +108,5 @@ def test_no_holidays_calendar():
 
     cal = NoHolidaysCalendar()
     holidays = cal.holidays(Timestamp("01-Jan-2020"), Timestamp("01-Jan-2021"))
-    empty_series = Series(index=DatetimeIndex([]), dtype=object)
-    tm.assert_series_equal(holidays, empty_series)
+    empty_index = DatetimeIndex([])  # Type is DatetimeIndex since return_name=False
+    tm.assert_series_equal(holidays, empty_index)
