@@ -400,12 +400,16 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     #   skip the setitem test for now, and fix it later (GH 31446)
 
     @skip_nested
-    def test_setitem_mask(self, data, box_in_series):
-        super().test_setitem_mask(data, box_in_series)
-
-    @skip_nested
-    def test_setitem_mask_boolean_array(self, data, box_in_series):
-        super().test_setitem_mask_boolean_array(data, box_in_series)
+    @pytest.mark.parametrize(
+        "mask",
+        [
+            np.array([True, True, True, False, False]),
+            pd.array([True, True, True, False, False], dtype="boolean"),
+        ],
+        ids=["numpy-array", "boolean-array"],
+    )
+    def test_setitem_mask(self, data, mask, box_in_series):
+        super().test_setitem_mask(data, mask, box_in_series)
 
     @skip_nested
     def test_setitem_mask_raises(self, data, box_in_series):
