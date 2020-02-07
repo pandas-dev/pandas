@@ -1,7 +1,7 @@
 from textwrap import dedent
 
-import pytest
 import numpy as np
+import pytest
 
 from pandas.util._test_decorators import async_mark
 
