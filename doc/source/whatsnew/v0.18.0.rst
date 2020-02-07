@@ -685,12 +685,18 @@ The general semantics of anchored offsets for ``n=0`` is to not move the date
 when it is an anchor point (e.g., a quarter start date), and otherwise roll
 forward to the next anchor point.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   d = pd.Timestamp('2014-02-01')
-   d
-   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
-   d + pd.offsets.QuarterBegin(n=0, startingMonth=1)
+   In [73]: d = pd.Timestamp('2014-02-01')
+
+   In [74]: d
+   Out[74]: Timestamp('2014-02-01 00:00:00')
+
+   In [75]: d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   Out[75]: Timestamp('2014-02-01 00:00:00')
+
+   In [76]: d + pd.offsets.QuarterBegin(n=0, startingMonth=1)
+   Out[76]: Timestamp('2014-04-01 00:00:00')
 
 For the ``QuarterBegin`` offset in previous versions, the date would be rolled
 *backwards* if date was in the same month as the quarter start date.
@@ -705,10 +711,12 @@ For the ``QuarterBegin`` offset in previous versions, the date would be rolled
 This behavior has been corrected in version 0.18.0, which is consistent with
 other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 
-.. ipython:: python
+.. code-block:: python
 
-   d = pd.Timestamp('2014-02-15')
-   d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   In [77]: d = pd.Timestamp('2014-02-15')
+
+   In [78]: d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
+   Out[78]: Timestamp('2014-05-01 00:00:00')
 
 .. _whatsnew_0180.breaking.resample:
 
