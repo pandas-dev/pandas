@@ -367,12 +367,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.dts.ps = nanos * 1000
 
     if tz is not None:
-        if is_utc(tz):
-            pass
-        elif is_tzlocal(tz):
-            pass
+        if is_utc(tz) or is_tzlocal(tz):
             # TODO: think on how we can infer fold for local Timezone
             # and adjust value for fold
+            pass
         else:
             trans, deltas, typ = get_dst_info(tz)
 
@@ -423,12 +421,10 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
     # Can infer fold from offset-adjusted obj.value
     fold = 0
-    if is_utc(tz):
-        pass
-    elif is_tzlocal(tz):
-        pass
+    if is_utc(tz) or is_tzlocal(tz):
         # TODO: think on how we can infer fold for local Timezone
         # and adjust value for fold
+        pass
     else:
         trans, deltas, typ = get_dst_info(tz)
 
