@@ -1,5 +1,5 @@
 """
-Routings for casting.
+Routines for casting.
 """
 
 from datetime import datetime, timedelta
