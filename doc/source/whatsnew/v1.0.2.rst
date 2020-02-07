@@ -28,6 +28,10 @@ Bug fixes
 -
 -
 
+**Experimental dtypes**
+
+- Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_102.contributors:
