@@ -1,17 +1,12 @@
-from datetime import datetime, timedelta, date
 import warnings
-
-import cython
 
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray, intp_t,
                     float64_t, float32_t,
                     int64_t, int32_t, int16_t, int8_t,
-                    uint64_t, uint32_t, uint16_t, uint8_t,
-                    # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
-                    # for cimport in cython>=0.27.3
-                    NPY_DATETIME, NPY_TIMEDELTA)
+                    uint64_t, uint32_t, uint16_t, uint8_t
+)
 cnp.import_array()
 
 
@@ -23,7 +18,7 @@ from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 from pandas._libs.hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
-from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
+from pandas._libs.tslibs import Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
 
@@ -33,16 +28,6 @@ cdef inline bint is_definitely_invalid_key(object val):
     except TypeError:
         return True
     return False
-
-
-cpdef get_value_at(ndarray arr, object loc, object tz=None):
-    obj = util.get_value_at(arr, loc)
-
-    if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(obj, tz=tz)
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(obj)
-    return obj
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -71,21 +56,6 @@ cdef class IndexEngine:
         #  - val is hashable
         self._ensure_mapping_populated()
         return val in self.mapping
-
-    cpdef get_value(self, ndarray arr, object key, object tz=None):
-        """
-        Parameters
-        ----------
-        arr : 1-dimensional ndarray
-        """
-        cdef:
-            object loc
-
-        loc = self.get_loc(key)
-        if isinstance(loc, slice) or util.is_array(loc):
-            return arr[loc]
-        else:
-            return get_value_at(arr, loc, tz=tz)
 
     cpdef get_loc(self, object val):
         cdef:

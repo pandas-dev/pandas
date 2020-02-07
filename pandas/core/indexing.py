@@ -2049,7 +2049,8 @@ class _iLocIndexer(_LocationIndexer):
             return labels._convert_slice_indexer(key, kind="iloc")
 
         elif is_float(key):
-            return labels._convert_scalar_indexer(key, kind="iloc")
+            labels._validate_indexer("positional", key, "iloc")
+            return key
 
         self._validate_key(key, axis)
         return key
@@ -2103,21 +2104,11 @@ class _AtIndexer(_ScalarAccessIndexer):
         if is_setter:
             return list(key)
 
-        for ax, i in zip(self.obj.axes, key):
-            if ax.is_integer():
-                if not is_integer(i):
-                    raise ValueError(
-                        "At based indexing on an integer index "
-                        "can only have integer indexers"
-                    )
-            else:
-                if is_integer(i) and not (ax.holds_integer() or ax.is_floating()):
-                    raise ValueError(
-                        "At based indexing on an non-integer "
-                        "index can only have non-integer "
-                        "indexers"
-                    )
-        return key
+        lkey = list(key)
+        for n, (ax, i) in enumerate(zip(self.obj.axes, key)):
+            lkey[n] = ax._convert_scalar_indexer(i, kind="loc")
+
+        return tuple(lkey)
 
 
 @Appender(IndexingMixin.iat.__doc__)
