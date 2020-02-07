@@ -2033,7 +2033,8 @@ class _iLocIndexer(_LocationIndexer):
             return labels._convert_slice_indexer(key, kind="iloc")
 
         elif is_float(key):
-            return labels._convert_scalar_indexer(key, kind="iloc")
+            labels._validate_indexer("positional", key, "iloc")
+            return key
 
         self._validate_key(key, axis)
         return key

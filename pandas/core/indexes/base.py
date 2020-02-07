@@ -3100,20 +3100,16 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
 
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str_t):
         """
         Convert a scalar indexer.
 
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        if kind == "iloc":
-            self._validate_indexer("positional", key, "iloc")
-            return key
+        assert kind in ["loc", "getitem"]
 
         if len(self) and not isinstance(self, ABCMultiIndex):
 

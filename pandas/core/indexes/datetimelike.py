@@ -385,7 +385,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str):
         """
         We don't allow integer or float indexing on datetime-like when using
         loc.
@@ -393,10 +393,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
 
-        assert kind in ["loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem"]
 
         if not is_scalar(key):
             raise TypeError(key)
