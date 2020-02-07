@@ -564,6 +564,18 @@ def test_categorical_assigning_ops():
     tm.assert_series_equal(s, exp)
 
 
+def test_getitem_categorical_str():
+    # GH#31765
+    ser = pd.Series(range(5), index=pd.Categorical(["a", "b", "c", "a", "b"]))
+    result = ser["a"]
+    expected = ser.iloc[[0, 3]]
+    tm.assert_series_equal(result, expected)
+
+    # Check the intermediate steps work as expected
+    result = ser.index.get_value(ser, "a")
+    tm.assert_series_equal(result, expected)
+
+
 def test_slice(string_series, object_series):
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
