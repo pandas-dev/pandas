@@ -4137,6 +4137,8 @@ Name: Max Speed, dtype: float64
             method=method,
         )
 
+    @Substitution(klass="Series", type_sub="", max_cols_sub="")
+    @Appender(NDFrame.info.__doc__)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ):

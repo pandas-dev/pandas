@@ -1721,15 +1721,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return self._info_axis
 
-    #     @Substitution(klass=self.__name__, type_sub=" and column dtypes"*(self._typ
-    # =='dataframe'),
-    #         max_cols_sub="""
-    #         max_cols : int, optional
-    #             When to switch from the verbose to the truncated output. If the
-    #             DataFrame has more than `max_cols` columns, the truncated output
-    #             is used. By default, the setting in
-    #             ``pandas.options.display.max_info_columns`` is used.
-    # """*(self._typ=='dataframe'), )
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ) -> None:
@@ -1737,7 +1728,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Print a concise summary of a %(klass)s.
 
         This method prints information about a %(klass)s including
-        the index dtype%(type_sub), non-null values and memory usage.
+        the index dtype%(type_sub)s, non-null values and memory usage.
 
         Parameters
         ----------
@@ -1747,7 +1738,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         buf : writable buffer, defaults to sys.stdout
             Where to send the output. By default, the output is printed to
             sys.stdout. Pass a writable buffer if you need to further process
-            the output.%(max_cols_sub)s
+            the output.
+        %(max_cols_sub)s
         memory_usage : bool, str, optional
             Specifies whether total memory usage of the %(klass)s
             elements (including the index) should be displayed. By default,
@@ -1775,9 +1767,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.describe: Generate descriptive statistics of %(klass)s
+        DataFrame.describe: Generate descriptive statistics of DataFrame
             columns.
-        %(klass)s.memory_usage: Memory usage of %(klass)s%(memory_sub)s.
+        DataFrame.memory_usage: Memory usage of DataFrame columns.
 
         Examples
         --------

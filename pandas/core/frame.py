@@ -2223,6 +2223,18 @@ class DataFrame(NDFrame):
             encoding=encoding,
         )
 
+    @Substitution(
+        klass="DataFrame",
+        type_sub=" and columns",
+        max_cols_sub="""
+max_cols : int, optional
+    When to switch from the verbose to the truncated output. If the
+    DataFrame has more than `max_cols` columns, the truncated output
+    is used. By default, the setting in
+    ``pandas.options.display.max_info_columns`` is used.
+        """,
+    )
+    @Appender(NDFrame.info.__doc__)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ):
