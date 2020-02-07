@@ -4137,6 +4137,11 @@ Name: Max Speed, dtype: float64
             method=method,
         )
 
+    def info(
+        self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
+    ):
+        return super().info(verbose, buf, None, memory_usage, null_counts)
+
     @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
         return super().shift(

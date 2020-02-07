@@ -2223,6 +2223,11 @@ class DataFrame(NDFrame):
             encoding=encoding,
         )
 
+    def info(
+        self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
+    ):
+        return super().info(verbose, buf, max_cols, memory_usage, null_counts)
+
     # ----------------------------------------------------------------------
     @Appender(info.__doc__)
     def info(
