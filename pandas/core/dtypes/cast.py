@@ -1,12 +1,20 @@
 """ routings for casting """
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
-from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
+from pandas._libs.tslibs import (
+    NaT,
+    OutOfBoundsDatetime,
+    Period,
+    Timedelta,
+    Timestamp,
+    iNaT,
+)
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import Dtype
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -34,6 +42,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer,
     is_integer_dtype,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -1018,6 +1027,80 @@ def soft_convert_objects(
     return values
 
 
+def convert_dtypes(
+    input_array,
+    convert_string: bool = True,
+    convert_integer: bool = True,
+    convert_boolean: bool = True,
+) -> Dtype:
+    """
+    Convert objects to best possible type, and optionally,
+    to types supporting ``pd.NA``.
+
+    Parameters
+    ----------
+    input_array : ExtensionArray or PandasArray
+    convert_string : bool, default True
+        Whether object dtypes should be converted to ``StringDtype()``.
+    convert_integer : bool, default True
+        Whether, if possible, conversion can be done to integer extension types.
+    convert_boolean : bool, defaults True
+        Whether object dtypes should be converted to ``BooleanDtypes()``.
+
+    Returns
+    -------
+    dtype
+        new dtype
+    """
+
+    if convert_string or convert_integer or convert_boolean:
+        try:
+            inferred_dtype = lib.infer_dtype(input_array)
+        except ValueError:
+            # Required to catch due to Period.  Can remove once GH 23553 is fixed
+            inferred_dtype = input_array.dtype
+
+        if not convert_string and is_string_dtype(inferred_dtype):
+            inferred_dtype = input_array.dtype
+
+        if convert_integer:
+            target_int_dtype = "Int64"
+
+            if isinstance(inferred_dtype, str) and (
+                inferred_dtype == "mixed-integer"
+                or inferred_dtype == "mixed-integer-float"
+            ):
+                inferred_dtype = target_int_dtype
+            if is_integer_dtype(input_array.dtype) and not is_extension_array_dtype(
+                input_array.dtype
+            ):
+                from pandas.core.arrays.integer import _dtypes
+
+                inferred_dtype = _dtypes.get(input_array.dtype.name, target_int_dtype)
+            if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
+                input_array.dtype
+            ):
+                inferred_dtype = target_int_dtype
+
+        else:
+            if is_integer_dtype(inferred_dtype):
+                inferred_dtype = input_array.dtype
+
+        if convert_boolean:
+            if is_bool_dtype(input_array.dtype) and not is_extension_array_dtype(
+                input_array.dtype
+            ):
+                inferred_dtype = "boolean"
+        else:
+            if isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
+                inferred_dtype = input_array.dtype
+
+    else:
+        inferred_dtype = input_array.dtype
+
+    return inferred_dtype
+
+
 def maybe_castable(arr) -> bool:
     # return False to force a non-fastpath
 
@@ -1523,3 +1606,59 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
 
     if is_integer_dtype(dtype) and (is_float_dtype(arr) or is_object_dtype(arr)):
         raise ValueError("Trying to coerce float values to integers")
+
+
+def convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
+    """
+    Convert datetimelike scalar if we are setting into a datetime64
+    or timedelta64 ndarray.
+
+    Parameters
+    ----------
+    scalar : scalar
+    dtype : np.dtpye
+
+    Returns
+    -------
+    scalar
+    """
+    if dtype.kind == "m":
+        if isinstance(scalar, (timedelta, np.timedelta64)):
+            # We have to cast after asm8 in case we have NaT
+            return Timedelta(scalar).asm8.view("timedelta64[ns]")
+        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
+            return np.timedelta64("NaT", "ns")
+    if dtype.kind == "M":
+        if isinstance(scalar, (date, np.datetime64)):
+            # Note: we include date, not just datetime
+            return Timestamp(scalar).to_datetime64()
+        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
+            return np.datetime64("NaT", "ns")
+    else:
+        validate_numeric_casting(dtype, scalar)
+    return scalar
+
+
+def validate_numeric_casting(dtype: np.dtype, value):
+    """
+    Check that we can losslessly insert the given value into an array
+    with the given dtype.
+
+    Parameters
+    ----------
+    dtype : np.dtype
+    value : scalar
+
+    Raises
+    ------
+    ValueError
+    """
+    if issubclass(dtype.type, (np.integer, np.bool_)):
+        if is_float(value) and np.isnan(value):
+            raise ValueError("Cannot assign nan to integer series")
+
+    if issubclass(dtype.type, (np.integer, np.floating, np.complex)) and not issubclass(
+        dtype.type, np.bool_
+    ):
+        if is_bool(value):
+            raise ValueError("Cannot assign bool to float/integer series")

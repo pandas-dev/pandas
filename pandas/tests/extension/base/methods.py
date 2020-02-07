@@ -1,5 +1,9 @@
+import operator
+
 import numpy as np
 import pytest
+
+from pandas.core.dtypes.common import is_bool_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -231,6 +235,32 @@ class BaseMethodsTests(BaseExtensionTests):
 
         compare(result, expected)
 
+    @pytest.mark.parametrize("periods", [1, -2])
+    def test_diff(self, data, periods):
+        data = data[:5]
+        if is_bool_dtype(data.dtype):
+            op = operator.xor
+        else:
+            op = operator.sub
+        try:
+            # does this array implement ops?
+            op(data, data)
+        except Exception:
+            pytest.skip(f"{type(data)} does not support diff")
+        s = pd.Series(data)
+        result = s.diff(periods)
+        expected = pd.Series(op(data, data.shift(periods)))
+        self.assert_series_equal(result, expected)
+
+        df = pd.DataFrame({"A": data, "B": [1.0] * 5})
+        result = df.diff(periods)
+        if periods == 1:
+            b = [np.nan, 0, 0, 0, 0]
+        else:
+            b = [0, 0, 0, np.nan, np.nan]
+        expected = pd.DataFrame({"A": expected, "B": b})
+        self.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "periods, indices",
         [[-4, [-1, -1]], [-1, [1, -1]], [0, [0, 1]], [1, [-1, 0]], [4, [-1, -1]]],
@@ -249,6 +279,13 @@ class BaseMethodsTests(BaseExtensionTests):
         result = empty.shift(periods)
         expected = empty
         self.assert_extension_array_equal(result, expected)
+
+    def test_shift_zero_copies(self, data):
+        result = data.shift(0)
+        assert result is not data
+
+        result = data[:0].shift(2)
+        assert result is not data
 
     def test_shift_fill_value(self, data):
         arr = data[:4]

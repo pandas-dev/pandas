@@ -61,6 +61,27 @@ class TestDataFrameUnaryOperators:
 
         tm.assert_frame_equal(-(df < 0), ~(df < 0))
 
+    def test_invert_mixed(self):
+        shape = (10, 5)
+        df = pd.concat(
+            [
+                pd.DataFrame(np.zeros(shape, dtype="bool")),
+                pd.DataFrame(np.zeros(shape, dtype=int)),
+            ],
+            axis=1,
+            ignore_index=True,
+        )
+        result = ~df
+        expected = pd.concat(
+            [
+                pd.DataFrame(np.ones(shape, dtype="bool")),
+                pd.DataFrame(-np.ones(shape, dtype=int)),
+            ],
+            axis=1,
+            ignore_index=True,
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "df",
         [
@@ -843,10 +864,10 @@ class TestDataFrameOperators:
         ]:
 
             tm.assert_series_equal(
-                align(df, val, "index"), Series([1, 2, 3], index=df.index)
+                align(df, val, "index")[1], Series([1, 2, 3], index=df.index)
             )
             tm.assert_series_equal(
-                align(df, val, "columns"), Series([1, 2, 3], index=df.columns)
+                align(df, val, "columns")[1], Series([1, 2, 3], index=df.columns)
             )
 
         # length mismatch
@@ -861,10 +882,11 @@ class TestDataFrameOperators:
 
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         tm.assert_frame_equal(
-            align(df, val, "index"), DataFrame(val, index=df.index, columns=df.columns)
+            align(df, val, "index")[1],
+            DataFrame(val, index=df.index, columns=df.columns),
         )
         tm.assert_frame_equal(
-            align(df, val, "columns"),
+            align(df, val, "columns")[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
 

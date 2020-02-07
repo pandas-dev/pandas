@@ -891,6 +891,31 @@ Thur,Lunch,Yes,51.51,17"""
         )
         manual_compare_stacked(df, df.stack(0), 0, 1)
 
+    def test_stack_unstack_unordered_multiindex(self):
+        # GH 18265
+        values = np.arange(5)
+        data = np.vstack(
+            [
+                ["b{}".format(x) for x in values],  # b0, b1, ..
+                ["a{}".format(x) for x in values],
+            ]
+        )  # a0, a1, ..
+        df = pd.DataFrame(data.T, columns=["b", "a"])
+        df.columns.name = "first"
+        second_level_dict = {"x": df}
+        multi_level_df = pd.concat(second_level_dict, axis=1)
+        multi_level_df.columns.names = ["second", "first"]
+        df = multi_level_df.reindex(sorted(multi_level_df.columns), axis=1)
+        result = df.stack(["first", "second"]).unstack(["first", "second"])
+        expected = DataFrame(
+            [["a0", "b0"], ["a1", "b1"], ["a2", "b2"], ["a3", "b3"], ["a4", "b4"]],
+            index=[0, 1, 2, 3, 4],
+            columns=MultiIndex.from_tuples(
+                [("a", "x"), ("b", "x")], names=["first", "second"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_corner(self):
         midx = MultiIndex(
             levels=[["foo"], ["bar"], ["baz"]],
@@ -956,6 +981,10 @@ Thur,Lunch,Yes,51.51,17"""
         swapped = ft.swaplevel("first", "second", axis=1)
         exp = self.frame.swaplevel("first", "second").T
         tm.assert_frame_equal(swapped, exp)
+
+        msg = "Can only swap levels on a hierarchical axis."
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(range(3)).swaplevel()
 
     def test_reorder_levels(self):
         result = self.ymd.reorder_levels(["month", "day", "year"])
@@ -2505,3 +2534,29 @@ class TestSorted(Base):
         result = s.sort_index(level=["third", "first"], ascending=[False, True])
         expected = s.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            (["b", "a"], [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            (["a", "b"], [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [1, 2]), [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [2, 1]), [["a", "a", "b", "b"], [2, 1, 2, 1]]),
+            ((["b", "a"], [2, 1]), [["b", "b", "a", "a"], [2, 1, 2, 1]]),
+            ((["b", "a"], [1, 2]), [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            ((["c", "a"], [2, 1]), [["c", "a", "a"], [1, 2, 1]]),
+        ],
+    )
+    @pytest.mark.parametrize("dim", ["index", "columns"])
+    def test_multilevel_index_loc_order(self, dim, keys, expected):
+        # GH 22797
+        # Try to respect order of keys given for MultiIndex.loc
+        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
+        df = pd.DataFrame(np.arange(25).reshape(5, 5), **kwargs,)
+        exp_index = MultiIndex.from_arrays(expected)
+        if dim == "index":
+            res = df.loc[keys, :]
+            tm.assert_index_equal(res.index, exp_index)
+        elif dim == "columns":
+            res = df.loc[:, keys]
+            tm.assert_index_equal(res.columns, exp_index)
