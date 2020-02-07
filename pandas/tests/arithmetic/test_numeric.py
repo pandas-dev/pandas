@@ -10,12 +10,9 @@ from typing import Any, List
 import numpy as np
 import pytest
 
-import pandas.compat as compat
-
 import pandas as pd
 from pandas import Index, Series, Timedelta, TimedeltaIndex
 import pandas._testing as tm
-from pandas.conftest import all_arithmetic_functions
 from pandas.core import ops
 
 
