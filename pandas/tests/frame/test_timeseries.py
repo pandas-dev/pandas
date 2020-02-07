@@ -21,7 +21,7 @@ import pandas._testing as tm
 import pandas.tseries.offsets as offsets
 
 
-def test_no_idea_how_to_name_this_or_where_to_place_this():
+def test_timestamp_and_time_dtype_raises():
     # https://github.com/pandas-dev/pandas/issues/10329
     df = pd.DataFrame(
         {
