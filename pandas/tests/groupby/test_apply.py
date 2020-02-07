@@ -792,3 +792,76 @@ def test_apply_multi_level_name(category):
     )
     tm.assert_frame_equal(result, expected)
     assert df.index.names == ["A", "B"]
+
+
+def test_groupby_apply_datetime_result_dtypes():
+    # GH 14849
+    data = pd.DataFrame.from_records(
+        [
+            (pd.Timestamp(2016, 1, 1), "red", "dark", 1, "8"),
+            (pd.Timestamp(2015, 1, 1), "green", "stormy", 2, "9"),
+            (pd.Timestamp(2014, 1, 1), "blue", "bright", 3, "10"),
+            (pd.Timestamp(2013, 1, 1), "blue", "calm", 4, "potato"),
+        ],
+        columns=["observation", "color", "mood", "intensity", "score"],
+    )
+    result = data.groupby("color").apply(lambda g: g.iloc[0]).dtypes
+    expected = Series(
+        [np.dtype("datetime64[ns]"), np.object, np.object, np.int64, np.object],
+        index=["observation", "color", "mood", "intensity", "score"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.CategoricalIndex(list("abc")),
+        pd.interval_range(0, 3),
+        pd.period_range("2020", periods=3, freq="D"),
+        pd.MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0)]),
+    ],
+)
+def test_apply_index_has_complex_internals(index):
+    # GH 31248
+    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
+    result = df.groupby("group").apply(lambda x: x)
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "function, expected_values",
+    [
+        (lambda x: x.index.to_list(), [[0, 1], [2, 3]]),
+        (lambda x: set(x.index.to_list()), [{0, 1}, {2, 3}]),
+        (lambda x: tuple(x.index.to_list()), [(0, 1), (2, 3)]),
+        (
+            lambda x: {n: i for (n, i) in enumerate(x.index.to_list())},
+            [{0: 0, 1: 1}, {0: 2, 1: 3}],
+        ),
+        (
+            lambda x: [{n: i} for (n, i) in enumerate(x.index.to_list())],
+            [[{0: 0}, {1: 1}], [{0: 2}, {1: 3}]],
+        ),
+    ],
+)
+def test_apply_function_returns_non_pandas_non_scalar(function, expected_values):
+    # GH 31441
+    df = pd.DataFrame(["A", "A", "B", "B"], columns=["groups"])
+    result = df.groupby("groups").apply(function)
+    expected = pd.Series(expected_values, index=pd.Index(["A", "B"], name="groups"))
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_function_returns_numpy_array():
+    # GH 31605
+    def fct(group):
+        return group["B"].values.flatten()
+
+    df = pd.DataFrame({"A": ["a", "a", "b", "none"], "B": [1, 2, 3, np.nan]})
+
+    result = df.groupby("A").apply(fct)
+    expected = pd.Series(
+        [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
+    )
+    tm.assert_series_equal(result, expected)

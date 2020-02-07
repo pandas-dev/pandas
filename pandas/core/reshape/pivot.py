@@ -134,13 +134,13 @@ def pivot_table(
         table = agged.unstack(to_unstack)
 
     if not dropna:
-        if table.index.nlevels > 1:
+        if isinstance(table.index, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
             )
             table = table.reindex(m, axis=0)
 
-        if table.columns.nlevels > 1:
+        if isinstance(table.columns, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.columns.levels), names=table.columns.names
             )
@@ -200,7 +200,7 @@ def _add_margins(
     if not isinstance(margins_name, str):
         raise ValueError("margins_name argument must be a string")
 
-    msg = 'Conflicting name "{name}" in margins'.format(name=margins_name)
+    msg = f'Conflicting name "{margins_name}" in margins'
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(msg)
@@ -373,7 +373,7 @@ def _generate_marginal_results_without_values(
 ):
     if len(cols) > 0:
         # need to "interleave" the margins
-        margin_keys = []
+        margin_keys: Union[List, Index] = []
 
         def _all_key():
             if len(cols) == 1:
@@ -650,9 +650,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
         if (margins_name not in table.iloc[-1, :].name) | (
             margins_name != table.iloc[:, -1].name
         ):
-            raise ValueError(
-                "{mname} not in pivoted DataFrame".format(mname=margins_name)
-            )
+            raise ValueError(f"{margins_name} not in pivoted DataFrame")
         column_margin = table.iloc[:-1, -1]
         index_margin = table.iloc[-1, :-1]
 
@@ -702,7 +700,7 @@ def _get_names(arrs, names, prefix: str = "row"):
             if isinstance(arr, ABCSeries) and arr.name is not None:
                 names.append(arr.name)
             else:
-                names.append("{prefix}_{i}".format(prefix=prefix, i=i))
+                names.append(f"{prefix}_{i}")
     else:
         if len(names) != len(arrs):
             raise AssertionError("arrays and names must have the same length")

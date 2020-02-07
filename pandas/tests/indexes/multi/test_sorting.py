@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import pytest
 
@@ -9,8 +11,6 @@ import pandas._testing as tm
 
 
 def test_sortlevel(idx):
-    import random
-
     tuples = list(idx)
     random.shuffle(tuples)
 
@@ -64,11 +64,6 @@ def test_sortlevel_deterministic():
 
     sorted_idx, _ = index.sortlevel(1, ascending=False)
     assert sorted_idx.equals(expected[::-1])
-
-
-def test_sort(indices):
-    with pytest.raises(TypeError):
-        indices.sort()
 
 
 def test_numpy_argsort(idx):

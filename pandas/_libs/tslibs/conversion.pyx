@@ -29,7 +29,7 @@ from pandas._libs.tslibs.util cimport (
 from pandas._libs.tslibs.timedeltas cimport cast_from_unit
 from pandas._libs.tslibs.timezones cimport (
     is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    get_timezone, maybe_get_tz, tz_compare, treat_tz_as_dateutil)
+    get_timezone, maybe_get_tz, tz_compare)
 from pandas._libs.tslibs.timezones import UTC
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
@@ -223,27 +223,6 @@ cdef class _TSObject:
         return self.value
 
 
-cpdef int64_t pydt_to_i8(object pydt) except? -1:
-    """
-    Convert to int64 representation compatible with numpy datetime64; converts
-    to UTC
-
-    Parameters
-    ----------
-    pydt : object
-
-    Returns
-    -------
-    i8value : np.int64
-    """
-    cdef:
-        _TSObject ts
-
-    ts = convert_to_tsobject(pydt, None, None, 0, 0)
-
-    return ts.value
-
-
 cdef convert_to_tsobject(object ts, object tz, object unit,
                          bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
@@ -362,14 +341,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
             obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
-        # GH 24329 When datetime is ambiguous,
-        # pydatetime_to_dt64 doesn't take DST into account
-        # but with dateutil timezone, get_utcoffset does
-        # so we need to correct for it
-        if treat_tz_as_dateutil(ts.tzinfo):
-            if ts.tzinfo.is_ambiguous(ts):
-                dst_offset = ts.tzinfo.dst(ts)
-                obj.value += int(dst_offset.total_seconds() * 1e9)
         obj.tzinfo = ts.tzinfo
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):

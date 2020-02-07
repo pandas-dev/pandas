@@ -31,7 +31,7 @@ Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights
 reserved.
 
 Numeric decoder derived from from TCL library
-http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
+https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1988-1993 The Regents of the University of California.
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
@@ -126,7 +126,6 @@ typedef struct __PyObjectEncoder {
     // pass-through to encode numpy data directly
     int npyType;
     void *npyValue;
-    TypeContext basicTypeContext;
 
     int datetimeIso;
     NPY_DATETIMEUNIT datetimeUnit;
@@ -175,6 +174,8 @@ void *initObjToJSON(void) {
 
     /* Initialise numpy API */
     import_array();
+    // GH 31463
+    return NULL;
 }
 
 static TypeContext *createTypeContext(void) {
@@ -929,15 +930,15 @@ char *Tuple_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
 }
 
 //=============================================================================
-// Iterator iteration functions
+// Set iteration functions
 // itemValue is borrowed reference, no ref counting
 //=============================================================================
-void Iter_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void Set_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     GET_TC(tc)->itemValue = NULL;
     GET_TC(tc)->iterator = PyObject_GetIter(obj);
 }
 
-int Iter_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+int Set_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObject *item;
 
     if (GET_TC(tc)->itemValue) {
@@ -955,7 +956,7 @@ int Iter_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return 1;
 }
 
-void Iter_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+void Set_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     if (GET_TC(tc)->itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);
         GET_TC(tc)->itemValue = NULL;
@@ -967,11 +968,11 @@ void Iter_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     }
 }
 
-JSOBJ Iter_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+JSOBJ Set_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *Iter_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
+char *Set_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
                        size_t *Py_UNUSED(outLen)) {
     return NULL;
 }
@@ -2030,11 +2031,11 @@ ISITERABLE:
     } else if (PyAnySet_Check(obj)) {
         PRINTMARK();
         tc->type = JT_ARRAY;
-        pc->iterBegin = Iter_iterBegin;
-        pc->iterEnd = Iter_iterEnd;
-        pc->iterNext = Iter_iterNext;
-        pc->iterGetValue = Iter_iterGetValue;
-        pc->iterGetName = Iter_iterGetName;
+        pc->iterBegin = Set_iterBegin;
+        pc->iterEnd = Set_iterEnd;
+        pc->iterNext = Set_iterNext;
+        pc->iterGetValue = Set_iterGetValue;
+        pc->iterGetName = Set_iterGetName;
         return;
     }
 
@@ -2105,10 +2106,7 @@ void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 
         PyObject_Free(GET_TC(tc)->cStr);
         GET_TC(tc)->cStr = NULL;
-        if (tc->prv !=
-            &(((PyObjectEncoder *)tc->encoder)->basicTypeContext)) { // NOLINT
-            PyObject_Free(tc->prv);
-        }
+        PyObject_Free(tc->prv);
         tc->prv = NULL;
     }
 }
@@ -2206,16 +2204,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     pyEncoder.datetimeUnit = NPY_FR_ms;
     pyEncoder.outputFormat = COLUMNS;
     pyEncoder.defaultHandler = 0;
-    pyEncoder.basicTypeContext.newObj = NULL;
-    pyEncoder.basicTypeContext.dictObj = NULL;
-    pyEncoder.basicTypeContext.itemValue = NULL;
-    pyEncoder.basicTypeContext.itemName = NULL;
-    pyEncoder.basicTypeContext.attrList = NULL;
-    pyEncoder.basicTypeContext.iterator = NULL;
-    pyEncoder.basicTypeContext.cStr = NULL;
-    pyEncoder.basicTypeContext.npyarr = NULL;
-    pyEncoder.basicTypeContext.rowLabels = NULL;
-    pyEncoder.basicTypeContext.columnLabels = NULL;
 
     PRINTMARK();
 

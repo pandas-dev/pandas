@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -47,39 +48,6 @@ def test_fancy_setitem():
     assert s[48] == -2
     s["1/2/2009":"2009-06-05"] = -3
     assert (s[48:54] == -3).all()
-
-
-@pytest.mark.filterwarnings("ignore::DeprecationWarning")
-@pytest.mark.parametrize("tz", [None, "Asia/Shanghai", "Europe/Berlin"])
-@pytest.mark.parametrize("name", [None, "my_dti"])
-def test_dti_snap(name, tz):
-    dti = DatetimeIndex(
-        [
-            "1/1/2002",
-            "1/2/2002",
-            "1/3/2002",
-            "1/4/2002",
-            "1/5/2002",
-            "1/6/2002",
-            "1/7/2002",
-        ],
-        name=name,
-        tz=tz,
-        freq="D",
-    )
-
-    result = dti.snap(freq="W-MON")
-    expected = date_range("12/31/2001", "1/7/2002", name=name, tz=tz, freq="w-mon")
-    expected = expected.repeat([3, 4])
-    tm.assert_index_equal(result, expected)
-    assert result.tz == expected.tz
-
-    result = dti.snap(freq="B")
-
-    expected = date_range("1/1/2002", "1/7/2002", name=name, tz=tz, freq="b")
-    expected = expected.repeat([1, 1, 1, 2, 2])
-    tm.assert_index_equal(result, expected)
-    assert result.tz == expected.tz
 
 
 def test_dti_reset_index_round_trip():
@@ -180,7 +148,6 @@ def test_frame_datetime64_duplicated():
 
 def test_getitem_setitem_datetime_tz_pytz():
     from pytz import timezone as tz
-    from pandas import date_range
 
     N = 50
     # testing with timezone, GH #2785
@@ -220,8 +187,6 @@ def test_getitem_setitem_datetime_tz_dateutil():
     tz = (
         lambda x: tzutc() if x == "UTC" else gettz(x)
     )  # handle special case for utc in dateutil
-
-    from pandas import date_range
 
     N = 50
 
@@ -405,7 +370,6 @@ def test_getitem_median_slice_bug():
 
 
 def test_datetime_indexing():
-    from pandas import date_range
 
     index = date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)
@@ -413,7 +377,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     stamp = Timestamp("1/8/2000")
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=re.escape(repr(stamp))):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -422,7 +386,7 @@ def test_datetime_indexing():
     s = Series(len(index), index=index)
     s = s[::-1]
 
-    with pytest.raises(KeyError, match=r"^947289600000000000$"):
+    with pytest.raises(KeyError, match=re.escape(repr(stamp))):
         s[stamp]
     s[stamp] = 0
     assert s[stamp] == 0
@@ -528,8 +492,9 @@ def test_duplicate_dates_indexing(dups):
         expected = Series(np.where(mask, 0, ts), index=ts.index)
         tm.assert_series_equal(cp, expected)
 
-    with pytest.raises(KeyError, match=r"^947116800000000000$"):
-        ts[datetime(2000, 1, 6)]
+    key = datetime(2000, 1, 6)
+    with pytest.raises(KeyError, match=re.escape(repr(key))):
+        ts[key]
 
     # new index
     ts[datetime(2000, 1, 6)] = 0
@@ -749,16 +714,6 @@ def test_nat_operations():
     assert s.median() == exp
     assert s.min() == exp
     assert s.max() == exp
-
-
-@pytest.mark.parametrize("method", ["round", "floor", "ceil"])
-@pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
-def test_round_nat(method, freq):
-    # GH14940
-    s = Series([pd.NaT])
-    expected = Series(pd.NaT)
-    round_method = getattr(s.dt, method)
-    tm.assert_series_equal(round_method(freq), expected)
 
 
 def test_setitem_tuple_with_datetimetz():
