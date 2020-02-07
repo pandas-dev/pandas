@@ -1061,17 +1061,21 @@ def test_value_counts_na():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("bins", [3, [0, 5, 15]])
-@pytest.mark.parametrize("right", [True, False])
-@pytest.mark.parametrize("include_lowest", [True, False])
-def test_cut(bins, right, include_lowest):
-    a = np.random.randint(0, 10, size=50).astype(object)
-    a[::2] = np.nan
-    result = pd.cut(
-        pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
-    )
-    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)
-    tm.assert_categorical_equal(result, expected)
+def test_array_setitem_nullable_boolean_mask():
+    # GH 31446
+    ser = pd.Series([1, 2], dtype="Int64")
+    result = ser.where(ser > 1)
+    expected = pd.Series([pd.NA, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_array_setitem():
+    # GH 31446
+    arr = pd.Series([1, 2], dtype="Int64").array
+    arr[arr > 1] = 1
+
+    expected = pd.array([1, 1], dtype="Int64")
+    tm.assert_extension_array_equal(arr, expected)
 
 
 # TODO(jreback) - these need testing / are broken

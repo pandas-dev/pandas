@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import TYPE_CHECKING, Any, List
 import warnings
 
 import numpy as np
@@ -7,7 +7,6 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
-from pandas._typing import AnyArrayLike
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -29,7 +28,9 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
@@ -158,17 +159,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     """
 
     _typ = "categoricalindex"
-
-    _raw_inherit = {
-        "argsort",
-        "_internal_get_values",
-        "tolist",
-        "codes",
-        "categories",
-        "ordered",
-        "_reverse_indexer",
-        "searchsorted",
-    }
 
     codes: np.ndarray
     categories: Index
@@ -386,12 +376,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
-    def _wrap_setop_result(self, other, result):
-        name = get_op_result_name(self, other)
-        # We use _shallow_copy rather than the Index implementation
-        #  (which uses _constructor) in order to preserve dtype.
-        return self._shallow_copy(result, name=name)
-
     @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         # if key is a NaN, check if any NaN is in self.
@@ -455,53 +439,19 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """ convert to object if we are a categorical """
         return self.astype("object")
 
-    def get_loc(self, key, method=None):
-        """
-        Get integer location, slice or boolean mask for requested label.
-
-        Parameters
-        ----------
-        key : label
-        method : {None}
-            * default: exact matches only.
-
-        Returns
-        -------
-        loc : int if unique index, slice if monotonic index, else mask
-
-        Raises
-        ------
-        KeyError : if the key is not in the index
-
-        Examples
-        --------
-        >>> unique_index = pd.CategoricalIndex(list('abc'))
-        >>> unique_index.get_loc('b')
-        1
-
-        >>> monotonic_index = pd.CategoricalIndex(list('abbc'))
-        >>> monotonic_index.get_loc('b')
-        slice(1, 3, None)
-
-        >>> non_monotonic_index = pd.CategoricalIndex(list('abcb'))
-        >>> non_monotonic_index.get_loc('b')
-        array([False,  True, False,  True], dtype=bool)
-        """
+    def _maybe_cast_indexer(self, key):
         code = self.categories.get_loc(key)
         code = self.codes.dtype.type(code)
-        try:
-            return self._engine.get_loc(code)
-        except KeyError:
-            raise KeyError(key)
+        return code
 
-    def get_value(self, series: AnyArrayLike, key: Any):
+    def get_value(self, series: "Series", key: Any):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
 
         Parameters
         ----------
-        series : Series, ExtensionArray, Index, or ndarray
+        series : Series
             1-dimensional array to take values from
         key: : scalar
             The value of this index at the position of the desired value,
@@ -521,7 +471,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             pass
 
         # we might be a positional inexer
-        return super().get_value(series, key)
+        return Index.get_value(self, series, key)
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
@@ -683,12 +633,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr, kind=None):
+    def _convert_list_indexer(self, keyarr):
         # Return our indexer or raise if all of the values are not included in
         # the categories
 
         if self.categories._defer_to_indexing:
-            indexer = self.categories._convert_list_indexer(keyarr, kind=kind)
+            indexer = self.categories._convert_list_indexer(keyarr)
             return Index(self.codes).get_indexer_for(indexer)
 
         indexer = self.categories.get_indexer(np.asarray(keyarr))
@@ -852,18 +802,13 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _delegate_property_get(self, name: str, *args, **kwargs):
-        """ method delegation to the ._values """
-        prop = getattr(self._values, name)
-        return prop  # no wrapping for now
-
     def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """
         method = getattr(self._values, name)
         if "inplace" in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")
         res = method(*args, **kwargs)
-        if is_scalar(res) or name in self._raw_inherit:
+        if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
 

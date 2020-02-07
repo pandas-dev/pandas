@@ -80,7 +80,16 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
+    [
+        "__iter__",
+        "mean",
+        "freq",
+        "freqstr",
+        "_ndarray_values",
+        "asi8",
+        "_box_values",
+        "_box_func",
+    ],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -191,7 +200,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             arr = type(self._data)._simple_new(
                 sorted_values, dtype=self.dtype, freq=freq
             )
-            return self._simple_new(arr, name=self.name)
+            return type(self)._simple_new(arr, name=self.name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -374,6 +383,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return attrs
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
     def _convert_scalar_indexer(self, key, kind=None):
         """
@@ -388,17 +398,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         assert kind in ["loc", "getitem", "iloc", None]
 
+        if not is_scalar(key):
+            raise TypeError(key)
+
         # we don't allow integer/float indexing for loc
-        # we don't allow float indexing for ix/getitem
-        if is_scalar(key):
-            is_int = is_integer(key)
-            is_flt = is_float(key)
-            if kind in ["loc"] and (is_int or is_flt):
-                self._invalid_indexer("index", key)
-            elif kind in ["getitem"] and is_flt:
-                self._invalid_indexer("index", key)
+        # we don't allow float indexing for getitem
+        is_int = is_integer(key)
+        is_flt = is_float(key)
+        if kind == "loc" and (is_int or is_flt):
+            self._invalid_indexer("index", key)
+        elif kind == "getitem" and is_flt:
+            self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
     __radd__ = make_wrapped_arith_op("__radd__")
@@ -514,7 +528,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             if is_diff_evenly_spaced:
                 new_data._freq = self.freq
 
-        return self._simple_new(new_data, name=name)
+        return type(self)._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -617,7 +631,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                     del attributes["freq"]
 
         attributes.update(kwargs)
-        return self._simple_new(values, **attributes)
+        return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -789,11 +803,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if this._can_fast_union(other):
             return this._fast_union(other, sort=sort)
         else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, type(self)):
-                assert result._data.dtype == this.dtype
-                if result.freq is None:
-                    result._set_freq("infer")
+            i8self = Int64Index._simple_new(self.asi8, name=self.name)
+            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8result = i8self._union(i8other, sort=sort)
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------
@@ -875,7 +888,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             kwargs = {}
             if hasattr(self, "tz"):
                 kwargs["tz"] = getattr(other, "tz", None)
-            return self._simple_new(joined, name, **kwargs)
+            return type(self)._simple_new(joined, name, **kwargs)
 
     # --------------------------------------------------------------------
     # List-Like Methods

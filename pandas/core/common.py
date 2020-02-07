@@ -72,8 +72,12 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box_datetimelike(value):
+def maybe_box_datetimelike(value, dtype=None):
     # turn a datetime like into a Timestamp/timedelta as needed
+    if dtype == object:
+        # If we dont have datetime64/timedelta64 dtype, we dont want to
+        #  box datetimelike scalars
+        return value
 
     if isinstance(value, (np.datetime64, datetime)):
         value = tslibs.Timestamp(value)
@@ -156,7 +160,7 @@ def cast_scalar_indexer(val):
     outval : scalar
     """
     # assumes lib.is_scalar(val)
-    if lib.is_float(val) and val == int(val):
+    if lib.is_float(val) and val.is_integer():
         return int(val)
     return val
 
