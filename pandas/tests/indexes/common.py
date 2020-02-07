@@ -167,6 +167,10 @@ class Base:
     def test_numeric_compat(self):
 
         idx = self.create_index()
+        # Check that this doesn't cover MultiIndex case, if/when it does,
+        #  we can remove multi.test_compat.test_numeric_compat
+        assert not isinstance(idx, MultiIndex)
+
         with pytest.raises(TypeError, match="cannot perform __mul__"):
             idx * 1
         with pytest.raises(TypeError, match="cannot perform __rmul__"):

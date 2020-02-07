@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import pytest
 
@@ -9,8 +11,6 @@ import pandas._testing as tm
 
 
 def test_sortlevel(idx):
-    import random
-
     tuples = list(idx)
     random.shuffle(tuples)
 
