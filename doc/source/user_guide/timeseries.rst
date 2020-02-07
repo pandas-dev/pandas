@@ -1325,15 +1325,22 @@ or backwards.
    pd.Timestamp('2014-01-31') - pd.offsets.MonthBegin(n=4)
 
 For the case when ``n=0``, the date is not moved if on an anchor point, otherwise
-it is rolled forward to the next anchor point.
+it is rolled forward to the next anchor point. However, note that this will
+currently raise a ``FutureWarning`` and will be removed in a future version.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.Timestamp('2014-01-02') + pd.offsets.MonthBegin(n=0)
-   pd.Timestamp('2014-01-02') + pd.offsets.MonthEnd(n=0)
+    In [248]: pd.Timestamp('2014-01-02') + pd.offsets.MonthBegin(n=0)
+    Out[248]: Timestamp('2014-02-01 00:00:00')
 
-   pd.Timestamp('2014-01-01') + pd.offsets.MonthBegin(n=0)
-   pd.Timestamp('2014-01-31') + pd.offsets.MonthEnd(n=0)
+    In [249]: pd.Timestamp('2014-01-02') + pd.offsets.MonthEnd(n=0)
+    Out[249]: Timestamp('2014-01-31 00:00:00')
+
+    In [250]: pd.Timestamp('2014-01-01') + pd.offsets.MonthBegin(n=0)
+    Out[250]: Timestamp('2014-01-01 00:00:00')
+
+    In [251]: pd.Timestamp('2014-01-31') + pd.offsets.MonthEnd(n=0)
+    Out[251]: Timestamp('2014-01-31 00:00:00')
 
 .. _timeseries.holiday:
 
