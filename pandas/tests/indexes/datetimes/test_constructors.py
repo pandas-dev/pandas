@@ -924,6 +924,7 @@ class TestTimeSeries:
         edate = datetime(2000, 1, 1)
         idx = date_range(start=sdate, freq="1B", periods=20)
         assert len(idx) == 20
+        assert idx[0] == sdate + offsets.BDay()
         assert idx.freq == "B"
 
         idx = date_range(end=edate, freq=("D", 5), periods=20)
