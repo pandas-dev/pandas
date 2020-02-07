@@ -2212,7 +2212,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ... )
 
         >>> df.to_json(orient='split')
-        '{"columns":["col 1","col 2"],"index":["row 1","row 2"],"data":[["a","b"],["c","d"]]}'
+        '{"columns":["col 1","col 2"],\
+"index":["row 1","row 2"],\
+"data":[["a","b"],["c","d"]]}'
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
@@ -2238,7 +2240,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Encoding with Table Schema
 
         >>> df.to_json(orient='table')
-        '{"schema":{"fields":[{"name":"index","type":"string"},{"name":"col 1","type":"string"},{"name":"col 2","type":"string"}],"primaryKey":["index"],"pandas_version":"0.20.0"},"data":[{"index":"row 1","col 1":"a","col 2":"b"},{"index":"row 2","col 1":"c","col 2":"d"}]}'
+        '{"schema":{"fields":[{"name":"index","type":"string"},\
+{"name":"col 1","type":"string"},{"name":"col 2","type":"string"}],\
+"primaryKey":["index"],"pandas_version":"0.20.0"},\
+"data":[{"index":"row 1","col 1":"a","col 2":"b"},\
+{"index":"row 2","col 1":"c","col 2":"d"}]}'
         """
         from pandas.io import json
 
