@@ -154,10 +154,14 @@ bar2,12,13,14,15
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
         msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}.?, error: .*"
-
+        msg9 = (
+            # Encountered in feather 2020-02-07
+            fr"\[Errno 2\] Failed to open local file '.*does_not_exist\.{fn_ext}'. "
+            r"Detail: \[errno 2] 没有那个文件或目录"
+        )
         with pytest.raises(
             error_class,
-            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8})",
+            match=fr"({msg1}|{msg2}|{msg3}|{msg4}|{msg5}|{msg6}|{msg7}|{msg8}|{msg9})",
         ):
             reader(path)
 
