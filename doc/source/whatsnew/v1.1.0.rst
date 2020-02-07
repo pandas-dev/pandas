@@ -52,7 +52,7 @@ For example:
 
 .. ipython:: python
 
-	ts = Timestamp("2019-10-27 01:30:00", fold=1)
+	ts = Timestamp("2019-10-27 01:30:00", fold=1, tz="Europe/London")
 	ts
 
 .. _whatsnew_110.enhancements.other:
