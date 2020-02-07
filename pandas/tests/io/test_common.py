@@ -157,7 +157,7 @@ bar2,12,13,14,15
         msg9 = (
             # Encountered in feather 2020-02-07
             fr"\[Errno 2\] Failed to open local file '.*does_not_exist\.{fn_ext}'. "
-            r"Detail: \[errno 2] 没有那个文件或目录"
+            r"Detail: \[errno 2\] 没有那个文件或目录"
         )
         with pytest.raises(
             error_class,
