@@ -442,15 +442,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         if self.is_monotonic:
 
-            # we are out of range
             if len(self) and (
                 (use_lhs and t1 < self[0] and t2 < self[0])
                 or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
             ):
+                # we are out of range
                 raise KeyError
 
             # TODO: does this depend on being monotonic _increasing_?
-            #  If so, DTI will also be affected.
 
             # a monotonic (sorted) series can be sliced
             # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
@@ -462,7 +461,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
             rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
 
-            # try to find a the dates
+            # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
 
     # --------------------------------------------------------------------
