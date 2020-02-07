@@ -140,8 +140,8 @@ class TestScalar2:
         assert result == 1
 
         msg = (
-            "cannot do label indexing on <class 'pandas.core.indexes.base.Index'> "
-            r"with these indexers \[0\] of <class 'int'>"
+            "cannot do label indexing on Index "
+            r"with these indexers \[0\] of type int"
         )
         with pytest.raises(TypeError, match=msg):
             ser.at[0]
@@ -157,8 +157,8 @@ class TestScalar2:
         assert result == 1
 
         msg = (
-            "cannot do label indexing on <class 'pandas.core.indexes.base.Index'> "
-            r"with these indexers \[0\] of <class 'int'>"
+            "cannot do label indexing on Index "
+            r"with these indexers \[0\] of type int"
         )
         with pytest.raises(TypeError, match=msg):
             df.at["a", 0]

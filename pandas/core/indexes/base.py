@@ -3158,9 +3158,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         # validate iloc
         if kind == "iloc":
-            self._validate_indexer("slice", key.start, "iloc")
-            self._validate_indexer("slice", key.stop, "iloc")
-            self._validate_indexer("slice", key.step, "iloc")
+            self._validate_indexer("positional", key.start, "iloc")
+            self._validate_indexer("positional", key.stop, "iloc")
+            self._validate_indexer("positional", key.step, "iloc")
             return key
 
         # potentially cast the bounds to integers
@@ -3285,8 +3285,8 @@ class Index(IndexOpsMixin, PandasObject):
         Consistent invalid indexer message.
         """
         raise TypeError(
-            f"cannot do {form} indexing on {type(self)} with these "
-            f"indexers [{key}] of {type(key)}"
+            f"cannot do {form} indexing on {type(self).__name__} with these "
+            f"indexers [{key}] of type {type(key).__name__}"
         )
 
     # --------------------------------------------------------------------
