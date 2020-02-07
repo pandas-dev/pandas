@@ -1,5 +1,6 @@
 from textwrap import dedent
 
+import pytest
 import numpy as np
 
 from pandas.util._test_decorators import async_mark
@@ -297,6 +298,7 @@ def test_median_duplicate_columns():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(reason="marked as xfail for: #26564")
 def test_same_grouper_on_different_frames():
 
     df1 = pd.DataFrame(
