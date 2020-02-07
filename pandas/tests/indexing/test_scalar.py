@@ -9,7 +9,6 @@ from pandas.tests.indexing.common import Base
 
 
 class TestScalar(Base):
-
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_at_and_iat_get(self, kind):
         def _check(f, func, values=False):
