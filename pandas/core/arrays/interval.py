@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndexClass,
     ABCInterval,
     ABCIntervalIndex,
@@ -40,6 +41,7 @@ from pandas.core.arrays.base import ExtensionArray, _extension_array_shared_docs
 from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
@@ -495,6 +497,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self.left)
 
     def __getitem__(self, value):
+        value = check_array_indexer(self, value)
         left = self.left[value]
         right = self.right[value]
 
@@ -539,6 +542,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 msg = f"'value' should be an interval type, got {type(value)} instead."
                 raise TypeError(msg)
 
+        key = check_array_indexer(self, key)
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
@@ -727,11 +731,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Parameters
         ----------
         left : array-like
-            Values to be used for the left-side of the the intervals.
+            Values to be used for the left-side of the intervals.
             If None, the existing left and right values will be used.
 
         right : array-like
-            Values to be used for the right-side of the the intervals.
+            Values to be used for the right-side of the intervals.
             If None and left is IntervalArray-like, the left and right
             of the IntervalArray-like will be used.
 
@@ -785,6 +789,33 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def size(self) -> int:
         # Avoid materializing self.values
         return self.left.size
+
+    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+        if not len(self) or periods == 0:
+            return self.copy()
+
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
+        # ExtensionArray.shift doesn't work for two reasons
+        # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
+        # 2. IntervalArray._from_sequence only accepts NaN for missing values,
+        #    not other values like NaT
+
+        empty_len = min(abs(periods), len(self))
+        if isna(fill_value):
+            fill_value = self.left._na_value
+            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
+        else:
+            empty = self._from_sequence([fill_value] * empty_len)
+
+        if periods > 0:
+            a = empty
+            b = self[:-periods]
+        else:
+            a = self[abs(periods) :]
+            b = empty
+        return self._concat_same_type([a, b])
 
     def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """
