@@ -57,8 +57,6 @@ def test_get_value_duplicates():
     )
 
     assert index.get_loc("D") == slice(0, 3)
-    with pytest.raises(KeyError, match=r"^'D'$"):
-        index._engine.get_value(np.array([]), "D")
 
 
 def test_get_level_values_all_na():
