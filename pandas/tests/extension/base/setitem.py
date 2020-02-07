@@ -116,11 +116,11 @@ class BaseSetitemTests(BaseExtensionTests):
         if box_in_series:
             data = pd.Series(data)
 
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match="wrong length"):
             data[mask] = data[0]
 
         mask = pd.array(mask, dtype="boolean")
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match="wrong length"):
             data[mask] = data[0]
 
     def test_setitem_mask_boolean_array_raises(self, data, box_in_series):
