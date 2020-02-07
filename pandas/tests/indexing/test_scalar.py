@@ -171,7 +171,6 @@ class TestScalar2:
         ser = Series([1, 2, 3], index=[3, 2, 1])
         result = ser.at[1]
         assert result == 3
-
         result = ser.loc[1]
         assert result == 3
 
