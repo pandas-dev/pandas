@@ -1922,10 +1922,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     Parameters
     ----------
-    buf : writable buffer, defaults to sys.stdout
-        Where to send the output. By default, the output is printed to
-        sys.stdout. Pass a writable buffer if you need to further process
-        the output.
+    buf : str, Path or StringIO-like, optional, default None
+        Buffer to write to. If None, the output is returned as a string.
     mode : str, optional
         Mode in which file is opened.
     **kwargs
@@ -3444,15 +3442,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 new_index = self.index[loc]
 
         if is_scalar(loc):
-            new_values = self._data.fast_xs(loc)
+            # In this case loc should be an integer
+            if self.ndim == 1:
+                # if we encounter an array-like and we only have 1 dim
+                # that means that their are list/ndarrays inside the Series!
+                # so just return them (GH 6394)
+                return self._values[loc]
 
-            # may need to box a datelike-scalar
-            #
-            # if we encounter an array-like and we only have 1 dim
-            # that means that their are list/ndarrays inside the Series!
-            # so just return them (GH 6394)
-            if not is_list_like(new_values) or self.ndim == 1:
-                return com.maybe_box_datetimelike(new_values)
+            new_values = self._data.fast_xs(loc)
 
             result = self._constructor_sliced(
                 new_values,
@@ -3501,7 +3498,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(self: FrameOrSeries, slobj: slice, axis=0, kind=None) -> FrameOrSeries:
+    def _slice(
+        self: FrameOrSeries, slobj: slice, axis=0, kind: str = "getitem"
+    ) -> FrameOrSeries:
         """
         Construct a slice of this container.
 
