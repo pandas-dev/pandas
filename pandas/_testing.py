@@ -8,7 +8,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, List, Optional, Union, cast
+from typing import Any, Callable, List, Optional, Type, Union, cast
 import warnings
 import zipfile
 
@@ -2757,3 +2757,24 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     sep = os.linesep
     expected = sep.join(rows_list) + sep
     return expected
+
+
+def external_error_raised(
+    expected_exception: Type[Exception],
+) -> Callable[[Type[Exception], None], None]:
+    """
+    Helper function to mark pytest.raises that have an external error message.
+
+    Parameters
+    ----------
+    expected_exception : Exception
+        Expected error to raise.
+
+    Returns
+    -------
+    Callable
+        Regular `pytest.raises` function with `match` equal to `None`.
+    """
+    import pytest
+
+    return pytest.raises(expected_exception, match=None)
