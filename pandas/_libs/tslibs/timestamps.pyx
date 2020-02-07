@@ -397,10 +397,9 @@ class Timestamp(_Timestamp):
             tz, tzinfo = tzinfo, None
 
         if getattr(ts_input, 'fold', None) is not None:
-            if fold is not None:
-                if ts_input.fold != fold:
-                    raise ValueError("Cannot pass datetime or Timestamp with fold "
-                                     "attribute no matching passed fold argument.")
+            if fold is not None and ts_input.fold != fold:
+                raise ValueError("Cannot pass datetime or Timestamp with fold "
+                                 "attribute no matching passed fold argument.")
             else:
                 fold = ts_input.fold
 
