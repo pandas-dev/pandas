@@ -916,19 +916,10 @@ class TestCustomDateRange:
     )
     def test_all_custom_freq(self, freq):
         # should not raise
-        if freq not in [
-            "W",
-            "LWOM",
-            "REQ",
-            "RE",
-        ]:
-            exp_warning = None
-        else:
-            exp_warning = FutureWarning
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            bdate_range(
-                START, END, freq=freq, weekmask="Mon Wed Fri", holidays=["2009-03-14"],
-            )
+        bdate_range(
+            START, END, freq=freq, weekmask="Mon Wed Fri", holidays=["2009-03-14"]
+        )
+
         bad_freq = freq + "FOO"
         msg = "invalid custom frequency string: {freq}"
         with pytest.raises(ValueError, match=msg.format(freq=bad_freq)):
