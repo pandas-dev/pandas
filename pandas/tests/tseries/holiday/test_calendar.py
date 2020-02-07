@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from pandas import DatetimeIndex, Series, offsets, to_datetime
+from pandas import DatetimeIndex, offsets, to_datetime
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (
