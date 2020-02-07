@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, List
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -28,9 +28,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 import pandas.core.missing as missing
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
