@@ -233,27 +233,27 @@ class TestDatetimeTZDtype(Base):
     def test_construction_from_string(self, dtype):
         result = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         assert is_dtype_equal(dtype, result)
-        msg = "Cannot construct a 'DatetimeTZDtype' from 'foo'"
-        with pytest.raises(TypeError, match=msg):
-            DatetimeTZDtype.construct_from_string("foo")
 
-    def test_construct_from_string_raises(self):
-        with pytest.raises(TypeError, match="notatz"):
-            DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
-
-        msg = "'construct_from_string' expects a string, got <class 'list'>"
-        with pytest.raises(TypeError, match=re.escape(msg)):
-            # list instead of string
-            DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
-
-        msg = "^Cannot construct a 'DatetimeTZDtype'"
-        with pytest.raises(TypeError, match=msg):
+    @pytest.mark.parametrize(
+        "string",
+        [
+            "foo",
+            "datetime64[ns, notatz]",
             # non-nano unit
-            DatetimeTZDtype.construct_from_string("datetime64[ps, UTC]")
-
-        with pytest.raises(TypeError, match=msg):
+            "datetime64[ps, UTC]",
             # dateutil str that returns None from gettz
-            DatetimeTZDtype.construct_from_string("datetime64[ns, dateutil/invalid]")
+            "datetime64[ns, dateutil/invalid]",
+        ],
+    )
+    def test_construct_from_string_invalid_raises(self, string):
+        msg = f"Cannot construct a 'DatetimeTZDtype' from '{string}'"
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            DatetimeTZDtype.construct_from_string(string)
+
+    def test_construct_from_string_wrong_type_raises(self):
+        msg = "'construct_from_string' expects a string, got <class 'list'>"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
 
     def test_is_dtype(self, dtype):
         assert not DatetimeTZDtype.is_dtype(None)

@@ -429,7 +429,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
 @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
 def test_setitem_with_tz(tz):
     orig = pd.Series(pd.date_range("2016-01-01", freq="H", periods=3, tz=tz))
-    assert orig.dtype == "datetime64[ns, {0}]".format(tz)
+    assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
     s = orig.copy()
@@ -456,7 +456,7 @@ def test_setitem_with_tz(tz):
         [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
-    assert vals.dtype == "datetime64[ns, {0}]".format(tz)
+    assert vals.dtype == f"datetime64[ns, {tz}]"
 
     s[[1, 2]] = vals
     exp = pd.Series(
@@ -481,7 +481,7 @@ def test_setitem_with_tz_dst():
     # GH XXX
     tz = "US/Eastern"
     orig = pd.Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
-    assert orig.dtype == "datetime64[ns, {0}]".format(tz)
+    assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
     s = orig.copy()
@@ -508,7 +508,7 @@ def test_setitem_with_tz_dst():
         [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
-    assert vals.dtype == "datetime64[ns, {0}]".format(tz)
+    assert vals.dtype == f"datetime64[ns, {tz}]"
 
     s[[1, 2]] = vals
     exp = pd.Series(
