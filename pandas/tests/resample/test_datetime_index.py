@@ -420,7 +420,10 @@ def test_resample_loffset(loffset):
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(np.random.randn(14), index=rng)
 
-    result = s.resample("5min", closed="right", label="right", loffset=loffset).mean()
+    with tm.assert_produces_warning(FutureWarning):
+        result = s.resample(
+            "5min", closed="right", label="right", loffset=loffset
+        ).mean()
     idx = date_range("1/1/2000", periods=4, freq="5min")
     expected = Series(
         [s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
@@ -436,7 +439,8 @@ def test_resample_loffset(loffset):
     # to weekly
     result = ser.resample("w-sun").last()
     business_day_offset = BDay()
-    expected = ser.resample("w-sun", loffset=-business_day_offset).last()
+    with tm.assert_produces_warning(FutureWarning):
+        expected = ser.resample("w-sun", loffset=-business_day_offset).last()
     assert result.index[0] - business_day_offset == expected.index[0]
 
 
@@ -445,9 +449,10 @@ def test_resample_loffset_upsample():
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(np.random.randn(14), index=rng)
 
-    result = s.resample(
-        "5min", closed="right", label="right", loffset=timedelta(minutes=1)
-    ).ffill()
+    with tm.assert_produces_warning(FutureWarning):
+        result = s.resample(
+            "5min", closed="right", label="right", loffset=timedelta(minutes=1)
+        ).ffill()
     idx = date_range("1/1/2000", periods=4, freq="5min")
     expected = Series([s[0], s[5], s[10], s[-1]], index=idx + timedelta(minutes=1))
 
@@ -460,7 +465,8 @@ def test_resample_loffset_count():
     rng = date_range(start_time, periods=100, freq="S")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    result = ts.resample("10S", loffset="1s").count()
+    with tm.assert_produces_warning(FutureWarning):
+        result = ts.resample("10S", loffset="1s").count()
 
     expected_index = date_range(start_time, periods=10, freq="10S") + timedelta(
         seconds=1
@@ -471,7 +477,8 @@ def test_resample_loffset_count():
 
     # Same issue should apply to .size() since it goes through
     #   same code path
-    result = ts.resample("10S", loffset="1s").size()
+    with tm.assert_produces_warning(FutureWarning):
+        result = ts.resample("10S", loffset="1s").size()
 
     tm.assert_series_equal(result, expected)
 
@@ -795,8 +802,32 @@ def test_resample_base():
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    resampled = ts.resample("5min", base=2).mean()
+    with tm.assert_produces_warning(FutureWarning):
+        resampled = ts.resample("5min", base=2).mean()
     exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+
+def test_resample_offset():
+    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
+    ts = Series(np.random.randn(len(rng)), index=rng)
+
+    resampled = ts.resample("5min", offset="2min").mean()
+    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+
+def test_resample_origin():
+    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
+    ts = Series(np.random.randn(len(rng)), index=rng)
+
+    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
+
+    resampled = ts.resample("5min", origin="12/31/1999 23:57:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    offset_timestamp = pd.Timestamp(0) + pd.Timedelta("2min")
+    resampled = ts.resample("5min", origin=offset_timestamp).mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
@@ -808,7 +839,8 @@ def test_resample_float_base():
     s = Series(np.arange(3), index=dt)
 
     base = 17 + 43.51 / 60
-    result = s.resample("3min", base=base).size()
+    with tm.assert_produces_warnding(FutureWarning):
+        result = s.resample("3min", base=base).size()
     expected = Series(
         3, index=pd.DatetimeIndex(["2018-11-26 16:17:43.51"], freq="3min")
     )
@@ -1588,7 +1620,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k):
 
 
 @pytest.mark.parametrize(
-    "first,last,offset,exp_first,exp_last",
+    "first,last,freq,exp_first,exp_last",
     [
         ("19910905", "19920406", "D", "19910905", "19920407"),
         ("19910905 00:00", "19920406 06:00", "D", "19910905", "19920407"),
@@ -1598,17 +1630,17 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k):
         ("1991-08", "1992-04", "M", "19910831", "19920531"),
     ],
 )
-def test_get_timestamp_range_edges(first, last, offset, exp_first, exp_last):
+def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     first = pd.Period(first)
     first = first.to_timestamp(first.freq)
     last = pd.Period(last)
     last = last.to_timestamp(last.freq)
 
-    exp_first = pd.Timestamp(exp_first, freq=offset)
-    exp_last = pd.Timestamp(exp_last, freq=offset)
+    exp_first = pd.Timestamp(exp_first, freq=freq)
+    exp_last = pd.Timestamp(exp_last, freq=freq)
 
-    offset = pd.tseries.frequencies.to_offset(offset)
-    result = _get_timestamp_range_edges(first, last, offset)
+    freq = pd.tseries.frequencies.to_offset(freq)
+    result = _get_timestamp_range_edges(first, last, freq)
     expected = (exp_first, exp_last)
     assert result == expected
 

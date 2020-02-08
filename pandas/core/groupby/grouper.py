@@ -67,8 +67,31 @@ class Grouper:
         If grouper is PeriodIndex and `freq` parameter is passed.
     base : int, default 0
         Only when `freq` parameter is passed.
+        For frequencies that evenly subdivide 1 day, the "origin" of the
+        aggregated intervals. For example, for '5min' frequency, base could
+        range from 0 through 4. Defaults to 0.
+
+        .. deprecated:: 1.1.0
+            The new arguments that you should use are 'offset' or 'origin'.
+            ``df.resample(freq="3s", base=2)``
+            becomes
+            ``df.resample(freq="3s", offset="2s")``
+
     loffset : str, DateOffset, timedelta object
         Only when `freq` parameter is passed.
+
+        .. deprecated:: 1.1.0
+            loffset is only working for ``.resample(...)`` and not for
+            Grouper (:issue:`28302`).
+            However, loffset is also deprecated for ``.resample(...)``
+            See: :class:`DataFrame.resample`
+
+    origin : Timestamp, default None
+        Only when `freq` parameter is passed.
+        The timestamp on which to adjust the grouping. If None is passed, the
+        first day of the time series at midnight is used.
+    offset : pd.Timedelta, default is None
+        An offset timedelta added to the origin.
 
     Returns
     -------

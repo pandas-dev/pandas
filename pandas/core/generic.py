@@ -7760,9 +7760,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         convention: str = "start",
         kind: Optional[str] = None,
         loffset=None,
-        base: int = 0,
+        base: Optional[int] = None,
         on=None,
         level=None,
+        origin=None,
+        offset=None,
     ) -> "Resampler":
         """
         Resample time-series data.
@@ -7797,17 +7799,35 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             By default the input representation is retained.
         loffset : timedelta, default None
             Adjust the resampled time labels.
+
+            .. deprecated:: 1.1.0
+                You should add the loffset to the `df.index` after the resample.
+                like this:
+                ``df.index = df.index.to_timestamp() + to_offset(loffset)``
+                (a more complete example is present below)
+
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0.
+
+            .. deprecated:: 1.1.0
+                The new arguments that you should use are 'offset' or 'origin'.
+                ``df.resample(freq="3s", base=2)``
+                becomes
+                ``df.resample(freq="3s", offset="2s")``
+
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
-
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
+        origin : pd.Timestamp, default None
+            The timestamp on which to adjust the grouping. If None is passed,
+            the first day of the time series at midnight is used.
+        offset : pd.Timedelta, default is None
+            An offset timedelta added to the origin.
 
         Returns
         -------
@@ -8025,6 +8045,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-02     22     140
         2000-01-03     32     150
         2000-01-04     36      90
+
+        To replace the use of the deprecated loffset argument:
+        >>> from pandas.tseries.frequencies import to_offset
+        >>> rng = pd.date_range("2000-01-01", "2000-01-01", freq="1s")
+        >>> ts = pd.Series(np.arange(len(rng)), index=rng)
+        >>> s = s.resample("3s").mean()
+        >>> s.index = s.index.to_timestamp() + to_offset("8H")
         """
         from pandas.core.resample import get_resampler
 
@@ -8041,6 +8068,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             base=base,
             key=on,
             level=level,
+            origin=origin,
+            offset=offset,
         )
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:

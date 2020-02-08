@@ -152,6 +152,55 @@ For example:
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
 
+.. _whatsnew_110.grouper_resample_origin:
+
+Grouper and resample now supports the arguments origin and offset
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Grouper` and :class:`DataFrame.resample` now supports the argument `origin`. The timestamp on which to adjust the grouping. (:issue:`31809`)
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
+
+For example:
+
+.. ipython:: python
+
+    start, end = "1/10/2000 02:00:00", "1/20/2000 02:00"
+    middle = "1/15/2000 02:00"
+    rng = pd.date_range(start, end, freq="1231min")
+    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    ts
+    ts.resample("2711min").sum()
+    ts.resample("2711min", origin="1970-01-01").sum()
+
+For a full example, see: :ref:`timeseries.adjust-the-start-of-the-bins`.
+
+If needed you can just adjust the bins with an offset that would be added to the default ``origin``.
+Those two examples are equivalent for this time series:
+
+.. ipython:: python
+
+    ts.resample("2711min", origin="1/10/2000 02:00:00").sum()
+    ts.resample("2711min", offset="2h").sum()
+
+The argument ``base`` is now deprecated in favor of ``offset``. (:issue:`31809`)
+
+.. ipython:: python
+
+    # ts.resample("2711min", base=2).sum()
+    #   becomes:
+    ts.resample("2711min", offset="2min").sum()
+
+The argument ``loffset`` is now deprecated. (:issue:`31809`)
+
+.. ipython:: python
+
+    from pandas.tseries.frequencies import to_offset
+    loffset = "8H"
+    ts_out = ts.resample("2711min").sum()
+    ts_out.index = ts_out.index + to_offset(loffset)
+    ts_out
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements

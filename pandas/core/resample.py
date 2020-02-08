@@ -2,11 +2,12 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import Dict, no_type_check
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, Period, Timestamp
+from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
 from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.compat.numpy import function as nv
@@ -68,6 +69,8 @@ class Resampler(_GroupBy, ShallowMixin):
         "loffset",
         "base",
         "kind",
+        "origin",
+        "offset",
     ]
 
     def __init__(self, obj, groupby=None, axis=0, kind=None, **kwargs):
@@ -1257,7 +1260,7 @@ def get_resampler(obj, kind=None, **kwds):
     """
     Create a TimeGrouper and return our resampler.
     """
-    tg = TimeGrouper(**kwds)
+    tg = TimeGrouper(**kwds, _warning_stack_level=2)
     return tg._get_resampler(obj, kind=kind)
 
 
@@ -1299,6 +1302,8 @@ class TimeGrouper(Grouper):
         "kind",
         "convention",
         "base",
+        "origin",
+        "offset",
     )
 
     def __init__(
@@ -1313,7 +1318,10 @@ class TimeGrouper(Grouper):
         loffset=None,
         kind=None,
         convention=None,
-        base=0,
+        base=None,
+        origin=None,
+        offset=None,
+        _warning_stack_level=0,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1347,19 +1355,50 @@ class TimeGrouper(Grouper):
         self.convention = convention or "E"
         self.convention = self.convention.lower()
 
-        if isinstance(loffset, str):
-            loffset = to_offset(loffset)
-        self.loffset = loffset
-
         self.how = how
         self.fill_method = fill_method
         self.limit = limit
-        self.base = base
+
+        self.origin = Timestamp(origin) if origin is not None else None
+        self.offset = Timedelta(offset) if offset is not None else None
 
         # always sort time groupers
         kwargs["sort"] = True
 
+        self._warn_if_loffset_or_base_is_used(base, loffset, _warning_stack_level)
+        if isinstance(loffset, str):
+            loffset = to_offset(loffset)
+        self.loffset = loffset
+        self.base = base if base else 0
+
         super().__init__(freq=freq, axis=axis, **kwargs)
+
+    @staticmethod
+    def _warn_if_loffset_or_base_is_used(base, loffset, _warning_stack_level):
+        if base is not None:
+            warnings.warn(
+                "'base' in .resample() and in Grouper() is deprecated.\n"
+                "The new arguments that you should use "
+                "are 'offset' or 'origin'.\n\n"
+                '>>> df.resample(freq="3s", base=2)\n'
+                "\nbecomes:\n\n"
+                '>>> df.resample(freq="3s", offset="2s")\n',
+                FutureWarning,
+                stacklevel=3 + _warning_stack_level,
+            )
+
+        if loffset is not None:
+            warnings.warn(
+                "'loffset' in .resample() and in Grouper() is deprecated.\n"
+                "Here an example to have the same behavior than loffset:\n\n"
+                '>>> df.resample(freq="3s", loffset="8H")\n'
+                "\nbecomes:\n\n"
+                ">>> from pandas.tseries.frequencies import to_offset\n"
+                '>>> df = df.resample(freq="3s").mean()\n'
+                '>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
+                FutureWarning,
+                stacklevel=3 + _warning_stack_level,
+            )
 
     def _get_resampler(self, obj, kind=None):
         """
@@ -1414,7 +1453,13 @@ class TimeGrouper(Grouper):
             return binner, [], labels
 
         first, last = _get_timestamp_range_edges(
-            ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+            ax.min(),
+            ax.max(),
+            self.freq,
+            closed=self.closed,
+            base=self.base,
+            origin=self.origin,
+            offset=self.offset,
         )
         # GH #12037
         # use first/last directly instead of call replace() on them
@@ -1506,6 +1551,9 @@ class TimeGrouper(Grouper):
             # GH #33498
             labels += self.loffset
 
+        if self.offset:
+            labels += self.offset
+
         return binner, bins, labels
 
     def _get_time_period_bins(self, ax):
@@ -1556,11 +1604,17 @@ class TimeGrouper(Grouper):
         end = ax.max().asfreq(self.freq, how="end")
         bin_shift = 0
 
-        # GH 23882
-        if self.base:
+        # GH 23882 & 31809
+        if self.origin is not None or self.offset is not None or self.base:
             # get base adjusted bin edge labels
             p_start, end = _get_period_range_edges(
-                start, end, self.freq, closed=self.closed, base=self.base
+                start,
+                end,
+                self.freq,
+                closed=self.closed,
+                base=self.base,
+                origin=self.origin,
+                offset=self.offset,
             )
 
             # Get offset for bin edge (not label edge) adjustment
@@ -1612,7 +1666,9 @@ def _take_new_index(obj, indexer, new_index, axis=0):
         raise ValueError("'obj' should be either a Series or a DataFrame")
 
 
-def _get_timestamp_range_edges(first, last, offset, closed="left", base=0):
+def _get_timestamp_range_edges(
+    first, last, freq, closed="left", base=0, origin=None, offset=None
+):
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
     the provided offset. Adjust the `last` Timestamp to the following
@@ -1626,19 +1682,24 @@ def _get_timestamp_range_edges(first, last, offset, closed="left", base=0):
         The beginning Timestamp of the range to be adjusted.
     last : pd.Timestamp
         The ending Timestamp of the range to be adjusted.
-    offset : pd.DateOffset
+    freq : pd.DateOffset
         The dateoffset to which the Timestamps will be adjusted.
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
     base : int, default 0
         The "origin" of the adjusted Timestamps.
+    origin : pd.Timestamp, default None
+        The timestamp on which to adjust the grouping. If None is passed, the
+        first day of the time series at midnight is used.
+    offset : pd.Timedelta, default is None
+        An offset timedelta added to the origin.
 
     Returns
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(offset, Tick):
-        if isinstance(offset, Day):
+    if isinstance(freq, Tick):
+        if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
             # So "pretend" the dates are naive when adjusting the endpoints
@@ -1647,9 +1708,9 @@ def _get_timestamp_range_edges(first, last, offset, closed="left", base=0):
             last = last.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, offset, closed=closed, base=base
+            first, last, freq, closed=closed, base=base, origin=origin, offset=offset,
         )
-        if isinstance(offset, Day):
+        if isinstance(freq, Day):
             first = first.tz_localize(tz)
             last = last.tz_localize(tz)
         return first, last
@@ -1659,16 +1720,18 @@ def _get_timestamp_range_edges(first, last, offset, closed="left", base=0):
         last = last.normalize()
 
     if closed == "left":
-        first = Timestamp(offset.rollback(first))
+        first = Timestamp(freq.rollback(first))
     else:
-        first = Timestamp(first - offset)
+        first = Timestamp(first - freq)
 
-    last = Timestamp(last + offset)
+    last = Timestamp(last + freq)
 
     return first, last
 
 
-def _get_period_range_edges(first, last, offset, closed="left", base=0):
+def _get_period_range_edges(
+    first, last, freq, closed="left", base=0, origin=None, offset=None
+):
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
     the given offset that encompasses them.
@@ -1679,12 +1742,17 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
         The beginning Period of the range to be adjusted.
     last : pd.Period
         The ending Period of the range to be adjusted.
-    offset : pd.DateOffset
-        The dateoffset to which the Periods will be adjusted.
+    freq : pd.DateOffset
+        The freq to which the Periods will be adjusted.
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
     base : int, default 0
         The "origin" of the adjusted Periods.
+    origin : pd.Timestamp, default None
+        The timestamp on which to adjust the grouping. If None is passed, the
+        first day of the time series at midnight is used.
+    offset : pd.Timedelta, default is None
+        An offset timedelta added to the origin.
 
     Returns
     -------
@@ -1693,55 +1761,61 @@ def _get_period_range_edges(first, last, offset, closed="left", base=0):
     if not all(isinstance(obj, Period) for obj in [first, last]):
         raise TypeError("'first' and 'last' must be instances of type Period")
 
-    # GH 23882
+    # GH 23882 & 31809
     first = first.to_timestamp()
     last = last.to_timestamp()
-    adjust_first = not offset.is_on_offset(first)
-    adjust_last = offset.is_on_offset(last)
+    adjust_first = not freq.is_on_offset(first)
+    adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, offset, closed=closed, base=base
+        first, last, freq, closed=closed, base=base, origin=origin, offset=offset,
     )
 
-    first = (first + int(adjust_first) * offset).to_period(offset)
-    last = (last - int(adjust_last) * offset).to_period(offset)
+    first = (first + int(adjust_first) * freq).to_period(freq)
+    last = (last - int(adjust_last) * freq).to_period(freq)
     return first, last
 
 
-def _adjust_dates_anchored(first, last, offset, closed="right", base=0):
+def _adjust_dates_anchored(
+    first, last, freq, closed="right", base=0, origin=None, offset=None
+):
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
-    # not a multiple of the frequency.
-    #
-    # See https://github.com/pandas-dev/pandas/issues/8683
+    # not a multiple of the frequency. See GH 8683
+    # To handle frequencies that are not multiple or divisible by a day we let
+    # the possibility to define a fixed origin timestamp. See GH 31809
+    if origin is None:
+        origin_nanos = first.normalize().value
+    else:
+        origin_nanos = origin.value
+    origin_nanos += offset.value if offset else 0
 
     # GH 10117 & GH 19375. If first and last contain timezone information,
     # Perform the calculation in UTC in order to avoid localizing on an
     # Ambiguous or Nonexistent time.
     first_tzinfo = first.tzinfo
     last_tzinfo = last.tzinfo
-    start_day_nanos = first.normalize().value
     if first_tzinfo is not None:
         first = first.tz_convert("UTC")
     if last_tzinfo is not None:
         last = last.tz_convert("UTC")
 
-    base_nanos = (base % offset.n) * offset.nanos // offset.n
-    start_day_nanos += base_nanos
+    base_nanos = (base % freq.n) * freq.nanos // freq.n
+    origin_nanos += base_nanos
 
-    foffset = (first.value - start_day_nanos) % offset.nanos
-    loffset = (last.value - start_day_nanos) % offset.nanos
+    foffset = (first.value - origin_nanos) % freq.nanos
+    loffset = (last.value - origin_nanos) % freq.nanos
 
     if closed == "right":
         if foffset > 0:
             # roll back
             fresult = first.value - foffset
         else:
-            fresult = first.value - offset.nanos
+            fresult = first.value - freq.nanos
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (offset.nanos - loffset)
+            lresult = last.value + (freq.nanos - loffset)
         else:
             # already the end of the road
             lresult = last.value
@@ -1754,9 +1828,9 @@ def _adjust_dates_anchored(first, last, offset, closed="right", base=0):
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (offset.nanos - loffset)
+            lresult = last.value + (freq.nanos - loffset)
         else:
-            lresult = last.value + offset.nanos
+            lresult = last.value + freq.nanos
     fresult = Timestamp(fresult)
     lresult = Timestamp(lresult)
     if first_tzinfo is not None:

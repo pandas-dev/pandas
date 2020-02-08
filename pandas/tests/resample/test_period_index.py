@@ -735,7 +735,8 @@ class TestPeriodIndex:
         expected_index += timedelta(hours=2)
         expected = DataFrame({"value": expected_means}, index=expected_index)
 
-        result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
+        with tm.assert_produces_warning(FutureWarning):
+            result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
         if isinstance(agg_arg, list):
             expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
         tm.assert_frame_equal(result_agg, expected)
@@ -815,42 +816,86 @@ class TestPeriodIndex:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "start,end,start_freq,end_freq,base",
+        "start,end,start_freq,end_freq,base,offset",
         [
-            ("19910905", "19910909 03:00", "H", "24H", 10),
-            ("19910905", "19910909 12:00", "H", "24H", 10),
-            ("19910905", "19910909 23:00", "H", "24H", 10),
-            ("19910905 10:00", "19910909", "H", "24H", 10),
-            ("19910905 10:00", "19910909 10:00", "H", "24H", 10),
-            ("19910905", "19910909 10:00", "H", "24H", 10),
-            ("19910905 12:00", "19910909", "H", "24H", 10),
-            ("19910905 12:00", "19910909 03:00", "H", "24H", 10),
-            ("19910905 12:00", "19910909 12:00", "H", "24H", 10),
-            ("19910905 12:00", "19910909 12:00", "H", "24H", 34),
-            ("19910905 12:00", "19910909 12:00", "H", "17H", 10),
-            ("19910905 12:00", "19910909 12:00", "H", "17H", 3),
-            ("19910905 12:00", "19910909 1:00", "H", "M", 3),
-            ("19910905", "19910913 06:00", "2H", "24H", 10),
-            ("19910905", "19910905 01:39", "Min", "5Min", 3),
-            ("19910905", "19910905 03:18", "2Min", "5Min", 3),
+            ("19910905", "19910909 03:00", "H", "24H", 10, "10H"),
+            ("19910905", "19910909 12:00", "H", "24H", 10, "10H"),
+            ("19910905", "19910909 23:00", "H", "24H", 10, "10H"),
+            ("19910905 10:00", "19910909", "H", "24H", 10, "10H"),
+            ("19910905 10:00", "19910909 10:00", "H", "24H", 10, "10H"),
+            ("19910905", "19910909 10:00", "H", "24H", 10, "10H"),
+            ("19910905 12:00", "19910909", "H", "24H", 10, "10H"),
+            ("19910905 12:00", "19910909 03:00", "H", "24H", 10, "10H"),
+            ("19910905 12:00", "19910909 12:00", "H", "24H", 10, "10H"),
+            ("19910905 12:00", "19910909 12:00", "H", "24H", 34, "34H"),
+            ("19910905 12:00", "19910909 12:00", "H", "17H", 10, "10H"),
+            ("19910905 12:00", "19910909 12:00", "H", "17H", 3, "3H"),
+            ("19910905 12:00", "19910909 1:00", "H", "M", 3, "3H"),
+            ("19910905", "19910913 06:00", "2H", "24H", 10, "10H"),
+            ("19910905", "19910905 01:39", "Min", "5Min", 3, "3Min"),
+            ("19910905", "19910905 03:18", "2Min", "5Min", 3, "3Min"),
         ],
     )
-    def test_resample_with_non_zero_base(self, start, end, start_freq, end_freq, base):
+    def test_resample_with_non_zero_base(
+        self, start, end, start_freq, end_freq, base, offset
+    ):
         # GH 23882
         s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
         s = s + np.arange(len(s))
-        result = s.resample(end_freq, base=base).mean()
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.resample(end_freq, base=base).mean()
         result = result.to_timestamp(end_freq)
+
+        # test that the replacement argument `offset` works
+        result_offset = s.resample(end_freq, offset=offset).mean()
+        result_offset = result_offset.to_timestamp(end_freq)
+        tm.assert_series_equal(result, result_offset)
+
         # to_timestamp casts 24H -> D
         result = result.asfreq(end_freq) if end_freq == "24H" else result
-        expected = s.to_timestamp().resample(end_freq, base=base).mean()
+        with tm.assert_produces_warning(FutureWarning):
+            expected = s.to_timestamp().resample(end_freq, base=base).mean()
         if end_freq == "M":
-            # TODO: is non-tick the relevant characteristic?
+            # TODO: is non-tick the relevant characteristic? (GH 33815)
             expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "first,last,offset,exp_first,exp_last",
+        "start,end,start_freq,end_freq,offset",
+        [
+            ("19910905", "19910909 03:00", "H", "24H", "10H"),
+            ("19910905", "19910909 12:00", "H", "24H", "10H"),
+            ("19910905", "19910909 23:00", "H", "24H", "10H"),
+            ("19910905 10:00", "19910909", "H", "24H", "10H"),
+            ("19910905 10:00", "19910909 10:00", "H", "24H", "10H"),
+            ("19910905", "19910909 10:00", "H", "24H", "10H"),
+            ("19910905 12:00", "19910909", "H", "24H", "10H"),
+            ("19910905 12:00", "19910909 03:00", "H", "24H", "10H"),
+            ("19910905 12:00", "19910909 12:00", "H", "24H", "10H"),
+            ("19910905 12:00", "19910909 12:00", "H", "24H", "34H"),
+            ("19910905 12:00", "19910909 12:00", "H", "17H", "10H"),
+            ("19910905 12:00", "19910909 12:00", "H", "17H", "3H"),
+            ("19910905 12:00", "19910909 1:00", "H", "M", "3H"),
+            ("19910905", "19910913 06:00", "2H", "24H", "10H"),
+            ("19910905", "19910905 01:39", "Min", "5Min", "3Min"),
+            ("19910905", "19910905 03:18", "2Min", "5Min", "3Min"),
+        ],
+    )
+    def test_resample_with_offset(self, start, end, start_freq, end_freq, offset):
+        # GH 23882 & 31809
+        s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
+        s = s + np.arange(len(s))
+        result = s.resample(end_freq, offset=offset).mean()
+        result = result.to_timestamp(end_freq)
+
+        expected = s.to_timestamp().resample(end_freq, offset=offset).mean()
+        if end_freq == "M":
+            # TODO: is non-tick the relevant characteristic? (GH 33815)
+            expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "first,last,freq,exp_first,exp_last",
         [
             ("19910905", "19920406", "D", "19910905", "19920406"),
             ("19910905 00:00", "19920406 06:00", "D", "19910905", "19920406"),
@@ -866,15 +911,15 @@ class TestPeriodIndex:
             ("1991-08", "1992-04", "M", "1991-08", "1992-04"),
         ],
     )
-    def test_get_period_range_edges(self, first, last, offset, exp_first, exp_last):
+    def test_get_period_range_edges(self, first, last, freq, exp_first, exp_last):
         first = pd.Period(first)
         last = pd.Period(last)
 
-        exp_first = pd.Period(exp_first, freq=offset)
-        exp_last = pd.Period(exp_last, freq=offset)
+        exp_first = pd.Period(exp_first, freq=freq)
+        exp_last = pd.Period(exp_last, freq=freq)
 
-        offset = pd.tseries.frequencies.to_offset(offset)
-        result = _get_period_range_edges(first, last, offset)
+        freq = pd.tseries.frequencies.to_offset(freq)
+        result = _get_period_range_edges(first, last, freq)
         expected = (exp_first, exp_last)
         assert result == expected
 

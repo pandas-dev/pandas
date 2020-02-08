@@ -1572,18 +1572,15 @@ end of the interval is closed:
 
    ts.resample('5Min', closed='left').mean()
 
-Parameters like ``label`` and ``loffset`` are used to manipulate the resulting
-labels. ``label`` specifies whether the result is labeled with the beginning or
-the end of the interval. ``loffset`` performs a time adjustment on the output
-labels.
+Parameters like ``label`` are used to manipulate the resulting labels.
+``label`` specifies whether the result is labeled with the beginning or
+the end of the interval.
 
 .. ipython:: python
 
    ts.resample('5Min').mean()  # by default label='left'
 
    ts.resample('5Min', label='left').mean()
-
-   ts.resample('5Min', label='left', loffset='1s').mean()
 
 .. warning::
 

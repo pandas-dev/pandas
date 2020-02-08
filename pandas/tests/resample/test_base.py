@@ -209,7 +209,8 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
     expected_index += timedelta(hours=2)
     expected = DataFrame({"value": expected_means}, index=expected_index)
 
-    result_agg = df.resample("2D", loffset="2H").agg(arg)
+    with tm.assert_produces_warning(FutureWarning):
+        result_agg = df.resample("2D", loffset="2H").agg(arg)
 
     if isinstance(arg, list):
         expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
