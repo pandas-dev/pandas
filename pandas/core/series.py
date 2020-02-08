@@ -23,13 +23,12 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._libs.index import validate_numeric_casting
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
-from pandas.core.dtypes.cast import convert_dtypes
+from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
@@ -841,8 +840,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0, kind=None) -> "Series":
-        slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
+    def _slice(self, slobj: slice, axis: int = 0, kind: str = "getitem") -> "Series":
+        assert kind in ["getitem", "iloc"]
+        slobj = self.index._convert_slice_indexer(slobj, kind=kind)
         return self._get_values(slobj)
 
     def __getitem__(self, key):
@@ -852,6 +852,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         key_is_scalar = is_scalar(key)
+        if key_is_scalar:
+            key = self.index._convert_scalar_indexer(key, kind="getitem")
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
             # Otherwise index.get_value will raise InvalidIndexError
@@ -866,11 +868,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # kludge
                     pass
                 else:
-
-                    # we can try to coerce the indexer (or this will raise)
-                    new_key = self.index._convert_scalar_indexer(key, kind="getitem")
-                    if type(new_key) != type(key):
-                        return self.__getitem__(new_key)
                     raise
 
         if not key_is_scalar:

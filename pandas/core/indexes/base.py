@@ -18,7 +18,10 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes import concat as _concat
-from pandas.core.dtypes.cast import maybe_cast_to_integer_array
+from pandas.core.dtypes.cast import (
+    maybe_cast_to_integer_array,
+    validate_numeric_casting,
+)
 from pandas.core.dtypes.common import (
     ensure_categorical,
     ensure_int64,
@@ -3097,20 +3100,16 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
 
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str_t):
         """
         Convert a scalar indexer.
 
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        if kind == "iloc":
-            self._validate_indexer("positional", key, "iloc")
-            return key
+        assert kind in ["loc", "getitem"]
 
         if len(self) and not isinstance(self, ABCMultiIndex):
 
@@ -4587,9 +4586,9 @@ class Index(IndexOpsMixin, PandasObject):
             # If that fails, raise a KeyError if an integer
             # index, otherwise, see if key is an integer, and
             # try that
-            loc = self._engine.get_loc(key)
+            loc = self.get_loc(key)
         except KeyError:
-            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+            if not self._should_fallback_to_positional():
                 raise
             elif is_integer(key):
                 # If the Index cannot hold integer, then this is unambiguously
@@ -4599,6 +4598,14 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
         return self._get_values_for_loc(series, loc)
+
+    def _should_fallback_to_positional(self) -> bool:
+        """
+        If an integer key is not found, should we fall back to positional indexing?
+        """
+        if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+            return False
+        return True
 
     def _get_values_for_loc(self, series: "Series", loc):
         """
@@ -4631,7 +4638,7 @@ class Index(IndexOpsMixin, PandasObject):
             stacklevel=2,
         )
         loc = self._engine.get_loc(key)
-        libindex.validate_numeric_casting(arr.dtype, value)
+        validate_numeric_casting(arr.dtype, value)
         arr[loc] = value
 
     _index_shared_docs[
