@@ -3305,6 +3305,10 @@ def _process_date_conversion(
             if is_scalar(colspec):
                 if isinstance(colspec, int) and colspec not in data_dict:
                     colspec = orig_names[colspec]
+                elif colspec not in orig_names:
+                    raise ValueError(
+                        f"Missing column provided to 'parse_dates': '{colspec}'"
+                    )
                 if _isindex(colspec):
                     continue
                 data_dict[colspec] = converter(data_dict[colspec])
