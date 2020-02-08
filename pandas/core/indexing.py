@@ -696,40 +696,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _has_valid_setitem_indexer(self, indexer) -> bool:
-        return True
-
-    def _has_valid_positional_setitem_indexer(self, indexer) -> bool:
-        """
-        Validate that a positional indexer cannot enlarge its target
-        will raise if needed, does not modify the indexer externally.
-
-        Returns
-        -------
-        bool
-        """
-        if isinstance(indexer, dict):
-            raise IndexError(f"{self.name} cannot enlarge its target object")
-        else:
-            if not isinstance(indexer, tuple):
-                indexer = _tuplify(self.ndim, indexer)
-            for ax, i in zip(self.obj.axes, indexer):
-                if isinstance(i, slice):
-                    # should check the stop slice?
-                    pass
-                elif is_list_like_indexer(i):
-                    # should check the elements?
-                    pass
-                elif is_integer(i):
-                    if i >= len(ax):
-                        raise IndexError(
-                            f"{self.name} cannot enlarge its target object"
-                        )
-                elif isinstance(i, dict):
-                    raise IndexError(f"{self.name} cannot enlarge its target object")
-
-        return True
-
     def _setitem_with_indexer(self, indexer, value):
         self._has_valid_setitem_indexer(indexer)
 
@@ -1218,80 +1184,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         raise ValueError("Incompatible indexer with DataFrame")
 
-    def _getitem_tuple(self, tup: Tuple):
-        try:
-            return self._getitem_lowerdim(tup)
-        except IndexingError:
-            pass
-
-        # no multi-index, so validate all of the indexers
-        self._has_valid_tuple(tup)
-
-        # ugly hack for GH #836
-        if self._multi_take_opportunity(tup):
-            return self._multi_take(tup)
-
-        # no shortcut needed
-        retval = self.obj
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                continue
-
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
-
-        return retval
-
-    def _multi_take_opportunity(self, tup: Tuple) -> bool:
-        """
-        Check whether there is the possibility to use ``_multi_take``.
-
-        Currently the limit is that all axes being indexed, must be indexed with
-        list-likes.
-
-        Parameters
-        ----------
-        tup : tuple
-            Tuple of indexers, one per axis.
-
-        Returns
-        -------
-        bool
-            Whether the current indexing,
-            can be passed through `_multi_take`.
-        """
-        if not all(is_list_like_indexer(x) for x in tup):
-            return False
-
-        # just too complicated
-        if any(com.is_bool_indexer(x) for x in tup):
-            return False
-
-        return True
-
-    def _multi_take(self, tup: Tuple):
-        """
-        Create the indexers for the passed tuple of keys, and
-        executes the take operation. This allows the take operation to be
-        executed all at once, rather than once for each dimension.
-        Improving efficiency.
-
-        Parameters
-        ----------
-        tup : tuple
-            Tuple of indexers, one per axis.
-
-        Returns
-        -------
-        values: same type as the object being indexed
-        """
-        # GH 836
-        o = self.obj
-        d = {
-            axis: self._get_listlike_indexer(key, axis)
-            for (key, axis) in zip(tup, o._AXIS_ORDERS)
-        }
-        return o._reindex_with_indexers(d, copy=True, allow_dups=True)
-
     def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
@@ -1412,86 +1304,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         return obj
 
-    def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
-        """
-        Transform a list-like of keys into a new index and an indexer.
-
-        Parameters
-        ----------
-        key : list-like
-            Targeted labels.
-        axis: int
-            Dimension on which the indexing is being made.
-        raise_missing: bool, default False
-            Whether to raise a KeyError if some labels were not found.
-            Will be removed in the future, and then this method will always behave as
-            if ``raise_missing=True``.
-
-        Raises
-        ------
-        KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
-
-        Returns
-        -------
-        keyarr: Index
-            New index (coinciding with 'key' if the axis is unique).
-        values : array-like
-            Indexer for the return object, -1 denotes keys not found.
-        """
-        o = self.obj
-        ax = o._get_axis(axis)
-
-        # Have the index compute an indexer or return None
-        # if it cannot handle:
-        assert self.name == "loc"
-        indexer, keyarr = ax._convert_listlike_indexer(key)
-        # We only act on all found values:
-        if indexer is not None and (indexer != -1).all():
-            self._validate_read_indexer(key, indexer, axis, raise_missing=raise_missing)
-            return ax[indexer], indexer
-
-        if ax.is_unique and not getattr(ax, "is_overlapping", False):
-            indexer = ax.get_indexer_for(key)
-            keyarr = ax.reindex(keyarr)[0]
-        else:
-            keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
-
-        self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
-        return keyarr, indexer
-
-    def _getitem_iterable(self, key, axis: int):
-        """
-        Index current object with an an iterable collection of keys.
-
-        Parameters
-        ----------
-        key : iterable
-            Targeted labels.
-        axis: int
-            Dimension on which the indexing is being made.
-
-        Raises
-        ------
-        KeyError
-            If no key was found. Will change in the future to raise if not all
-            keys were found.
-
-        Returns
-        -------
-        scalar, DataFrame, or Series: indexed value(s).
-        """
-        # we assume that not com.is_bool_indexer(key), as that is
-        #  handled before we get here.
-        self._validate_key(key, axis)
-
-        # A collection of keys
-        keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
-        return self.obj._reindex_with_indexers(
-            {axis: [keyarr, indexer]}, copy=True, allow_dups=True
-        )
-
     def _validate_read_indexer(
         self, key, indexer, axis: int, raise_missing: bool = False
     ):
@@ -1575,8 +1387,14 @@ class _LocationIndexer(_NDFrameIndexerBase):
     def _is_scalar_access(self, key: Tuple):
         raise NotImplementedError()
 
+    def _getitem_tuple(self, tup: Tuple):
+        raise AbstractMethodError(self)
+
     def _getitem_axis(self, key, axis: int):
         raise NotImplementedError()
+
+    def _has_valid_setitem_indexer(self, indexer) -> bool:
+        raise AbstractMethodError(self)
 
     def _getbool_axis(self, key, axis: int):
         # caller is responsible for ensuring non-None axis
@@ -1595,6 +1413,9 @@ class _LocIndexer(_LocationIndexer):
         "index is integers), listlike of labels, boolean"
     )
 
+    # -------------------------------------------------------------------
+    # Key Checks
+
     @Appender(_LocationIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis: int):
 
@@ -1612,6 +1433,9 @@ class _LocIndexer(_LocationIndexer):
         if not is_list_like_indexer(key):
             labels = self.obj._get_axis(axis)
             labels._convert_scalar_indexer(key, kind="loc")
+
+    def _has_valid_setitem_indexer(self, indexer) -> bool:
+        return True
 
     def _is_scalar_access(self, key: Tuple) -> bool:
         """
@@ -1644,6 +1468,61 @@ class _LocIndexer(_LocationIndexer):
 
         return True
 
+    # -------------------------------------------------------------------
+    # MultiIndex Handling
+
+    def _multi_take_opportunity(self, tup: Tuple) -> bool:
+        """
+        Check whether there is the possibility to use ``_multi_take``.
+
+        Currently the limit is that all axes being indexed, must be indexed with
+        list-likes.
+
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis.
+
+        Returns
+        -------
+        bool
+            Whether the current indexing,
+            can be passed through `_multi_take`.
+        """
+        if not all(is_list_like_indexer(x) for x in tup):
+            return False
+
+        # just too complicated
+        if any(com.is_bool_indexer(x) for x in tup):
+            return False
+
+        return True
+
+    def _multi_take(self, tup: Tuple):
+        """
+        Create the indexers for the passed tuple of keys, and
+        executes the take operation. This allows the take operation to be
+        executed all at once, rather than once for each dimension.
+        Improving efficiency.
+
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis.
+
+        Returns
+        -------
+        values: same type as the object being indexed
+        """
+        # GH 836
+        d = {
+            axis: self._get_listlike_indexer(key, axis)
+            for (key, axis) in zip(tup, self.obj._AXIS_ORDERS)
+        }
+        return self.obj._reindex_with_indexers(d, copy=True, allow_dups=True)
+
+    # -------------------------------------------------------------------
+
     def _get_partial_string_timestamp_match_key(self, key, labels):
         """
         Translate any partial string timestamp matches in key, returning the
@@ -1675,6 +1554,60 @@ class _LocIndexer(_LocationIndexer):
                 key = tuple(new_key)
 
         return key
+
+    def _getitem_iterable(self, key, axis: int):
+        """
+        Index current object with an an iterable collection of keys.
+
+        Parameters
+        ----------
+        key : iterable
+            Targeted labels.
+        axis: int
+            Dimension on which the indexing is being made.
+
+        Raises
+        ------
+        KeyError
+            If no key was found. Will change in the future to raise if not all
+            keys were found.
+
+        Returns
+        -------
+        scalar, DataFrame, or Series: indexed value(s).
+        """
+        # we assume that not com.is_bool_indexer(key), as that is
+        #  handled before we get here.
+        self._validate_key(key, axis)
+
+        # A collection of keys
+        keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
+        return self.obj._reindex_with_indexers(
+            {axis: [keyarr, indexer]}, copy=True, allow_dups=True
+        )
+
+    def _getitem_tuple(self, tup: Tuple):
+        try:
+            return self._getitem_lowerdim(tup)
+        except IndexingError:
+            pass
+
+        # no multi-index, so validate all of the indexers
+        self._has_valid_tuple(tup)
+
+        # ugly hack for GH #836
+        if self._multi_take_opportunity(tup):
+            return self._multi_take(tup)
+
+        # no shortcut needed
+        retval = self.obj
+        for i, key in enumerate(tup):
+            if com.is_null_slice(key):
+                continue
+
+            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+
+        return retval
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1842,6 +1775,53 @@ class _LocIndexer(_LocationIndexer):
                     return {"key": key}
                 raise
 
+    def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
+        """
+        Transform a list-like of keys into a new index and an indexer.
+
+        Parameters
+        ----------
+        key : list-like
+            Targeted labels.
+        axis: int
+            Dimension on which the indexing is being made.
+        raise_missing: bool, default False
+            Whether to raise a KeyError if some labels were not found.
+            Will be removed in the future, and then this method will always behave as
+            if ``raise_missing=True``.
+
+        Raises
+        ------
+        KeyError
+            If at least one key was requested but none was found, and
+            raise_missing=True.
+
+        Returns
+        -------
+        keyarr: Index
+            New index (coinciding with 'key' if the axis is unique).
+        values : array-like
+            Indexer for the return object, -1 denotes keys not found.
+        """
+        ax = self.obj._get_axis(axis)
+
+        # Have the index compute an indexer or return None
+        # if it cannot handle:
+        indexer, keyarr = ax._convert_listlike_indexer(key)
+        # We only act on all found values:
+        if indexer is not None and (indexer != -1).all():
+            self._validate_read_indexer(key, indexer, axis, raise_missing=raise_missing)
+            return ax[indexer], indexer
+
+        if ax.is_unique and not getattr(ax, "is_overlapping", False):
+            indexer = ax.get_indexer_for(key)
+            keyarr = ax.reindex(keyarr)[0]
+        else:
+            keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
+
+        self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
+        return keyarr, indexer
+
 
 @Appender(IndexingMixin.iloc.__doc__)
 class _iLocIndexer(_LocationIndexer):
@@ -1850,6 +1830,9 @@ class _iLocIndexer(_LocationIndexer):
         "point is EXCLUDED), listlike of integers, boolean array"
     )
     _takeable = True
+
+    # -------------------------------------------------------------------
+    # Key Checks
 
     def _validate_key(self, key, axis: int):
         if com.is_bool_indexer(key):
@@ -1890,6 +1873,37 @@ class _iLocIndexer(_LocationIndexer):
 
     def _has_valid_setitem_indexer(self, indexer):
         self._has_valid_positional_setitem_indexer(indexer)
+
+    def _has_valid_positional_setitem_indexer(self, indexer) -> bool:
+        """
+        Validate that a positional indexer cannot enlarge its target
+        will raise if needed, does not modify the indexer externally.
+
+        Returns
+        -------
+        bool
+        """
+        if isinstance(indexer, dict):
+            raise IndexError(f"{self.name} cannot enlarge its target object")
+        else:
+            if not isinstance(indexer, tuple):
+                indexer = _tuplify(self.ndim, indexer)
+            for ax, i in zip(self.obj.axes, indexer):
+                if isinstance(i, slice):
+                    # should check the stop slice?
+                    pass
+                elif is_list_like_indexer(i):
+                    # should check the elements?
+                    pass
+                elif is_integer(i):
+                    if i >= len(ax):
+                        raise IndexError(
+                            f"{self.name} cannot enlarge its target object"
+                        )
+                elif isinstance(i, dict):
+                    raise IndexError(f"{self.name} cannot enlarge its target object")
+
+        return True
 
     def _is_scalar_access(self, key: Tuple) -> bool:
         """
@@ -1933,6 +1947,8 @@ class _iLocIndexer(_LocationIndexer):
         len_axis = len(self.obj._get_axis(axis))
         if key >= len_axis or key < -len_axis:
             raise IndexError("single positional indexer is out-of-bounds")
+
+    # -------------------------------------------------------------------
 
     def _getitem_tuple(self, tup: Tuple):
 
