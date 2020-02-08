@@ -565,7 +565,7 @@ class TestCategoricalConstructors:
         categories = ["a", "b"]
 
         result = Categorical.from_codes(codes, categories=categories)
-        expected = Categorical.from_codes(codes.astype(int), categories=categories)
+        expected = Categorical.from_codes(codes.to_numpy(int), categories=categories)
 
         tm.assert_categorical_equal(result, expected)
 
