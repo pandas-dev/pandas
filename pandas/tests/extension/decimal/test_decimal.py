@@ -66,8 +66,7 @@ def data_for_grouping():
 
 
 class BaseDecimal:
-    @staticmethod
-    def assert_series_equal(left, right, *args, **kwargs):
+    def assert_series_equal(self, left, right, *args, **kwargs):
         def convert(x):
             # need to convert array([Decimal(NaN)], dtype='object') to np.NaN
             # because Series[object].isnan doesn't recognize decimal(NaN) as
@@ -89,8 +88,7 @@ class BaseDecimal:
         tm.assert_series_equal(left_na, right_na)
         return tm.assert_series_equal(left[~left_na], right[~right_na], *args, **kwargs)
 
-    @staticmethod
-    def assert_frame_equal(left, right, *args, **kwargs):
+    def assert_frame_equal(self, left, right, *args, **kwargs):
         # TODO(EA): select_dtypes
         tm.assert_index_equal(
             left.columns,
@@ -105,7 +103,7 @@ class BaseDecimal:
         decimals = (left.dtypes == "decimal").index
 
         for col in decimals:
-            BaseDecimal.assert_series_equal(left[col], right[col], *args, **kwargs)
+            self.assert_series_equal(left[col], right[col], *args, **kwargs)
 
         left = left.drop(columns=decimals)
         right = right.drop(columns=decimals)
