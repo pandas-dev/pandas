@@ -15,18 +15,33 @@ from cpython.iterator cimport PyIter_Check
 from cpython.sequence cimport PySequence_Check
 from cpython.number cimport PyNumber_Check
 
-from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
-                               PyTime_Check, PyDelta_Check,
-                               PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDate_Check,
+    PyTime_Check,
+    PyDelta_Check,
+    PyDateTime_IMPORT
+)
 PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_Check, PyArray_GETITEM,
-                    PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
-                    flatiter, NPY_OBJECT,
-                    int64_t, float32_t, float64_t,
-                    uint8_t, uint64_t, complex128_t)
+from numpy cimport (
+    NPY_OBJECT,
+    PyArray_Check,
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+    complex128_t,
+    flatiter,
+    float32_t,
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint64_t,
+)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -60,7 +75,12 @@ from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
 from pandas._libs.missing cimport (
-    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period, C_NA
+    checknull,
+    isnaobj,
+    is_null_datetime64,
+    is_null_timedelta64,
+    is_null_period,
+    C_NA
 )
 
 
@@ -98,14 +118,11 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     Does not include the actual bytes of the pointers
     """
-    i: Py_ssize_t
-    n: Py_ssize_t
     size: int64_t
 
     size = 0
-    n = len(arr)
-    for i in range(n):
-        size += arr[i].__sizeof__()
+    for value in arr:
+        size += value.__sizeof__()
     return size
 
 
@@ -246,7 +263,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool=True):
+def fast_unique_multiple(list arrays, bint sort=True):
     """
     Generate a list of unique values from a list of arrays.
 
@@ -262,21 +279,18 @@ def fast_unique_multiple(list arrays, sort: bool=True):
     list of unique values
     """
     cdef:
-        ndarray[object] buf
-        Py_ssize_t k = len(arrays)
-        Py_ssize_t i, j, n
+        ndarray[object] buf_array
         list uniques = []
         dict table = {}
-        object val, stub = 0
+        object value, stub = 0
 
-    for i in range(k):
-        buf = arrays[i]
-        n = len(buf)
-        for j in range(n):
-            val = buf[j]
-            if val not in table:
-                table[val] = stub
-                uniques.append(val)
+
+    for buf_array in arrays:
+        for value in buf_array:
+            if value not in table:
+                table[value] = stub
+                uniques.append(value)
+
     if sort is None:
         try:
             uniques.sort()
@@ -289,7 +303,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
+def fast_unique_multiple_list(lists: list, bint sort=True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)

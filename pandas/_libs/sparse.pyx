@@ -448,7 +448,7 @@ cdef class BlockIndex(SparseIndex):
         ylen = y.blengths
 
         # block may be split, but can't exceed original len / 2 + 1
-        max_len = int(min(self.length, y.length) / 2) + 1
+        max_len = min(self.length, y.length) // 2 + 1
         out_bloc = np.empty(max_len, dtype=np.int32)
         out_blen = np.empty(max_len, dtype=np.int32)
 
@@ -672,7 +672,7 @@ cdef class BlockUnion(BlockMerge):
         ystart = self.ystart
         yend = self.yend
 
-        max_len = int(min(self.x.length, self.y.length) / 2) + 1
+        max_len = min(self.x.length, self.y.length) // 2 + 1
         out_bloc = np.empty(max_len, dtype=np.int32)
         out_blen = np.empty(max_len, dtype=np.int32)
 
