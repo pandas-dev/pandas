@@ -1640,3 +1640,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         with tm.assert_produces_warning(FutureWarning):
             result = read_json(expected.to_json(), numpy=True)
             tm.assert_frame_equal(result, expected)
+
+    def test_json_pandas_na(self):
+        # GH 31615
+        result = pd.DataFrame([[pd.NA]]).to_json()
+        assert result == '{"0":{"0":null}}'
+
+    def test_json_pandas_nulls(self, nulls_fixture):
+        # GH 31615
+        result = pd.DataFrame([[nulls_fixture]]).to_json()
+        assert result == '{"0":{"0":null}}'
