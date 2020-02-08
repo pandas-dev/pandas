@@ -1860,9 +1860,8 @@ class TestDataFrameConstructors:
             # No NaN found -> error
             if len(indexer) == 0:
                 msg = (
-                    "cannot do label indexing on "
-                    r"<class 'pandas\.core\.indexes\.range\.RangeIndex'> "
-                    r"with these indexers \[nan\] of <class 'float'>"
+                    "cannot do label indexing on RangeIndex "
+                    r"with these indexers \[nan\] of type float"
                 )
                 with pytest.raises(TypeError, match=msg):
                     df.loc[:, np.nan]
