@@ -778,6 +778,8 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if isinstance(x, libmissing.NAType):
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:
