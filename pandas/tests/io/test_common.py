@@ -141,7 +141,7 @@ bar2,12,13,14,15
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
-        with tm.external_error_raised(error_class):
+        with pytest.raises(error_class):
             reader(path)
 
     @pytest.mark.parametrize(
@@ -167,7 +167,7 @@ bar2,12,13,14,15
         path = os.path.join("~", "does_not_exist." + fn_ext)
         monkeypatch.setattr(icom, "_expand_user", lambda x: os.path.join("foo", x))
 
-        with tm.external_error_raised(error_class):
+        with pytest.raises(error_class):
             reader(path)
 
     @pytest.mark.parametrize(
