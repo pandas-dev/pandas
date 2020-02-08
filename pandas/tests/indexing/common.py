@@ -121,18 +121,12 @@ class Base:
         if isinstance(key, dict):
             key = key[axis]
 
-        # use an artificial conversion to map the key as integers to the labels
-        # so ix can work for comparisons
-        if method == "indexer":
-            method = "ix"
-            key = obj._get_axis(axis)[key]
+        assert method != "indexer"
+        assert method != "ix"
 
         # in case we actually want 0 index slicing
         with catch_warnings(record=True):
-            try:
-                xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
-            except AttributeError:
-                xp = getattr(obj, method).__getitem__(key)
+            xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
 
         return xp
 
@@ -172,19 +166,18 @@ class Base:
     def check_result(
         self, method1, key1, method2, key2, typs=None, axes=None, fails=None,
     ):
+        assert method1 == method2
+
         def _eq(axis, obj, key1, key2):
             """ compare equal for these 2 keys """
             if axis > obj.ndim - 1:
                 return
 
+            axified = _axify(obj, key1, axis)
             try:
-                rs = getattr(obj, method1).__getitem__(_axify(obj, key1, axis))
+                rs = getattr(obj, method1).__getitem__(axified)
 
-                try:
-                    xp = self.get_result(obj=obj, method=method2, key=key2, axis=axis)
-                except (KeyError, IndexError):
-                    # TODO: why is this allowed?
-                    return
+                xp = self.get_result(obj=obj, method=method2, key=key2, axis=axis)
 
                 if is_scalar(rs) and is_scalar(xp):
                     assert rs == xp
@@ -217,8 +210,7 @@ class Base:
             d = getattr(self, kind)
             for ax in axes:
                 for typ in typs:
-                    if typ not in self._typs:
-                        continue
+                    assert typ in self._typs
 
                     obj = d[typ]
                     _eq(axis=ax, obj=obj, key1=key1, key2=key2)

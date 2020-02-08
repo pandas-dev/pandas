@@ -16,7 +16,7 @@ class TestLoc(Base):
     def test_loc_getitem_int(self):
 
         # int label
-        self.check_result("loc", 2, "loc", 2, typs=["label"], fails=KeyError)
+        self.check_result("loc", 2, "loc", 2, typs=["labels"], fails=TypeError)
 
     def test_loc_getitem_label(self):
 
@@ -34,7 +34,7 @@ class TestLoc(Base):
             typs=["ints", "uints", "labels", "mixed", "ts"],
             fails=KeyError,
         )
-        self.check_result("loc", "f", "ix", "f", typs=["floats"], fails=KeyError)
+        self.check_result("loc", "f", "loc", "f", typs=["floats"], fails=KeyError)
         self.check_result("loc", "f", "loc", "f", typs=["floats"], fails=KeyError)
         self.check_result(
             "loc", 20, "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
@@ -55,7 +55,7 @@ class TestLoc(Base):
         self.check_result(
             "loc",
             [0, 2, 10],
-            "ix",
+            "loc",
             [0, 2, 10],
             typs=["ints", "uints", "floats"],
             axes=0,
@@ -65,7 +65,7 @@ class TestLoc(Base):
         self.check_result(
             "loc",
             [3, 6, 7],
-            "ix",
+            "loc",
             [3, 6, 7],
             typs=["ints", "uints", "floats"],
             axes=1,
@@ -76,7 +76,7 @@ class TestLoc(Base):
         self.check_result(
             "loc",
             [(1, 3), (1, 4), (2, 5)],
-            "ix",
+            "loc",
             [(1, 3), (1, 4), (2, 5)],
             typs=["multi"],
             axes=0,
