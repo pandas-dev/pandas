@@ -1,8 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-import operator
-from typing import List, Optional, Set
+from typing import Any, List, Optional, Union
 
 import numpy as np
 
@@ -27,12 +26,12 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
-from pandas.core.accessor import PandasDelegate
-from pandas.core.arrays import DatetimeArray, ExtensionArray, TimedeltaArray
+from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.base import _shared_docs
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
@@ -81,7 +80,16 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
+    [
+        "__iter__",
+        "mean",
+        "freq",
+        "freqstr",
+        "_ndarray_values",
+        "asi8",
+        "_box_values",
+        "_box_func",
+    ],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -89,7 +97,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
-    _data: ExtensionArray
+    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[DateOffset]
     freqstr: Optional[str]
     _resolution: int
@@ -152,8 +160,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return np.array_equal(self.asi8, other.asi8)
 
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
-    def __contains__(self, key):
+    @Appender(Index.__contains__.__doc__)
+    def __contains__(self, key: Any) -> bool:
+        hash(key)
         try:
             res = self.get_loc(key)
         except (KeyError, TypeError, ValueError):
@@ -161,22 +170,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return bool(
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
-
-    # Try to run function on index first, and then on elements of index
-    # Especially important for group-by functionality
-    def map(self, mapper, na_action=None):
-        try:
-            result = mapper(self)
-
-            # Try to use this result if we can
-            if isinstance(result, np.ndarray):
-                result = Index(result)
-
-            if not isinstance(result, Index):
-                raise TypeError("The map function must return an Index object")
-            return result
-        except Exception:
-            return self.astype(object).map(mapper)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -193,20 +186,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             #  because the treatment of NaT has been changed to put NaT last
             #  instead of first.
             sorted_values = np.sort(self.asi8)
-            attribs = self._get_attributes_dict()
-            freq = attribs["freq"]
 
+            freq = self.freq
             if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
                     freq = freq * -1
-            attribs["freq"] = freq
 
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
-            return self._simple_new(sorted_values, **attribs)
+            arr = type(self._data)._simple_new(
+                sorted_values, dtype=self.dtype, freq=freq
+            )
+            return type(self)._simple_new(arr, name=self.name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -220,6 +214,18 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return ExtensionIndex.take(
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
+
+    @Appender(_shared_docs["searchsorted"])
+    def searchsorted(self, value, side="left", sorter=None):
+        if isinstance(value, str):
+            raise TypeError(
+                "searchsorted requires compatible dtype or scalar, "
+                f"not {type(value).__name__}"
+            )
+        if isinstance(value, Index):
+            value = value._data
+
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     _can_hold_na = True
 
@@ -377,8 +383,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return attrs
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str):
         """
         We don't allow integer or float indexing on datetime-like when using
         loc.
@@ -386,22 +393,26 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
 
-        assert kind in ["loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem"]
+
+        if not is_scalar(key):
+            raise TypeError(key)
 
         # we don't allow integer/float indexing for loc
-        # we don't allow float indexing for ix/getitem
-        if is_scalar(key):
-            is_int = is_integer(key)
-            is_flt = is_float(key)
-            if kind in ["loc"] and (is_int or is_flt):
-                self._invalid_indexer("index", key)
-            elif kind in ["getitem"] and is_flt:
-                self._invalid_indexer("index", key)
+        # we don't allow float indexing for getitem
+        is_int = is_integer(key)
+        is_flt = is_float(key)
+        if kind == "loc" and (is_int or is_flt):
+            self._invalid_indexer("index", key)
+        elif kind == "getitem" and is_flt:
+            self._invalid_indexer("index", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
     __radd__ = make_wrapped_arith_op("__radd__")
@@ -444,7 +455,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         values = self.view("i8")
 
@@ -469,7 +480,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         result = np.where(cond, values, other).astype("i8")
         return self._shallow_copy(result)
 
-    def _summary(self, name=None):
+    def _summary(self, name=None) -> str:
         """
         Return a summarized representation.
 
@@ -503,22 +514,21 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-        attribs = self._get_attributes_dict()
-        attribs["name"] = name
+
         # do not pass tz to set because tzlocal cannot be hashed
         if len({str(x.dtype) for x in to_concat}) != 1:
             raise ValueError("to_concat must have the same tz")
 
-        new_data = type(self._values)._concat_same_type(to_concat).asi8
+        new_data = type(self._data)._concat_same_type(to_concat)
 
-        # GH 3232: If the concat result is evenly spaced, we can retain the
-        # original frequency
-        is_diff_evenly_spaced = len(unique_deltas(new_data)) == 1
-        if not is_period_dtype(self) and not is_diff_evenly_spaced:
-            # reset freq
-            attribs["freq"] = None
+        if not is_period_dtype(self.dtype):
+            # GH 3232: If the concat result is evenly spaced, we can retain the
+            # original frequency
+            is_diff_evenly_spaced = len(unique_deltas(new_data.asi8)) == 1
+            if is_diff_evenly_spaced:
+                new_data._freq = self.freq
 
-        return self._simple_new(new_data, **attribs)
+        return type(self)._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -612,8 +622,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self._data
-        if isinstance(values, type(self)):
-            values = values._data
 
         attributes = self._get_attributes_dict()
 
@@ -623,7 +631,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                     del attributes["freq"]
 
         attributes.update(kwargs)
-        return self._simple_new(values, **attributes)
+        return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -795,11 +803,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if this._can_fast_union(other):
             return this._fast_union(other, sort=sort)
         else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, type(self)):
-                assert result._data.dtype == this.dtype
-                if result.freq is None:
-                    result._set_freq("infer")
+            i8self = Int64Index._simple_new(self.asi8, name=self.name)
+            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8result = i8self._union(i8other, sort=sort)
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------
@@ -881,43 +888,58 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             kwargs = {}
             if hasattr(self, "tz"):
                 kwargs["tz"] = getattr(other, "tz", None)
-            return self._simple_new(joined, name, **kwargs)
+            return type(self)._simple_new(joined, name, **kwargs)
 
+    # --------------------------------------------------------------------
+    # List-Like Methods
 
-class DatetimelikeDelegateMixin(PandasDelegate):
-    """
-    Delegation mechanism, specific for Datetime, Timedelta, and Period types.
+    def insert(self, loc, item):
+        """
+        Make new Index inserting new item at location
+        Parameters
+        ----------
+        loc : int
+        item : object
+            if not either a Python datetime or a numpy integer-like, returned
+            Index dtype will be object rather than datetime.
+        Returns
+        -------
+        new_index : Index
+        """
+        if isinstance(item, self._data._recognized_scalars):
+            item = self._data._scalar_type(item)
+        elif is_valid_nat_for_dtype(item, self.dtype):
+            # GH 18295
+            item = self._na_value
+        elif is_scalar(item) and isna(item):
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )
 
-    Functionality is delegated from the Index class to an Array class. A
-    few things can be customized
+        freq = None
+        if isinstance(item, self._data._scalar_type) or item is NaT:
+            self._data._check_compatible_with(item, setitem=True)
 
-    * _delegated_methods, delegated_properties : List
-        The list of property / method names being delagated.
-    * raw_methods : Set
-        The set of methods whose results should should *not* be
-        boxed in an index, after being returned from the array
-    * raw_properties : Set
-        The set of properties whose results should should *not* be
-        boxed in an index, after being returned from the array
-    """
+            # check freq can be preserved on edge cases
+            if self.size and self.freq is not None:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                    freq = self.freq
+                elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            item = item.asm8
 
-    # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods: Set[str] = set()
-    # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties: Set[str] = set()
-    _data: ExtensionArray
+        try:
+            new_i8s = np.concatenate(
+                (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
+            )
+            return self._shallow_copy(new_i8s, freq=freq)
+        except (AttributeError, TypeError):
 
-    def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
-        if name not in self._raw_properties:
-            result = Index(result, name=self.name)
-        return result
-
-    def _delegate_property_set(self, name, value, *args, **kwargs):
-        setattr(self._data, name, value)
-
-    def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
-        if name not in self._raw_methods:
-            result = Index(result, name=self.name)
-        return result
+            # fall back to object index
+            if isinstance(item, str):
+                return self.astype(object).insert(loc, item)
+            raise TypeError(
+                f"cannot insert {type(self).__name__} with incompatible label"
+            )

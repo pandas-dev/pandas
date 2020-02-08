@@ -288,7 +288,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
 
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
-# module http://matplotlib.org/users/license.html
+# module https://matplotlib.org/users/license.html
 
 
 class Substitution:
