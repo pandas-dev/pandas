@@ -2777,7 +2777,8 @@ class DataFrame(NDFrame):
         if indexer is not None:
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
-            return self._slice(indexer, axis=0)
+            return self.iloc[indexer]
+            #return self._slice(indexer, axis=0)
 
         # Do we have a (boolean) DataFrame?
         if isinstance(key, DataFrame):

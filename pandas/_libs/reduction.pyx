@@ -310,7 +310,7 @@ cdef class SeriesGrouper(_BaseGrouper):
                  Py_ssize_t ngroups, object dummy):
 
         # in practice we always pass either obj[:0] or the
-        #  safer obj._get_values(slice(None, 0))
+        #  safer obj.iloc[:0]
         assert dummy is not None
 
         if len(series) == 0:
