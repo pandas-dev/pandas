@@ -164,20 +164,16 @@ class Base:
             tm.assert_almost_equal(result, expected)
 
     def check_result(
-        self, method1, key1, method2, key2, typs=None, axes=None, fails=None,
+        self, method, key1, key2, typs=None, axes=None, fails=None,
     ):
-        assert method1 == method2
-
         def _eq(axis, obj, key1, key2):
             """ compare equal for these 2 keys """
-            if axis > obj.ndim - 1:
-                return
 
             axified = _axify(obj, key1, axis)
             try:
-                rs = getattr(obj, method1).__getitem__(axified)
+                rs = getattr(obj, method).__getitem__(axified)
 
-                xp = self.get_result(obj=obj, method=method2, key=key2, axis=axis)
+                xp = self.get_result(obj=obj, method=method, key=key2, axis=axis)
 
                 if is_scalar(rs) and is_scalar(xp):
                     assert rs == xp
@@ -213,4 +209,5 @@ class Base:
                     assert typ in self._typs
 
                     obj = d[typ]
-                    _eq(axis=ax, obj=obj, key1=key1, key2=key2)
+                    if ax < obj.ndim:
+                        _eq(axis=ax, obj=obj, key1=key1, key2=key2)

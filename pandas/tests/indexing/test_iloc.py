@@ -20,7 +20,6 @@ class TestiLoc(Base):
         self.check_result(
             "iloc",
             2,
-            "iloc",
             2,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
@@ -31,7 +30,6 @@ class TestiLoc(Base):
         self.check_result(
             "iloc",
             -1,
-            "iloc",
             -1,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
@@ -41,7 +39,6 @@ class TestiLoc(Base):
         self.check_result(
             "iloc",
             [0, 1, 2],
-            "iloc",
             [0, 1, 2],
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
