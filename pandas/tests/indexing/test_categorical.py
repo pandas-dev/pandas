@@ -83,8 +83,8 @@ class TestCategoricalIndex:
             df.loc["d", "C"] = 10
 
         msg = (
-            r"cannot do label indexing on <class 'pandas\.core\.indexes\.category"
-            r"\.CategoricalIndex'> with these indexers \[1\] of <class 'int'>"
+            "cannot do label indexing on CategoricalIndex with these "
+            r"indexers \[1\] of type int"
         )
         with pytest.raises(TypeError, match=msg):
             df.loc[1]

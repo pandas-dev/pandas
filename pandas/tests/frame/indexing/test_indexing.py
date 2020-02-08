@@ -1050,9 +1050,8 @@ class TestDataFrameIndexing:
 
         # positional slicing only via iloc!
         msg = (
-            "cannot do slice indexing on "
-            r"<class 'pandas\.core\.indexes\.numeric\.Float64Index'> with "
-            r"these indexers \[1.0\] of <class 'float'>"
+            "cannot do positional indexing on Float64Index with "
+            r"these indexers \[1.0\] of type float"
         )
         with pytest.raises(TypeError, match=msg):
             df.iloc[1.0:5]

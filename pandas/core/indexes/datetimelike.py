@@ -406,9 +406,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         is_int = is_integer(key)
         is_flt = is_float(key)
         if kind == "loc" and (is_int or is_flt):
-            self._invalid_indexer("index", key)
+            self._invalid_indexer("label", key)
         elif kind == "getitem" and is_flt:
-            self._invalid_indexer("index", key)
+            self._invalid_indexer("label", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
 
