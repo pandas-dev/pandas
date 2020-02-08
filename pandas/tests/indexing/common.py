@@ -1,10 +1,7 @@
 """ common utilities """
 import itertools
-from warnings import catch_warnings
 
 import numpy as np
-
-from pandas.core.dtypes.common import is_scalar
 
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
 import pandas._testing as tm
@@ -115,21 +112,6 @@ class Base:
 
         return itertools.product(*axes)
 
-    def get_result(self, obj, method, key, axis):
-        """ return the result for this obj with this key and this axis """
-
-        if isinstance(key, dict):
-            key = key[axis]
-
-        assert method != "indexer"
-        assert method != "ix"
-
-        # in case we actually want 0 index slicing
-        with catch_warnings(record=True):
-            xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
-
-        return xp
-
     def get_value(self, name, f, i, values=False):
         """ return the value for the location i """
 
@@ -171,33 +153,23 @@ class Base:
 
             axified = _axify(obj, key, axis)
             try:
-                rs = getattr(obj, method).__getitem__(axified)
-
-                xp = self.get_result(obj=obj, method=method, key=key, axis=axis)
-
-                if is_scalar(rs) and is_scalar(xp):
-                    assert rs == xp
-                else:
-                    tm.assert_equal(rs, xp)
+                getattr(obj, method).__getitem__(axified)
 
             except (IndexError, TypeError, KeyError) as detail:
 
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:
                     if isinstance(detail, fails):
-                        result = f"ok ({type(detail).__name__})"
                         return
-
-                result = type(detail).__name__
-                raise AssertionError(result, detail)
+                raise
 
         if typs is None:
             typs = self._typs
 
         if axes is None:
             axes = [0, 1]
-        elif not isinstance(axes, (tuple, list)):
-            assert isinstance(axes, int)
+        else:
+            assert axes in [0, 1]
             axes = [axes]
 
         # check
