@@ -85,8 +85,6 @@ from pandas.core.indexers import (
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
 
-from pandas.io.formats.printing import pprint_thing
-
 
 class Block(PandasObject):
     """
@@ -159,7 +157,8 @@ class Block(PandasObject):
 
     @property
     def _holder(self):
-        """The array-like that can hold the underlying values.
+        """
+        The array-like that can hold the underlying values.
 
         None for 'Block', overridden by subclasses that don't
         use an ndarray.
@@ -284,16 +283,11 @@ class Block(PandasObject):
         # don't want to print out all of the items here
         name = type(self).__name__
         if self._is_single_block:
-
             result = f"{name}: {len(self)} dtype: {self.dtype}"
-
         else:
 
-            shape = " x ".join(pprint_thing(s) for s in self.shape)
-            result = (
-                f"{name}: {pprint_thing(self.mgr_locs.indexer)}, "
-                f"{shape}, dtype: {self.dtype}"
-            )
+            shape = " x ".join(str(s) for s in self.shape)
+            result = f"{name}: {self.mgr_locs.indexer}, {shape}, dtype: {self.dtype}"
 
         return result
 
@@ -319,10 +313,7 @@ class Block(PandasObject):
         As of now, only supports slices that preserve dimensionality.
         """
         if new_mgr_locs is None:
-            if isinstance(slicer, tuple):
-                axis0_slicer = slicer[0]
-            else:
-                axis0_slicer = slicer
+            axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
             new_mgr_locs = self.mgr_locs[axis0_slicer]
 
         new_values = self._slice(slicer)

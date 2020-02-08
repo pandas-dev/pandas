@@ -3085,9 +3085,8 @@ class BlockManagerFixed(GenericFixed):
 
         self.attrs.ndim = data.ndim
         for i, ax in enumerate(data.axes):
-            if i == 0:
-                if not ax.is_unique:
-                    raise ValueError("Columns index has to be unique for fixed format")
+            if i == 0 and (not ax.is_unique):
+                raise ValueError("Columns index has to be unique for fixed format")
             self.write_index(f"axis{i}", ax)
 
         # Supporting mixed-type DataFrame objects...nontrivial
@@ -4216,7 +4215,7 @@ class AppendableTable(Table):
             chunksize = 100000
 
         rows = np.empty(min(chunksize, nrows), dtype=self.dtype)
-        chunks = int(nrows / chunksize) + 1
+        chunks = nrows // chunksize + 1
         for i in range(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, nrows)
