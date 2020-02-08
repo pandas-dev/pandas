@@ -1671,3 +1671,13 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert target_file in (
             obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
         )
+
+    def test_json_pandas_na(self):
+        # GH 31615
+        result = pd.DataFrame([[pd.NA]]).to_json()
+        assert result == '{"0":{"0":null}}'
+
+    def test_json_pandas_nulls(self, nulls_fixture):
+        # GH 31615
+        result = pd.DataFrame([[nulls_fixture]]).to_json()
+        assert result == '{"0":{"0":null}}'

@@ -25,8 +25,9 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
--
--
+**I/O**
+
+- Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
 
 .. ---------------------------------------------------------------------------
 
