@@ -1518,12 +1518,13 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
     assert result == expected
 
 
-def test_missing_column(all_parsers):
+@pytest.mark.parametrize("parse_dates", [["time", ], {"date": ["time", ]}])
+def test_missing_column(all_parsers, parse_dates):
+    """GH31251 column names provided in parse_dates could be missing."""
     parser = all_parsers
-    content = StringIO("time,val\n" "212.23, 32\n")
-    date_cols = ["time"]
-    msg = "'time' is not in list"
+    content = StringIO("time,val\n2020-01-31,32\n")
+    msg = "Missing column provided to 'parse_dates': 'time'"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(
-            content, sep=",", usecols=["val"], parse_dates=date_cols,
+            content, sep=",", usecols=["val", ], parse_dates=parse_dates,
         )
