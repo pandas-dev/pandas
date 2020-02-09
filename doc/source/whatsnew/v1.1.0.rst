@@ -72,7 +72,7 @@ Backwards incompatible API changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- Lookups on a :class:`Series` with a single-item list containing a slice (e.g. ``ser[[slice(0, 4)]]``) are deprecated, will raise in a future version.  Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
 -
 -
 

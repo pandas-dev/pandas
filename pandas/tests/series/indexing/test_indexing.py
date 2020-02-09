@@ -424,7 +424,9 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
-    result = datetime_series[[slice(None, 5)]]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31299
+        result = datetime_series[[slice(None, 5)]]
     expected = datetime_series[:5]
     tm.assert_series_equal(result, expected)
 
