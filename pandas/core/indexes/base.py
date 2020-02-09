@@ -4597,7 +4597,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 raise
 
-        return self._get_values_for_loc(series, loc)
+        return self._get_values_for_loc(series, loc, key)
 
     def _should_fallback_to_positional(self) -> bool:
         """
@@ -4607,12 +4607,14 @@ class Index(IndexOpsMixin, PandasObject):
             return False
         return True
 
-    def _get_values_for_loc(self, series: "Series", loc):
+    def _get_values_for_loc(self, series: "Series", loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
 
         Assumes that `series.index is self`
+
+        key is included for MultiIndex compat.
         """
         if is_integer(loc):
             return series._values[loc]
