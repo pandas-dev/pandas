@@ -185,6 +185,7 @@ I/O
 - Bug in :meth:`DataFrame.to_parquet` overwriting pyarrow's default for
   ``coerce_timestamps``; following pyarrow's default allows writing nanosecond
   timestamps with ``version="2.0"`` (:issue:`31652`).
+- Bug in :class:`HDFStore` that caused it to set to ``int64`` the dtype of a ``datetime64`` column when reading a DataFrame in Python 3 from fixed format written in Python 2 (:issue:`31750`)
 
 Plotting
 ^^^^^^^^

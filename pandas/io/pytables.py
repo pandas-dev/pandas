@@ -2722,7 +2722,7 @@ class GenericFixed(Fixed):
         if isinstance(node, tables.VLArray):
             ret = node[0][start:stop]
         else:
-            dtype = getattr(attrs, "value_type", None)
+            dtype = _ensure_decoded(getattr(attrs, "value_type", None))
             shape = getattr(attrs, "shape", None)
 
             if shape is not None:
