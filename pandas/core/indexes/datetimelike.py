@@ -6,7 +6,6 @@ from typing import Any, List, Optional, Union
 import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
-from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import timezones
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -515,20 +514,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Concatenate to_concat which has the same class.
         """
 
-        # do not pass tz to set because tzlocal cannot be hashed
-        if len({str(x.dtype) for x in to_concat}) != 1:
-            raise ValueError("to_concat must have the same tz")
-
         new_data = type(self._data)._concat_same_type(to_concat)
 
-        if not is_period_dtype(self.dtype):
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            is_diff_evenly_spaced = len(unique_deltas(new_data.asi8)) == 1
-            if is_diff_evenly_spaced:
-                new_data._freq = self.freq
-
-        return type(self)._simple_new(new_data, name=name)
+        return self._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
