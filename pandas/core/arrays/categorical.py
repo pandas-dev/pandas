@@ -648,7 +648,7 @@ class Categorical(ExtensionArray, PandasObject):
             # Avoid the implicit conversion of Int to object
             codes = codes.to_numpy(dtype=np.int64)
         else:
-            codes = np.asarray(codes)  # #21767
+            codes = np.asarray(codes)
         if len(codes) and not is_integer_dtype(codes):
             raise ValueError("codes need to be array-like integers")
 
