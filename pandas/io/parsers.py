@@ -6,6 +6,7 @@ from collections import abc, defaultdict
 import csv
 import datetime
 from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
+from itertools import chain
 import re
 import sys
 from textwrap import fill
@@ -1423,6 +1424,26 @@ class ParserBase:
         # keep references to file handles opened by the parser itself
         self.handles = []
 
+    def _confirm_parse_dates_presence(self, columns):
+        """
+        if user has provided names for parse_dates, check if those columns
+        are available.
+        """
+        if isinstance(self.parse_dates, list):
+            cols_needed = self.parse_dates
+        elif isinstance(self.parse_dates, dict):
+            cols_needed = chain(*self.parse_dates.values())
+        else:
+            cols_needed = []
+
+        missing_cols = ", ".join(
+            [col for col in cols_needed if isinstance(col, str) and col not in columns]
+        )
+        if missing_cols:
+            raise ValueError(
+                f"Missing column provided to 'parse_dates': '{missing_cols}'"
+            )
+
     def close(self):
         for f in self.handles:
             f.close()
@@ -1942,6 +1963,7 @@ class CParserWrapper(ParserBase):
             if len(self.names) < len(usecols):
                 _validate_usecols_names(usecols, self.names)
 
+        self._confirm_parse_dates_presence(self.names)
         self._set_noconvert_columns()
 
         self.orig_names = self.names
@@ -2312,6 +2334,7 @@ class PythonParser(ParserBase):
             if self.index_names is None:
                 self.index_names = index_names
 
+        self._confirm_parse_dates_presence(self.columns)
         if self.parse_dates:
             self._no_thousands_columns = self._set_no_thousands_columns()
         else:
