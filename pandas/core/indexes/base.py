@@ -823,20 +823,22 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Copying Methods
 
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+    def copy(self, name=None, deep=False, dtype=None, names=None):
         """
         Make a copy of this object.  Name and dtype sets those attributes on
         the new object.
 
         Parameters
         ----------
-        name : str, optional
+        name : Label
         deep : bool, default False
-        dtype : numpy dtype or pandas type
+        dtype : numpy dtype or pandas type, optional
+        names : list-like, optional
+            Kept for compatibility with MultiIndex. Should not be used.
 
         Returns
         -------
-        copy : Index
+        Index
 
         Notes
         -----
@@ -848,7 +850,6 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             new_index = self._shallow_copy()
 
-        names = kwargs.get("names")
         names = self._validate_names(name=name, names=names, deep=deep)
         new_index = new_index.set_names(names)
 
