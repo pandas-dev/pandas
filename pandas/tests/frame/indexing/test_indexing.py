@@ -1376,7 +1376,8 @@ class TestDataFrameIndexing:
 
     def test_set_value_resize(self, float_frame):
 
-        float_frame._set_value("foobar", "B", 0)
+        res = float_frame._set_value("foobar", "B", 0)
+        assert res is None
         assert float_frame.index[-1] == "foobar"
         assert float_frame._get_value("foobar", "B") == 0
 
