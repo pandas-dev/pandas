@@ -582,7 +582,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 if loc.start in (0, None) or loc.stop in (len(self), None):
                     freq = self.freq
 
-        return self._shallow_copy(new_i8s, freq=freq)
+        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+        return type(self)._simple_new(arr, name=self.name)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
@@ -622,6 +623,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self._data
+
+        if isinstance(values, type(self)):
+            values = values._data
+        if isinstance(values, np.ndarray):
+            # TODO: We would rather not get here
+            if kwargs.get("freq") is not None:
+                raise ValueError(kwargs)
+            values = type(self._data)(values, dtype=self.dtype)
 
         attributes = self._get_attributes_dict()
 
@@ -801,7 +810,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         this, other = self._maybe_utc_convert(other)
 
         if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
+            result = this._fast_union(other, sort=sort)
+            if result.freq is None:
+                result._set_freq("infer")
+            return result
         else:
             i8self = Int64Index._simple_new(self.asi8, name=self.name)
             i8other = Int64Index._simple_new(other.asi8, name=other.name)
@@ -934,7 +946,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_i8s, freq=freq)
+            arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+            return type(self)._simple_new(arr, name=self.name)
         except (AttributeError, TypeError):
 
             # fall back to object index
