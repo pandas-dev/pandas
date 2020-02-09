@@ -843,9 +843,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                     value = getattr(value, "values", value).ravel()
 
                     # we can directly set the series here
-                    # as we select a slice indexer on the mi
-                    if isinstance(idx, slice):
-                        idx = index._convert_slice_indexer(idx)
                     obj._consolidate_inplace()
                     obj = obj.copy()
                     obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)

@@ -885,7 +885,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
 
-    def _convert_slice_indexer(self, key: slice, kind=None):
+    def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
             raise ValueError("cannot support not-default step in a slice")
         return super()._convert_slice_indexer(key, kind)
