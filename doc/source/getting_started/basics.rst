@@ -695,8 +695,8 @@ By default all columns are used but a subset can be selected using the ``subset`
 .. ipython:: python
 
     data = {"a": [1, 2, 3, 4], "b": ["x", "x", "y", "y"]}
-    df = pd.DataFrame(data)
-    df.value_counts()
+    frame = pd.DataFrame(data)
+    frame.value_counts()
 
 Similarly, you can get the most frequently occurring value(s) (the mode) of the values in a Series or DataFrame:
 
