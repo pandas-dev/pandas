@@ -241,6 +241,16 @@ def test_series_box_timestamp():
     assert isinstance(ser.iat[5], pd.Timestamp)
 
 
+def test_series_box_timedelta():
+    rng = pd.timedelta_range("1 day 1 s", periods=5, freq="h")
+    ser = pd.Series(rng)
+    assert isinstance(ser[0], Timedelta)
+    assert isinstance(ser.at[1], Timedelta)
+    assert isinstance(ser.iat[2], Timedelta)
+    assert isinstance(ser.loc[3], Timedelta)
+    assert isinstance(ser.iloc[4], Timedelta)
+
+
 def test_getitem_ambiguous_keyerror():
     s = Series(range(10), index=list(range(0, 20, 2)))
     with pytest.raises(KeyError, match=r"^1$"):

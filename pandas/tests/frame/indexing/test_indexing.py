@@ -94,6 +94,14 @@ class TestDataFrameIndexing:
         expected = float_frame.loc[:, ["A", "B", "C"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_timedelta_0seconds(self):
+        # GH#10583
+        df = pd.DataFrame(np.random.normal(size=(10, 4)))
+        df.index = pd.timedelta_range(start="0s", periods=10, freq="s")
+        expected = df.loc[pd.Timedelta("0s") :, :]
+        result = df.loc["0s":, :]
+        tm.assert_frame_equal(expected, result)
+
     @pytest.mark.parametrize(
         "idx_type",
         [
@@ -204,7 +212,7 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_mulit_index(self):
+    def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
         it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]

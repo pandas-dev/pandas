@@ -57,6 +57,17 @@ class TestTimedeltas:
         expected = TimedeltaIndex([np.timedelta64(1, "D")] * 5)
         tm.assert_index_equal(result, expected)
 
+    def test_to_timedelta_dataframe(self):
+        # GH 11776
+        arr = np.arange(10).reshape(2, 5)
+        df = pd.DataFrame(np.arange(10).reshape(2, 5))
+        for arg in (arr, df):
+            with pytest.raises(TypeError, match="1-d array"):
+                to_timedelta(arg)
+            for errors in ["ignore", "raise", "coerce"]:
+                with pytest.raises(TypeError, match="1-d array"):
+                    to_timedelta(arg, errors=errors)
+
     def test_to_timedelta_invalid(self):
 
         # bad value for errors parameter
