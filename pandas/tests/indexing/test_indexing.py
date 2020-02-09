@@ -133,38 +133,24 @@ class TestFancy:
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = (
-            r"Buffer has wrong number of dimensions \(expected 1, "
-            r"got 3\)|"
-            "'pandas._libs.interval.IntervalTree' object has no attribute "
-            "'get_loc'|"  # AttributeError
-            "unhashable type: 'numpy.ndarray'|"  # TypeError
-            "No matching signature found|"  # TypeError
-            r"^\[\[\[|"  # pandas.core.indexing.IndexingError
-            "Index data must be 1-dimensional"
-        )
-
-        if (idxr_id == "iloc") or (
-            (
-                isinstance(obj, Series)
-                and idxr_id == "setitem"
-                and index.inferred_type
-                in [
-                    "floating",
-                    "string",
-                    "datetime64",
-                    "period",
-                    "timedelta64",
-                    "boolean",
-                    "categorical",
-                ]
-            )
+        if idxr_id == "iloc":
+            err = ValueError
+            msg = f"Cannot set values with ndim > {obj.ndim}"
+        elif (
+            isinstance(index, pd.IntervalIndex)
+            and idxr_id == "setitem"
+            and obj.ndim == 1
         ):
-            idxr[nd3] = 0
+            err = AttributeError
+            msg = (
+                "'pandas._libs.interval.IntervalTree' object has no attribute 'get_loc'"
+            )
         else:
-            err = (ValueError, AttributeError)
-            with pytest.raises(err, match=msg):
-                idxr[nd3] = 0
+            err = ValueError
+            msg = r"Buffer has wrong number of dimensions \(expected 1, got 3\)|"
+
+        with pytest.raises(err, match=msg):
+            idxr[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957

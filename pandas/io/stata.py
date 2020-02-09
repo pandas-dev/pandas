@@ -1678,6 +1678,10 @@ the string values returned are correct."""
                     missing_value = StataMissingValue(um)
 
                     loc = missing_loc[umissing_loc == j]
+                    if loc.ndim == 2 and loc.shape[1] == 1:
+                        # GH#31813 avoid trying to set Series values with wrong
+                        #  dimension
+                        loc = loc[:, 0]
                     replacement.iloc[loc] = missing_value
             else:  # All replacements are identical
                 dtype = series.dtype
