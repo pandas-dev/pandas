@@ -1301,66 +1301,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         return obj
 
-    def _validate_read_indexer(
-        self, key, indexer, axis: int, raise_missing: bool = False
-    ):
-        """
-        Check that indexer can be used to return a result.
-
-        e.g. at least one element was found,
-        unless the list of keys was actually empty.
-
-        Parameters
-        ----------
-        key : list-like
-            Targeted labels (only used to show correct error message).
-        indexer: array-like of booleans
-            Indices corresponding to the key,
-            (with -1 indicating not found).
-        axis: int
-            Dimension on which the indexing is being made.
-        raise_missing: bool
-            Whether to raise a KeyError if some labels are not found. Will be
-            removed in the future, and then this method will always behave as
-            if raise_missing=True.
-
-        Raises
-        ------
-        KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
-        """
-        ax = self.obj._get_axis(axis)
-
-        if len(key) == 0:
-            return
-
-        # Count missing values:
-        missing = (indexer < 0).sum()
-
-        if missing:
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
-            # We (temporarily) allow for some missing keys with .loc, except in
-            # some cases (e.g. setting) in which "raise_missing" will be False
-            if not (self.name == "loc" and not raise_missing):
-                not_found = list(set(key) - set(ax))
-                raise KeyError(f"{not_found} not in index")
-
-            # we skip the warning on Categorical/Interval
-            # as this check is actually done (check for
-            # non-missing values), but a bit later in the
-            # code, so we want to avoid warning & then
-            # just raising
-            if not (ax.is_categorical() or ax.is_interval()):
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported, see "
-                    "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
-
     def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         raise AbstractMethodError(self)
 
@@ -1818,6 +1758,66 @@ class _LocIndexer(_LocationIndexer):
 
         self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
         return keyarr, indexer
+
+    def _validate_read_indexer(
+        self, key, indexer, axis: int, raise_missing: bool = False
+    ):
+        """
+        Check that indexer can be used to return a result.
+
+        e.g. at least one element was found,
+        unless the list of keys was actually empty.
+
+        Parameters
+        ----------
+        key : list-like
+            Targeted labels (only used to show correct error message).
+        indexer: array-like of booleans
+            Indices corresponding to the key,
+            (with -1 indicating not found).
+        axis: int
+            Dimension on which the indexing is being made.
+        raise_missing: bool
+            Whether to raise a KeyError if some labels are not found. Will be
+            removed in the future, and then this method will always behave as
+            if raise_missing=True.
+
+        Raises
+        ------
+        KeyError
+            If at least one key was requested but none was found, and
+            raise_missing=True.
+        """
+        ax = self.obj._get_axis(axis)
+
+        if len(key) == 0:
+            return
+
+        # Count missing values:
+        missing = (indexer < 0).sum()
+
+        if missing:
+            if missing == len(indexer):
+                axis_name = self.obj._get_axis_name(axis)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            # We (temporarily) allow for some missing keys with .loc, except in
+            # some cases (e.g. setting) in which "raise_missing" will be False
+            if not (self.name == "loc" and not raise_missing):
+                not_found = list(set(key) - set(ax))
+                raise KeyError(f"{not_found} not in index")
+
+            # we skip the warning on Categorical/Interval
+            # as this check is actually done (check for
+            # non-missing values), but a bit later in the
+            # code, so we want to avoid warning & then
+            # just raising
+            if not (ax.is_categorical() or ax.is_interval()):
+                raise KeyError(
+                    "Passing list-likes to .loc or [] with any missing labels "
+                    "is no longer supported, see "
+                    "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                )
 
 
 @Appender(IndexingMixin.iloc.__doc__)
