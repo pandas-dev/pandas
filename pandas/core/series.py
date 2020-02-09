@@ -840,8 +840,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0, kind=None) -> "Series":
-        slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
+    def _slice(self, slobj: slice, axis: int = 0, kind: str = "getitem") -> "Series":
+        assert kind in ["getitem", "iloc"]
+        if kind == "getitem":
+            # If called from getitem, we need to determine whether
+            #  this slice is positional or label-based.
+            slobj = self.index._convert_slice_indexer(slobj, kind="getitem")
         return self._get_values(slobj)
 
     def __getitem__(self, key):
@@ -883,7 +887,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            return self._slice(key)
+            return self._slice(key, kind="getitem")
         elif isinstance(key, ABCDataFrame):
             raise TypeError(
                 "Indexing a Series with DataFrame is not "
@@ -918,7 +922,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 indexer = self.index.get_indexer_for(key)
                 return self.iloc[indexer]
             else:
-                return self._get_values(key)
+                return self.iloc[key]
 
         if isinstance(key, (list, tuple)):
             # TODO: de-dup with tuple case handled above?
@@ -927,6 +931,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # [slice(0, 5, None)] will break if you convert to ndarray,
                 # e.g. as requested by np.median
                 # FIXME: hack
+                if isinstance(key, list):
+                    # GH#31299
+                    warnings.warn(
+                        "Indexing with a single-item list containing a "
+                        "slice is deprecated and will raise in a future "
+                        "version.  Pass a tuple instead.",
+                        FutureWarning,
+                        stacklevel=3,
+                    )
+                    # TODO: use a message more like numpy's?
+                    key = tuple(key)
                 return self._get_values(key)
 
             return self.loc[key]
@@ -978,6 +993,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if takeable:
             return self._values[label]
+
+        # We assume that _convert_scalar_indexer has already been called,
+        #  with kind="loc", if necessary, by the time we get here
         return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):
