@@ -463,7 +463,7 @@ class TestDatetimeArray(SharedTests):
         else:
             other = arr.tz_localize(None)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match="to_concat must have the same"):
             arr._concat_same_type([arr, other])
 
     def test_concat_same_type_different_freq(self):

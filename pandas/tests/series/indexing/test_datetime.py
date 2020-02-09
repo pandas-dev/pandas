@@ -364,7 +364,9 @@ def test_getitem_median_slice_bug():
     s = Series(np.random.randn(13), index=index)
 
     indexer = [slice(6, 7, None)]
-    result = s[indexer]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31299
+        result = s[indexer]
     expected = s[indexer[0]]
     tm.assert_series_equal(result, expected)
 

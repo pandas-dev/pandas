@@ -830,6 +830,9 @@ class Block(PandasObject):
         """
         transpose = self.ndim == 2
 
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
+
         # coerce None values, if appropriate
         if value is None:
             if self.is_numeric:
