@@ -42,7 +42,9 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
--
+- :func:`pandas.read_csv` now accepts engine="arrow" as an argument, allowing for faster csv parsing
+  if pyarrow>0.11 is installed. However, the pyarrow engine is less feature-complete than its "c" or
+  "python" counterparts.
 -
 
 .. ---------------------------------------------------------------------------

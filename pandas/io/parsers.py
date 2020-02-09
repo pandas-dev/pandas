@@ -708,6 +708,7 @@ def read_fwf(
     infer_nrows=100,
     **kwds,
 ):
+
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -3396,6 +3397,7 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
+
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
