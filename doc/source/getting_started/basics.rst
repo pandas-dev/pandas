@@ -689,6 +689,15 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    s.value_counts()
    pd.value_counts(data)
 
+The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
+By default all columns are used but a subset can be selected using the ``subset`` argument.
+
+.. ipython:: python
+
+    data = {"a": [1, 2, 3, 4], "b": ["x", "x", "y", "y"]}
+    df = pd.DataFrame(data)
+    df.value_counts()
+
 Similarly, you can get the most frequently occurring value(s) (the mode) of the values in a Series or DataFrame:
 
 .. ipython:: python
