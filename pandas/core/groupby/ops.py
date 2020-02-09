@@ -784,7 +784,7 @@ class BinGrouper(BaseGrouper):
             slicer = lambda start, edge: data.iloc[start:edge]
         else:
             slicer = lambda start, edge: data.iloc[:, start:edge]
-        #slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
+
         length = len(data.axes[axis])
 
         start = 0
