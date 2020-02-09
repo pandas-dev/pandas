@@ -119,14 +119,14 @@ For example:
 .. code-block:: python
 
     value = str
-    f"Unknown recived value, got: {repr(value)}"
+    f"Unknown received value, got: {repr(value)}"
 
 **Good:**
 
 .. code-block:: python
 
     value = str
-    f"Unknown recived type, got: '{type(value).__name__}'"
+    f"Unknown received type, got: '{type(value).__name__}'"
 
 
 Imports (aim for absolute)
