@@ -73,17 +73,13 @@ def test_series_set_value():
     dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
     index = DatetimeIndex(dates)
 
-    s = Series(dtype=object)._set_value(dates[0], 1.0)
-    s2 = s._set_value(dates[1], np.nan)
+    s = Series(dtype=object)
+    s._set_value(dates[0], 1.0)
+    s._set_value(dates[1], np.nan)
 
     expected = Series([1.0, np.nan], index=index)
 
-    tm.assert_series_equal(s2, expected)
-
-    # FIXME: dont leave commented-out
-    # s = Series(index[:1], index[:1])
-    # s2 = s._set_value(dates[1], index[1])
-    # assert s2.values.dtype == 'M8[ns]'
+    tm.assert_series_equal(s, expected)
 
 
 @pytest.mark.slow

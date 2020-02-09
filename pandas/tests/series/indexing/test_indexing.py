@@ -375,15 +375,15 @@ def test_setitem_dtypes():
 def test_set_value(datetime_series, string_series):
     idx = datetime_series.index[10]
     res = datetime_series._set_value(idx, 0)
-    assert res is datetime_series
+    assert res is None
     assert datetime_series[idx] == 0
 
     # equiv
     s = string_series.copy()
     res = s._set_value("foobar", 0)
-    assert res is s
-    assert res.index[-1] == "foobar"
-    assert res["foobar"] == 0
+    assert res is None
+    assert s.index[-1] == "foobar"
+    assert s["foobar"] == 0
 
     s = string_series.copy()
     s.loc["foobar"] = 0
