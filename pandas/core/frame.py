@@ -69,6 +69,7 @@ from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     maybe_upcast,
     maybe_upcast_putmask,
+    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -2900,12 +2901,8 @@ class DataFrame(NDFrame):
         engine = self.index._engine
 
         try:
-            if isinstance(series._values, np.ndarray):
-                # i.e. not EA, we can use engine
-                return engine.get_value(series._values, index)
-            else:
-                loc = series.index.get_loc(index)
-                return series._values[loc]
+            loc = engine.get_loc(index)
+            return series._values[loc]
         except KeyError:
             # GH 20629
             if self.index.nlevels > 1:
@@ -3028,10 +3025,14 @@ class DataFrame(NDFrame):
 
             series = self._get_item_cache(col)
             engine = self.index._engine
-            engine.set_value(series._values, index, value)
+            loc = engine.get_loc(index)
+            validate_numeric_casting(series.dtype, value)
+
+            series._values[loc] = value
+            # Note: trying to use series._set_value breaks tests in
+            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
             return self
         except (KeyError, TypeError):
-
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
@@ -6556,7 +6557,9 @@ Wild         185.0
     @Appender(
         _shared_docs["melt"]
         % dict(
-            caller="df.melt(", versionadded=".. versionadded:: 0.20.0\n", other="melt"
+            caller="df.melt(",
+            versionadded="\n    .. versionadded:: 0.20.0\n",
+            other="melt",
         )
     )
     def melt(

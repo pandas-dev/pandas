@@ -25,6 +25,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import nanops, ops
+import pandas.core.common as com
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -586,9 +587,8 @@ class IntegerArray(BaseMaskedArray):
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
         elif name in ["sum", "min", "max", "prod"]:
-            int_result = int(result)
-            if int_result == result:
-                result = int_result
+            # GH#31409 more performant than casting-then-checking
+            result = com.cast_scalar_indexer(result)
 
         return result
 

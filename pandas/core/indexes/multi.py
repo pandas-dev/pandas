@@ -1,14 +1,24 @@
-import datetime
 from sys import getsizeof
-from typing import Any, Hashable, List, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import Timestamp, algos as libalgos, index as libindex, lib, tslibs
+from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
+from pandas._typing import AnyArrayLike, ArrayLike, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly
@@ -55,6 +65,9 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -676,8 +689,11 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Levels Methods
 
-    @property
+    @cache_readonly
     def levels(self):
+        # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
+        # create new IndexEngine
+        # https://github.com/pandas-dev/pandas/issues/31648
         result = [
             x._shallow_copy(name=name) for x, name in zip(self._levels, self._names)
         ]
@@ -1300,6 +1316,9 @@ class MultiIndex(Index):
                         f"{type(self).__name__}.name must be a hashable type"
                     )
             self._names[lev] = name
+
+        # If .levels has been accessed, the names in our cache will be stale.
+        self._reset_cache()
 
     names = property(
         fset=_set_names, fget=_get_names, doc="""\nNames of levels in MultiIndex.\n"""
@@ -2314,67 +2333,39 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # Label-based
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
-
-        def _try_mi(k):
-            # TODO: what if a level contains tuples??
-            loc = self.get_loc(k)
-            new_values = series._values[loc]
-            new_index = self[loc]
-            new_index = maybe_droplevels(new_index, k)
-            return series._constructor(
-                new_values, index=new_index, name=series.name
-            ).__finalize__(self)
-
-        try:
-            return self._engine.get_value(s, k)
-        except KeyError as e1:
-            try:
-                return _try_mi(key)
-            except KeyError:
-                pass
-
-            try:
-                return libindex.get_value_at(s, k)
-            except IndexError:
-                raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
-                raise e1
-        except TypeError:
-
-            # a Timestamp will raise a TypeError in a multi-index
-            # rather than a KeyError, try it here
-            # note that a string that 'looks' like a Timestamp will raise
-            # a KeyError! (GH5725)
-            if isinstance(key, (datetime.datetime, np.datetime64, str)):
-                try:
-                    return _try_mi(key)
-                except KeyError:
-                    raise
-                except (IndexError, ValueError, TypeError):
-                    pass
-
-                try:
-                    return _try_mi(Timestamp(key))
-                except (
-                    KeyError,
-                    TypeError,
-                    IndexError,
-                    ValueError,
-                    tslibs.OutOfBoundsDatetime,
-                ):
-                    pass
-
+        if not is_hashable(key) or is_iterator(key):
+            # We allow tuples if they are hashable, whereas other Index
+            #  subclasses require scalar.
+            # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
-    def _convert_listlike_indexer(self, keyarr, kind=None):
+        try:
+            loc = self.get_loc(key)
+        except KeyError:
+            if is_integer(key):
+                loc = key
+            else:
+                raise
+
+        return self._get_values_for_loc(series, loc, key)
+
+    def _get_values_for_loc(self, series: "Series", loc, key):
+        """
+        Do a positional lookup on the given Series, returning either a scalar
+        or a Series.
+
+        Assumes that `series.index is self`
+        """
+        new_values = series._values[loc]
+        if is_scalar(loc):
+            return new_values
+
+        new_index = self[loc]
+        new_index = maybe_droplevels(new_index, key)
+        new_ser = series._constructor(new_values, index=new_index, name=series.name)
+        return new_ser.__finalize__(series)
+
+    def _convert_listlike_indexer(self, keyarr):
         """
         Parameters
         ----------
@@ -2387,7 +2378,7 @@ class MultiIndex(Index):
             indexer is an ndarray or None if cannot convert
             keyarr are tuple-safe keys
         """
-        indexer, keyarr = super()._convert_listlike_indexer(keyarr, kind=kind)
+        indexer, keyarr = super()._convert_listlike_indexer(keyarr)
 
         # are we indexing a specific level
         if indexer is None and len(keyarr) and not isinstance(keyarr[0], tuple):
@@ -3081,9 +3072,69 @@ class MultiIndex(Index):
         # empty indexer
         if indexer is None:
             return Int64Index([])._ndarray_values
+
+        indexer = self._reorder_indexer(seq, indexer)
+
         return indexer._ndarray_values
 
-    # --------------------------------------------------------------------
+    def _reorder_indexer(
+        self, seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...], indexer: ArrayLike
+    ) -> ArrayLike:
+        """
+        Reorder an indexer of a MultiIndex (self) so that the label are in the
+        same order as given in seq
+
+        Parameters
+        ----------
+        seq : label/slice/list/mask or a sequence of such
+        indexer: an Int64Index indexer of self
+
+        Returns
+        -------
+        indexer : a sorted Int64Index indexer of self ordered as seq
+        """
+        # If the index is lexsorted and the list_like label in seq are sorted
+        # then we do not need to sort
+        if self.is_lexsorted():
+            need_sort = False
+            for i, k in enumerate(seq):
+                if is_list_like(k):
+                    if not need_sort:
+                        k_codes = self.levels[i].get_indexer(k)
+                        k_codes = k_codes[k_codes >= 0]  # Filter absent keys
+                        # True if the given codes are not ordered
+                        need_sort = (k_codes[:-1] > k_codes[1:]).any()
+            # Bail out if both index and seq are sorted
+            if not need_sort:
+                return indexer
+
+        n = len(self)
+        keys: Tuple[np.ndarray, ...] = tuple()
+        # For each level of the sequence in seq, map the level codes with the
+        # order they appears in a list-like sequence
+        # This mapping is then use to reorder the indexer
+        for i, k in enumerate(seq):
+            if com.is_bool_indexer(k):
+                new_order = np.arange(n)[indexer]
+            elif is_list_like(k):
+                # Generate a map with all level codes as sorted initially
+                key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
+                    self.levels[i]
+                )
+                # Set order as given in the indexer list
+                level_indexer = self.levels[i].get_indexer(k)
+                level_indexer = level_indexer[level_indexer >= 0]  # Filter absent keys
+                key_order_map[level_indexer] = np.arange(len(level_indexer))
+
+                new_order = key_order_map[self.codes[i][indexer]]
+            else:
+                # For all other case, use the same order as the level
+                new_order = np.arange(n)[indexer]
+            keys = (new_order,) + keys
+
+        # Find the reordering using lexsort on the keys mapping
+        ind = np.lexsort(keys)
+        return indexer[ind]
 
     def truncate(self, before=None, after=None):
         """
