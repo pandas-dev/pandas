@@ -67,7 +67,7 @@ will be completed:
    @verbatim
    In [1]: df2.<TAB>  # noqa: E225, E999
    df2.A                  df2.bool
-   df2.abs()              df2.boxplot
+   df2.abs                df2.boxplot
    df2.add                df2.C
    df2.add_prefix         df2.clip
    df2.add_suffix         df2.columns
