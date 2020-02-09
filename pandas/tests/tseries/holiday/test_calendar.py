@@ -98,3 +98,15 @@ def test_calendar_2031():
     Sat_before_Labor_Day_2031 = to_datetime("2031-08-30")
     next_working_day = Sat_before_Labor_Day_2031 + 0 * workDay
     assert next_working_day == to_datetime("2031-09-02")
+
+
+def test_no_holidays_calendar():
+    # Test for issue #31415
+
+    class NoHolidaysCalendar(AbstractHolidayCalendar):
+        pass
+
+    cal = NoHolidaysCalendar()
+    holidays = cal.holidays(Timestamp("01-Jan-2020"), Timestamp("01-Jan-2021"))
+    empty_index = DatetimeIndex([])  # Type is DatetimeIndex since return_name=False
+    tm.assert_index_equal(holidays, empty_index)
