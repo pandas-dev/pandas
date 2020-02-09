@@ -606,9 +606,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         iv = Period(parsed, freq=(grp, 1))
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
-        parsed, reso = parse_time_string(key, self.freq)
+    def _validate_partial_date_slice(self, reso: str):
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
 
@@ -616,35 +614,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             # TODO: we used to also check for
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
-            raise ValueError(key)
+            raise ValueError
 
-        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        i8vals = self.asi8
+    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+        # TODO: Check for non-True use_lhs/use_rhs
+        parsed, reso = parse_time_string(key, self.freq)
 
-        if self.is_monotonic:
-
-            # we are out of range
-            if len(self) and (
-                (use_lhs and t1 < self[0] and t2 < self[0])
-                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
-            ):
-                raise KeyError(key)
-
-            # TODO: does this depend on being monotonic _increasing_?
-            #  If so, DTI will also be affected.
-
-            # a monotonic (sorted) series can be sliced
-            # Use asi8.searchsorted to avoid re-validating Periods
-            left = i8vals.searchsorted(t1.ordinal, side="left") if use_lhs else None
-            right = i8vals.searchsorted(t2.ordinal, side="right") if use_rhs else None
-            return slice(left, right)
-
-        else:
-            lhs_mask = (i8vals >= t1.ordinal) if use_lhs else True
-            rhs_mask = (i8vals <= t2.ordinal) if use_rhs else True
-
-            # try to find a the dates
-            return (lhs_mask & rhs_mask).nonzero()[0]
+        try:
+            return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
+        except KeyError:
+            raise KeyError(key)
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
