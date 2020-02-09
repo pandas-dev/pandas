@@ -250,12 +250,11 @@ class IntegerIndex(NumericIndex):
         return self.values.view(self._default_dtype)
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["loc", "getitem", "iloc", None]
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["loc", "getitem"]
 
-        # don't coerce ilocs to integers
-        if kind != "iloc":
-            key = self._maybe_cast_indexer(key)
+        # never iloc, which we don't coerce to integers
+        key = self._maybe_cast_indexer(key)
         return super()._convert_scalar_indexer(key, kind=kind)
 
 
@@ -388,20 +387,16 @@ class Float64Index(NumericIndex):
         return False
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        if kind == "iloc":
-            self._validate_indexer("positional", key, "iloc")
-
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["loc", "getitem"]
+        # no-op for non-iloc
         return key
 
     @Appender(Index._convert_slice_indexer.__doc__)
     def _convert_slice_indexer(self, key: slice, kind=None):
+        assert kind in ["loc", "getitem", None]
 
-        if kind == "iloc":
-            return super()._convert_slice_indexer(key, kind=kind)
-
+        # We always treat __getitem__ slicing as label-based
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 

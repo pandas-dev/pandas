@@ -603,9 +603,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         iv = Period(parsed, freq=(grp, 1))
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
-        parsed, reso = parse_time_string(key, self.freq)
+    def _validate_partial_date_slice(self, reso: str):
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
 
@@ -613,35 +611,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             # TODO: we used to also check for
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
-            raise ValueError(key)
+            raise ValueError
 
-        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        i8vals = self.asi8
+    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+        # TODO: Check for non-True use_lhs/use_rhs
+        parsed, reso = parse_time_string(key, self.freq)
 
-        if self.is_monotonic:
-
-            # we are out of range
-            if len(self) and (
-                (use_lhs and t1 < self[0] and t2 < self[0])
-                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
-            ):
-                raise KeyError(key)
-
-            # TODO: does this depend on being monotonic _increasing_?
-            #  If so, DTI will also be affected.
-
-            # a monotonic (sorted) series can be sliced
-            # Use asi8.searchsorted to avoid re-validating Periods
-            left = i8vals.searchsorted(t1.ordinal, side="left") if use_lhs else None
-            right = i8vals.searchsorted(t2.ordinal, side="right") if use_rhs else None
-            return slice(left, right)
-
-        else:
-            lhs_mask = (i8vals >= t1.ordinal) if use_lhs else True
-            rhs_mask = (i8vals <= t2.ordinal) if use_rhs else True
-
-            # try to find a the dates
-            return (lhs_mask & rhs_mask).nonzero()[0]
+        try:
+            return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
+        except KeyError:
+            raise KeyError(key)
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
@@ -688,10 +667,26 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if isinstance(other, PeriodIndex) and self.freq != other.freq:
             raise raise_on_incompatible(self, other)
 
-    def intersection(self, other, sort=False):
+    def _setop(self, other, sort, opname: str):
+        """
+        Perform a set operation by dispatching to the Int64Index implementation.
+        """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         res_name = get_op_result_name(self, other)
+        other = ensure_index(other)
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = getattr(i8self, opname)(i8other, sort=sort)
+
+        parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
+        result = type(self)._simple_new(parr, name=res_name)
+        return result
+
+    def intersection(self, other, sort=False):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
         other = ensure_index(other)
 
         if self.equals(other):
@@ -703,22 +698,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             other = other.astype("O")
             return this.intersection(other, sort=sort)
 
-        i8self = Int64Index._simple_new(self.asi8)
-        i8other = Int64Index._simple_new(other.asi8)
-        i8result = i8self.intersection(i8other, sort=sort)
-
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
-        return result
+        return self._setop(other, sort, opname="intersection")
 
     def difference(self, other, sort=None):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        res_name = get_op_result_name(self, other)
         other = ensure_index(other)
 
         if self.equals(other):
             # pass an empty PeriodArray with the appropriate dtype
-            return self._shallow_copy(self._data[:0])
+            return type(self)._simple_new(self._data[:0], name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)
@@ -726,12 +715,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         elif not is_dtype_equal(self.dtype, other.dtype):
             return self
 
-        i8self = Int64Index._simple_new(self.asi8)
-        i8other = Int64Index._simple_new(other.asi8)
-        i8result = i8self.difference(i8other, sort=sort)
-
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
-        return result
+        return self._setop(other, sort, opname="difference")
 
     def _union(self, other, sort):
         if not len(other) or self.equals(other) or not len(self):
@@ -745,13 +729,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             other = other.astype("O")
             return this._union(other, sort=sort)
 
-        i8self = Int64Index._simple_new(self.asi8)
-        i8other = Int64Index._simple_new(other.asi8)
-        i8result = i8self._union(i8other, sort=sort)
-
-        res_name = get_op_result_name(self, other)
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
-        return result
+        return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------
 
