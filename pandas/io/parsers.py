@@ -167,7 +167,7 @@ dtype : Type name or dict of column -> type, optional
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 engine : {{'c', 'python', 'arrow'}}, optional
-    Parser engine to use. The C and arrow engines are faster while the python engine is
+    Parser engine to use. The C and arrow engines are faster, while the python engine is
     currently more feature-complete. The arrow engine requires ``pyarrow``
     as a dependency however.
 converters : dict, optional
@@ -507,6 +507,7 @@ _parser_defaults = {
     "infer_datetime_format": False,
     "skip_blank_lines": True,
 }
+
 
 _c_parser_defaults = {
     "delim_whitespace": False,
