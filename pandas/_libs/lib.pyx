@@ -1371,8 +1371,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     elif PyDateTime_Check(val):
         if is_datetime_array(values):
-            if (is_datetimetz_na_array(values)
-                or is_datetimetz_array(values)):
+            if is_datetimetz_array(values):
                 return "datetimetz"
             else:
                 return "datetime"
@@ -1765,21 +1764,6 @@ cpdef bint is_datetimetz_array(ndarray values):
     cdef:
         DatetimeTZValidator validator = DatetimeTZValidator(len(values),
                                                             skipna=True)
-    return validator.validate(values)
-
-
-cdef class DatetimeTZNaValidator(TemporalValidator):
-    cdef bint is_value_typed(self, object value) except -1:
-        return (PyDateTime_Check(value) and (value.tzinfo is not None)
-                or util.is_nan(value))
-
-    cdef inline bint is_valid_null(self, object value) except -1:
-        return is_null_datetime64(value)
-
-
-cpdef bint is_datetimetz_na_array(ndarray values):
-    cdef:
-        DatetimeTZNaValidator validator = DatetimeTZNaValidator(len(values))
     return validator.validate(values)
 
 
