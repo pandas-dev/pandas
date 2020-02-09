@@ -771,15 +771,22 @@ def test_integer_array_constructor_copy():
     assert result._mask is not mask
 
 
-def test_integer_Series_iter_return_native():
-    assert isinstance(pd.Series([1, 2], dtype="int64").tolist()[0], int)
-    assert isinstance(pd.Series([1, 2], dtype="Int64").tolist()[0], int)
-    assert isinstance(pd.Series([1, 2], dtype="int64").to_dict()[0], int)
-    assert isinstance(pd.Series([1, 2], dtype="Int64").to_dict()[0], int)
-    assert isinstance(list(pd.Series([1, 2], dtype="int64").iteritems())[0][1], int)
-    assert isinstance(list(pd.Series([1, 2], dtype="Int64").iteritems())[0][1], int)
-    assert isinstance(list(iter(pd.Series([1, 2], dtype="int64")))[0], int)
-    assert isinstance(list(iter(pd.Series([1, 2], dtype="Int64")))[0], int)
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.Series([1, 2], dtype="int64").tolist()[0],
+        pd.Series([1, 2], dtype="Int64").tolist()[0],
+        pd.Series([1, 2], dtype="int64").to_dict()[0],
+        pd.Series([1, 2], dtype="Int64").to_dict()[0],
+        list(pd.Series([1, 2], dtype="int64").iteritems())[0][1],
+        list(pd.Series([1, 2], dtype="Int64").iteritems())[0][1],
+        list(iter(pd.Series([1, 2], dtype="int64")))[0],
+        list(iter(pd.Series([1, 2], dtype="Int64")))[0],
+    ],
+)
+def test_integer_Series_iter_return_native(data):
+    # GH 29738
+    assert isinstance(data, int)
 
 
 @pytest.mark.parametrize(
