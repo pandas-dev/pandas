@@ -1135,7 +1135,7 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        if self.engine == "arrow":
+        if isinstance(self._engine, ArrowParserWrapper):
             return self._engine.read(nrows)
         else:
             nrows = _validate_integer("nrows", nrows)
@@ -2165,9 +2165,6 @@ class ArrowParserWrapper(ParserBase):
 
         # GH20529, validate usecol arg before TextReader
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
-        kwds["usecols"] = self.usecols
-
-        self.names = kwds["names"]
 
     def read(self, nrows=None):
         pyarrow = import_optional_dependency(
