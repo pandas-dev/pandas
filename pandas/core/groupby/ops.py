@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
+    is_period_dtype,
     is_sparse,
     is_timedelta64_dtype,
     needs_i8_conversion,
@@ -567,7 +568,12 @@ class BaseGrouper:
         if swapped:
             result = result.swapaxes(0, axis)
 
-        if is_datetime64tz_dtype(orig_values.dtype):
+        if is_datetime64tz_dtype(orig_values.dtype) or is_period_dtype(
+            orig_values.dtype
+        ):
+            # We need to use the constructors directly for these dtypes
+            # since numpy won't recognize them
+            # https://github.com/pandas-dev/pandas/issues/31471
             result = type(orig_values)(result.astype(np.int64), dtype=orig_values.dtype)
         elif is_datetimelike and kind == "aggregate":
             result = result.astype(orig_values.dtype)
@@ -652,7 +658,7 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj._get_values(slice(None, 0))
+        dummy = obj.iloc[:0]
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
@@ -774,7 +780,11 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
+        if axis == 0:
+            slicer = lambda start, edge: data.iloc[start:edge]
+        else:
+            slicer = lambda start, edge: data.iloc[:, start:edge]
+
         length = len(data.axes[axis])
 
         start = 0
@@ -913,7 +923,7 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata._get_values(slice_obj)
+        return sdata.iloc[slice_obj]
 
 
 class FrameSplitter(DataSplitter):
@@ -928,7 +938,7 @@ class FrameSplitter(DataSplitter):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)
+            return sdata.iloc[:, slice_obj]
 
 
 def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
