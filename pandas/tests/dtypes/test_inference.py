@@ -837,7 +837,7 @@ class TestTypeInference:
     def test_infer_dtypes_datetimetz(self):
 
         # starts with nan
-        for n in [pd.NaT, np.nan, np.datetime64('NaT'), None]:
+        for n in [pd.NaT, np.nan, np.datetime64("NaT"), None]:
             arr = np.array([n, datetime(2011, 1, 1, tzinfo=pytz.utc)])
             assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
 
@@ -845,13 +845,17 @@ class TestTypeInference:
             assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
 
         # datetimes with different timezones
-        arr = [datetime(2011, 1, 2, tzinfo=pytz.utc),
-               datetime(2011, 1, 2, tzinfo=pytz.timezone('US/Eastern'))]
+        arr = [
+            datetime(2011, 1, 2, tzinfo=pytz.utc),
+            datetime(2011, 1, 2, tzinfo=pytz.timezone("US/Eastern")),
+        ]
         assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
 
         # pd.Timestamps with different timezones
-        arr = [pd.Timestamp('2011-01-02', tz='UTC'),
-               pd.Timestamp('2011-01-02', tz='US/Eastern')]
+        arr = [
+            pd.Timestamp("2011-01-02", tz="UTC"),
+            pd.Timestamp("2011-01-02", tz="US/Eastern"),
+        ]
         assert lib.infer_dtype(arr, skipna=True) == "datetimetz"
 
     def test_infer_dtype_timedelta(self):
