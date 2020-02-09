@@ -1,7 +1,7 @@
 """ define the IntervalIndex """
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
@@ -56,10 +56,6 @@ from pandas.core.ops import get_op_result_name
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
-
-if TYPE_CHECKING:
-    from pandas import Series
-
 
 _VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -349,7 +345,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["_shallow_copy"])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, left=None, right=None, **kwargs):
         result = self._data._shallow_copy(left=left, right=right)
         attributes = self._get_attributes_dict()
@@ -419,7 +415,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
@@ -527,17 +523,22 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
-    @Appender(_index_shared_docs["_convert_scalar_indexer"])
-    def _convert_scalar_indexer(self, key, kind=None):
-        if kind == "iloc":
-            return super()._convert_scalar_indexer(key, kind=kind)
+    def _should_fallback_to_positional(self):
+        # integer lookups in Series.__getitem__ are unambiguously
+        #  positional in this case
+        return self.dtype.subtype.kind in ["m", "M"]
+
+    @Appender(Index._convert_scalar_indexer.__doc__)
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["getitem", "loc"]
+        # never iloc, so no-op
         return key
 
     def _maybe_cast_slice_bound(self, label, side, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
-    @Appender(_index_shared_docs["_convert_list_indexer"])
-    def _convert_list_indexer(self, keyarr, kind=None):
+    @Appender(Index._convert_list_indexer.__doc__)
+    def _convert_list_indexer(self, keyarr):
         """
         we are passed a list-like indexer. Return the
         indexer for matching intervals.
@@ -884,17 +885,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
 
-    @Appender(_index_shared_docs["get_value"] % _index_doc_kwargs)
-    def get_value(self, series: "Series", key):
-        loc = self.get_loc(key)
-        return series.iloc[loc]
-
     def _convert_slice_indexer(self, key: slice, kind=None):
         if not (key.step is None or key.step == 1):
             raise ValueError("cannot support not-default step in a slice")
         return super()._convert_slice_indexer(key, kind)
 
-    @Appender(_index_shared_docs["where"])
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
@@ -1055,7 +1051,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             and self.closed == other.closed
         )
 
-    @Appender(_index_shared_docs["intersection"])
+    @Appender(Index.intersection.__doc__)
     @SetopCheck(op_name="intersection")
     def intersection(
         self, other: "IntervalIndex", sort: bool = False

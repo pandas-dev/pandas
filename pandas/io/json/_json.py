@@ -19,12 +19,7 @@ from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import (
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-    stringify_path,
-)
+from pandas.io.common import get_filepath_or_buffer, get_handle, infer_compression
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import _validate_integer
@@ -56,7 +51,11 @@ def to_json(
             "'index=False' is only valid when 'orient' is 'split' or 'table'"
         )
 
-    path_or_buf = stringify_path(path_or_buf)
+    if path_or_buf is not None:
+        path_or_buf, _, _, _ = get_filepath_or_buffer(
+            path_or_buf, compression=compression, mode="w"
+        )
+
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 

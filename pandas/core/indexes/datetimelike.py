@@ -1,8 +1,7 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-import operator
-from typing import Any, List, Optional, Set, Union
+from typing import Any, List, Optional, Union
 
 import numpy as np
 
@@ -30,7 +29,6 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
-from pandas.core.accessor import PandasDelegate
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import _shared_docs
@@ -82,7 +80,16 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    ["__iter__", "mean", "freq", "freqstr", "_ndarray_values", "asi8", "_box_values"],
+    [
+        "__iter__",
+        "mean",
+        "freq",
+        "freqstr",
+        "_ndarray_values",
+        "asi8",
+        "_box_values",
+        "_box_func",
+    ],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -153,7 +160,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return np.array_equal(self.asi8, other.asi8)
 
-    @Appender(_index_shared_docs["contains"] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
         hash(key)
         try:
@@ -193,7 +200,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             arr = type(self._data)._simple_new(
                 sorted_values, dtype=self.dtype, freq=freq
             )
-            return self._simple_new(arr, name=self.name)
+            return type(self)._simple_new(arr, name=self.name)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
@@ -376,8 +383,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         return attrs
 
     # --------------------------------------------------------------------
+    # Indexing Methods
 
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str):
         """
         We don't allow integer or float indexing on datetime-like when using
         loc.
@@ -385,22 +393,26 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
 
-        assert kind in ["loc", "getitem", "iloc", None]
+        assert kind in ["loc", "getitem"]
+
+        if not is_scalar(key):
+            raise TypeError(key)
 
         # we don't allow integer/float indexing for loc
-        # we don't allow float indexing for ix/getitem
-        if is_scalar(key):
-            is_int = is_integer(key)
-            is_flt = is_float(key)
-            if kind in ["loc"] and (is_int or is_flt):
-                self._invalid_indexer("index", key)
-            elif kind in ["getitem"] and is_flt:
-                self._invalid_indexer("index", key)
+        # we don't allow float indexing for getitem
+        is_int = is_integer(key)
+        is_flt = is_float(key)
+        if kind == "loc" and (is_int or is_flt):
+            self._invalid_indexer("label", key)
+        elif kind == "getitem" and is_flt:
+            self._invalid_indexer("label", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    # --------------------------------------------------------------------
 
     __add__ = make_wrapped_arith_op("__add__")
     __radd__ = make_wrapped_arith_op("__radd__")
@@ -443,7 +455,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    @Appender(_index_shared_docs["where"] % _index_doc_kwargs)
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         values = self.view("i8")
 
@@ -516,7 +528,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             if is_diff_evenly_spaced:
                 new_data._freq = self.freq
 
-        return self._simple_new(new_data, name=name)
+        return type(self)._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -570,7 +582,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 if loc.start in (0, None) or loc.stop in (len(self), None):
                     freq = self.freq
 
-        return self._shallow_copy(new_i8s, freq=freq)
+        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+        return type(self)._simple_new(arr, name=self.name)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
@@ -611,6 +624,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if values is None:
             values = self._data
 
+        if isinstance(values, type(self)):
+            values = values._data
+        if isinstance(values, np.ndarray):
+            # TODO: We would rather not get here
+            if kwargs.get("freq") is not None:
+                raise ValueError(kwargs)
+            values = type(self._data)(values, dtype=self.dtype)
+
         attributes = self._get_attributes_dict()
 
         if "freq" not in kwargs and self.freq is not None:
@@ -619,7 +640,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                     del attributes["freq"]
 
         attributes.update(kwargs)
-        return self._simple_new(values, **attributes)
+        return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -789,13 +810,15 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         this, other = self._maybe_utc_convert(other)
 
         if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
+            result = this._fast_union(other, sort=sort)
+            if result.freq is None:
+                result._set_freq("infer")
+            return result
         else:
-            result = Index._union(this, other, sort=sort)
-            if isinstance(result, type(self)):
-                assert result._data.dtype == this.dtype
-                if result.freq is None:
-                    result._set_freq("infer")
+            i8self = Int64Index._simple_new(self.asi8, name=self.name)
+            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8result = i8self._union(i8other, sort=sort)
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
 
     # --------------------------------------------------------------------
@@ -877,7 +900,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             kwargs = {}
             if hasattr(self, "tz"):
                 kwargs["tz"] = getattr(other, "tz", None)
-            return self._simple_new(joined, name, **kwargs)
+            return type(self)._simple_new(joined, name, **kwargs)
 
     # --------------------------------------------------------------------
     # List-Like Methods
@@ -923,7 +946,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_i8s, freq=freq)
+            arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+            return type(self)._simple_new(arr, name=self.name)
         except (AttributeError, TypeError):
 
             # fall back to object index
@@ -932,42 +956,3 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             raise TypeError(
                 f"cannot insert {type(self).__name__} with incompatible label"
             )
-
-
-class DatetimelikeDelegateMixin(PandasDelegate):
-    """
-    Delegation mechanism, specific for Datetime, Timedelta, and Period types.
-
-    Functionality is delegated from the Index class to an Array class. A
-    few things can be customized
-
-    * _delegated_methods, delegated_properties : List
-        The list of property / method names being delagated.
-    * raw_methods : Set
-        The set of methods whose results should should *not* be
-        boxed in an index, after being returned from the array
-    * raw_properties : Set
-        The set of properties whose results should should *not* be
-        boxed in an index, after being returned from the array
-    """
-
-    # raw_methods : dispatch methods that shouldn't be boxed in an Index
-    _raw_methods: Set[str] = set()
-    # raw_properties : dispatch properties that shouldn't be boxed in an Index
-    _raw_properties: Set[str] = set()
-    _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
-
-    def _delegate_property_get(self, name, *args, **kwargs):
-        result = getattr(self._data, name)
-        if name not in self._raw_properties:
-            result = Index(result, name=self.name)
-        return result
-
-    def _delegate_property_set(self, name: str, value, *args, **kwargs):
-        setattr(self._data, name, value)
-
-    def _delegate_method(self, name, *args, **kwargs):
-        result = operator.methodcaller(name, *args, **kwargs)(self._data)
-        if name not in self._raw_methods:
-            result = Index(result, name=self.name)
-        return result
