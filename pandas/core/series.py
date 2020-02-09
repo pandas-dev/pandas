@@ -931,6 +931,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # [slice(0, 5, None)] will break if you convert to ndarray,
                 # e.g. as requested by np.median
                 # FIXME: hack
+                if isinstance(key, list):
+                    # GH#31299
+                    warnings.warn(
+                        "Indexing with a single-item list containing a "
+                        "slice is deprecated and will raise in a future "
+                        "version.  Pass a tuple instead.",
+                        FutureWarning,
+                        stacklevel=3,
+                    )
+                    # TODO: use a message more like numpy's?
+                    key = tuple(key)
                 return self._get_values(key)
 
             return self.loc[key]
