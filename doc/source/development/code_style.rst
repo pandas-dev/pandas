@@ -119,14 +119,14 @@ For example:
 .. code-block:: python
 
     value = str
-    f"Unknown recived value, got: {repr(value)}"
+    f"Unknown received value, got: {repr(value)}"
 
 **Good:**
 
 .. code-block:: python
 
     value = str
-    f"Unknown recived type, got: '{type(value).__name__}'"
+    f"Unknown received type, got: '{type(value).__name__}'"
 
 
 Imports (aim for absolute)
@@ -135,11 +135,11 @@ Imports (aim for absolute)
 In Python 3, absolute imports are recommended. In absolute import doing something
 like ``import string`` will import the string module rather than ``string.py``
 in the same directory. As much as possible, you should try to write out
-absolute imports that show the whole import chain from toplevel pandas.
+absolute imports that show the whole import chain from top-level pandas.
 
-Explicit relative imports are also supported in Python 3. But it is not
-recommended to use it. Implicit relative imports should never be used
-and is removed in Python 3.
+Explicit relative imports are also supported in Python 3 but it is not
+recommended to use them. Implicit relative imports should never be used
+and are removed in Python 3.
 
 For example:
 
