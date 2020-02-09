@@ -16,32 +16,27 @@ class TestLoc(Base):
     def test_loc_getitem_int(self):
 
         # int label
-        self.check_result("loc", 2, "loc", 2, typs=["label"], fails=KeyError)
+        self.check_result("loc", 2, typs=["labels"], fails=TypeError)
 
     def test_loc_getitem_label(self):
 
         # label
-        self.check_result("loc", "c", "loc", "c", typs=["empty"], fails=KeyError)
+        self.check_result("loc", "c", typs=["empty"], fails=KeyError)
 
     def test_loc_getitem_label_out_of_range(self):
 
         # out of range label
         self.check_result(
-            "loc",
-            "f",
-            "loc",
-            "f",
-            typs=["ints", "uints", "labels", "mixed", "ts"],
-            fails=KeyError,
+            "loc", "f", typs=["ints", "uints", "labels", "mixed", "ts"], fails=KeyError,
         )
-        self.check_result("loc", "f", "ix", "f", typs=["floats"], fails=KeyError)
-        self.check_result("loc", "f", "loc", "f", typs=["floats"], fails=KeyError)
+        self.check_result("loc", "f", typs=["floats"], fails=KeyError)
+        self.check_result("loc", "f", typs=["floats"], fails=KeyError)
         self.check_result(
-            "loc", 20, "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
+            "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
         )
-        self.check_result("loc", 20, "loc", 20, typs=["labels"], fails=TypeError)
-        self.check_result("loc", 20, "loc", 20, typs=["ts"], axes=0, fails=TypeError)
-        self.check_result("loc", 20, "loc", 20, typs=["floats"], axes=0, fails=KeyError)
+        self.check_result("loc", 20, typs=["labels"], fails=TypeError)
+        self.check_result("loc", 20, typs=["ts"], axes=0, fails=TypeError)
+        self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):
         # TODO: test something here?
@@ -50,49 +45,25 @@ class TestLoc(Base):
 
     def test_loc_getitem_label_list_with_missing(self):
         self.check_result(
-            "loc", [0, 1, 2], "loc", [0, 1, 2], typs=["empty"], fails=KeyError,
+            "loc", [0, 1, 2], typs=["empty"], fails=KeyError,
         )
         self.check_result(
-            "loc",
-            [0, 2, 10],
-            "ix",
-            [0, 2, 10],
-            typs=["ints", "uints", "floats"],
-            axes=0,
-            fails=KeyError,
+            "loc", [0, 2, 10], typs=["ints", "uints", "floats"], axes=0, fails=KeyError,
         )
 
         self.check_result(
-            "loc",
-            [3, 6, 7],
-            "ix",
-            [3, 6, 7],
-            typs=["ints", "uints", "floats"],
-            axes=1,
-            fails=KeyError,
+            "loc", [3, 6, 7], typs=["ints", "uints", "floats"], axes=1, fails=KeyError,
         )
 
         # GH 17758 - MultiIndex and missing keys
         self.check_result(
-            "loc",
-            [(1, 3), (1, 4), (2, 5)],
-            "ix",
-            [(1, 3), (1, 4), (2, 5)],
-            typs=["multi"],
-            axes=0,
-            fails=KeyError,
+            "loc", [(1, 3), (1, 4), (2, 5)], typs=["multi"], axes=0, fails=KeyError,
         )
 
     def test_loc_getitem_label_list_fails(self):
         # fails
         self.check_result(
-            "loc",
-            [20, 30, 40],
-            "loc",
-            [20, 30, 40],
-            typs=["ints", "uints"],
-            axes=1,
-            fails=KeyError,
+            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError,
         )
 
     def test_loc_getitem_label_array_like(self):
@@ -104,7 +75,7 @@ class TestLoc(Base):
         # boolean indexers
         b = [True, False, True, False]
 
-        self.check_result("loc", b, "loc", b, typs=["empty"], fails=IndexError)
+        self.check_result("loc", b, typs=["empty"], fails=IndexError)
 
     def test_loc_getitem_label_slice(self):
 
@@ -117,49 +88,23 @@ class TestLoc(Base):
         self.check_result(
             "loc",
             slice(1, 3),
-            "loc",
-            slice(1, 3),
             typs=["labels", "mixed", "empty", "ts", "floats"],
             fails=TypeError,
         )
 
         self.check_result(
-            "loc",
-            slice("20130102", "20130104"),
-            "loc",
-            slice("20130102", "20130104"),
-            typs=["ts"],
-            axes=1,
-            fails=TypeError,
+            "loc", slice("20130102", "20130104"), typs=["ts"], axes=1, fails=TypeError,
         )
 
         self.check_result(
-            "loc",
-            slice(2, 8),
-            "loc",
-            slice(2, 8),
-            typs=["mixed"],
-            axes=0,
-            fails=TypeError,
+            "loc", slice(2, 8), typs=["mixed"], axes=0, fails=TypeError,
         )
         self.check_result(
-            "loc",
-            slice(2, 8),
-            "loc",
-            slice(2, 8),
-            typs=["mixed"],
-            axes=1,
-            fails=KeyError,
+            "loc", slice(2, 8), typs=["mixed"], axes=1, fails=KeyError,
         )
 
         self.check_result(
-            "loc",
-            slice(2, 4, 2),
-            "loc",
-            slice(2, 4, 2),
-            typs=["mixed"],
-            axes=0,
-            fails=TypeError,
+            "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError,
         )
 
 
