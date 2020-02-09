@@ -157,7 +157,6 @@ class TestPeriodIndexComparisons:
             r"(:?Invalid comparison between dtype=period\[D\] and .*)"
             r"|(:?Cannot compare type Period with type .*)"
         )
-        # breakpoint()
         with pytest.raises(TypeError, match=msg):
             idx < other
         with pytest.raises(TypeError, match=msg):
@@ -630,7 +629,6 @@ class TestPeriodIndexArithmetic:
         # TODO: parametrize over boxes for other?
 
         rng = tm.box_expected(rng, box_with_array)
-        # breakpoint()
         msg = r"Input has different freq=[HD] from PeriodArray\(freq=[DH]\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng - other
@@ -684,7 +682,6 @@ class TestPeriodIndexArithmetic:
         dti = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
         pi = dti.to_period("D")
         pi = tm.box_expected(pi, box_with_array)
-        # breakpoint()
         msg = r"unsupported operand type\(s\) for [+-]: .* and .*"
         with pytest.raises(TypeError, match=msg):
             op(pi, other)
@@ -709,7 +706,6 @@ class TestPeriodIndexArithmetic:
         rng = pd.period_range("1/1/2000", freq="D", periods=3)
         rng = tm.box_expected(rng, box_with_array)
 
-        # breakpoint()
         msg = (
             r"(:?cannot add PeriodArray and .*)"
             r"|(:?cannot subtract .* from (:?a\s)?.*)"
@@ -731,7 +727,7 @@ class TestPeriodIndexArithmetic:
         rng = pd.period_range("1/1/2000", freq="Q", periods=3)
         tdi = pd.TimedeltaIndex(["-1 Day", "-1 Day", "-1 Day"])
         tdarr = tdi.values
-        # breakpoint()
+
         msg = r"Input has different freq=None from PeriodArray\(freq=Q-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + tdarr
@@ -768,7 +764,6 @@ class TestPeriodIndexArithmetic:
         result = rng - tdarr
         tm.assert_index_equal(result, expected)
 
-        # breakpoint()
         msg = r"cannot subtract .* from .*"
         with pytest.raises(TypeError, match=msg):
             tdarr - rng
@@ -802,7 +797,6 @@ class TestPeriodIndexArithmetic:
         unanchored = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
         # addition/subtraction ops with incompatible offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        # breakpoint()
         msg = r"Input cannot be converted to Period\(freq=Q-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
@@ -946,7 +940,6 @@ class TestPeriodIndexArithmetic:
         expected = pd.PeriodIndex([pd.Period("2014Q1"), pd.Period("NaT")])
         tm.assert_index_equal(result, expected)
 
-        # breakpoint()
         msg = r"bad operand type for unary -: 'PeriodArray'"
         with pytest.raises(TypeError, match=msg):
             other - pi
@@ -976,7 +969,6 @@ class TestPeriodIndexArithmetic:
         result = rng - other
         tm.assert_index_equal(result, expected)
 
-        # breakpoint()
         msg = (
             r"(:?bad operand type for unary -: 'PeriodArray')"
             r"|(:?cannot subtract PeriodArray from timedelta64\[[hD]\])"
@@ -1003,7 +995,6 @@ class TestPeriodIndexArithmetic:
         expected = pd.period_range(rng[0] - other, periods=6, freq=freqstr)
         result = rng - other
         tm.assert_index_equal(result, expected)
-        # breakpoint()
         msg = (
             r"(:?bad operand type for unary -: 'PeriodArray')"
             r"|(:?cannot subtract PeriodArray from timedelta64\[[hD]\])"
@@ -1143,7 +1134,6 @@ class TestPeriodIndexArithmetic:
         tm.assert_equal(result, expected)
         result = obj - other
         tm.assert_equal(result, expected)
-        # breakpoint()
         msg = r"cannot subtract .* from .*"
         with pytest.raises(TypeError, match=msg):
             other - obj
@@ -1168,7 +1158,6 @@ class TestPeriodIndexArithmetic:
         tm.assert_equal(result, expected)
         result = obj - other
         tm.assert_equal(result, expected)
-        # breakpoint()
         msg = r"cannot subtract .* from .*"
         with pytest.raises(TypeError, match=msg):
             other - obj
