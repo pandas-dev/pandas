@@ -20,6 +20,7 @@ import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import FilePathOrBuffer
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -165,9 +166,10 @@ dtype : Type name or dict of column -> type, optional
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-engine : {{'c', 'python'}}, optional
-    Parser engine to use. The C engine is faster while the python engine is
-    currently more feature-complete.
+engine : {{'c', 'python', 'arrow'}}, optional
+    Parser engine to use. The C and arrow engines are faster while the python engine is
+    currently more feature-complete. The arrow engine requires ``pyarrow``
+    as a dependency however.
 converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
@@ -506,7 +508,6 @@ _parser_defaults = {
     "skip_blank_lines": True,
 }
 
-
 _c_parser_defaults = {
     "delim_whitespace": False,
     "na_filter": True,
@@ -520,6 +521,7 @@ _c_parser_defaults = {
 _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 
 _c_unsupported = {"skipfooter"}
+_arrow_unsupported = {"skipfooter", "low_memory", "float_precision"}
 _python_unsupported = {"low_memory", "float_precision"}
 
 _deprecated_defaults: Dict[str, Any] = {}
@@ -705,7 +707,6 @@ def read_fwf(
     infer_nrows=100,
     **kwds,
 ):
-
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -879,7 +880,8 @@ class TextFileReader(abc.Iterator):
         self._make_engine(self.engine)
 
     def close(self):
-        self._engine.close()
+        if self.engine != "arrow":
+            self._engine.close()
 
     def _get_options_with_defaults(self, engine):
         kwds = self.orig_options
@@ -945,16 +947,16 @@ class TextFileReader(abc.Iterator):
         delim_whitespace = options["delim_whitespace"]
 
         # C engine not supported yet
-        if engine == "c":
+        if engine == "c" or engine == "arrow":
             if options["skipfooter"] > 0:
-                fallback_reason = "the 'c' engine does not support skipfooter"
+                fallback_reason = f"the {engine} engine does not support skipfooter"
                 engine = "python"
 
         encoding = sys.getfilesystemencoding() or "utf-8"
         if sep is None and not delim_whitespace:
-            if engine == "c":
+            if engine == "c" or engine == "arrow":
                 fallback_reason = (
-                    "the 'c' engine does not support "
+                    f"the {engine} engine does not support "
                     "sep=None with delim_whitespace=False"
                 )
                 engine = "python"
@@ -1081,14 +1083,20 @@ class TextFileReader(abc.Iterator):
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         # handle skiprows; this is internally handled by the
-        # c-engine, so only need for python parsers
+        # c-engine, so only need for python parser
         if engine != "c":
-            if is_integer(skiprows):
-                skiprows = list(range(skiprows))
-            if skiprows is None:
-                skiprows = set()
-            elif not callable(skiprows):
-                skiprows = set(skiprows)
+            if engine == "arrow":
+                if not is_integer(skiprows) and skiprows is not None:
+                    raise ValueError(
+                        "skiprows argument must be integer when using arrow engine"
+                    )
+            else:
+                if is_integer(skiprows):
+                    skiprows = list(range(skiprows))
+                if skiprows is None:
+                    skiprows = set()
+                elif not callable(skiprows):
+                    skiprows = set(skiprows)
 
         # put stuff back
         result["names"] = names
@@ -1109,6 +1117,8 @@ class TextFileReader(abc.Iterator):
     def _make_engine(self, engine="c"):
         if engine == "c":
             self._engine = CParserWrapper(self.f, **self.options)
+        elif engine == "arrow":
+            self._engine = ArrowParserWrapper(self.f, **self.options)
         else:
             if engine == "python":
                 klass = PythonParser
@@ -1125,29 +1135,32 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        nrows = _validate_integer("nrows", nrows)
-        ret = self._engine.read(nrows)
-
-        # May alter columns / col_dict
-        index, columns, col_dict = self._create_index(ret)
-
-        if index is None:
-            if col_dict:
-                # Any column is actually fine:
-                new_rows = len(next(iter(col_dict.values())))
-                index = RangeIndex(self._currow, self._currow + new_rows)
-            else:
-                new_rows = 0
+        if self.engine == "arrow":
+            return self._engine.read(nrows)
         else:
-            new_rows = len(index)
+            nrows = _validate_integer("nrows", nrows)
+            ret = self._engine.read(nrows)
 
-        df = DataFrame(col_dict, columns=columns, index=index)
+            # May alter columns / col_dict
+            index, columns, col_dict = self._create_index(ret)
 
-        self._currow += new_rows
+            if index is None:
+                if col_dict:
+                    # Any column is actually fine:
+                    new_rows = len(next(iter(col_dict.values())))
+                    index = RangeIndex(self._currow, self._currow + new_rows)
+                else:
+                    new_rows = 0
+            else:
+                new_rows = len(index)
 
-        if self.squeeze and len(df.columns) == 1:
-            return df[df.columns[0]].copy()
-        return df
+            df = DataFrame(col_dict, columns=columns, index=index)
+
+            self._currow += new_rows
+
+            if self.squeeze and len(df.columns) == 1:
+                return df[df.columns[0]].copy()
+            return df
 
     def _create_index(self, ret):
         index, columns, col_dict = ret
@@ -2133,6 +2146,56 @@ class CParserWrapper(ParserBase):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(values)
         return values
+
+
+class ArrowParserWrapper(ParserBase):
+    """
+
+    """
+
+    def __init__(self, src, **kwds):
+        self.kwds = kwds
+        self.src = src
+        kwds = kwds.copy()
+
+        ParserBase.__init__(self, kwds)
+
+        # #2442
+        kwds["allow_leading_cols"] = self.index_col is not False
+
+        # GH20529, validate usecol arg before TextReader
+        self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
+        kwds["usecols"] = self.usecols
+
+        self.names = kwds["names"]
+
+    def read(self, nrows=None):
+        pyarrow = import_optional_dependency(
+            "pyarrow.csv", extra="pyarrow is required to use arrow engine"
+        )
+        nrows = _validate_integer("nrows", nrows)
+        table = pyarrow.read_csv(
+            self.src,
+            read_options=pyarrow.ReadOptions(
+                skip_rows=self.kwds.get("skiprows"), column_names=self.names
+            ),
+            parse_options=pyarrow.ParseOptions(
+                delimiter=self.kwds.get("delimiter"),
+                quote_char=self.kwds.get("quotechar"),
+            ),
+            convert_options=pyarrow.ConvertOptions(
+                include_columns=self.usecols, column_types=self.kwds.get("dtype")
+            ),
+        )
+        if nrows:
+            table = table[:nrows]
+        table_width = len(table.column_names)
+        if self.names is None:
+            if self.prefix:
+                self.names = [f"{self.prefix}{i}" for i in range(table_width)]
+        if self.names:
+            table = table.rename_columns(self.names)
+        return table.to_pandas()
 
 
 def TextParser(*args, **kwds):
@@ -3336,7 +3399,6 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
