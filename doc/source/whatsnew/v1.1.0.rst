@@ -197,7 +197,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
--
+- integer EA will now return objects of native type only when iterated. (:issue:`29738`)
 -
 
 
