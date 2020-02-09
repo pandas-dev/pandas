@@ -1285,6 +1285,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     if util.is_array(value):
         values = value
     elif hasattr(value, 'dtype'):
+        # this will handle timezone aware datetime Series
+        # e.g. "datetime64[ns, UTC]"
+        if hasattr(value.dtype, 'tz'):
+            return "datetimetz"
         # this will handle ndarray-like
         # e.g. categoricals
         # begin by checking if there is a tz attribute
@@ -1294,11 +1298,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         except TypeError:
             # This gets hit if we have an EA, since cython expects `values`
             #  to be an ndarray
-            # before using try_infer_map check if there is a tz attribute
-            # because try_infer_map cannot be used to differentiate dtypes
-            # such as "datetime64[ns]" and "datetime64[ns, {timezone}]"
-            if hasattr(value.dtype, 'tz'):
-                return "datetimetz"
             value = _try_infer_map(value)
             if value is not None:
                 return value
