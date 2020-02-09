@@ -5091,13 +5091,6 @@ class DataFrame(NDFrame):
 
         .. versionadded:: 1.1.0
 
-        The returned Series will have a MultiIndex with one level per input
-        column.
-        By default, rows that contain any NA values are omitted from the
-        result.
-        By default, the resulting Series will be in descending order so that the
-        first element is the most frequently-occurring row.
-
         Parameters
         ----------
         subset : list-like, optional
@@ -5116,6 +5109,13 @@ class DataFrame(NDFrame):
         See Also
         --------
         Series.value_counts: Equivalent method on Series.
+
+        Notes
+        -----
+        The returned Series will have a MultiIndex with one level per input
+        column. By default, rows that contain any NA values are omitted from
+        the result. By default, the resulting Series will be in descending
+        order so that the first element is the most frequently-occurring row.
 
         Examples
         --------
