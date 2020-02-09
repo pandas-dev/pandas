@@ -1013,8 +1013,8 @@ class MultiIndex(Index):
         levels=None,
         codes=None,
         deep=False,
+        name=None,
         _set_identity=False,
-        **kwargs,
     ):
         """
         Make a copy of this object. Names, dtype, levels and codes can be
@@ -1026,10 +1026,13 @@ class MultiIndex(Index):
         dtype : numpy dtype or pandas type, optional
         levels : sequence, optional
         codes : sequence, optional
+        deep : bool, default False
+        name : Label
+            Kept for compatibility with 1-dimensional Index. Should not be used.
 
         Returns
         -------
-        copy : MultiIndex
+        MultiIndex
 
         Notes
         -----
@@ -1037,10 +1040,7 @@ class MultiIndex(Index):
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
         """
-        name = kwargs.get("name")
         names = self._validate_names(name=name, names=names, deep=deep)
-        if "labels" in kwargs:
-            raise TypeError("'labels' argument has been removed; use 'codes' instead")
         if deep:
             from copy import deepcopy
 
