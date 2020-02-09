@@ -3142,6 +3142,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         return key
 
+    def _validate_positional_slice(self, key: slice):
+        """
+        For positional indexing, a slice must have either int or None
+        for each of start, stop, and step.
+        """
+        self._validate_indexer("positional", key.start, "iloc")
+        self._validate_indexer("positional", key.stop, "iloc")
+        self._validate_indexer("positional", key.step, "iloc")
+
     def _convert_slice_indexer(self, key: slice, kind=None):
         """
         Convert a slice indexer.
@@ -3152,16 +3161,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'} or None
         """
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        # validate iloc
-        if kind == "iloc":
-            self._validate_indexer("positional", key.start, "iloc")
-            self._validate_indexer("positional", key.stop, "iloc")
-            self._validate_indexer("positional", key.step, "iloc")
-            return key
+        assert kind in ["loc", "getitem", None], kind
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
