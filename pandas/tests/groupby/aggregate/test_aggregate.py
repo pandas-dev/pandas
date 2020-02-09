@@ -377,6 +377,65 @@ def test_agg_index_has_complex_internals(index):
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_split_block():
+    # https://github.com/pandas-dev/pandas/issues/31522
+    df = pd.DataFrame(
+        {
+            "key1": ["a", "a", "b", "b", "a"],
+            "key2": ["one", "two", "one", "two", "one"],
+            "key3": ["three", "three", "three", "six", "six"],
+        }
+    )
+    result = df.groupby("key1").min()
+    expected = pd.DataFrame(
+        {"key2": ["one", "one"], "key3": ["six", "six"]},
+        index=pd.Index(["a", "b"], name="key1"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_split_object_part_datetime():
+    # https://github.com/pandas-dev/pandas/pull/31616
+    df = pd.DataFrame(
+        {
+            "A": pd.date_range("2000", periods=4),
+            "B": ["a", "b", "c", "d"],
+            "C": [1, 2, 3, 4],
+            "D": ["b", "c", "d", "e"],
+            "E": pd.date_range("2000", periods=4),
+            "F": [1, 2, 3, 4],
+        }
+    ).astype(object)
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame(
+        {
+            "A": [pd.Timestamp("2000")],
+            "B": ["a"],
+            "C": [1],
+            "D": ["b"],
+            "E": [pd.Timestamp("2000")],
+            "F": [1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_cython_category_not_implemented_fallback():
+    # https://github.com/pandas-dev/pandas/issues/31450
+    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
+    df["col_cat"] = df["col_num"].astype("category")
+
+    result = df.groupby("col_num").col_cat.first()
+    expected = pd.Series(
+        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("col_num").agg({"col_cat": "first"})
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
@@ -660,6 +719,55 @@ def test_aggregate_mixed_types():
         index=Index([2, "group 1"], dtype="object", name="grouping"),
         columns=Index(["X", "Y", "Z"], dtype="object"),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="Not implemented.")
+def test_aggregate_udf_na_extension_type():
+    # https://github.com/pandas-dev/pandas/pull/31359
+    # This is currently failing to cast back to Int64Dtype.
+    # The presence of the NA causes two problems
+    # 1. NA is not an instance of Int64Dtype.type (numpy.int64)
+    # 2. The presence of an NA forces object type, so the non-NA values is
+    #    a Python int rather than a NumPy int64. Python ints aren't
+    #    instances of numpy.int64.
+    def aggfunc(x):
+        if all(x > 2):
+            return 1
+        else:
+            return pd.NA
+
+    df = pd.DataFrame({"A": pd.array([1, 2, 3])})
+    result = df.groupby([1, 1, 2]).agg(aggfunc)
+    expected = pd.DataFrame({"A": pd.array([1, pd.NA], dtype="Int64")}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_groupby_aggregate_period_column(func):
+    # GH 31471
+    groups = [1, 2]
+    periods = pd.period_range("2020", periods=2, freq="Y")
+    df = pd.DataFrame({"a": groups, "b": periods})
+
+    result = getattr(df.groupby("a")["b"], func)()
+    idx = pd.Int64Index([1, 2], name="a")
+    expected = pd.Series(periods, index=idx, name="b")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_groupby_aggregate_period_frame(func):
+    # GH 31471
+    groups = [1, 2]
+    periods = pd.period_range("2020", periods=2, freq="Y")
+    df = pd.DataFrame({"a": groups, "b": periods})
+
+    result = getattr(df.groupby("a"), func)()
+    idx = pd.Int64Index([1, 2], name="a")
+    expected = pd.DataFrame({"b": periods}, index=idx)
+
     tm.assert_frame_equal(result, expected)
 
 

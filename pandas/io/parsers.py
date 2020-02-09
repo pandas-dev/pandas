@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, StringIO, TextIOWrapper
+from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -355,7 +355,7 @@ DataFrame or TextParser
 
 See Also
 --------
-to_csv : Write DataFrame to a comma-separated values (csv) file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
@@ -757,7 +757,7 @@ def read_fwf(
 
     See Also
     --------
-    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Examples
@@ -1413,17 +1413,21 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-
-        # GH 16338
-        elif self.header is not None and not is_integer(self.header):
-            raise ValueError("header must be integer or list of integers")
-
-        # GH 27779
-        elif self.header is not None and self.header < 0:
-            raise ValueError(
-                "Passing negative integer to header is invalid. "
-                "For no header, use header=None instead"
-            )
+        elif self.header is not None:
+            # GH 27394
+            if self.prefix is not None:
+                raise ValueError(
+                    "Argument prefix must be None if argument header is not None"
+                )
+            # GH 16338
+            elif not is_integer(self.header):
+                raise ValueError("header must be integer or list of integers")
+            # GH 27779
+            elif self.header < 0:
+                raise ValueError(
+                    "Passing negative integer to header is invalid. "
+                    "For no header, use header=None instead"
+                )
 
         self._name_processed = False
 
@@ -1882,7 +1886,7 @@ class CParserWrapper(ParserBase):
 
             # Handle the file object with universal line mode enabled.
             # We will handle the newline character ourselves later on.
-            if isinstance(src, BufferedIOBase):
+            if isinstance(src, (BufferedIOBase, RawIOBase)):
                 src = TextIOWrapper(src, encoding=encoding, newline="")
 
             kwds["encoding"] = "utf-8"

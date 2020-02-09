@@ -408,6 +408,11 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
 
+    def test_constructor_np_strs(self):
+        # GH#31499 Hastable.map_locations needs to work on np.str_ objects
+        cat = pd.Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
+        assert all(isinstance(x, np.str_) for x in cat.categories)
+
     def test_constructor_from_categorical_with_dtype(self):
         dtype = CategoricalDtype(["a", "b", "c"], ordered=True)
         values = Categorical(["a", "b", "d"])
