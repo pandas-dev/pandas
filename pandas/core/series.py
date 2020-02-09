@@ -979,6 +979,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if takeable:
             return self._values[label]
+
+        # We assume that _convert_scalar_indexer has already been called,
+        #  with kind="loc", if necessary, by the time we get here
         return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):
