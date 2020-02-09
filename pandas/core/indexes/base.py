@@ -3147,9 +3147,9 @@ class Index(IndexOpsMixin, PandasObject):
         For positional indexing, a slice must have either int or None
         for each of start, stop, and step.
         """
-        self._validate_indexer("slice", key.start, "iloc")
-        self._validate_indexer("slice", key.stop, "iloc")
-        self._validate_indexer("slice", key.step, "iloc")
+        self._validate_indexer("positional", key.start, "iloc")
+        self._validate_indexer("positional", key.stop, "iloc")
+        self._validate_indexer("positional", key.step, "iloc")
 
     def _convert_slice_indexer(self, key: slice, kind=None):
         """
