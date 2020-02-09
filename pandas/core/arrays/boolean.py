@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, Any, List, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -26,11 +26,12 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core.indexers import check_array_indexer
 
 from .masked import BaseMaskedArray
 
 if TYPE_CHECKING:
-    from pandas._typing import Scalar
+    import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
@@ -62,7 +63,7 @@ class BooleanDtype(ExtensionDtype):
     name = "boolean"
 
     @property
-    def na_value(self) -> "Scalar":
+    def na_value(self) -> libmissing.NAType:
         """
         BooleanDtype uses :attr:`pandas.NA` as the missing NA value.
 
@@ -73,7 +74,7 @@ class BooleanDtype(ExtensionDtype):
         return libmissing.NA
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[np.bool_]:
         return np.bool_
 
     @property
@@ -81,7 +82,14 @@ class BooleanDtype(ExtensionDtype):
         return "b"
 
     @classmethod
-    def construct_array_type(cls) -> "Type[BooleanArray]":
+    def construct_array_type(cls) -> Type["BooleanArray"]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return BooleanArray
 
     def __repr__(self) -> str:
@@ -91,9 +99,13 @@ class BooleanDtype(ExtensionDtype):
     def _is_boolean(self) -> bool:
         return True
 
-    def __from_arrow__(self, array):
-        """Construct BooleanArray from passed pyarrow Array/ChunkedArray"""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "BooleanArray":
+        """
+        Construct BooleanArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -110,7 +122,9 @@ class BooleanDtype(ExtensionDtype):
         return BooleanArray._concat_same_type(results)
 
 
-def coerce_to_array(values, mask=None, copy: bool = False):
+def coerce_to_array(
+    values, mask=None, copy: bool = False
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -369,6 +383,7 @@ class BooleanArray(BaseMaskedArray):
             value = value[0]
             mask = mask[0]
 
+        key = check_array_indexer(self, key)
         self._data[key] = value
         self._mask[key] = mask
 

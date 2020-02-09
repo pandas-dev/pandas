@@ -66,7 +66,7 @@ behaves correctly.
 .. autosummary::
   :toctree: api/
 
-  api.indexers.check_bool_array_indexer
+  api.indexers.check_array_indexer
 
 
 The sentinel ``pandas.api.extensions.no_default`` is used as the default
