@@ -1685,7 +1685,7 @@ class _LocIndexer(_LocationIndexer):
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(
-            slice_obj.start, slice_obj.stop, slice_obj.step, kind=self.name
+            slice_obj.start, slice_obj.stop, slice_obj.step, kind="loc"
         )
 
         if isinstance(indexer, slice):
@@ -2035,8 +2035,8 @@ class _iLocIndexer(_LocationIndexer):
             return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
-        indexer = labels._convert_slice_indexer(slice_obj, kind="iloc")
-        return self.obj._slice(indexer, axis=axis, kind="iloc")
+        labels._validate_positional_slice(slice_obj)
+        return self.obj._slice(slice_obj, axis=axis, kind="iloc")
 
     def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         """
@@ -2046,7 +2046,8 @@ class _iLocIndexer(_LocationIndexer):
 
         # make need to convert a float key
         if isinstance(key, slice):
-            return labels._convert_slice_indexer(key, kind="iloc")
+            labels._validate_positional_slice(key)
+            return key
 
         elif is_float(key):
             labels._validate_indexer("positional", key, "iloc")
