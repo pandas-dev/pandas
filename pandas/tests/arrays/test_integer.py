@@ -742,10 +742,7 @@ def test_integer_array_constructor():
     expected = integer_array([1, 2, 3, np.nan], dtype="int64")
     tm.assert_extension_array_equal(result, expected)
 
-    msg = (
-        r"(:?.* should be .* numpy array. Use the 'integer_array' function instead)"
-        r"|(:?__init__\(\) missing 1 required positional argument: 'mask')"
-    )
+    msg = r".* should be .* numpy array. Use the 'integer_array' function instead"
     with pytest.raises(TypeError, match=msg):
         IntegerArray(values.tolist(), mask)
 
@@ -754,7 +751,7 @@ def test_integer_array_constructor():
 
     with pytest.raises(TypeError, match=msg):
         IntegerArray(values.astype(float), mask)
-
+    msg = r"__init__\(\) missing 1 required positional argument: 'mask'"
     with pytest.raises(TypeError, match=msg):
         IntegerArray(values)
 
