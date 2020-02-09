@@ -658,7 +658,7 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         # avoids object / Series creation overhead
-        dummy = obj._get_values(slice(None, 0))
+        dummy = obj.iloc[:0]
         indexer = get_group_index_sorter(group_index, ngroups)
         obj = obj.take(indexer)
         group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
@@ -780,7 +780,11 @@ class BinGrouper(BaseGrouper):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        slicer = lambda start, edge: data._slice(slice(start, edge), axis=axis)
+        if axis == 0:
+            slicer = lambda start, edge: data.iloc[start:edge]
+        else:
+            slicer = lambda start, edge: data.iloc[:, start:edge]
+
         length = len(data.axes[axis])
 
         start = 0
@@ -919,7 +923,7 @@ class DataSplitter:
 
 class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
-        return sdata._get_values(slice_obj)
+        return sdata.iloc[slice_obj]
 
 
 class FrameSplitter(DataSplitter):
@@ -934,7 +938,7 @@ class FrameSplitter(DataSplitter):
         if self.axis == 0:
             return sdata.iloc[slice_obj]
         else:
-            return sdata._slice(slice_obj, axis=1)
+            return sdata.iloc[:, slice_obj]
 
 
 def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
