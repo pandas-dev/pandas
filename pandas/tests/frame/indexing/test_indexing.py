@@ -94,6 +94,14 @@ class TestDataFrameIndexing:
         expected = float_frame.loc[:, ["A", "B", "C"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_timedelta_0seconds(self):
+        # GH#10583
+        df = pd.DataFrame(np.random.normal(size=(10, 4)))
+        df.index = pd.timedelta_range(start="0s", periods=10, freq="s")
+        expected = df.loc[pd.Timedelta("0s") :, :]
+        result = df.loc["0s":, :]
+        tm.assert_frame_equal(expected, result)
+
     @pytest.mark.parametrize(
         "idx_type",
         [
@@ -204,7 +212,7 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_mulit_index(self):
+    def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
         it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]
@@ -1050,9 +1058,8 @@ class TestDataFrameIndexing:
 
         # positional slicing only via iloc!
         msg = (
-            "cannot do slice indexing on "
-            r"<class 'pandas\.core\.indexes\.numeric\.Float64Index'> with "
-            r"these indexers \[1.0\] of <class 'float'>"
+            "cannot do positional indexing on Float64Index with "
+            r"these indexers \[1.0\] of type float"
         )
         with pytest.raises(TypeError, match=msg):
             df.iloc[1.0:5]
@@ -2165,3 +2172,41 @@ class TestDataFrameIndexingUInt64:
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
+
+
+def test_object_casting_indexing_wraps_datetimelike():
+    # GH#31649, check the indexing methods all the way down the stack
+    df = pd.DataFrame(
+        {
+            "A": [1, 2],
+            "B": pd.date_range("2000", periods=2),
+            "C": pd.timedelta_range("1 Day", periods=2),
+        }
+    )
+
+    ser = df.loc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.iloc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.xs(0, axis=0)
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    mgr = df._data
+    arr = mgr.fast_xs(0)
+    assert isinstance(arr[1], pd.Timestamp)
+    assert isinstance(arr[2], pd.Timedelta)
+
+    blk = mgr.blocks[mgr._blknos[1]]
+    assert blk.dtype == "M8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timestamp)
+
+    blk = mgr.blocks[mgr._blknos[2]]
+    assert blk.dtype == "m8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timedelta)

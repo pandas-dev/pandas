@@ -23,13 +23,12 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._libs.index import validate_numeric_casting
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
-from pandas.core.dtypes.cast import convert_dtypes
+from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
 from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     ensure_platform_int,
@@ -841,8 +840,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0, kind=None) -> "Series":
-        slobj = self.index._convert_slice_indexer(slobj, kind=kind or "getitem")
+    def _slice(self, slobj: slice, axis: int = 0, kind: str = "getitem") -> "Series":
+        assert kind in ["getitem", "iloc"]
+        if kind == "getitem":
+            # If called from getitem, we need to determine whether
+            #  this slice is positional or label-based.
+            slobj = self.index._convert_slice_indexer(slobj, kind="getitem")
         return self._get_values(slobj)
 
     def __getitem__(self, key):
@@ -851,38 +854,40 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key is Ellipsis:
             return self
 
-        try:
-            result = self.index.get_value(self, key)
+        key_is_scalar = is_scalar(key)
+        if key_is_scalar:
+            key = self.index._convert_scalar_indexer(key, kind="getitem")
 
-            return result
-        except InvalidIndexError:
-            pass
-        except (KeyError, ValueError):
-            if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
-                # kludge
+        if key_is_scalar or isinstance(self.index, MultiIndex):
+            # Otherwise index.get_value will raise InvalidIndexError
+            try:
+                result = self.index.get_value(self, key)
+
+                return result
+            except InvalidIndexError:
                 pass
-            elif com.is_bool_indexer(key):
-                pass
-            else:
+            except (KeyError, ValueError):
+                if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
+                    # kludge
+                    pass
+                else:
+                    raise
 
-                # we can try to coerce the indexer (or this will raise)
-                new_key = self.index._convert_scalar_indexer(key, kind="getitem")
-                if type(new_key) != type(key):
-                    return self.__getitem__(new_key)
-                raise
+        if not key_is_scalar:
+            # avoid expensive checks if we know we have a scalar
+            if is_iterator(key):
+                key = list(key)
 
-        if is_iterator(key):
-            key = list(key)
-
-        if com.is_bool_indexer(key):
-            key = check_bool_indexer(self.index, key)
+            if com.is_bool_indexer(key):
+                key = check_bool_indexer(self.index, key)
+                return self._get_values(key)
 
         return self._get_with(key)
 
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            return self._slice(key)
+            return self._slice(key, kind="getitem")
         elif isinstance(key, ABCDataFrame):
             raise TypeError(
                 "Indexing a Series with DataFrame is not "
@@ -908,6 +913,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             key_type = lib.infer_dtype(key, skipna=False)
 
+        # Note: The key_type == "boolean" case should be caught by the
+        #  com.is_bool_indexer check in __getitem__
         if key_type == "integer":
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
@@ -915,9 +922,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 indexer = self.index.get_indexer_for(key)
                 return self.iloc[indexer]
             else:
-                return self._get_values(key)
-        elif key_type == "boolean":
-            return self._get_values(key)
+                return self.iloc[key]
 
         if isinstance(key, (list, tuple)):
             # TODO: de-dup with tuple case handled above?
@@ -926,6 +931,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # [slice(0, 5, None)] will break if you convert to ndarray,
                 # e.g. as requested by np.median
                 # FIXME: hack
+                if isinstance(key, list):
+                    # GH#31299
+                    warnings.warn(
+                        "Indexing with a single-item list containing a "
+                        "slice is deprecated and will raise in a future "
+                        "version.  Pass a tuple instead.",
+                        FutureWarning,
+                        stacklevel=3,
+                    )
+                    # TODO: use a message more like numpy's?
+                    key = tuple(key)
                 return self._get_values(key)
 
             return self.loc[key]
@@ -977,6 +993,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if takeable:
             return self._values[label]
+
+        # We assume that _convert_scalar_indexer has already been called,
+        #  with kind="loc", if necessary, by the time we get here
         return self.index.get_value(self, label)
 
     def __setitem__(self, key, value):

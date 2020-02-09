@@ -70,17 +70,17 @@ will be completed:
    df2.abs                df2.boxplot
    df2.add                df2.C
    df2.add_prefix         df2.clip
-   df2.add_suffix         df2.clip_lower
-   df2.align              df2.clip_upper
-   df2.all                df2.columns
+   df2.add_suffix         df2.columns
+   df2.align              df2.copy
+   df2.all                df2.count
    df2.any                df2.combine
-   df2.append             df2.combine_first
-   df2.apply              df2.consolidate
-   df2.applymap
-   df2.D
+   df2.append             df2.D
+   df2.apply              df2.describe
+   df2.applymap           df2.diff
+   df2.B                  df2.duplicated
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
-tab completed. ``E`` is there as well; the rest of the attributes have been
+tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been
 truncated for brevity.
 
 Viewing data
