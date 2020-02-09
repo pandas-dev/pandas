@@ -80,33 +80,18 @@ class TestFancy:
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = (
-            r"Buffer has wrong number of dimensions \(expected 1, "
-            r"got 3\)|"
-            "Cannot index with multidimensional key|"
-            r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
-            "Index data must be 1-dimensional"
+        msg = "|".join(
+            [
+                r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
+                "Cannot index with multidimensional key",
+                r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
+                "Index data must be 1-dimensional",
+            ]
         )
 
-        if (
-            isinstance(obj, Series)
-            and idxr_id == "getitem"
-            and index.inferred_type
-            in [
-                "string",
-                "datetime64",
-                "period",
-                "timedelta64",
-                "boolean",
-                "categorical",
-            ]
-        ):
+        with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
-        else:
-            with pytest.raises(ValueError, match=msg):
-                with tm.assert_produces_warning(DeprecationWarning):
-                    idxr[nd3]
 
     @pytest.mark.parametrize(
         "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
