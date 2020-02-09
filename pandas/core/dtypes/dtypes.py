@@ -74,7 +74,7 @@ class Registry:
 
     def find(
         self, dtype: Union[Type[ExtensionDtype], str]
-    ) -> Optional[Union[ExtensionDtype, Type[ExtensionDtype]]]:
+    ) -> Optional[Type[ExtensionDtype]]:
         """
         Parameters
         ----------
