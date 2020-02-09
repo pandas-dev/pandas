@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, List
+from typing import Any, List
 import warnings
 
 import numpy as np
@@ -28,9 +28,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 import pandas.core.missing as missing
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
@@ -443,35 +440,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         code = self.categories.get_loc(key)
         code = self.codes.dtype.type(code)
         return code
-
-    def get_value(self, series: "Series", key: Any):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-
-        Parameters
-        ----------
-        series : Series
-            1-dimensional array to take values from
-        key: : scalar
-            The value of this index at the position of the desired value,
-            otherwise the positional index of the desired value
-
-        Returns
-        -------
-        Any
-            The element of the series at the position indicated by the key
-        """
-        k = key
-        try:
-            k = self._convert_scalar_indexer(k, kind="getitem")
-            indexer = self.get_loc(k)
-            return series.take([indexer])[0]
-        except (KeyError, TypeError):
-            pass
-
-        # we might be a positional inexer
-        return Index.get_value(self, series, key)
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
