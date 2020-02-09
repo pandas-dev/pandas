@@ -468,6 +468,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
+            if self_index is not self:
+                # convert tolerance to i8
+                tolerance = self._maybe_convert_timedelta(tolerance)
+
         return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
@@ -504,6 +508,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         TypeError
             If key is listlike or otherwise not hashable.
         """
+        orig_key = key
 
         if not is_scalar(key):
             raise InvalidIndexError(key)
@@ -545,20 +550,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             key = Period(key, freq=self.freq)
         except ValueError:
             # we cannot construct the Period
-            raise KeyError(key)
+            raise KeyError(orig_key)
 
-        ordinal = self._data._unbox_scalar(key)
         try:
-            return self._engine.get_loc(ordinal)
+            return Index.get_loc(self, key, method, tolerance)
         except KeyError:
-
-            try:
-                if tolerance is not None:
-                    tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-                return self._int64index.get_loc(ordinal, method, tolerance)
-
-            except KeyError:
-                raise KeyError(key)
+            raise KeyError(orig_key)
 
     def _maybe_cast_slice_bound(self, label, side: str, kind: str):
         """
@@ -624,12 +621,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
         except KeyError:
             raise KeyError(key)
-
-    def _convert_tolerance(self, tolerance, target):
-        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return self._maybe_convert_timedelta(tolerance)
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
