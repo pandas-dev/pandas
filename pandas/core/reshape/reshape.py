@@ -751,26 +751,28 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
-def from_dummies(data, prefix=None, prefix_sep="_", dtype="category", fill_first=None):
+def from_dummies(data, prefix=None, prefix_sep="_", dtype="category", fill_first=None) -> "DataFrame":
     """
     The inverse transformation of ``pandas.get_dummies``.
 
     Parameters
     ----------
     data : DataFrame
+        Data which contains dummy indicators.
     prefix : list-like, default None
         Prefixes of the columns in the DataFrame to be decoded.
         If `prefix` is None then all the columns will be decoded.
     prefix_sep : str, default '_'
-        Separator between original column name and dummy variable
+        Separator between original column name and dummy variable.
     dtype : dtype, default 'category'
-        Data dtype for new columns - only a single data type is allowed
+        Data dtype for new columns - only a single data type is allowed.
     fill_first : str, list, or dict, default None
-        Used to fill rows for which all the dummy variables are 0
+        Used to fill rows for which all the dummy variables are 0.
 
     Returns
     -------
-    transformed : DataFrame
+    DataFrame
+        Decoded data.
 
     Examples
     --------
