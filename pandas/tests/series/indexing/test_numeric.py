@@ -128,9 +128,8 @@ def test_setitem_float_labels():
 
 def test_slice_float_get_set(datetime_series):
     msg = (
-        r"cannot do slice indexing on <class 'pandas\.core\.indexes"
-        r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\] "
-        r"of <class 'float'>"
+        "cannot do slice indexing on DatetimeIndex with these indexers "
+        r"\[{key}\] of type float"
     )
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
         datetime_series[4.0:10.0]
