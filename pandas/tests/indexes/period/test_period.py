@@ -55,9 +55,9 @@ class TestPeriodIndex(DatetimeLike):
     @pytest.mark.parametrize(
         "index",
         [
-            pd.period_range("2000-01-01", periods=3, freq="D"),
-            pd.period_range("2001-01-01", periods=3, freq="2D"),
-            pd.PeriodIndex(["2001-01", "NaT", "2003-01"], freq="M"),
+            period_range("2000-01-01", periods=3, freq="D"),
+            period_range("2001-01-01", periods=3, freq="2D"),
+            PeriodIndex(["2001-01", "NaT", "2003-01"], freq="M"),
         ],
     )
     def test_repeat_freqstr(self, index, use_numpy):
@@ -69,32 +69,32 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_fillna_period(self):
         # GH 11343
-        idx = pd.PeriodIndex(["2011-01-01 09:00", pd.NaT, "2011-01-01 11:00"], freq="H")
+        idx = PeriodIndex(["2011-01-01 09:00", NaT, "2011-01-01 11:00"], freq="H")
 
-        exp = pd.PeriodIndex(
+        exp = PeriodIndex(
             ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"], freq="H"
         )
-        tm.assert_index_equal(idx.fillna(pd.Period("2011-01-01 10:00", freq="H")), exp)
+        tm.assert_index_equal(idx.fillna(Period("2011-01-01 10:00", freq="H")), exp)
 
-        exp = pd.Index(
+        exp = Index(
             [
-                pd.Period("2011-01-01 09:00", freq="H"),
+                Period("2011-01-01 09:00", freq="H"),
                 "x",
-                pd.Period("2011-01-01 11:00", freq="H"),
+                Period("2011-01-01 11:00", freq="H"),
             ],
             dtype=object,
         )
         tm.assert_index_equal(idx.fillna("x"), exp)
 
-        exp = pd.Index(
+        exp = Index(
             [
-                pd.Period("2011-01-01 09:00", freq="H"),
-                pd.Period("2011-01-01", freq="D"),
-                pd.Period("2011-01-01 11:00", freq="H"),
+                Period("2011-01-01 09:00", freq="H"),
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-01 11:00", freq="H"),
             ],
             dtype=object,
         )
-        tm.assert_index_equal(idx.fillna(pd.Period("2011-01-01", freq="D")), exp)
+        tm.assert_index_equal(idx.fillna(Period("2011-01-01", freq="D")), exp)
 
     def test_no_millisecond_field(self):
         msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
@@ -138,25 +138,25 @@ class TestPeriodIndex(DatetimeLike):
             pi._shallow_copy(pi, freq="H")
 
     def test_view_asi8(self):
-        idx = pd.PeriodIndex([], freq="M")
+        idx = PeriodIndex([], freq="M")
 
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx.view("i8"), exp)
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
-        idx = pd.PeriodIndex(["2011-01", pd.NaT], freq="M")
+        idx = PeriodIndex(["2011-01", NaT], freq="M")
 
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx.view("i8"), exp)
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
-        idx = pd.PeriodIndex(["2011-01-01", pd.NaT], freq="D")
+        idx = PeriodIndex(["2011-01-01", NaT], freq="D")
         tm.assert_numpy_array_equal(idx.view("i8"), exp)
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
     def test_values(self):
-        idx = pd.PeriodIndex([], freq="M")
+        idx = PeriodIndex([], freq="M")
 
         exp = np.array([], dtype=np.object)
         tm.assert_numpy_array_equal(idx.values, exp)
@@ -165,17 +165,17 @@ class TestPeriodIndex(DatetimeLike):
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
-        idx = pd.PeriodIndex(["2011-01", pd.NaT], freq="M")
+        idx = PeriodIndex(["2011-01", NaT], freq="M")
 
-        exp = np.array([pd.Period("2011-01", freq="M"), pd.NaT], dtype=object)
+        exp = np.array([Period("2011-01", freq="M"), NaT], dtype=object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
-        idx = pd.PeriodIndex(["2011-01-01", pd.NaT], freq="D")
+        idx = PeriodIndex(["2011-01-01", NaT], freq="D")
 
-        exp = np.array([pd.Period("2011-01-01", freq="D"), pd.NaT], dtype=object)
+        exp = np.array([Period("2011-01-01", freq="D"), NaT], dtype=object)
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
@@ -371,7 +371,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-        idx2 = pd.PeriodIndex(
+        idx2 = PeriodIndex(
             ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"], freq="M"
         )
 
@@ -414,13 +414,13 @@ class TestPeriodIndex(DatetimeLike):
     def test_contains_nat(self):
         # see gh-13582
         idx = period_range("2007-01", freq="M", periods=10)
-        assert pd.NaT not in idx
+        assert NaT not in idx
         assert None not in idx
         assert float("nan") not in idx
         assert np.nan not in idx
 
-        idx = pd.PeriodIndex(["2011-01", "NaT", "2011-02"], freq="M")
-        assert pd.NaT in idx
+        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="M")
+        assert NaT in idx
         assert None in idx
         assert float("nan") in idx
         assert np.nan in idx
@@ -432,19 +432,6 @@ class TestPeriodIndex(DatetimeLike):
         )
         with pytest.raises(ValueError, match=msg):
             period_range("2011-1-1", "2012-1-1", "B")
-
-    def test_start_time(self):
-        # GH 17157
-        index = period_range(freq="M", start="2016-01-01", end="2016-05-31")
-        expected_index = date_range("2016-01-01", end="2016-05-31", freq="MS")
-        tm.assert_index_equal(index.start_time, expected_index)
-
-    def test_end_time(self):
-        # GH 17157
-        index = period_range(freq="M", start="2016-01-01", end="2016-05-31")
-        expected_index = date_range("2016-01-01", end="2016-05-31", freq="M")
-        expected_index = expected_index.shift(1, freq="D").shift(-1, freq="ns")
-        tm.assert_index_equal(index.end_time, expected_index)
 
     def test_index_duplicate_periods(self):
         # monotonic
@@ -565,7 +552,7 @@ class TestPeriodIndex(DatetimeLike):
         rng = period_range("1/1/2000", periods=20, freq="D")
         periods = list(rng)
 
-        result = pd.Index(periods)
+        result = Index(periods)
         assert isinstance(result, PeriodIndex)
 
     def test_append_concat(self):
@@ -606,10 +593,8 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_insert(self):
         # GH 18295 (test missing)
-        expected = PeriodIndex(
-            ["2017Q1", pd.NaT, "2017Q2", "2017Q3", "2017Q4"], freq="Q"
-        )
-        for na in (np.nan, pd.NaT, None):
+        expected = PeriodIndex(["2017Q1", NaT, "2017Q2", "2017Q3", "2017Q4"], freq="Q")
+        for na in (np.nan, NaT, None):
             result = period_range("2017Q1", periods=4, freq="Q").insert(1, na)
             tm.assert_index_equal(result, expected)
 
@@ -668,36 +653,36 @@ def test_is_monotonic_with_nat():
     # GH#31437
     # PeriodIndex.is_monotonic should behave analogously to DatetimeIndex,
     #  in particular never be monotonic when we have NaT
-    dti = pd.date_range("2016-01-01", periods=3)
+    dti = date_range("2016-01-01", periods=3)
     pi = dti.to_period("D")
-    tdi = pd.Index(dti.view("timedelta64[ns]"))
+    tdi = Index(dti.view("timedelta64[ns]"))
 
     for obj in [pi, pi._engine, dti, dti._engine, tdi, tdi._engine]:
-        if isinstance(obj, pd.Index):
+        if isinstance(obj, Index):
             # i.e. not Engines
             assert obj.is_monotonic
         assert obj.is_monotonic_increasing
         assert not obj.is_monotonic_decreasing
         assert obj.is_unique
 
-    dti1 = dti.insert(0, pd.NaT)
+    dti1 = dti.insert(0, NaT)
     pi1 = dti1.to_period("D")
-    tdi1 = pd.Index(dti1.view("timedelta64[ns]"))
+    tdi1 = Index(dti1.view("timedelta64[ns]"))
 
     for obj in [pi1, pi1._engine, dti1, dti1._engine, tdi1, tdi1._engine]:
-        if isinstance(obj, pd.Index):
+        if isinstance(obj, Index):
             # i.e. not Engines
             assert not obj.is_monotonic
         assert not obj.is_monotonic_increasing
         assert not obj.is_monotonic_decreasing
         assert obj.is_unique
 
-    dti2 = dti.insert(3, pd.NaT)
+    dti2 = dti.insert(3, NaT)
     pi2 = dti2.to_period("H")
-    tdi2 = pd.Index(dti2.view("timedelta64[ns]"))
+    tdi2 = Index(dti2.view("timedelta64[ns]"))
 
     for obj in [pi2, pi2._engine, dti2, dti2._engine, tdi2, tdi2._engine]:
-        if isinstance(obj, pd.Index):
+        if isinstance(obj, Index):
             # i.e. not Engines
             assert not obj.is_monotonic
         assert not obj.is_monotonic_increasing

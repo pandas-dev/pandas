@@ -266,10 +266,6 @@ class TestPeriodIndexOps:
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
 
-    def test_shift(self):
-        # This is tested in test_arithmetic
-        pass
-
     def test_nat(self):
         assert pd.PeriodIndex._na_value is NaT
         assert pd.PeriodIndex([], freq="M")._na_value is NaT
