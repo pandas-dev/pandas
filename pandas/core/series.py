@@ -919,7 +919,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 indexer = self.index.get_indexer_for(key)
                 return self.iloc[indexer]
             else:
-                return self._get_values(key)
+                return self.iloc[key]
 
         if isinstance(key, (list, tuple)):
             # TODO: de-dup with tuple case handled above?
