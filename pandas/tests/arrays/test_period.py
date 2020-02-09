@@ -371,7 +371,8 @@ def test_arrow_array(data, freq):
     assert result.equals(expected)
 
     # unsupported conversions
-    with pytest.raises(TypeError):
+    msg = "Not supported to convert PeriodArray to 'double' type"
+    with pytest.raises(TypeError, match=msg):
         pa.array(periods, type="float64")
 
     with pytest.raises(TypeError, match="different 'freq'"):
