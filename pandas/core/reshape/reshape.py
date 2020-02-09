@@ -751,16 +751,16 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
-def from_dummies(data, columns=None, prefix_sep="_", dtype="category", fill_first=None):
+def from_dummies(data, prefix=None, prefix_sep="_", dtype="category", fill_first=None):
     """
     The inverse transformation of ``pandas.get_dummies``.
 
     Parameters
     ----------
     data : DataFrame
-    columns : list-like, default None
-        Column names in the DataFrame to be decoded.
-        If `columns` is None then all the columns will be converted.
+    prefix : list-like, default None
+        Prefixes of the columns in the DataFrame to be decoded.
+        If `prefix` is None then all the columns will be decoded.
     prefix_sep : str, default '_'
         Separator between original column name and dummy variable
     dtype : dtype, default 'category'
@@ -792,7 +792,7 @@ def from_dummies(data, columns=None, prefix_sep="_", dtype="category", fill_firs
 
     We can recover the original dataframe using `from_dummies`:
 
-    >>> pd.from_dummies(df, columns=['animal'])
+    >>> pd.from_dummies(df, prefix=['animal'])
       other_col  animal
     0         a   zebra
     1         b   lemur
@@ -811,7 +811,7 @@ def from_dummies(data, columns=None, prefix_sep="_", dtype="category", fill_firs
     We can still recover the original dataframe, by using the argument
     `fill_first`:
 
-    >>> pd.from_dummies(df, columns=["animal"], fill_first=["zebra"])
+    >>> pd.from_dummies(df, prefix=["animal"], fill_first=["zebra"])
       other_col  animal
     0         a   zebra
     1         b   lemur
@@ -820,15 +820,13 @@ def from_dummies(data, columns=None, prefix_sep="_", dtype="category", fill_firs
     if dtype is None:
         dtype = "category"
 
-    if columns is None:
+    if prefix is None:
         data_to_decode = data.copy()
-        columns = data.columns.tolist()
-        columns = list(
-            {i.split(prefix_sep)[0] for i in data.columns if prefix_sep in i}
-        )
+        prefix = data.columns.tolist()
+        prefix = list({i.split(prefix_sep)[0] for i in data.columns if prefix_sep in i})
 
     data_to_decode = data[
-        [i for i in data.columns for c in columns if i.startswith(c + prefix_sep)]
+        [i for i in data.columns for p in prefix if i.startswith(p + prefix_sep)]
     ]
 
     # Check each row sums to 1 or 0
@@ -839,30 +837,30 @@ def from_dummies(data, columns=None, prefix_sep="_", dtype="category", fill_firs
         )
 
     if fill_first is None:
-        fill_first = [None] * len(columns)
+        fill_first = [None] * len(prefix)
     elif isinstance(fill_first, str):
         fill_first = itertools.cycle([fill_first])
     elif isinstance(fill_first, dict):
-        fill_first = [fill_first[col] for col in columns]
+        fill_first = [fill_first[p] for p in prefix]
 
     out = data.copy()
-    for column, fill_first_ in zip(columns, fill_first):
+    for prefix_, fill_first_ in zip(prefix, fill_first):
         cols, labels = [
             [
                 i.replace(x, "")
                 for i in data_to_decode.columns
-                if column + prefix_sep in i
+                if prefix_ + prefix_sep in i
             ]
-            for x in ["", column + prefix_sep]
+            for x in ["", prefix_ + prefix_sep]
         ]
         if not cols:
             continue
         out = out.drop(cols, axis=1)
         if fill_first_:
-            cols = [column + prefix_sep + fill_first_] + cols
+            cols = [prefix_ + prefix_sep + fill_first_] + cols
             labels = [fill_first_] + labels
             data[cols[0]] = (1 - data[cols[1:]]).all(axis=1)
-        out[column] = Series(
+        out[prefix_] = Series(
             np.array(labels)[np.argmax(data[cols].to_numpy(), axis=1)], dtype=dtype
         )
     return out
