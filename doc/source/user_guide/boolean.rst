@@ -9,7 +9,7 @@
 .. _boolean:
 
 **************************
-Nullable Boolean Data Type
+Nullable Boolean data type
 **************************
 
 .. versionadded:: 1.0.0
