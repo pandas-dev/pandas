@@ -569,6 +569,14 @@ class TestCategoricalConstructors:
 
         tm.assert_categorical_equal(result, expected)
 
+    def test_from_codes_with_nullable_int_na_raises(self):
+        codes = pd.array([0, None], dtype="Int64")
+        categories = ["a", "b"]
+
+        msg = "[Cc]annot convert"
+        with pytest.raises(ValueError, match=msg):
+            Categorical.from_codes(codes, categories=categories)
+
     @pytest.mark.parametrize("dtype", [None, "category"])
     def test_from_inferred_categories(self, dtype):
         cats = ["a", "b"]
