@@ -153,6 +153,17 @@ def test_align_multiindex():
     tm.assert_series_equal(expr, res2l)
 
 
+@pytest.mark.parametrize("method", ["backfill", "bfill", "pad", "ffill", None])
+def test_align_method(method):
+    # GH31788
+    ser = pd.Series(range(3), index=range(3))
+    df = pd.DataFrame(0.0, index=range(3), columns=range(3))
+
+    result_ser, result_df = ser.align(df, method=method)
+    tm.assert_series_equal(result_ser, ser)
+    tm.assert_frame_equal(result_df, df)
+
+
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 

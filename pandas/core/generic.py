@@ -8360,9 +8360,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             left = self._ensure_type(
                 left.fillna(method=method, axis=fill_axis, limit=limit)
             )
-            right = self._ensure_type(
-                right.fillna(method=method, axis=fill_axis, limit=limit)
-            )
+            right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_datetime64tz_dtype(left.index):
