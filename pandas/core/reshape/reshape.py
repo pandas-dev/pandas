@@ -751,7 +751,9 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
-def from_dummies(data, prefix=None, prefix_sep="_", dtype="category", fill_first=None) -> "DataFrame":
+def from_dummies(
+    data, prefix=None, prefix_sep="_", dtype="category", fill_first=None
+) -> "DataFrame":
     """
     The inverse transformation of ``pandas.get_dummies``.
 
