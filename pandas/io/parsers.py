@@ -881,8 +881,7 @@ class TextFileReader(abc.Iterator):
         self._make_engine(self.engine)
 
     def close(self):
-        if self.engine != "arrow":
-            self._engine.close()
+        self._engine.close()
 
     def _get_options_with_defaults(self, engine):
         kwds = self.orig_options
@@ -1089,7 +1088,7 @@ class TextFileReader(abc.Iterator):
             if engine == "arrow":
                 if not is_integer(skiprows) and skiprows is not None:
                     raise ValueError(
-                        "skiprows argument must be integer when using arrow engine"
+                        "skiprows argument must be an integer when using engine='arrow'"
                     )
             else:
                 if is_integer(skiprows):
