@@ -5889,11 +5889,19 @@ Wild         185.0
 
         Parameters
         ----------%s
-        index : str or object, optional
+        index : str or object or a list of str, optional
             Column to use to make new frame's index. If None, uses
             existing index.
-        columns : str or object
+
+            .. versionchanged:: 1.1.0
+               Also accept list of index names.
+
+        columns : str or object or a list of str
             Column to use to make new frame's columns.
+
+            .. versionchanged:: 1.1.0
+               Also accept list of columns names.
+
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
@@ -5959,6 +5967,38 @@ Wild         185.0
         foo
         one   1  2  3   x  y  z
         two   4  5  6   q  w  t
+
+        You could also assign a list of column names or a list of index names.
+
+        >>> df = pd.DataFrame({
+        ...        "lev1": [1, 1, 1, 2, 2, 2],
+        ...        "lev2": [1, 1, 2, 1, 1, 2],
+        ...        "lev3": [1, 2, 1, 2, 1, 2],
+        ...        "lev4": [1, 2, 3, 4, 5, 6],
+        ...        "values": [0, 1, 2, 3, 4, 5]})
+        >>> df
+            lev1 lev2 lev3 lev4 values
+        0   1    1    1    1    0
+        1   1    1    2    2    1
+        2   1    2    1    3    2
+        3   2    1    2    4    3
+        4   2    1    1    5    4
+        5   2    2    2    6    5
+
+        >>> df.pivot(index="lev1", columns=["lev2", "lev3"],values="values")
+        lev2    1         2
+        lev3    1    2    1    2
+        lev1
+        1     0.0  1.0  2.0  NaN
+        2     4.0  3.0  NaN  5.0
+
+        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"],values="values")
+              lev3    1    2
+        lev1  lev2
+           1     1  0.0  1.0
+                 2  2.0  NaN
+           2     1  4.0  3.0
+                 2  NaN  5.0
 
         A ValueError is raised if there are any duplicates.
 
