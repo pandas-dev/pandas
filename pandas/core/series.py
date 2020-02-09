@@ -916,8 +916,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
             elif isinstance(self.index, IntervalIndex):
-                indexer = self.index.get_indexer_for(key)
-                return self.iloc[indexer]
+                return self.loc[key]
             else:
                 return self._get_values(key)
 
