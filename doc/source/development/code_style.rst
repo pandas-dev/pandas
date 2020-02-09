@@ -139,7 +139,7 @@ absolute imports that show the whole import chain from toplevel pandas.
 
 Explicit relative imports are also supported in Python 3. But it is not
 recommended to use it. Implicit relative imports should never be used
-and is removed in Python 3.
+and are removed in Python 3.
 
 For example:
 
