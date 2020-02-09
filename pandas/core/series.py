@@ -916,11 +916,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Note: The key_type == "boolean" case should be caught by the
         #  com.is_bool_indexer check in __getitem__
         if key_type == "integer":
+            # We need to decide whether to treat this as a positional indexer
+            #  (i.e. self.iloc) or label-based (i.e. self.loc)
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
             elif isinstance(self.index, IntervalIndex):
-                indexer = self.index.get_indexer_for(key)
-                return self.iloc[indexer]
+                return self.loc[key]
             else:
                 return self.iloc[key]
 
