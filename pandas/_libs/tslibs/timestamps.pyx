@@ -411,6 +411,10 @@ class Timestamp(_Timestamp):
             else:
                 fold = ts_input.fold
 
+        if fold is not None and fold not in [0, 1]:
+            raise ValueError("Valid values for the fold argument are None, 0, "
+                             "or 1.")
+
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
