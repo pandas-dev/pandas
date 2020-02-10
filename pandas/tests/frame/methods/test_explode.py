@@ -9,12 +9,11 @@ def test_error():
     df = pd.DataFrame(
         {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
     )
-    msg = r"(:?columns must be unique)|(:?column must be a scalar)"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="column must be a scalar"):
         df.explode(list("AA"))
 
     df.columns = list("AA")
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="columns must be unique"):
         df.explode("A")
 
 

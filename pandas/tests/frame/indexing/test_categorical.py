@@ -115,11 +115,12 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        msg = (
-            r"(:?Cannot setitem on a Categorical with a new category.*)"
-            r"|(:?Cannot set a Categorical with another, without identical categories)"
+        msg1 = (
+            "Cannot setitem on a Categorical with a new category, "
+            "set the categories first"
         )
-        with pytest.raises(ValueError, match=msg):
+        msg2 = "Cannot set a Categorical with another, without identical categories"
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.iloc[2, 0] = "c"
 
@@ -129,7 +130,7 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_row)
 
         #   - assign a complete row (mixed values) not in categories set
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.iloc[2, :] = ["c", 2]
 
@@ -138,7 +139,7 @@ class TestDataFrameIndexingCategorical:
         df.iloc[2:4, :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.iloc[2:4, :] = [["c", 2], ["c", 2]]
 
@@ -148,12 +149,12 @@ class TestDataFrameIndexingCategorical:
         df.iloc[2:4, 0] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg2):
             # different categories -> not sure if this should fail or pass
             df = orig.copy()
             df.iloc[2:4, 0] = Categorical(list("bb"), categories=list("abc"))
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg2):
             # different values
             df = orig.copy()
             df.iloc[2:4, 0] = Categorical(list("cc"), categories=list("abc"))
@@ -164,7 +165,7 @@ class TestDataFrameIndexingCategorical:
         df.iloc[2:4, 0] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df.iloc[2:4, 0] = ["c", "c"]
 
         #  loc
@@ -179,7 +180,7 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j", "cats"] = "c"
 
@@ -189,7 +190,7 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_row)
 
         #   - assign a complete row (mixed values) not in categories set
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
 
@@ -198,7 +199,7 @@ class TestDataFrameIndexingCategorical:
         df.loc["j":"k", :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
@@ -208,14 +209,14 @@ class TestDataFrameIndexingCategorical:
         df.loc["j":"k", "cats"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg2):
             # different categories -> not sure if this should fail or pass
             df = orig.copy()
             df.loc["j":"k", "cats"] = Categorical(
                 ["b", "b"], categories=["a", "b", "c"]
             )
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg2):
             # different values
             df = orig.copy()
             df.loc["j":"k", "cats"] = Categorical(
@@ -228,7 +229,7 @@ class TestDataFrameIndexingCategorical:
         df.loc["j":"k", "cats"] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df.loc["j":"k", "cats"] = ["c", "c"]
 
         #  loc
@@ -243,7 +244,7 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j", df.columns[0]] = "c"
 
@@ -253,7 +254,7 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_row)
 
         #   - assign a complete row (mixed values) not in categories set
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j", :] = ["c", 2]
 
@@ -262,7 +263,7 @@ class TestDataFrameIndexingCategorical:
         df.loc["j":"k", :] = [["b", 2], ["b", 2]]
         tm.assert_frame_equal(df, exp_multi_row)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.loc["j":"k", :] = [["c", 2], ["c", 2]]
 
@@ -272,14 +273,14 @@ class TestDataFrameIndexingCategorical:
         df.loc["j":"k", df.columns[0]] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg2):
             # different categories -> not sure if this should fail or pass
             df = orig.copy()
             df.loc["j":"k", df.columns[0]] = Categorical(
                 ["b", "b"], categories=["a", "b", "c"]
             )
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg2):
             # different values
             df = orig.copy()
             df.loc["j":"k", df.columns[0]] = Categorical(
@@ -292,7 +293,7 @@ class TestDataFrameIndexingCategorical:
         df.loc["j":"k", df.columns[0]] = ["b", "b"]
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df.loc["j":"k", df.columns[0]] = ["c", "c"]
 
         # iat
@@ -301,7 +302,7 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.iat[2, 0] = "c"
 
@@ -312,7 +313,7 @@ class TestDataFrameIndexingCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         #   - assign a single value not in the current categories set
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.at["j", "cats"] = "c"
 
@@ -336,7 +337,7 @@ class TestDataFrameIndexingCategorical:
         df.at["j", "cats"] = "b"
         tm.assert_frame_equal(df, exp_single_cats_value)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg1):
             df = orig.copy()
             df.at["j", "cats"] = "c"
 
