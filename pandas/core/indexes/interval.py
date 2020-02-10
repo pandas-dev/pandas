@@ -523,14 +523,15 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
-    def holds_integer(self):
-        return self.dtype.subtype.kind not in ["m", "M"]
-        # TODO: There must already exist something for this?
+    def _should_fallback_to_positional(self):
+        # integer lookups in Series.__getitem__ are unambiguously
+        #  positional in this case
+        return self.dtype.subtype.kind in ["m", "M"]
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        if kind == "iloc":
-            return super()._convert_scalar_indexer(key, kind=kind)
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["getitem", "loc"]
+        # never iloc, so no-op
         return key
 
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -884,7 +885,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return self.get_indexer_non_unique(target)[0]
         return self.get_indexer(target, **kwargs)
 
-    def _convert_slice_indexer(self, key: slice, kind=None):
+    def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
             raise ValueError("cannot support not-default step in a slice")
         return super()._convert_slice_indexer(key, kind)
