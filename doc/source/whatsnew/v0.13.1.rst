@@ -224,7 +224,7 @@ Enhancements
 
   .. code-block:: ipython
 
-      In [28]: import pandas.util.testing as tm
+      In [28]: import pandas._testing as tm
 
       In [29]: panel = tm.makePanel(5)
 

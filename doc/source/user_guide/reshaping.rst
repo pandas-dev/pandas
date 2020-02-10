@@ -14,7 +14,7 @@ Reshaping by pivoting DataFrame objects
 .. ipython:: python
    :suppress:
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
    tm.N = 3
 
    def unpivot(frame):
@@ -38,7 +38,7 @@ For the curious here is how the above ``DataFrame`` was created:
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
 
    tm.N = 3
 

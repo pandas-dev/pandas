@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import CategoricalDtype, DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameToRecords:
@@ -235,7 +235,7 @@ class TestDataFrameToRecords:
             # Check that bad types raise
             (
                 dict(index=False, column_dtypes={"A": "int32", "B": "foo"}),
-                (TypeError, 'data type "foo" not understood'),
+                (TypeError, "data type [\"']foo[\"'] not understood"),
             ),
         ],
     )
@@ -326,7 +326,7 @@ class TestDataFrameToRecords:
             def __getitem__(self, key):
                 return self.d.__getitem__(key)
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return key in self.d
 
             def keys(self):

@@ -8,7 +8,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -1355,4 +1355,11 @@ class TestDataFrameReplace:
         df = pd.DataFrame(["a"])
         result = df.replace({"a": replacer, "b": replacer})
         expected = pd.DataFrame([replacer])
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_after_convert_dtypes(self):
+        # GH31517
+        df = pd.DataFrame({"grp": [1, 2, 3, 4, 5]}, dtype="Int64")
+        result = df.replace(1, 10)
+        expected = pd.DataFrame({"grp": [10, 2, 3, 4, 5]}, dtype="Int64")
         tm.assert_frame_equal(result, expected)

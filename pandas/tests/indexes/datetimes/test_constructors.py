@@ -11,8 +11,8 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets, to_datetime
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, period_array
-import pandas.util.testing as tm
 
 
 class TestDatetimeIndex:
@@ -28,6 +28,25 @@ class TestDatetimeIndex:
             dt_cls([pd.NaT, pd.Timestamp("2011-01-01")], freq="D")
         with pytest.raises(ValueError, match=msg):
             dt_cls([pd.NaT, pd.Timestamp("2011-01-01").value], freq="D")
+
+    # TODO: better place for tests shared by DTI/TDI?
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.date_range("2016-01-01", periods=5, tz="US/Pacific"),
+            pd.timedelta_range("1 Day", periods=5),
+        ],
+    )
+    def test_shallow_copy_inherits_array_freq(self, index):
+        # If we pass a DTA/TDA to shallow_copy and dont specify a freq,
+        #  we should inherit the array's freq, not our own.
+        array = index._data
+
+        arr = array[[0, 3, 2, 4, 1]]
+        assert arr.freq is None
+
+        result = index._shallow_copy(arr)
+        assert result.freq is None
 
     def test_categorical_preserves_tz(self):
         # GH#18664 retain tz when going DTI-->Categorical-->DTI
@@ -528,15 +547,15 @@ class TestDatetimeIndex:
 
         # non-conforming
         msg = (
-            "Inferred frequency None from passed values does not conform"
-            " to passed frequency D"
+            "Inferred frequency None from passed values does not conform "
+            "to passed frequency D"
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"], freq="D")
 
         msg = (
-            "Of the four parameters: start, end, periods, and freq, exactly"
-            " three must be specified"
+            "Of the four parameters: start, end, periods, and freq, exactly "
+            "three must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             date_range(start="2011-01-01", freq="b")
@@ -625,8 +644,8 @@ class TestDatetimeIndex:
         )
 
         msg = (
-            "cannot supply both a tz and a timezone-naive dtype"
-            r" \(i\.e\. datetime64\[ns\]\)"
+            "cannot supply both a tz and a timezone-naive dtype "
+            r"\(i\.e\. datetime64\[ns\]\)"
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns]")
@@ -931,3 +950,12 @@ class TestTimeSeries:
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+
+    def test_pass_datetimeindex_to_index(self):
+        # Bugs in #1396
+        rng = date_range("1/1/2000", "3/1/2000")
+        idx = Index(rng, dtype=object)
+
+        expected = Index(rng.to_pydatetime(), dtype=object)
+
+        tm.assert_numpy_array_equal(idx.values, expected.values)

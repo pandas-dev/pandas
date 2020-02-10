@@ -17,7 +17,7 @@ from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, concat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -597,3 +597,14 @@ def test_file_binary_mode(c_parser_only):
         with open(path, "rb") as f:
             result = parser.read_csv(f, header=None)
             tm.assert_frame_equal(result, expected)
+
+
+def test_unix_style_breaks(c_parser_only):
+    # GH 11020
+    parser = c_parser_only
+    with tm.ensure_clean() as path:
+        with open(path, "w", newline="\n") as f:
+            f.write("blah\n\ncol_1,col_2,col_3\n\n")
+        result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
+    expected = DataFrame(columns=["col_1", "col_2", "col_3"])
+    tm.assert_frame_equal(result, expected)

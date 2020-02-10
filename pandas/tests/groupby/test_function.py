@@ -20,8 +20,9 @@ from pandas import (
     date_range,
     isna,
 )
+import pandas._testing as tm
 import pandas.core.nanops as nanops
-from pandas.util import _test_decorators as td, testing as tm
+from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -102,9 +103,7 @@ def test_builtins_apply(keys, f):
     result = df.groupby(keys).apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
-    assert_msg = "invalid frame shape: {} (expected ({}, 3))".format(
-        result.shape, ngroups
-    )
+    assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
     tm.assert_frame_equal(
@@ -672,7 +671,7 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
 
 
-@pytest.mark.parametrize("func", ["mean", "var", "std", "cumprod", "cumsum"])
+@pytest.mark.parametrize("func", ["cumprod", "cumsum"])
 def test_numpy_compat(func):
     # see gh-12811
     df = pd.DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})

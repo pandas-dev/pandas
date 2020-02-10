@@ -3,8 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -437,3 +437,53 @@ def test_loc_nan_multiindex():
         columns=Index(["d1", "d2", "d3", "d4"], dtype="object"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_period_string_indexing():
+    # GH 9892
+    a = pd.period_range("2013Q1", "2013Q4", freq="Q")
+    i = (1111, 2222, 3333)
+    idx = pd.MultiIndex.from_product((a, i), names=("Periode", "CVR"))
+    df = pd.DataFrame(
+        index=idx,
+        columns=(
+            "OMS",
+            "OMK",
+            "RES",
+            "DRIFT_IND",
+            "OEVRIG_IND",
+            "FIN_IND",
+            "VARE_UD",
+            "LOEN_UD",
+            "FIN_UD",
+        ),
+    )
+    result = df.loc[("2013Q1", 1111), "OMS"]
+    expected = pd.Series(
+        [np.nan],
+        dtype=object,
+        name="OMS",
+        index=pd.MultiIndex.from_tuples(
+            [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
+        ),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_datetime_mask_slicing():
+    # GH 16699
+    dt_idx = pd.to_datetime(["2017-05-04", "2017-05-05"])
+    m_idx = pd.MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
+    df = pd.DataFrame(
+        data=[[1, 2], [3, 4], [5, 6], [7, 6]], index=m_idx, columns=["C1", "C2"]
+    )
+    result = df.loc[(dt_idx[0], (df.index.get_level_values(1) > "2017-05-04")), "C1"]
+    expected = pd.Series(
+        [3],
+        name="C1",
+        index=MultiIndex.from_tuples(
+            [(pd.Timestamp("2017-05-04"), pd.Timestamp("2017-05-05"))],
+            names=["Idx1", "Idx2"],
+        ),
+    )
+    tm.assert_series_equal(result, expected)

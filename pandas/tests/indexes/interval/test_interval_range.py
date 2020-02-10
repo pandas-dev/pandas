@@ -15,7 +15,7 @@ from pandas import (
     interval_range,
     timedelta_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Day
 

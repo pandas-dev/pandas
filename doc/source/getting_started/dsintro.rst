@@ -136,7 +136,7 @@ Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
 
 This is often a NumPy dtype. However, pandas and 3rd-party libraries
 extend NumPy's type system in a few places, in which case the dtype would
-be a :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
+be an :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
 pandas are :ref:`categorical` and :ref:`integer_na`. See :ref:`basics.dtypes`
 for more.
 
@@ -609,7 +609,7 @@ union of the column and row labels.
 
 When doing an operation between DataFrame and Series, the default behavior is
 to align the Series **index** on the DataFrame **columns**, thus `broadcasting
-<http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`__
+<https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`__
 row-wise. For example:
 
 .. ipython:: python
@@ -676,10 +676,10 @@ similar to an ndarray:
    # only show the first 5 rows
    df[:5].T
 
+.. _dsintro.numpy_interop:
+
 DataFrame interoperability with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. _dsintro.numpy_interop:
 
 Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
 can be used with no issues on Series and DataFrame, assuming the data within
@@ -741,7 +741,7 @@ implementation takes precedence and a Series is returned.
    np.maximum(ser, idx)
 
 NumPy ufuncs are safe to apply to :class:`Series` backed by non-ndarray arrays,
-for example :class:`SparseArray` (see :ref:`sparse.calculation`). If possible,
+for example :class:`arrays.SparseArray` (see :ref:`sparse.calculation`). If possible,
 the ufunc is applied without converting the underlying data to an ndarray.
 
 Console display

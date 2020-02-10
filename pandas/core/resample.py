@@ -23,6 +23,7 @@ from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
+from pandas.core.indexes.api import Index
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
@@ -424,10 +425,7 @@ class Resampler(_GroupBy, ShallowMixin):
 
         if isinstance(result, ABCSeries) and result.empty:
             obj = self.obj
-            if isinstance(obj.index, PeriodIndex):
-                result.index = obj.index.asfreq(self.freq)
-            else:
-                result.index = obj.index._shallow_copy(freq=self.freq)
+            result.index = _asfreq_compat(obj.index, freq=self.freq)
             result.name = getattr(obj, "name", None)
 
         return result
@@ -1076,10 +1074,9 @@ class DatetimeIndexResampler(Resampler):
             raise AssertionError("axis must be 0")
         if self._from_selection:
             raise ValueError(
-                "Upsampling from level= or on= selection"
-                " is not supported, use .set_index(...)"
-                " to explicitly set index to"
-                " datetime-like"
+                "Upsampling from level= or on= selection "
+                "is not supported, use .set_index(...) "
+                "to explicitly set index to datetime-like"
             )
 
         ax = self.ax
@@ -1135,9 +1132,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self._from_selection:
             # see GH 14008, GH 12871
             msg = (
-                "Resampling from level= or on= selection"
-                " with a PeriodIndex is not currently supported,"
-                " use .set_index(...) to explicitly set index"
+                "Resampling from level= or on= selection "
+                "with a PeriodIndex is not currently supported, "
+                "use .set_index(...) to explicitly set index"
             )
             raise NotImplementedError(msg)
 
@@ -1263,7 +1260,7 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
         return TimedeltaIndexResampler
 
 
-def resample(obj, kind=None, **kwds):
+def get_resampler(obj, kind=None, **kwds):
     """
     Create a TimeGrouper and return our resampler.
     """
@@ -1271,7 +1268,7 @@ def resample(obj, kind=None, **kwds):
     return tg._get_resampler(obj, kind=kind)
 
 
-resample.__doc__ = Resampler.__doc__
+get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
@@ -1587,7 +1584,10 @@ class TimeGrouper(Grouper):
         rng += freq_mult
         # adjust bin edge indexes to account for base
         rng -= bin_shift
-        bins = memb.searchsorted(rng, side="left")
+
+        # Wrap in PeriodArray for PeriodArray.searchsorted
+        prng = type(memb._data)(rng, dtype=memb.dtype)
+        bins = memb.searchsorted(prng, side="left")
 
         if nat_count > 0:
             # NaT handling as in pandas._lib.lib.generate_bins_dt64()
@@ -1785,8 +1785,8 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
 
     elif len(obj.index) == 0:
         new_obj = obj.copy()
-        new_obj.index = obj.index._shallow_copy(freq=to_offset(freq))
 
+        new_obj.index = _asfreq_compat(obj.index, freq)
     else:
         dti = date_range(obj.index[0], obj.index[-1], freq=freq)
         dti.name = obj.index.name
@@ -1795,3 +1795,28 @@ def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
             new_obj.index = new_obj.index.normalize()
 
     return new_obj
+
+
+def _asfreq_compat(index, freq):
+    """
+    Helper to mimic asfreq on (empty) DatetimeIndex and TimedeltaIndex.
+
+    Parameters
+    ----------
+    index : PeriodIndex, DatetimeIndex, or TimedeltaIndex
+    freq : DateOffset
+
+    Returns
+    -------
+    same type as index
+    """
+    if len(index) != 0:
+        # This should never be reached, always checked by the caller
+        raise ValueError(
+            "Can only set arbitrary freq for empty DatetimeIndex or TimedeltaIndex"
+        )
+    if isinstance(index, PeriodIndex):
+        new_index = index.asfreq(freq=freq)
+    else:
+        new_index = Index([], dtype=index.dtype, freq=freq, name=index.name)
+    return new_index

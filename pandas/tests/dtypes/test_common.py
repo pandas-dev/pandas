@@ -18,6 +18,8 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
+import pandas._testing as tm
+from pandas.arrays import SparseArray
 from pandas.conftest import (
     ALL_EA_INT_DTYPES,
     ALL_INT_DTYPES,
@@ -26,7 +28,6 @@ from pandas.conftest import (
     UNSIGNED_EA_INT_DTYPES,
     UNSIGNED_INT_DTYPES,
 )
-import pandas.util.testing as tm
 
 
 # EA & Actual Dtypes
@@ -182,7 +183,7 @@ def test_is_object():
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
 def test_is_sparse(check_scipy):
-    assert com.is_sparse(pd.SparseArray([1, 2, 3]))
+    assert com.is_sparse(SparseArray([1, 2, 3]))
 
     assert not com.is_sparse(np.array([1, 2, 3]))
 
@@ -198,7 +199,7 @@ def test_is_scipy_sparse():
 
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
 
-    assert not com.is_scipy_sparse(pd.SparseArray([1, 2, 3]))
+    assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 
 
 def test_is_categorical():
@@ -576,7 +577,7 @@ def test_is_extension_type(check_scipy):
     cat = pd.Categorical([1, 2, 3])
     assert com.is_extension_type(cat)
     assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(pd.SparseArray([1, 2, 3]))
+    assert com.is_extension_type(SparseArray([1, 2, 3]))
     assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
@@ -605,7 +606,7 @@ def test_is_extension_array_dtype(check_scipy):
     cat = pd.Categorical([1, 2, 3])
     assert com.is_extension_array_dtype(cat)
     assert com.is_extension_array_dtype(pd.Series(cat))
-    assert com.is_extension_array_dtype(pd.SparseArray([1, 2, 3]))
+    assert com.is_extension_array_dtype(SparseArray([1, 2, 3]))
     assert com.is_extension_array_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
@@ -667,12 +668,15 @@ def test__get_dtype(input_param, result):
         (None, "Cannot deduce dtype from null object"),
         (1, "data type not understood"),
         (1.2, "data type not understood"),
-        ("random string", 'data type "random string" not understood'),
+        # numpy dev changed from double-quotes to single quotes
+        ("random string", "data type [\"']random string[\"'] not understood"),
         (pd.DataFrame([1, 2]), "data type not understood"),
     ],
 )
 def test__get_dtype_fails(input_param, expected_error_message):
     # python objects
+    # 2020-02-02 npdev changed error message
+    expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
         com._get_dtype(input_param)
 

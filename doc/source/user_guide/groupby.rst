@@ -214,12 +214,11 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 
     df_dropna.groupby(by=["b"], dropna=False).sum()
 
-.. ipython:: python
+    df_dropna.groupby(by=["b"], dropna=False).sum()
 
-    ser = pd.Series([1, 2, 3, 3], index=["a", "a", "b", np.nan])
-    ser.groupby(level=0).sum()
+The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
 
-    ser.groupby(level=0, dropna=False).sum()
+.. versionadded:: 1.1.0
 
 
 .. _groupby.attributes:

@@ -6,7 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, to_numeric
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture(params=[None, "ignore", "raise", "coerce"])

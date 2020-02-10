@@ -1,4 +1,7 @@
-""" common type operations """
+"""
+Common type operations.
+"""
+
 from typing import Any, Callable, Union
 import warnings
 
@@ -6,7 +9,7 @@ import numpy as np
 
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -171,6 +174,8 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     try:
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
     except TypeError:
+        if is_extension_array_dtype(arr.dtype):
+            return arr.to_numpy(dtype="float64", na_value=np.nan)
         return arr.astype("float64", copy=copy)
 
 
@@ -192,12 +197,11 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     """
     if not is_scalar(value):
         raise TypeError(f"Value needs to be a scalar value, was type {type(value)}")
-    msg = "Wrong type {} for value {}"
     try:
         new_value = int(value)
         assert new_value == value
     except (TypeError, ValueError, AssertionError):
-        raise TypeError(msg.format(type(value), value))
+        raise TypeError(f"Wrong type {type(value)} for value {value}")
     return new_value
 
 
@@ -269,9 +273,9 @@ def is_sparse(arr) -> bool:
     --------
     Returns `True` if the parameter is a 1-D pandas sparse array.
 
-    >>> is_sparse(pd.SparseArray([0, 0, 1, 0]))
+    >>> is_sparse(pd.arrays.SparseArray([0, 0, 1, 0]))
     True
-    >>> is_sparse(pd.Series(pd.SparseArray([0, 0, 1, 0])))
+    >>> is_sparse(pd.Series(pd.arrays.SparseArray([0, 0, 1, 0])))
     True
 
     Returns `False` if the parameter is not sparse.
@@ -318,7 +322,7 @@ def is_scipy_sparse(arr) -> bool:
     >>> from scipy.sparse import bsr_matrix
     >>> is_scipy_sparse(bsr_matrix([1, 2, 3]))
     True
-    >>> is_scipy_sparse(pd.SparseArray([1, 2, 3]))
+    >>> is_scipy_sparse(pd.arrays.SparseArray([1, 2, 3]))
     False
     """
 
@@ -704,7 +708,7 @@ def is_dtype_equal(source, target) -> bool:
     False
     >>> is_dtype_equal(CategoricalDtype(), "category")
     True
-    >>> is_dtype_equal(DatetimeTZDtype(), "datetime64")
+    >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
 
@@ -861,7 +865,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     True
     >>> is_signed_integer_dtype('Int8')
     True
-    >>> is_signed_dtype(pd.Int8Dtype)
+    >>> is_signed_integer_dtype(pd.Int8Dtype)
     True
     >>> is_signed_integer_dtype(np.datetime64)
     False
@@ -993,7 +997,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64 dtype.
 
     Examples
@@ -1010,13 +1014,11 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_any_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
+    >>> is_datetime64_any_dtype(np.array([], dtype="datetime64[ns]"))
     True
-    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3],
-                                dtype=np.datetime64))
+    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
-
     if arr_or_dtype is None:
         return False
     return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
@@ -1033,7 +1035,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64[ns] dtype.
 
     Examples
@@ -1050,16 +1052,13 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_ns_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_ns_dtype(np.array([], dtype=np.datetime64))  # no unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64"))  # no unit
     False
-    >>> is_datetime64_ns_dtype(np.array([],
-                               dtype="datetime64[ps]"))  # wrong unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))  # wrong unit
     False
-    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3],
-                               dtype=np.datetime64))  # has 'ns' unit
+    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1239,7 +1238,8 @@ def is_datetimelike_v_numeric(a, b):
 
     Examples
     --------
-    >>> dt = np.datetime64(pd.datetime(2017, 1, 1))
+    >>> from datetime import datetime
+    >>> dt = np.datetime64(datetime(2017, 1, 1))
     >>>
     >>> is_datetimelike_v_numeric(1, 1)
     False
@@ -1467,7 +1467,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     True
     >>> is_bool_dtype(pd.Categorical([True, False]))
     True
-    >>> is_bool_dtype(pd.SparseArray([True, False]))
+    >>> is_bool_dtype(pd.arrays.SparseArray([True, False]))
     True
     """
     if arr_or_dtype is None:
@@ -1529,7 +1529,7 @@ def is_extension_type(arr) -> bool:
     True
     >>> is_extension_type(pd.Series(cat))
     True
-    >>> is_extension_type(pd.SparseArray([1, 2, 3]))
+    >>> is_extension_type(pd.arrays.SparseArray([1, 2, 3]))
     True
     >>> from scipy.sparse import bsr_matrix
     >>> is_extension_type(bsr_matrix([1, 2, 3]))
@@ -1667,7 +1667,7 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
     return condition(dtype)
 
 
-def _get_dtype(arr_or_dtype):
+def _get_dtype(arr_or_dtype) -> DtypeObj:
     """
     Get the dtype instance associated with an array
     or dtype object.
@@ -1839,7 +1839,7 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
-def pandas_dtype(dtype):
+def pandas_dtype(dtype) -> DtypeObj:
     """
     Convert input into a pandas only dtype object or a numpy dtype object.
 

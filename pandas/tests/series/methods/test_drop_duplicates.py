@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

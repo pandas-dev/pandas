@@ -30,9 +30,9 @@ from pandas import (
     isna,
     to_datetime,
 )
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
-import pandas.util.testing as tm
 
 
 class TestTimeConversionFormats:
@@ -559,9 +559,14 @@ class TestToDatetime:
         assert pd.to_datetime(dt, errors="coerce", cache=cache) is NaT
 
     @pytest.mark.parametrize("cache", [True, False])
-    def test_to_datetime_array_of_dt64s(self, cache):
-        dts = [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
-
+    @pytest.mark.parametrize("unit", ["s", "D"])
+    def test_to_datetime_array_of_dt64s(self, cache, unit):
+        # https://github.com/pandas-dev/pandas/issues/31491
+        # Need at least 50 to ensure cache is used.
+        dts = [
+            np.datetime64("2000-01-01", unit),
+            np.datetime64("2000-01-02", unit),
+        ] * 30
         # Assuming all datetimes are in bounds, to_datetime() returns
         # an array that is equal to Timestamp() parsing
         tm.assert_index_equal(
@@ -579,11 +584,8 @@ class TestToDatetime:
         tm.assert_index_equal(
             pd.to_datetime(dts_with_oob, errors="coerce", cache=cache),
             pd.DatetimeIndex(
-                [
-                    Timestamp(dts_with_oob[0]).asm8,
-                    Timestamp(dts_with_oob[1]).asm8,
-                    pd.NaT,
-                ]
+                [Timestamp(dts_with_oob[0]).asm8, Timestamp(dts_with_oob[1]).asm8] * 30
+                + [pd.NaT],
             ),
         )
 
@@ -616,8 +618,8 @@ class TestToDatetime:
             pd.Timestamp("2013-01-02 14:00:00", tz="US/Eastern"),
         ]
         msg = (
-            "Tz-aware datetime.datetime cannot be converted to datetime64"
-            " unless utc=True"
+            "Tz-aware datetime.datetime cannot be "
+            "converted to datetime64 unless utc=True"
         )
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(arr, cache=cache)
@@ -1583,7 +1585,7 @@ class TestToDatetimeMisc:
         for i in range(5):
             x = series[i]
             if isna(x):
-                expected[i] = iNaT
+                expected[i] = pd.NaT
             else:
                 expected[i] = to_datetime(x, cache=cache)
 
@@ -1874,7 +1876,7 @@ class TestDatetimeParsingWrappers:
         # https://github.com/dateutil/dateutil/issues/217
         yearfirst = True
 
-        result1, _, _ = parsing.parse_time_string(date_str, yearfirst=yearfirst)
+        result1, _ = parsing.parse_time_string(date_str, yearfirst=yearfirst)
         result2 = to_datetime(date_str, yearfirst=yearfirst)
         result3 = to_datetime([date_str], yearfirst=yearfirst)
         # result5 is used below
@@ -1910,7 +1912,7 @@ class TestDatetimeParsingWrappers:
 
     def test_parsers_nat(self):
         # Test that each of several string-accepting methods return pd.NaT
-        result1, _, _ = parsing.parse_time_string("NaT")
+        result1, _ = parsing.parse_time_string("NaT")
         result2 = to_datetime("NaT")
         result3 = Timestamp("NaT")
         result4 = DatetimeIndex(["NaT"])[0]
@@ -1986,7 +1988,7 @@ class TestDatetimeParsingWrappers:
                 )
                 assert dateutil_result == expected
 
-                result1, _, _ = parsing.parse_time_string(
+                result1, _ = parsing.parse_time_string(
                     date_str, dayfirst=dayfirst, yearfirst=yearfirst
                 )
 
@@ -2016,7 +2018,7 @@ class TestDatetimeParsingWrappers:
         }
 
         for date_str, (exp_now, exp_def) in cases.items():
-            result1, _, _ = parsing.parse_time_string(date_str)
+            result1, _ = parsing.parse_time_string(date_str)
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
             result4 = Timestamp(date_str)
@@ -2291,3 +2293,25 @@ def test_should_cache_errors(unique_share, check_count, err_message):
 
     with pytest.raises(AssertionError, match=err_message):
         tools.should_cache(arg, unique_share, check_count)
+
+
+def test_nullable_integer_to_datetime():
+    # Test for #30050
+    ser = pd.Series([1, 2, None, 2 ** 61, None])
+    ser = ser.astype("Int64")
+    ser_copy = ser.copy()
+
+    res = pd.to_datetime(ser, unit="ns")
+
+    expected = pd.Series(
+        [
+            np.datetime64("1970-01-01 00:00:00.000000001"),
+            np.datetime64("1970-01-01 00:00:00.000000002"),
+            np.datetime64("NaT"),
+            np.datetime64("2043-01-25 23:56:49.213693952"),
+            np.datetime64("NaT"),
+        ]
+    )
+    tm.assert_series_equal(res, expected)
+    # Check that ser isn't mutated
+    tm.assert_series_equal(ser, ser_copy)

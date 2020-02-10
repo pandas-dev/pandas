@@ -8,19 +8,10 @@ import pytest
 
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimeSeries:
-    def test_pass_datetimeindex_to_index(self):
-        # Bugs in #1396
-        rng = date_range("1/1/2000", "3/1/2000")
-        idx = Index(rng, dtype=object)
-
-        expected = Index(rng.to_pydatetime(), dtype=object)
-
-        tm.assert_numpy_array_equal(idx.values, expected.values)
-
     def test_range_edges(self):
         # GH#13672
         idx = pd.date_range(

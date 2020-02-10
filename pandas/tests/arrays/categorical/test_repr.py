@@ -147,8 +147,6 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
         idx = date_range("2011-01-01 09:00", freq="H", periods=5)
         c = Categorical(idx)
 
-        # TODO(wesm): exceeding 80 characters in the console is not good
-        # behavior
         exp = (
             "[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, "
             "2011-01-01 12:00:00, 2011-01-01 13:00:00]\n"

@@ -21,7 +21,7 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd
 
@@ -137,7 +137,14 @@ class TestTimeSeries:
         assert ts.last_valid_index().freq == ts.index.freq
 
     def test_mpl_compat_hack(self, datetime_series):
-        result = datetime_series[:, np.newaxis]
+
+        # This is currently failing because the test was relying on
+        # the DeprecationWarning coming through Index.__getitem__.
+        # We want to implement a warning specifically for Series.__getitem__
+        # at which point this will become a Deprecation/FutureWarning
+        with tm.assert_produces_warning(None):
+            # GH#30588 multi-dimensional indexing deprecated
+            result = datetime_series[:, np.newaxis]
         expected = datetime_series.values[:, np.newaxis]
         tm.assert_almost_equal(result, expected)
 
@@ -501,10 +508,7 @@ class TestTimeSeries:
     def test_between_time_types(self):
         # GH11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        msg = (
-            r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\]"
-            " to a time"
-        )
+        msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
         with pytest.raises(ValueError, match=msg):
             rng.indexer_between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
@@ -731,14 +735,12 @@ class TestTimeSeries:
         # This shouldn't produce a warning.
         ser = pd.Series(pd.date_range("2000", periods=2))
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser)
+        result = np.asarray(ser)
 
         tm.assert_numpy_array_equal(result, expected)
 
         # optionally, object
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser, dtype=object)
+        result = np.asarray(ser, dtype=object)
 
         expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
@@ -747,15 +749,12 @@ class TestTimeSeries:
         tz = "US/Central"
         ser = pd.Series(pd.date_range("2000", periods=2, tz=tz))
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
-        # We warn by default and return an ndarray[M8[ns]]
-        with tm.assert_produces_warning(FutureWarning):
-            result = np.asarray(ser)
+        result = np.asarray(ser, dtype="datetime64[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
         # Old behavior with no warning
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser, dtype="M8[ns]")
+        result = np.asarray(ser, dtype="M8[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -763,7 +762,6 @@ class TestTimeSeries:
         expected = np.array(
             [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
         )
-        with tm.assert_produces_warning(None):
-            result = np.asarray(ser, dtype=object)
+        result = np.asarray(ser, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)

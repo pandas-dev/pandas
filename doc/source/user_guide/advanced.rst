@@ -565,19 +565,15 @@ When working with an ``Index`` object directly, rather than via a ``DataFrame``,
    mi2 = mi.rename("new name", level=0)
    mi2
 
-.. warning::
 
-   Prior to pandas 1.0.0, you could also set the names of a ``MultiIndex``
-   by updating the name of a level.
+You cannot set the names of the MultiIndex via a level.
 
-   .. code-block:: none
+.. ipython:: python
+   :okexcept:
 
-      >>> mi.levels[0].name = 'name via level'
-      >>> mi.names[0]  # only works for older pandas
-      'name via level'
+   mi.levels[0].name = "name via level"
 
-   As of pandas 1.0, this will *silently* fail to update the names
-   of the MultiIndex. Use :meth:`Index.set_names` instead.
+Use :meth:`Index.set_names` instead.
 
 Sorting a ``MultiIndex``
 ------------------------

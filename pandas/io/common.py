@@ -1,23 +1,23 @@
 """Common IO api utilities"""
 
 import bz2
-import codecs
 from collections import abc
 import gzip
-from io import BufferedIOBase, BytesIO
+from io import BufferedIOBase, BytesIO, RawIOBase
 import mmap
 import os
 import pathlib
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     AnyStr,
-    BinaryIO,
     Dict,
     List,
     Mapping,
     Optional,
     Tuple,
+    Type,
     Union,
 )
 from urllib.parse import (  # noqa
@@ -47,6 +47,10 @@ lzma = _import_lzma()
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+
+
+if TYPE_CHECKING:
+    from io import IOBase  # noqa: F401
 
 
 def is_url(url) -> bool:
@@ -90,8 +94,7 @@ def _expand_user(
 def validate_header_arg(header) -> None:
     if isinstance(header, bool):
         raise TypeError(
-            "Passing a bool to header is invalid. "
-            "Use header=None for no header or "
+            "Passing a bool to header is invalid. Use header=None for no header or "
             "header=int or list-like of ints to specify "
             "the row(s) making up the column names"
         )
@@ -173,10 +176,9 @@ def get_filepath_or_buffer(
 
     Returns
     -------
-    tuple of ({a filepath_ or buffer or S3File instance},
-              encoding, str,
-              compression, str,
-              should_close, bool)
+    Tuple[FilePathOrBuffer, str, str, bool]
+        Tuple containing the filepath or buffer, the encoding, the compression
+        and should_close.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
@@ -370,12 +372,13 @@ def get_handle(
     handles : list of file-like objects
         A list of file-like object that were opened in this function.
     """
+    need_text_wrapping: Tuple[Type["IOBase"], ...]
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BufferedIOBase, S3File)
+        need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
     except ImportError:
-        need_text_wrapping = BufferedIOBase  # type: ignore
+        need_text_wrapping = (BufferedIOBase, RawIOBase)
 
     handles: List[IO] = list()
     f = path_or_buf
@@ -419,8 +422,8 @@ def get_handle(
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
                     raise ValueError(
-                        "Multiple files found in ZIP file."
-                        f" Only one file per ZIP: {zip_names}"
+                        "Multiple files found in ZIP file. "
+                        f"Only one file per ZIP: {zip_names}"
                     )
 
         # XZ Compression
@@ -451,7 +454,7 @@ def get_handle(
         from io import TextIOWrapper
 
         g = TextIOWrapper(f, encoding=encoding, newline="")
-        if not isinstance(f, BufferedIOBase):
+        if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g
 
@@ -538,24 +541,3 @@ class _MMapWrapper(abc.Iterator):
         if newline == "":
             raise StopIteration
         return newline
-
-
-class UTF8Recoder(abc.Iterator):
-    """
-    Iterator that reads an encoded stream and re-encodes the input to UTF-8
-    """
-
-    def __init__(self, f: BinaryIO, encoding: str):
-        self.reader = codecs.getreader(encoding)(f)
-
-    def read(self, bytes: int = -1) -> bytes:
-        return self.reader.read(bytes).encode("utf-8")
-
-    def readline(self) -> bytes:
-        return self.reader.readline().encode("utf-8")
-
-    def __next__(self) -> bytes:
-        return next(self.reader).encode("utf-8")
-
-    def close(self):
-        self.reader.close()

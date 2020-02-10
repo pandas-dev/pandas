@@ -229,10 +229,9 @@ class MPLPlot:
                 for char in s:
                     if char in matplotlib.colors.BASE_COLORS:
                         raise ValueError(
-                            "Cannot pass 'style' string with a color "
-                            "symbol and 'color' keyword argument. Please"
-                            " use one or the other or pass 'style' "
-                            "without a color symbol"
+                            "Cannot pass 'style' string with a color symbol and "
+                            "'color' keyword argument. Please use one or the other or "
+                            "pass 'style' without a color symbol"
                         )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
@@ -727,7 +726,10 @@ class MPLPlot:
         has_color = "color" in kwds or self.colormap is not None
         nocolor_style = style is None or re.match("[a-z]+", style) is None
         if (has_color or self.subplots) and nocolor_style:
-            kwds["color"] = colors[col_num % len(colors)]
+            if isinstance(colors, dict):
+                kwds["color"] = colors[label]
+            else:
+                kwds["color"] = colors[col_num % len(colors)]
         return style, kwds
 
     def _get_colors(self, num_colors=None, color_kwds="color"):
@@ -1348,6 +1350,8 @@ class BarPlot(MPLPlot):
             kwds = self.kwds.copy()
             if self._is_series:
                 kwds["color"] = colors
+            elif isinstance(colors, dict):
+                kwds["color"] = colors[label]
             else:
                 kwds["color"] = colors[i % ncolors]
 

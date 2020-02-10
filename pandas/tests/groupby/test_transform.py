@@ -18,8 +18,8 @@ from pandas import (
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
-import pandas.util.testing as tm
 
 
 def assert_fp_equal(a, b):
@@ -317,9 +317,35 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
+def test_transform_transformation_func(transformation_func):
+    # GH 30918
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
+            "B": [1, 2, np.nan, 3, 3, np.nan, 4],
+        }
+    )
+
+    if transformation_func in ["pad", "backfill", "tshift", "corrwith", "cumcount"]:
+        # These transformation functions are not yet covered in this test
+        pytest.xfail("See GH 31269 and GH 31270")
+    elif transformation_func == "fillna":
+        test_op = lambda x: x.transform("fillna", value=0)
+        mock_op = lambda x: x.fillna(value=0)
+    else:
+        test_op = lambda x: x.transform(transformation_func)
+        mock_op = lambda x: getattr(x, transformation_func)()
+
+    result = test_op(df.groupby("A"))
+    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
+    expected = concat([mock_op(g) for g in groups])
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_transform_select_columns(df):
     f = lambda x: x.mean()
-    result = df.groupby("A")["C", "D"].transform(f)
+    result = df.groupby("A")[["C", "D"]].transform(f)
 
     selection = df[["C", "D"]]
     expected = selection.groupby(df["A"]).transform(f)
@@ -962,9 +988,7 @@ def test_groupby_transform_rename():
         if isinstance(x, pd.Series):
             return result
 
-        result = result.rename(
-            columns={c: "{}_demeaned".format(c) for c in result.columns}
-        )
+        result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
 
         return result
 
