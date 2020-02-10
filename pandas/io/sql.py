@@ -284,7 +284,7 @@ def read_sql_query(
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    index_col : str or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
@@ -364,7 +364,7 @@ def read_sql(
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
         for engine disposal and connection closure for the SQLAlchemy connectable. See
         `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
-    index_col : str or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like

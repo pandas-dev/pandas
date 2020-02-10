@@ -1175,7 +1175,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Parameters
         ----------
-        na_tuple : boolean, default True
+        na_tuple : bool, default True
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 

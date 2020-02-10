@@ -1598,7 +1598,7 @@ class MultiIndex(Index):
         index : bool, default True
             Set the index of the returned DataFrame as the original MultiIndex.
 
-        name : list / sequence of strings, optional
+        name : list / sequence of str, optional
             The passed names should substitute index level names.
 
         Returns

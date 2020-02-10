@@ -1139,11 +1139,11 @@ class HDFStore:
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        min_itemsize : dict of columns that specify minimum string sizes
-        nan_rep      : string to use as string nan representation
+        min_itemsize : dict of columns that specify minimum str sizes
+        nan_rep      : str to use as str nan representation
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
-        encoding     : default None, provide an encoding for strings
+        encoding     : default None, provide an encoding for str
         dropna : bool, default False
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
