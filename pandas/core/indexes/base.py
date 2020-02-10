@@ -3206,8 +3206,12 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
 
         if is_null_slicer:
+            # It doesn't matter if we are positional or label based
             indexer = key
         elif is_positional:
+            if kind == "loc":
+                # GH#16121, GH#24612, GH#31810
+                self._invalid_indexer("slice", key)
             indexer = key
         else:
             indexer = self.slice_indexer(start, stop, step, kind=kind)
