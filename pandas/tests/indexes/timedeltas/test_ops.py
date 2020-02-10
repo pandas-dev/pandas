@@ -113,15 +113,6 @@ class TestTimedeltaIndexOps:
             ["1 day", "3 day", "5 day", "2 day", "1 day"], name="idx2"
         )
 
-        # TODO(wesm): unused?
-        # exp2 = TimedeltaIndex(['1 day', '1 day', '2 day',
-        #                        '3 day', '5 day'], name='idx2')
-
-        # idx3 = TimedeltaIndex([pd.NaT, '3 minute', '5 minute',
-        #                        '2 minute', pd.NaT], name='idx3')
-        # exp3 = TimedeltaIndex([pd.NaT, pd.NaT, '2 minute', '3 minute',
-        #                        '5 minute'], name='idx3')
-
         for idx, expected in [(idx1, exp1), (idx1, exp1), (idx1, exp1)]:
             ordered = idx.sort_values()
             tm.assert_index_equal(ordered, expected)
@@ -188,9 +179,6 @@ class TestTimedeltaIndexOps:
         result = pd.TimedeltaIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
-
-    def test_shift(self):
-        pass  # handled in test_arithmetic.py
 
     def test_repeat(self):
         index = pd.timedelta_range("1 days", periods=2, freq="D")
