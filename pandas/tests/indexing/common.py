@@ -1,10 +1,7 @@
 """ common utilities """
 import itertools
-from warnings import catch_warnings
 
 import numpy as np
-
-from pandas.core.dtypes.common import is_scalar
 
 from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
 import pandas._testing as tm
@@ -115,27 +112,6 @@ class Base:
 
         return itertools.product(*axes)
 
-    def get_result(self, obj, method, key, axis):
-        """ return the result for this obj with this key and this axis """
-
-        if isinstance(key, dict):
-            key = key[axis]
-
-        # use an artificial conversion to map the key as integers to the labels
-        # so ix can work for comparisons
-        if method == "indexer":
-            method = "ix"
-            key = obj._get_axis(axis)[key]
-
-        # in case we actually want 0 index slicing
-        with catch_warnings(record=True):
-            try:
-                xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
-            except AttributeError:
-                xp = getattr(obj, method).__getitem__(key)
-
-        return xp
-
     def get_value(self, name, f, i, values=False):
         """ return the value for the location i """
 
@@ -170,45 +146,30 @@ class Base:
             tm.assert_almost_equal(result, expected)
 
     def check_result(
-        self, method1, key1, method2, key2, typs=None, axes=None, fails=None,
+        self, method, key, typs=None, axes=None, fails=None,
     ):
-        def _eq(axis, obj, key1, key2):
+        def _eq(axis, obj, key):
             """ compare equal for these 2 keys """
-            if axis > obj.ndim - 1:
-                return
 
+            axified = _axify(obj, key, axis)
             try:
-                rs = getattr(obj, method1).__getitem__(_axify(obj, key1, axis))
-
-                try:
-                    xp = self.get_result(obj=obj, method=method2, key=key2, axis=axis)
-                except (KeyError, IndexError):
-                    # TODO: why is this allowed?
-                    return
-
-                if is_scalar(rs) and is_scalar(xp):
-                    assert rs == xp
-                else:
-                    tm.assert_equal(rs, xp)
+                getattr(obj, method).__getitem__(axified)
 
             except (IndexError, TypeError, KeyError) as detail:
 
                 # if we are in fails, the ok, otherwise raise it
                 if fails is not None:
                     if isinstance(detail, fails):
-                        result = f"ok ({type(detail).__name__})"
                         return
-
-                result = type(detail).__name__
-                raise AssertionError(result, detail)
+                raise
 
         if typs is None:
             typs = self._typs
 
         if axes is None:
             axes = [0, 1]
-        elif not isinstance(axes, (tuple, list)):
-            assert isinstance(axes, int)
+        else:
+            assert axes in [0, 1]
             axes = [axes]
 
         # check
@@ -217,8 +178,8 @@ class Base:
             d = getattr(self, kind)
             for ax in axes:
                 for typ in typs:
-                    if typ not in self._typs:
-                        continue
+                    assert typ in self._typs
 
                     obj = d[typ]
-                    _eq(axis=ax, obj=obj, key1=key1, key2=key2)
+                    if ax < obj.ndim:
+                        _eq(axis=ax, obj=obj, key=key)

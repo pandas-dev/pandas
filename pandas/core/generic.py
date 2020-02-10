@@ -1922,10 +1922,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     Parameters
     ----------
-    buf : writable buffer, defaults to sys.stdout
-        Where to send the output. By default, the output is printed to
-        sys.stdout. Pass a writable buffer if you need to further process
-        the output.
+    buf : str, Path or StringIO-like, optional, default None
+        Buffer to write to. If None, the output is returned as a string.
     mode : str, optional
         Mode in which file is opened.
     **kwargs
@@ -2684,7 +2682,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ... # 0,1,2,3
         ... # 1,4,5,6
 
-        We can omit the the index by passing the keyword `index` and setting
+        We can omit the index by passing the keyword `index` and setting
         it to false.
 
         >>> df.to_clipboard(sep=',', index=False)
@@ -3447,15 +3445,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 new_index = self.index[loc]
 
         if is_scalar(loc):
-            new_values = self._data.fast_xs(loc)
+            # In this case loc should be an integer
+            if self.ndim == 1:
+                # if we encounter an array-like and we only have 1 dim
+                # that means that their are list/ndarrays inside the Series!
+                # so just return them (GH 6394)
+                return self._values[loc]
 
-            # may need to box a datelike-scalar
-            #
-            # if we encounter an array-like and we only have 1 dim
-            # that means that their are list/ndarrays inside the Series!
-            # so just return them (GH 6394)
-            if not is_list_like(new_values) or self.ndim == 1:
-                return com.maybe_box_datetimelike(new_values)
+            new_values = self._data.fast_xs(loc)
 
             result = self._constructor_sliced(
                 new_values,
@@ -3504,7 +3501,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(self: FrameOrSeries, slobj: slice, axis=0, kind=None) -> FrameOrSeries:
+    def _slice(
+        self: FrameOrSeries, slobj: slice, axis=0, kind: str = "getitem"
+    ) -> FrameOrSeries:
         """
         Construct a slice of this container.
 
@@ -8364,9 +8363,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             left = self._ensure_type(
                 left.fillna(method=method, axis=fill_axis, limit=limit)
             )
-            right = self._ensure_type(
-                right.fillna(method=method, axis=fill_axis, limit=limit)
-            )
+            right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_datetime64tz_dtype(left.index):
@@ -9965,7 +9962,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        @Appender(_num_doc)
+        @Appender(_num_doc_mad)
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
                 skipna = True
@@ -10326,6 +10323,26 @@ numeric_only : bool, default None
 %(min_count)s\
 **kwargs
     Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+%(name1)s or %(name2)s (if level specified)\
+%(see_also)s\
+%(examples)s
+"""
+
+_num_doc_mad = """
+%(desc)s
+
+Parameters
+----------
+axis : %(axis_descr)s
+    Axis for the function to be applied on.
+skipna : bool, default None
+    Exclude NA/null values when computing the result.
+level : int or level name, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a %(name1)s.
 
 Returns
 -------

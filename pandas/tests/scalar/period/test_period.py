@@ -925,7 +925,7 @@ class TestPeriodProperties:
 
 class TestPeriodField:
     def test_get_period_field_array_raises_on_out_of_range(self):
-        msg = "Buffer dtype mismatch, expected 'int64_t' but got 'double'"
+        msg = "Buffer dtype mismatch, expected 'const int64_t' but got 'double'"
         with pytest.raises(ValueError, match=msg):
             libperiod.get_period_field_arr(-1, np.empty(1), 0)
 
@@ -1565,3 +1565,21 @@ def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1
     assert per1.day == 7
+
+
+def test_negone_ordinals():
+    freqs = ["A", "M", "Q", "D", "H", "T", "S"]
+
+    period = Period(ordinal=-1, freq="D")
+    for freq in freqs:
+        repr(period.asfreq(freq))
+
+    for freq in freqs:
+        period = Period(ordinal=-1, freq=freq)
+        repr(period)
+        assert period.year == 1969
+
+    period = Period(ordinal=-1, freq="B")
+    repr(period)
+    period = Period(ordinal=-1, freq="W")
+    repr(period)
