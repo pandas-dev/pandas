@@ -305,6 +305,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests dtypes'; echo $MSG
+    pytest -q --doctest-modules pandas/core/dtypes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests arrays/boolean.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/arrays/boolean.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"

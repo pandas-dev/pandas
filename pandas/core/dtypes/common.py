@@ -1,4 +1,7 @@
-""" common type operations """
+"""
+Common type operations.
+"""
+
 from typing import Any, Callable, Union
 import warnings
 
@@ -705,7 +708,7 @@ def is_dtype_equal(source, target) -> bool:
     False
     >>> is_dtype_equal(CategoricalDtype(), "category")
     True
-    >>> is_dtype_equal(DatetimeTZDtype(), "datetime64")
+    >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
 
@@ -862,7 +865,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     True
     >>> is_signed_integer_dtype('Int8')
     True
-    >>> is_signed_dtype(pd.Int8Dtype)
+    >>> is_signed_integer_dtype(pd.Int8Dtype)
     True
     >>> is_signed_integer_dtype(np.datetime64)
     False
@@ -994,7 +997,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64 dtype.
 
     Examples
@@ -1011,13 +1014,11 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_any_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
+    >>> is_datetime64_any_dtype(np.array([], dtype="datetime64[ns]"))
     True
-    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3],
-                                dtype=np.datetime64))
+    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
-
     if arr_or_dtype is None:
         return False
     return is_datetime64_dtype(arr_or_dtype) or is_datetime64tz_dtype(arr_or_dtype)
@@ -1034,7 +1035,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array or dtype is of the datetime64[ns] dtype.
 
     Examples
@@ -1051,16 +1052,13 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_ns_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_ns_dtype(np.array([], dtype=np.datetime64))  # no unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64"))  # no unit
     False
-    >>> is_datetime64_ns_dtype(np.array([],
-                               dtype="datetime64[ps]"))  # wrong unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))  # wrong unit
     False
-    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3],
-                               dtype=np.datetime64))  # has 'ns' unit
+    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1240,7 +1238,8 @@ def is_datetimelike_v_numeric(a, b):
 
     Examples
     --------
-    >>> dt = np.datetime64(pd.datetime(2017, 1, 1))
+    >>> from datetime import datetime
+    >>> dt = np.datetime64(datetime(2017, 1, 1))
     >>>
     >>> is_datetimelike_v_numeric(1, 1)
     False

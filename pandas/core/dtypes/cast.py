@@ -1,4 +1,6 @@
-""" routings for casting """
+"""
+Routines for casting.
+"""
 
 from datetime import date, datetime, timedelta
 
@@ -269,12 +271,12 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
     Examples
     --------
-    >>> result, _ = maybe_upcast_putmask(np.arange(1,6),
-    np.array([False, True, False, True, True]), np.arange(21,23))
+    >>> arr = np.arange(1, 6)
+    >>> mask = np.array([False, True, False, True, True])
+    >>> result, _ = maybe_upcast_putmask(arr, mask, False)
     >>> result
-    array([1, 21, 3, 22, 21])
+    array([1, 0, 3, 0, 0])
     """
-
     if not isinstance(result, np.ndarray):
         raise ValueError("The result input must be a ndarray.")
     if not is_scalar(other):
@@ -662,9 +664,8 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
     array(['1', '1'], dtype='<U21')
 
     >>> infer_dtype_from_array([1, '1'])
-    (numpy.object_, [1, '1'])
+    (<class 'numpy.object_'>, [1, '1'])
     """
-
     if isinstance(arr, np.ndarray):
         return arr.dtype, arr
 
@@ -709,7 +710,7 @@ def maybe_infer_dtype_type(element):
     >>> from collections import namedtuple
     >>> Foo = namedtuple("Foo", "dtype")
     >>> maybe_infer_dtype_type(Foo(np.dtype("i8")))
-    numpy.int64
+    dtype('int64')
     """
     tipo = None
     if hasattr(element, "dtype"):
@@ -1555,8 +1556,8 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
 
     Returns
     -------
-    int_arr : ndarray
-        An array of integer or unsigned integer dtype
+    ndarray
+        Array of integer or unsigned integer dtype.
 
     Raises
     ------
@@ -1567,19 +1568,18 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
     --------
     If you try to coerce negative values to unsigned integers, it raises:
 
-    >>> Series([-1], dtype="uint64")
+    >>> pd.Series([-1], dtype="uint64")
     Traceback (most recent call last):
         ...
     OverflowError: Trying to coerce negative values to unsigned integers
 
     Also, if you try to coerce float values to integers, it raises:
 
-    >>> Series([1, 2, 3.5], dtype="int64")
+    >>> pd.Series([1, 2, 3.5], dtype="int64")
     Traceback (most recent call last):
         ...
     ValueError: Trying to coerce float values to integers
     """
-
     try:
         if not hasattr(arr, "astype"):
             casted = np.array(arr, dtype=dtype, copy=copy)

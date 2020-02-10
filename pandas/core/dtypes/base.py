@@ -1,4 +1,7 @@
-"""Extend pandas with custom array types"""
+"""
+Extend pandas with custom array types.
+"""
+
 from typing import Any, List, Optional, Tuple, Type
 
 import numpy as np
@@ -231,8 +234,9 @@ class ExtensionDtype:
         ...     if match:
         ...         return cls(**match.groupdict())
         ...     else:
-        ...         raise TypeError(f"Cannot construct a '{cls.__name__}' from
-        ...             " "'{string}'")
+        ...         raise TypeError(
+        ...             f"Cannot construct a '{cls.__name__}' from '{string}'"
+        ...         )
         """
         if not isinstance(string, str):
             raise TypeError(

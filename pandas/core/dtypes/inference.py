@@ -117,7 +117,8 @@ def is_file_like(obj) -> bool:
 
     Examples
     --------
-    >>> buffer(StringIO("data"))
+    >>> import io
+    >>> buffer = io.StringIO("data")
     >>> is_file_like(buffer)
     True
     >>> is_file_like([1, 2, 3])
@@ -311,6 +312,7 @@ def is_named_tuple(obj) -> bool:
 
     Examples
     --------
+    >>> from collections import namedtuple
     >>> Point = namedtuple("Point", ["x", "y"])
     >>> p = Point(1, 2)
     >>>
@@ -339,6 +341,7 @@ def is_hashable(obj) -> bool:
 
     Examples
     --------
+    >>> import collections
     >>> a = ([],)
     >>> isinstance(a, collections.abc.Hashable)
     True
