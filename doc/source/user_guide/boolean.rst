@@ -20,7 +20,7 @@ Nullable Boolean Data Type
 Indexing with NA values
 -----------------------
 
-pandas allows indexing with ``NA`` values, which are treated as ``False``.
+pandas allows indexing with ``NA`` values in a boolean array, which are treated as ``False``.
 
 .. ipython:: python
    :okexcept:
