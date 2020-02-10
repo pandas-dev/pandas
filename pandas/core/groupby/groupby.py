@@ -2336,7 +2336,8 @@ class GroupBy(_GroupBy):
         ----------
         periods : int, default 1
             Number of periods to shift.
-        freq : frequency string
+        freq : str, optional
+            Frequency string
         axis : axis to shift, default 0
         fill_value : optional
 
