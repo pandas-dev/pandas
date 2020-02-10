@@ -20,8 +20,7 @@ Nullable Boolean Data Type
 Indexing with NA values
 -----------------------
 
-pandas does not allow indexing with NA values. Attempting to do so
-will raise a ``ValueError``.
+pandas allows indexing with ``NA`` values, which are treated as ``False``.
 
 .. ipython:: python
    :okexcept:
@@ -29,13 +28,6 @@ will raise a ``ValueError``.
    s = pd.Series([1, 2, 3])
    mask = pd.array([True, False, pd.NA], dtype="boolean")
    s[mask]
-
-The missing values will need to be explicitly filled with True or False prior
-to using the array as a mask.
-
-.. ipython:: python
-
-   s[mask.fillna(False)]
 
 .. _boolean.kleene:
 
