@@ -39,7 +39,7 @@ For example:
 Indexing with Nullable Boolean Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously indexing with a nullable Boolean array would raise a ``ValueError``, however this is now permitted with ``NA`` being treated as ``False``. (:issue:`31503`)
+Previously indexing with a nullable Boolean array containing ``NA`` would raise a ``ValueError``, however this is now permitted with ``NA`` being treated as ``False``. (:issue:`31503`)
 
 *pandas 1.0.x*
 
