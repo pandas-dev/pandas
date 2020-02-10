@@ -53,10 +53,13 @@ We've added :meth:`DataFrame.differences` and :meth:`Series.differences` for com
        },
        columns=["col1", "col2", "col3"],
    )
-   df
    df2 = df.copy()
    df2.loc[0, 'col1'] = 'c'
    df2.loc[2, 'col3'] = 4.0
+
+.. ipython:: python
+
+   df
    df2
    df.differences(df2)
 
