@@ -230,6 +230,7 @@ def test_max_sas_date(datapath):
     #    sas7bdat module
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
     df = pd.read_sas(fname, encoding="iso-8859-1")
+
     # SAS likes to left pad strings with spaces - lstrip before comparing
     df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
     # GH 19732: Timestamps imported from sas will incur floating point errors
