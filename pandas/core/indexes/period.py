@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import Any
 import weakref
 
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.tslibs import NaT, frequencies as libfrequencies, resolution
+from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
 from pandas.util._decorators import Appender, cache_readonly
@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_integer_dtype,
-    is_list_like,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -50,9 +49,6 @@ from pandas.tseries.offsets import DateOffset, Tick
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="PeriodIndex or list of Periods"))
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 # --- Period index sketch
 
@@ -301,22 +297,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
-    @property
-    def _box_func(self):
-        """Maybe box an ordinal or Period"""
-        # TODO(DatetimeArray): Avoid double-boxing
-        # PeriodArray takes care of boxing already, so we need to check
-        # whether we're given an ordinal or a Period. It seems like some
-        # places outside of indexes/period.py are calling this _box_func,
-        # but passing data that's already boxed.
-        def func(x):
-            if isinstance(x, Period) or x is NaT:
-                return x
-            else:
-                return Period._from_ordinal(ordinal=x, freq=self.freq)
-
-        return func
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -492,17 +472,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # indexing
         return "period"
 
-    def get_value(self, series: "Series", key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
-
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = ensure_index(target)
@@ -520,6 +489,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
+            if self_index is not self:
+                # convert tolerance to i8
+                tolerance = self._maybe_convert_timedelta(tolerance)
+
         return Index.get_indexer(self_index, target, method, limit, tolerance)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
@@ -556,6 +529,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         TypeError
             If key is listlike or otherwise not hashable.
         """
+        orig_key = key
 
         if not is_scalar(key):
             raise InvalidIndexError(key)
@@ -597,23 +571,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             key = Period(key, freq=self.freq)
         except ValueError:
             # we cannot construct the Period
-            # as we have an invalid type
-            if is_list_like(key):
-                raise TypeError(f"'{key}' is an invalid key")
-            raise KeyError(key)
+            raise KeyError(orig_key)
 
-        ordinal = key.ordinal if key is not NaT else key.value
         try:
-            return self._engine.get_loc(ordinal)
+            return Index.get_loc(self, key, method, tolerance)
         except KeyError:
-
-            try:
-                if tolerance is not None:
-                    tolerance = self._convert_tolerance(tolerance, np.asarray(key))
-                return self._int64index.get_loc(ordinal, method, tolerance)
-
-            except KeyError:
-                raise KeyError(key)
+            raise KeyError(orig_key)
 
     def _maybe_cast_slice_bound(self, label, side: str, kind: str):
         """
@@ -661,9 +624,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         iv = Period(parsed, freq=(grp, 1))
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
-        parsed, reso = parse_time_string(key, self.freq)
+    def _validate_partial_date_slice(self, reso: str):
         grp = resolution.Resolution.get_freq_group(reso)
         freqn = resolution.get_freq_group(self.freq)
 
@@ -671,41 +632,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             # TODO: we used to also check for
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
-            raise ValueError(key)
+            raise ValueError
 
-        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        i8vals = self.asi8
+    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+        # TODO: Check for non-True use_lhs/use_rhs
+        parsed, reso = parse_time_string(key, self.freq)
 
-        if self.is_monotonic:
-
-            # we are out of range
-            if len(self) and (
-                (use_lhs and t1 < self[0] and t2 < self[0])
-                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
-            ):
-                raise KeyError(key)
-
-            # TODO: does this depend on being monotonic _increasing_?
-            #  If so, DTI will also be affected.
-
-            # a monotonic (sorted) series can be sliced
-            # Use asi8.searchsorted to avoid re-validating Periods
-            left = i8vals.searchsorted(t1.ordinal, side="left") if use_lhs else None
-            right = i8vals.searchsorted(t2.ordinal, side="right") if use_rhs else None
-            return slice(left, right)
-
-        else:
-            lhs_mask = (i8vals >= t1.ordinal) if use_lhs else True
-            rhs_mask = (i8vals <= t2.ordinal) if use_rhs else True
-
-            # try to find a the dates
-            return (lhs_mask & rhs_mask).nonzero()[0]
-
-    def _convert_tolerance(self, tolerance, target):
-        tolerance = DatetimeIndexOpsMixin._convert_tolerance(self, tolerance, target)
-        if target.size != tolerance.size and tolerance.size > 1:
-            raise ValueError("list-like tolerance size must match target index size")
-        return self._maybe_convert_timedelta(tolerance)
+        try:
+            return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
+        except KeyError:
+            raise KeyError(key)
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
@@ -752,10 +688,26 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if isinstance(other, PeriodIndex) and self.freq != other.freq:
             raise raise_on_incompatible(self, other)
 
-    def intersection(self, other, sort=False):
+    def _setop(self, other, sort, opname: str):
+        """
+        Perform a set operation by dispatching to the Int64Index implementation.
+        """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
         res_name = get_op_result_name(self, other)
+        other = ensure_index(other)
+
+        i8self = Int64Index._simple_new(self.asi8)
+        i8other = Int64Index._simple_new(other.asi8)
+        i8result = getattr(i8self, opname)(i8other, sort=sort)
+
+        parr = type(self._data)(np.asarray(i8result, dtype=np.int64), dtype=self.dtype)
+        result = type(self)._simple_new(parr, name=res_name)
+        return result
+
+    def intersection(self, other, sort=False):
+        self._validate_sort_keyword(sort)
+        self._assert_can_do_setop(other)
         other = ensure_index(other)
 
         if self.equals(other):
@@ -767,22 +719,16 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             other = other.astype("O")
             return this.intersection(other, sort=sort)
 
-        i8self = Int64Index._simple_new(self.asi8)
-        i8other = Int64Index._simple_new(other.asi8)
-        i8result = i8self.intersection(i8other, sort=sort)
-
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
-        return result
+        return self._setop(other, sort, opname="intersection")
 
     def difference(self, other, sort=None):
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        res_name = get_op_result_name(self, other)
         other = ensure_index(other)
 
         if self.equals(other):
             # pass an empty PeriodArray with the appropriate dtype
-            return self._shallow_copy(self._data[:0])
+            return type(self)._simple_new(self._data[:0], name=self.name)
 
         if is_object_dtype(other):
             return self.astype(object).difference(other).astype(self.dtype)
@@ -790,12 +736,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         elif not is_dtype_equal(self.dtype, other.dtype):
             return self
 
-        i8self = Int64Index._simple_new(self.asi8)
-        i8other = Int64Index._simple_new(other.asi8)
-        i8result = i8self.difference(i8other, sort=sort)
-
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
-        return result
+        return self._setop(other, sort, opname="difference")
 
     def _union(self, other, sort):
         if not len(other) or self.equals(other) or not len(self):
@@ -809,13 +750,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             other = other.astype("O")
             return this._union(other, sort=sort)
 
-        i8self = Int64Index._simple_new(self.asi8)
-        i8other = Int64Index._simple_new(other.asi8)
-        i8result = i8self._union(i8other, sort=sort)
-
-        res_name = get_op_result_name(self, other)
-        result = self._shallow_copy(np.asarray(i8result, dtype=np.int64), name=res_name)
-        return result
+        return self._setop(other, sort, opname="_union")
 
     # ------------------------------------------------------------------------
 

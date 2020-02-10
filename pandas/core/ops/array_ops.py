@@ -8,7 +8,7 @@ from typing import Any, Optional, Union
 
 import numpy as np
 
-from pandas._libs import Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -186,11 +186,12 @@ def arithmetic_op(
     rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(left, rvalues) or isinstance(
-        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp, Timedelta)
     ):
         # TimedeltaArray, DatetimeArray, and Timestamp are included here
         #  because they have `freq` attribute which is handled correctly
         #  by dispatch_to_extension_op.
+        # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = dispatch_to_extension_op(op, lvalues, rvalues)
 
     else:
