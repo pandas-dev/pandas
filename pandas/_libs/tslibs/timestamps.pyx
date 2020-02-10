@@ -195,11 +195,13 @@ class Timestamp(_Timestamp):
     nanosecond : int, optional, default 0
         .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
-    fold : int, default is None
+    fold : {0, 1}, default None
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time
+
+        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -229,6 +231,12 @@ class Timestamp(_Timestamp):
 
     >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
     Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
+
+    This converts a datetime-like string representing an ambiguous time
+    in a particular timezone with fold explicitly supplied:
+
+    >>> pd.Timestamp('2019-10-27 01:30:00', tz='Europe/London', fold=1)
+    Timestamp('2019-10-27 01:30:00+0000', tz='Europe/London')
 
     Using the other two forms that mimic the API for ``datetime.datetime``:
 
