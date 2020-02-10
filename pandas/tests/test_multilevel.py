@@ -895,7 +895,7 @@ Thur,Lunch,Yes,51.51,17"""
         # GH 18265
         values = np.arange(5)
         data = np.vstack(
-            [[f"b{x}" for x in values], [f"a{x}" for x in values], ]  # b0, b1, ..
+            [[f"b{x}" for x in values], [f"a{x}" for x in values]]  # b0, b1, ..
         )  # a0, a1, ..
         df = pd.DataFrame(data.T, columns=["b", "a"])
         df.columns.name = "first"
