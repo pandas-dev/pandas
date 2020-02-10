@@ -227,7 +227,6 @@ See :ref:`here <missing_data.NA.conversion>` for a description.
 
 .. _whatsnew_100.enhancements.other:
 
-
 Other enhancements
 ~~~~~~~~~~~~~~~~~~
 
