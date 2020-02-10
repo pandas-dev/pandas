@@ -64,6 +64,16 @@ ignore_natural_naming_warning = pytest.mark.filterwarnings(
 
 @pytest.mark.single
 class TestHDFStore:
+    def test_format_type(self, setup_path):
+        df = pd.DataFrame({"A": [1, 2]})
+        with ensure_clean_path(setup_path) as path:
+            with HDFStore(path) as store:
+                store.put("a", df, format="fixed")
+                store.put("b", df, format="table")
+
+                assert store.get_storer("a").format_type == "fixed"
+                assert store.get_storer("b").format_type == "table"
+
     def test_format_kwarg_in_constructor(self, setup_path):
         # GH 13291
 
@@ -4061,6 +4071,21 @@ class TestHDFStore:
                 [[1, 2, 3, "D"]],
                 columns=["A", "B", "C", "D"],
                 index=pd.Index(["ABC"], name="INDEX_NAME"),
+            )
+            tm.assert_frame_equal(expected, result)
+
+    def test_legacy_table_fixed_format_read_datetime_py2(self, datapath, setup_path):
+        # GH 31750
+        # legacy table with fixed format and datetime64 column written in Python 2
+        with ensure_clean_store(
+            datapath("io", "data", "legacy_hdf", "legacy_table_fixed_datetime_py2.h5"),
+            mode="r",
+        ) as store:
+            result = store.select("df")
+            expected = pd.DataFrame(
+                [[pd.Timestamp("2020-02-06T18:00")]],
+                columns=["A"],
+                index=pd.Index(["date"]),
             )
             tm.assert_frame_equal(expected, result)
 

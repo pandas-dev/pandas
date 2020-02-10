@@ -1,4 +1,7 @@
-"""Extend pandas with custom array types"""
+"""
+Extend pandas with custom array types.
+"""
+
 from typing import Any, List, Optional, Tuple, Type
 
 import numpy as np
@@ -231,12 +234,14 @@ class ExtensionDtype:
         ...     if match:
         ...         return cls(**match.groupdict())
         ...     else:
-        ...         raise TypeError(f"Cannot construct a '{cls.__name__}' from
-        ...             " "'{string}'")
+        ...         raise TypeError(
+        ...             f"Cannot construct a '{cls.__name__}' from '{string}'"
+        ...         )
         """
         if not isinstance(string, str):
-            raise TypeError(f"Expects a string, got {type(string).__name__}")
-
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
         # error: Non-overlapping equality check (left operand type: "str", right
         #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
         assert isinstance(cls.name, str), (cls, type(cls.name))

@@ -1182,17 +1182,13 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj = self._create_blocks()
-
-        window = self._get_window()
-        window = min(window, len(obj)) if not self.center else window
-
         results = []
         for b in blocks:
             result = b.notna().astype(int)
             result = self._constructor(
                 result,
-                window=window,
-                min_periods=0,
+                window=self._get_window(),
+                min_periods=self.min_periods or 0,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,
@@ -1203,7 +1199,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs["apply"] = dedent(
         r"""
-    The %(name)s function's apply function.
+    Apply an arbitrary function to each %(name)s window.
 
     Parameters
     ----------
@@ -1300,13 +1296,14 @@ class _Rolling_and_Expanding(_Rolling):
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         # TODO: Why do we always pass center=False?
-        # name=func for WindowGroupByMixin._apply
+        # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
             center=False,
             floor=0,
             name=func,
             use_numba_cache=engine == "numba",
+            raw=raw,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
@@ -1657,7 +1654,11 @@ class _Rolling_and_Expanding(_Rolling):
             mean = lambda x: x.rolling(
                 window, self.min_periods, center=self.center
             ).mean(**kwargs)
-            count = (X + Y).rolling(window=window, center=self.center).count(**kwargs)
+            count = (
+                (X + Y)
+                .rolling(window=window, min_periods=0, center=self.center)
+                .count(**kwargs)
+            )
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 

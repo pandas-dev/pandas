@@ -25,6 +25,8 @@ is_interval = lib.is_interval
 
 is_list_like = lib.is_list_like
 
+is_iterator = lib.is_iterator
+
 
 def is_number(obj) -> bool:
     """
@@ -93,40 +95,6 @@ def _iterable_not_string(obj) -> bool:
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
-def is_iterator(obj) -> bool:
-    """
-    Check if the object is an iterator.
-
-    For example, lists are considered iterators
-    but not strings or datetime objects.
-
-    Parameters
-    ----------
-    obj : The object to check
-
-    Returns
-    -------
-    is_iter : bool
-        Whether `obj` is an iterator.
-
-    Examples
-    --------
-    >>> is_iterator([1, 2, 3])
-    True
-    >>> is_iterator(datetime(2017, 1, 1))
-    False
-    >>> is_iterator("foo")
-    False
-    >>> is_iterator(1)
-    False
-    """
-
-    if not hasattr(obj, "__iter__"):
-        return False
-
-    return hasattr(obj, "__next__")
-
-
 def is_file_like(obj) -> bool:
     """
     Check if the object is a file-like object.
@@ -149,7 +117,8 @@ def is_file_like(obj) -> bool:
 
     Examples
     --------
-    >>> buffer(StringIO("data"))
+    >>> import io
+    >>> buffer = io.StringIO("data")
     >>> is_file_like(buffer)
     True
     >>> is_file_like([1, 2, 3])
@@ -343,6 +312,7 @@ def is_named_tuple(obj) -> bool:
 
     Examples
     --------
+    >>> from collections import namedtuple
     >>> Point = namedtuple("Point", ["x", "y"])
     >>> p = Point(1, 2)
     >>>
@@ -371,6 +341,7 @@ def is_hashable(obj) -> bool:
 
     Examples
     --------
+    >>> import collections
     >>> a = ([],)
     >>> isinstance(a, collections.abc.Hashable)
     True
