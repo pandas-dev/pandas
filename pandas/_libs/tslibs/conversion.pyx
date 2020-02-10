@@ -374,7 +374,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         else:
             trans, deltas, typ = get_dst_info(tz)
 
-            if typ == 'pytz' or typ == 'dateutil':
+            if typ in ['pytz', 'dateutil']:
                 pos = trans.searchsorted(obj.value, side='right') - 1
                 # pytz assumes fold == 1, dateutil fold == 0
                 # adjust only if necessary
@@ -428,7 +428,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
     else:
         trans, deltas, typ = get_dst_info(tz)
 
-        if typ == 'pytz' or typ == 'dateutil':
+        if typ in ['pytz', 'dateutil']:
             pos = trans.searchsorted(obj.value, side='right') - 1
             fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
@@ -608,7 +608,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             # static/fixed tzinfo; in this case we know len(deltas) == 1
             # This can come back with `typ` of either "fixed" or None
             dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
-        elif typ == 'pytz' or typ == 'dateutil':
+        elif typ in ['pytz', 'dateutil']:
             pos = trans.searchsorted(obj.value, side='right') - 1
             if typ == 'pytz':
                 tz = tz._tzinfos[tz._transition_info[pos]]
