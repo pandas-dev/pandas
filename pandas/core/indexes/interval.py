@@ -183,23 +183,10 @@ class SetopCheck:
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
 @inherit_names(
-    [
-        "__len__",
-        "__array__",
-        "overlaps",
-        "contains",
-        "size",
-        "dtype",
-        "left",
-        "right",
-        "length",
-    ],
-    IntervalArray,
+    ["__array__", "overlaps", "contains", "left", "right", "length"], IntervalArray,
 )
 @inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "_ndarray_values", "closed"],
-    IntervalArray,
-    cache=True,
+    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True,
 )
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
@@ -943,32 +930,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
 
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        assert that we all have the same .closed
-        we allow a 0-len index here as well
-        """
-        if not len({i.closed for i in to_concat if len(i)}) == 1:
-            raise ValueError(
-                "can only append two IntervalIndex objects "
-                "that are closed on the same side"
-            )
-        return super()._concat_same_dtype(to_concat, name)
-
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         result = self._data.take(
             indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
         )
         return self._shallow_copy(result)
-
-    def __getitem__(self, value):
-        result = self._data[value]
-        if isinstance(result, IntervalArray):
-            return self._shallow_copy(result)
-        else:
-            # scalar
-            return result
 
     # --------------------------------------------------------------------
     # Rendering Methods

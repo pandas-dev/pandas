@@ -26,8 +26,7 @@ from pandas.core.indexers import (
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index
-from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.api import Index, InvalidIndexError
 
 # "null slice"
 _NS = slice(None, None)
@@ -592,6 +591,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         return self.obj._xs(label, axis=axis)
 
     def _get_setitem_indexer(self, key):
+        """
+        Convert a potentially-label-based key into a positional indexer.
+        """
         if self.axis is not None:
             return self._convert_tuple(key, is_setter=True)
 
@@ -628,7 +630,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
         else:
             key = com.apply_if_callable(key, self.obj)
         indexer = self._get_setitem_indexer(key)
-        self._has_valid_setitem_indexer(indexer)
+        self._has_valid_setitem_indexer(key)
 
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value)
@@ -1632,7 +1634,7 @@ class _iLocIndexer(_LocationIndexer):
                                     "defined index and a scalar"
                                 )
                             self.obj[key] = value
-                            return self.obj
+                            return
 
                         # add a new item with the dtype setup
                         self.obj[key] = _infer_fill_value(value)
@@ -1642,7 +1644,7 @@ class _iLocIndexer(_LocationIndexer):
                         )
                         self._setitem_with_indexer(new_indexer, value)
 
-                        return self.obj
+                        return
 
                     # reindex the axis
                     # make sure to clear the cache because we are
@@ -1665,7 +1667,8 @@ class _iLocIndexer(_LocationIndexer):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                return self._setitem_with_indexer_missing(indexer, value)
+                self._setitem_with_indexer_missing(indexer, value)
+                return
 
         # set
         item_labels = self.obj._get_axis(info_axis)
@@ -1888,7 +1891,6 @@ class _iLocIndexer(_LocationIndexer):
                 new_values, index=new_index, name=self.obj.name
             )._data
             self.obj._maybe_update_cacher(clear=True)
-            return self.obj
 
         elif self.ndim == 2:
 
@@ -1912,7 +1914,6 @@ class _iLocIndexer(_LocationIndexer):
 
             self.obj._data = self.obj.append(value)._data
             self.obj._maybe_update_cacher(clear=True)
-            return self.obj
 
     def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer: bool = False):
         """
