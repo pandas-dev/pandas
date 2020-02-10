@@ -308,7 +308,7 @@ class SeriesFormatter:
                 footer += ", "
 
             series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-            footer += f"Name: {series_name if name else ''}"
+            footer += f"Name: {series_name}" if name is not None else ""
 
         if self.length is True or (self.length == "truncate" and self.truncate_v):
             if footer:
@@ -810,9 +810,11 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = f"Empty {type(self.frame).__name__}\n"
-            f"Columns: {pprint_thing(frame.columns)}\n"
-            f"Index: {pprint_thing(frame.index)}"
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {pprint_thing(frame.columns)}\n"
+                f"Index: {pprint_thing(frame.index)}"
+            )
             text = info_line
         else:
 
@@ -1200,7 +1202,7 @@ class GenericArrayFormatter:
             float_format = get_option("display.float_format")
             if float_format is None:
                 precision = get_option("display.precision")
-                float_format = lambda x: f"{{{x}: .{precision:d}g}}"
+                float_format = lambda x: f"{x: .{precision:d}g}"
         else:
             float_format = self.float_format
 

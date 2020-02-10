@@ -59,8 +59,10 @@ class LatexFormatter(TableFormatter):
 
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = f"Empty {type(self.frame).__name__}\n"
-            f"Columns: {self.frame.columns}\nIndex: {self.frame.index}"
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {self.frame.columns}\nIndex: {self.frame.index}"
+            )
             strcols = [[info_line]]
         else:
             strcols = self.fmt._to_str_columns()

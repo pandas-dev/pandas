@@ -262,8 +262,10 @@ class TestJoin:
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({"a": [1, 1]})
-        msg = f"Can only merge Series or DataFrame objects, "
-        f"a {str(type(wrong_type))} was passed"
+        msg = (
+            f"Can only merge Series or DataFrame objects, "
+            f"a {str(type(wrong_type))} was passed"
+        )
         with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on="a", right_on="a")
         with pytest.raises(TypeError, match=msg):
