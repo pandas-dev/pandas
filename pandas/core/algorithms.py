@@ -182,7 +182,8 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
-
+    print(dtype)
+    print(values)
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_bool_dtype(dtype):
@@ -647,8 +648,7 @@ def factorize(
 
     code_is_na = codes == na_sentinel
     if not dropna and code_is_na.any():
-        na_value = na_value_for_dtype(original.dtype)
-        uniques = np.append(uniques, [na_value])
+        uniques = np.append(uniques, [None])
         codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)
