@@ -334,7 +334,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     ...
     IndexError: Boolean index has wrong length: 3 instead of 2.
 
-    NA values are treated as False.
+    NA values in a boolean array are treated as False.
 
     >>> mask = pd.array([True, pd.NA])
     >>> pd.api.indexers.check_array_indexer(arr, mask)
