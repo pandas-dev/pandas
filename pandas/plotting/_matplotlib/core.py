@@ -248,20 +248,19 @@ class MPLPlot:
 
         if self.by is None:
             for col, values in data.items():
-                self._yield_values(keep_index, col, values)
+                if keep_index is True:
+                    yield col, values
+                else:
+                    yield col, values.values
         else:
             cols = data.columns.get_level_values(0).unique()
 
             for col in cols:
-                values = data.loc[:, data.columns.get_level_values(0) == col]
-                self._yield_values(keep_index, col, values)
-
-    def _yield_values(self, keep_index, col, values):
-        """Yield col and values based on keep_index value."""
-        if keep_index is True:
-            yield col, values
-        else:
-            yield col, values.values
+                data_values = data.loc[:, data.columns.get_level_values(0) == col]
+                if keep_index is True:
+                    yield col, data_values
+                else:
+                    yield col, data_values.values
 
     @property
     def nseries(self):
