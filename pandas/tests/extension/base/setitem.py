@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 from .base import BaseExtensionTests
 
@@ -155,22 +156,26 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_equal(arr, expected)
 
     @pytest.mark.parametrize(
-        "idx",
-        [[0, 1, 2, pd.NA], pd.array([0, 1, 2, pd.NA], dtype="Int64")],
-        ids=["list", "integer-array"],
+        "idx, box_in_series",
+        [
+            ([0, 1, 2, pd.NA], False),
+            pytest.param([0, 1, 2, pd.NA], True, marks=pytest.mark.xfail),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+        ],
+        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
     )
-    def test_setitem_integer_with_missing_raises(self, data, idx):
+    def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
         arr = data.copy()
+
+        # TODO(xfail) this raises KeyError about labels not found (it tries label-based)
+        # for list of labels with Series
+        if box_in_series:
+            arr = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
 
         msg = "Cannot index with an integer indexer containing NA values"
         with pytest.raises(ValueError, match=msg):
             arr[idx] = arr[0]
-
-        # TODO this raises KeyError about labels not found (it tries label-based)
-        # import pandas._testing as tm
-        # s = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
-        # with pytest.raises(ValueError, match=msg):
-        #    s[idx] = s[0]
 
     @pytest.mark.parametrize("as_callable", [True, False])
     @pytest.mark.parametrize("setter", ["loc", None])
