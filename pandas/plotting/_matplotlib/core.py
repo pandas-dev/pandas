@@ -112,7 +112,7 @@ class MPLPlot:
 
         self.data = data
         self.by = by
-        self.column = [column] if isinstance(column, str) else column
+        self.column = [column] if not isinstance(column, list) else column
 
         self.kind = kind
 
@@ -247,20 +247,21 @@ class MPLPlot:
             data = data.fillna(fillna)
 
         if self.by is None:
-            for col, values in data.items():
-                if keep_index:
-                    yield col, values
-                else:
-                    yield col, values.values
+            cols = data.columns
         else:
             cols = data.columns.get_level_values(0).unique()
 
-            for col in cols:
-                data_value = data.loc[:, data.columns.get_level_values(0) == col]
-                if keep_index is True:
-                    yield col, data_value
-                else:
-                    yield col, data_value.values
+        for col in cols:
+            if self.by is None:
+                values = data.loc[:, col]
+            else:
+                # if `by` is defined, select columns which are grouped by
+                values = data.loc[:, data.columns.get_level_values(0) == col]
+
+            if keep_index:
+                yield col, values
+            else:
+                yield col, values.values
 
     @property
     def nseries(self):
