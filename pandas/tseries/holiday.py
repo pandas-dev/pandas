@@ -1,5 +1,7 @@
+# mypy: ignore_errors
+
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Iterable, List, Optional, Union, cast
+from typing import Iterable, List, Optional, Union, cast
 import warnings
 
 from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
@@ -10,9 +12,6 @@ from pandas.errors import PerformanceWarning
 from pandas import DateOffset, DatetimeIndex, Series, Timestamp, concat, date_range
 
 from pandas.tseries.offsets import Day, Easter
-
-if TYPE_CHECKING:
-    from pandas import DatetimeIndex  # noqa: F401
 
 _DatetimeLike = Union[datetime, Timestamp, str, float]
 
@@ -208,7 +207,7 @@ class Holiday:
         start_date: Optional[_DatetimeLike],
         end_date: Optional[_DatetimeLike],
         return_name: bool = False,
-    ) -> Union["DatetimeIndex", List[Timestamp], Series]:
+    ) -> Union[DatetimeIndex, List[Timestamp], Series]:
         """
         Calculate holidays observed between start date and end date
 
@@ -259,7 +258,7 @@ class Holiday:
 
     def _reference_dates(
         self, start_date: Timestamp, end_date: Timestamp
-    ) -> "DatetimeIndex":
+    ) -> DatetimeIndex:
         """
         Get reference dates for the holiday.
 
@@ -292,7 +291,7 @@ class Holiday:
 
         return dates
 
-    def _apply_rule(self, dates: "DatetimeIndex") -> "DatetimeIndex":
+    def _apply_rule(self, dates: DatetimeIndex) -> DatetimeIndex:
         """
         Apply the given offset/observance to a DatetimeIndex of dates.
 
@@ -397,7 +396,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         start: Optional[_DatetimeLike] = None,
         end: Optional[_DatetimeLike] = None,
         return_name: bool = False,
-    ) -> Union["DatetimeIndex", Series]:
+    ) -> Union[DatetimeIndex, Series]:
         """
         Returns a curve with holidays between start_date and end_date
 
@@ -447,7 +446,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         if return_name:
             return holidays
         else:
-            return cast("DatetimeIndex", holidays.index)
+            return cast(DatetimeIndex, holidays.index)
 
     @staticmethod
     def merge_class(base, other):
