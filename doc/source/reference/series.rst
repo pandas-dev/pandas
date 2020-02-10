@@ -240,7 +240,7 @@ Reshaping, sorting
    Series.squeeze
    Series.view
 
-Combining / joining / merging
+Combining / comparing / joining / merging
 -----------------------------
 .. autosummary::
    :toctree: api/
@@ -248,6 +248,7 @@ Combining / joining / merging
    Series.append
    Series.replace
    Series.update
+   Series.differences
 
 Time series-related
 -------------------
