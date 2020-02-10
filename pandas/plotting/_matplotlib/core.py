@@ -247,21 +247,21 @@ class MPLPlot:
             data = data.fillna(fillna)
 
         if self.by is None:
-            cols = data.columns
+            for col, values in data.items():
+                self._yield_values(keep_index, col, values)
         else:
             cols = data.columns.get_level_values(0).unique()
 
-        for col in cols:
-            if self.by is None:
-                values = data.loc[:, col]
-            else:
-                # if `by` is defined, select columns which are grouped by
+            for col in cols:
                 values = data.loc[:, data.columns.get_level_values(0) == col]
+                self._yield_values(keep_index, col, values)
 
-            if keep_index:
-                yield col, values
-            else:
-                yield col, values.values
+    def _yield_values(self, keep_index, col, values):
+        """Yield col and values based on keep_index value."""
+        if keep_index is True:
+            yield col, values
+        else:
+            yield col, values.values
 
     @property
     def nseries(self):
