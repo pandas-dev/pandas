@@ -41,12 +41,17 @@ Indexing with Nullable Boolean Arrays
 
 Previously indexing with a nullable Boolean array containing ``NA`` would raise a ``ValueError``, however this is now permitted with ``NA`` being treated as ``False``. (:issue:`31503`)
 
+.. ipython:: python
+
+    s = pd.Series([1, 2, 3, 4])
+    mask = pd.array([True, True, False, None], dtype="boolean")
+    s
+    mask
+
 *pandas 1.0.x*
 
 .. code-block:: python
 
-    >>> s = pd.Series([1, 2, 3, 4])
-    >>> mask = pd.array([True, True, False, None], dtype="boolean")
     >>> s[mask]
     Traceback (most recent call last):
     ...
@@ -54,12 +59,9 @@ Previously indexing with a nullable Boolean array containing ``NA`` would raise 
 
 *pandas 1.1.0*
 
-.. code-block:: python
+.. ipython:: python
 
-    >>> s[mask]
-    0    1
-    1    2
-    dtype: int64
+    s[mask]
 
 .. _whatsnew_110.enhancements.other:
 
