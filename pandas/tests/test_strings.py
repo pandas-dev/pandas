@@ -1153,9 +1153,15 @@ class TestStringMethods:
         assert isinstance(rs, Series)
         tm.assert_series_equal(rs, xp)
 
+    def test_repeat_with_null(self):
         # GH: 31632
         values = Series(["a", None])
         result = values.str.repeat([3, 4])
+        exp = Series(["aaa", None])
+        tm.assert_series_equal(result, exp)
+
+        values = Series(["a", "b"])
+        result = values.str.repeat([3, None])
         exp = Series(["aaa", None])
         tm.assert_series_equal(result, exp)
 
