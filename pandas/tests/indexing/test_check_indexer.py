@@ -31,11 +31,11 @@ def test_valid_input(indexer, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_boolean_na_returns_indexer():
-    # TODO: What to do now about list input that contains
-    # bools and None?
+@pytest.mark.parametrize(
+    "indexer", [[True, False, None], pd.array([True, False, None], dtype="boolean")],
+)
+def test_boolean_na_returns_indexer(indexer):
     arr = np.array([1, 2, 3])
-    indexer = pd.array([True, False, None], dtype="boolean")
 
     result = check_array_indexer(arr, indexer)
     expected = np.array([True, False, False], dtype=bool)
