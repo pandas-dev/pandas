@@ -161,6 +161,7 @@ class BaseGetitemTests(BaseExtensionTests):
     def test_getitem_boolean_na_treated_as_false(self, data):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
+        mask[2:4] = True
 
         result = data[mask]
         expected = data[mask.fillna(False)]
