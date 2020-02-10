@@ -25,7 +25,7 @@ def _compare_with_tz(a, b):
             b_e = b.loc[i, c]
             if not (a_e == b_e and a_e.tz == b_e.tz):
                 raise AssertionError(
-                    "invalid tz comparison [{a_e}] [{b_e}]".format(a_e=a_e, b_e=b_e)
+                    f"invalid tz comparison [{a_e}] [{b_e}]"
                 )
 
 

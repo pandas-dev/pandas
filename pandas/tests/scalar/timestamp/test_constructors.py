@@ -314,7 +314,7 @@ class TestTimestampConstructors:
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
         with pytest.raises(ValueError):
-            Timestamp("2014-11-02 01:00{}".format(z))
+            Timestamp(f"2014-11-02 01:00{z}")
 
     @pytest.mark.parametrize(
         "arg",
@@ -456,7 +456,7 @@ class TestTimestampConstructors:
     def test_construct_timestamp_near_dst(self, offset):
         # GH 20854
         expected = Timestamp(
-            "2016-10-30 03:00:00{}".format(offset), tz="Europe/Helsinki"
+            f"2016-10-30 03:00:00{offset}", tz="Europe/Helsinki"
         )
         result = Timestamp(expected).tz_convert("Europe/Helsinki")
         assert result == expected

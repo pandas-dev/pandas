@@ -101,10 +101,10 @@ class TestDataFrameEval:
                     np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
                 )
 
-                expected = eval("base{op}df".format(op=op_str))
+                expected = eval(f"base{op_str}df")
 
                 # ops as strings
-                result = eval("m{op}df".format(op=op_str))
+                result = eval(f"m{op_str}df")
                 tm.assert_frame_equal(result, expected)
 
                 # these are commutative
@@ -452,7 +452,7 @@ class TestDataFrameQueryNumExprPandas:
         for op in ["<", ">", "<=", ">="]:
             with pytest.raises(TypeError):
                 df.query(
-                    "dates {op} nondate".format(op=op), parser=parser, engine=engine
+                    f"dates {op} nondate", parser=parser, engine=engine
                 )
 
     def test_query_syntax_error(self):
@@ -690,7 +690,7 @@ class TestDataFrameQueryNumExprPandas:
         ops = "==", "!="
         d = dict(zip(ops, (operator.eq, operator.ne)))
         for op, f in d.items():
-            q = "a {op} inf".format(op=op)
+            q = f"a {op} inf"
             expected = df[f(df.a, np.inf)]
             result = df.query(q, engine=self.engine, parser=self.parser)
             tm.assert_frame_equal(result, expected)
@@ -854,7 +854,7 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
-                ex = "{lhs} {op} {rhs}".format(lhs=lhs, op=op, rhs=rhs)
+                ex = f"{lhs} {op} {rhs}"
                 msg = r"'(Not)?In' nodes are not implemented"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
@@ -895,7 +895,7 @@ class TestDataFrameQueryStrings:
             ops = 2 * ([eq] + [ne])
 
             for lhs, op, rhs in zip(lhs, ops, rhs):
-                ex = "{lhs} {op} {rhs}".format(lhs=lhs, op=op, rhs=rhs)
+                ex = f"{lhs} {op} {rhs}"
                 with pytest.raises(NotImplementedError):
                     df.query(ex, engine=engine, parser=parser)
         else:
@@ -1042,7 +1042,7 @@ class TestDataFrameEvalWithFrame:
         msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
 
         with pytest.raises(TypeError, match=msg):
-            df.eval("a {0} b".format(op), engine=engine, parser=parser)
+            df.eval(f"a {op} b", engine=engine, parser=parser)
 
 
 class TestDataFrameQueryBacktickQuoting:

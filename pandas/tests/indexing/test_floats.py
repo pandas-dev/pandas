@@ -53,8 +53,8 @@ class TestFloatIndexers:
             s.iloc[3.0]
 
         msg = (
-            "cannot do positional indexing on {klass} with these "
-            r"indexers \[3\.0\] of {kind}".format(klass=type(i), kind=str(float))
+            fr"cannot do positional indexing on {type(i)} with these "
+            fr"indexers \[3\.0\] of {str(float)}"
         )
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0] = 0
@@ -92,11 +92,11 @@ class TestFloatIndexers:
                     else:
                         error = TypeError
                         msg = (
-                            r"cannot do (label|index|positional) indexing "
-                            r"on {klass} with these indexers \[3\.0\] of "
-                            r"{kind}|"
-                            "Cannot index by location index with a "
-                            "non-integer key".format(klass=type(i), kind=str(float))
+                            fr"cannot do (label|index|positional) indexing "
+                            fr"on {type(i)} with these indexers \[3\.0\] of "
+                            fr"{str(float)}|"
+                            fr"Cannot index by location index with a "
+                            fr"non-integer key"
                         )
                     with pytest.raises(error, match=msg):
                         idxr(s)[3.0]
@@ -113,9 +113,9 @@ class TestFloatIndexers:
                 else:
                     error = TypeError
                     msg = (
-                        r"cannot do (label|index) indexing "
-                        r"on {klass} with these indexers \[3\.0\] of "
-                        r"{kind}".format(klass=type(i), kind=str(float))
+                        fr"cannot do (label|index) indexing "
+                        fr"on {type(i)} with these indexers \[3\.0\] of "
+                        fr"{str(float)}"
                     )
                 with pytest.raises(error, match=msg):
                     s.loc[3.0]
@@ -125,9 +125,9 @@ class TestFloatIndexers:
 
                 # setting with a float fails with iloc
                 msg = (
-                    r"cannot do (label|index|positional) indexing "
-                    r"on {klass} with these indexers \[3\.0\] of "
-                    r"{kind}".format(klass=type(i), kind=str(float))
+                    fr"cannot do (label|index|positional) indexing "
+                    fr"on {type(i)} with these indexers \[3\.0\] of "
+                    fr"{str(float)}"
                 )
                 with pytest.raises(TypeError, match=msg):
                     s.iloc[3.0] = 0
@@ -162,9 +162,9 @@ class TestFloatIndexers:
             s = Series(np.arange(len(i)), index=i)
             s[3]
             msg = (
-                r"cannot do (label|index) indexing "
-                r"on {klass} with these indexers \[3\.0\] of "
-                r"{kind}".format(klass=type(i), kind=str(float))
+                fr"cannot do (label|index) indexing "
+                fr"on {type(i)} with these indexers \[3\.0\] of "
+                fr"{str(float)}"
             )
             with pytest.raises(TypeError, match=msg):
                 s[3.0]
@@ -179,12 +179,10 @@ class TestFloatIndexers:
         for idxr in [lambda x: x, lambda x: x.iloc]:
 
             msg = (
-                r"cannot do label indexing "
-                r"on {klass} with these indexers \[1\.0\] of "
-                r"{kind}|"
-                "Cannot index by location index with a non-integer key".format(
-                    klass=str(Index), kind=str(float)
-                )
+                fr"cannot do label indexing "
+                fr"on {str(Index)} with these indexers \[1\.0\] of "
+                fr"{str(float)}|"
+                fr"Cannot index by location index with a non-integer key"
             )
             with pytest.raises(TypeError, match=msg):
                 idxr(s2)[1.0]
@@ -201,9 +199,9 @@ class TestFloatIndexers:
         for idxr in [lambda x: x]:
 
             msg = (
-                r"cannot do label indexing "
-                r"on {klass} with these indexers \[1\.0\] of "
-                r"{kind}".format(klass=str(Index), kind=str(float))
+                fr"cannot do label indexing "
+                fr"on {str(Index)} with these indexers \[1\.0\] of "
+                fr"{str(float)}"
             )
             with pytest.raises(TypeError, match=msg):
                 idxr(s3)[1.0]
@@ -315,9 +313,9 @@ class TestFloatIndexers:
                 s.iloc[3.0]
 
             msg = (
-                r"cannot do positional indexing "
-                r"on {klass} with these indexers \[3\.0\] of "
-                r"{kind}".format(klass=str(Float64Index), kind=str(float))
+                fr"cannot do positional indexing "
+                fr"on {str(Float64Index)} with these indexers \[3\.0\] of "
+                fr"{str(float)}"
             )
             with pytest.raises(TypeError, match=msg):
                 s2.iloc[3.0] = 0
@@ -346,9 +344,9 @@ class TestFloatIndexers:
                 for l in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
 
                     msg = (
-                        "cannot do slice indexing "
-                        r"on {klass} with these indexers \[(3|4)\.0\] of "
-                        "{kind}".format(klass=type(index), kind=str(float))
+                        fr"cannot do slice indexing "
+                        fr"on {type(index)} with these indexers \[(3|4)\.0\] of "
+                        fr"{str(float)}"
                     )
                     with pytest.raises(TypeError, match=msg):
                         s.iloc[l]
@@ -356,14 +354,10 @@ class TestFloatIndexers:
                     for idxr in [lambda x: x.loc, lambda x: x.iloc, lambda x: x]:
 
                         msg = (
-                            "cannot do slice indexing "
-                            r"on {klass} with these indexers "
-                            r"\[(3|4)(\.0)?\] "
-                            r"of ({kind_float}|{kind_int})".format(
-                                klass=type(index),
-                                kind_float=str(float),
-                                kind_int=str(int),
-                            )
+                            fr"cannot do slice indexing "
+                            fr"on {type(index)} with these indexers "
+                            fr"\[(3|4)(\.0)?\] "
+                            fr"of ({str(float)}|{str(int)})"
                         )
                         with pytest.raises(TypeError, match=msg):
                             idxr(s)[l]
@@ -372,23 +366,19 @@ class TestFloatIndexers:
                 for l in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
 
                     msg = (
-                        "cannot do slice indexing "
-                        r"on {klass} with these indexers \[(3|4)\.0\] of "
-                        "{kind}".format(klass=type(index), kind=str(float))
+                        fr"cannot do slice indexing "
+                        fr"on {type(index)} with these indexers \[(3|4)\.0\] of "
+                        fr"{str(float)}"
                     )
                     with pytest.raises(TypeError, match=msg):
                         s.iloc[l] = 0
 
                     for idxr in [lambda x: x.loc, lambda x: x.iloc, lambda x: x]:
                         msg = (
-                            "cannot do slice indexing "
-                            r"on {klass} with these indexers "
-                            r"\[(3|4)(\.0)?\] "
-                            r"of ({kind_float}|{kind_int})".format(
-                                klass=type(index),
-                                kind_float=str(float),
-                                kind_int=str(int),
-                            )
+                            fr"cannot do slice indexing "
+                            fr"on {type(index)} with these indexers "
+                            fr"\[(3|4)(\.0)?\] "
+                            fr"of ({str(float)}|{str(int)})"
                         )
                         with pytest.raises(TypeError, match=msg):
                             idxr(s)[l] = 0
@@ -426,9 +416,9 @@ class TestFloatIndexers:
 
                 # positional indexing
                 msg = (
-                    "cannot do slice indexing "
-                    r"on {klass} with these indexers \[(3|4)\.0\] of "
-                    "{kind}".format(klass=type(index), kind=str(float))
+                    fr"cannot do slice indexing "
+                    fr"on {type(index)} with these indexers \[(3|4)\.0\] of "
+                    fr"{str(float)}"
                 )
                 with pytest.raises(TypeError, match=msg):
                     s[l]
@@ -450,9 +440,9 @@ class TestFloatIndexers:
 
             # positional indexing
             msg = (
-                "cannot do slice indexing "
-                r"on {klass} with these indexers \[-6\.0\] of "
-                "{kind}".format(klass=type(index), kind=str(float))
+                fr"cannot do slice indexing "
+                fr"on {type(index)} with these indexers \[-6\.0\] of "
+                fr"{str(float)}"
             )
             with pytest.raises(TypeError, match=msg):
                 s[slice(-6.0, 6.0)]
@@ -476,9 +466,9 @@ class TestFloatIndexers:
 
                 # positional indexing
                 msg = (
-                    "cannot do slice indexing "
-                    r"on {klass} with these indexers \[(2|3)\.5\] of "
-                    "{kind}".format(klass=type(index), kind=str(float))
+                    fr"cannot do slice indexing "
+                    fr"on {type(index)} with these indexers \[(2|3)\.5\] of "
+                    fr"{str(float)}"
                 )
                 with pytest.raises(TypeError, match=msg):
                     s[l]
@@ -494,9 +484,9 @@ class TestFloatIndexers:
 
                 # positional indexing
                 msg = (
-                    "cannot do slice indexing "
-                    r"on {klass} with these indexers \[(3|4)\.0\] of "
-                    "{kind}".format(klass=type(index), kind=str(float))
+                    fr"cannot do slice indexing "
+                    fr"on {type(index)} with these indexers \[(3|4)\.0\] of "
+                    fr"{str(float)}"
                 )
                 with pytest.raises(TypeError, match=msg):
                     s[l] = 0
@@ -517,9 +507,9 @@ class TestFloatIndexers:
 
                 klass = RangeIndex
                 msg = (
-                    "cannot do slice indexing "
-                    r"on {klass} with these indexers \[(2|4)\.0\] of "
-                    "{kind}".format(klass=str(klass), kind=str(float))
+                    fr"cannot do slice indexing "
+                    fr"on {str(klass)} with these indexers \[(2|4)\.0\] of "
+                    fr"{str(float)}"
                 )
                 with pytest.raises(TypeError, match=msg):
                     idxr(s)[l]
@@ -542,9 +532,9 @@ class TestFloatIndexers:
 
                     # positional indexing
                     msg = (
-                        "cannot do slice indexing "
-                        r"on {klass} with these indexers \[(0|1)\.0\] of "
-                        "{kind}".format(klass=type(index), kind=str(float))
+                        fr"cannot do slice indexing "
+                        fr"on {type(index)} with these indexers \[(0|1)\.0\] of "
+                        fr"{str(float)}"
                     )
                     with pytest.raises(TypeError, match=msg):
                         s[l]
@@ -557,9 +547,9 @@ class TestFloatIndexers:
 
                 # positional indexing
                 msg = (
-                    "cannot do slice indexing "
-                    r"on {klass} with these indexers \[-10\.0\] of "
-                    "{kind}".format(klass=type(index), kind=str(float))
+                    fr"cannot do slice indexing "
+                    fr"on {type(index)} with these indexers \[-10\.0\] of "
+                    fr"{str(float)}"
                 )
                 with pytest.raises(TypeError, match=msg):
                     s[slice(-10.0, 10.0)]
@@ -576,9 +566,9 @@ class TestFloatIndexers:
 
                     # positional indexing
                     msg = (
-                        "cannot do slice indexing "
-                        r"on {klass} with these indexers \[0\.5\] of "
-                        "{kind}".format(klass=type(index), kind=str(float))
+                        fr"cannot do slice indexing "
+                        fr"on {type(index)} with these indexers \[0\.5\] of "
+                        fr"{str(float)}"
                     )
                     with pytest.raises(TypeError, match=msg):
                         s[l]
@@ -593,9 +583,9 @@ class TestFloatIndexers:
 
                     # positional indexing
                     msg = (
-                        "cannot do slice indexing "
-                        r"on {klass} with these indexers \[(3|4)\.0\] of "
-                        "{kind}".format(klass=type(index), kind=str(float))
+                        fr"cannot do slice indexing "
+                        fr"on {type(index)} with these indexers \[(3|4)\.0\] of "
+                        fr"{str(float)}"
                     )
                     with pytest.raises(TypeError, match=msg):
                         s[l] = 0

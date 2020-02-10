@@ -137,7 +137,7 @@ class TestSeriesMisc:
     def test_constructor_ordereddict(self):
         # GH3283
         data = OrderedDict(
-            ("col{i}".format(i=i), np.random.random()) for i in range(12)
+            (f"col{i}", np.random.random()) for i in range(12)
         )
 
         series = Series(data)
@@ -258,7 +258,7 @@ class TestSeriesMisc:
             tm.makeIntIndex(10),
             tm.makeFloatIndex(10),
             Index([True, False]),
-            Index(["a{}".format(i) for i in range(101)]),
+            Index([f"a{i}" for i in range(101)]),
             pd.MultiIndex.from_tuples(zip("ABCD", "EFGH")),
             pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], "EFGH")),
         ],

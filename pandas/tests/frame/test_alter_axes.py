@@ -383,7 +383,7 @@ class TestDataFrameAlterAxes:
             def __repr__(self) -> str:
                 tmp = sorted(self)
                 # double curly brace prints one brace in format string
-                return "frozenset({{{}}})".format(", ".join(map(repr, tmp)))
+                return f"frozenset({{{', '.join(map(repr, tmp))}}})"
 
         thing1 = Thing(["One", "red"])
         thing2 = Thing(["Two", "blue"])
