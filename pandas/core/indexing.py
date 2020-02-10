@@ -27,8 +27,7 @@ from pandas.core.indexers import (
     is_list_like_indexer,
     length_of_indexer,
 )
-from pandas.core.indexes.api import Index
-from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.api import Index, InvalidIndexError
 
 # "null slice"
 _NS = slice(None, None)
@@ -593,6 +592,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         return self.obj._xs(label, axis=axis)
 
     def _get_setitem_indexer(self, key):
+        """
+        Convert a potentially-label-based key into a positional indexer.
+        """
         if self.axis is not None:
             return self._convert_tuple(key, is_setter=True)
 
@@ -757,7 +759,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                                     "defined index and a scalar"
                                 )
                             self.obj[key] = value
-                            return self.obj
+                            return
 
                         # add a new item with the dtype setup
                         self.obj[key] = _infer_fill_value(value)
@@ -767,7 +769,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                         )
                         self._setitem_with_indexer(new_indexer, value)
 
-                        return self.obj
+                        return
 
                     # reindex the axis
                     # make sure to clear the cache because we are
@@ -790,7 +792,8 @@ class _LocationIndexer(_NDFrameIndexerBase):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                return self._setitem_with_indexer_missing(indexer, value)
+                self._setitem_with_indexer_missing(indexer, value)
+                return
 
         # set
         item_labels = self.obj._get_axis(info_axis)
@@ -844,9 +847,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                     value = getattr(value, "values", value).ravel()
 
                     # we can directly set the series here
-                    # as we select a slice indexer on the mi
-                    if isinstance(idx, slice):
-                        idx = index._convert_slice_indexer(idx)
                     obj._consolidate_inplace()
                     obj = obj.copy()
                     obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)
@@ -1016,7 +1016,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 new_values, index=new_index, name=self.obj.name
             )._data
             self.obj._maybe_update_cacher(clear=True)
-            return self.obj
 
         elif self.ndim == 2:
 
@@ -1040,7 +1039,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
             self.obj._data = self.obj.append(value)._data
             self.obj._maybe_update_cacher(clear=True)
-            return self.obj
 
     def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer: bool = False):
         """
@@ -1304,66 +1302,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 axis -= 1
 
         return obj
-
-    def _validate_read_indexer(
-        self, key, indexer, axis: int, raise_missing: bool = False
-    ):
-        """
-        Check that indexer can be used to return a result.
-
-        e.g. at least one element was found,
-        unless the list of keys was actually empty.
-
-        Parameters
-        ----------
-        key : list-like
-            Targeted labels (only used to show correct error message).
-        indexer: array-like of booleans
-            Indices corresponding to the key,
-            (with -1 indicating not found).
-        axis: int
-            Dimension on which the indexing is being made.
-        raise_missing: bool
-            Whether to raise a KeyError if some labels are not found. Will be
-            removed in the future, and then this method will always behave as
-            if raise_missing=True.
-
-        Raises
-        ------
-        KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
-        """
-        ax = self.obj._get_axis(axis)
-
-        if len(key) == 0:
-            return
-
-        # Count missing values:
-        missing = (indexer < 0).sum()
-
-        if missing:
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
-            # We (temporarily) allow for some missing keys with .loc, except in
-            # some cases (e.g. setting) in which "raise_missing" will be False
-            if not (self.name == "loc" and not raise_missing):
-                not_found = list(set(key) - set(ax))
-                raise KeyError(f"{not_found} not in index")
-
-            # we skip the warning on Categorical/Interval
-            # as this check is actually done (check for
-            # non-missing values), but a bit later in the
-            # code, so we want to avoid warning & then
-            # just raising
-            if not (ax.is_categorical() or ax.is_interval()):
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported, see "
-                    "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
 
     def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         raise AbstractMethodError(self)
@@ -1686,7 +1624,7 @@ class _LocIndexer(_LocationIndexer):
 
         labels = obj._get_axis(axis)
         indexer = labels.slice_indexer(
-            slice_obj.start, slice_obj.stop, slice_obj.step, kind=self.name
+            slice_obj.start, slice_obj.stop, slice_obj.step, kind="loc"
         )
 
         if isinstance(indexer, slice):
@@ -1822,6 +1760,66 @@ class _LocIndexer(_LocationIndexer):
 
         self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
         return keyarr, indexer
+
+    def _validate_read_indexer(
+        self, key, indexer, axis: int, raise_missing: bool = False
+    ):
+        """
+        Check that indexer can be used to return a result.
+
+        e.g. at least one element was found,
+        unless the list of keys was actually empty.
+
+        Parameters
+        ----------
+        key : list-like
+            Targeted labels (only used to show correct error message).
+        indexer: array-like of booleans
+            Indices corresponding to the key,
+            (with -1 indicating not found).
+        axis: int
+            Dimension on which the indexing is being made.
+        raise_missing: bool
+            Whether to raise a KeyError if some labels are not found. Will be
+            removed in the future, and then this method will always behave as
+            if raise_missing=True.
+
+        Raises
+        ------
+        KeyError
+            If at least one key was requested but none was found, and
+            raise_missing=True.
+        """
+        ax = self.obj._get_axis(axis)
+
+        if len(key) == 0:
+            return
+
+        # Count missing values:
+        missing = (indexer < 0).sum()
+
+        if missing:
+            if missing == len(indexer):
+                axis_name = self.obj._get_axis_name(axis)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            # We (temporarily) allow for some missing keys with .loc, except in
+            # some cases (e.g. setting) in which "raise_missing" will be False
+            if not (self.name == "loc" and not raise_missing):
+                not_found = list(set(key) - set(ax))
+                raise KeyError(f"{not_found} not in index")
+
+            # we skip the warning on Categorical/Interval
+            # as this check is actually done (check for
+            # non-missing values), but a bit later in the
+            # code, so we want to avoid warning & then
+            # just raising
+            if not (ax.is_categorical() or ax.is_interval()):
+                raise KeyError(
+                    "Passing list-likes to .loc or [] with any missing labels "
+                    "is no longer supported, see "
+                    "https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
+                )
 
 
 @Appender(IndexingMixin.iloc.__doc__)
@@ -2036,8 +2034,8 @@ class _iLocIndexer(_LocationIndexer):
             return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
-        indexer = labels._convert_slice_indexer(slice_obj, kind="iloc")
-        return self.obj._slice(indexer, axis=axis, kind="iloc")
+        labels._validate_positional_slice(slice_obj)
+        return self.obj._slice(slice_obj, axis=axis, kind="iloc")
 
     def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         """
@@ -2047,7 +2045,8 @@ class _iLocIndexer(_LocationIndexer):
 
         # make need to convert a float key
         if isinstance(key, slice):
-            return labels._convert_slice_indexer(key, kind="iloc")
+            labels._validate_positional_slice(key)
+            return key
 
         elif is_float(key):
             labels._validate_indexer("positional", key, "iloc")

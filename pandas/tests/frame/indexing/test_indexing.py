@@ -94,6 +94,14 @@ class TestDataFrameIndexing:
         expected = float_frame.loc[:, ["A", "B", "C"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_timedelta_0seconds(self):
+        # GH#10583
+        df = pd.DataFrame(np.random.normal(size=(10, 4)))
+        df.index = pd.timedelta_range(start="0s", periods=10, freq="s")
+        expected = df.loc[pd.Timedelta("0s") :, :]
+        result = df.loc["0s":, :]
+        tm.assert_frame_equal(expected, result)
+
     @pytest.mark.parametrize(
         "idx_type",
         [
@@ -204,7 +212,7 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_mulit_index(self):
+    def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
         it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]
@@ -1369,28 +1377,28 @@ class TestDataFrameIndexing:
     def test_set_value_resize(self, float_frame):
 
         res = float_frame._set_value("foobar", "B", 0)
-        assert res is float_frame
-        assert res.index[-1] == "foobar"
-        assert res._get_value("foobar", "B") == 0
+        assert res is None
+        assert float_frame.index[-1] == "foobar"
+        assert float_frame._get_value("foobar", "B") == 0
 
         float_frame.loc["foobar", "qux"] = 0
         assert float_frame._get_value("foobar", "qux") == 0
 
         res = float_frame.copy()
-        res3 = res._set_value("foobar", "baz", "sam")
-        assert res3["baz"].dtype == np.object_
+        res._set_value("foobar", "baz", "sam")
+        assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
-        res3 = res._set_value("foobar", "baz", True)
-        assert res3["baz"].dtype == np.object_
+        res._set_value("foobar", "baz", True)
+        assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
-        res3 = res._set_value("foobar", "baz", 5)
-        assert is_float_dtype(res3["baz"])
-        assert isna(res3["baz"].drop(["foobar"])).all()
+        res._set_value("foobar", "baz", 5)
+        assert is_float_dtype(res["baz"])
+        assert isna(res["baz"].drop(["foobar"])).all()
         msg = "could not convert string to float: 'sam'"
         with pytest.raises(ValueError, match=msg):
-            res3._set_value("foobar", "baz", "sam")
+            res._set_value("foobar", "baz", "sam")
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
