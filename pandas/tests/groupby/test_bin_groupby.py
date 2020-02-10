@@ -11,7 +11,7 @@ import pandas._testing as tm
 
 def test_series_grouper():
     obj = Series(np.random.randn(10))
-    dummy = obj[:0]
+    dummy = obj.iloc[:0]
 
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
@@ -28,7 +28,7 @@ def test_series_grouper():
 def test_series_grouper_requires_nonempty_raises():
     # GH#29500
     obj = Series(np.random.randn(10))
-    dummy = obj[:0]
+    dummy = obj.iloc[:0]
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
     with pytest.raises(ValueError, match="SeriesGrouper requires non-empty `series`"):

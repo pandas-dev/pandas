@@ -1,11 +1,20 @@
-""" routings for casting """
+"""
+Routines for casting.
+"""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
-from pandas._libs.tslibs import NaT, OutOfBoundsDatetime, Period, iNaT
+from pandas._libs.tslibs import (
+    NaT,
+    OutOfBoundsDatetime,
+    Period,
+    Timedelta,
+    Timestamp,
+    iNaT,
+)
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import Dtype
 from pandas.util._validators import validate_bool_kwarg
@@ -262,12 +271,12 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
     Examples
     --------
-    >>> result, _ = maybe_upcast_putmask(np.arange(1,6),
-    np.array([False, True, False, True, True]), np.arange(21,23))
+    >>> arr = np.arange(1, 6)
+    >>> mask = np.array([False, True, False, True, True])
+    >>> result, _ = maybe_upcast_putmask(arr, mask, False)
     >>> result
-    array([1, 21, 3, 22, 21])
+    array([1, 0, 3, 0, 0])
     """
-
     if not isinstance(result, np.ndarray):
         raise ValueError("The result input must be a ndarray.")
     if not is_scalar(other):
@@ -655,9 +664,8 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
     array(['1', '1'], dtype='<U21')
 
     >>> infer_dtype_from_array([1, '1'])
-    (numpy.object_, [1, '1'])
+    (<class 'numpy.object_'>, [1, '1'])
     """
-
     if isinstance(arr, np.ndarray):
         return arr.dtype, arr
 
@@ -702,7 +710,7 @@ def maybe_infer_dtype_type(element):
     >>> from collections import namedtuple
     >>> Foo = namedtuple("Foo", "dtype")
     >>> maybe_infer_dtype_type(Foo(np.dtype("i8")))
-    numpy.int64
+    dtype('int64')
     """
     tipo = None
     if hasattr(element, "dtype"):
@@ -1548,8 +1556,8 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
 
     Returns
     -------
-    int_arr : ndarray
-        An array of integer or unsigned integer dtype
+    ndarray
+        Array of integer or unsigned integer dtype.
 
     Raises
     ------
@@ -1560,19 +1568,18 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
     --------
     If you try to coerce negative values to unsigned integers, it raises:
 
-    >>> Series([-1], dtype="uint64")
+    >>> pd.Series([-1], dtype="uint64")
     Traceback (most recent call last):
         ...
     OverflowError: Trying to coerce negative values to unsigned integers
 
     Also, if you try to coerce float values to integers, it raises:
 
-    >>> Series([1, 2, 3.5], dtype="int64")
+    >>> pd.Series([1, 2, 3.5], dtype="int64")
     Traceback (most recent call last):
         ...
     ValueError: Trying to coerce float values to integers
     """
-
     try:
         if not hasattr(arr, "astype"):
             casted = np.array(arr, dtype=dtype, copy=copy)
@@ -1599,3 +1606,59 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
 
     if is_integer_dtype(dtype) and (is_float_dtype(arr) or is_object_dtype(arr)):
         raise ValueError("Trying to coerce float values to integers")
+
+
+def convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
+    """
+    Convert datetimelike scalar if we are setting into a datetime64
+    or timedelta64 ndarray.
+
+    Parameters
+    ----------
+    scalar : scalar
+    dtype : np.dtpye
+
+    Returns
+    -------
+    scalar
+    """
+    if dtype.kind == "m":
+        if isinstance(scalar, (timedelta, np.timedelta64)):
+            # We have to cast after asm8 in case we have NaT
+            return Timedelta(scalar).asm8.view("timedelta64[ns]")
+        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
+            return np.timedelta64("NaT", "ns")
+    if dtype.kind == "M":
+        if isinstance(scalar, (date, np.datetime64)):
+            # Note: we include date, not just datetime
+            return Timestamp(scalar).to_datetime64()
+        elif scalar is None or scalar is NaT or (is_float(scalar) and np.isnan(scalar)):
+            return np.datetime64("NaT", "ns")
+    else:
+        validate_numeric_casting(dtype, scalar)
+    return scalar
+
+
+def validate_numeric_casting(dtype: np.dtype, value):
+    """
+    Check that we can losslessly insert the given value into an array
+    with the given dtype.
+
+    Parameters
+    ----------
+    dtype : np.dtype
+    value : scalar
+
+    Raises
+    ------
+    ValueError
+    """
+    if issubclass(dtype.type, (np.integer, np.bool_)):
+        if is_float(value) and np.isnan(value):
+            raise ValueError("Cannot assign nan to integer series")
+
+    if issubclass(dtype.type, (np.integer, np.floating, np.complex)) and not issubclass(
+        dtype.type, np.bool_
+    ):
+        if is_bool(value):
+            raise ValueError("Cannot assign bool to float/integer series")
