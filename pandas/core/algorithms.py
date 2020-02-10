@@ -647,7 +647,8 @@ def factorize(
 
     code_is_na = codes == na_sentinel
     if not dropna and code_is_na.any():
-        uniques = np.append(uniques, [None])
+        na_value = na_value_for_dtype(original.dtype)
+        uniques = np.append(uniques, [na_value])
         codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)

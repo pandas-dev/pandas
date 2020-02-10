@@ -361,7 +361,7 @@ class TestFactorize:
         codes, uniques = algos.factorize(data, dropna=dropna)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
-        tm.assert_numpy_array_equal(codes, expected_codes, check_dtype=False)
+        tm.assert_numpy_array_equal(codes, expected_codes)
 
     @pytest.mark.parametrize(
         "data, dropna, expected_codes, expected_uniques",
@@ -396,7 +396,7 @@ class TestFactorize:
         codes, uniques = algos.factorize(data, dropna=dropna)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques)
-        tm.assert_numpy_array_equal(codes, expected_codes, check_dtype=False)
+        tm.assert_numpy_array_equal(codes, expected_codes)
 
 
 class TestUnique:
