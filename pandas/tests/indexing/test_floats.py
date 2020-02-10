@@ -621,10 +621,9 @@ class TestFloatIndexers:
 
             # getitem
             result = idxr(s)[l]
-            if isinstance(s, Series):
-                tm.assert_series_equal(result, expected)
-            else:
-                tm.assert_frame_equal(result, expected)
+            assert isinstance(result, type(s))
+            tm.assert_equal(result, expected)
+
             # setitem
             s2 = s.copy()
             idxr(s2)[l] = 0
