@@ -865,7 +865,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 return result
             except InvalidIndexError:
-                pass
+                if not isinstance(self.index, MultiIndex):
+                    raise
+
             except (KeyError, ValueError):
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # kludge
