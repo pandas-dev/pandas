@@ -947,7 +947,7 @@ class TextFileReader(abc.Iterator):
 
         # arrow engine not supported yet
         if engine == "arrow":
-            if options["chunksize"] is not None:
+            if self.chunksize is not None:
                 fallback_reason = f"the arrow engine does not support chunksize"
                 engine = "python"
         # C and arrow engine not supported yet
@@ -1087,10 +1087,11 @@ class TextFileReader(abc.Iterator):
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         # handle skiprows; this is internally handled by the
-        # c-engine, so only need for python parser
+        # c-engine, so only need for python and arrow parsers
         if engine != "c":
             if engine == "arrow":
                 if not is_integer(skiprows) and skiprows is not None:
+                    # pyarrow expects skiprows to be passed as an integer
                     raise ValueError(
                         "skiprows argument must be an integer when using engine='arrow'"
                     )
@@ -1131,7 +1132,7 @@ class TextFileReader(abc.Iterator):
             else:
                 raise ValueError(
                     f"Unknown engine: {engine} (valid options "
-                    'are "c", "python", or "python-fwf")'
+                    'are "c", "python", "arrow", or "python-fwf")'
                 )
             self._engine = klass(self.f, **self.options)
 
@@ -1139,32 +1140,31 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        if isinstance(self._engine, ArrowParserWrapper):
+        nrows = _validate_integer("nrows", nrows)
+        if self.engine == "arrow":
             return self._engine.read(nrows)
-        else:
-            nrows = _validate_integer("nrows", nrows)
-            ret = self._engine.read(nrows)
+        ret = self._engine.read(nrows)
 
-            # May alter columns / col_dict
-            index, columns, col_dict = self._create_index(ret)
+        # May alter columns / col_dict
+        index, columns, col_dict = self._create_index(ret)
 
-            if index is None:
-                if col_dict:
-                    # Any column is actually fine:
-                    new_rows = len(next(iter(col_dict.values())))
-                    index = RangeIndex(self._currow, self._currow + new_rows)
-                else:
-                    new_rows = 0
+        if index is None:
+            if col_dict:
+                # Any column is actually fine:
+                new_rows = len(next(iter(col_dict.values())))
+                index = RangeIndex(self._currow, self._currow + new_rows)
             else:
-                new_rows = len(index)
+                new_rows = 0
+        else:
+            new_rows = len(index)
 
-            df = DataFrame(col_dict, columns=columns, index=index)
+        df = DataFrame(col_dict, columns=columns, index=index)
 
-            self._currow += new_rows
+        self._currow += new_rows
 
-            if self.squeeze and len(df.columns) == 1:
-                return df[df.columns[0]].copy()
-            return df
+        if self.squeeze and len(df.columns) == 1:
+            return df[df.columns[0]].copy()
+        return df
 
     def _create_index(self, ret):
         index, columns, col_dict = ret
@@ -2178,7 +2178,6 @@ class ArrowParserWrapper(ParserBase):
         pyarrow = import_optional_dependency(
             "pyarrow.csv", extra="pyarrow is required to use arrow engine"
         )
-        nrows = _validate_integer("nrows", nrows)
         table = pyarrow.read_csv(
             self.src,
             read_options=pyarrow.ReadOptions(
