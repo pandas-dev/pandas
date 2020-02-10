@@ -239,9 +239,12 @@ def test_mask_with_boolean(index):
     tm.assert_series_equal(result, expected)
 
 
-def test_mask_with_boolean_na_treated_as_false():
+@pytest.mark.parametrize("index", [True, False])
+def test_mask_with_boolean_na_treated_as_false(index):
     s = Series(range(3))
     idx = Categorical([True, False, None])
+    if index:
+        idx = CategoricalIndex(idx)
 
     result = s[idx]
     expected = s[idx.fillna(False)]
