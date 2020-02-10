@@ -162,10 +162,9 @@ class TestFloatIndexers:
             s2.loc[3.0] = 10
             assert s2.index.is_object()
 
-            for idxr in [lambda x: x]:
-                s2 = s.copy()
-                idxr(s2)[3.0] = 0
-                assert s2.index.is_object()
+            s2 = s.copy()
+            s2[3.0] = 0
+            assert s2.index.is_object()
 
     @pytest.mark.parametrize(
         "index_func",
@@ -426,18 +425,16 @@ class TestFloatIndexers:
             # getitem
             for l in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
 
-                for idxr in [lambda x: x.loc]:
+                result = s.loc[l]
 
-                    result = idxr(s)[l]
-
-                    # these are all label indexing
-                    # except getitem which is positional
-                    # empty
-                    if oob:
-                        indexer = slice(0, 0)
-                    else:
-                        indexer = slice(3, 5)
-                    self.check(result, s, indexer, False)
+                # these are all label indexing
+                # except getitem which is positional
+                # empty
+                if oob:
+                    indexer = slice(0, 0)
+                else:
+                    indexer = slice(3, 5)
+                self.check(result, s, indexer, False)
 
                 # positional indexing
                 msg = (
@@ -451,17 +448,16 @@ class TestFloatIndexers:
             # getitem out-of-bounds
             for l in [slice(-6, 6), slice(-6.0, 6.0)]:
 
-                for idxr in [lambda x: x.loc]:
-                    result = idxr(s)[l]
+                result = s.loc[l]
 
-                    # these are all label indexing
-                    # except getitem which is positional
-                    # empty
-                    if oob:
-                        indexer = slice(0, 0)
-                    else:
-                        indexer = slice(-6, 6)
-                    self.check(result, s, indexer, False)
+                # these are all label indexing
+                # except getitem which is positional
+                # empty
+                if oob:
+                    indexer = slice(0, 0)
+                else:
+                    indexer = slice(-6, 6)
+                self.check(result, s, indexer, False)
 
             # positional indexing
             msg = (
@@ -479,15 +475,13 @@ class TestFloatIndexers:
                 (slice(2.5, 3.5), slice(3, 4)),
             ]:
 
-                for idxr in [lambda x: x.loc]:
+                result = s.loc[l]
+                if oob:
+                    res = slice(0, 0)
+                else:
+                    res = res1
 
-                    result = idxr(s)[l]
-                    if oob:
-                        res = slice(0, 0)
-                    else:
-                        res = res1
-
-                    self.check(result, s, res, False)
+                self.check(result, s, res, False)
 
                 # positional indexing
                 msg = (
@@ -501,11 +495,10 @@ class TestFloatIndexers:
             # setitem
             for l in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
 
-                for idxr in [lambda x: x.loc]:
-                    sc = s.copy()
-                    idxr(sc)[l] = 0
-                    result = idxr(sc)[l].values.ravel()
-                    assert (result == 0).all()
+                sc = s.copy()
+                sc.loc[l] = 0
+                result = sc.loc[l].values.ravel()
+                assert (result == 0).all()
 
                 # positional indexing
                 msg = (
