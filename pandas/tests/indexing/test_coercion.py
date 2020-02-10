@@ -1017,9 +1017,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         ):
 
             if compat.is_platform_32bit() or compat.is_platform_windows():
-                pytest.skip(
-                    f"32-bit platform buggy: {from_key} -> {to_key}"
-                )
+                pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 
             # Expected: do not downcast by replacement
             exp = pd.Series(self.rep[to_key], index=index, name="yyy", dtype=from_key)

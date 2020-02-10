@@ -1440,11 +1440,7 @@ class TestRollingMomentsConsistency(ConsistencyBase):
         # GH12373
         types_test = [np.dtype(f"f{width}") for width in [4, 8]]
         types_test.extend(
-            [
-                np.dtype(f"{sign}{width}")
-                for width in [1, 2, 4, 8]
-                for sign in "ui"
-            ]
+            [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"]
         )
         for data_type in types_test:
             # Just testing that these don't throw exceptions and that

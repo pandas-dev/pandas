@@ -91,9 +91,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
     elif typestr in ("complex", "c16", "c8"):
         values = 1.0j * (mat.astype(typestr) + num_offset)
     elif typestr in ("object", "string", "O"):
-        values = np.reshape(
-            [f"A{i:d}" for i in mat.ravel() + num_offset], shape
-        )
+        values = np.reshape([f"A{i:d}" for i in mat.ravel() + num_offset], shape)
     elif typestr in ("b", "bool"):
         values = np.ones(shape, dtype=np.bool_)
     elif typestr in ("datetime", "dt", "M8[ns]"):

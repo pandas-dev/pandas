@@ -690,9 +690,7 @@ class TestHDFStore:
 
         with ensure_clean_store(setup_path) as store:
 
-            index = Index(
-                [f"I am a very long string index: {i}" for i in range(20)]
-            )
+            index = Index([f"I am a very long string index: {i}" for i in range(20)])
             s = Series(np.arange(20), index=index)
             df = DataFrame({"A": s, "B": s})
 
@@ -2689,16 +2687,12 @@ class TestHDFStore:
 
             expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
             for v in [True, "true", 1]:
-                result = store.select(
-                    "df", f"boolv == {v!s}", columns=["A", "boolv"]
-                )
+                result = store.select("df", f"boolv == {v!s}", columns=["A", "boolv"])
                 tm.assert_frame_equal(expected, result)
 
             expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
             for v in [False, "false", 0]:
-                result = store.select(
-                    "df", f"boolv == {v!s}", columns=["A", "boolv"]
-                )
+                result = store.select("df", f"boolv == {v!s}", columns=["A", "boolv"])
                 tm.assert_frame_equal(expected, result)
 
             # integer index
@@ -4518,9 +4512,7 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 with catch_warnings(record=True):
                     df.to_hdf(path, "df", format="table", data_columns=True)
-                    result = pd.read_hdf(
-                        path, "df", where=f"index = [{df.index[0]}]"
-                    )
+                    result = pd.read_hdf(path, "df", where=f"index = [{df.index[0]}]")
                     assert len(result)
 
     def test_read_hdf_open_store(self, setup_path):

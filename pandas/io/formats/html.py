@@ -155,8 +155,7 @@ class HTMLFormatter(TableFormatter):
             end_a = ""
 
         self.write(
-            f"{start_tag}{rs}{end_a}</{kind}>",
-            indent,
+            f"{start_tag}{rs}{end_a}</{kind}>", indent,
         )
 
     def write_tr(

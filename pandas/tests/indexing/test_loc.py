@@ -537,12 +537,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             }
         )
 
-        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(
-            f"datetime64[{unit}]"
-        )
-        df["expected"] = df.loc[:, "timestamp"].values.astype(
-            f"datetime64[{unit}]"
-        )
+        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
+        df["expected"] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
         expected = Series(df.loc[:, "expected"], name=unit)
         tm.assert_series_equal(df.loc[:, unit], expected)
 

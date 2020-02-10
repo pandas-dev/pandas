@@ -206,9 +206,7 @@ def test_weekly_infer(periods, day):
 
 
 def test_week_of_month_infer(periods, day, count):
-    _check_generated_range(
-        "1/1/2000", periods, f"WOM-{count}{day}"
-    )
+    _check_generated_range("1/1/2000", periods, f"WOM-{count}{day}")
 
 
 @pytest.mark.parametrize("freq", ["M", "BM", "BMS"])
@@ -222,9 +220,7 @@ def test_quarterly_infer(month, periods):
 
 @pytest.mark.parametrize("annual", ["A", "BA"])
 def test_annually_infer(month, periods, annual):
-    _check_generated_range(
-        "1/1/2000", periods, f"{annual}-{month}"
-    )
+    _check_generated_range("1/1/2000", periods, f"{annual}-{month}")
 
 
 @pytest.mark.parametrize(

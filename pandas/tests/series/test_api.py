@@ -136,9 +136,7 @@ class TestSeriesMisc:
 
     def test_constructor_ordereddict(self):
         # GH3283
-        data = OrderedDict(
-            (f"col{i}", np.random.random()) for i in range(12)
-        )
+        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
 
         series = Series(data)
         expected = Series(list(data.values()), list(data.keys()))

@@ -580,8 +580,8 @@ class DataFrameFormatter(TableFormatter):
             self.formatters = formatters
         else:
             raise ValueError(
-                    f"Formatters length({len(formatters)}) should match "
-                    f"DataFrame number of columns({len(frame.columns)})"
+                f"Formatters length({len(formatters)}) should match "
+                f"DataFrame number of columns({len(frame.columns)})"
             )
         self.na_rep = na_rep
         self.decimal = decimal
@@ -857,9 +857,7 @@ class DataFrameFormatter(TableFormatter):
         buf.writelines(text)
 
         if self.should_show_dimensions:
-            buf.write(
-                f"\n\n[{len(frame)} rows x {len(frame.columns)} columns]"
-            )
+            buf.write(f"\n\n[{len(frame)} rows x {len(frame.columns)} columns]")
 
     def _join_multiline(self, *args) -> str:
         lwidth = self.line_width
@@ -1201,7 +1199,7 @@ class GenericArrayFormatter:
         if self.float_format is None:
             float_format = get_option("display.float_format")
             if float_format is None:
-                precision = get_option('display.precision')
+                precision = get_option("display.precision")
                 float_format = lambda x: f"{{{x}: .{precision:d}g}}"
         else:
             float_format = self.float_format

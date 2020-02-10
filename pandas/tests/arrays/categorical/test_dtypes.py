@@ -105,9 +105,7 @@ class TestCategoricalDtypes:
         assert result.codes.dtype == "int16"
 
         # removing cats
-        result = result.remove_categories(
-            [f"foo{i:05d}" for i in range(300)]
-        )
+        result = result.remove_categories([f"foo{i:05d}" for i in range(300)])
         assert result.codes.dtype == "int8"
 
     @pytest.mark.parametrize("ordered", [True, False])

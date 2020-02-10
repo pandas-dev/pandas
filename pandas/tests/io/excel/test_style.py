@@ -46,8 +46,7 @@ def test_styler_to_excel(engine):
         if engine in ["xlsxwriter", "openpyxl"]:
             pytest.xfail(
                 reason=(
-                    f"GH25351: failing on some attribute "
-                    f"comparisons in {engine}"
+                    f"GH25351: failing on some attribute " f"comparisons in {engine}"
                 )
             )
         # XXX: should find a better way to check equality
