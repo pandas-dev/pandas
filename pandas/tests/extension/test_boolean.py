@@ -112,7 +112,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # subtraction for bools raises TypeError (but not yet in 1.13)
                 if _np_version_under1p14:
                     pytest.skip("__sub__ does not yet raise in numpy 1.13")
-                msg = r"numpy boolean subtract, the \`-\` operator, is not supported.*"
+                msg = r"numpy boolean subtract, the \`-\` operator.*"
                 with pytest.raises(TypeError, match=msg):
                     op(s, other)
 
