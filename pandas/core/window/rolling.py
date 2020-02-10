@@ -1296,13 +1296,14 @@ class _Rolling_and_Expanding(_Rolling):
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         # TODO: Why do we always pass center=False?
-        # name=func for WindowGroupByMixin._apply
+        # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
             center=False,
             floor=0,
             name=func,
             use_numba_cache=engine == "numba",
+            raw=raw,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
