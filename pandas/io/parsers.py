@@ -508,7 +508,6 @@ _parser_defaults = {
     "skip_blank_lines": True,
 }
 
-
 _c_parser_defaults = {
     "delim_whitespace": False,
     "na_filter": True,
@@ -522,7 +521,7 @@ _c_parser_defaults = {
 _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 
 _c_unsupported = {"skipfooter"}
-_arrow_unsupported = {"skipfooter", "low_memory", "float_precision"}
+_arrow_unsupported = {"skipfooter", "low_memory", "float_precision", "chunksize"}
 _python_unsupported = {"low_memory", "float_precision"}
 
 _deprecated_defaults: Dict[str, Any] = {}
@@ -708,7 +707,6 @@ def read_fwf(
     infer_nrows=100,
     **kwds,
 ):
-
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -947,7 +945,12 @@ class TextFileReader(abc.Iterator):
         sep = options["delimiter"]
         delim_whitespace = options["delim_whitespace"]
 
-        # C engine not supported yet
+        # arrow engine not supported yet
+        if engine == "arrow":
+            if options["chunksize"] is not None:
+                fallback_reason = f"the arrow engine does not support chunksize"
+                engine = "python"
+        # C and arrow engine not supported yet
         if engine == "c" or engine == "arrow":
             if options["skipfooter"] > 0:
                 fallback_reason = f"the {engine} engine does not support skipfooter"
@@ -3401,7 +3404,6 @@ def _try_convert_dates(parser, colspec, data_dict, columns):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES

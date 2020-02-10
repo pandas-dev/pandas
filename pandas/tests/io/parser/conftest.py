@@ -44,6 +44,11 @@ class PythonParser(BaseParser):
     float_precision_choices = [None]
 
 
+class ArrowParser(BaseParser):
+    engine = "arrow"
+    float_precision_choices = [None]
+
+
 @pytest.fixture
 def csv_dir_path(datapath):
     """
@@ -63,14 +68,17 @@ def csv1(csv_dir_path):
 _cParserHighMemory = CParserHighMemory()
 _cParserLowMemory = CParserLowMemory()
 _pythonParser = PythonParser()
+_arrowParser = ArrowParser()
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
-_all_parsers = [*_c_parsers_only, *_py_parsers_only]
+_arrow_parsers_only = [_arrowParser]
+_all_parsers = [*_c_parsers_only, *_py_parsers_only, *_arrow_parsers_only]
 
 _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
-_all_parser_ids = [*_c_parser_ids, *_py_parser_ids]
+_arrow_parser_ids = ["arrow"]
+_all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_arrow_parser_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
