@@ -410,6 +410,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
+        bint fold = 0
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -419,8 +420,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         check_overflows(obj)
         return obj
 
-    # Can infer fold from offset-adjusted obj.value
-    fold = 0
+    # Infer fold from offset-adjusted obj.value
     if is_utc(tz) or is_tzlocal(tz):
         # TODO: think on how we can infer fold for local Timezone
         # and adjust value for fold
