@@ -475,7 +475,7 @@ class TestFloatIndexers:
                 # positional indexing
                 msg = (
                     fr"cannot do slice indexing "
-                    fr"on {type(index).__name__)} with these indexers \[(2|3)\.5\] of "
+                    fr"on {type(index).__name__} with these indexers \[(2|3)\.5\] of "
                     fr"type float"
                 )
                 with pytest.raises(TypeError, match=msg):

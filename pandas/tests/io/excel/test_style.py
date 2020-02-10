@@ -45,9 +45,7 @@ def test_styler_to_excel(engine):
     def assert_equal_style(cell1, cell2, engine):
         if engine in ["xlsxwriter", "openpyxl"]:
             pytest.xfail(
-                reason=(
-                    f"GH25351: failing on some attribute " f"comparisons in {engine}"
-                )
+                reason=(f"GH25351: failing on some attribute comparisons in {engine}")
             )
         # XXX: should find a better way to check equality
         assert cell1.alignment.__dict__ == cell2.alignment.__dict__
