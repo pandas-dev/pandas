@@ -13,7 +13,7 @@ from typing import Any, Collection, Iterable, Union
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
+from pandas._libs import lib, tslibs, missing as libmissing
 from pandas._typing import T
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -133,11 +133,7 @@ def is_bool_indexer(key: Any) -> bool:
         elif is_bool_dtype(key.dtype):
             return True
     elif isinstance(key, list):
-        try:
-            arr = np.asarray(key)
-            return arr.dtype == np.bool_ and len(arr) == len(key)
-        except TypeError:  # pragma: no cover
-            return False
+        return all(k is libmissing.NA or k is True or k is False for k in key)
 
     return False
 
