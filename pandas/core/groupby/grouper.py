@@ -102,7 +102,7 @@ class Grouper:
         return super().__new__(cls)
 
     def __init__(
-        self, key=None, level=None, freq=None, axis=0, sort=False, dropna=True
+        self, key=None, level=None, freq=None, axis=0, sort=False, dropna: bool = True
     ):
         self.key = key
         self.level = level
