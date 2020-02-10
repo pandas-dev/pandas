@@ -214,7 +214,7 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 
     df_dropna.groupby(by=["b"], dropna=False).sum()
 
-    df_dropna.groupby(by=["b"], dropna=False).sum()
+    df_dropna.groupby(by=["b"], dropna=True).sum()
 
 The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
 
