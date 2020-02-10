@@ -61,7 +61,7 @@ class TestDataFrameIsIn:
             index=["foo", "bar", "baz", "qux"],
         )
         msg = (
-            r"only list-like or dict-like objects are allowed"
+            r"only list-like or dict-like objects are allowed "
             r"to be passed to DataFrame.isin\(\), you passed a 'str'"
         )
         with pytest.raises(TypeError, match=msg):
