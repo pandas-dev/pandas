@@ -133,9 +133,7 @@ def is_bool_indexer(key: Any) -> bool:
         elif is_bool_dtype(key.dtype):
             return True
     elif isinstance(key, list):
-        return all(k is libmissing.NA or k is True or k is False for k in key) and (
-            len(key) > 0
-        )
+        return all(k is libmissing.NA or k is True or k is False for k in key)
 
     return False
 
