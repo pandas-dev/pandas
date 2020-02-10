@@ -3152,7 +3152,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._validate_indexer("positional", key.stop, "iloc")
         self._validate_indexer("positional", key.step, "iloc")
 
-    def _convert_slice_indexer(self, key: slice, kind=None):
+    def _convert_slice_indexer(self, key: slice, kind: str_t):
         """
         Convert a slice indexer.
 
@@ -3162,9 +3162,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem'} or None
+        kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem", None], kind
+        assert kind in ["loc", "getitem"], kind
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
@@ -3193,17 +3193,16 @@ class Index(IndexOpsMixin, PandasObject):
         # convert the slice to an indexer here
 
         # if we are mixed and have integers
-        try:
-            if is_positional and self.is_mixed():
+        if is_positional and self.is_mixed():
+            try:
                 # Validate start & stop
                 if start is not None:
                     self.get_loc(start)
                 if stop is not None:
                     self.get_loc(stop)
                 is_positional = False
-        except KeyError:
-            if self.inferred_type in ["mixed-integer-float", "integer-na"]:
-                raise
+            except KeyError:
+                pass
 
         if is_null_slicer:
             indexer = key
