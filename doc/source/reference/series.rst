@@ -241,7 +241,7 @@ Reshaping, sorting
    Series.view
 
 Combining / comparing / joining / merging
------------------------------
+-----------------------------------------
 .. autosummary::
    :toctree: api/
 
