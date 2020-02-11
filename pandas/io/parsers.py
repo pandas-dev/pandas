@@ -89,7 +89,7 @@ Parameters
 ----------
 filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
-    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
@@ -1493,10 +1493,8 @@ class ParserBase:
         for n in range(len(columns[0])):
             if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
                 raise ParserError(
-                    "Passed header=[{header}] are too many rows for this "
-                    "multi_index of columns".format(
-                        header=",".join(str(x) for x in self.header)
-                    )
+                    f"Passed header=[{','.join(str(x) for x in self.header)}] "
+                    f"are too many rows for this multi_index of columns"
                 )
 
         # Clean the column names (if we have an index_col).
@@ -3613,8 +3611,8 @@ class FixedWidthReader(abc.Iterator):
 
     def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = "".join(r"\{}".format(x) for x in self.delimiter)
-        pattern = re.compile("([^{}]+)".format(delimiters))
+        delimiters = "".join(fr"\{x}" for x in self.delimiter)
+        pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
