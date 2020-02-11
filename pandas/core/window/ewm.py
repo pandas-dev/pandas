@@ -116,6 +116,7 @@ class EWM(_Rolling):
     3  1.615385
     4  3.670213
     """
+
     _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
 
     def __init__(
