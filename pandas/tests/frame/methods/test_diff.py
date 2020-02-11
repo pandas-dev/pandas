@@ -74,7 +74,7 @@ class TestDataFrameDiff:
             )
             tm.assert_frame_equal(result, expected)
         else:
-            with pytest.raises(NotImplementedError, match=""):
+            with pytest.raises(NotImplementedError):
                 result = df.diff(axis=1)
 
     def test_diff_timedelta(self):
