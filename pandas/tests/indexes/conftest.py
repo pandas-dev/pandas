@@ -6,8 +6,7 @@ from pandas.core.indexes.api import Index, MultiIndex
 
 
 def _gen_mi():
-    # a MultiIndex used to test the general functionality of the
-    # general functionality of this object
+    # a MultiIndex used to test the general functionality of this object
 
     # See Also: tests.multi.conftest.idx
     major_axis = Index(["foo", "bar", "baz", "qux"])
