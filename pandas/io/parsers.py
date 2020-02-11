@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, StringIO, TextIOWrapper
+from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -89,7 +89,7 @@ Parameters
 ----------
 filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
-    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
@@ -1399,17 +1399,21 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-
-        # GH 16338
-        elif self.header is not None and not is_integer(self.header):
-            raise ValueError("header must be integer or list of integers")
-
-        # GH 27779
-        elif self.header is not None and self.header < 0:
-            raise ValueError(
-                "Passing negative integer to header is invalid. "
-                "For no header, use header=None instead"
-            )
+        elif self.header is not None:
+            # GH 27394
+            if self.prefix is not None:
+                raise ValueError(
+                    "Argument prefix must be None if argument header is not None"
+                )
+            # GH 16338
+            elif not is_integer(self.header):
+                raise ValueError("header must be integer or list of integers")
+            # GH 27779
+            elif self.header < 0:
+                raise ValueError(
+                    "Passing negative integer to header is invalid. "
+                    "For no header, use header=None instead"
+                )
 
         self._name_processed = False
 
@@ -1868,7 +1872,7 @@ class CParserWrapper(ParserBase):
 
             # Handle the file object with universal line mode enabled.
             # We will handle the newline character ourselves later on.
-            if isinstance(src, BufferedIOBase):
+            if isinstance(src, (BufferedIOBase, RawIOBase)):
                 src = TextIOWrapper(src, encoding=encoding, newline="")
 
             kwds["encoding"] = "utf-8"

@@ -69,6 +69,7 @@ from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     maybe_upcast,
     maybe_upcast_putmask,
+    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -2900,12 +2901,8 @@ class DataFrame(NDFrame):
         engine = self.index._engine
 
         try:
-            if isinstance(series._values, np.ndarray):
-                # i.e. not EA, we can use engine
-                return engine.get_value(series._values, index)
-            else:
-                loc = series.index.get_loc(index)
-                return series._values[loc]
+            loc = engine.get_loc(index)
+            return series._values[loc]
         except KeyError:
             # GH 20629
             if self.index.nlevels > 1:
@@ -2936,12 +2933,12 @@ class DataFrame(NDFrame):
             # set column
             self._set_item(key, value)
 
-    def _setitem_slice(self, key, value):
+    def _setitem_slice(self, key: slice, value):
         # NB: we can't just use self.loc[key] = value because that
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.loc._setitem_with_indexer(key, value)
+        self.iloc._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -2953,7 +2950,7 @@ class DataFrame(NDFrame):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
-            self.loc._setitem_with_indexer(indexer, value)
+            self.iloc._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):
                 if len(value.columns) != len(key):
@@ -2965,7 +2962,7 @@ class DataFrame(NDFrame):
                     key, axis=1, raise_missing=False
                 )[1]
                 self._check_setitem_copy()
-                self.loc._setitem_with_indexer((slice(None), indexer), value)
+                self.iloc._setitem_with_indexer((slice(None), indexer), value)
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
@@ -3014,32 +3011,28 @@ class DataFrame(NDFrame):
         col : column label
         value : scalar
         takeable : interpret the index/col as indexers, default False
-
-        Returns
-        -------
-        DataFrame
-            If label pair is contained, will be reference to calling DataFrame,
-            otherwise a new object.
         """
         try:
             if takeable is True:
                 series = self._iget_item_cache(col)
-                return series._set_value(index, value, takeable=True)
+                series._set_value(index, value, takeable=True)
+                return
 
             series = self._get_item_cache(col)
             engine = self.index._engine
-            engine.set_value(series._values, index, value)
-            return self
-        except (KeyError, TypeError):
+            loc = engine.get_loc(index)
+            validate_numeric_casting(series.dtype, value)
 
+            series._values[loc] = value
+            # Note: trying to use series._set_value breaks tests in
+            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
+        except (KeyError, TypeError):
             # set using a non-recursive method & reset the cache
             if takeable:
                 self.iloc[index, col] = value
             else:
                 self.loc[index, col] = value
             self._item_cache.pop(col, None)
-
-            return self
 
     def _ensure_valid_index(self, value):
         """
@@ -5229,7 +5222,7 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame({'population': [59000000, 65000000, 434000,
-        ...                                   434000, 434000, 337000, 11300,
+        ...                                   434000, 434000, 337000, 337000,
         ...                                   11300, 11300],
         ...                    'GDP': [1937894, 2583560 , 12011, 4520, 12128,
         ...                            17036, 182, 38, 311],
@@ -5246,18 +5239,18 @@ class DataFrame(NDFrame):
         Maldives      434000     4520      MV
         Brunei        434000    12128      BN
         Iceland       337000    17036      IS
-        Nauru          11300      182      NR
+        Nauru         337000      182      NR
         Tuvalu         11300       38      TV
         Anguilla       11300      311      AI
 
         In the following example, we will use ``nsmallest`` to select the
-        three rows having the smallest values in column "a".
+        three rows having the smallest values in column "population".
 
         >>> df.nsmallest(3, 'population')
-                  population  GDP alpha-2
-        Nauru          11300  182      NR
-        Tuvalu         11300   38      TV
-        Anguilla       11300  311      AI
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036	     IS
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
@@ -5265,24 +5258,25 @@ class DataFrame(NDFrame):
                   population  GDP alpha-2
         Anguilla       11300  311      AI
         Tuvalu         11300   38      TV
-        Nauru          11300  182      NR
+        Nauru         337000  182      NR
 
         When using ``keep='all'``, all duplicate items are maintained:
 
         >>> df.nsmallest(3, 'population', keep='all')
-                  population  GDP alpha-2
-        Nauru          11300  182      NR
-        Tuvalu         11300   38      TV
-        Anguilla       11300  311      AI
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036      IS
+        Nauru         337000    182      NR
 
-        To order by the largest values in column "a" and then "c", we can
+        To order by the smallest values in column "population" and then "GDP", we can
         specify multiple columns like in the next example.
 
         >>> df.nsmallest(3, ['population', 'GDP'])
                   population  GDP alpha-2
         Tuvalu         11300   38      TV
-        Nauru          11300  182      NR
         Anguilla       11300  311      AI
+        Nauru         337000  182      NR
         """
         return algorithms.SelectNFrame(
             self, n=n, keep=keep, columns=columns
@@ -5896,11 +5890,19 @@ Wild         185.0
 
         Parameters
         ----------%s
-        index : str or object, optional
+        index : str or object or a list of str, optional
             Column to use to make new frame's index. If None, uses
             existing index.
-        columns : str or object
+
+            .. versionchanged:: 1.1.0
+               Also accept list of index names.
+
+        columns : str or object or a list of str
             Column to use to make new frame's columns.
+
+            .. versionchanged:: 1.1.0
+               Also accept list of columns names.
+
         values : str, object or a list of the previous, optional
             Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
@@ -5966,6 +5968,38 @@ Wild         185.0
         foo
         one   1  2  3   x  y  z
         two   4  5  6   q  w  t
+
+        You could also assign a list of column names or a list of index names.
+
+        >>> df = pd.DataFrame({
+        ...        "lev1": [1, 1, 1, 2, 2, 2],
+        ...        "lev2": [1, 1, 2, 1, 1, 2],
+        ...        "lev3": [1, 2, 1, 2, 1, 2],
+        ...        "lev4": [1, 2, 3, 4, 5, 6],
+        ...        "values": [0, 1, 2, 3, 4, 5]})
+        >>> df
+            lev1 lev2 lev3 lev4 values
+        0   1    1    1    1    0
+        1   1    1    2    2    1
+        2   1    2    1    3    2
+        3   2    1    2    4    3
+        4   2    1    1    5    4
+        5   2    2    2    6    5
+
+        >>> df.pivot(index="lev1", columns=["lev2", "lev3"],values="values")
+        lev2    1         2
+        lev3    1    2    1    2
+        lev1
+        1     0.0  1.0  2.0  NaN
+        2     4.0  3.0  NaN  5.0
+
+        >>> df.pivot(index=["lev1", "lev2"], columns=["lev3"],values="values")
+              lev3    1    2
+        lev1  lev2
+           1     1  0.0  1.0
+                 2  2.0  NaN
+           2     1  4.0  3.0
+                 2  NaN  5.0
 
         A ValueError is raised if there are any duplicates.
 
@@ -6556,7 +6590,9 @@ Wild         185.0
     @Appender(
         _shared_docs["melt"]
         % dict(
-            caller="df.melt(", versionadded=".. versionadded:: 0.20.0\n", other="melt"
+            caller="df.melt(",
+            versionadded="\n    .. versionadded:: 0.20.0\n",
+            other="melt",
         )
     )
     def melt(

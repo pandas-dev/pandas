@@ -230,18 +230,20 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(
-        js: Dict[str, Any], spec: Union[List, str], is_meta: bool = True
-    ) -> Any:
+    def _pull_field(js: Dict[str, Any], spec: Union[List, str]) -> Any:
         result = js  # type: ignore
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
         else:
             result = result[spec]
+        return result
 
-        # GH 31507 iterable limit should only be used on record, not meta
-        if not isinstance(result, Iterable) and not is_meta:
+    def _is_iterable(result: Any) -> Iterable:
+        """Interal function to check if result is Iterable."""
+        # GH 31507 GH 30145, if result is not Iterable, raise TypeError if not
+        # null, otherwise return an empty list
+        if not isinstance(result, Iterable):
             if pd.isnull(result):
                 result = []  # type: ignore
             else:
@@ -249,7 +251,6 @@ def _json_normalize(
                     f"{js} has non iterable value {result} for path {spec}. "
                     "Must be iterable or null."
                 )
-
         return result
 
     if isinstance(data, list) and not data:
@@ -294,12 +295,13 @@ def _json_normalize(
             for obj in data:
                 for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
-                        seen_meta[key] = _pull_field(obj, val[-1])
+                        value = _pull_field(obj, val[-1])
+                        seen_meta[key] = _is_iterable(value)
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_field(obj, path[0], is_meta=False)
+                recs = _pull_field(obj, path[0])
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)
@@ -314,7 +316,8 @@ def _json_normalize(
                         meta_val = seen_meta[key]
                     else:
                         try:
-                            meta_val = _pull_field(obj, val[level:])
+                            value = _pull_field(obj, val[level:])
+                            meta_val = _is_iterable(value)
                         except KeyError as e:
                             if errors == "ignore":
                                 meta_val = np.nan
