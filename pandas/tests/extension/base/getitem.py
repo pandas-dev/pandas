@@ -158,26 +158,20 @@ class BaseGetitemTests(BaseExtensionTests):
         result = pd.Series(data)[mask]
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("use_list_mask", [True, False])
-    def test_getitem_boolean_na_treated_as_false(self, data, use_list_mask):
+    def test_getitem_boolean_na_treated_as_false(self, data):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
         mask[2:4] = True
-        filled_mask = mask.fillna(False)
-
-        if use_list_mask:
-            mask = list(mask)
-            filled_mask = list(filled_mask)
 
         result = data[mask]
-        expected = data[filled_mask]
+        expected = data[mask.fillna(False)]
 
         self.assert_extension_array_equal(result, expected)
 
         s = pd.Series(data)
 
         result = s[mask]
-        expected = s[filled_mask]
+        expected = s[mask.fillna(False)]
 
         self.assert_series_equal(result, expected)
 
