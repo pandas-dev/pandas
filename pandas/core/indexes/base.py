@@ -3173,8 +3173,7 @@ class Index(IndexOpsMixin, PandasObject):
         def is_int(v):
             return v is None or is_integer(v)
 
-        is_null_slicer = start is None and stop is None
-        is_index_slice = is_int(start) and is_int(stop)
+        is_index_slice = is_int(start) and is_int(stop) and is_int(step)
         is_positional = is_index_slice and not (
             is_integer_dtype(self.dtype) or self.is_categorical()
         )
@@ -3204,7 +3203,7 @@ class Index(IndexOpsMixin, PandasObject):
             except KeyError:
                 pass
 
-        if is_null_slicer:
+        if com.is_null_slice(key):
             indexer = key
         elif is_positional:
             indexer = key
