@@ -22,8 +22,8 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._typing import IndexKeyFunc, Label, ValueKeyFunc
 from pandas._libs import lib, properties, reshape, tslibs
+from pandas._typing import IndexKeyFunc, Label, ValueKeyFunc
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_percentile

@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Callable, Dict, FrozenSet, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Hashable, Optional, Union
 import warnings
 
 import numpy as np
