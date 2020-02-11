@@ -114,7 +114,6 @@ def _ensure_term(where, scope_level: int):
     that are passed
     create the terms here with a frame_level=2 (we are 2 levels down)
     """
-
     # only consider list/tuple here as an ndarray is automatically a coordinate
     # list
     level = scope_level + 1
@@ -246,7 +245,6 @@ def to_hdf(
     encoding: str = "UTF-8",
 ):
     """ store this object, close it if we opened it """
-
     if append:
         f = lambda store: store.append(
             key,
@@ -362,7 +360,6 @@ def read_hdf(
     >>> df.to_hdf('./store.h5', 'data')
     >>> reread = pd.read_hdf('./store.h5')
     """
-
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
             f"mode {mode} is not allowed while performing a read. "
@@ -902,7 +899,6 @@ class HDFStore:
         raises TypeError if keys is not a list or tuple
         raises ValueError if the tables are not ALL THE SAME DIMENSIONS
         """
-
         # default to single select
         where = _ensure_term(where, scope_level=1)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
@@ -1302,7 +1298,6 @@ class HDFStore:
         ------
         TypeError: raises if the node is not a table
         """
-
         # version requirements
         _tables()
         s = self.get_storer(key)
@@ -1522,7 +1517,6 @@ class HDFStore:
 
     def _validate_format(self, format: str) -> str:
         """ validate / deprecate formats """
-
         # validate
         try:
             format = _FORMAT_MAP[format.lower()]
@@ -1540,7 +1534,6 @@ class HDFStore:
         errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
-
         cls: Union[Type["GenericFixed"], Type["Table"]]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
@@ -2023,7 +2016,6 @@ class IndexCol:
 
     def validate_col(self, itemsize=None):
         """ validate this column: return the compared against itemsize """
-
         # validate this column for string truncation (or reset to the max size)
         if _ensure_decoded(self.kind) == "string":
             c = self.col
@@ -2053,7 +2045,6 @@ class IndexCol:
     def update_info(self, info):
         """ set/update the info for this indexable with the key/value
             if there is a conflict raise/warn as needed """
-
         for key in self._info_fields:
 
             value = getattr(self, key, None)
@@ -2235,7 +2226,6 @@ class DataCol(IndexCol):
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
-
         dtype = values.dtype
         itemsize = dtype.itemsize
 
@@ -2598,7 +2588,6 @@ class Fixed:
     def infer_axes(self):
         """ infer the axes of my storer
               return a boolean indicating if we have a valid storer or not """
-
         s = self.storable
         if s is None:
             return False
@@ -2884,7 +2873,6 @@ class GenericFixed(Fixed):
 
     def write_array_empty(self, key: str, value: ArrayLike):
         """ write a 0-len array """
-
         # ugly hack for length 0 axes
         arr = np.empty((1,) * value.ndim)
         self._handle.create_array(self.group, key, arr)
@@ -3294,7 +3282,6 @@ class Table(Fixed):
 
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
-
         # mypy doesn't recognize DataFrame._AXIS_NAMES, so we re-write it here
         axis_names = {0: "index", 1: "columns"}
 
@@ -3503,7 +3490,6 @@ class Table(Fixed):
         Cannot index Time64Col or ComplexCol.
         Pytables must be >= 3.0.
         """
-
         if not self.infer_axes():
             return
         if columns is False:
@@ -3570,7 +3556,6 @@ class Table(Fixed):
         -------
         List[Tuple[index_values, column_values]]
         """
-
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
@@ -3598,7 +3583,6 @@ class Table(Fixed):
         """take the input data_columns and min_itemize and create a data
         columns spec
         """
-
         if not len(non_index_axes):
             return []
 
@@ -3665,7 +3649,6 @@ class Table(Fixed):
         min_itemsize: Dict[str, int] or None, default None
             The min itemsize for a column in bytes.
         """
-
         if not isinstance(obj, DataFrame):
             group = self.group._v_name
             raise TypeError(
@@ -3919,7 +3902,6 @@ class Table(Fixed):
 
     def process_axes(self, obj, selection: "Selection", columns=None):
         """ process axes filters """
-
         # make a copy to avoid side effects
         if columns is not None:
             columns = list(columns)
@@ -3984,7 +3966,6 @@ class Table(Fixed):
         expectedrows: Optional[int],
     ) -> Dict[str, Any]:
         """ create the description of the table from the axes & values """
-
         # provided expected rows if its passed
         if expectedrows is None:
             expectedrows = max(self.nrows_expected, 10000)
@@ -4014,7 +3995,6 @@ class Table(Fixed):
         """select coordinates (row numbers) from a table; return the
         coordinates object
         """
-
         # validate the version
         self.validate_version(where)
 
@@ -4044,7 +4024,6 @@ class Table(Fixed):
         """return a single column from the table, generally only indexables
         are interesting
         """
-
         # validate the version
         self.validate_version()
 
@@ -4172,7 +4151,6 @@ class AppendableTable(Table):
     def write_data(self, chunksize: Optional[int], dropna: bool = False):
         """ we form the data into a 2-d including indexes,values,mask
             write chunk-by-chunk """
-
         names = self.dtype.names
         nrows = self.nrows_expected
 
@@ -4245,7 +4223,6 @@ class AppendableTable(Table):
         mask : an array of the masks
         values : an array of the values
         """
-
         # 0 len
         for v in values:
             if not np.prod(v.shape):
@@ -4840,7 +4817,6 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     -------
     np.ndarray[fixed-length-string]
     """
-
     # encode if needed
     if len(data):
         data = (

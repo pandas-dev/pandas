@@ -118,7 +118,6 @@ def ip():
 
     Will raise a skip if IPython is not installed.
     """
-
     pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
 
@@ -679,7 +678,6 @@ def any_nullable_int_dtype(request):
     * 'UInt64'
     * 'Int64'
     """
-
     return request.param
 
 

@@ -2134,7 +2134,6 @@ class StataWriter(StataParser):
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
         """Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int"""
-
         is_cat = [is_categorical_dtype(data[col]) for col in data]
         self._is_col_cat = is_cat
         self._value_labels: List[StataValueLabel] = []
@@ -2773,7 +2772,6 @@ class StataStrLWriter:
           * 118: 6
           * 119: 5
         """
-
         gso_table = self._gso_table
         gso_df = self.df
         columns = list(gso_df.columns)

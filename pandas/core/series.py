@@ -396,7 +396,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Override generic, we want to set the _typ here.
         """
-
         if not fastpath:
             labels = ensure_index(labels)
 
@@ -540,7 +539,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray
             Data of the Series.
         """
-
         return self._data.get_values()
 
     # ops
@@ -1402,7 +1400,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         str or None
             String representation of Series if ``buf=None``, otherwise None.
         """
-
         formatter = fmt.SeriesFormatter(
             self,
             name=name,
@@ -2171,7 +2168,6 @@ Name: Max Speed, dtype: float64
         0.75    3.25
         dtype: float64
         """
-
         validate_percentile(q)
 
         # We dispatch to DataFrame so that core.internals only has to worry
@@ -2583,7 +2579,6 @@ Name: Max Speed, dtype: float64
         -------
         Series
         """
-
         if not isinstance(other, Series):
             raise AssertionError("Other operand must be Series")
 

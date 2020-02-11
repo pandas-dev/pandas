@@ -59,7 +59,6 @@ class _XlrdReader(_BaseExcelReader):
         def _parse_cell(cell_contents, cell_typ):
             """converts the contents of the cell into a pandas
                appropriate object"""
-
             if cell_typ == XL_CELL_DATE:
 
                 # Use the newer xlrd datetime handling.

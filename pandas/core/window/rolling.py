@@ -149,7 +149,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Split data into blocks & return conformed data.
         """
-
         obj = self._selected_obj
 
         # filter out the on from the object
@@ -172,7 +171,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         subset : object, default None
             subset to act on
         """
-
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
@@ -238,7 +236,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Provide a nice str repr of our rolling object.
         """
-
         attrs_list = (
             f"{attr_name}={getattr(self, attr_name)}"
             for attr_name in self._attributes
@@ -284,7 +281,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Wrap a single result.
         """
-
         if obj is None:
             obj = self._selected_obj
         index = obj.index
@@ -310,7 +306,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         obj : conformed data (may be resampled)
         exclude: list of columns to exclude, default to None
         """
-
         from pandas import Series, concat
 
         final = []
@@ -1021,7 +1016,6 @@ class Window(_Window):
         window : ndarray
             the window, weights
         """
-
         window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
             return com.asarray_tuplesafe(window).astype(float)
