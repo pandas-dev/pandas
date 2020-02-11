@@ -2009,7 +2009,7 @@ def _pat_wrapper(
 
 
 def copy(source):
-    "Copy a docstring from another source function (if present)"
+    """Copy a docstring from another source function (if present)"""
 
     def do_copy(target):
         if source.__doc__:
