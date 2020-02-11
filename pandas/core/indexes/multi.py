@@ -1,13 +1,22 @@
-import datetime
 from sys import getsizeof
-from typing import Any, Hashable, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import Timestamp, algos as libalgos, index as libindex, lib, tslibs
+from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
 from pandas._typing import AnyArrayLike, ArrayLike, Scalar
 from pandas.compat.numpy import function as nv
@@ -56,6 +65,9 @@ from pandas.io.formats.printing import (
     format_object_summary,
     pprint_thing,
 )
+
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -1001,8 +1013,8 @@ class MultiIndex(Index):
         levels=None,
         codes=None,
         deep=False,
+        name=None,
         _set_identity=False,
-        **kwargs,
     ):
         """
         Make a copy of this object. Names, dtype, levels and codes can be
@@ -1014,10 +1026,13 @@ class MultiIndex(Index):
         dtype : numpy dtype or pandas type, optional
         levels : sequence, optional
         codes : sequence, optional
+        deep : bool, default False
+        name : Label
+            Kept for compatibility with 1-dimensional Index. Should not be used.
 
         Returns
         -------
-        copy : MultiIndex
+        MultiIndex
 
         Notes
         -----
@@ -1025,10 +1040,7 @@ class MultiIndex(Index):
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
         """
-        name = kwargs.get("name")
         names = self._validate_names(name=name, names=names, deep=deep)
-        if "labels" in kwargs:
-            raise TypeError("'labels' argument has been removed; use 'codes' instead")
         if deep:
             from copy import deepcopy
 
@@ -1586,7 +1598,7 @@ class MultiIndex(Index):
         index : bool, default True
             Set the index of the returned DataFrame as the original MultiIndex.
 
-        name : list / sequence of strings, optional
+        name : list / sequence of str, optional
             The passed names should substitute index level names.
 
         Returns
@@ -2321,67 +2333,39 @@ class MultiIndex(Index):
 
     def get_value(self, series, key):
         # Label-based
-        s = com.values_from_object(series)
-        k = com.values_from_object(key)
-
-        def _try_mi(k):
-            # TODO: what if a level contains tuples??
-            loc = self.get_loc(k)
-            new_values = series._values[loc]
-            new_index = self[loc]
-            new_index = maybe_droplevels(new_index, k)
-            return series._constructor(
-                new_values, index=new_index, name=series.name
-            ).__finalize__(self)
-
-        try:
-            return self._engine.get_value(s, k)
-        except KeyError as e1:
-            try:
-                return _try_mi(key)
-            except KeyError:
-                pass
-
-            try:
-                return libindex.get_value_at(s, k)
-            except IndexError:
-                raise
-            except TypeError:
-                # generator/iterator-like
-                if is_iterator(key):
-                    raise InvalidIndexError(key)
-                else:
-                    raise e1
-            except Exception:  # pragma: no cover
-                raise e1
-        except TypeError:
-
-            # a Timestamp will raise a TypeError in a multi-index
-            # rather than a KeyError, try it here
-            # note that a string that 'looks' like a Timestamp will raise
-            # a KeyError! (GH5725)
-            if isinstance(key, (datetime.datetime, np.datetime64, str)):
-                try:
-                    return _try_mi(key)
-                except KeyError:
-                    raise
-                except (IndexError, ValueError, TypeError):
-                    pass
-
-                try:
-                    return _try_mi(Timestamp(key))
-                except (
-                    KeyError,
-                    TypeError,
-                    IndexError,
-                    ValueError,
-                    tslibs.OutOfBoundsDatetime,
-                ):
-                    pass
-
+        if not is_hashable(key) or is_iterator(key):
+            # We allow tuples if they are hashable, whereas other Index
+            #  subclasses require scalar.
+            # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
-    def _convert_listlike_indexer(self, keyarr, kind=None):
+        try:
+            loc = self.get_loc(key)
+        except KeyError:
+            if is_integer(key):
+                loc = key
+            else:
+                raise
+
+        return self._get_values_for_loc(series, loc, key)
+
+    def _get_values_for_loc(self, series: "Series", loc, key):
+        """
+        Do a positional lookup on the given Series, returning either a scalar
+        or a Series.
+
+        Assumes that `series.index is self`
+        """
+        new_values = series._values[loc]
+        if is_scalar(loc):
+            return new_values
+
+        new_index = self[loc]
+        new_index = maybe_droplevels(new_index, key)
+        new_ser = series._constructor(new_values, index=new_index, name=series.name)
+        return new_ser.__finalize__(series)
+
+    def _convert_listlike_indexer(self, keyarr):
         """
         Parameters
         ----------
@@ -2394,7 +2378,7 @@ class MultiIndex(Index):
             indexer is an ndarray or None if cannot convert
             keyarr are tuple-safe keys
         """
-        indexer, keyarr = super()._convert_listlike_indexer(keyarr, kind=kind)
+        indexer, keyarr = super()._convert_listlike_indexer(keyarr)
 
         # are we indexing a specific level
         if indexer is None and len(keyarr) and not isinstance(keyarr[0], tuple):

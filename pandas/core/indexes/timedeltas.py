@@ -173,22 +173,15 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
-
-        if not isinstance(values, TimedeltaArray):
-            values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)
-        else:
-            if freq is None:
-                freq = values.freq
-        assert isinstance(values, TimedeltaArray), type(values)
         assert dtype == _TD_DTYPE, dtype
-        assert values.dtype == "m8[ns]", values.dtype
+        assert isinstance(values, TimedeltaArray)
+        assert freq is None or values.freq == freq
 
-        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
-        result._data = tdarr
+        result._data = values
         result._name = name
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = tdarr._data
+        result._index_data = values._data
 
         result._reset_identity()
         return result
@@ -277,12 +270,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
             self._invalid_indexer("slice", label)
 
         return label
-
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
-        assert isinstance(key, str), type(key)
-        # given a key, try to figure out a location for a partial slice
-        raise NotImplementedError
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"

@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, StringIO, TextIOWrapper
+from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -89,7 +89,7 @@ Parameters
 ----------
 filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
-    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
@@ -1872,7 +1872,7 @@ class CParserWrapper(ParserBase):
 
             # Handle the file object with universal line mode enabled.
             # We will handle the newline character ourselves later on.
-            if isinstance(src, BufferedIOBase):
+            if isinstance(src, (BufferedIOBase, RawIOBase)):
                 src = TextIOWrapper(src, encoding=encoding, newline="")
 
             kwds["encoding"] = "utf-8"

@@ -1394,7 +1394,9 @@ class GroupBy(_GroupBy):
                 except DataError:
                     pass
                 except NotImplementedError as err:
-                    if "function is not implemented for this dtype" in str(err):
+                    if "function is not implemented for this dtype" in str(
+                        err
+                    ) or "category dtype not supported" in str(err):
                         # raised in _get_cython_function, in some cases can
                         #  be trimmed by implementing cython funcs for more dtypes
                         pass
@@ -2334,7 +2336,8 @@ class GroupBy(_GroupBy):
         ----------
         periods : int, default 1
             Number of periods to shift.
-        freq : frequency string
+        freq : str, optional
+            Frequency string
         axis : axis to shift, default 0
         fill_value : optional
 
