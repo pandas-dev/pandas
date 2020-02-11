@@ -509,7 +509,8 @@ class MPLPlot:
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
-        """ Tick creation within matplotlib is reasonably expensive and is
+        """
+        Tick creation within matplotlib is reasonably expensive and is
             internally deferred until accessed as Ticks are created/destroyed
             multiple times per draw. It's therefore beneficial for us to avoid
             accessing unless we will act on the Tick.

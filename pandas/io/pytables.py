@@ -569,7 +569,8 @@ class HDFStore:
         )
 
     def __contains__(self, key: str) -> bool:
-        """ check for existence of this key
+        """
+        check for existence of this key
               can match the exact pathname or the pathnm w/o the leading '/'
               """
         node = self.get_node(key)
@@ -1831,7 +1832,8 @@ class TableIterator:
 
 
 class IndexCol:
-    """ an index column description class
+    """
+    an index column description class
 
         Parameters
         ----------
@@ -1999,7 +2001,8 @@ class IndexCol:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None):
-        """ maybe set a string col itemsize:
+        """
+        maybe set a string col itemsize:
                min_itemsize can be an integer or a dict with this columns name
                with an integer size """
         if _ensure_decoded(self.kind) == "string":
@@ -2051,7 +2054,8 @@ class IndexCol:
                 )
 
     def update_info(self, info):
-        """ set/update the info for this indexable with the key/value
+        """
+        set/update the info for this indexable with the key/value
             if there is a conflict raise/warn as needed """
 
         for key in self._info_fields:
@@ -2140,7 +2144,8 @@ class GenericIndexCol(IndexCol):
 
 
 class DataCol(IndexCol):
-    """ a data holding column, by definition this is not indexable
+    """
+    a data holding column, by definition this is not indexable
 
         Parameters
         ----------
@@ -2460,7 +2465,8 @@ class GenericDataIndexableCol(DataIndexableCol):
 
 
 class Fixed:
-    """ represent an object in my store
+    """
+    represent an object in my store
         facilitate read/write of various types of objects
         this is an abstract base class
 
@@ -2596,7 +2602,8 @@ class Fixed:
         return True
 
     def infer_axes(self):
-        """ infer the axes of my storer
+        """
+        infer the axes of my storer
               return a boolean indicating if we have a valid storer or not """
 
         s = self.storable
@@ -3105,7 +3112,8 @@ class FrameFixed(BlockManagerFixed):
 
 
 class Table(Fixed):
-    """ represent a table:
+    """
+    represent a table:
           facilitate read/write of various types of tables
 
         Attrs in Table Node
@@ -3229,7 +3237,8 @@ class Table(Fixed):
         return isinstance(self.levels, list)
 
     def validate_multiindex(self, obj):
-        """validate that we can store the multi-index; reset and return the
+        """
+        validate that we can store the multi-index; reset and return the
         new object
         """
         levels = [
@@ -3381,7 +3390,8 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemsize doesn't contain items that are not in the
+        """
+        validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3595,7 +3605,8 @@ class Table(Fixed):
         return obj
 
     def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
-        """take the input data_columns and min_itemize and create a data
+        """
+        take the input data_columns and min_itemize and create a data
         columns spec
         """
 
@@ -4011,7 +4022,8 @@ class Table(Fixed):
     def read_coordinates(
         self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
     ):
-        """select coordinates (row numbers) from a table; return the
+        """
+        select coordinates (row numbers) from a table; return the
         coordinates object
         """
 
@@ -4041,7 +4053,8 @@ class Table(Fixed):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """return a single column from the table, generally only indexables
+        """
+        return a single column from the table, generally only indexables
         are interesting
         """
 
@@ -4080,7 +4093,8 @@ class Table(Fixed):
 
 
 class WORMTable(Table):
-    """ a write-once read-many table: this format DOES NOT ALLOW appending to a
+    """
+    a write-once read-many table: this format DOES NOT ALLOW appending to a
          table. writing is a one-time operation the data are stored in a format
          that allows for searching the data on disk
          """
@@ -4094,12 +4108,14 @@ class WORMTable(Table):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """ read the indices and the indexing array, calculate offset rows and
+        """
+        read the indices and the indexing array, calculate offset rows and
         return """
         raise NotImplementedError("WORMTable needs to implement read")
 
     def write(self, **kwargs):
-        """ write in a format that we can search later on (but cannot append
+        """
+        write in a format that we can search later on (but cannot append
                to): write out the indices and the values using _write_array
                (e.g. a CArray) create an indexing table so that we can search
         """
@@ -4170,7 +4186,8 @@ class AppendableTable(Table):
         table.write_data(chunksize, dropna=dropna)
 
     def write_data(self, chunksize: Optional[int], dropna: bool = False):
-        """ we form the data into a 2-d including indexes,values,mask
+        """
+        we form the data into a 2-d including indexes,values,mask
             write chunk-by-chunk """
 
         names = self.dtype.names

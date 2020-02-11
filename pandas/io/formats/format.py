@@ -1296,7 +1296,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
         float_format: Optional[float_format_type] = None,
         threshold: Optional[Union[float, int]] = None,
     ) -> Callable:
-        """Returns a function to be applied on each value to format it
+        """
+        Returns a function to be applied on each value to format it
         """
 
         # the float_format parameter supersedes self.float_format
@@ -1842,7 +1843,8 @@ class EngFormatter:
         self.use_eng_prefix = use_eng_prefix
 
     def __call__(self, num: Union[int, float]) -> str:
-        """ Formats a number in engineering notation, appending a letter
+        """
+        Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
 
         >>> format_eng(0)       # for self.accuracy = 0
@@ -1941,7 +1943,8 @@ def _binify(cols: List[int], line_width: int) -> List[int]:
 def get_level_lengths(
     levels: Any, sentinel: Union[bool, object, str] = ""
 ) -> List[Dict[int, int]]:
-    """For each index in each level the function returns lengths of indexes.
+    """
+    For each index in each level the function returns lengths of indexes.
 
     Parameters
     ----------

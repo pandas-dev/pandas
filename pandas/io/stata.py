@@ -482,7 +482,8 @@ alphanumerics and underscores, no Stata reserved words)
 
 
 def _cast_to_stata_types(data: DataFrame) -> DataFrame:
-    """Checks the dtypes of the columns of a pandas DataFrame for
+    """
+    Checks the dtypes of the columns of a pandas DataFrame for
     compatibility with the data types and ranges supported by Stata, and
     converts if necessary.
 
@@ -2132,7 +2133,8 @@ class StataWriter(StataParser):
         self._file.write(value)
 
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
-        """Check for categorical columns, retain categorical information for
+        """
+        Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int"""
 
         is_cat = [is_categorical_dtype(data[col]) for col in data]
@@ -2174,7 +2176,8 @@ class StataWriter(StataParser):
 
     def _replace_nans(self, data: DataFrame) -> DataFrame:
         # return data
-        """Checks floating point data columns for nans, and replaces these with
+        """
+        Checks floating point data columns for nans, and replaces these with
         the generic Stata for missing value (.)"""
         for c in data:
             dtype = data[c].dtype
@@ -3039,7 +3042,8 @@ class StataWriter117(StataWriter):
         self._write_bytes(self._tag(bio.read(), "header"))
 
     def _write_map(self) -> None:
-        """Called twice during file write. The first populates the values in
+        """
+        Called twice during file write. The first populates the values in
         the map with 0s.  The second call writes the final map locations when
         all blocks have been written."""
         assert self._file is not None
@@ -3188,7 +3192,8 @@ class StataWriter117(StataWriter):
         self._update_map("end-of-file")
 
     def _update_strl_names(self) -> None:
-        """Update column names for conversion to strl if they might have been
+        """
+        Update column names for conversion to strl if they might have been
         changed to comply with Stata naming rules"""
         # Update convert_strl if names changed
         for orig, new in self._converted_names.items():
@@ -3197,7 +3202,8 @@ class StataWriter117(StataWriter):
                 self._convert_strl[idx] = new
 
     def _convert_strls(self, data: DataFrame) -> DataFrame:
-        """Convert columns to StrLs if either very large or in the
+        """
+        Convert columns to StrLs if either very large or in the
         convert_strl variable"""
         convert_cols = [
             col

@@ -86,7 +86,8 @@ class IndexingError(Exception):
 
 
 class IndexingMixin:
-    """Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
+    """
+    Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
     """
 
     @property
