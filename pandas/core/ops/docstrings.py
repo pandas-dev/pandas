@@ -310,7 +310,7 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "op": "==",
         "desc": "Equal to",
         "reverse": None,
-        "series_examples": None
+        "series_examples": None,
         "series_returns": _returns_series,
     },
     "ne": {
