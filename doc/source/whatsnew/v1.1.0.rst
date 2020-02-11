@@ -36,6 +36,33 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+.. _whatsnew_110.key_sorting:
+
+Sorting with keys
+^^^^^^^^^^^^^^^^^
+
+We've added a ``key`` argument to the DataFrame and Series sorting methods, including
+:meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`Series.sort_values`,
+and :meth:`Series.sort_index`. The ``key`` can be any callable function which is applied
+to the each column of a DataFrame before sorting is performed (:issue:`27237`).
+
+.. ipython:: python
+
+   s = pd.Series(['C', 'a', 'B'])
+   s.sort_values()
+   s
+
+
+Note how this is sorted with capital letters first. Now if we apply the `col.str.lower()` method, we get
+
+.. ipython:: python
+
+   s.sort_values(key=lambda x: x.str.lower())
+   s
+
+For more details, see examples and documentation in :meth:`DataFrame.sort_values`,
+:meth:`Series.sort_values`, and :meth:`~DataFrame.sort_index`.
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
