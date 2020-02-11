@@ -705,7 +705,6 @@ def read_fwf(
     infer_nrows=100,
     **kwds,
 ):
-
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
