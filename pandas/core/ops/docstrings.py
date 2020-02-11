@@ -234,13 +234,9 @@ e    NaN
 dtype: float64
 """
 
-_returns_series = """Series
-    The result of the operation.
-"""
+_returns_series = """Series\n    The result of the operation."""
 
-_returns_tuple = """Tuple of Series
-    The result of the operation.
-"""
+_returns_tuple = """Tuple of Series\n    The result of the operation."""
 
 _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
     # Arithmetic Operators
