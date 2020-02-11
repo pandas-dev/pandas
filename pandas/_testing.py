@@ -2150,7 +2150,8 @@ def optional_args(decorator):
         @my_decorator
         def function(): pass
 
-    Calls decorator with decorator(f, *args, **kwargs)"""
+    Calls decorator with decorator(f, *args, **kwargs)
+    """
 
     @wraps(decorator)
     def wrapper(*args, **kwargs):

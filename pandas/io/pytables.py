@@ -2001,7 +2001,8 @@ class IndexCol:
     def maybe_set_size(self, min_itemsize=None):
         """ maybe set a string col itemsize:
                min_itemsize can be an integer or a dict with this columns name
-               with an integer size """
+               with an integer size
+        """
         if _ensure_decoded(self.kind) == "string":
 
             if isinstance(min_itemsize, dict):
@@ -2052,7 +2053,8 @@ class IndexCol:
 
     def update_info(self, info):
         """ set/update the info for this indexable with the key/value
-            if there is a conflict raise/warn as needed """
+            if there is a conflict raise/warn as needed
+        """
 
         for key in self._info_fields:
 
@@ -2597,7 +2599,8 @@ class Fixed:
 
     def infer_axes(self):
         """ infer the axes of my storer
-              return a boolean indicating if we have a valid storer or not """
+              return a boolean indicating if we have a valid storer or not
+        """
 
         s = self.storable
         if s is None:
@@ -4095,7 +4098,8 @@ class WORMTable(Table):
         stop: Optional[int] = None,
     ):
         """ read the indices and the indexing array, calculate offset rows and
-        return """
+        return
+        """
         raise NotImplementedError("WORMTable needs to implement read")
 
     def write(self, **kwargs):
@@ -4171,7 +4175,8 @@ class AppendableTable(Table):
 
     def write_data(self, chunksize: Optional[int], dropna: bool = False):
         """ we form the data into a 2-d including indexes,values,mask
-            write chunk-by-chunk """
+            write chunk-by-chunk
+        """
 
         names = self.dtype.names
         nrows = self.nrows_expected
