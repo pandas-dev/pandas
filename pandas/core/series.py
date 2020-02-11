@@ -840,12 +840,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0, kind: str = "getitem") -> "Series":
-        assert kind in ["getitem", "iloc"]
-        if kind == "getitem":
-            # If called from getitem, we need to determine whether
-            #  this slice is positional or label-based.
-            slobj = self.index._convert_slice_indexer(slobj, kind="getitem")
+    def _slice(self, slobj: slice, axis: int = 0) -> "Series":
+        # axis kwarg is retained for compat with NDFrame method
+        #  _slice is *always* positional
         return self._get_values(slobj)
 
     def __getitem__(self, key):
@@ -889,7 +886,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            return self._slice(key, kind="getitem")
+            # _convert_slice_indexer to determing if this slice is positional
+            #  or label based, and if the latter, convert to positional
+            slobj = self.index._convert_slice_indexer(key, kind="getitem")
+            return self._slice(slobj)
         elif isinstance(key, ABCDataFrame):
             raise TypeError(
                 "Indexing a Series with DataFrame is not "

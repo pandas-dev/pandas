@@ -979,7 +979,7 @@ class DataFrameFormatter(TableFormatter):
         border : int
             A ``border=border`` attribute is included in the opening
             ``<table>`` tag. Default ``pd.options.display.html.border``.
-         """
+        """
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
