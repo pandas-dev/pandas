@@ -573,7 +573,7 @@ class TestCategoricalConstructors:
         codes = pd.array([0, None], dtype="Int64")
         categories = ["a", "b"]
 
-        msg = "[Cc]annot convert"
+        msg = "codes cannot contain NA values"
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(codes, categories=categories)
 

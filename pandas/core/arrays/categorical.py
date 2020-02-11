@@ -646,6 +646,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         if is_extension_array_dtype(codes) and is_integer_dtype(codes):
             # Avoid the implicit conversion of Int to object
+            if isna(codes).any():
+                raise ValueError("codes cannot contain NA values")
             codes = codes.to_numpy(dtype=np.int64)
         else:
             codes = np.asarray(codes)
