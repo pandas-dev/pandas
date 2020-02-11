@@ -239,7 +239,9 @@ def _json_normalize(
             result = result[spec]
         return result
 
-    def _is_iterable(result: Any) -> Iterable:
+    def _is_iterable(
+        js: Dict[str, Any], spec: Union[List, str], result: Any
+    ) -> Iterable:
         """Interal function to check if result is Iterable."""
         # GH 31507 GH 30145, if result is not Iterable, raise TypeError if not
         # null, otherwise return an empty list
@@ -296,7 +298,7 @@ def _json_normalize(
                 for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
                         value = _pull_field(obj, val[-1])
-                        seen_meta[key] = _is_iterable(value)
+                        seen_meta[key] = _is_iterable(obj, val[-1], value)
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
@@ -317,7 +319,7 @@ def _json_normalize(
                     else:
                         try:
                             value = _pull_field(obj, val[level:])
-                            meta_val = _is_iterable(value)
+                            meta_val = _is_iterable(obj, val[-1], value)
                         except KeyError as e:
                             if errors == "ignore":
                                 meta_val = np.nan
