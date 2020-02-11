@@ -331,7 +331,6 @@ class TestDataFrameSortIndexKey:
             level=list("ba"), key=lambda x: x.get_level_values(0)
         )
 
-        breakpoint()
         expected = DataFrame(
             {"a": [1, 2, 3], "b": [0, 0, 0], "c": [1, 2, 0], "d": list("bca")}
         )
