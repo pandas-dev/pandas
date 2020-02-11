@@ -1,4 +1,5 @@
 from typing import Union
+
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -6,11 +7,11 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 import pandas.core.common as com
+from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
-from pandas.core.series import Series
 
 
 class HistPlot(LinePlot):
