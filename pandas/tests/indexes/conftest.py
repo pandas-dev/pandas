@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas._testing as tm
 from pandas.core.indexes.api import Index, MultiIndex
