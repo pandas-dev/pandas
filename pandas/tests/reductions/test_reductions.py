@@ -316,7 +316,12 @@ class TestIndexReductions:
         )
         td = s.diff()
 
-        msg = "reduction operation '{op}' not allowed for this dtype"
+        msg = "|".join(
+            [
+                "reduction operation '{op}' not allowed for this dtype",
+                r"cannot perform {op} with type timedelta64\[ns\]",
+            ]
+        )
         msg = msg.format(op=opname)
 
         with pytest.raises(TypeError, match=msg):
@@ -435,7 +440,8 @@ class TestIndexReductions:
 
         # monotonic
         idx1 = pd.PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        assert idx1.is_monotonic
+        assert not idx1.is_monotonic
+        assert idx1[1:].is_monotonic
 
         # non-monotonic
         idx2 = pd.PeriodIndex(
@@ -648,7 +654,13 @@ class TestSeriesReductions:
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
         if method == "var":
-            with pytest.raises(TypeError, match="operation 'var' not allowed"):
+            msg = "|".join(
+                [
+                    "operation 'var' not allowed",
+                    r"cannot perform var with type timedelta64\[ns\]",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
                 getattr(tdser, method)()
         else:
             result = getattr(tdser, method)()
