@@ -35,7 +35,7 @@ Bug fixes
 
 **Experimental dtypes**
 
-- Fix bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the `"string"` dtype (:issue:`31731`).
+- Fix bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the ``"string"`` dtype (:issue:`31731`).
 
 .. ---------------------------------------------------------------------------
 
