@@ -961,23 +961,21 @@ class TestTimeSeries:
         tm.assert_numpy_array_equal(idx.values, expected.values)
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
 @pytest.mark.parametrize(
-    "ts_input,fold",
-    [
-        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 1),
-        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), 0),
-    ],
+    "tz", [pytz.timezone("Europe/London"), dateutil.tz.gettz("Europe/London")]
 )
-def test_timestamp_constructor_fold_conflict(tz, ts_input, fold):
+@pytest.mark.parametrize("fold_dt,fold_ts", [(0, 1), (1, 0)])
+def test_timestamp_constructor_fold_conflict(tz, fold_dt, fold_ts):
     # Test for #25057
     # Check that we raise on fold conflict
+    dt = datetime(2019, 10, 27, 1, 30, 0, 0, fold=fold_dt, tzinfo=tz)
     msg = (
-        "Cannot pass datetime or Timestamp with fold "
-        "attribute not matching passed fold argument."
+        "Cannot pass timezone-aware datetime or "
+        "Timestamp with fold attribute not matching "
+        "passed fold argument."
     )
     with pytest.raises(ValueError, match=msg):
-        Timestamp(ts_input, tz=tz, fold=fold)
+        Timestamp(ts_input=dt, tz=tz, fold=fold_ts)
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
