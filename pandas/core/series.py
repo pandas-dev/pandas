@@ -1008,31 +1008,35 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key is Ellipsis:
             key = slice(None)
 
-        try:
-            self._set_with_engine(key, value)
-        except (KeyError, ValueError):
-            if is_integer(key) and not self.index.inferred_type == "integer":
-                self._values[key] = value
-            else:
-                self.loc[key] = value
+        if isinstance(key, slice):
+            indexer = self.index._convert_slice_indexer(key, kind="getitem")
+            self._set_values(indexer, value)
 
-        except TypeError as e:
-            if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError("Can only tuple-index with a MultiIndex")
+        elif com.is_bool_indexer(key):
+            key = check_bool_indexer(self.index, key)
+            try:
+                self._where(~key, value, inplace=True)
+                return
+            except InvalidIndexError:
+                self._set_values(key.astype(np.bool_), value)
 
-            # python 3 type errors should be raised
-            if _is_unorderable_exception(e):
-                raise IndexError(key)
+        else:
+            try:
+                self._set_with_engine(key, value)
+            except (KeyError, ValueError):
+                if is_integer(key) and not self.index.inferred_type == "integer":
+                    self._values[key] = value
+                else:
+                    self.loc[key] = value
 
-            if com.is_bool_indexer(key):
-                key = check_bool_indexer(self.index, key)
-                try:
-                    self._where(~key, value, inplace=True)
-                    return
-                except InvalidIndexError:
-                    self._set_values(key.astype(np.bool_), value)
+            except TypeError as e:
+                if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
+                    raise ValueError("Can only tuple-index with a MultiIndex")
 
-            else:
+                # python 3 type errors should be raised
+                if _is_unorderable_exception(e):
+                    raise IndexError(key)
+
                 self._set_with(key, value)
 
         if cacher_needs_updating:
@@ -1046,11 +1050,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
-        if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
 
-        elif is_scalar(key) and not is_integer(key) and key not in self.index:
+        if is_scalar(key) and not is_integer(key) and key not in self.index:
             # GH#12862 adding an new key to the Series
             # Note: have to exclude integers because that is ambiguously
             #  position-based
