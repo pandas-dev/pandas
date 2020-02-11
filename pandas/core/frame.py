@@ -2227,7 +2227,7 @@ class DataFrame(NDFrame):
     @Appender(info.__doc__)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
-    ):
+    ) -> None:
         return info(self, verbose, buf, max_cols, memory_usage, null_counts)
 
     def memory_usage(self, index=True, deep=False) -> Series:
