@@ -15,7 +15,6 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    Union,
 )
 import warnings
 
@@ -2982,7 +2981,7 @@ Name: Max Speed, dtype: float64
         self,
         axis=0,
         level=None,
-        ascending: Union[bool, List[bool]] = True,
+        ascending: bool = True,
         inplace: bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
