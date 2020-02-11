@@ -673,10 +673,7 @@ class TestIntervalIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "can only append two IntervalIndex objects that are closed "
-            "on the same side"
-        )
+        msg = "Intervals must all be closed on the same side"
         for other_closed in {"left", "right", "both", "neither"} - {closed}:
             index_other_closed = IntervalIndex.from_arrays(
                 [0, 1], [1, 2], closed=other_closed

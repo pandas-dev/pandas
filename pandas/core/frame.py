@@ -2933,12 +2933,12 @@ class DataFrame(NDFrame):
             # set column
             self._set_item(key, value)
 
-    def _setitem_slice(self, key, value):
+    def _setitem_slice(self, key: slice, value):
         # NB: we can't just use self.loc[key] = value because that
         #  operates on labels and we need to operate positional for
         #  backwards-compat, xref GH#31469
         self._check_setitem_copy()
-        self.loc._setitem_with_indexer(key, value)
+        self.iloc._setitem_with_indexer(key, value)
 
     def _setitem_array(self, key, value):
         # also raises Exception if object array with NA values
@@ -2950,7 +2950,7 @@ class DataFrame(NDFrame):
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
             self._check_setitem_copy()
-            self.loc._setitem_with_indexer(indexer, value)
+            self.iloc._setitem_with_indexer(indexer, value)
         else:
             if isinstance(value, DataFrame):
                 if len(value.columns) != len(key):
@@ -2962,7 +2962,7 @@ class DataFrame(NDFrame):
                     key, axis=1, raise_missing=False
                 )[1]
                 self._check_setitem_copy()
-                self.loc._setitem_with_indexer((slice(None), indexer), value)
+                self.iloc._setitem_with_indexer((slice(None), indexer), value)
 
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
@@ -5222,7 +5222,7 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame({'population': [59000000, 65000000, 434000,
-        ...                                   434000, 434000, 337000, 11300,
+        ...                                   434000, 434000, 337000, 337000,
         ...                                   11300, 11300],
         ...                    'GDP': [1937894, 2583560 , 12011, 4520, 12128,
         ...                            17036, 182, 38, 311],
@@ -5239,18 +5239,18 @@ class DataFrame(NDFrame):
         Maldives      434000     4520      MV
         Brunei        434000    12128      BN
         Iceland       337000    17036      IS
-        Nauru          11300      182      NR
+        Nauru         337000      182      NR
         Tuvalu         11300       38      TV
         Anguilla       11300      311      AI
 
         In the following example, we will use ``nsmallest`` to select the
-        three rows having the smallest values in column "a".
+        three rows having the smallest values in column "population".
 
         >>> df.nsmallest(3, 'population')
-                  population  GDP alpha-2
-        Nauru          11300  182      NR
-        Tuvalu         11300   38      TV
-        Anguilla       11300  311      AI
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036	     IS
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
@@ -5258,24 +5258,25 @@ class DataFrame(NDFrame):
                   population  GDP alpha-2
         Anguilla       11300  311      AI
         Tuvalu         11300   38      TV
-        Nauru          11300  182      NR
+        Nauru         337000  182      NR
 
         When using ``keep='all'``, all duplicate items are maintained:
 
         >>> df.nsmallest(3, 'population', keep='all')
-                  population  GDP alpha-2
-        Nauru          11300  182      NR
-        Tuvalu         11300   38      TV
-        Anguilla       11300  311      AI
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036      IS
+        Nauru         337000    182      NR
 
-        To order by the largest values in column "a" and then "c", we can
+        To order by the smallest values in column "population" and then "GDP", we can
         specify multiple columns like in the next example.
 
         >>> df.nsmallest(3, ['population', 'GDP'])
                   population  GDP alpha-2
         Tuvalu         11300   38      TV
-        Nauru          11300  182      NR
         Anguilla       11300  311      AI
+        Nauru         337000  182      NR
         """
         return algorithms.SelectNFrame(
             self, n=n, keep=keep, columns=columns
