@@ -1,3 +1,4 @@
+from typing import Union
 import numpy as np
 
 from pandas.core.dtypes.common import is_integer, is_list_like
@@ -9,6 +10,7 @@ import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import _flatten, _set_ticks_props, _subplots
+from pandas.core.series import Series
 
 
 class HistPlot(LinePlot):
@@ -38,7 +40,7 @@ class HistPlot(LinePlot):
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
-    def _caculcate_bins(self, data):
+    def _caculcate_bins(self, data: ABCDataFrame) -> np.array:
         """Calculate bins given data"""
 
         values = data._convert(datetime=True)._get_numeric_data()
@@ -109,7 +111,7 @@ class HistPlot(LinePlot):
 
             self._add_legend_handle(artists[0], label, index=i)
 
-    def _reformat_y(self, y):
+    def _reformat_y(self, y: Union[Series, np.array]) -> Union[Series, np.array]:
         """Internal function to reformat y given `by` is applied or not."""
         if self.by is not None and len(y.shape) > 1:
             notna = [col[~isna(col)] for col in y.T]
