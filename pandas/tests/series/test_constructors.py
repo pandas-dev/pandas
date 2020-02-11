@@ -1347,10 +1347,10 @@ class TestSeriesConstructors:
     def test_constructor_cant_cast_datetimelike(self, index):
 
         # floats are not ok
-        msg = f"Cannot cast {type(index).__name__.rstrip('Index')}.*? to "
         # strip Index to convert PeriodIndex -> Period
         # We don't care whether the error message says
         # PeriodIndex or PeriodArray
+        msg = f"Cannot cast {type(index).__name__.rstrip('Index')}.*? to "
 
         with pytest.raises(TypeError, match=msg):
             Series(index, dtype=float)
