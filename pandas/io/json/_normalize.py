@@ -297,13 +297,13 @@ def _json_normalize(
             for obj in data:
                 for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
-                        value = _pull_field(obj, val[-1])
-                        seen_meta[key] = _is_iterable(obj, val[-1], value)
+                        seen_meta[key] = _pull_field(obj, val[-1])
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_field(obj, path[0])
+                value = _pull_field(obj, path[0])
+                recs = _is_iterable(obj, path[0], value)
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)
@@ -318,8 +318,7 @@ def _json_normalize(
                         meta_val = seen_meta[key]
                     else:
                         try:
-                            value = _pull_field(obj, val[level:])
-                            meta_val = _is_iterable(obj, val[-1], value)
+                            meta_val = _pull_field(obj, val[level:])
                         except KeyError as e:
                             if errors == "ignore":
                                 meta_val = np.nan
