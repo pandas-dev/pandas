@@ -974,7 +974,7 @@ def test_timestamp_constructor_fold_conflict(tz, ts_input, fold):
     # Check that we raise on fold conflict
     msg = (
         "Cannot pass datetime or Timestamp with fold "
-        "attribute no matching passed fold argument."
+        "attribute not matching passed fold argument."
     )
     with pytest.raises(ValueError, match=msg):
         Timestamp(ts_input, tz=tz, fold=fold)
