@@ -650,7 +650,7 @@ class TestPeriodMethods:
 
 
 class TestPeriodProperties:
-    "Test properties such as year, month, weekday, etc...."
+    """Test properties such as year, month, weekday, etc...."""
 
     @pytest.mark.parametrize("freq", ["A", "M", "D", "H"])
     def test_is_leap_year(self, freq):
