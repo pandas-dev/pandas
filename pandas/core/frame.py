@@ -2224,6 +2224,7 @@ class DataFrame(NDFrame):
         )
 
     # ----------------------------------------------------------------------
+    @Appender(info.__doc__)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ):
