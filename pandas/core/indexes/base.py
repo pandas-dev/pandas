@@ -3119,27 +3119,10 @@ class Index(IndexOpsMixin, PandasObject):
             # or label indexing if we are using a type able
             # to be represented in the index
 
-            if kind == "getitem" and is_float(key):
-                if not self.is_floating():
-                    pass
-
-            elif kind == "loc" and is_float(key):
-
-                # we want to raise KeyError on string/mixed here
-                # technically we *could* raise a TypeError
-                # on anything but mixed though
-                if self.inferred_type not in [
-                    "floating",
-                    "mixed-integer-float",
-                    "integer-na",
-                    "string",
-                    "mixed",
-                ]:
-                    pass
-
-            elif kind == "loc" and is_integer(key):
+            if kind == "loc" and is_integer(key):
                 if not self.holds_integer():
-                    raise KeyError(key)
+                    # Needed for test_series_at_raises_type_error
+                    pass#raise KeyError(key)
 
         return key
 

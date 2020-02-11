@@ -378,11 +378,11 @@ class Float64Index(NumericIndex):
     def _should_fallback_to_positional(self):
         return False
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-        # no-op for non-iloc
-        return key
+    #@Appender(Index._convert_scalar_indexer.__doc__)
+    #def _convert_scalar_indexer(self, key, kind: str):
+    #    assert kind in ["loc", "getitem"]
+    #    # no-op for non-iloc
+    #    return key
 
     @Appender(Index._convert_slice_indexer.__doc__)
     def _convert_slice_indexer(self, key: slice, kind: str):

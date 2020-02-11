@@ -397,7 +397,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         is_int = is_integer(key)
         is_flt = is_float(key)
         if kind == "loc" and is_int:
-            raise KeyError(key)
+            pass#raise KeyError(key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
 
