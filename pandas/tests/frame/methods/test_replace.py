@@ -1310,7 +1310,7 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
         msg = (
             r"Attributes of DataFrame.iloc\[:, 0\] "
-            r"\(column name=\"a\"\) are different.*"
+            r"\(column name=\"a\"\) are different"
         )
         with pytest.raises(AssertionError, match=msg):
             # ensure non-inplace call does not affect original

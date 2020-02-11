@@ -96,7 +96,7 @@ class TestDataFrameIsIn:
         df1 = DataFrame({"A": [1, 2, 3, 4], "B": [2, np.nan, 4, 4]})
         # just cols duped
         df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]], columns=["B", "B"])
-        msg = "cannot compute isin with a duplicate axis."
+        msg = r"cannot compute isin with a duplicate axis\."
         with pytest.raises(ValueError, match=msg):
             df1.isin(df2)
 
