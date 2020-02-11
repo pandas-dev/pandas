@@ -705,6 +705,52 @@ def _align_method_FRAME(
     return left, right
 
 
+def _should_reindex_op(left, right, axis, default_axis, fill_value, level) -> bool:
+    """
+    Check if this is an operation between DataFrames that will need to reindex.
+    """
+    if not isinstance(right, ABCDataFrame):
+        return False
+
+    if fill_value is None and level is None and axis is default_axis:
+        # TODO: any other cases we should handle here?
+        cols = left.columns.intersection(right.columns)
+        if not (cols.equals(left.columns) and cols.equals(right.columns)):
+            return True
+
+    return False
+
+
+def _frame_arith_method_with_reindex(left, right, op):
+    """
+    For DataFrame-with-DataFrame operations that require reindexing,
+    operate only on shared columns, then reindex.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    op : binary operator
+
+    Returns
+    -------
+    DataFrame
+    """
+    # GH#31623, only operate on shared columns
+    cols = left.columns.intersection(right.columns)
+
+    new_left = left[cols]
+    new_right = right[cols]
+    result = op(new_left, new_right)
+
+    # Do the join on the columns instead of using _align_method_FRAME
+    #  to avoid constructing two potentially large/sparse DataFrames
+    join_columns, _, _ = left.columns.join(
+        right.columns, how="outer", level=None, return_indexers=True
+    )
+    return result.reindex(join_columns, axis=1)
+
+
 def _arith_method_FRAME(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
@@ -722,27 +768,15 @@ def _arith_method_FRAME(cls, op, special):
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
 
-        orig_self, orig_other = self, other
+        if _should_reindex_op(self, other, axis, default_axis, fill_value, level):
+            return _frame_arith_method_with_reindex(self, other, op)
+
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             pass_op = op if should_series_dispatch(self, other, op) else na_op
             pass_op = pass_op if not is_logical else op
-
-            if isinstance(orig_other, ABCDataFrame):
-                if fill_value is None and level is None and axis is default_axis:
-                    # TODO: any other cases we should handle here?
-                    cols = orig_self.columns.intersection(orig_other.columns)
-                    if not (
-                        cols.equals(orig_self.columns)
-                        and cols.equals(orig_other.columns)
-                    ):
-                        # GH#31623, only operate on shared columns
-                        new_left = orig_self[cols]
-                        new_right = orig_other[cols]
-                        result = op(new_left, new_right)
-                        return result.reindex(self.columns, axis=1)
 
             new_data = self._combine_frame(other, pass_op, fill_value)
             return self._construct_result(new_data)
