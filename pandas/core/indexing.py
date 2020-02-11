@@ -1690,31 +1690,25 @@ class _iLocIndexer(_LocationIndexer):
                 info_idx = [info_idx]
             labels = item_labels[info_idx]
 
-            # if we have a partial multiindex, then need to adjust the plane
-            # indexer here
-            if len(labels) == 1 and isinstance(
-                self.obj[labels[0]].axes[0], ABCMultiIndex
-            ):
+            if len(labels) == 1:
+                # We can operate on a single column
                 item = labels[0]
-                obj = self.obj[item]
-                index = obj.index
-                idx = indexer[:info_axis][0]
+                ser = self.obj[item]
+                idx = indexer[0]
 
-                plane_indexer = tuple([idx]) + indexer[info_axis + 1 :]
-                lplane_indexer = length_of_indexer(plane_indexer[0], index)
+                plane_indexer = tuple([idx])
+                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
 
                 # require that we are setting the right number of values that
                 # we are indexing
-                if (
-                    is_list_like_indexer(value)
-                    and np.iterable(value)
-                    and lplane_indexer != len(value)
-                ):
+                if is_list_like_indexer(value) and lplane_indexer != len(value):
 
-                    if len(obj[idx]) != len(value):
+                    if len(ser[idx]) != len(value) and len(ser[idx]) != 0:
+                        # empty ser[idx] can happen with e.g. all-False
+                        #  boolean indexing
                         raise ValueError(
-                            "cannot set using a multi-index "
-                            "selection indexer with a different "
+                            "cannot set using an "
+                            "indexer with a different "
                             "length than the value"
                         )
 
@@ -1722,20 +1716,19 @@ class _iLocIndexer(_LocationIndexer):
                     value = getattr(value, "values", value).ravel()
 
                     # we can directly set the series here
-                    obj._consolidate_inplace()
-                    obj = obj.copy()
-                    obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)
-                    self.obj[item] = obj
+                    ser._consolidate_inplace()
+                    ser = ser.copy()
+                    ser._data = ser._data.setitem(indexer=tuple([idx]), value=value)
+                    self.obj[item] = ser
                     return
 
             # non-mi
             else:
-                plane_indexer = indexer[:info_axis] + indexer[info_axis + 1 :]
-                plane_axis = self.obj.axes[:info_axis][0]
-                lplane_indexer = length_of_indexer(plane_indexer[0], plane_axis)
+                plane_indexer = indexer[:1]
+                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
 
             def setter(item, v):
-                s = self.obj[item]
+                ser = self.obj[item]
                 pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
                 # perform the equivalent of a setitem on the info axis
@@ -1747,16 +1740,16 @@ class _iLocIndexer(_LocationIndexer):
                     com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
                     for idx in pi
                 ):
-                    s = v
+                    ser = v
                 else:
                     # set the item, possibly having a dtype change
-                    s._consolidate_inplace()
-                    s = s.copy()
-                    s._data = s._data.setitem(indexer=pi, value=v)
-                    s._maybe_update_cacher(clear=True)
+                    ser._consolidate_inplace()
+                    ser = ser.copy()
+                    ser._data = ser._data.setitem(indexer=pi, value=v)
+                    ser._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
-                self.obj[item] = s
+                self.obj[item] = ser
 
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
