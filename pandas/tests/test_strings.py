@@ -1155,14 +1155,14 @@ class TestStringMethods:
 
     def test_repeat_with_null(self):
         # GH: 31632
-        values = Series(["a", None])
+        values = Series(["a", None], dtype='string')
         result = values.str.repeat([3, 4])
-        exp = Series(["aaa", None])
+        exp = Series(["aaa", None], dtype='string')
         tm.assert_series_equal(result, exp)
 
-        values = Series(["a", "b"])
+        values = Series(["a", "b"], dtype='string')
         result = values.str.repeat([3, None])
-        exp = Series(["aaa", None])
+        exp = Series(["aaa", None], dtype='string')
         tm.assert_series_equal(result, exp)
 
     def test_match(self):
