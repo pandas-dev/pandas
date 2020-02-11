@@ -192,6 +192,8 @@ Plotting
 
 - :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 -
+- Bug in :meth:`DataFrame.boxplot` and :meth:`DataFrame.plot.boxplot` lost color attributes of ``medianprops``, ``whiskerprops``, ``capprops`` and ``medianprops`` (:issue:`30346`)
+
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
