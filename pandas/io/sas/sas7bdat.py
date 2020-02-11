@@ -120,8 +120,10 @@ class SAS7BDATReader(abc.Iterator):
         return np.asarray(self._column_data_offsets, dtype=np.int64)
 
     def column_types(self):
-        """Returns a numpy character array of the column types:
-           s (string) or d (double)"""
+        """
+        Returns a numpy character array of the column types:
+           s (string) or d (double)
+        """
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
     def close(self):

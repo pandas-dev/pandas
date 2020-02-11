@@ -569,9 +569,10 @@ class HDFStore:
         )
 
     def __contains__(self, key: str) -> bool:
-        """ check for existence of this key
-              can match the exact pathname or the pathnm w/o the leading '/'
-              """
+        """
+        check for existence of this key
+        can match the exact pathname or the pathnm w/o the leading '/'
+        """
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
@@ -1831,18 +1832,19 @@ class TableIterator:
 
 
 class IndexCol:
-    """ an index column description class
+    """
+    an index column description class
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        axis   : axis which I reference
-        values : the ndarray like converted values
-        kind   : a string description of this type
-        typ    : the pytables type
-        pos    : the position in the pytables
+    axis   : axis which I reference
+    values : the ndarray like converted values
+    kind   : a string description of this type
+    typ    : the pytables type
+    pos    : the position in the pytables
 
-        """
+    """
 
     is_an_indexable = True
     is_data_indexable = True
@@ -1999,9 +2001,11 @@ class IndexCol:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None):
-        """ maybe set a string col itemsize:
-               min_itemsize can be an integer or a dict with this columns name
-               with an integer size """
+        """
+        maybe set a string col itemsize:
+            min_itemsize can be an integer or a dict with this columns name
+            with an integer size
+        """
         if _ensure_decoded(self.kind) == "string":
 
             if isinstance(min_itemsize, dict):
@@ -2051,8 +2055,10 @@ class IndexCol:
                 )
 
     def update_info(self, info):
-        """ set/update the info for this indexable with the key/value
-            if there is a conflict raise/warn as needed """
+        """
+        set/update the info for this indexable with the key/value
+        if there is a conflict raise/warn as needed
+        """
 
         for key in self._info_fields:
 
@@ -2140,17 +2146,18 @@ class GenericIndexCol(IndexCol):
 
 
 class DataCol(IndexCol):
-    """ a data holding column, by definition this is not indexable
+    """
+    a data holding column, by definition this is not indexable
 
-        Parameters
-        ----------
+    Parameters
+    ----------
 
-        data   : the actual data
-        cname  : the column name in the table to hold the data (typically
-                 values)
-        meta   : a string description of the metadata
-        metadata : the actual metadata
-        """
+    data   : the actual data
+    cname  : the column name in the table to hold the data (typically
+                values)
+    meta   : a string description of the metadata
+    metadata : the actual metadata
+    """
 
     is_an_indexable = False
     is_data_indexable = False
@@ -2460,16 +2467,17 @@ class GenericDataIndexableCol(DataIndexableCol):
 
 
 class Fixed:
-    """ represent an object in my store
-        facilitate read/write of various types of objects
-        this is an abstract base class
+    """
+    represent an object in my store
+    facilitate read/write of various types of objects
+    this is an abstract base class
 
-        Parameters
-        ----------
-        parent : HDFStore
-        group : Node
-            The group node where the table resides.
-        """
+    Parameters
+    ----------
+    parent : HDFStore
+    group : Node
+        The group node where the table resides.
+    """
 
     pandas_kind: str
     format_type: str = "fixed"  # GH#30962 needed by dask
@@ -2596,8 +2604,10 @@ class Fixed:
         return True
 
     def infer_axes(self):
-        """ infer the axes of my storer
-              return a boolean indicating if we have a valid storer or not """
+        """
+        infer the axes of my storer
+        return a boolean indicating if we have a valid storer or not
+        """
 
         s = self.storable
         if s is None:
@@ -3105,29 +3115,29 @@ class FrameFixed(BlockManagerFixed):
 
 
 class Table(Fixed):
-    """ represent a table:
-          facilitate read/write of various types of tables
+    """
+    represent a table:
+        facilitate read/write of various types of tables
 
-        Attrs in Table Node
-        -------------------
-        These are attributes that are store in the main table node, they are
-        necessary to recreate these tables when read back in.
+    Attrs in Table Node
+    -------------------
+    These are attributes that are store in the main table node, they are
+    necessary to recreate these tables when read back in.
 
-        index_axes    : a list of tuples of the (original indexing axis and
-            index column)
-        non_index_axes: a list of tuples of the (original index axis and
-            columns on a non-indexing axis)
-        values_axes   : a list of the columns which comprise the data of this
-            table
-        data_columns  : a list of the columns that we are allowing indexing
-            (these become single columns in values_axes), or True to force all
-            columns
-        nan_rep       : the string to use for nan representations for string
-            objects
-        levels        : the names of levels
-        metadata      : the names of the metadata columns
-
-        """
+    index_axes    : a list of tuples of the (original indexing axis and
+        index column)
+    non_index_axes: a list of tuples of the (original index axis and
+        columns on a non-indexing axis)
+    values_axes   : a list of the columns which comprise the data of this
+        table
+    data_columns  : a list of the columns that we are allowing indexing
+        (these become single columns in values_axes), or True to force all
+        columns
+    nan_rep       : the string to use for nan representations for string
+        objects
+    levels        : the names of levels
+    metadata      : the names of the metadata columns
+    """
 
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
@@ -4080,10 +4090,11 @@ class Table(Fixed):
 
 
 class WORMTable(Table):
-    """ a write-once read-many table: this format DOES NOT ALLOW appending to a
-         table. writing is a one-time operation the data are stored in a format
-         that allows for searching the data on disk
-         """
+    """
+    a write-once read-many table: this format DOES NOT ALLOW appending to a
+    table. writing is a one-time operation the data are stored in a format
+    that allows for searching the data on disk
+    """
 
     table_type = "worm"
 
@@ -4094,14 +4105,16 @@ class WORMTable(Table):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """ read the indices and the indexing array, calculate offset rows and
-        return """
+        """
+        read the indices and the indexing array, calculate offset rows and return
+        """
         raise NotImplementedError("WORMTable needs to implement read")
 
     def write(self, **kwargs):
-        """ write in a format that we can search later on (but cannot append
-               to): write out the indices and the values using _write_array
-               (e.g. a CArray) create an indexing table so that we can search
+        """
+        write in a format that we can search later on (but cannot append
+        to): write out the indices and the values using _write_array
+        (e.g. a CArray) create an indexing table so that we can search
         """
         raise NotImplementedError("WORMTable needs to implement write")
 
@@ -4170,8 +4183,9 @@ class AppendableTable(Table):
         table.write_data(chunksize, dropna=dropna)
 
     def write_data(self, chunksize: Optional[int], dropna: bool = False):
-        """ we form the data into a 2-d including indexes,values,mask
-            write chunk-by-chunk """
+        """
+        we form the data into a 2-d including indexes,values,mask write chunk-by-chunk
+        """
 
         names = self.dtype.names
         nrows = self.nrows_expected

@@ -1456,8 +1456,10 @@ class ParserBase:
     def _extract_multi_indexer_columns(
         self, header, index_names, col_names, passed_names=False
     ):
-        """ extract and return the names, index_names, col_names
-            header is a list-of-lists returned from the parsers """
+        """
+        extract and return the names, index_names, col_names
+        header is a list-of-lists returned from the parsers
+        """
         if len(header) < 2:
             return header[0], index_names, col_names, passed_names
 

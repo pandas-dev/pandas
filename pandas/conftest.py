@@ -106,8 +106,8 @@ axis_frame = axis
 @pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
 def axis_series(request):
     """
-     Fixture for returning the axis numbers of a Series.
-     """
+    Fixture for returning the axis numbers of a Series.
+    """
     return request.param
 
 

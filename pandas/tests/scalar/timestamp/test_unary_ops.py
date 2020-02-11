@@ -225,9 +225,8 @@ class TestTimestampUnaryOps:
         ],
     )
     def test_round_int64(self, timestamp, freq):
-        """check that all rounding modes are accurate to int64 precision
-           see GH#22591
-        """
+        # check that all rounding modes are accurate to int64 precision
+        # see GH#22591
         dt = Timestamp(timestamp)
         unit = to_offset(freq).nanos
 
