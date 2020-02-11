@@ -386,7 +386,7 @@ def test_get_loc_nan(level, nulls_fixture):
     key[level] = nulls_fixture
 
     if nulls_fixture is pd.NA:
-        pytest.xfail("MultiIndex from pd.NA broken")
+        pytest.xfail("MultiIndex from pd.NA in np.array broken; see GH 31883")
 
     idx = MultiIndex.from_product(levels)
     assert idx.get_loc(tuple(key)) == 3

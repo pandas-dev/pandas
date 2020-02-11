@@ -306,7 +306,8 @@ class TestIndex(Base):
         data.insert(pos, nulls_fixture)
 
         if nulls_fixture is pd.NA:
-            pytest.xfail("Broken with pd.NA?")
+            expected = Index([pd.NA, pd.NaT])
+            pytest.xfail("Broken with np.NaT ctor; see GH 31884")
 
         result = Index(data)
         tm.assert_index_equal(result, expected)
@@ -1968,7 +1969,7 @@ class TestIndex(Base):
 
         # Float64Index overrides isin, so must be checked separately
         if nulls_fixture is pd.NA:
-            pytest.xfail("Not sure how to handle with Float64Index?")
+            pytest.xfail("Float64Index cannot contain pd.NA")
 
         tm.assert_numpy_array_equal(
             Float64Index([1.0, nulls_fixture]).isin([np.nan]), np.array([False, True])
