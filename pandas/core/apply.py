@@ -382,7 +382,7 @@ class FrameRowApply(FrameApply):
 
     @property
     def series_generator(self):
-        return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
+        return (self.obj.iloc[:, i] for i in range(len(self.columns)))
 
     @property
     def result_index(self) -> "Index":

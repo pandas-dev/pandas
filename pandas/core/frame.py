@@ -899,7 +899,7 @@ class DataFrame(NDFrame):
                 yield k, self._get_item_cache(k)
         else:
             for i, k in enumerate(self.columns):
-                yield k, self._ixs(i, axis=1)
+                yield k, self.iloc[:, i]
 
     @Appender(_shared_docs["items"])
     def iteritems(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
