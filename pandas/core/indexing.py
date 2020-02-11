@@ -1146,7 +1146,7 @@ class _LocIndexer(_LocationIndexer):
         )
 
         if isinstance(indexer, slice):
-            return self.obj._slice(indexer, axis=axis, kind="iloc")
+            return self.obj._slice(indexer, axis=axis)
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
@@ -1553,7 +1553,7 @@ class _iLocIndexer(_LocationIndexer):
 
         labels = obj._get_axis(axis)
         labels._validate_positional_slice(slice_obj)
-        return self.obj._slice(slice_obj, axis=axis, kind="iloc")
+        return self.obj._slice(slice_obj, axis=axis)
 
     def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         """
