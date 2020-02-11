@@ -396,9 +396,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         # we don't allow float indexing for getitem
         is_int = is_integer(key)
         is_flt = is_float(key)
-        if kind == "loc" and (is_int or is_flt):
-            raise KeyError(key)
-        elif kind == "getitem" and is_flt:
+        if kind == "loc" and is_int:
             raise KeyError(key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
