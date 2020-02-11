@@ -50,12 +50,6 @@ def index_names():
 
 
 @pytest.fixture
-def holder():
-    # the MultiIndex constructor used to base compatibility with pickle
-    return MultiIndex
-
-
-@pytest.fixture
 def compat_props():
     # a MultiIndex must have these properties associated with it
     return ["shape", "ndim", "size"]

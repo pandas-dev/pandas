@@ -7,8 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos as libalgos, lib, tslib, writers
-from pandas._libs.index import convert_scalar
+from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -16,6 +15,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
+    convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
@@ -684,7 +684,10 @@ class Block(PandasObject):
         itemsize = writers.word_len(na_rep)
 
         if not self.is_object and not quoting and itemsize:
-            values = values.astype(f"<U{itemsize}")
+            values = values.astype(str)
+            if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
+                # enlarge for the na_rep
+                values = values.astype(f"<U{itemsize}")
         else:
             values = np.array(values, dtype="object")
 
@@ -759,7 +762,7 @@ class Block(PandasObject):
             # The only non-DatetimeLike class that also has a non-trivial
             #  try_coerce_args is ObjectBlock, but that overrides replace,
             #  so does not get here.
-            to_replace = convert_scalar(values, to_replace)
+            to_replace = convert_scalar_for_putitemlike(to_replace, values.dtype)
 
         mask = missing.mask_missing(values, to_replace)
         if filter is not None:
@@ -827,6 +830,9 @@ class Block(PandasObject):
         """
         transpose = self.ndim == 2
 
+        if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
+            raise ValueError(f"Cannot set values with ndim > {self.ndim}")
+
         # coerce None values, if appropriate
         if value is None:
             if self.is_numeric:
@@ -838,7 +844,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(value):
-                value = convert_scalar(values, value)
+                value = convert_scalar_for_putitemlike(value, values.dtype)
 
         else:
             # current dtype cannot store value, coerce to common dtype
@@ -954,7 +960,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(new):
-                new = convert_scalar(new_values, new)
+                new = convert_scalar_for_putitemlike(new, new_values.dtype)
 
             if transpose:
                 new_values = new_values.T
@@ -1197,7 +1203,7 @@ class Block(PandasObject):
         values = self.values if inplace else self.values.copy()
 
         # We only get here for non-ExtensionBlock
-        fill_value = convert_scalar(self.values, fill_value)
+        fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
 
         values = missing.interpolate_2d(
             values,
@@ -1402,7 +1408,7 @@ class Block(PandasObject):
                     raise TypeError
                 if lib.is_scalar(other) and isinstance(values, np.ndarray):
                     # convert datetime to datetime64, timedelta to timedelta64
-                    other = convert_scalar(values, other)
+                    other = convert_scalar_for_putitemlike(other, values.dtype)
 
             # By the time we get here, we should have all Series/Index
             #  args extracted to  ndarray
@@ -2151,6 +2157,20 @@ class DatetimeLikeBlockMixin:
             return result.reshape(self.values.shape)
         return self.values
 
+    def internal_values(self):
+        # Override to return DatetimeArray and TimedeltaArray
+        return self.array_values()
+
+    def iget(self, key):
+        # GH#31649 we need to wrap scalars in Timestamp/Timedelta
+        # TODO: this can be removed if we ever have 2D EA
+        result = super().iget(key)
+        if isinstance(result, np.datetime64):
+            result = Timestamp(result)
+        elif isinstance(result, np.timedelta64):
+            result = Timedelta(result)
+        return result
+
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
@@ -2284,6 +2304,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_datetimetz = True
     is_extension = True
 
+    internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")

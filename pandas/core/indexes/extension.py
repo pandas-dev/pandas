@@ -8,11 +8,16 @@ import numpy as np
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 
-from pandas.core.dtypes.common import ensure_platform_int, is_dtype_equal
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_dtype_equal,
+    is_object_dtype,
+)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.indexes.base import Index, deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 
 
@@ -107,7 +112,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = 
     return wrapper
 
 
-def _make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname: str):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -127,8 +132,17 @@ def _make_wrapped_comparison_op(opname):
     return wrapper
 
 
-def make_wrapped_arith_op(opname):
+def make_wrapped_arith_op(opname: str):
     def method(self, other):
+        if (
+            isinstance(other, Index)
+            and is_object_dtype(other.dtype)
+            and type(other) is not Index
+        ):
+            # We return NotImplemented for object-dtype index *subclasses* so they have
+            # a chance to implement ops before we unwrap them.
+            # See https://github.com/pandas-dev/pandas/issues/31109
+            return NotImplemented
         meth = getattr(self._data, opname)
         result = meth(_maybe_unwrap_index(other))
         return _wrap_arithmetic_op(self, other, result)
@@ -182,6 +196,9 @@ class ExtensionIndex(Index):
     Index subclass for indexes backed by ExtensionArray.
     """
 
+    # The base class already passes through to _data:
+    #  size, __len__, dtype
+
     _data: ExtensionArray
 
     __eq__ = _make_wrapped_comparison_op("__eq__")
@@ -190,6 +207,9 @@ class ExtensionIndex(Index):
     __gt__ = _make_wrapped_comparison_op("__gt__")
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
+
+    # ---------------------------------------------------------------------
+    # NDarray-Like Methods
 
     def __getitem__(self, key):
         result = self._data[key]
@@ -202,6 +222,8 @@ class ExtensionIndex(Index):
 
     def __iter__(self):
         return self._data.__iter__()
+
+    # ---------------------------------------------------------------------
 
     @property
     def _ndarray_values(self) -> np.ndarray:
@@ -220,6 +242,10 @@ class ExtensionIndex(Index):
         nv.validate_repeat(tuple(), dict(axis=axis))
         result = self._data.repeat(repeats, axis=axis)
         return self._shallow_copy(result)
+
+    def _concat_same_dtype(self, to_concat, name):
+        arr = type(self._data)._concat_same_type(to_concat)
+        return type(self)._simple_new(arr, name=name)
 
     @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):

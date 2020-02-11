@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex, lib
+from pandas._libs import lib
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
@@ -43,6 +43,7 @@ from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import sanitize_array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -768,6 +769,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 else:
                     key = np.asarray(key)
 
+            key = check_array_indexer(self, key)
+
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self, key)
 
@@ -791,7 +794,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return libindex.get_value_at(self.sp_values, sp_loc)
+            val = self.sp_values[sp_loc]
+            val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
+            return val
 
     def take(self, indices, allow_fill=False, fill_value=None):
         if is_scalar(indices):
