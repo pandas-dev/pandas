@@ -1200,6 +1200,20 @@ class TestTypeInference:
         inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
         assert inferred == "interval"
 
+    def test_string_dtype(self):
+        # StringArray
+        arr = pd.array(["a", "b", pd.NA], dtype="string")
+        for val in [list(arr), arr, pd.Series(arr)]:
+            inferred = lib.infer_dtype(val)
+            assert inferred == "string"
+
+    def test_boolean_dtype(self):
+        # BooleanArray
+        arr = pd.array([True, False, pd.NA], dtype="boolean")
+        for val in [list(arr), arr, pd.Series(arr)]:
+            inferred = lib.infer_dtype(val)
+            assert inferred == "boolean"
+
 
 class TestNumberScalar:
     def test_is_number(self):
