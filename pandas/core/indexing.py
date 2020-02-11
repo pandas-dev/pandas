@@ -615,14 +615,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
         if isinstance(key, range):
             return list(key)
 
-        try:
-            return self._convert_to_indexer(key, axis=0, is_setter=True)
-        except TypeError as e:
-
-            # invalid indexer type vs 'other' indexing errors
-            if "cannot do" in str(e):
-                raise
-            raise IndexingError(key)
+        return self._convert_to_indexer(key, axis=0, is_setter=True)
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -1823,7 +1816,6 @@ class _iLocIndexer(_LocationIndexer):
 
         else:
             if isinstance(indexer, tuple):
-                indexer = maybe_convert_ix(*indexer)
 
                 # if we are setting on the info axis ONLY
                 # set using those methods to avoid block-splitting
@@ -1840,6 +1832,8 @@ class _iLocIndexer(_LocationIndexer):
                 ):
                     self.obj[item_labels[indexer[info_axis]]] = value
                     return
+
+                indexer = maybe_convert_ix(*indexer)
 
             if isinstance(value, (ABCSeries, dict)):
                 # TODO(EA): ExtensionBlock.setitem this causes issues with
