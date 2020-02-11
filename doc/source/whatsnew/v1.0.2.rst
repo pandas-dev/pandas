@@ -15,7 +15,10 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
--
+- Fixed regression in :meth:`DataFrame.to_excel` when ``columns`` kwarg is passed (:issue:`31677`)
+- Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
+- Fixed regression in :meth:`pandas.core.groupby.RollingGroupby.apply` where the ``raw`` parameter was ignored (:issue:`31754`)
+- Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -25,8 +28,14 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+**ExtensionArray**
+
 - Fixed issue where taking the minimum, maximum, or sum of a ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 -
+
+**I/O**
+
+- Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
 
 .. ---------------------------------------------------------------------------
 

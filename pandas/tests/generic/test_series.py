@@ -181,8 +181,49 @@ class TestSeries(Generic):
 
         # reset
         Series._metadata = _metadata
-        Series.__finalize__ = _finalize
+        Series.__finalize__ = _finalize  # FIXME: use monkeypatch
 
+    @pytest.mark.parametrize(
+        "s",
+        [
+            Series([np.arange(5)]),
+            pd.date_range("1/1/2011", periods=24, freq="H"),
+            pd.Series(range(5), index=pd.date_range("2017", periods=5)),
+        ],
+    )
+    @pytest.mark.parametrize("shift_size", [0, 1, 2])
+    def test_shift_always_copy(self, s, shift_size):
+        # GH22397
+        assert s.shift(shift_size) is not s
+
+    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
+    def test_datetime_shift_always_copy(self, move_by_freq):
+        # GH22397
+        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
+        assert s.shift(freq=move_by_freq) is not s
+
+
+class TestSeries2:
+    # moved from Generic
+    def test_get_default(self):
+
+        # GH#7725
+        d0 = ["a", "b", "c", "d"]
+        d1 = np.arange(4, dtype="int64")
+        others = ["e", 10]
+
+        for data, index in ((d0, d1), (d1, d0)):
+            s = Series(data, index=index)
+            for i, d in zip(index, data):
+                assert s.get(i) == d
+                assert s.get(i, d) == d
+                assert s.get(i, "z") == d
+                for other in others:
+                    assert s.get(other, "z") == "z"
+                    assert s.get(other, other) == other
+
+
+class TestToXArray:
     @pytest.mark.skipif(
         not _XARRAY_INSTALLED
         or _XARRAY_INSTALLED
@@ -242,22 +283,3 @@ class TestSeries(Generic):
         tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
         assert isinstance(result, DataArray)
         tm.assert_series_equal(result.to_series(), s)
-
-    @pytest.mark.parametrize(
-        "s",
-        [
-            Series([np.arange(5)]),
-            pd.date_range("1/1/2011", periods=24, freq="H"),
-            pd.Series(range(5), index=pd.date_range("2017", periods=5)),
-        ],
-    )
-    @pytest.mark.parametrize("shift_size", [0, 1, 2])
-    def test_shift_always_copy(self, s, shift_size):
-        # GH22397
-        assert s.shift(shift_size) is not s
-
-    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
-    def test_datetime_shift_always_copy(self, move_by_freq):
-        # GH22397
-        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
-        assert s.shift(freq=move_by_freq) is not s

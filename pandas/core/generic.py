@@ -3498,11 +3498,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(self: FrameOrSeries, slobj: slice, axis=0, kind=None) -> FrameOrSeries:
+    def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
         Construct a slice of this container.
 
-        kind parameter is maintained for compatibility with Series slicing.
+        Slicing with this method is *always* positional.
         """
         axis = self._get_block_manager_axis(axis)
         result = self._constructor(self._data.get_slice(slobj, axis=axis))
@@ -8358,9 +8358,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             left = self._ensure_type(
                 left.fillna(method=method, axis=fill_axis, limit=limit)
             )
-            right = self._ensure_type(
-                right.fillna(method=method, axis=fill_axis, limit=limit)
-            )
+            right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
         if is_datetime64tz_dtype(left.index):
@@ -9959,7 +9957,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        @Appender(_num_doc)
+        @Appender(_num_doc_mad)
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
                 skipna = True
@@ -10320,6 +10318,26 @@ numeric_only : bool, default None
 %(min_count)s\
 **kwargs
     Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+%(name1)s or %(name2)s (if level specified)\
+%(see_also)s\
+%(examples)s
+"""
+
+_num_doc_mad = """
+%(desc)s
+
+Parameters
+----------
+axis : %(axis_descr)s
+    Axis for the function to be applied on.
+skipna : bool, default None
+    Exclude NA/null values when computing the result.
+level : int or level name, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a %(name1)s.
 
 Returns
 -------

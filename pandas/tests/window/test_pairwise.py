@@ -1,8 +1,9 @@
 import warnings
 
+import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 
@@ -181,3 +182,10 @@ class TestPairwise:
         for i, result in enumerate(results):
             if i > 0:
                 self.compare(result, results[0])
+
+    def test_corr_freq_memory_error(self):
+        # GH 31789
+        s = Series(range(5), index=date_range("2020", periods=5))
+        result = s.rolling("12H").corr(s)
+        expected = Series([np.nan] * 5, index=date_range("2020", periods=5))
+        tm.assert_series_equal(result, expected)
