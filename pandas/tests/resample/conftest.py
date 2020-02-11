@@ -100,7 +100,8 @@ def _index_name():
 def index(_index_factory, _index_start, _index_end, _index_freq, _index_name):
     """
     Fixture for parametrization of date_range, period_range and
-    timedelta_range indexes"""
+    timedelta_range indexes
+    """
     return _index_factory(_index_start, _index_end, freq=_index_freq, name=_index_name)
 
 
@@ -109,7 +110,8 @@ def _static_values(index):
     """
     Fixture for parametrization of values used in parametrization of
     Series and DataFrames with date_range, period_range and
-    timedelta_range indexes"""
+    timedelta_range indexes
+    """
     return np.arange(len(index))
 
 
@@ -117,7 +119,8 @@ def _static_values(index):
 def _series_name():
     """
     Fixture for parametrization of Series name for Series used with
-    date_range, period_range and timedelta_range indexes"""
+    date_range, period_range and timedelta_range indexes
+    """
     return None
 
 
@@ -125,7 +128,8 @@ def _series_name():
 def series(index, _series_name, _static_values):
     """
     Fixture for parametrization of Series with date_range, period_range and
-    timedelta_range indexes"""
+    timedelta_range indexes
+    """
     return Series(_static_values, index=index, name=_series_name)
 
 
@@ -133,7 +137,8 @@ def series(index, _series_name, _static_values):
 def empty_series(series):
     """
     Fixture for parametrization of empty Series with date_range,
-    period_range and timedelta_range indexes"""
+    period_range and timedelta_range indexes
+    """
     return series[:0]
 
 
@@ -141,7 +146,8 @@ def empty_series(series):
 def frame(index, _series_name, _static_values):
     """
     Fixture for parametrization of DataFrame with date_range, period_range
-    and timedelta_range indexes"""
+    and timedelta_range indexes
+    """
     # _series_name is intentionally unused
     return DataFrame({"value": _static_values}, index=index)
 
@@ -150,7 +156,8 @@ def frame(index, _series_name, _static_values):
 def empty_frame(series):
     """
     Fixture for parametrization of empty DataFrame with date_range,
-    period_range and timedelta_range indexes"""
+    period_range and timedelta_range indexes
+    """
     index = series.index[:0]
     return DataFrame(index=index)
 
@@ -159,7 +166,8 @@ def empty_frame(series):
 def series_and_frame(request, series, frame):
     """
     Fixture for parametrization of Series and DataFrame with date_range,
-    period_range and timedelta_range indexes"""
+    period_range and timedelta_range indexes
+    """
     if request.param == Series:
         return series
     if request.param == DataFrame:
