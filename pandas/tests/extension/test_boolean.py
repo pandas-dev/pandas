@@ -115,7 +115,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 msg = r"numpy boolean subtract, the \`-\` operator.*"
                 with pytest.raises(TypeError, match=msg):
                     op(s, other)
-
                 return
 
             result = op(s, other)
@@ -140,7 +139,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 expected[result.isna()] = np.nan
             self.assert_series_equal(result, expected)
         else:
-            with pytest.raises(exc, match=msg):
+            with pytest.raises(exc):
                 op(s, other)
 
     def _check_divmod_op(self, s, op, other, exc=None):
