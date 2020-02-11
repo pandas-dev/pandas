@@ -36,7 +36,7 @@ class DatetimeLike(Base):
         # test the string repr
         idx = self.create_index()
         idx.name = "foo"
-        assert not "length={}".format(len(idx)) in str(idx)
+        assert not (f"length={len(idx)}" in str(idx))
         assert "'foo'" in str(idx)
         assert type(idx).__name__ in str(idx)
 
@@ -44,7 +44,7 @@ class DatetimeLike(Base):
             if idx.tz is not None:
                 assert idx.tz in str(idx)
         if hasattr(idx, "freq"):
-            assert "freq='{idx.freqstr}'".format(idx=idx) in str(idx)
+            assert f"freq='{idx.freqstr}'" in str(idx)
 
     def test_view(self):
         i = self.create_index()

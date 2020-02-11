@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 def _mklbl(prefix, n):
-    return ["{prefix}{i}".format(prefix=prefix, i=i) for i in range(n)]
+    return [f"{prefix}{i}" for i in range(n)]
 
 
 def _axify(obj, key, axis):
@@ -96,7 +96,7 @@ class Base:
         for kind in self._kinds:
             d = dict()
             for typ in self._typs:
-                d[typ] = getattr(self, "{kind}_{typ}".format(kind=kind, typ=typ))
+                d[typ] = getattr(self, f"{kind}_{typ}")
 
             setattr(self, kind, d)
 

@@ -811,7 +811,7 @@ class TestSeriesConstructors:
         expected = Series(values2, index=dates)
 
         for dtype in ["s", "D", "ms", "us", "ns"]:
-            values1 = dates.view(np.ndarray).astype("M8[{0}]".format(dtype))
+            values1 = dates.view(np.ndarray).astype(f"M8[{dtype}]")
             result = Series(values1, dates)
             tm.assert_series_equal(result, expected)
 
@@ -819,7 +819,7 @@ class TestSeriesConstructors:
         # coerce to non-ns to object properly
         expected = Series(values2, index=dates, dtype=object)
         for dtype in ["s", "D", "ms", "us", "ns"]:
-            values1 = dates.view(np.ndarray).astype("M8[{0}]".format(dtype))
+            values1 = dates.view(np.ndarray).astype(f"M8[{dtype}]")
             result = Series(values1, index=dates, dtype=object)
             tm.assert_series_equal(result, expected)
 
@@ -952,7 +952,7 @@ class TestSeriesConstructors:
     def test_construction_to_datetimelike_unit(self, arr_dtype, dtype, unit):
         # tests all units
         # gh-19223
-        dtype = "{}[{}]".format(dtype, unit)
+        dtype = f"{dtype}[{unit}]"
         arr = np.array([1, 2, 3], dtype=arr_dtype)
         s = Series(arr)
         result = s.astype(dtype)
@@ -1347,12 +1347,11 @@ class TestSeriesConstructors:
     def test_constructor_cant_cast_datetimelike(self, index):
 
         # floats are not ok
-        msg = "Cannot cast {}.*? to ".format(
-            # strip Index to convert PeriodIndex -> Period
-            # We don't care whether the error message says
-            # PeriodIndex or PeriodArray
-            type(index).__name__.rstrip("Index")
-        )
+        # strip Index to convert PeriodIndex -> Period
+        # We don't care whether the error message says
+        # PeriodIndex or PeriodArray
+        msg = f"Cannot cast {type(index).__name__.rstrip('Index')}.*? to "
+
         with pytest.raises(TypeError, match=msg):
             Series(index, dtype=float)
 
