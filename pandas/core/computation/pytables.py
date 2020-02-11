@@ -601,8 +601,7 @@ class TermValue:
         self.kind = kind
 
     def tostring(self, encoding) -> str:
-        """ quote the string if not encoded
-            else encode and return """
+        """ quote the string if not encoded else encode and return """
         if self.kind == "string":
             if encoding is not None:
                 return str(self.converted)

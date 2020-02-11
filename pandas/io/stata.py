@@ -1671,17 +1671,13 @@ the string values returned are correct."""
                 continue
 
             if convert_missing:  # Replacement follows Stata notation
-                missing_loc = np.argwhere(missing._ndarray_values)
+                missing_loc = np.nonzero(missing._ndarray_values)[0]
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
                 replacement = Series(series, dtype=np.object)
                 for j, um in enumerate(umissing):
                     missing_value = StataMissingValue(um)
 
                     loc = missing_loc[umissing_loc == j]
-                    if loc.ndim == 2 and loc.shape[1] == 1:
-                        # GH#31813 avoid trying to set Series values with wrong
-                        #  dimension
-                        loc = loc[:, 0]
                     replacement.iloc[loc] = missing_value
             else:  # All replacements are identical
                 dtype = series.dtype
