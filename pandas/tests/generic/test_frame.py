@@ -160,7 +160,7 @@ class TestDataFrame(Generic):
 
         # reset
         DataFrame._metadata = _metadata
-        DataFrame.__finalize__ = _finalize
+        DataFrame.__finalize__ = _finalize  # FIXME: use monkeypatch
 
     def test_set_attribute(self):
         # Test for consistent setattr behavior when an attribute and a column
@@ -174,6 +174,69 @@ class TestDataFrame(Generic):
         assert df.y == 5
         tm.assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
 
+    def test_deepcopy_empty(self):
+        # This test covers empty frame copying with non-empty column sets
+        # as reported in issue GH15370
+        empty_frame = DataFrame(data=[], index=[], columns=["A"])
+        empty_frame_copy = deepcopy(empty_frame)
+
+        self._compare(empty_frame_copy, empty_frame)
+
+
+# formerly in Generic but only test DataFrame
+class TestDataFrame2:
+    def test_validate_bool_args(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        invalid_values = [1, "True", [1, 2, 3], 5.0]
+
+        for value in invalid_values:
+            with pytest.raises(ValueError):
+                super(DataFrame, df).rename_axis(
+                    mapper={"a": "x", "b": "y"}, axis=1, inplace=value
+                )
+
+            with pytest.raises(ValueError):
+                super(DataFrame, df).drop("a", axis=1, inplace=value)
+
+            with pytest.raises(ValueError):
+                super(DataFrame, df)._consolidate(inplace=value)
+
+            with pytest.raises(ValueError):
+                super(DataFrame, df).fillna(value=0, inplace=value)
+
+            with pytest.raises(ValueError):
+                super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
+
+            with pytest.raises(ValueError):
+                super(DataFrame, df).interpolate(inplace=value)
+
+            with pytest.raises(ValueError):
+                super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
+
+            with pytest.raises(ValueError):
+                super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
+
+    def test_unexpected_keyword(self):
+        # GH8597
+        df = DataFrame(np.random.randn(5, 2), columns=["jim", "joe"])
+        ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
+        ts = df["joe"].copy()
+        ts[2] = np.nan
+
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            df.drop("joe", axis=1, in_place=True)
+
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            df.reindex([1, 0], inplace=True)
+
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            ca.fillna(0, inplace=True)
+
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            ts.fillna(0, in_place=True)
+
+
+class TestToXArray:
     @pytest.mark.skipif(
         not _XARRAY_INSTALLED
         or _XARRAY_INSTALLED
@@ -272,11 +335,3 @@ class TestDataFrame(Generic):
         expected["f"] = expected["f"].astype(object)
         expected.columns.name = None
         tm.assert_frame_equal(result, expected, check_index_type=False)
-
-    def test_deepcopy_empty(self):
-        # This test covers empty frame copying with non-empty column sets
-        # as reported in issue GH15370
-        empty_frame = DataFrame(data=[], index=[], columns=["A"])
-        empty_frame_copy = deepcopy(empty_frame)
-
-        self._compare(empty_frame_copy, empty_frame)
