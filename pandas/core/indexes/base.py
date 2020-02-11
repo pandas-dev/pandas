@@ -3175,7 +3175,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         is_index_slice = is_int(start) and is_int(stop) and is_int(step)
         is_positional = is_index_slice and not (
-            is_integer_dtype(self.dtype) or self.is_categorical()
+            self.is_integer() or self.is_categorical()
         )
 
         if kind == "getitem":
@@ -3183,7 +3183,7 @@ class Index(IndexOpsMixin, PandasObject):
             called from the getitem slicers, validate that we are in fact
             integers
             """
-            if is_integer_dtype(self.dtype) or is_index_slice:
+            if self.is_integer() or is_index_slice:
                 self._validate_indexer("slice", key.start, "getitem")
                 self._validate_indexer("slice", key.stop, "getitem")
                 self._validate_indexer("slice", key.step, "getitem")
