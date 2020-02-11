@@ -192,7 +192,6 @@ def info(
         max_id = len(pprint_thing(col_count))
         len_id = len(pprint_thing(id_head))
         space_num = max(max_id, len_id) + col_space
-        counts = None
 
         header = _put_str(id_head, space_num) + _put_str(column_head, space)
         if show_counts:
