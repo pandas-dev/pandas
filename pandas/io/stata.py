@@ -2129,7 +2129,8 @@ class StataWriter(StataParser):
 
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
         """Check for categorical columns, retain categorical information for
-        Stata file and convert categorical data to int"""
+        Stata file and convert categorical data to int
+        """
 
         is_cat = [is_categorical_dtype(data[col]) for col in data]
         self._is_col_cat = is_cat
@@ -2171,7 +2172,8 @@ class StataWriter(StataParser):
     def _replace_nans(self, data: DataFrame) -> DataFrame:
         # return data
         """Checks floating point data columns for nans, and replaces these with
-        the generic Stata for missing value (.)"""
+        the generic Stata for missing value (.)
+        """
         for c in data:
             dtype = data[c].dtype
             if dtype in (np.float32, np.float64):
@@ -3037,7 +3039,8 @@ class StataWriter117(StataWriter):
     def _write_map(self) -> None:
         """Called twice during file write. The first populates the values in
         the map with 0s.  The second call writes the final map locations when
-        all blocks have been written."""
+        all blocks have been written.
+        """
         assert self._file is not None
         if not self._map:
             self._map = dict(
@@ -3185,7 +3188,8 @@ class StataWriter117(StataWriter):
 
     def _update_strl_names(self) -> None:
         """Update column names for conversion to strl if they might have been
-        changed to comply with Stata naming rules"""
+        changed to comply with Stata naming rules
+        """
         # Update convert_strl if names changed
         for orig, new in self._converted_names.items():
             if orig in self._convert_strl:
@@ -3194,7 +3198,8 @@ class StataWriter117(StataWriter):
 
     def _convert_strls(self, data: DataFrame) -> DataFrame:
         """Convert columns to StrLs if either very large or in the
-        convert_strl variable"""
+        convert_strl variable
+        """
         convert_cols = [
             col
             for i, col in enumerate(data)
