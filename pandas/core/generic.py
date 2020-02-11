@@ -3498,13 +3498,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
-    def _slice(
-        self: FrameOrSeries, slobj: slice, axis=0, kind: str = "getitem"
-    ) -> FrameOrSeries:
+    def _slice(self: FrameOrSeries, slobj: slice, axis=0) -> FrameOrSeries:
         """
         Construct a slice of this container.
 
-        kind parameter is maintained for compatibility with Series slicing.
+        Slicing with this method is *always* positional.
         """
         axis = self._get_block_manager_axis(axis)
         result = self._constructor(self._data.get_slice(slobj, axis=axis))
