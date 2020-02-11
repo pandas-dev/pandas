@@ -1,12 +1,13 @@
 """
 Tests for the Index constructor conducting inference.
 """
-import pytest
 import numpy as np
+import pytest
 
-from pandas import Index, MultiIndex, Int64Index, UInt64Index
-import pandas._testing as tm
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
+
+from pandas import Index, Int64Index, MultiIndex, UInt64Index
+import pandas._testing as tm
 
 
 class TestIndexConstructorInference:
