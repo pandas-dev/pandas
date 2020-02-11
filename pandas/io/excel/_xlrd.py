@@ -57,8 +57,9 @@ class _XlrdReader(_BaseExcelReader):
         epoch1904 = self.book.datemode
 
         def _parse_cell(cell_contents, cell_typ):
-            """converts the contents of the cell into a pandas
-               appropriate object"""
+            """
+            converts the contents of the cell into a pandas appropriate object
+            """
 
             if cell_typ == XL_CELL_DATE:
 

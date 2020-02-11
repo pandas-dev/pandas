@@ -4037,7 +4037,6 @@ class DataFrame(NDFrame):
         level: Optional[Level] = None,
         errors: str = "ignore",
     ) -> Optional["DataFrame"]:
-
         """
         Alter axes labels.
 
