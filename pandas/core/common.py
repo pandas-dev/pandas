@@ -27,8 +27,6 @@ from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
-import pandas as pd
-
 
 class SettingWithCopyError(ValueError):
     pass
@@ -136,8 +134,8 @@ def is_bool_indexer(key: Any) -> bool:
             return True
     elif isinstance(key, list):
         try:
-            arr = pd.array(key)
-            return is_bool_dtype(arr.dtype) and (len(arr) == len(key))
+            arr = np.asarray(key)
+            return arr.dtype == np.bool_ and len(arr) == len(key)
         except TypeError:  # pragma: no cover
             return False
 
