@@ -1782,7 +1782,7 @@ class _Rolling_and_Expanding(_Rolling):
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other)
+        window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
         def _get_corr(a, b):
             a = a.rolling(

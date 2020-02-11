@@ -246,9 +246,7 @@ class TestiLoc2:
     def test_iloc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        msg = "Boolean index has wrong length: {} instead of {}".format(
-            len(index), len(s)
-        )
+        msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
         with pytest.raises(IndexError, match=msg):
             _ = s.iloc[index]
 
@@ -612,9 +610,7 @@ class TestiLoc2:
                     r = expected.get(key)
                     if r != ans:
                         raise AssertionError(
-                            "[{key}] does not match [{ans}], received [{r}]".format(
-                                key=key, ans=ans, r=r
-                            )
+                            f"[{key}] does not match [{ans}], received [{r}]"
                         )
 
     def test_iloc_non_unique_indexing(self):
