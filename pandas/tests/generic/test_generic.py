@@ -103,23 +103,6 @@ class Generic:
         # _get_numeric_data is includes _get_bool_data, so can't test for
         # non-inclusion
 
-    def test_get_default(self):
-
-        # GH 7725
-        d0 = "a", "b", "c", "d"
-        d1 = np.arange(4, dtype="int64")
-        others = "e", 10
-
-        for data, index in ((d0, d1), (d1, d0)):
-            s = Series(data, index=index)
-            for i, d in zip(index, data):
-                assert s.get(i) == d
-                assert s.get(i, d) == d
-                assert s.get(i, "z") == d
-                for other in others:
-                    assert s.get(other, "z") == "z"
-                    assert s.get(other, other) == other
-
     def test_nonzero(self):
 
         # GH 4633
@@ -469,24 +452,6 @@ class Generic:
         assert len(np.array_split(o, 5)) == 5
         assert len(np.array_split(o, 2)) == 2
 
-    def test_unexpected_keyword(self):  # GH8597
-        df = DataFrame(np.random.randn(5, 2), columns=["jim", "joe"])
-        ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
-        ts = df["joe"].copy()
-        ts[2] = np.nan
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            df.drop("joe", axis=1, in_place=True)
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            df.reindex([1, 0], inplace=True)
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            ca.fillna(0, inplace=True)
-
-        with pytest.raises(TypeError, match="unexpected keyword"):
-            ts.fillna(0, in_place=True)
-
     # See gh-12301
     def test_stat_unexpected_keyword(self):
         obj = self._construct(5)
@@ -543,37 +508,6 @@ class Generic:
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)
         self._compare(big.truncate(before=-1, after=2e6), big)
-
-    def test_validate_bool_args(self):
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
-
-        for value in invalid_values:
-            with pytest.raises(ValueError):
-                super(DataFrame, df).rename_axis(
-                    mapper={"a": "x", "b": "y"}, axis=1, inplace=value
-                )
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).drop("a", axis=1, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df)._consolidate(inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).fillna(value=0, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).interpolate(inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
-
-            with pytest.raises(ValueError):
-                super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
 
     def test_copy_and_deepcopy(self):
         # GH 15444
