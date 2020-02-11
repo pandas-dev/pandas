@@ -521,7 +521,13 @@ _c_parser_defaults = {
 _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 
 _c_unsupported = {"skipfooter"}
-_arrow_unsupported = {"skipfooter", "low_memory", "float_precision", "chunksize"}
+_arrow_unsupported = {
+    "skipfooter",
+    "low_memory",
+    "float_precision",
+    "chunksize",
+    "comment",
+}
 _python_unsupported = {"low_memory", "float_precision"}
 
 _deprecated_defaults: Dict[str, Any] = {}
