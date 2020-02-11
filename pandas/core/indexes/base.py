@@ -3121,7 +3121,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if kind == "getitem" and is_float(key):
                 if not self.is_floating():
-                    self._invalid_indexer("label", key)
+                    raise KeyError(key)
 
             elif kind == "loc" and is_float(key):
 
@@ -3135,11 +3135,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "string",
                     "mixed",
                 ]:
-                    self._invalid_indexer("label", key)
+                    raise KeyError(key)
 
             elif kind == "loc" and is_integer(key):
                 if not self.holds_integer():
-                    self._invalid_indexer("label", key)
+                    raise KeyError(key)
 
         return key
 

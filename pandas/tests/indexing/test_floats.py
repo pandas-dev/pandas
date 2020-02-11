@@ -86,11 +86,9 @@ class TestFloatIndexers:
             # getting
             for idxr, getitem in [(lambda x: x.iloc, False), (lambda x: x, True)]:
 
-                # gettitem on a DataFrame is a KeyError as it is indexing
-                # via labels on the columns
-                if getitem and isinstance(s, DataFrame):
+                if getitem:
                     error = KeyError
-                    msg = r"^3(\.0)?$"
+                    msg = r"^3\.0$"
                 else:
                     error = TypeError
                     msg = (
@@ -109,6 +107,9 @@ class TestFloatIndexers:
                 "string",
                 "unicode",
                 "mixed",
+                "period",
+                "timedelta64",
+                "datetime64",
             }:
                 error = KeyError
                 msg = r"^3\.0$"
@@ -163,12 +164,7 @@ class TestFloatIndexers:
         # fallsback to position selection, series only
         s = Series(np.arange(len(i)), index=i)
         s[3]
-        msg = (
-            r"cannot do (label|positional) indexing "
-            r"on {klass} with these indexers \[3\.0\] of "
-            r"type float".format(klass=type(i).__name__)
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
 
     def test_scalar_with_mixed(self):
@@ -178,18 +174,18 @@ class TestFloatIndexers:
 
         # lookup in a pure stringstr
         # with an invalid indexer
-        for idxr in [lambda x: x, lambda x: x.iloc]:
-
-            msg = (
-                r"cannot do label indexing "
-                r"on {klass} with these indexers \[1\.0\] of "
-                r"type float|"
-                "Cannot index by location index with a non-integer key".format(
-                    klass=Index.__name__
-                )
+        msg = (
+            r"cannot do label indexing "
+            r"on {klass} with these indexers \[1\.0\] of "
+            r"type float|"
+            "Cannot index by location index with a non-integer key".format(
+                klass=Index.__name__
             )
-            with pytest.raises(TypeError, match=msg):
-                idxr(s2)[1.0]
+        )
+        with pytest.raises(KeyError, match="^1.0$"):
+            s2[1.0]
+        with pytest.raises(TypeError, match=msg):
+            s2.iloc[1.0]
 
         with pytest.raises(KeyError, match=r"^1\.0$"):
             s2.loc[1.0]
@@ -200,19 +196,12 @@ class TestFloatIndexers:
 
         # mixed index so we have label
         # indexing
-        for idxr in [lambda x: x]:
+        with pytest.raises(KeyError, match="^1.0$"):
+            s3[1.0]
 
-            msg = (
-                r"cannot do label indexing "
-                r"on {klass} with these indexers \[1\.0\] of "
-                r"type float".format(klass=Index.__name__)
-            )
-            with pytest.raises(TypeError, match=msg):
-                idxr(s3)[1.0]
-
-            result = idxr(s3)[1]
-            expected = 2
-            assert result == expected
+        result = s3[1]
+        expected = 2
+        assert result == expected
 
         msg = "Cannot index by location index with a non-integer key"
         with pytest.raises(TypeError, match=msg):
