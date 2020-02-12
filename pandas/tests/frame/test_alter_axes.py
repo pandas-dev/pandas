@@ -382,7 +382,7 @@ class TestDataFrameAlterAxes:
             # need to stabilize repr for KeyError (due to random order in sets)
             def __repr__(self) -> str:
                 tmp = sorted(self)
-                joined_reprs = ', '.join(map(repr, tmp))
+                joined_reprs = ", ".join(map(repr, tmp))
                 # double curly brace prints one brace in format string
                 return f"frozenset({{{joined_reprs}}})"
 
