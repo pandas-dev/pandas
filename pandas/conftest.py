@@ -984,37 +984,30 @@ def indices(request):
 
 def _create_series(index):
     """ Helper for the _series dict """
-    data = np.random.randn(len(index))
-    return pd.Series(data, index=index, name=index.name)
+    size = len(index)
+    data = np.random.randn(size)
+    return pd.Series(data, index=index, name="a")
 
 
 _series = {
-    f"series-with-{id_}-index": _create_series(index)
-    for id_, index in indices_dict.items()
+    f"series-with-{index_id}-index": _create_series(index)
+    for index_id, index in indices_dict.items()
 }
 
 
-def _create_narrow_series(dtype):
-    """ Helper for the _narrow_series dict """
-    index = indices_dict["int"].copy()
-    size = len(index)
-    if np.issubdtype(dtype, np.floating):
-        data = np.random.choice(size, size=size, replace=False)
-    elif np.issubdtype(dtype, np.integer):
-        data = np.random.randn(size)
-    else:
-        raise ValueError(f"Received an unexpected data_dtype: {dtype}")
-    return pd.Series(data.astype(dtype), index=index, name="a")
-
-
+_narrow_dtypes = [
+    np.float16,
+    np.float32,
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+]
 _narrow_series = {
-    "float32-series": _create_narrow_series(np.float32),
-    "int8-series": _create_narrow_series(np.int8),
-    "int16-series": _create_narrow_series(np.int16),
-    "int32-series": _create_narrow_series(np.int32),
-    "uint8-series": _create_narrow_series(np.uint8),
-    "uint16-series": _create_narrow_series(np.uint16),
-    "uint32-series": _create_narrow_series(np.uint32),
+    f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
+    for dtype in _narrow_dtypes
 }
 
 _index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
