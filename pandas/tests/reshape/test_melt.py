@@ -1,10 +1,9 @@
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, lreshape, melt, wide_to_long
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestMelt:
@@ -271,6 +270,16 @@ class TestMelt:
         expected.columns = ["klass", "col", "attribute", "value"]
         tm.assert_frame_equal(result, expected)
 
+    def test_preserve_category(self):
+        # GH 15853
+        data = DataFrame({"A": [1, 2], "B": pd.Categorical(["X", "Y"])})
+        result = pd.melt(data, ["B"], ["A"])
+        expected = DataFrame(
+            {"B": pd.Categorical(["X", "Y"]), "variable": ["A", "A"], "value": [1, 2]}
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_melt_missing_columns_raises(self):
         # GH-23575
         # This test is to ensure that pandas raises an error if melting is
@@ -308,6 +317,22 @@ class TestMelt:
         ):
             multi.melt(["A"], ["F"], col_level=0)
 
+    def test_melt_mixed_int_str_id_vars(self):
+        # GH 29718
+        df = DataFrame({0: ["foo"], "a": ["bar"], "b": [1], "d": [2]})
+        result = melt(df, id_vars=[0, "a"], value_vars=["b", "d"])
+        expected = DataFrame(
+            {0: ["foo"] * 2, "a": ["bar"] * 2, "variable": list("bd"), "value": [1, 2]}
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_mixed_int_str_value_vars(self):
+        # GH 29718
+        df = DataFrame({0: ["foo"], "a": ["bar"]})
+        result = melt(df, value_vars=[0, "a"])
+        expected = DataFrame({"variable": [0, "a"], "value": ["foo", "bar"]})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape:
     def test_pairs(self):
@@ -329,11 +354,11 @@ class TestLreshape:
                 "29dec2008",
                 "20jan2009",
             ],
-            "visitdt2": ["21jan2009", nan, "22jan2009", "31dec2008", "03feb2009"],
-            "visitdt3": ["05feb2009", nan, nan, "02jan2009", "15feb2009"],
+            "visitdt2": ["21jan2009", np.nan, "22jan2009", "31dec2008", "03feb2009"],
+            "visitdt3": ["05feb2009", np.nan, np.nan, "02jan2009", "15feb2009"],
             "wt1": [1823, 3338, 1549, 3298, 4306],
-            "wt2": [2011.0, nan, 1892.0, 3338.0, 4575.0],
-            "wt3": [2293.0, nan, nan, 3377.0, 4805.0],
+            "wt2": [2011.0, np.nan, 1892.0, 3338.0, 4575.0],
+            "wt3": [2293.0, np.nan, np.nan, 3377.0, 4805.0],
         }
 
         df = DataFrame(data)
@@ -497,13 +522,13 @@ class TestLreshape:
                 "29dec2008",
                 "20jan2009",
                 "21jan2009",
-                nan,
+                np.nan,
                 "22jan2009",
                 "31dec2008",
                 "03feb2009",
                 "05feb2009",
-                nan,
-                nan,
+                np.nan,
+                np.nan,
                 "02jan2009",
                 "15feb2009",
             ],
@@ -514,19 +539,22 @@ class TestLreshape:
                 3298.0,
                 4306.0,
                 2011.0,
-                nan,
+                np.nan,
                 1892.0,
                 3338.0,
                 4575.0,
                 2293.0,
-                nan,
-                nan,
+                np.nan,
+                np.nan,
                 3377.0,
                 4805.0,
             ],
         }
         exp = DataFrame(exp_data, columns=result.columns)
         tm.assert_frame_equal(result, exp)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = lreshape(df, spec, dropna=False, label="foo")
 
         spec = {
             "visitdt": ["visitdt{i:d}".format(i=i) for i in range(1, 3)],

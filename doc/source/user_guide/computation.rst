@@ -58,7 +58,7 @@ series in the DataFrame, also excluding NA/null values.
     is not guaranteed to be positive semi-definite. This could lead to
     estimated correlations having absolute values which are greater than one,
     and/or a non-invertible covariance matrix. See `Estimation of covariance
-    matrices <http://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
+    matrices <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_
     for more details.
 
 .. ipython:: python
@@ -321,6 +321,11 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.cov`, Unbiased covariance (binary)
     :meth:`~Rolling.corr`, Correlation (binary)
 
+.. _stats.rolling_apply:
+
+Rolling Apply
+~~~~~~~~~~~~~
+
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
 that produces a single value from an ndarray input. Suppose we wanted to
@@ -333,6 +338,49 @@ compute the mean absolute deviation on a rolling basis:
 
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
+
+.. versionadded:: 1.0
+
+Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
+if installed as an optional dependency. The apply aggregation can be executed using Numba by specifying
+``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
+Numba will be applied in potentially two routines:
+
+1. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__
+the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
+
+2. The engine will JIT the for loop where the apply function is applied to each window.
+
+The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
+`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
+These keyword arguments will be applied to *both* the passed function (if a standard Python function)
+and the apply for loop over each window. Currently only ``nogil``, ``nopython``, and ``parallel`` are supported,
+and their default values are set to ``False``, ``True`` and ``False`` respectively.
+
+.. note::
+
+   In terms of performance, **the first time a function is run using the Numba engine will be slow**
+   as Numba will have some function compilation overhead. However, ``rolling`` objects will cache
+   the function and subsequent calls will be fast. In general, the Numba engine is performant with
+   a larger amount of data points (e.g. 1+ million).
+
+.. code-block:: ipython
+
+   In [1]: data = pd.Series(range(1_000_000))
+
+   In [2]: roll = data.rolling(10)
+
+   In [3]: def f(x):
+      ...:     return np.sum(x) + 5
+   # Run the first time, compilation time will affect performance
+   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)  # noqa: E225
+   1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
+   # Function is cached and performance will improve
+   In [5]: %timeit roll.apply(f, engine='numba', raw=True)
+   188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [6]: %timeit roll.apply(f, engine='cython', raw=True)
+   3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 .. _stats.rolling_window:
 
@@ -466,12 +514,68 @@ default of the index) in a DataFrame.
    dft
    dft.rolling('2s', on='foo').sum()
 
+.. _stats.custom_rolling_window:
+
+Custom window rolling
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.0
+
+In addition to accepting an integer or offset as a ``window`` argument, ``rolling`` also accepts
+a ``BaseIndexer`` subclass that allows a user to define a custom method for calculating window bounds.
+The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
+a tuple of two arrays, the first being the starting indices of the windows and second being the
+ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``center``, ``closed``
+and will automatically be passed to ``get_window_bounds`` and the defined method must
+always accept these arguments.
+
+For example, if we have the following ``DataFrame``:
+
+.. ipython:: python
+
+   use_expanding = [True, False, True, False, True]
+   use_expanding
+   df = pd.DataFrame({'values': range(5)})
+   df
+
+and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
+1, we can create the following ``BaseIndexer``:
+
+.. code-block:: ipython
+
+   In [2]: from pandas.api.indexers import BaseIndexer
+   ...:
+   ...: class CustomIndexer(BaseIndexer):
+   ...:
+   ...:    def get_window_bounds(self, num_values, min_periods, center, closed):
+   ...:        start = np.empty(num_values, dtype=np.int64)
+   ...:        end = np.empty(num_values, dtype=np.int64)
+   ...:        for i in range(num_values):
+   ...:            if self.use_expanding[i]:
+   ...:                start[i] = 0
+   ...:                end[i] = i + 1
+   ...:            else:
+   ...:                start[i] = i
+   ...:                end[i] = i + self.window_size
+   ...:        return start, end
+   ...:
+
+   In [3]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+
+   In [4]: df.rolling(indexer).sum()
+   Out[4]:
+       values
+   0     0.0
+   1     1.0
+   2     3.0
+   3     3.0
+   4    10.0
+
+
 .. _stats.rolling_window.endpoints:
 
 Rolling window endpoints
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.20.0
 
 The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
 parameter:
@@ -960,5 +1064,5 @@ are scaled by debiasing factors
 
 (For :math:`w_i = 1`, this reduces to the usual :math:`N / (N - 1)` factor,
 with :math:`N = t + 1`.)
-See `Weighted Sample Variance <http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
+See `Weighted Sample Variance <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
 on Wikipedia for further details.

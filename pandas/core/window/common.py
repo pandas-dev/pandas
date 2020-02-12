@@ -1,5 +1,6 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
+from typing import Callable, Optional
 import warnings
 
 import numpy as np
@@ -10,7 +11,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.core.common as com
 from pandas.core.generic import _shared_docs
 from pandas.core.groupby.base import GroupByMixin
-from pandas.core.index import MultiIndex
+from pandas.core.indexes.api import MultiIndex
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
@@ -26,13 +27,29 @@ _doc_template = """
 """
 
 
-class _GroupByMixin(GroupByMixin):
+def _dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
+
+
+class WindowGroupByMixin(GroupByMixin):
     """
     Provide the groupby facilities.
     """
 
     def __init__(self, obj, *args, **kwargs):
-        parent = kwargs.pop("parent", None)  # noqa
+        kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
             groupby, obj = obj, obj.obj
@@ -41,18 +58,28 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    count = GroupByMixin._dispatch("count")
-    corr = GroupByMixin._dispatch("corr", other=None, pairwise=None)
-    cov = GroupByMixin._dispatch("cov", other=None, pairwise=None)
+    count = _dispatch("count")
+    corr = _dispatch("corr", other=None, pairwise=None)
+    cov = _dispatch("cov", other=None, pairwise=None)
 
     def _apply(
-        self, func, name=None, window=None, center=None, check_minp=None, **kwargs
+        self,
+        func: Callable,
+        center: bool,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        use_numba_cache: bool = False,
+        **kwargs,
     ):
         """
         Dispatch to apply; we are stripping all of the _apply kwargs and
         performing the original function call on the grouped object.
         """
+        kwargs.pop("floor", None)
 
+        # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
 
@@ -71,14 +98,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
     ):
         raise TypeError(
-            "arguments to moment function must be of type "
-            "np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type np.ndarray/Series/DataFrame"
         )
 
     if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(
         arg2, (np.ndarray, ABCSeries)
     ):
-        X, Y = _prep_binary(arg1, arg2)
+        X, Y = prep_binary(arg1, arg2)
         return f(X, Y)
 
     elif isinstance(arg1, ABCDataFrame):
@@ -125,7 +151,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                             results[i][j] = results[j][i]
                         else:
                             results[i][j] = f(
-                                *_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
+                                *prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
 
                 from pandas import concat
@@ -186,7 +212,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 raise ValueError("'pairwise' is not True/False")
         else:
             results = {
-                i: f(*_prep_binary(arg1.iloc[:, i], arg2))
+                i: f(*prep_binary(arg1.iloc[:, i], arg2))
                 for i, col in enumerate(arg1.columns)
             }
             return dataframe_from_int_dict(results, arg1)
@@ -223,34 +249,48 @@ def _get_center_of_mass(comass, span, halflife, alpha):
     return float(comass)
 
 
-def _offset(window, center):
+def calculate_center_offset(window):
     if not is_integer(window):
         window = len(window)
-    offset = (window - 1) / 2.0 if center else 0
-    try:
-        return int(offset)
-    except TypeError:
-        return offset.astype(int)
+    return int((window - 1) / 2.0)
 
 
-def _require_min_periods(p):
-    def _check_func(minp, window):
-        if minp is None:
-            return window
-        else:
-            return max(p, minp)
+def calculate_min_periods(
+    window: int,
+    min_periods: Optional[int],
+    num_values: int,
+    required_min_periods: int,
+    floor: int,
+) -> int:
+    """
+    Calculates final minimum periods value for rolling aggregations.
 
-    return _check_func
+    Parameters
+    ----------
+    window : passed window value
+    min_periods : passed min periods value
+    num_values : total number of values
+    required_min_periods : required min periods per aggregation function
+    floor : required min periods per aggregation function
 
-
-def _use_window(minp, window):
-    if minp is None:
-        return window
+    Returns
+    -------
+    min_periods : int
+    """
+    if min_periods is None:
+        min_periods = window
     else:
-        return minp
+        min_periods = max(required_min_periods, min_periods)
+    if min_periods > window:
+        raise ValueError(f"min_periods {min_periods} must be <= window {window}")
+    elif min_periods > num_values:
+        min_periods = num_values + 1
+    elif min_periods < 0:
+        raise ValueError("min_periods must be >= 0")
+    return max(min_periods, floor)
 
 
-def _zsqrt(x):
+def zsqrt(x):
     with np.errstate(all="ignore"):
         result = np.sqrt(x)
         mask = x < 0
@@ -265,7 +305,7 @@ def _zsqrt(x):
     return result
 
 
-def _prep_binary(arg1, arg2):
+def prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
         raise Exception("Input arrays must be of the same type!")
 
@@ -274,3 +314,12 @@ def _prep_binary(arg1, arg2):
     Y = arg2 + 0 * arg1
 
     return X, Y
+
+
+def get_weighted_roll_func(cfunc: Callable) -> Callable:
+    def func(arg, window, min_periods=None):
+        if min_periods is None:
+            min_periods = len(window)
+        return cfunc(arg, window, min_periods)
+
+    return func

@@ -1,9 +1,7 @@
-import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, PeriodIndex, Series, period_range
-from pandas.util import testing as tm
+from pandas import PeriodIndex, period_range
+import pandas._testing as tm
 
 
 class TestPeriodIndex:
@@ -98,7 +96,7 @@ class TestPeriodIndex:
         assert result.freq == exp.freq
 
     def test_asfreq_combined_pi(self):
-        pi = pd.PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="H")
+        pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="H")
         exp = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="25H")
         for freq, how in zip(["1D1H", "1H1D"], ["S", "E"]):
             result = pi.asfreq(freq, how=how)
@@ -106,37 +104,17 @@ class TestPeriodIndex:
             assert result.freq == exp.freq
 
         for freq in ["1D1H", "1H1D"]:
-            pi = pd.PeriodIndex(
-                ["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=freq
-            )
+            pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=freq)
             result = pi.asfreq("H")
             exp = PeriodIndex(["2001-01-02 00:00", "2001-01-03 02:00", "NaT"], freq="H")
             tm.assert_index_equal(result, exp)
             assert result.freq == exp.freq
 
-            pi = pd.PeriodIndex(
-                ["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=freq
-            )
+            pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=freq)
             result = pi.asfreq("H", how="S")
             exp = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="H")
             tm.assert_index_equal(result, exp)
             assert result.freq == exp.freq
-
-    def test_asfreq_ts(self):
-        index = period_range(freq="A", start="1/1/2001", end="12/31/2010")
-        ts = Series(np.random.randn(len(index)), index=index)
-        df = DataFrame(np.random.randn(len(index), 3), index=index)
-
-        result = ts.asfreq("D", how="end")
-        df_result = df.asfreq("D", how="end")
-        exp_index = index.asfreq("D", how="end")
-        assert len(result) == len(ts)
-        tm.assert_index_equal(result.index, exp_index)
-        tm.assert_index_equal(df_result.index, exp_index)
-
-        result = ts.asfreq("D", how="start")
-        assert len(result) == len(ts)
-        tm.assert_index_equal(result.index, index.asfreq("D", how="start"))
 
     def test_astype_asfreq(self):
         pi1 = PeriodIndex(["2011-01-01", "2011-02-01", "2011-03-01"], freq="D")

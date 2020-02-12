@@ -21,9 +21,9 @@ from pandas import (
     Timestamp,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
-from pandas.util import testing as tm
 
 
 @pytest.mark.parametrize(
@@ -123,6 +123,13 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
+        pytest.param(
+            "fromisocalendar",
+            marks=pytest.mark.skipif(
+                not compat.PY38,
+                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
+            ),
+        ),
         "isocalendar",
         "strftime",
         "strptime",
@@ -141,7 +148,7 @@ def test_round_nat(klass, method, freq):
 )
 def test_nat_methods_raise(method):
     # see gh-9513, gh-17329
-    msg = "NaTType does not support {method}".format(method=method)
+    msg = f"NaTType does not support {method}"
 
     with pytest.raises(ValueError, match=msg):
         getattr(NaT, method)()
@@ -297,6 +304,8 @@ def test_overlap_public_nat_methods(klass, expected):
     # "fromisoformat" was introduced in 3.7
     if klass is Timestamp and not compat.PY37:
         expected.remove("fromisoformat")
+
+    # "fromisocalendar" was introduced in 3.8
     if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
 

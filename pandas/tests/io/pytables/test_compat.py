@@ -1,29 +1,30 @@
 import pytest
 
 import pandas as pd
-from pandas.tests.io.pytables.test_pytables import ensure_clean_path
-from pandas.util.testing import assert_frame_equal
+import pandas._testing as tm
+from pandas.tests.io.pytables.common import ensure_clean_path
 
 tables = pytest.importorskip("tables")
 
 
 @pytest.fixture
 def pytables_hdf5_file():
-    """Use PyTables to create a simple HDF5 file."""
-
+    """
+    Use PyTables to create a simple HDF5 file.
+    """
     table_schema = {
         "c0": tables.Time64Col(pos=0),
         "c1": tables.StringCol(5, pos=1),
         "c2": tables.Int64Col(pos=2),
     }
 
-    t0 = 1561105000.0
+    t0 = 1_561_105_000.0
 
     testsamples = [
         {"c0": t0, "c1": "aaaaa", "c2": 1},
         {"c0": t0 + 1, "c1": "bbbbb", "c2": 2},
         {"c0": t0 + 2, "c1": "ccccc", "c2": 10 ** 5},
-        {"c0": t0 + 3, "c1": "ddddd", "c2": 4294967295},
+        {"c0": t0 + 3, "c1": "ddddd", "c2": 4_294_967_295},
     ]
 
     objname = "pandas_test_timeseries"
@@ -52,25 +53,25 @@ class TestReadPyTablesHDF5:
         path, objname, df = pytables_hdf5_file
         result = pd.read_hdf(path, key=objname)
         expected = df
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_with_start(self, pytables_hdf5_file):
         path, objname, df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
         result = pd.read_hdf(path, key=objname, start=1)
         expected = df[1:].reset_index(drop=True)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_with_stop(self, pytables_hdf5_file):
         path, objname, df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
         result = pd.read_hdf(path, key=objname, stop=1)
         expected = df[:1].reset_index(drop=True)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_with_startstop(self, pytables_hdf5_file):
         path, objname, df = pytables_hdf5_file
         # This is a regression test for pandas-dev/pandas/issues/11188
         result = pd.read_hdf(path, key=objname, start=1, stop=2)
         expected = df[1:2].reset_index(drop=True)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

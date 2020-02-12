@@ -11,16 +11,21 @@ from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
 import pandas.util._test_decorators as td
 
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 def test_parse_time_string():
-    (date, parsed, reso) = parse_time_string("4Q1984")
-    (date_lower, parsed_lower, reso_lower) = parse_time_string("4q1984")
+    (parsed, reso) = parse_time_string("4Q1984")
+    (parsed_lower, reso_lower) = parse_time_string("4q1984")
 
-    assert date == date_lower
     assert reso == reso_lower
     assert parsed == parsed_lower
+
+
+def test_parse_time_string_invalid_type():
+    # Raise on invalid input, don't just return it
+    with pytest.raises(TypeError):
+        parse_time_string((4, 5))
 
 
 @pytest.mark.parametrize(
@@ -28,10 +33,9 @@ def test_parse_time_string():
 )
 def test_parse_time_quarter_with_dash(dashed, normal):
     # see gh-9688
-    (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
-    (date, parsed, reso) = parse_time_string(normal)
+    (parsed_dash, reso_dash) = parse_time_string(dashed)
+    (parsed, reso) = parse_time_string(normal)
 
-    assert date_dash == date
     assert parsed_dash == parsed
     assert reso_dash == reso
 
@@ -100,7 +104,7 @@ def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
-    result, _, _ = parsing.parse_time_string(date_str, freq=freq)
+    result, _ = parsing.parse_time_string(date_str, freq=freq)
     assert result == expected
 
 
@@ -125,7 +129,7 @@ def test_parsers_quarter_invalid(date_str):
     [("201101", datetime(2011, 1, 1, 0, 0)), ("200005", datetime(2000, 5, 1, 0, 0))],
 )
 def test_parsers_month_freq(date_str, expected):
-    result, _, _ = parsing.parse_time_string(date_str, freq="M")
+    result, _ = parsing.parse_time_string(date_str, freq="M")
     assert result == expected
 
 
@@ -209,3 +213,13 @@ def test_try_parse_dates():
 
     expected = np.array([parse(d, dayfirst=True) for d in arr])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_parse_time_string_check_instance_type_raise_exception():
+    # issue 20684
+    with pytest.raises(TypeError):
+        parse_time_string((1, 2, 3))
+
+    result = parse_time_string("2019")
+    expected = (datetime(2019, 1, 1), "year")
+    assert result == expected

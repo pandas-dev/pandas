@@ -3,7 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
+from pandas.core.groupby.groupby import get_groupby
 
 
 class TestGrouperGrouping:
@@ -13,18 +14,18 @@ class TestGrouperGrouping:
 
     def test_mutated(self):
 
-        msg = r"group\(\) got an unexpected keyword argument 'foo'"
+        msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
             self.frame.groupby("A", foo=1)
 
         g = self.frame.groupby("A")
         assert not g.mutated
-        g = self.frame.groupby("A", mutated=True)
+        g = get_groupby(self.frame, by="A", mutated=True)
         assert g.mutated
 
     def test_getitem(self):
         g = self.frame.groupby("A")
-        g_mutated = self.frame.groupby("A", mutated=True)
+        g_mutated = get_groupby(self.frame, by="A", mutated=True)
 
         expected = g_mutated.B.apply(lambda x: x.rolling(2).mean())
 
@@ -45,7 +46,7 @@ class TestGrouperGrouping:
         # GH 13174
         g = self.frame.groupby("A")
         r = g.rolling(2)
-        g_mutated = self.frame.groupby("A", mutated=True)
+        g_mutated = get_groupby(self.frame, by="A", mutated=True)
         expected = g_mutated.B.apply(lambda x: x.rolling(2).count())
 
         result = r.B.count()
@@ -59,7 +60,6 @@ class TestGrouperGrouping:
         r = g.rolling(window=4)
 
         for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
-
             result = getattr(r, f)()
             expected = g.apply(lambda x: getattr(x.rolling(4), f)())
             tm.assert_frame_equal(result, expected)
@@ -69,8 +69,16 @@ class TestGrouperGrouping:
             expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
             tm.assert_frame_equal(result, expected)
 
-        result = r.quantile(0.5)
-        expected = g.apply(lambda x: x.rolling(4).quantile(0.5))
+    @pytest.mark.parametrize(
+        "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
+    )
+    def test_rolling_quantile(self, interpolation):
+        g = self.frame.groupby("A")
+        r = g.rolling(window=4)
+        result = r.quantile(0.4, interpolation=interpolation)
+        expected = g.apply(
+            lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_corr_cov(self):
@@ -141,8 +149,16 @@ class TestGrouperGrouping:
             expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
             tm.assert_frame_equal(result, expected)
 
-        result = r.quantile(0.5)
-        expected = g.apply(lambda x: x.expanding().quantile(0.5))
+    @pytest.mark.parametrize(
+        "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
+    )
+    def test_expanding_quantile(self, interpolation):
+        g = self.frame.groupby("A")
+        r = g.expanding()
+        result = r.quantile(0.4, interpolation=interpolation)
+        expected = g.apply(
+            lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_expanding_corr_cov(self):
@@ -174,3 +190,21 @@ class TestGrouperGrouping:
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("expected_value,raw_value", [[1.0, True], [0.0, False]])
+    def test_groupby_rolling(self, expected_value, raw_value):
+        # GH 31754
+
+        def foo(x):
+            return int(isinstance(x, np.ndarray))
+
+        df = pd.DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
+        result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
+        expected = Series(
+            [expected_value] * 3,
+            index=pd.MultiIndex.from_tuples(
+                ((1, 0), (1, 1), (1, 2)), names=["id", None]
+            ),
+            name="value",
+        )
+        tm.assert_series_equal(result, expected)

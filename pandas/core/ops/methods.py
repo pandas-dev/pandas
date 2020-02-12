@@ -3,12 +3,7 @@ Functions to generate methods and pin them to the appropriate classes.
 """
 import operator
 
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-    ABCSparseArray,
-    ABCSparseSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCSparseArray
 
 from pandas.core.ops.roperator import (
     radd,
@@ -51,7 +46,6 @@ def _get_method_wrappers(cls):
     from pandas.core.ops import (
         _arith_method_FRAME,
         _arith_method_SERIES,
-        _arith_method_SPARSE_SERIES,
         _bool_method_SERIES,
         _comp_method_FRAME,
         _comp_method_SERIES,
@@ -59,24 +53,14 @@ def _get_method_wrappers(cls):
         _flex_method_SERIES,
     )
 
-    if issubclass(cls, ABCSparseSeries):
-        # Be sure to catch this before ABCSeries and ABCSparseArray,
-        # as they will both come see SparseSeries as a subclass
-        arith_flex = _flex_method_SERIES
-        comp_flex = _flex_method_SERIES
-        arith_special = _arith_method_SPARSE_SERIES
-        comp_special = _arith_method_SPARSE_SERIES
-        bool_special = _bool_method_SERIES
-        # TODO: I don't think the functions defined by bool_method are tested
-    elif issubclass(cls, ABCSeries):
-        # Just Series; SparseSeries is caught above
+    if issubclass(cls, ABCSeries):
+        # Just Series
         arith_flex = _flex_method_SERIES
         comp_flex = _flex_method_SERIES
         arith_special = _arith_method_SERIES
         comp_special = _comp_method_SERIES
         bool_special = _bool_method_SERIES
     elif issubclass(cls, ABCDataFrame):
-        # Same for DataFrame and SparseDataFrame
         arith_flex = _arith_method_FRAME
         comp_flex = _flex_comp_method_FRAME
         arith_special = _arith_method_FRAME
@@ -118,7 +102,8 @@ def add_special_arithmetic_methods(cls):
 
             return self
 
-        f.__name__ = "__i{name}__".format(name=method.__name__.strip("__"))
+        name = method.__name__.strip("__")
+        f.__name__ = f"__i{name}__"
         return f
 
     new_methods.update(
@@ -176,9 +161,8 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
     # constructors.
 
     have_divmod = issubclass(cls, ABCSeries)
-    # divmod is available for Series and SparseSeries
+    # divmod is available for Series
 
-    # yapf: disable
     new_methods = dict(
         add=arith_method(cls, operator.add, special),
         radd=arith_method(cls, radd, special),
@@ -197,8 +181,8 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         rtruediv=arith_method(cls, rtruediv, special),
         rfloordiv=arith_method(cls, rfloordiv, special),
         rpow=arith_method(cls, rpow, special),
-        rmod=arith_method(cls, rmod, special))
-    # yapf: enable
+        rmod=arith_method(cls, rmod, special),
+    )
     new_methods["div"] = new_methods["truediv"]
     new_methods["rdiv"] = new_methods["rtruediv"]
     if have_divmod:
@@ -231,7 +215,7 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         )
 
     if special:
-        dunderize = lambda x: "__{name}__".format(name=x.strip("_"))
+        dunderize = lambda x: f"__{x.strip('_')}__"
     else:
         dunderize = lambda x: x
     new_methods = {dunderize(k): v for k, v in new_methods.items()}

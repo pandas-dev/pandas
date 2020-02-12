@@ -30,7 +30,7 @@ https://github.com/client9/stringencoders
 Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights reserved.
 
 Numeric decoder derived from from TCL library
-http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
+https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
  * Copyright (c) 1988-1993 The Regents of the University of California.
  * Copyright (c) 1994 Sun Microsystems, Inc.
 */
@@ -154,6 +154,8 @@ enum JSTYPES {
   JT_ARRAY,    // Array structure
   JT_OBJECT,   // Key/Value structure
   JT_INVALID,  // Internal, do not return nor expect
+  JT_POS_INF,  // Positive infinity
+  JT_NEG_INF,  // Negative infinity
 };
 
 typedef void * JSOBJ;
@@ -245,6 +247,10 @@ typedef struct __JSONObjectEncoder {
   int encodeHTMLChars;
 
   /*
+  Configuration for spaces of indent */
+  int indent;
+
+  /*
   Set to an error message if error occurred */
   const char *errorMsg;
   JSOBJ errorObj;
@@ -286,6 +292,8 @@ typedef struct __JSONObjectDecoder {
   JSOBJ (*newTrue)(void *prv);
   JSOBJ (*newFalse)(void *prv);
   JSOBJ (*newNull)(void *prv);
+  JSOBJ (*newPosInf)(void *prv);
+  JSOBJ (*newNegInf)(void *prv);
   JSOBJ (*newObject)(void *prv, void *decoder);
   JSOBJ (*endObject)(void *prv, JSOBJ obj);
   JSOBJ (*newArray)(void *prv, void *decoder);

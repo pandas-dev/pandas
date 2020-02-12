@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
-from pandas.util.testing import ensure_clean
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
 from pandas.io.formats.excel import ExcelFormatter
@@ -70,7 +70,7 @@ def test_styler_to_excel(engine):
     # Prepare spreadsheets
 
     df = DataFrame(np.random.randn(11, 3))
-    with ensure_clean(".xlsx" if engine != "xlwt" else ".xls") as path:
+    with tm.ensure_clean(".xlsx" if engine != "xlwt" else ".xls") as path:
         writer = ExcelWriter(path, engine=engine)
         df.to_excel(writer, sheet_name="frame")
         df.style.to_excel(writer, sheet_name="unstyled")

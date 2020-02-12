@@ -1,7 +1,7 @@
 """ test partial slicing on Series/Frame """
 
 from datetime import datetime
-import operator as op
+import operator
 
 import numpy as np
 import pytest
@@ -16,8 +16,8 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
 
 
 class TestSlicing:
@@ -141,6 +141,26 @@ class TestSlicing:
         result = rng.get_loc("2009")
         expected = slice(3288, 3653)
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "partial_dtime",
+        [
+            "2019",
+            "2019Q4",
+            "Dec 2019",
+            "2019-12-31",
+            "2019-12-31 23",
+            "2019-12-31 23:59",
+        ],
+    )
+    def test_slice_end_of_period_resolution(self, partial_dtime):
+        # GH#31064
+        dti = date_range("2019-12-31 23:59:55.999999999", periods=10, freq="s")
+
+        ser = pd.Series(range(10), index=dti)
+        result = ser[partial_dtime]
+        expected = ser.iloc[:5]
+        tm.assert_series_equal(result, expected)
 
     def test_slice_quarter(self):
         dti = date_range(freq="D", start=datetime(2000, 6, 1), periods=500)
@@ -274,7 +294,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == expected
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -302,7 +322,7 @@ class TestSlicing:
                 result = df["a"][ts_string]
                 assert isinstance(result, np.int64)
                 assert result == 2
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df[ts_string]
 
@@ -311,7 +331,7 @@ class TestSlicing:
             for fmt, res in list(zip(formats, resolutions))[rnum + 1 :]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
-                msg = r"^'{}'$".format(ts_string)
+                msg = fr"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
                     df["a"][ts_string]
                 with pytest.raises(KeyError, match=msg):
@@ -408,10 +428,10 @@ class TestSlicing:
     @pytest.mark.parametrize(
         "op,expected",
         [
-            (op.lt, [True, False, False, False]),
-            (op.le, [True, True, False, False]),
-            (op.eq, [False, True, False, False]),
-            (op.gt, [False, False, False, True]),
+            (operator.lt, [True, False, False, False]),
+            (operator.le, [True, True, False, False]),
+            (operator.eq, [False, True, False, False]),
+            (operator.gt, [False, False, False, True]),
         ],
     )
     def test_selection_by_datetimelike(self, datetimelike, op, expected):

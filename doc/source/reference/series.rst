@@ -29,25 +29,16 @@ Attributes
    Series.array
    Series.values
    Series.dtype
-   Series.ftype
    Series.shape
    Series.nbytes
    Series.ndim
    Series.size
-   Series.strides
-   Series.itemsize
-   Series.base
    Series.T
    Series.memory_usage
    Series.hasnans
-   Series.flags
    Series.empty
    Series.dtypes
-   Series.ftypes
-   Series.data
-   Series.is_copy
    Series.name
-   Series.put
 
 Conversion
 ----------
@@ -55,6 +46,7 @@ Conversion
    :toctree: api/
 
    Series.astype
+   Series.convert_dtypes
    Series.infer_objects
    Series.copy
    Series.bool
@@ -62,7 +54,6 @@ Conversion
    Series.to_period
    Series.to_timestamp
    Series.to_list
-   Series.get_values
    Series.__array__
 
 Indexing, iteration
@@ -148,8 +139,6 @@ Computations / descriptive stats
    Series.autocorr
    Series.between
    Series.clip
-   Series.clip_lower
-   Series.clip_upper
    Series.corr
    Series.count
    Series.cov
@@ -186,7 +175,6 @@ Computations / descriptive stats
    Series.is_monotonic_increasing
    Series.is_monotonic_decreasing
    Series.value_counts
-   Series.compound
 
 Reindexing / selection / label manipulation
 -------------------------------------------
@@ -531,6 +519,21 @@ Sparse-dtype specific methods and attributes are provided under the
    Series.sparse.to_coo
 
 
+.. _api.series.metadata:
+
+Metadata
+~~~~~~~~
+
+:attr:`Series.attrs` is a dictionary for storing global metadata for this Series.
+
+.. warning:: ``Series.attrs`` is considered experimental and may change without warning.
+
+.. autosummary::
+   :toctree: api/
+
+   Series.attrs
+
+
 Plotting
 --------
 ``Series.plot`` is both a callable method and a namespace attribute for
@@ -574,20 +577,8 @@ Serialization / IO / conversion
    Series.to_xarray
    Series.to_hdf
    Series.to_sql
-   Series.to_msgpack
    Series.to_json
-   Series.to_sparse
-   Series.to_dense
    Series.to_string
    Series.to_clipboard
    Series.to_latex
-
-
-Sparse
-------
-
-.. autosummary::
-   :toctree: api/
-
-   SparseSeries.to_coo
-   SparseSeries.from_coo
+   Series.to_markdown

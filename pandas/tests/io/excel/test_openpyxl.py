@@ -1,7 +1,11 @@
+import os
+
+import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import DataFrame
-from pandas.util.testing import ensure_clean
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _OpenpyxlWriter
 
@@ -65,7 +69,7 @@ def test_write_cells_merge_styled(ext):
         )
     ]
 
-    with ensure_clean(ext) as path:
+    with tm.ensure_clean(ext) as path:
         writer = _OpenpyxlWriter(path)
         writer.write_cells(initial_cells, sheet_name=sheet_name)
         writer.write_cells(merge_cells, sheet_name=sheet_name)
@@ -83,7 +87,7 @@ def test_write_cells_merge_styled(ext):
 def test_write_append_mode(ext, mode, expected):
     df = DataFrame([1], columns=["baz"])
 
-    with ensure_clean(ext) as f:
+    with tm.ensure_clean(ext) as f:
         wb = openpyxl.Workbook()
         wb.worksheets[0].title = "foo"
         wb.worksheets[0]["A1"].value = "foo"
@@ -101,3 +105,20 @@ def test_write_append_mode(ext, mode, expected):
 
         for index, cell_value in enumerate(expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
+
+
+def test_to_excel_with_openpyxl_engine(ext, tmpdir):
+    # GH 29854
+    # TODO: Fix this once newer version of openpyxl fixes the bug
+    df1 = DataFrame({"A": np.linspace(1, 10, 10)})
+    df2 = DataFrame({"B": np.linspace(1, 20, 10)})
+    df = pd.concat([df1, df2], axis=1)
+    styled = df.style.applymap(
+        lambda val: "color: %s" % "red" if val < 0 else "black"
+    ).highlight_max()
+
+    filename = tmpdir / "styled.xlsx"
+    styled.to_excel(filename, engine="openpyxl")
+
+    assert filename.exists()
+    os.remove(filename)

@@ -70,7 +70,7 @@ def write_csv_rows(list data, ndarray data_index,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def convert_json_to_lines(object arr):
+def convert_json_to_lines(arr: object) -> str:
     """
     replace comma separated json with line feeds, paying special attention
     to quotes & brackets

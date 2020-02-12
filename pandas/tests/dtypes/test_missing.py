@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
@@ -23,7 +22,10 @@ from pandas.core.dtypes.missing import (
 
 import pandas as pd
 from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
-from pandas.util import testing as tm
+import pandas._testing as tm
+
+now = pd.Timestamp.now()
+utcnow = pd.Timestamp.now("UTC")
 
 
 @pytest.mark.parametrize("notna_f", [notna, notnull])
@@ -87,7 +89,8 @@ class TestIsNA:
         assert not isna_f(-np.inf)
 
         # type
-        assert not isna_f(type(pd.Series()))
+        assert not isna_f(type(pd.Series(dtype=object)))
+        assert not isna_f(type(pd.Series(dtype=np.float64)))
         assert not isna_f(type(pd.DataFrame()))
 
         # series
@@ -291,6 +294,11 @@ def test_array_equivalent():
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
     )
+    # Check the handling of nested arrays in array_equivalent_object
+    assert array_equivalent(
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+        np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+    )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 1j], dtype="complex"),
@@ -311,25 +319,46 @@ def test_array_equivalent():
     assert not array_equivalent(
         TimedeltaIndex([0, np.nan]), TimedeltaIndex([1, np.nan])
     )
-    with catch_warnings():
-        filterwarnings("ignore", "Converting timezone", FutureWarning)
-        assert array_equivalent(
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-            DatetimeIndex([1, np.nan], tz="US/Eastern"),
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
-        )
-        assert not array_equivalent(
-            DatetimeIndex([0, np.nan], tz="CET"),
-            DatetimeIndex([0, np.nan], tz="US/Eastern"),
-        )
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([1, np.nan], tz="US/Eastern"),
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan], tz="CET"),
+        DatetimeIndex([0, np.nan], tz="US/Eastern"),
+    )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
+
+
+@pytest.mark.parametrize(
+    "lvalue, rvalue",
+    [
+        # There are 3 variants for each of lvalue and rvalue. We include all
+        #  three for the tz-naive `now` and exclude the datetim64 variant
+        #  for utcnow because it drops tzinfo.
+        (now, utcnow),
+        (now.to_datetime64(), utcnow),
+        (now.to_pydatetime(), utcnow),
+        (now, utcnow),
+        (now.to_datetime64(), utcnow.to_pydatetime()),
+        (now.to_pydatetime(), utcnow.to_pydatetime()),
+    ],
+)
+def test_array_equivalent_tzawareness(lvalue, rvalue):
+    # we shouldn't raise if comparing tzaware and tznaive datetimes
+    left = np.array([lvalue], dtype=object)
+    right = np.array([rvalue], dtype=object)
+
+    assert not array_equivalent(left, right, strict_nan=True)
+    assert not array_equivalent(left, right, strict_nan=False)
 
 
 def test_array_equivalent_compat():
@@ -358,6 +387,20 @@ def test_array_equivalent_str():
         assert not array_equivalent(
             np.array(["A", "B"], dtype=dtype), np.array(["A", "X"], dtype=dtype)
         )
+
+
+def test_array_equivalent_nested():
+    # reached in groupby aggregations, make sure we use np.any when checking
+    #  if the comparison is truthy
+    left = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)
+    right = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)
+
+    assert array_equivalent(left, right, strict_nan=True)
+    assert not array_equivalent(left, right[::-1], strict_nan=True)
+
+    left = np.array([np.array([50, 50, 50]), np.array([40, 40, 40])], dtype=object)
+    right = np.array([50, 40])
+    assert not array_equivalent(left, right, strict_nan=True)
 
 
 @pytest.mark.parametrize(

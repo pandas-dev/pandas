@@ -1,12 +1,11 @@
 import numpy as np
-import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 class TestMultiIndexBasic:
@@ -20,7 +19,7 @@ class TestMultiIndexBasic:
             }
         ).set_index(["jim", "joe"])
 
-        with tm.assert_produces_warning(PerformanceWarning, clear=[pd.core.index]):
+        with tm.assert_produces_warning(PerformanceWarning):
             df.loc[(1, "z")]
 
         df = df.iloc[[2, 1, 3, 0]]
@@ -46,17 +45,6 @@ class TestMultiIndexBasic:
         idx = idx.drop("a")
         assert "a" in idx.levels[0]
         assert "a" not in idx
-
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
-            (MultiIndex.from_product([(), ()]), True),
-            (MultiIndex.from_product([(1, 2), (3, 4)]), True),
-            (MultiIndex.from_product([("a", "b"), (1, 2)]), False),
-        ],
-    )
-    def test_multiindex_is_homogeneous_type(self, data, expected):
-        assert data._is_homogeneous_type is expected
 
     def test_indexing_over_hashtable_size_cutoff(self):
         n = 10000
@@ -104,3 +92,22 @@ class TestMultiIndexBasic:
         assert tx[0] in idx
         assert "element_not_exit" not in idx
         assert "0 day 09:30:00" in idx
+
+    def test_nested_tuples_duplicates(self):
+        # GH#30892
+
+        dti = pd.to_datetime(["20190101", "20190101", "20190102"])
+        idx = pd.Index(["a", "a", "c"])
+        mi = pd.MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
+
+        df = pd.DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
+
+        expected = pd.DataFrame({"c1": df["c1"], "c2": [1.0, 1.0, np.nan]}, index=mi)
+
+        df2 = df.copy(deep=True)
+        df2.loc[(dti[0], "a"), "c2"] = 1.0
+        tm.assert_frame_equal(df2, expected)
+
+        df3 = df.copy(deep=True)
+        df3.loc[[(dti[0], "a")], "c2"] = 1.0
+        tm.assert_frame_equal(df3, expected)

@@ -12,7 +12,7 @@ import pytest
 from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_read_with_bad_header(all_parsers):
@@ -540,3 +540,34 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
         columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
         expected = DataFrame([[2, 3], [4, 5]], columns=columns)
         tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_multiindex_columns(all_parsers):
+    # GH#6051
+    parser = all_parsers
+
+    s1 = "Male, Male, Male, Female, Female\nR, R, L, R, R\n.86, .67, .88, .78, .81"
+    s2 = (
+        "Male, Male, Male, Female, Female\n"
+        "R, R, L, R, R\n"
+        ".86, .67, .88, .78, .81\n"
+        ".86, .67, .88, .78, .82"
+    )
+
+    mi = MultiIndex.from_tuples(
+        [
+            ("Male", "R"),
+            (" Male", " R"),
+            (" Male", " L"),
+            (" Female", " R"),
+            (" Female", " R.1"),
+        ]
+    )
+    expected = DataFrame(
+        [[0.86, 0.67, 0.88, 0.78, 0.81], [0.86, 0.67, 0.88, 0.78, 0.82]], columns=mi
+    )
+
+    df1 = parser.read_csv(StringIO(s1), header=[0, 1])
+    tm.assert_frame_equal(df1, expected.iloc[:1])
+    df2 = parser.read_csv(StringIO(s2), header=[0, 1])
+    tm.assert_frame_equal(df2, expected)

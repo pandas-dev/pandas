@@ -25,8 +25,10 @@ is_interval = lib.is_interval
 
 is_list_like = lib.is_list_like
 
+is_iterator = lib.is_iterator
 
-def is_number(obj):
+
+def is_number(obj) -> bool:
     """
     Check if the object is a number.
 
@@ -67,31 +69,7 @@ def is_number(obj):
     return isinstance(obj, (Number, np.number))
 
 
-def is_string_like(obj):
-    """
-    Check if the object is a string.
-
-    Parameters
-    ----------
-    obj : The object to check
-
-    Examples
-    --------
-    >>> is_string_like("foo")
-    True
-    >>> is_string_like(1)
-    False
-
-    Returns
-    -------
-    is_str_like : bool
-        Whether `obj` is a string or not.
-    """
-
-    return isinstance(obj, str)
-
-
-def _iterable_not_string(obj):
+def _iterable_not_string(obj) -> bool:
     """
     Check if the object is an iterable but not a string.
 
@@ -117,41 +95,7 @@ def _iterable_not_string(obj):
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
-def is_iterator(obj):
-    """
-    Check if the object is an iterator.
-
-    For example, lists are considered iterators
-    but not strings or datetime objects.
-
-    Parameters
-    ----------
-    obj : The object to check
-
-    Returns
-    -------
-    is_iter : bool
-        Whether `obj` is an iterator.
-
-    Examples
-    --------
-    >>> is_iterator([1, 2, 3])
-    True
-    >>> is_iterator(datetime(2017, 1, 1))
-    False
-    >>> is_iterator("foo")
-    False
-    >>> is_iterator(1)
-    False
-    """
-
-    if not hasattr(obj, "__iter__"):
-        return False
-
-    return hasattr(obj, "__next__")
-
-
-def is_file_like(obj):
+def is_file_like(obj) -> bool:
     """
     Check if the object is a file-like object.
 
@@ -161,8 +105,6 @@ def is_file_like(obj):
 
     Note: file-like objects must be iterable, but
     iterable objects need not be file-like.
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------
@@ -175,7 +117,8 @@ def is_file_like(obj):
 
     Examples
     --------
-    >>> buffer(StringIO("data"))
+    >>> import io
+    >>> buffer = io.StringIO("data")
     >>> is_file_like(buffer)
     True
     >>> is_file_like([1, 2, 3])
@@ -191,7 +134,7 @@ def is_file_like(obj):
     return True
 
 
-def is_re(obj):
+def is_re(obj) -> bool:
     """
     Check if the object is a regex pattern instance.
 
@@ -214,7 +157,7 @@ def is_re(obj):
     return isinstance(obj, Pattern)
 
 
-def is_re_compilable(obj):
+def is_re_compilable(obj) -> bool:
     """
     Check if the object can be compiled into a regex pattern instance.
 
@@ -243,7 +186,7 @@ def is_re_compilable(obj):
         return True
 
 
-def is_array_like(obj):
+def is_array_like(obj) -> bool:
     """
     Check if the object is array-like.
 
@@ -276,12 +219,10 @@ def is_array_like(obj):
     return is_list_like(obj) and hasattr(obj, "dtype")
 
 
-def is_nested_list_like(obj):
+def is_nested_list_like(obj) -> bool:
     """
     Check if the object is list-like, and that all of its elements
     are also list-like.
-
-    .. versionadded:: 0.20.0
 
     Parameters
     ----------
@@ -324,7 +265,7 @@ def is_nested_list_like(obj):
     )
 
 
-def is_dict_like(obj):
+def is_dict_like(obj) -> bool:
     """
     Check if the object is dict-like.
 
@@ -356,7 +297,7 @@ def is_dict_like(obj):
     )
 
 
-def is_named_tuple(obj):
+def is_named_tuple(obj) -> bool:
     """
     Check if the object is a named tuple.
 
@@ -371,6 +312,7 @@ def is_named_tuple(obj):
 
     Examples
     --------
+    >>> from collections import namedtuple
     >>> Point = namedtuple("Point", ["x", "y"])
     >>> p = Point(1, 2)
     >>>
@@ -383,7 +325,7 @@ def is_named_tuple(obj):
     return isinstance(obj, tuple) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj):
+def is_hashable(obj) -> bool:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -399,6 +341,7 @@ def is_hashable(obj):
 
     Examples
     --------
+    >>> import collections
     >>> a = ([],)
     >>> isinstance(a, collections.abc.Hashable)
     True
@@ -420,7 +363,7 @@ def is_hashable(obj):
         return True
 
 
-def is_sequence(obj):
+def is_sequence(obj) -> bool:
     """
     Check if the object is a sequence of objects.
     String types are not included as sequences here.

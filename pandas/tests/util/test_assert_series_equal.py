@@ -1,7 +1,7 @@
 import pytest
 
 from pandas import Categorical, DataFrame, Series
-from pandas.util.testing import assert_series_equal
+import pandas._testing as tm
 
 
 def _assert_series_equal_both(a, b, **kwargs):
@@ -17,10 +17,10 @@ def _assert_series_equal_both(a, b, **kwargs):
     b : Series
         The second Series to compare.
     kwargs : dict
-        The arguments passed to `assert_series_equal`.
+        The arguments passed to `tm.assert_series_equal`.
     """
-    assert_series_equal(a, b, **kwargs)
-    assert_series_equal(b, a, **kwargs)
+    tm.assert_series_equal(a, b, **kwargs)
+    tm.assert_series_equal(b, a, **kwargs)
 
 
 def _assert_not_series_equal(a, b, **kwargs):
@@ -34,10 +34,10 @@ def _assert_not_series_equal(a, b, **kwargs):
     b : Series
         The second Series to compare.
     kwargs : dict
-        The arguments passed to `assert_series_equal`.
+        The arguments passed to `tm.assert_series_equal`.
     """
     try:
-        assert_series_equal(a, b, **kwargs)
+        tm.assert_series_equal(a, b, **kwargs)
         msg = "The two Series were equal when they shouldn't have been"
 
         pytest.fail(msg=msg)
@@ -58,7 +58,7 @@ def _assert_not_series_equal_both(a, b, **kwargs):
     b : Series
         The second Series to compare.
     kwargs : dict
-        The arguments passed to `assert_series_equal`.
+        The arguments passed to `tm.assert_series_equal`.
     """
     _assert_not_series_equal(a, b, **kwargs)
     _assert_not_series_equal(b, a, **kwargs)
@@ -114,7 +114,7 @@ def test_less_precise(data1, data2, dtype, check_less_precise):
     ):
         msg = "Series values are different"
         with pytest.raises(AssertionError, match=msg):
-            assert_series_equal(s1, s2, **kwargs)
+            tm.assert_series_equal(s1, s2, **kwargs)
     else:
         _assert_series_equal_both(s1, s2, **kwargs)
 
@@ -145,9 +145,9 @@ def test_series_equal_index_dtype(s1, s2, msg, check_index_type):
 
     if check_index_type:
         with pytest.raises(AssertionError, match=msg):
-            assert_series_equal(s1, s2, **kwargs)
+            tm.assert_series_equal(s1, s2, **kwargs)
     else:
-        assert_series_equal(s1, s2, **kwargs)
+        tm.assert_series_equal(s1, s2, **kwargs)
 
 
 def test_series_equal_length_mismatch(check_less_precise):
@@ -161,7 +161,7 @@ Series length are different
     s2 = Series([1, 2, 3, 4])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_series_equal(s1, s2, check_less_precise=check_less_precise)
+        tm.assert_series_equal(s1, s2, check_less_precise=check_less_precise)
 
 
 def test_series_equal_values_mismatch(check_less_precise):
@@ -175,11 +175,11 @@ Series values are different \\(33\\.33333 %\\)
     s2 = Series([1, 2, 4])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_series_equal(s1, s2, check_less_precise=check_less_precise)
+        tm.assert_series_equal(s1, s2, check_less_precise=check_less_precise)
 
 
 def test_series_equal_categorical_mismatch(check_categorical):
-    msg = """Attributes are different
+    msg = """Attributes of Series are different
 
 Attribute "dtype" are different
 \\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False\\)
@@ -191,6 +191,6 @@ ordered=False\\)"""
 
     if check_categorical:
         with pytest.raises(AssertionError, match=msg):
-            assert_series_equal(s1, s2, check_categorical=check_categorical)
+            tm.assert_series_equal(s1, s2, check_categorical=check_categorical)
     else:
         _assert_series_equal_both(s1, s2, check_categorical=check_categorical)

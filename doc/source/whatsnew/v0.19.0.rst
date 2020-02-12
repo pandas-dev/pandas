@@ -707,6 +707,7 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series()
 
@@ -1224,6 +1225,7 @@ Previously, sparse data were ``float64`` dtype by default, even if all inputs we
 As of v0.19.0, sparse data keeps the input dtype, and uses more appropriate ``fill_value`` defaults (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
 
 .. ipython:: python
+   :okwarning:
 
    pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
    pd.SparseArray([True, False, False, False])
@@ -1235,8 +1237,7 @@ Operators now preserve dtypes
 
 - Sparse data structure now can preserve ``dtype`` after arithmetic ops (:issue:`13848`)
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    s = pd.SparseSeries([0, 2, 0, 1], fill_value=0, dtype=np.int64)
    s.dtype
@@ -1245,8 +1246,7 @@ Operators now preserve dtypes
 
 - Sparse data structure now support ``astype`` to convert internal ``dtype`` (:issue:`13900`)
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    s = pd.SparseSeries([1., 0., 2., 0.], fill_value=0)
    s

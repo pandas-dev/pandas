@@ -5,16 +5,16 @@ Note: pandas.core.common is *not* part of the public API.
 """
 
 import collections
-from collections import OrderedDict, abc
+from collections import abc
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Iterable, Union
+from typing import Any, Collection, Iterable, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas.compat import PY36
+from pandas._typing import T
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -72,18 +72,12 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box(indexer, values, obj, key):
-
-    # if we have multiples coming back, box em
-    if isinstance(values, np.ndarray):
-        return obj[indexer.get_loc(key)]
-
-    # return the value
-    return values
-
-
-def maybe_box_datetimelike(value):
+def maybe_box_datetimelike(value, dtype=None):
     # turn a datetime like into a Timestamp/timedelta as needed
+    if dtype == object:
+        # If we dont have datetime64/timedelta64 dtype, we dont want to
+        #  box datetimelike scalars
+        return value
 
     if isinstance(value, (np.datetime64, datetime)):
         value = tslibs.Timestamp(value)
@@ -111,14 +105,20 @@ def is_bool_indexer(key: Any) -> bool:
     Returns
     -------
     bool
+        Whether `key` is a valid boolean indexer.
 
     Raises
     ------
     ValueError
         When the array is an object-dtype ndarray or ExtensionArray
         and contains missing values.
+
+    See Also
+    --------
+    check_array_indexer : Check that `key` is a valid array to index,
+        and convert to an ndarray.
     """
-    na_msg = "cannot index with vector containing NA / NaN values"
+    na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
@@ -160,7 +160,7 @@ def cast_scalar_indexer(val):
     outval : scalar
     """
     # assumes lib.is_scalar(val)
-    if lib.is_float(val) and val == int(val):
+    if lib.is_float(val) and val.is_integer():
         return int(val)
     return val
 
@@ -172,35 +172,35 @@ def not_none(*args):
     return (arg for arg in args if arg is not None)
 
 
-def any_none(*args):
+def any_none(*args) -> bool:
     """
     Returns a boolean indicating if any argument is None.
     """
     return any(arg is None for arg in args)
 
 
-def all_none(*args):
+def all_none(*args) -> bool:
     """
     Returns a boolean indicating if all arguments are None.
     """
     return all(arg is None for arg in args)
 
 
-def any_not_none(*args):
+def any_not_none(*args) -> bool:
     """
     Returns a boolean indicating if any argument is not None.
     """
     return any(arg is not None for arg in args)
 
 
-def all_not_none(*args):
+def all_not_none(*args) -> bool:
     """
     Returns a boolean indicating if all arguments are not None.
     """
     return all(arg is not None for arg in args)
 
 
-def count_not_none(*args):
+def count_not_none(*args) -> int:
     """
     Returns the count of arguments that are not None.
     """
@@ -213,16 +213,6 @@ def try_sort(iterable):
         return sorted(listed)
     except TypeError:
         return listed
-
-
-def dict_keys_to_ordered_list(mapping):
-    # when pandas drops support for Python < 3.6, this function
-    # can be replaced by a simple list(mapping.keys())
-    if PY36 or isinstance(mapping, OrderedDict):
-        keys = list(mapping.keys())
-    else:
-        keys = try_sort(mapping)
-    return keys
 
 
 def asarray_tuplesafe(values, dtype=None):
@@ -281,7 +271,7 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_iterable_to_list(obj: Union[Iterable, Any]) -> Union[list, Any]:
+def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T]:
     """
     If obj is Iterable but not list-like, consume into list.
     """
@@ -290,7 +280,7 @@ def maybe_iterable_to_list(obj: Union[Iterable, Any]) -> Union[list, Any]:
     return obj
 
 
-def is_null_slice(obj):
+def is_null_slice(obj) -> bool:
     """
     We have a null slice.
     """
@@ -310,7 +300,7 @@ def is_true_slices(l):
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l):
+def is_full_slice(obj, l) -> bool:
     """
     We have a full length slice.
     """
@@ -328,7 +318,7 @@ def get_callable_name(obj):
         return get_callable_name(obj.func)
     # fall back to class name
     if hasattr(obj, "__call__"):
-        return obj.__class__.__name__
+        return type(obj).__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None
     # instead of the empty string in this case to allow
@@ -399,7 +389,7 @@ def standardize_mapping(into):
             return partial(collections.defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, abc.Mapping):
-        raise TypeError("unsupported type: {into}".format(into=into))
+        raise TypeError(f"unsupported type: {into}")
     elif into == collections.defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
@@ -462,7 +452,7 @@ def pipe(obj, func, *args, **kwargs):
     if isinstance(func, tuple):
         func, target = func
         if target in kwargs:
-            msg = "%s is both the pipe target and a keyword argument" % target
+            msg = f"{target} is both the pipe target and a keyword argument"
             raise ValueError(msg)
         kwargs[target] = obj
         return func(*args, **kwargs)

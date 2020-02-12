@@ -1,10 +1,12 @@
+import re
+
 import numpy as np
 import pytest
 
 from pandas import Categorical, CategoricalIndex, DataFrame, Index, Series
+import pandas._testing as tm
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalAPI:
@@ -81,13 +83,15 @@ class TestCategoricalAPI:
         )
         tm.assert_index_equal(cat.categories, Index([1, 2, 3]))
 
-        # Lengthen
-        with pytest.raises(ValueError):
-            cat.rename_categories([1, 2, 3, 4])
-
-        # Shorten
-        with pytest.raises(ValueError):
-            cat.rename_categories([1, 2])
+    @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
+    def test_rename_categories_wrong_length_raises(self, new_categories):
+        cat = Categorical(["a", "b", "c", "a"])
+        msg = (
+            "new categories need to have the same number of items as the "
+            "old categories!"
+        )
+        with pytest.raises(ValueError, match=msg):
+            cat.rename_categories(new_categories)
 
     def test_rename_categories_series(self):
         # https://github.com/pandas-dev/pandas/issues/17981
@@ -147,19 +151,19 @@ class TestCategoricalAPI:
         assert res is None
         tm.assert_categorical_equal(cat, new)
 
-        # not all "old" included in "new"
+    @pytest.mark.parametrize(
+        "new_categories",
+        [
+            ["a"],  # not all "old" included in "new"
+            ["a", "b", "d"],  # still not all "old" in "new"
+            ["a", "b", "c", "d"],  # all "old" included in "new", but too long
+        ],
+    )
+    def test_reorder_categories_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
-
-        with pytest.raises(ValueError):
-            cat.reorder_categories(["a"])
-
-        # still not all "old" in "new"
-        with pytest.raises(ValueError):
-            cat.reorder_categories(["a", "b", "d"])
-
-        # all "old" included in "new", but too long
-        with pytest.raises(ValueError):
-            cat.reorder_categories(["a", "b", "c", "d"])
+        msg = "items in new_categories are not the same as in old categories"
+        with pytest.raises(ValueError, match=msg):
+            cat.reorder_categories(new_categories)
 
     def test_add_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -182,10 +186,6 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(cat, new)
         assert res is None
 
-        # new is in old categories
-        with pytest.raises(ValueError):
-            cat.add_categories(["d"])
-
         # GH 9927
         cat = Categorical(list("abc"), ordered=True)
         expected = Categorical(list("abc"), categories=list("abcde"), ordered=True)
@@ -198,6 +198,13 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(res, expected)
         res = cat.add_categories(["d", "e"])
         tm.assert_categorical_equal(res, expected)
+
+    def test_add_categories_existing_raises(self):
+        # new is in old categories
+        cat = Categorical(["a", "b", "c", "d"], ordered=True)
+        msg = re.escape("new categories must not include old categories: {'d'}")
+        with pytest.raises(ValueError, match=msg):
+            cat.add_categories(["d"])
 
     def test_set_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -339,9 +346,13 @@ class TestCategoricalAPI:
         tm.assert_categorical_equal(cat, new)
         assert res is None
 
-        # removal is not in categories
-        with pytest.raises(ValueError):
-            cat.remove_categories(["c"])
+    @pytest.mark.parametrize("removals", [["c"], ["c", np.nan], "c", ["c", "c"]])
+    def test_remove_categories_raises(self, removals):
+        cat = Categorical(["a", "b", "a"])
+        message = re.escape("removals must all be in old categories: {'c'}")
+
+        with pytest.raises(ValueError, match=message):
+            cat.remove_categories(removals)
 
     def test_remove_unused_categories(self):
         c = Categorical(["a", "b", "c", "d", "a"], categories=["a", "b", "c", "d", "e"])
@@ -447,13 +458,13 @@ class TestPrivateCategoricalAPI:
         tm.assert_numpy_array_equal(c.codes, exp)
 
         # Assignments to codes should raise
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="cannot set Categorical codes directly"):
             c.codes = np.array([0, 1, 2, 0, 1], dtype="int8")
 
         # changes in the codes array should raise
         codes = c.codes
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="assignment destination is read-only"):
             codes[4] = 1
 
         # But even after getting the codes, the original array should still be
@@ -498,9 +509,3 @@ class TestPrivateCategoricalAPI:
         new = Index(expected)
         result = _recode_for_categories(codes, old, new)
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_deprecated_get_values(self):
-        cat = Categorical(["a", "b", "c", "a"])
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.get_values()
-        tm.assert_numpy_array_equal(res, np.array(cat))

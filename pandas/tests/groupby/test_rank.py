@@ -3,7 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, concat
-from pandas.util import testing as tm
+import pandas._testing as tm
+from pandas.core.base import DataError
 
 
 def test_rank_apply():
@@ -384,7 +385,7 @@ def test_rank_avg_even_vals():
 def test_rank_object_raises(ties_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
 
-    with pytest.raises(TypeError, match="not callable"):
+    with pytest.raises(DataError, match="No numeric types to aggregate"):
         df.groupby("key").rank(
             method=ties_method, ascending=ascending, na_option=na_option, pct=pct
         )

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 pytest.importorskip("odf")
 
@@ -13,7 +13,7 @@ pytest.importorskip("odf")
 def cd_and_set_engine(monkeypatch, datapath):
     func = functools.partial(pd.read_excel, engine="odf")
     monkeypatch.setattr(pd, "read_excel", func)
-    monkeypatch.chdir(datapath("io", "data"))
+    monkeypatch.chdir(datapath("io", "data", "excel"))
 
 
 def test_read_invalid_types_raises():
@@ -36,3 +36,11 @@ def test_read_writer_table():
     result = pd.read_excel("writertable.odt", "Table1", index_col=0)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_nonexistent_sheetname_raises(read_ext):
+    # GH-27676
+    # Specifying a non-existent sheet_name parameter should throw an error
+    # with the sheet name.
+    with pytest.raises(ValueError, match="sheet xyz not found"):
+        pd.read_excel("blank.ods", sheet_name="xyz")

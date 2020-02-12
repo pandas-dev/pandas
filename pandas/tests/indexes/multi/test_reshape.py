@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_insert(idx):
@@ -17,6 +17,7 @@ def test_insert(idx):
 
     exp0 = Index(list(idx.levels[0]) + ["abc"], name="first")
     tm.assert_index_equal(new_index.levels[0], exp0)
+    assert new_index.names == ["first", "second"]
 
     exp1 = Index(list(idx.levels[1]) + ["three"], name="second")
     tm.assert_index_equal(new_index.levels[1], exp1)

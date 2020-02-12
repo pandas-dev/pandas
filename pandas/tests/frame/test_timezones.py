@@ -11,8 +11,8 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 
 class TestDataFrameTimezones:
@@ -37,7 +37,7 @@ class TestDataFrameTimezones:
         expected = np.concatenate([expected, expected], axis=1)
         tm.assert_numpy_array_equal(result, expected)
 
-        # three columns, heterogenous
+        # three columns, heterogeneous
         est = "US/Eastern"
         df = df.assign(C=df.A.dt.tz_convert(est))
 

@@ -11,11 +11,13 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import Period, PeriodIndex, Series, period_range
+import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
-import pandas.util.testing as tm
 
 from pandas.tseries.frequencies import to_offset
+
+from .common import assert_invalid_comparison
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -39,17 +41,130 @@ class TestPeriodArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "scalar", ["foo", pd.Timestamp.now(), pd.Timedelta(days=4)]
+    )
+    def test_compare_invalid_scalar(self, box_with_array, scalar):
+        # comparison with scalar that cannot be interpreted as a Period
+        pi = pd.period_range("2000", periods=4)
+        parr = tm.box_expected(pi, box_with_array)
+        assert_invalid_comparison(parr, scalar, box_with_array)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            pd.date_range("2000", periods=4).array,
+            pd.timedelta_range("1D", periods=4).array,
+            np.arange(4),
+            np.arange(4).astype(np.float64),
+            list(range(4)),
+        ],
+    )
+    def test_compare_invalid_listlike(self, box_with_array, other):
+        pi = pd.period_range("2000", periods=4)
+        parr = tm.box_expected(pi, box_with_array)
+        assert_invalid_comparison(parr, other, box_with_array)
+
+    @pytest.mark.parametrize("other_box", [list, np.array, lambda x: x.astype(object)])
+    def test_compare_object_dtype(self, box_with_array, other_box):
+        pi = pd.period_range("2000", periods=5)
+        parr = tm.box_expected(pi, box_with_array)
+
+        xbox = np.ndarray if box_with_array is pd.Index else box_with_array
+
+        other = other_box(pi)
+
+        expected = np.array([True, True, True, True, True])
+        expected = tm.box_expected(expected, xbox)
+
+        result = parr == other
+        tm.assert_equal(result, expected)
+        result = parr <= other
+        tm.assert_equal(result, expected)
+        result = parr >= other
+        tm.assert_equal(result, expected)
+
+        result = parr != other
+        tm.assert_equal(result, ~expected)
+        result = parr < other
+        tm.assert_equal(result, ~expected)
+        result = parr > other
+        tm.assert_equal(result, ~expected)
+
+        other = other_box(pi[::-1])
+
+        expected = np.array([False, False, True, False, False])
+        expected = tm.box_expected(expected, xbox)
+        result = parr == other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([True, True, True, False, False])
+        expected = tm.box_expected(expected, xbox)
+        result = parr <= other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([False, False, True, True, True])
+        expected = tm.box_expected(expected, xbox)
+        result = parr >= other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([True, True, False, True, True])
+        expected = tm.box_expected(expected, xbox)
+        result = parr != other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([True, True, False, False, False])
+        expected = tm.box_expected(expected, xbox)
+        result = parr < other
+        tm.assert_equal(result, expected)
+
+        expected = np.array([False, False, False, True, True])
+        expected = tm.box_expected(expected, xbox)
+        result = parr > other
+        tm.assert_equal(result, expected)
+
 
 class TestPeriodIndexComparisons:
     # TODO: parameterize over boxes
 
-    @pytest.mark.parametrize("other", ["2017", 2017])
+    @pytest.mark.parametrize("other", ["2017", pd.Period("2017", freq="D")])
     def test_eq(self, other):
         idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
         expected = np.array([True, True, False])
         result = idx == other
 
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            2017,
+            [2017, 2017, 2017],
+            np.array([2017, 2017, 2017]),
+            np.array([2017, 2017, 2017], dtype=object),
+            pd.Index([2017, 2017, 2017]),
+        ],
+    )
+    def test_eq_integer_disallowed(self, other):
+        # match Period semantics by not treating integers as Periods
+
+        idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
+        expected = np.array([False, False, False])
+        result = idx == other
+
+        tm.assert_numpy_array_equal(result, expected)
+        msg = (
+            r"(:?Invalid comparison between dtype=period\[D\] and .*)"
+            r"|(:?Cannot compare type Period with type .*)"
+        )
+        with pytest.raises(TypeError, match=msg):
+            idx < other
+        with pytest.raises(TypeError, match=msg):
+            idx > other
+        with pytest.raises(TypeError, match=msg):
+            idx <= other
+        with pytest.raises(TypeError, match=msg):
+            idx >= other
 
     def test_pi_cmp_period(self):
         idx = period_range("2007-01", periods=20, freq="M")
@@ -168,9 +283,7 @@ class TestPeriodIndexComparisons:
 
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="A")
-        rev_msg = (
-            r"Input has different freq=(M|2M|3M) from " r"PeriodArray\(freq=A-DEC\)"
-        )
+        rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=A-DEC\)"
         idx_msg = rev_msg if box_with_array is tm.to_array else msg
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
@@ -184,7 +297,7 @@ class TestPeriodIndexComparisons:
             Period("2011", freq="4M") >= base
 
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="4M")
-        rev_msg = r"Input has different freq=(M|2M|3M) from " r"PeriodArray\(freq=4M\)"
+        rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=4M\)"
         idx_msg = rev_msg if box_with_array is tm.to_array else msg
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
@@ -477,10 +590,11 @@ class TestPeriodIndexArithmetic:
         # a set operation (union).  This has since been changed to
         # raise a TypeError. See GH#14164 and GH#13077 for historical
         # reference.
-        with pytest.raises(TypeError):
+        msg = r"unsupported operand type\(s\) for \+: .* and .*"
+        with pytest.raises(TypeError, match=msg):
             rng + other
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             rng += other
 
     def test_pi_sub_isub_pi(self):
@@ -515,7 +629,8 @@ class TestPeriodIndexArithmetic:
         # TODO: parametrize over boxes for other?
 
         rng = tm.box_expected(rng, box_with_array)
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input has different freq=[HD] from PeriodArray\(freq=[DH]\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             rng - other
 
     @pytest.mark.parametrize("n", [1, 2, 3, 4])
@@ -567,7 +682,8 @@ class TestPeriodIndexArithmetic:
         dti = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
         pi = dti.to_period("D")
         pi = tm.box_expected(pi, box_with_array)
-        with pytest.raises(TypeError):
+        msg = r"unsupported operand type\(s\) for [+-]: .* and .*"
+        with pytest.raises(TypeError, match=msg):
             op(pi, other)
 
     @pytest.mark.parametrize(
@@ -590,13 +706,18 @@ class TestPeriodIndexArithmetic:
         rng = pd.period_range("1/1/2000", freq="D", periods=3)
         rng = tm.box_expected(rng, box_with_array)
 
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?cannot add PeriodArray and .*)"
+            r"|(:?cannot subtract .* from (:?a\s)?.*)"
+            r"|(:?unsupported operand type\(s\) for \+: .* and .*)"
+        )
+        with pytest.raises(TypeError, match=msg):
             rng + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + rng
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             rng - other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other - rng
 
     # -----------------------------------------------------------------
@@ -607,14 +728,16 @@ class TestPeriodIndexArithmetic:
         tdi = pd.TimedeltaIndex(["-1 Day", "-1 Day", "-1 Day"])
         tdarr = tdi.values
 
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input has different freq=None from PeriodArray\(freq=Q-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             rng + tdarr
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             tdarr + rng
 
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             rng - tdarr
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract PeriodArray from timedelta64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
     def test_pi_add_sub_td64_array_tick(self):
@@ -641,10 +764,11 @@ class TestPeriodIndexArithmetic:
         result = rng - tdarr
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract .* from .*"
+        with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             tdi - rng
 
     # -----------------------------------------------------------------
@@ -673,10 +797,11 @@ class TestPeriodIndexArithmetic:
         unanchored = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
         # addition/subtraction ops with incompatible offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input cannot be converted to Period\(freq=Q-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 pi + unanchored
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 unanchored + pi
 
@@ -701,10 +826,11 @@ class TestPeriodIndexArithmetic:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input has different freq=-1M from Period\(freq=Q-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 pi - anchored
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - pi
 
@@ -755,18 +881,18 @@ class TestPeriodIndexArithmetic:
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_offset_n_gt1(self, box_transpose_fail):
+    @pytest.mark.parametrize("transpose", [True, False])
+    def test_pi_add_offset_n_gt1(self, box_with_array, transpose):
         # GH#23215
         # add offset to PeriodIndex with freq.n > 1
-        box, transpose = box_transpose_fail
 
         per = pd.Period("2016-01", freq="2M")
         pi = pd.PeriodIndex([per])
 
         expected = pd.PeriodIndex(["2016-03"], freq="2M")
 
-        pi = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        pi = tm.box_expected(pi, box_with_array, transpose=transpose)
+        expected = tm.box_expected(expected, box_with_array, transpose=transpose)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)
@@ -814,7 +940,8 @@ class TestPeriodIndexArithmetic:
         expected = pd.PeriodIndex([pd.Period("2014Q1"), pd.Period("NaT")])
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = r"bad operand type for unary -: 'PeriodArray'"
+        with pytest.raises(TypeError, match=msg):
             other - pi
 
     # ---------------------------------------------------------------
@@ -842,7 +969,11 @@ class TestPeriodIndexArithmetic:
         result = rng - other
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?bad operand type for unary -: 'PeriodArray')"
+            r"|(:?cannot subtract PeriodArray from timedelta64\[[hD]\])"
+        )
+        with pytest.raises(TypeError, match=msg):
             other - rng
 
     @pytest.mark.parametrize("freqstr", ["5ns", "5us", "5ms", "5s", "5T", "5h", "5d"])
@@ -864,8 +995,11 @@ class TestPeriodIndexArithmetic:
         expected = pd.period_range(rng[0] - other, periods=6, freq=freqstr)
         result = rng - other
         tm.assert_index_equal(result, expected)
-
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?bad operand type for unary -: 'PeriodArray')"
+            r"|(:?cannot subtract PeriodArray from timedelta64\[[hD]\])"
+        )
+        with pytest.raises(TypeError, match=msg):
             other - rng
 
     def test_pi_add_iadd_timedeltalike_daily(self, three_days):
@@ -984,16 +1118,15 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng -= other
 
-    def test_parr_add_sub_td64_nat(self, box_transpose_fail):
+    @pytest.mark.parametrize("transpose", [True, False])
+    def test_parr_add_sub_td64_nat(self, box_with_array, transpose):
         # GH#23320 special handling for timedelta64("NaT")
-        box, transpose = box_transpose_fail
-
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         other = np.timedelta64("NaT")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        obj = tm.box_expected(pi, box_with_array, transpose=transpose)
+        expected = tm.box_expected(expected, box_with_array, transpose=transpose)
 
         result = obj + other
         tm.assert_equal(result, expected)
@@ -1001,7 +1134,8 @@ class TestPeriodIndexArithmetic:
         tm.assert_equal(result, expected)
         result = obj - other
         tm.assert_equal(result, expected)
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract .* from .*"
+        with pytest.raises(TypeError, match=msg):
             other - obj
 
     @pytest.mark.parametrize(
@@ -1011,16 +1145,12 @@ class TestPeriodIndexArithmetic:
             TimedeltaArray._from_sequence(["NaT"] * 9),
         ],
     )
-    def test_parr_add_sub_tdt64_nat_array(self, box_df_fail, other):
-        # FIXME: DataFrame fails because when when operating column-wise
-        #  timedelta64 entries become NaT and are treated like datetimes
-        box = box_df_fail
-
+    def test_parr_add_sub_tdt64_nat_array(self, box_with_array, other):
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box)
-        expected = tm.box_expected(expected, box)
+        obj = tm.box_expected(pi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = obj + other
         tm.assert_equal(result, expected)
@@ -1028,7 +1158,8 @@ class TestPeriodIndexArithmetic:
         tm.assert_equal(result, expected)
         result = obj - other
         tm.assert_equal(result, expected)
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract .* from .*"
+        with pytest.raises(TypeError, match=msg):
             other - obj
 
     # ---------------------------------------------------------------
@@ -1042,6 +1173,26 @@ class TestPeriodIndexArithmetic:
         result = parr - pi
         expected = pi - pi
         tm.assert_index_equal(result, expected)
+
+    def test_parr_add_sub_object_array(self):
+        pi = pd.period_range("2000-12-31", periods=3, freq="D")
+        parr = pi.array
+
+        other = np.array([pd.Timedelta(days=1), pd.offsets.Day(2), 3])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = parr + other
+
+        expected = pd.PeriodIndex(
+            ["2001-01-01", "2001-01-03", "2001-01-05"], freq="D"
+        ).array
+        tm.assert_equal(result, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = parr - other
+
+        expected = pd.PeriodIndex(["2000-12-30"] * 3, freq="D").array
+        tm.assert_equal(result, expected)
 
 
 class TestPeriodSeriesArithmetic:

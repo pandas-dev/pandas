@@ -1,0 +1,66 @@
+body {
+    padding-top: 5em;
+    color: #444;
+}
+h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #130654;
+}
+h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: black;
+}
+h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: black;
+}
+a {
+    color: #130654;
+}
+code {
+    white-space: pre;
+}
+.blue {
+    color: #150458;
+}
+.pink {
+    color: #e70488;
+}
+.fab {
+    font-size: 1.2rem;
+    color: #666;
+}
+.fab:hover {
+    color: #130654;
+}
+a.navbar-brand img {
+    height: 3rem;
+}
+div.card {
+    margin: 0 0 .2em .2em !important;
+}
+div.card .card-title {
+    font-weight: 500;
+    color: #130654;
+}
+.book {
+    padding: 0 20%;
+}
+.bg-dark {
+    background-color: #130654 !important;
+}
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, .9);
+}
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: white;
+}
+table.logo td {
+    text-align: center;
+}
+table.logo img {
+    height: 4rem;
+}

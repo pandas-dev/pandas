@@ -264,7 +264,7 @@ horizontal and cumulative histograms can be drawn by
    plt.close('all')
 
 See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
-`matplotlib hist documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
+`matplotlib hist documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hist>`__ for more.
 
 
 The existing interface ``DataFrame.hist`` to plot histogram still can be used.
@@ -370,7 +370,7 @@ For example, horizontal and custom-positioned boxplot can be drawn by
 
 
 See the :meth:`boxplot <matplotlib.axes.Axes.boxplot>` method and the
-`matplotlib boxplot documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
+`matplotlib boxplot documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.boxplot>`__ for more.
 
 
 The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
@@ -591,7 +591,7 @@ bubble chart using a column of the ``DataFrame`` as the bubble size.
    plt.close('all')
 
 See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
-`matplotlib scatter documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
+`matplotlib scatter documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
 
 .. _visualization.hexbin:
 
@@ -651,7 +651,7 @@ given by column ``z``. The bins are aggregated with NumPy's ``max`` function.
    plt.close('all')
 
 See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
-`matplotlib hexbin documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
+`matplotlib hexbin documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.hexbin>`__ for more.
 
 .. _visualization.pie:
 
@@ -749,7 +749,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    @savefig series_pie_plot_semi.png
    series.plot.pie(figsize=(6, 6))
 
-See the `matplotlib pie documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
+See the `matplotlib pie documentation <https://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.pie>`__ for more.
 
 .. ipython:: python
     :suppress:
@@ -1190,6 +1190,21 @@ with "(right)" in the legend. To turn off the automatic marking, use the
 
    plt.close('all')
 
+.. _plotting.formatters:
+
+Custom formatters for timeseries plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionchanged:: 1.0.0
+
+Pandas provides custom formatters for timeseries plots. These change the
+formatting of the axis labels for dates and times. By default,
+the custom formatters are applied only to plots created by pandas with
+:meth:`DataFrame.plot` or :meth:`Series.plot`. To have them apply to all
+plots, including those made by matplotlib, set the option
+``pd.options.plotting.matplotlib.register_converters = True`` or use
+:meth:`pandas.plotting.register_matplotlib_converters`.
+
 Suppressing tick resolution adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1247,14 +1262,12 @@ in ``pandas.plotting.plot_params`` can be used in a `with statement`:
 Automatic date tick adjustment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.20.0
-
 ``TimedeltaIndex`` now uses the native matplotlib
 tick locator methods, it is useful to call the automatic
 date tick adjustment from matplotlib for figures whose ticklabels overlap.
 
 See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
-`matplotlib documentation <http://matplotlib.org/users/recipes.html#fixing-common-date-annoyances>`__ for more.
+`matplotlib documentation <https://matplotlib.org/users/recipes.html#fixing-common-date-annoyances>`__ for more.
 
 Subplots
 ~~~~~~~~
@@ -1463,7 +1476,7 @@ as seen in the example below.
 There also exists a helper function ``pandas.plotting.table``, which creates a
 table from :class:`DataFrame` or :class:`Series`, and adds it to an
 ``matplotlib.Axes`` instance. This function can accept keywords which the
-matplotlib `table <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ has.
+matplotlib `table <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ has.
 
 .. ipython:: python
 
@@ -1481,7 +1494,7 @@ matplotlib `table <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.
 
    plt.close('all')
 
-**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documentation <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
+**Note**: You can get table instances on the axes using ``axes.tables`` property for further decorations. See the `matplotlib table documentation <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table>`__ for more.
 
 .. _visualization.colormaps:
 
@@ -1491,7 +1504,7 @@ Colormaps
 A potential issue when plotting a large number of columns is that it can be
 difficult to distinguish some series due to repetition in the default colors. To
 remedy this, ``DataFrame`` plotting supports the use of the ``colormap`` argument,
-which accepts either a Matplotlib `colormap <http://matplotlib.org/api/cm_api.html>`__
+which accepts either a Matplotlib `colormap <https://matplotlib.org/api/cm_api.html>`__
 or a string that is a name of a colormap registered with Matplotlib. A
 visualization of the default matplotlib colormaps is available `here
 <https://matplotlib.org/examples/color/colormaps_reference.html>`__.
@@ -1628,3 +1641,46 @@ when plotting a large number of points.
    :suppress:
 
     plt.close('all')
+
+Plotting backends
+-----------------
+
+Starting in version 0.25, pandas can be extended with third-party plotting backends. The
+main idea is letting users select a plotting backend different than the provided
+one based on Matplotlib.
+
+This can be done by passsing 'backend.module' as the argument ``backend`` in ``plot``
+function. For example:
+
+.. code-block:: python
+
+    >>> Series([1, 2, 3]).plot(backend='backend.module')
+
+Alternatively, you can also set this option globally, do you don't need to specify
+the keyword in each ``plot`` call. For example:
+
+.. code-block:: python
+
+    >>> pd.set_option('plotting.backend', 'backend.module')
+    >>> pd.Series([1, 2, 3]).plot()
+
+Or:
+
+.. code-block:: python
+
+    >>> pd.options.plotting.backend = 'backend.module'
+    >>> pd.Series([1, 2, 3]).plot()
+
+This would be more or less equivalent to:
+
+.. code-block:: python
+
+    >>> import backend.module
+    >>> backend.module.plot(pd.Series([1, 2, 3]))
+
+The backend module can then use other visualization tools (Bokeh, Altair, hvplot,...)
+to generate the plots. Some libraries implementing a backend for pandas are listed
+on the ecosystem :ref:`ecosystem.visualization` page.
+
+Developers guide can be found at
+https://dev.pandas.io/docs/development/extending.html#plotting-backends

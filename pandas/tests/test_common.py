@@ -8,7 +8,8 @@ import pytest
 
 import pandas as pd
 from pandas import Series, Timestamp
-from pandas.core import common as com, ops
+from pandas.core import ops
+import pandas.core.common as com
 
 
 def test_get_callable_name():
@@ -59,10 +60,11 @@ def test_random_state():
     assert com.random_state() is np.random
 
     # Error for floats or strings
-    with pytest.raises(ValueError):
+    msg = "random_state must be an integer, a numpy RandomState, or None"
+    with pytest.raises(ValueError, match=msg):
         com.random_state("test")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         com.random_state(5.5)
 
 
@@ -92,15 +94,17 @@ def test_dict_compat():
 
 def test_standardize_mapping():
     # No uninitialized defaultdicts
-    with pytest.raises(TypeError):
+    msg = r"to_dict\(\) only accepts initialized defaultdicts"
+    with pytest.raises(TypeError, match=msg):
         com.standardize_mapping(collections.defaultdict)
 
     # No non-mapping subtypes, instance
-    with pytest.raises(TypeError):
+    msg = "unsupported type: <class 'list'>"
+    with pytest.raises(TypeError, match=msg):
         com.standardize_mapping([])
 
     # No non-mapping subtypes, class
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         com.standardize_mapping(list)
 
     fill = {"bad": "data"}

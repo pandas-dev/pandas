@@ -3,11 +3,21 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - python=3.6.*
+
+  # tools
+  - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - hypothesis>=3.58.0
+  - pytest-cov  # this is only needed in the coverage build
+
+  # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
   - cython>=0.29.13
   - dask
-  - fastparquet>=0.2.1
+  - fastparquet>=0.3.2
   - gcsfs
   - geopandas
   - html5lib
@@ -19,15 +29,11 @@ dependencies:
   - odfpy
   - openpyxl
   - pandas-gbq
-  # https://github.com/pydata/pandas-gbq/issues/271
-  - google-cloud-bigquery<=1.11
   - psycopg2
-  # pyarrow segfaults on load: https://github.com/pandas-dev/pandas/issues/26716
-  # - pyarrow=0.9.0
+  - pyarrow>=0.13.0
   - pymysql
   - pytables
   - python-snappy
-  - python=3.6.*
   - pytz
   - s3fs
   - scikit-learn
@@ -38,15 +44,10 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  # universal
-  - pytest>=5.0.1
-  - pytest-xdist>=1.29.0
-  - pytest-cov
-  - pytest-mock
-  - hypothesis>=3.58.0
   - pip
   - pip:
     - brotlipy
     - coverage
     - pandas-datareader
     - python-dateutil
+    - pyxlsb

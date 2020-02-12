@@ -6,7 +6,13 @@ Usage::
 
 This will be replaced with a message indicating the number of
 code contributors and commits, and then list each contributor
-individually.
+individually. For development versions (before a tag is available)
+use::
+
+    .. contributors:: v0.23.0..v0.23.1|HEAD
+
+While the v0.23.1 tag does not exist, that will use the HEAD of the
+branch as the end of the revision range.
 """
 from announce import build_components
 from docutils import nodes
@@ -27,7 +33,7 @@ class ContributorsDirective(Directive):
         except git.GitCommandError as exc:
             return [
                 self.state.document.reporter.warning(
-                    "Cannot find contributors for range '{}': {}".format(range_, exc),
+                    f"Cannot find contributors for range {repr(range_)}: {exc}",
                     line=self.lineno,
                 )
             ]

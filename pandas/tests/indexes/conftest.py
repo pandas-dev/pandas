@@ -1,51 +1,29 @@
-import numpy as np
 import pytest
 
-import pandas as pd
+import pandas._testing as tm
 from pandas.core.indexes.api import Index, MultiIndex
-import pandas.util.testing as tm
 
-indices_list = [
-    tm.makeUnicodeIndex(100),
-    tm.makeStringIndex(100),
-    tm.makeDateIndex(100),
-    tm.makePeriodIndex(100),
-    tm.makeTimedeltaIndex(100),
-    tm.makeIntIndex(100),
-    tm.makeUIntIndex(100),
-    tm.makeRangeIndex(100),
-    tm.makeFloatIndex(100),
-    Index([True, False]),
-    tm.makeCategoricalIndex(100),
-    tm.makeIntervalIndex(100),
-    Index([]),
-    MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
-    Index([0, 0, 1, 1, 2, 2]),
-]
+indices_dict = {
+    "unicode": tm.makeUnicodeIndex(100),
+    "string": tm.makeStringIndex(100),
+    "datetime": tm.makeDateIndex(100),
+    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
+    "period": tm.makePeriodIndex(100),
+    "timedelta": tm.makeTimedeltaIndex(100),
+    "int": tm.makeIntIndex(100),
+    "uint": tm.makeUIntIndex(100),
+    "range": tm.makeRangeIndex(100),
+    "float": tm.makeFloatIndex(100),
+    "bool": tm.makeBoolIndex(2),
+    "categorical": tm.makeCategoricalIndex(100),
+    "interval": tm.makeIntervalIndex(100),
+    "empty": Index([]),
+    "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "repeats": Index([0, 0, 1, 1, 2, 2]),
+}
 
 
-@pytest.fixture(params=indices_list, ids=lambda x: type(x).__name__)
+@pytest.fixture(params=indices_dict.keys())
 def indices(request):
-    return request.param
-
-
-@pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
-def one(request):
-    # zero-dim integer array behaves like an integer
-    return request.param
-
-
-zeros = [
-    box([0] * 5, dtype=dtype)
-    for box in [pd.Index, np.array]
-    for dtype in [np.int64, np.uint64, np.float64]
-]
-zeros.extend([np.array(0, dtype=dtype) for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0])
-
-
-@pytest.fixture(params=zeros)
-def zero(request):
-    # For testing division by (or of) zero for Index with length 5, this
-    # gives several scalar-zeros and length-5 vector-zeros
-    return request.param
+    # copy to avoid mutation, e.g. setting .name
+    return indices_dict[request.param].copy()

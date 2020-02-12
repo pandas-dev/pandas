@@ -2,25 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, NaT, PeriodIndex, Series
-from pandas.core.arrays import PeriodArray
-from pandas.tests.test_base import Ops
-import pandas.util.testing as tm
+from pandas import Index, NaT, PeriodIndex, Series
+import pandas._testing as tm
 
 
-class TestPeriodIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: (isinstance(x, DatetimeIndex) or isinstance(x, PeriodIndex))
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = [o for o in self.objs if not mask(o)]
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, PeriodIndex)
-        self.check_ops_properties(PeriodArray._field_ops, f)
-        self.check_ops_properties(PeriodArray._object_ops, f)
-        self.check_ops_properties(PeriodArray._bool_ops, f)
-
+class TestPeriodIndexOps:
     def test_resolution(self):
         for freq, expected in zip(
             ["A", "Q", "M", "D", "H", "T", "S", "L", "U"],
@@ -280,10 +266,6 @@ class TestPeriodIndexOps(Ops):
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
 
-    def test_shift(self):
-        # This is tested in test_arithmetic
-        pass
-
     def test_nat(self):
         assert pd.PeriodIndex._na_value is NaT
         assert pd.PeriodIndex([], freq="M")._na_value is NaT
@@ -343,5 +325,5 @@ class TestPeriodIndexOps(Ops):
             idx.freq
 
         # warning for setter
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(AttributeError, match="can't set attribute"):
             idx.freq = pd.offsets.Day()

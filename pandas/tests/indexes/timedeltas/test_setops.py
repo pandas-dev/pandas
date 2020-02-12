@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Int64Index, TimedeltaIndex, timedelta_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Hour
 
@@ -22,6 +22,22 @@ class TestTimedeltaIndex:
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
 
+    def test_union_sort_false(self):
+        tdi = timedelta_range("1day", periods=5)
+
+        left = tdi[3:]
+        right = tdi[:3]
+
+        # Check that we are testing the desired code path
+        assert left._can_fast_union(right)
+
+        result = left.union(right)
+        tm.assert_index_equal(result, tdi)
+
+        result = left.union(right, sort=False)
+        expected = pd.TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
+        tm.assert_index_equal(result, expected)
+
     def test_union_coverage(self):
 
         idx = TimedeltaIndex(["3d", "1d", "2d"])
@@ -39,7 +55,7 @@ class TestTimedeltaIndex:
         rng_b = timedelta_range("1 day", periods=4, freq="4H")
 
         result = rng_a.union(rng_b)
-        exp = TimedeltaIndex(sorted(set(list(rng_a)) | set(list(rng_b))))
+        exp = TimedeltaIndex(sorted(set(rng_a) | set(rng_b)))
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_1745(self):
@@ -50,7 +66,7 @@ class TestTimedeltaIndex:
         )
 
         result = left.union(right)
-        exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
+        exp = TimedeltaIndex(sorted(set(left) | set(right)))
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self):
@@ -59,8 +75,23 @@ class TestTimedeltaIndex:
         right = left + pd.offsets.Minute(15)
 
         result = left.union(right)
-        exp = TimedeltaIndex(sorted(set(list(left)) | set(list(right))))
+        exp = TimedeltaIndex(sorted(set(left) | set(right)))
         tm.assert_index_equal(result, exp)
+
+    def test_union_freq_infer(self):
+        # When taking the union of two TimedeltaIndexes, we infer
+        #  a freq even if the arguments don't have freq.  This matches
+        #  DatetimeIndex behavior.
+        tdi = pd.timedelta_range("1 Day", periods=5)
+        left = tdi[[0, 1, 3, 4]]
+        right = tdi[[2, 3, 1]]
+
+        assert left.freq is None
+        assert right.freq is None
+
+        result = left.union(right)
+        tm.assert_index_equal(result, tdi)
+        assert result.freq == "D"
 
     def test_intersection_bug_1708(self):
         index_1 = timedelta_range("1 day", periods=4, freq="h")
@@ -179,3 +210,51 @@ class TestTimedeltaIndex:
             assert isinstance(result.freq, Hour)
         else:
             assert result.freq is None
+
+
+class TestTimedeltaIndexDifference:
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_difference_freq(self, sort):
+        # GH14323: Difference of TimedeltaIndex should not preserve frequency
+
+        index = timedelta_range("0 days", "5 days", freq="D")
+
+        other = timedelta_range("1 days", "4 days", freq="D")
+        expected = TimedeltaIndex(["0 days", "5 days"], freq=None)
+        idx_diff = index.difference(other, sort)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal("freq", idx_diff, expected)
+
+        other = timedelta_range("2 days", "5 days", freq="D")
+        idx_diff = index.difference(other, sort)
+        expected = TimedeltaIndex(["0 days", "1 days"], freq=None)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal("freq", idx_diff, expected)
+
+    @pytest.mark.parametrize("sort", [None, False])
+    def test_difference_sort(self, sort):
+
+        index = pd.TimedeltaIndex(
+            ["5 days", "3 days", "2 days", "4 days", "1 days", "0 days"]
+        )
+
+        other = timedelta_range("1 days", "4 days", freq="D")
+        idx_diff = index.difference(other, sort)
+
+        expected = TimedeltaIndex(["5 days", "0 days"], freq=None)
+
+        if sort is None:
+            expected = expected.sort_values()
+
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal("freq", idx_diff, expected)
+
+        other = timedelta_range("2 days", "5 days", freq="D")
+        idx_diff = index.difference(other, sort)
+        expected = TimedeltaIndex(["1 days", "0 days"], freq=None)
+
+        if sort is None:
+            expected = expected.sort_values()
+
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal("freq", idx_diff, expected)

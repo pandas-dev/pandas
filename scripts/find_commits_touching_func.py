@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # copyright 2013, y-p @ github
 """
 Search the git history for all commits touching a named method
@@ -46,14 +46,14 @@ argparser.add_argument(
     "--dir-masks",
     metavar="d_re(,d_re)*",
     default=[],
-    help="comma separated list of regexes to match base " "path against",
+    help="comma separated list of regexes to match base path against",
 )
 argparser.add_argument(
     "-p",
     "--path-masks",
     metavar="p_re(,p_re)*",
     default=[],
-    help="comma separated list of regexes to match full " "file path against",
+    help="comma separated list of regexes to match full file path against",
 )
 argparser.add_argument(
     "-y",
@@ -195,7 +195,7 @@ def pprint_hits(hits):
         return hits[i].path, d
 
     print(
-        ("\nThese commits touched the %s method in these files " "on these dates:\n")
+        ("\nThese commits touched the %s method in these files on these dates:\n")
         % args.funcname
     )
     for i in sorted(range(len(hits)), key=sorter):

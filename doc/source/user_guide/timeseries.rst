@@ -376,8 +376,6 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 Using the ``origin`` Parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.20.0
-
 Using the ``origin`` parameter, one can specify an alternative starting point for creation
 of a ``DatetimeIndex``. For example, to use 1960-01-01 as the starting date:
 
@@ -774,7 +772,6 @@ There are several time/date properties that one can access from ``Timestamp`` or
     week,"The week ordinal of the year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"
     weekday,"The number of the day of the week with Monday=0, Sunday=6"
-    weekday_name,"The name of the day in a week (ex: Friday)"
     quarter,"Quarter of the date: Jan-Mar = 1, Apr-Jun = 2, etc."
     days_in_month,"The number of days in the month of the datetime"
     is_month_start,"Logical indicating if first day of month (defined by frequency)"
@@ -1593,10 +1590,10 @@ labels.
 
         s = pd.date_range('2000-01-01', '2000-01-05').to_series()
         s.iloc[2] = pd.NaT
-        s.dt.weekday_name
+        s.dt.day_name()
 
         # default: label='left', closed='left'
-        s.resample('B').last().dt.weekday_name
+        s.resample('B').last().dt.day_name()
 
     Notice how the value for Sunday got pulled back to the previous Friday.
     To get the behavior where the value for Sunday is pushed to Monday, use
@@ -1604,7 +1601,7 @@ labels.
 
     .. ipython:: python
 
-        s.resample('B', label='right', closed='right').last().dt.weekday_name
+        s.resample('B', label='right', closed='right').last().dt.day_name()
 
 The ``axis`` parameter can be set to 0 or 1 and allows you to resample the
 specified axis for a ``DataFrame``.
@@ -1954,6 +1951,10 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+PeriodIndex now supports partial string slicing with non-monotonic indexes.
+
+.. versionadded:: 1.1.0
+
 You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodIndex``, in the same manner as ``DatetimeIndex``. For details, refer to :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>`.
 
 .. ipython:: python
@@ -1983,6 +1984,7 @@ As with ``DatetimeIndex``, the endpoints will be included in the result. The exa
 .. ipython:: python
 
    dfp['2013-01-01 10H':'2013-01-01 11H']
+
 
 Frequency conversion and resampling with PeriodIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -91,8 +91,7 @@ Interaction with scipy.sparse
 
 Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a `scipy.sparse.coo_matrix` by specifying the row and column labels as index levels:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
    s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
@@ -121,8 +120,7 @@ Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:is
 The from_coo method is a convenience method for creating a ``SparseSeries``
 from a ``scipy.sparse.coo_matrix``:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    from scipy import sparse
    A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
@@ -530,7 +528,7 @@ Deprecations
   `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_ for similar
   but more refined functionality (:issue:`3445`).
   The documentation includes some examples how to convert your existing code
-  from ``rplot`` to seaborn `here <http://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html#trellis-plotting-interface>`__.
+  from ``rplot`` to seaborn `here <https://pandas.pydata.org/pandas-docs/version/0.18.1/visualization.html#trellis-plotting-interface>`__.
 
 - The ``pandas.sandbox.qtpandas`` interface is deprecated and will be removed in a future version.
   We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)

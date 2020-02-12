@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas import Series
-from pandas.util.testing import assert_almost_equal, assert_series_equal
+import pandas._testing as tm
 
 
 def test_iloc():
@@ -10,12 +10,12 @@ def test_iloc():
     for i in range(len(s)):
         result = s.iloc[i]
         exp = s[s.index[i]]
-        assert_almost_equal(result, exp)
+        tm.assert_almost_equal(result, exp)
 
     # pass a slice
     result = s.iloc[slice(1, 3)]
     expected = s.loc[2:4]
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # test slice is a view
     result[:] = 0
@@ -24,7 +24,7 @@ def test_iloc():
     # list of integers
     result = s.iloc[[0, 2, 3, 4, 5]]
     expected = s.reindex(s.index[[0, 2, 3, 4, 5]])
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_iloc_nonunique():

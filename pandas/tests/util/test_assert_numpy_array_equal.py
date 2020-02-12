@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Timestamp
-from pandas.util.testing import assert_numpy_array_equal
+import pandas._testing as tm
 
 
 def test_assert_numpy_array_equal_shape_mismatch():
@@ -13,14 +13,14 @@ numpy array shapes are different
 \\[right\\]: \\(3L*,\\)"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array([1, 2]), np.array([3, 4, 5]))
+        tm.assert_numpy_array_equal(np.array([1, 2]), np.array([3, 4, 5]))
 
 
 def test_assert_numpy_array_equal_bad_type():
     expected = "Expected type"
 
     with pytest.raises(AssertionError, match=expected):
-        assert_numpy_array_equal(1, 2)
+        tm.assert_numpy_array_equal(1, 2)
 
 
 @pytest.mark.parametrize(
@@ -28,16 +28,14 @@ def test_assert_numpy_array_equal_bad_type():
     [(np.array([1]), 1, "ndarray", "int"), (1, np.array([1]), "int", "ndarray")],
 )
 def test_assert_numpy_array_equal_class_mismatch(a, b, klass1, klass2):
-    msg = """numpy array are different
+    msg = f"""numpy array are different
 
 numpy array classes are different
 \\[left\\]:  {klass1}
-\\[right\\]: {klass2}""".format(
-        klass1=klass1, klass2=klass2
-    )
+\\[right\\]: {klass2}"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(a, b)
+        tm.assert_numpy_array_equal(a, b)
 
 
 def test_assert_numpy_array_equal_value_mismatch1():
@@ -48,7 +46,7 @@ numpy array values are different \\(66\\.66667 %\\)
 \\[right\\]: \\[1\\.0, nan, 3\\.0\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
+        tm.assert_numpy_array_equal(np.array([np.nan, 2, 3]), np.array([1, np.nan, 3]))
 
 
 def test_assert_numpy_array_equal_value_mismatch2():
@@ -59,7 +57,7 @@ numpy array values are different \\(50\\.0 %\\)
 \\[right\\]: \\[1, 3\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array([1, 2]), np.array([1, 3]))
+        tm.assert_numpy_array_equal(np.array([1, 2]), np.array([1, 3]))
 
 
 def test_assert_numpy_array_equal_value_mismatch3():
@@ -70,7 +68,7 @@ numpy array values are different \\(16\\.66667 %\\)
 \\[right\\]: \\[\\[1, 3\\], \\[3, 4\\], \\[5, 6\\]\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             np.array([[1, 2], [3, 4], [5, 6]]), np.array([[1, 3], [3, 4], [5, 6]])
         )
 
@@ -83,7 +81,7 @@ numpy array values are different \\(50\\.0 %\\)
 \\[right\\]: \\[1\\.1, 2.0\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array([1.1, 2.000001]), np.array([1.1, 2.0]))
+        tm.assert_numpy_array_equal(np.array([1.1, 2.000001]), np.array([1.1, 2.0]))
 
 
 def test_assert_numpy_array_equal_value_mismatch5():
@@ -94,7 +92,7 @@ numpy array values are different \\(16\\.66667 %\\)
 \\[right\\]: \\[\\[1, 3\\], \\[3, 4\\], \\[5, 6\\]\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             np.array([[1, 2], [3, 4], [5, 6]]), np.array([[1, 3], [3, 4], [5, 6]])
         )
 
@@ -107,7 +105,9 @@ numpy array values are different \\(25\\.0 %\\)
 \\[right\\]: \\[\\[1, 3\\], \\[3, 4\\]\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array([[1, 2], [3, 4]]), np.array([[1, 3], [3, 4]]))
+        tm.assert_numpy_array_equal(
+            np.array([[1, 2], [3, 4]]), np.array([[1, 3], [3, 4]])
+        )
 
 
 def test_assert_numpy_array_equal_shape_mismatch_override():
@@ -118,13 +118,13 @@ Index shapes are different
 \\[right\\]: \\(3L*,\\)"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array([1, 2]), np.array([3, 4, 5]), obj="Index")
+        tm.assert_numpy_array_equal(np.array([1, 2]), np.array([3, 4, 5]), obj="Index")
 
 
 def test_numpy_array_equal_unicode():
     # see gh-20503
     #
-    # Test ensures that `assert_numpy_array_equals` raises the right
+    # Test ensures that `tm.assert_numpy_array_equals` raises the right
     # exception when comparing np.arrays containing differing unicode objects.
     msg = """numpy array are different
 
@@ -133,7 +133,9 @@ numpy array values are different \\(33\\.33333 %\\)
 \\[right\\]: \\[á, à, å\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(np.array(["á", "à", "ä"]), np.array(["á", "à", "å"]))
+        tm.assert_numpy_array_equal(
+            np.array(["á", "à", "ä"]), np.array(["á", "à", "å"])
+        )
 
 
 def test_numpy_array_equal_object():
@@ -147,7 +149,7 @@ numpy array values are different \\(50\\.0 %\\)
 \\[right\\]: \\[2011-01-01 00:00:00, 2011-01-02 00:00:00\\]"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_numpy_array_equal(a, b)
+        tm.assert_numpy_array_equal(a, b)
 
 
 @pytest.mark.parametrize("other_type", ["same", "copy"])
@@ -170,6 +172,6 @@ def test_numpy_array_equal_copy_flag(other_type, check_same):
 
     if msg is not None:
         with pytest.raises(AssertionError, match=msg):
-            assert_numpy_array_equal(a, other, check_same=check_same)
+            tm.assert_numpy_array_equal(a, other, check_same=check_same)
     else:
-        assert_numpy_array_equal(a, other, check_same=check_same)
+        tm.assert_numpy_array_equal(a, other, check_same=check_same)

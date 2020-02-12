@@ -2,15 +2,20 @@ from textwrap import dedent
 
 import numpy as np
 
-import pandas._libs.window as libwindow
+import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.base import DataError
-from pandas.core.window.common import _doc_template, _get_center_of_mass, _shared_docs
-from pandas.core.window.rolling import _flex_binary_moment, _Rolling, _zsqrt
+from pandas.core.window.common import (
+    _doc_template,
+    _get_center_of_mass,
+    _shared_docs,
+    zsqrt,
+)
+from pandas.core.window.rolling import _flex_binary_moment, _Rolling
 
 _bias_template = """
         Parameters
@@ -19,25 +24,6 @@ _bias_template = """
             Use a standard estimation bias correction.
         *args, **kwargs
             Arguments and keyword arguments to be passed into func.
-"""
-
-_pairwise_template = """
-        Parameters
-        ----------
-        other : Series, DataFrame, or ndarray, optional
-            If not supplied then will default to self and produce pairwise
-            output.
-        pairwise : bool, default None
-            If False then only matching columns between self and other will be
-            used and the output will be a DataFrame.
-            If True then all pairwise combinations will be calculated and the
-            output will be a MultiIndex DataFrame in the case of DataFrame
-            inputs. In the case of missing elements, only complete pairwise
-            observations will be used.
-        bias : bool, default False
-           Use a standard estimation bias correction.
-        **kwargs
-           Keyword arguments to be passed into func.
 """
 
 
@@ -108,7 +94,7 @@ class EWM(_Rolling):
     (if adjust is True), and 1-alpha and alpha (if adjust is False).
 
     More details can be found at
-    http://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
+    https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
 
     Examples
     --------
@@ -130,6 +116,7 @@ class EWM(_Rolling):
     3  1.615385
     4  3.670213
     """
+
     _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
 
     def __init__(
@@ -247,11 +234,10 @@ class EWM(_Rolling):
 
             # if we have a string function name, wrap it
             if isinstance(func, str):
-                cfunc = getattr(libwindow, func, None)
+                cfunc = getattr(window_aggregations, func, None)
                 if cfunc is None:
                     raise ValueError(
-                        "we do not support this function "
-                        "in libwindow.{func}".format(func=func)
+                        f"we do not support this function in window_aggregations.{func}"
                     )
 
                 def func(arg):
@@ -289,7 +275,7 @@ class EWM(_Rolling):
         Exponential weighted moving stddev.
         """
         nv.validate_window_func("std", args, kwargs)
-        return _zsqrt(self.var(bias=bias, **kwargs))
+        return zsqrt(self.var(bias=bias, **kwargs))
 
     vol = std
 
@@ -303,7 +289,7 @@ class EWM(_Rolling):
         nv.validate_window_func("var", args, kwargs)
 
         def f(arg):
-            return libwindow.ewmcov(
+            return window_aggregations.ewmcov(
                 arg,
                 arg,
                 self.com,
@@ -317,10 +303,26 @@ class EWM(_Rolling):
 
     @Substitution(name="ewm")
     @Appender(_doc_template)
-    @Appender(_pairwise_template)
     def cov(self, other=None, pairwise=None, bias=False, **kwargs):
         """
         Exponential weighted sample covariance.
+
+        Parameters
+        ----------
+        other : Series, DataFrame, or ndarray, optional
+            If not supplied then will default to self and produce pairwise
+            output.
+        pairwise : bool, default None
+            If False then only matching columns between self and other will be
+            used and the output will be a DataFrame.
+            If True then all pairwise combinations will be calculated and the
+            output will be a MultiIndex DataFrame in the case of DataFrame
+            inputs. In the case of missing elements, only complete pairwise
+            observations will be used.
+        bias : bool, default False
+            Use a standard estimation bias correction.
+        **kwargs
+           Keyword arguments to be passed into func.
         """
         if other is None:
             other = self._selected_obj
@@ -331,7 +333,7 @@ class EWM(_Rolling):
         def _get_cov(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
-            cov = libwindow.ewmcov(
+            cov = window_aggregations.ewmcov(
                 X._prep_values(),
                 Y._prep_values(),
                 self.com,
@@ -348,10 +350,24 @@ class EWM(_Rolling):
 
     @Substitution(name="ewm")
     @Appender(_doc_template)
-    @Appender(_pairwise_template)
     def corr(self, other=None, pairwise=None, **kwargs):
         """
         Exponential weighted sample correlation.
+
+        Parameters
+        ----------
+        other : Series, DataFrame, or ndarray, optional
+            If not supplied then will default to self and produce pairwise
+            output.
+        pairwise : bool, default None
+            If False then only matching columns between self and other will be
+            used and the output will be a DataFrame.
+            If True then all pairwise combinations will be calculated and the
+            output will be a MultiIndex DataFrame in the case of DataFrame
+            inputs. In the case of missing elements, only complete pairwise
+            observations will be used.
+        **kwargs
+           Keyword arguments to be passed into func.
         """
         if other is None:
             other = self._selected_obj
@@ -364,7 +380,7 @@ class EWM(_Rolling):
             Y = self._shallow_copy(Y)
 
             def _cov(x, y):
-                return libwindow.ewmcov(
+                return window_aggregations.ewmcov(
                     x,
                     y,
                     self.com,
@@ -380,7 +396,7 @@ class EWM(_Rolling):
                 cov = _cov(x_values, y_values)
                 x_var = _cov(x_values, x_values)
                 y_var = _cov(y_values, y_values)
-                corr = cov / _zsqrt(x_var * y_var)
+                corr = cov / zsqrt(x_var * y_var)
             return X._wrap_result(corr)
 
         return _flex_binary_moment(

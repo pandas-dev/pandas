@@ -8,9 +8,10 @@ import pytest
 import pandas._config.config as cf
 
 from pandas.compat.numpy import np_datetime64_compat
+import pandas.util._test_decorators as td
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,
@@ -22,22 +23,10 @@ try:
     from pandas.plotting._matplotlib import converter
 except ImportError:
     # try / except, rather than skip, to avoid internal refactoring
-    # causing an improprer skip
+    # causing an improper skip
     pass
 
 pytest.importorskip("matplotlib.pyplot")
-
-
-def test_initial_warning():
-    code = (
-        "import pandas as pd; import matplotlib.pyplot as plt; "
-        "s = pd.Series(1, pd.date_range('2000', periods=12)); "
-        "fig, ax = plt.subplots(); "
-        "ax.plot(s.index, s.values)"
-    )
-    call = [sys.executable, "-c", code]
-    out = subprocess.check_output(call, stderr=subprocess.STDOUT).decode()
-    assert "Using an implicitly" in out
 
 
 def test_registry_mpl_resets():
@@ -71,38 +60,20 @@ class TestRegistration:
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
 
-    def test_warns(self):
-        plt = pytest.importorskip("matplotlib.pyplot")
-        s = Series(range(12), index=date_range("2017", periods=12))
-        _, ax = plt.subplots()
-
-        # Set to the "warning" state, in case this isn't the first test run
-        converter._WARN = True
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            ax.plot(s.index, s.values)
-            plt.close()
-
-        assert len(w) == 1
-        assert "Using an implicitly registered datetime converter" in str(w[0])
-
+    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Set to the "warn" state, in case this isn't the first test run
-        converter._WARN = True
         register_matplotlib_converters()
-        with tm.assert_produces_warning(None) as w:
-            ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+        ax.plot(s.index, s.values)
 
     def test_pandas_plots_register(self):
         pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
-        converter._WARN = True
         with tm.assert_produces_warning(None) as w:
             s.plot()
 
@@ -110,14 +81,17 @@ class TestRegistration:
 
     def test_matplotlib_formatters(self):
         units = pytest.importorskip("matplotlib.units")
-        assert Timestamp in units.registry
 
-        ctx = cf.option_context("plotting.matplotlib.register_converters", False)
-        with ctx:
-            assert Timestamp not in units.registry
+        # Can't make any assertion about the start state.
+        # We we check that toggling converters off removes it, and toggling it
+        # on restores it.
 
-        assert Timestamp in units.registry
+        with cf.option_context("plotting.matplotlib.register_converters", True):
+            with cf.option_context("plotting.matplotlib.register_converters", False):
+                assert Timestamp not in units.registry
+            assert Timestamp in units.registry
 
+    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
@@ -125,22 +99,14 @@ class TestRegistration:
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
-        converter._WARN = True
         # Test without registering first, no warning
         with ctx:
-            with tm.assert_produces_warning(None) as w:
-                ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+            ax.plot(s.index, s.values)
 
         # Now test with registering
-        converter._WARN = True
         register_matplotlib_converters()
         with ctx:
-            with tm.assert_produces_warning(None) as w:
-                ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+            ax.plot(s.index, s.values)
 
     def test_registry_resets(self):
         units = pytest.importorskip("matplotlib.units")
@@ -166,15 +132,6 @@ class TestRegistration:
             units.registry.clear()
             for k, v in original.items():
                 units.registry[k] = v
-
-    def test_old_import_warns(self):
-        with tm.assert_produces_warning(FutureWarning) as w:
-            from pandas.tseries import converter
-
-            converter.register()
-
-        assert len(w)
-        assert "pandas.plotting.register_matplotlib_converters" in str(w[0].message)
 
 
 class TestDateTimeConverter:
@@ -305,7 +262,7 @@ class TestDateTimeConverter:
             val1 = self.dtc.convert(ts1, None, None)
             val2 = self.dtc.convert(ts2, None, None)
             if not val1 < val2:
-                raise AssertionError("{0} is not less than {1}.".format(val1, val2))
+                raise AssertionError(f"{val1} is not less than {val2}.")
 
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.

@@ -10,9 +10,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import isna
-from pandas.core.sparse.api import SparseArray, SparseDtype, SparseSeries
-import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
+import pandas._testing as tm
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -221,36 +220,6 @@ class TestSparseArray:
         assert arr.dtype == dtype
         assert exp.dtype == dtype
 
-    @pytest.mark.parametrize("fill", [1, np.nan, 0])
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_sparse_series_round_trip(self, kind, fill):
-        # see gh-13999
-        arr = SparseArray([np.nan, 1, np.nan, 2, 3], kind=kind, fill_value=fill)
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
-
-        arr = SparseArray(
-            [0, 0, 0, 1, 1, 2], dtype=np.int64, kind=kind, fill_value=fill
-        )
-        res = SparseArray(SparseSeries(arr), dtype=np.int64)
-        tm.assert_sp_array_equal(arr, res)
-
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
-
-    @pytest.mark.parametrize("fill", [True, False, np.nan])
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_sparse_series_round_trip2(self, kind, fill):
-        # see gh-13999
-        arr = SparseArray(
-            [True, False, True, True], dtype=np.bool, kind=kind, fill_value=fill
-        )
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
-
-        res = SparseArray(SparseSeries(arr))
-        tm.assert_sp_array_equal(arr, res)
-
     def test_get_item(self):
 
         assert np.isnan(self.arr[1])
@@ -338,11 +307,12 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), allow_fill=True)
 
     def test_take_filling_fill_value(self):
@@ -371,11 +341,12 @@ class TestSparseArray:
         with pytest.raises(ValueError, match=msg):
             sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_take_filling_all_nan(self):
@@ -389,11 +360,12 @@ class TestSparseArray:
         expected = SparseArray([np.nan, np.nan, np.nan], kind="block")
         tm.assert_sp_array_equal(result, expected)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds value in 'indices'"
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, -6]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]))
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), fill_value=True)
 
     def test_set_item(self):
@@ -416,7 +388,7 @@ class TestSparseArray:
     def test_constructor_from_sparse(self):
         res = SparseArray(self.zarr)
         assert res.fill_value == 0
-        assert_almost_equal(res.sp_values, self.zarr.sp_values)
+        tm.assert_almost_equal(res.sp_values, self.zarr.sp_values)
 
     def test_constructor_copy(self):
         cp = SparseArray(self.arr, copy=True)
@@ -498,7 +470,7 @@ class TestSparseArray:
             arr.astype("Sparse[i8]")
 
     def test_astype_bool(self):
-        a = pd.SparseArray([1, 0, 0, 1], dtype=SparseDtype(int, 0))
+        a = SparseArray([1, 0, 0, 1], dtype=SparseDtype(int, 0))
         result = a.astype(bool)
         expected = SparseArray([True, 0, 0, True], dtype=SparseDtype(bool, 0))
         tm.assert_sp_array_equal(result, expected)
@@ -616,7 +588,7 @@ class TestSparseArray:
         assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
-        assert_almost_equal(self.arr.to_dense(), self.arr_data)
+        tm.assert_almost_equal(self.arr.to_dense(), self.arr_data)
 
     @pytest.mark.parametrize(
         "data,shape,dtype",
@@ -648,14 +620,13 @@ class TestSparseArray:
         res = arr.to_dense()
         tm.assert_numpy_array_equal(res, vals)
 
-        with tm.assert_produces_warning(FutureWarning):
-            res2 = arr.get_values()
+        res2 = arr._internal_get_values()
 
         tm.assert_numpy_array_equal(res2, vals)
 
     def test_getitem(self):
         def _checkit(i):
-            assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
+            tm.assert_almost_equal(self.arr[i], self.arr.to_dense()[i])
 
         for i in range(len(self.arr)):
             _checkit(i)
@@ -689,24 +660,29 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,])  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[4:,]  # noqa: E231
+        res = sparse[
+            4:,
+        ]  # noqa: E231
         exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
         tm.assert_sp_array_equal(res, exp)
 
-        with pytest.raises(IndexError):
+        msg = "too many indices for array"
+        with pytest.raises(IndexError, match=msg):
             sparse[4:, :]
 
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             # check numpy compat
             dense[4:, :]
 
     def test_boolean_slice_empty(self):
-        arr = pd.SparseArray([0, 1, 2])
+        arr = SparseArray([0, 1, 2])
         res = arr[[False, False, False]]
         assert res.dtype == arr.dtype
 
@@ -733,7 +709,7 @@ class TestSparseArray:
                 op(first.to_dense(), second.to_dense()), fill_value=first.fill_value
             )
             assert isinstance(res, SparseArray)
-            assert_almost_equal(res.to_dense(), exp.to_dense())
+            tm.assert_almost_equal(res.to_dense(), exp.to_dense())
 
             res2 = op(first, second.to_dense())
             assert isinstance(res2, SparseArray)
@@ -753,8 +729,8 @@ class TestSparseArray:
             except ValueError:
                 pass
             else:
-                assert_almost_equal(res4.fill_value, exp_fv)
-                assert_almost_equal(res4.to_dense(), exp)
+                tm.assert_almost_equal(res4.fill_value, exp_fv)
+                tm.assert_almost_equal(res4.to_dense(), exp)
 
         with np.errstate(all="ignore"):
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
@@ -852,13 +828,13 @@ class TestSparseArray:
 
     def test_nonzero(self):
         # Tests regression #21172.
-        sa = pd.SparseArray([float("nan"), float("nan"), 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
+        sa = SparseArray([float("nan"), float("nan"), 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
         expected = np.array([2, 5, 9], dtype=np.int32)
-        result, = sa.nonzero()
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
-        sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
-        result, = sa.nonzero()
+        sa = SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
+        (result,) = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
 
@@ -1034,7 +1010,7 @@ class TestSparseArrayAnalytics:
                 np.cumsum(SparseArray(data), out=out)
         else:
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
-            msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
+            msg = re.escape(f"axis(={axis}) out of bounds")
             with pytest.raises(ValueError, match=msg):
                 SparseArray(data).cumsum(axis=axis)
 
@@ -1110,11 +1086,11 @@ class TestSparseArrayAnalytics:
     @pytest.mark.parametrize("fill_value", [0.0, np.nan])
     def test_modf(self, fill_value):
         # https://github.com/pandas-dev/pandas/issues/26946
-        sparse = pd.SparseArray([fill_value] * 10 + [1.1, 2.2], fill_value=fill_value)
+        sparse = SparseArray([fill_value] * 10 + [1.1, 2.2], fill_value=fill_value)
         r1, r2 = np.modf(sparse)
         e1, e2 = np.modf(np.asarray(sparse))
-        tm.assert_sp_array_equal(r1, pd.SparseArray(e1, fill_value=fill_value))
-        tm.assert_sp_array_equal(r2, pd.SparseArray(e2, fill_value=fill_value))
+        tm.assert_sp_array_equal(r1, SparseArray(e1, fill_value=fill_value))
+        tm.assert_sp_array_equal(r2, SparseArray(e2, fill_value=fill_value))
 
     def test_nbytes_integer(self):
         arr = SparseArray([1, 0, 0, 0, 2], kind="integer")
@@ -1130,7 +1106,7 @@ class TestSparseArrayAnalytics:
         assert result == 24
 
     def test_asarray_datetime64(self):
-        s = pd.SparseArray(pd.to_datetime(["2012", None, None, "2013"]))
+        s = SparseArray(pd.to_datetime(["2012", None, None, "2013"]))
         np.asarray(s)
 
     def test_density(self):
@@ -1142,7 +1118,6 @@ class TestSparseArrayAnalytics:
         assert arr.npoints == 1
 
 
-@pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
 class TestAccessor:
     @pytest.mark.parametrize("attr", ["npoints", "density", "fill_value", "sp_values"])
     def test_get_attributes(self, attr):
@@ -1233,7 +1208,7 @@ def test_first_fill_value_loc(arr, loc):
 )
 @pytest.mark.parametrize("fill_value", [np.nan, 0, 1])
 def test_unique_na_fill(arr, fill_value):
-    a = pd.SparseArray(arr, fill_value=fill_value).unique()
+    a = SparseArray(arr, fill_value=fill_value).unique()
     b = pd.Series(arr).unique()
     assert isinstance(a, SparseArray)
     a = np.asarray(a)
@@ -1272,12 +1247,3 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
-
-
-def test_deprecated_values():
-    arr = SparseArray([0, 1, 2])
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = arr.values
-
-    tm.assert_numpy_array_equal(result, arr.to_dense())

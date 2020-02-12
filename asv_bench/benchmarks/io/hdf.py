@@ -1,9 +1,8 @@
 import numpy as np
 
 from pandas import DataFrame, HDFStore, date_range, read_hdf
-import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO
+from ..pandas_vb_common import BaseIO, tm
 
 
 class HDFStoreDataFrame(BaseIO):
@@ -88,11 +87,11 @@ class HDFStoreDataFrame(BaseIO):
 
     def time_query_store_table_wide(self):
         self.store.select(
-            "table_wide", where="index > self.start_wide and " "index < self.stop_wide"
+            "table_wide", where="index > self.start_wide and index < self.stop_wide"
         )
 
     def time_query_store_table(self):
-        self.store.select("table", where="index > self.start and " "index < self.stop")
+        self.store.select("table", where="index > self.start and index < self.stop")
 
     def time_store_repr(self):
         repr(self.store)
@@ -115,7 +114,7 @@ class HDF(BaseIO):
         C = 5
         self.df = DataFrame(
             np.random.randn(N, C),
-            columns=["float{}".format(i) for i in range(C)],
+            columns=[f"float{i}" for i in range(C)],
             index=date_range("20000101", periods=N, freq="H"),
         )
         self.df["object"] = tm.makeStringIndex(N)

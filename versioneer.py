@@ -8,7 +8,6 @@ The Versioneer
 * https://github.com/warner/python-versioneer
 * Brian Warner
 * License: Public Domain
-* Compatible With: python2.6, 2.7, 3.2, 3.3, 3.4, and pypy
 * [![Latest Version]
 (https://pypip.in/version/versioneer/badge.svg?style=flat)
 ](https://pypi.org/project/versioneer/)
@@ -464,9 +463,9 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
         if verbose:
             print("unable to find command, tried %s" % (commands,))
         return None
-    stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3:
-        stdout = stdout.decode()
+
+    stdout = p.communicate()[0].strip().decode()
+
     if p.returncode != 0:
         if verbose:
             print("unable to run %s (error)" % dispcmd)
@@ -561,9 +560,9 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
         if verbose:
             print("unable to find command, tried %%s" %% (commands,))
         return None
-    stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3:
-        stdout = stdout.decode()
+
+    stdout = p.communicate()[0].strip().decode()
+
     if p.returncode != 0:
         if verbose:
             print("unable to run %%s (error)" %% dispcmd)
@@ -1678,7 +1677,7 @@ def do_setup():
     except EnvironmentError:
         pass
     # That doesn't cover everything MANIFEST.in can do
-    # (http://docs.python.org/2/distutils/sourcedist.html#commands), so
+    # (https://docs.python.org/2/distutils/sourcedist.html#commands), so
     # it might give some false negatives. Appending redundant 'include'
     # lines is safe, though.
     if "versioneer.py" not in simple_includes:

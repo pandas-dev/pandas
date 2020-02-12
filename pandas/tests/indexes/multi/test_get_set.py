@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import CategoricalIndex, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def assert_matching(actual, expected, check_dtype=False):
@@ -57,8 +57,6 @@ def test_get_value_duplicates():
     )
 
     assert index.get_loc("D") == slice(0, 3)
-    with pytest.raises(KeyError, match=r"^'D'$"):
-        index._engine.get_value(np.array([]), "D")
 
 
 def test_get_level_values_all_na():
@@ -159,7 +157,7 @@ def test_set_levels_codes_directly(idx):
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
-    msg = "can't set attribute"
+    msg = "[Cc]an't set attribute"
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
     with pytest.raises(AttributeError, match=msg):
@@ -304,27 +302,6 @@ def test_set_codes(idx):
     # [w/ mutation]
     result = ind.copy()
     result.set_codes(codes=new_codes, level=1, inplace=True)
-    assert result.equals(expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        ind.set_codes(labels=new_codes, level=1)
-
-
-def test_set_labels_deprecated():
-    # GH23752
-    ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
-    new_labels = range(129, -1, -1)
-    expected = pd.MultiIndex.from_tuples([(0, i) for i in new_labels])
-
-    # [w/o mutation]
-    with tm.assert_produces_warning(FutureWarning):
-        result = ind.set_labels(labels=new_labels, level=1)
-    assert result.equals(expected)
-
-    # [w/ mutation]
-    result = ind.copy()
-    with tm.assert_produces_warning(FutureWarning):
-        result.set_labels(labels=new_labels, level=1, inplace=True)
     assert result.equals(expected)
 
 

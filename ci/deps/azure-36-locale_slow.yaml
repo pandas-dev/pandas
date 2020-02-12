@@ -3,34 +3,30 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - beautifulsoup4
-  - cython>=0.29.13
-  - gcsfs
-  - html5lib
-  - ipython
-  - jinja2
-  - lxml
-  - matplotlib=3.0.*
-  - nomkl
-  - numexpr
-  - numpy=1.15.*
-  - openpyxl
-  - pytables
-  - python-dateutil
   - python=3.6.*
-  - pytz
-  - s3fs
-  - scipy
-  - xarray
-  - xlrd
-  - xlsxwriter
-  - xlwt
-  # universal
-  - pytest>=4.0.2
-  - pytest-xdist
-  - pytest-mock
+
+  # tools
+  - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - hypothesis>=3.58.0
   - pytest-azurepipelines
-  - moto
+
+  # pandas dependencies
+  - beautifulsoup4=4.6.0
+  - bottleneck=1.2.*
+  - lxml
+  - matplotlib=2.2.2
+  - numpy=1.14.*
+  - openpyxl=2.5.7
+  - python-dateutil
+  - python-blosc
+  - pytz=2017.2
+  - scipy
+  - sqlalchemy=1.1.4
+  - xlrd=1.1.0
+  - xlsxwriter=0.9.8
+  - xlwt=1.2.0
   - pip
   - pip:
-    - hypothesis>=3.58.0
+    - html5lib==1.0b2

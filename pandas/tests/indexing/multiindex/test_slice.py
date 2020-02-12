@@ -1,5 +1,3 @@
-from warnings import catch_warnings
-
 import numpy as np
 import pytest
 
@@ -7,12 +5,11 @@ from pandas.errors import UnsortedIndexError
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.indexing import _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
-from pandas.util import testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:\\n.ix:FutureWarning")
 class TestMultiIndexSlicers:
     def test_per_axis_per_level_getitem(self):
 
@@ -492,6 +489,44 @@ class TestMultiIndexSlicers:
         with pytest.raises(ValueError):
             df.loc(axis="foo")[:, :, ["C1", "C3"]]
 
+    def test_loc_axis_single_level_multi_col_indexing_multiindex_col_df(self):
+
+        # GH29519
+        df = pd.DataFrame(
+            np.arange(27).reshape(3, 9),
+            columns=pd.MultiIndex.from_product(
+                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
+            ),
+        )
+        result = df.loc(axis=1)["a1":"a2"]
+        expected = df.iloc[:, :-3]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_axis_single_level_single_col_indexing_multiindex_col_df(self):
+
+        # GH29519
+        df = pd.DataFrame(
+            np.arange(27).reshape(3, 9),
+            columns=pd.MultiIndex.from_product(
+                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
+            ),
+        )
+        result = df.loc(axis=1)["a1"]
+        expected = df.iloc[:, :3]
+        expected.columns = ["b1", "b2", "b3"]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_ax_single_level_indexer_simple_df(self):
+
+        # GH29519
+        # test single level indexing on single index column data frame
+        df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
+        result = df.loc(axis=1)["a"]
+        expected = pd.Series(np.array([0, 3, 6]), name="a")
+        tm.assert_series_equal(result, expected)
+
     def test_per_axis_per_level_setitem(self):
 
         # test index maker
@@ -637,8 +672,6 @@ class TestMultiIndexSlicers:
         def assert_slices_equivalent(l_slc, i_slc):
             tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
             tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
-            with catch_warnings(record=True):
-                tm.assert_series_equal(s.ix[l_slc], s.iloc[i_slc])
 
         assert_slices_equivalent(SLC[::-1], SLC[::-1])
 

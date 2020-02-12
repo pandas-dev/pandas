@@ -12,9 +12,8 @@ from pandas import (
     MultiIndex,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.indexes.base import InvalidIndexError
-import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
 
 
 def test_slice_locs_partial(idx):
@@ -96,7 +95,6 @@ def test_slice_locs_not_contained():
     index = MultiIndex(
         levels=[[0, 2, 4, 6], [0, 2, 4]],
         codes=[[0, 0, 0, 1, 1, 2, 3, 3, 3], [0, 1, 2, 1, 2, 2, 0, 1, 2]],
-        sortorder=0,
     )
 
     result = index.slice_locs((1, 0), (5, 2))
@@ -146,32 +144,32 @@ def test_get_indexer():
     idx2 = index[[1, 3, 5]]
 
     r1 = idx1.get_indexer(idx2)
-    assert_almost_equal(r1, np.array([1, 3, -1], dtype=np.intp))
+    tm.assert_almost_equal(r1, np.array([1, 3, -1], dtype=np.intp))
 
     r1 = idx2.get_indexer(idx1, method="pad")
     e1 = np.array([-1, 0, 0, 1, 1], dtype=np.intp)
-    assert_almost_equal(r1, e1)
+    tm.assert_almost_equal(r1, e1)
 
     r2 = idx2.get_indexer(idx1[::-1], method="pad")
-    assert_almost_equal(r2, e1[::-1])
+    tm.assert_almost_equal(r2, e1[::-1])
 
     rffill1 = idx2.get_indexer(idx1, method="ffill")
-    assert_almost_equal(r1, rffill1)
+    tm.assert_almost_equal(r1, rffill1)
 
     r1 = idx2.get_indexer(idx1, method="backfill")
     e1 = np.array([0, 0, 1, 1, 2], dtype=np.intp)
-    assert_almost_equal(r1, e1)
+    tm.assert_almost_equal(r1, e1)
 
     r2 = idx2.get_indexer(idx1[::-1], method="backfill")
-    assert_almost_equal(r2, e1[::-1])
+    tm.assert_almost_equal(r2, e1[::-1])
 
     rbfill1 = idx2.get_indexer(idx1, method="bfill")
-    assert_almost_equal(r1, rbfill1)
+    tm.assert_almost_equal(r1, rbfill1)
 
     # pass non-MultiIndex
     r1 = idx1.get_indexer(idx2.values)
     rexp1 = idx1.get_indexer(idx2)
-    assert_almost_equal(r1, rexp1)
+    tm.assert_almost_equal(r1, rexp1)
 
     r1 = idx1.get_indexer([1, 2, 3])
     assert (r1 == [-1, -1, -1]).all()
@@ -394,11 +392,12 @@ def test_get_loc_missing_nan():
     # GH 8569
     idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
     assert isinstance(idx.get_loc(1), slice)
-    with pytest.raises(KeyError, match=r"^3\.0$"):
+    with pytest.raises(KeyError, match=r"^3$"):
         idx.get_loc(3)
     with pytest.raises(KeyError, match=r"^nan$"):
         idx.get_loc(np.nan)
-    with pytest.raises(KeyError, match=r"^\[nan\]$"):
+    with pytest.raises(TypeError, match="unhashable type: 'list'"):
+        # listlike/non-hashable raises TypeError
         idx.get_loc([np.nan])
 
 
@@ -439,3 +438,91 @@ def test_timestamp_multiindex_indexer():
     )
     should_be = pd.Series(data=np.arange(24, len(qidx) + 24), index=qidx, name="foo")
     tm.assert_series_equal(result, should_be)
+
+
+def test_get_loc_with_values_including_missing_values():
+    # issue 19132
+    idx = MultiIndex.from_product([[np.nan, 1]] * 2)
+    expected = slice(0, 2, None)
+    assert idx.get_loc(np.nan) == expected
+
+    idx = MultiIndex.from_arrays([[np.nan, 1, 2, np.nan]])
+    expected = np.array([True, False, False, True])
+    tm.assert_numpy_array_equal(idx.get_loc(np.nan), expected)
+
+    idx = MultiIndex.from_product([[np.nan, 1]] * 3)
+    expected = slice(2, 4, None)
+    assert idx.get_loc((np.nan, 1)) == expected
+
+
+@pytest.mark.parametrize(
+    "index_arr,labels,expected",
+    [
+        (
+            [[1, np.nan, 2], [3, 4, 5]],
+            [1, np.nan, 2],
+            np.array([-1, -1, -1], dtype=np.intp),
+        ),
+        ([[1, np.nan, 2], [3, 4, 5]], [(np.nan, 4)], np.array([1], dtype=np.intp)),
+        ([[1, 2, 3], [np.nan, 4, 5]], [(1, np.nan)], np.array([0], dtype=np.intp)),
+        (
+            [[1, 2, 3], [np.nan, 4, 5]],
+            [np.nan, 4, 5],
+            np.array([-1, -1, -1], dtype=np.intp),
+        ),
+    ],
+)
+def test_get_indexer_with_missing_value(index_arr, labels, expected):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.get_indexer(labels)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index_arr,expected,target,algo",
+    [
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], 0, np.nan, "left"),
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], 1, (np.nan, "c"), "right"),
+        ([["a", "b", "c"], ["d", np.nan, "d"]], 1, ("b", np.nan), "left"),
+    ],
+)
+def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.get_slice_bound(target, side=algo, kind="loc")
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "index_arr,expected,start_idx,end_idx",
+    [
+        ([[np.nan, 1, 2], [3, 4, 5]], slice(0, 2, None), np.nan, 1),
+        ([[np.nan, 1, 2], [3, 4, 5]], slice(0, 3, None), np.nan, (2, 5)),
+        ([[1, 2, 3], [4, np.nan, 5]], slice(1, 3, None), (2, np.nan), 3),
+        ([[1, 2, 3], [4, np.nan, 5]], slice(1, 3, None), (2, np.nan), (3, 5)),
+    ],
+)
+def test_slice_indexer_with_missing_value(index_arr, expected, start_idx, end_idx):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.slice_indexer(start=start_idx, end=end_idx)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "index_arr,expected,start_idx,end_idx",
+    [
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], (0, 3), np.nan, None),
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], (0, 3), np.nan, "b"),
+        ([[np.nan, "a", "b"], ["c", "d", "e"]], (0, 3), np.nan, ("b", "e")),
+        ([["a", "b", "c"], ["d", np.nan, "e"]], (1, 3), ("b", np.nan), None),
+        ([["a", "b", "c"], ["d", np.nan, "e"]], (1, 3), ("b", np.nan), "c"),
+        ([["a", "b", "c"], ["d", np.nan, "e"]], (1, 3), ("b", np.nan), ("c", "e")),
+    ],
+)
+def test_slice_locs_with_missing_value(index_arr, expected, start_idx, end_idx):
+    # issue 19132
+    idx = MultiIndex.from_arrays(index_arr)
+    result = idx.slice_locs(start=start_idx, end=end_idx)
+    assert result == expected

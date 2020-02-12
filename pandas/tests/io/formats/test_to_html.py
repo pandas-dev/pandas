@@ -7,18 +7,18 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
 lorem_ipsum = (
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod"
-    " tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"
-    " veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex"
-    " ea commodo consequat. Duis aute irure dolor in reprehenderit in"
-    " voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur"
-    " sint occaecat cupidatat non proident, sunt in culpa qui officia"
-    " deserunt mollit anim id est laborum."
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
+    "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim "
+    "veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex "
+    "ea commodo consequat. Duis aute irure dolor in reprehenderit in "
+    "voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur "
+    "sint occaecat cupidatat non proident, sunt in culpa qui officia "
+    "deserunt mollit anim id est laborum."
 )
 
 
@@ -97,6 +97,14 @@ def test_to_html_unicode(df, expected, datapath):
     expected = expected_html(datapath, expected)
     result = df.to_html()
     assert result == expected
+
+
+def test_to_html_encoding(float_frame, tmp_path):
+    # GH 28663
+    path = tmp_path / "test.html"
+    float_frame.to_html(path, encoding="gbk")
+    with open(str(path), "r", encoding="gbk") as f:
+        assert float_frame.to_html() == f.read()
 
 
 def test_to_html_decimal(datapath):
@@ -232,6 +240,32 @@ def test_to_html_truncate(datapath):
     df = DataFrame(index=index, columns=range(20))
     result = df.to_html(max_rows=8, max_cols=4)
     expected = expected_html(datapath, "truncate")
+    assert result == expected
+
+
+@pytest.mark.parametrize("size", [1, 5])
+def test_html_invalid_formatters_arg_raises(size):
+    # issue-28469
+    df = DataFrame(columns=["a", "b", "c"])
+    msg = "Formatters length({}) should match DataFrame number of columns(3)"
+    with pytest.raises(ValueError, match=re.escape(msg.format(size))):
+        df.to_html(formatters=["{}".format] * size)
+
+
+def test_to_html_truncate_formatter(datapath):
+    # issue-25955
+    data = [
+        {"A": 1, "B": 2, "C": 3, "D": 4},
+        {"A": 5, "B": 6, "C": 7, "D": 8},
+        {"A": 9, "B": 10, "C": 11, "D": 12},
+        {"A": 13, "B": 14, "C": 15, "D": 16},
+    ]
+
+    df = DataFrame(data)
+    fmt = lambda x: str(x) + "_mod"
+    formatters = [fmt, fmt, None, None]
+    result = df.to_html(formatters=formatters, max_cols=3)
+    expected = expected_html(datapath, "truncate_formatter")
     assert result == expected
 
 
@@ -654,7 +688,7 @@ def test_to_html_float_format_no_fixed_width(value, float_format, expected, data
 def test_to_html_render_links(render_links, expected, datapath):
     # GH 2679
     data = [
-        [0, "http://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
+        [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
         [0, "www.pydata.org", "pydata.org"],
     ]
     df = DataFrame(data, columns=["foo", "bar", None])

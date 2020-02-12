@@ -353,7 +353,7 @@ Example:
 
     mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
                                     names=['AB', 'CD', 'EF'])
-    df = pd.DataFrame([i for i in range(len(mi))], index=mi, columns=['N'])
+    df = pd.DataFrame(list(range(len(mi))), index=mi, columns=['N'])
     df
     df.rename_axis(index={'CD': 'New'})
 
@@ -1933,4 +1933,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.23.4..HEAD
+.. contributors:: v0.23.4..v0.24.0

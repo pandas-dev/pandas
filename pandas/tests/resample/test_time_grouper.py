@@ -6,10 +6,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))
 
@@ -27,7 +26,7 @@ def test_apply():
 
     applied.index = applied.index.droplevel(0)
     expected.index = expected.index.droplevel(0)
-    assert_series_equal(applied, expected)
+    tm.assert_series_equal(applied, expected)
 
 
 def test_count():
@@ -38,11 +37,11 @@ def test_count():
     grouper = Grouper(freq="A", label="right", closed="right")
     result = test_series.groupby(grouper).count()
     expected.index = result.index
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = test_series.resample("A").count()
     expected.index = result.index
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_numpy_reduction():
@@ -51,7 +50,7 @@ def test_numpy_reduction():
     expected = test_series.groupby(lambda x: x.year).agg(np.prod)
     expected.index = result.index
 
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_apply_iteration():
@@ -90,7 +89,7 @@ def test_fails_on_no_datetime_index(name, func):
 
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex "
-        "or PeriodIndex, but got an instance of '{}'".format(name)
+        f"or PeriodIndex, but got an instance of '{name}'"
     )
     with pytest.raises(TypeError, match=msg):
         df.groupby(Grouper(freq="D"))
@@ -153,7 +152,7 @@ def test_aggregate_normal(resample_method):
         expected.index = date_range(start='2013-01-01',
                                     freq='D', periods=5, name='key')
         dt_result = getattr(dt_grouped, func)(3)
-        assert_frame_equal(expected, dt_result)
+        tm.assert_frame_equal(expected, dt_result)
     """
 
 
@@ -210,7 +209,7 @@ def test_aggregate_with_nat(func, fill_value):
     expected = normal_result.append(pad)
     expected = expected.sort_index()
     expected.index = date_range(start="2013-01-01", freq="D", periods=5, name="key")
-    assert_frame_equal(expected, dt_result)
+    tm.assert_frame_equal(expected, dt_result)
     assert dt_result.index.name == "key"
 
 
@@ -240,7 +239,7 @@ def test_aggregate_with_nat_size():
     expected = normal_result.append(pad)
     expected = expected.sort_index()
     expected.index = date_range(start="2013-01-01", freq="D", periods=5, name="key")
-    assert_series_equal(expected, dt_result)
+    tm.assert_series_equal(expected, dt_result)
     assert dt_result.index.name == "key"
 
 

@@ -311,8 +311,6 @@ Grouping with multiple levels is supported.
    s
    s.groupby(level=['first', 'second']).sum()
 
-.. versionadded:: 0.20
-
 Index level names may be supplied as keys.
 
 .. ipython:: python
@@ -352,8 +350,6 @@ Index levels may also be specified by name.
 .. ipython:: python
 
    df.groupby([pd.Grouper(level='second'), 'A']).sum()
-
-.. versionadded:: 0.20
 
 Index level names may be specified as keys directly to ``groupby``.
 
@@ -1273,8 +1269,6 @@ To see the order in which each row appears within its group, use the
 
 Enumerate groups
 ~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.20.2
 
 To see the ordering of the groups (as opposed to the order of rows
 within a group given by ``cumcount``) you can use

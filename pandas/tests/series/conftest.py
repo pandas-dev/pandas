@@ -1,16 +1,6 @@
 import pytest
 
-import pandas.util.testing as tm
-
-
-@pytest.fixture
-def datetime_series():
-    """
-    Fixture for Series of floats with DatetimeIndex
-    """
-    s = tm.makeTimeSeries()
-    s.name = "ts"
-    return s
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -26,7 +16,7 @@ def string_series():
 @pytest.fixture
 def object_series():
     """
-    Fixture for Series of dtype datetime64[ns] with Index of unique strings
+    Fixture for Series of dtype object with Index of unique strings
     """
     s = tm.makeObjectSeries()
     s.name = "objects"

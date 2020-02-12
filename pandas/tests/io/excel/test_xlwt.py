@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex
-from pandas.util.testing import ensure_clean
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter, _XlwtWriter
 
@@ -19,7 +19,7 @@ def test_excel_raise_error_on_multiindex_columns_and_no_index(ext):
     )
     df = DataFrame(np.random.randn(10, 3), columns=cols)
     with pytest.raises(NotImplementedError):
-        with ensure_clean(ext) as path:
+        with tm.ensure_clean(ext) as path:
             df.to_excel(path, index=False)
 
 
@@ -28,7 +28,7 @@ def test_excel_multiindex_columns_and_index_true(ext):
         [("site", ""), ("2014", "height"), ("2014", "weight")]
     )
     df = pd.DataFrame(np.random.randn(10, 3), columns=cols)
-    with ensure_clean(ext) as path:
+    with tm.ensure_clean(ext) as path:
         df.to_excel(path, index=True)
 
 
@@ -38,7 +38,7 @@ def test_excel_multiindex_index(ext):
         [("site", ""), ("2014", "height"), ("2014", "weight")]
     )
     df = DataFrame(np.random.randn(3, 10), index=cols)
-    with ensure_clean(ext) as path:
+    with tm.ensure_clean(ext) as path:
         df.to_excel(path, index=False)
 
 
@@ -62,6 +62,6 @@ def test_to_excel_styleconverter(ext):
 def test_write_append_mode_raises(ext):
     msg = "Append mode is not supported with xlwt!"
 
-    with ensure_clean(ext) as f:
+    with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlwt", mode="a")

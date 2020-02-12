@@ -327,8 +327,6 @@ similarly to the ``Series``. These are the *displayed* values of the ``Timedelta
 You can convert a ``Timedelta`` to an `ISO 8601 Duration`_ string with the
 ``.isoformat`` method
 
-.. versionadded:: 0.20.0
-
 .. ipython:: python
 
     pd.Timedelta(days=6, minutes=50, seconds=3,

@@ -11,7 +11,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
@@ -166,7 +166,7 @@ class TestS3:
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
         with pytest.raises(IOError):
-            read_csv("s3://cant_get_it/")
+            read_csv("s3://cant_get_it/file.csv")
 
     def test_read_csv_handles_boto_s3_object(self, s3_resource, tips_file):
         # see gh-16135
@@ -184,6 +184,8 @@ class TestS3:
 
     def test_read_csv_chunked_download(self, s3_resource, caplog):
         # 8 MB, S3FS usees 5MB chunks
+        import s3fs
+
         df = DataFrame(np.random.randn(100000, 4), columns=list("abcd"))
         buf = BytesIO()
         str_buf = StringIO()
@@ -194,10 +196,16 @@ class TestS3:
 
         s3_resource.Bucket("pandas-test").put_object(Key="large-file.csv", Body=buf)
 
-        with caplog.at_level(logging.DEBUG, logger="s3fs.core"):
+        # Possibly some state leaking in between tests.
+        # If we don't clear this cache, we saw `GetObject operation: Forbidden`.
+        # Presumably the s3fs instance is being cached, with the directory listing
+        # from *before* we add the large-file.csv in the pandas-test bucket.
+        s3fs.S3FileSystem.clear_instance_cache()
+
+        with caplog.at_level(logging.DEBUG, logger="s3fs"):
             read_csv("s3://pandas-test/large-file.csv", nrows=5)
             # log of fetch_range (start, stop)
-            assert (0, 5505024) in {x.args[-2:] for x in caplog.records}
+            assert (0, 5505024) in (x.args[-2:] for x in caplog.records)
 
     def test_read_s3_with_hash_in_key(self, tips_df):
         # GH 25945

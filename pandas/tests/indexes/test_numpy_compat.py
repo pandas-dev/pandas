@@ -6,12 +6,14 @@ from pandas import (
     Float64Index,
     Index,
     Int64Index,
+    PeriodIndex,
     TimedeltaIndex,
     UInt64Index,
     _np_version_under1p17,
+    _np_version_under1p18,
 )
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.util import testing as tm
 
 
 @pytest.mark.parametrize(
@@ -44,7 +46,7 @@ from pandas.util import testing as tm
 )
 def test_numpy_ufuncs_basic(indices, func):
     # test ufuncs of numpy, see:
-    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     idx = indices
     if isinstance(idx, DatetimeIndexOpsMixin):
@@ -75,23 +77,30 @@ def test_numpy_ufuncs_basic(indices, func):
 )
 def test_numpy_ufuncs_other(indices, func):
     # test ufuncs of numpy, see:
-    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+    # https://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     idx = indices
     if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
+        if isinstance(idx, DatetimeIndex) and idx.tz is not None:
+            if func in [np.isfinite, np.isnan, np.isinf]:
+                pytest.xfail(reason="__array_ufunc__ is not defined")
 
-        # ok under numpy >= 1.17
-        if not _np_version_under1p17 and func in [np.isfinite]:
+        if not _np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
+            # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64
+            result = func(idx)
+            assert isinstance(result, np.ndarray)
+
+        elif not _np_version_under1p17 and func in [np.isfinite]:
+            # ok under numpy >= 1.17
             # Results in bool array
             result = func(idx)
             assert isinstance(result, np.ndarray)
-            assert not isinstance(result, Index)
         else:
             # raise TypeError or ValueError (PeriodIndex)
             with pytest.raises(Exception):
                 func(idx)
 
-    elif isinstance(idx, DatetimeIndexOpsMixin):
+    elif isinstance(idx, PeriodIndex):
         # raise TypeError or ValueError (PeriodIndex)
         with pytest.raises(Exception):
             func(idx)

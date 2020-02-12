@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 import pytest
 
@@ -5,27 +7,14 @@ from pandas.core.dtypes.generic import ABCDateOffset
 
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
-from pandas.tests.test_base import Ops
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.offsets import Day, Hour
 
 
-class TestTimedeltaIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: isinstance(x, TimedeltaIndex)
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = []
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, TimedeltaIndex)
-        self.check_ops_properties(TimedeltaIndex._field_ops, f)
-        self.check_ops_properties(TimedeltaIndex._object_ops, f)
-
+class TestTimedeltaIndexOps:
     def test_value_counts_unique(self):
         # GH 7735
-
         idx = timedelta_range("1 days 09:00:00", freq="H", periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
         idx = TimedeltaIndex(np.repeat(idx.values, range(1, len(idx) + 1)))
@@ -124,15 +113,6 @@ class TestTimedeltaIndexOps(Ops):
             ["1 day", "3 day", "5 day", "2 day", "1 day"], name="idx2"
         )
 
-        # TODO(wesm): unused?
-        # exp2 = TimedeltaIndex(['1 day', '1 day', '2 day',
-        #                        '3 day', '5 day'], name='idx2')
-
-        # idx3 = TimedeltaIndex([pd.NaT, '3 minute', '5 minute',
-        #                        '2 minute', pd.NaT], name='idx3')
-        # exp3 = TimedeltaIndex([pd.NaT, pd.NaT, '2 minute', '3 minute',
-        #                        '5 minute'], name='idx3')
-
         for idx, expected in [(idx1, exp1), (idx1, exp1), (idx1, exp1)]:
             ordered = idx.sort_values()
             tm.assert_index_equal(ordered, expected)
@@ -200,9 +180,6 @@ class TestTimedeltaIndexOps(Ops):
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
 
-    def test_shift(self):
-        pass  # handled in test_arithmetic.py
-
     def test_repeat(self):
         index = pd.timedelta_range("1 days", periods=2, freq="D")
         exp = pd.TimedeltaIndex(["1 days", "1 days", "2 days", "2 days"])
@@ -266,6 +243,17 @@ class TestTimedeltaIndexOps(Ops):
         assert not idx.equals(list(idx2))
         assert not idx.equals(pd.Series(idx2))
 
+        # Check that we dont raise OverflowError on comparisons outside the
+        #  implementation range
+        oob = pd.Index([timedelta(days=10 ** 6)] * 3, dtype=object)
+        assert not idx.equals(oob)
+        assert not idx2.equals(oob)
+
+        # FIXME: oob.apply(np.timedelta64) incorrectly overflows
+        oob2 = pd.Index([np.timedelta64(x) for x in oob], dtype=object)
+        assert not idx.equals(oob2)
+        assert not idx2.equals(oob2)
+
     @pytest.mark.parametrize("values", [["0 days", "2 days", "4 days"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "48H", Hour(48)])
     def test_freq_setter(self, values, freq):
@@ -273,12 +261,12 @@ class TestTimedeltaIndexOps(Ops):
         idx = TimedeltaIndex(values)
 
         # can set to an offset, converting from string if necessary
-        idx.freq = freq
+        idx._data.freq = freq
         assert idx.freq == freq
         assert isinstance(idx.freq, ABCDateOffset)
 
         # can reset to None
-        idx.freq = None
+        idx._data.freq = None
         assert idx.freq is None
 
     def test_freq_setter_errors(self):
@@ -291,13 +279,13 @@ class TestTimedeltaIndexOps(Ops):
             "passed frequency 5D"
         )
         with pytest.raises(ValueError, match=msg):
-            idx.freq = "5D"
+            idx._data.freq = "5D"
 
         # setting with a non-fixed frequency
         msg = r"<2 \* BusinessDays> is a non-fixed frequency"
         with pytest.raises(ValueError, match=msg):
-            idx.freq = "2B"
+            idx._data.freq = "2B"
 
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
-            idx.freq = "foo"
+            idx._data.freq = "foo"

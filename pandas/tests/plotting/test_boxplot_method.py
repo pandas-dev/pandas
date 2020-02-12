@@ -10,8 +10,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, MultiIndex, Series, date_range, timedelta_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -174,6 +174,51 @@ class TestDataFramePlots(TestPlotBase):
         )
         ax = df.plot(kind="box")
         assert [x.get_text() for x in ax.get_xticklabels()] == ["b", "c"]
+
+    @pytest.mark.parametrize(
+        "colors_kwd, expected",
+        [
+            (
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+                dict(boxes="r", whiskers="b", medians="g", caps="c"),
+            ),
+            (dict(boxes="r"), dict(boxes="r")),
+            ("r", dict(boxes="r", whiskers="r", medians="r", caps="r")),
+        ],
+    )
+    def test_color_kwd(self, colors_kwd, expected):
+        # GH: 26214
+        df = DataFrame(random.rand(10, 2))
+        result = df.boxplot(color=colors_kwd, return_type="dict")
+        for k, v in expected.items():
+            assert result[k][0].get_color() == v
+
+    @pytest.mark.parametrize(
+        "dict_colors, msg",
+        [(dict(boxes="r", invalid_key="r"), "invalid key 'invalid_key'")],
+    )
+    def test_color_kwd_errors(self, dict_colors, msg):
+        # GH: 26214
+        df = DataFrame(random.rand(10, 2))
+        with pytest.raises(ValueError, match=msg):
+            df.boxplot(color=dict_colors, return_type="dict")
+
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1")}
+        result = df.boxplot(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
 
 
 @td.skip_if_no_mpl

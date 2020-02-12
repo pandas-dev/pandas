@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -12,146 +14,125 @@ from pandas import (
     DatetimeIndex,
     Index,
     Series,
+    Timedelta,
     TimedeltaIndex,
+    Timestamp,
     date_range,
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
-from pandas.core.indexes.datetimes import Timestamp
-import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal, ensure_clean
 
 import pandas.io.formats.printing as printing
 
-from .common import TestData
 
+class TestSeriesMisc:
+    def test_scalarop_preserve_name(self, datetime_series):
+        result = datetime_series * 2
+        assert result.name == datetime_series.name
 
-class SharedWithSparse:
-    """
-    A collection of tests Series and SparseSeries can share.
+    def test_copy_name(self, datetime_series):
+        result = datetime_series.copy()
+        assert result.name == datetime_series.name
 
-    In generic tests on this class, use ``self._assert_series_equal()``
-    which is implemented in sub-classes.
-    """
-
-    def _assert_series_equal(self, left, right):
-        """Dispatch to series class dependent assertion"""
-        raise NotImplementedError
-
-    def test_scalarop_preserve_name(self):
-        result = self.ts * 2
-        assert result.name == self.ts.name
-
-    def test_copy_name(self):
-        result = self.ts.copy()
-        assert result.name == self.ts.name
-
-    def test_copy_index_name_checking(self):
+    def test_copy_index_name_checking(self, datetime_series):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
 
-        self.ts.index.name = None
-        assert self.ts.index.name is None
-        assert self.ts is self.ts
+        datetime_series.index.name = None
+        assert datetime_series.index.name is None
+        assert datetime_series is datetime_series
 
-        cp = self.ts.copy()
+        cp = datetime_series.copy()
         cp.index.name = "foo"
-        printing.pprint_thing(self.ts.index.name)
-        assert self.ts.index.name is None
+        printing.pprint_thing(datetime_series.index.name)
+        assert datetime_series.index.name is None
 
-    def test_append_preserve_name(self):
-        result = self.ts[:5].append(self.ts[5:])
-        assert result.name == self.ts.name
+    def test_append_preserve_name(self, datetime_series):
+        result = datetime_series[:5].append(datetime_series[5:])
+        assert result.name == datetime_series.name
 
-    def test_binop_maybe_preserve_name(self):
+    def test_binop_maybe_preserve_name(self, datetime_series):
         # names match, preserve
-        result = self.ts * self.ts
-        assert result.name == self.ts.name
-        result = self.ts.mul(self.ts)
-        assert result.name == self.ts.name
+        result = datetime_series * datetime_series
+        assert result.name == datetime_series.name
+        result = datetime_series.mul(datetime_series)
+        assert result.name == datetime_series.name
 
-        result = self.ts * self.ts[:-2]
-        assert result.name == self.ts.name
+        result = datetime_series * datetime_series[:-2]
+        assert result.name == datetime_series.name
 
         # names don't match, don't preserve
-        cp = self.ts.copy()
+        cp = datetime_series.copy()
         cp.name = "something else"
-        result = self.ts + cp
+        result = datetime_series + cp
         assert result.name is None
-        result = self.ts.add(cp)
+        result = datetime_series.add(cp)
         assert result.name is None
 
         ops = ["add", "sub", "mul", "div", "truediv", "floordiv", "mod", "pow"]
         ops = ops + ["r" + op for op in ops]
         for op in ops:
             # names match, preserve
-            s = self.ts.copy()
+            s = datetime_series.copy()
             result = getattr(s, op)(s)
-            assert result.name == self.ts.name
+            assert result.name == datetime_series.name
 
             # names don't match, don't preserve
-            cp = self.ts.copy()
+            cp = datetime_series.copy()
             cp.name = "changed"
             result = getattr(s, op)(cp)
             assert result.name is None
 
-    def test_combine_first_name(self):
-        result = self.ts.combine_first(self.ts[:5])
-        assert result.name == self.ts.name
+    def test_combine_first_name(self, datetime_series):
+        result = datetime_series.combine_first(datetime_series[:5])
+        assert result.name == datetime_series.name
 
-    def test_getitem_preserve_name(self):
-        result = self.ts[self.ts > 0]
-        assert result.name == self.ts.name
+    def test_getitem_preserve_name(self, datetime_series):
+        result = datetime_series[datetime_series > 0]
+        assert result.name == datetime_series.name
 
-        result = self.ts[[0, 2, 4]]
-        assert result.name == self.ts.name
+        result = datetime_series[[0, 2, 4]]
+        assert result.name == datetime_series.name
 
-        result = self.ts[5:10]
-        assert result.name == self.ts.name
+        result = datetime_series[5:10]
+        assert result.name == datetime_series.name
 
-    def test_pickle(self):
-        unp_series = self._pickle_roundtrip(self.series)
-        unp_ts = self._pickle_roundtrip(self.ts)
-        assert_series_equal(unp_series, self.series)
-        assert_series_equal(unp_ts, self.ts)
+    def test_pickle_datetimes(self, datetime_series):
+        unp_ts = self._pickle_roundtrip(datetime_series)
+        tm.assert_series_equal(unp_ts, datetime_series)
+
+    def test_pickle_strings(self, string_series):
+        unp_series = self._pickle_roundtrip(string_series)
+        tm.assert_series_equal(unp_series, string_series)
 
     def _pickle_roundtrip(self, obj):
 
-        with ensure_clean() as path:
+        with tm.ensure_clean() as path:
             obj.to_pickle(path)
             unpickled = pd.read_pickle(path)
             return unpickled
 
-    def test_argsort_preserve_name(self):
-        result = self.ts.argsort()
-        assert result.name == self.ts.name
-
-    def test_sort_index_name(self):
-        result = self.ts.sort_index(ascending=False)
-        assert result.name == self.ts.name
-
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    @pytest.mark.filterwarnings("ignore:Series.to_sparse:FutureWarning")
-    def test_to_sparse_pass_name(self):
-        result = self.ts.to_sparse()
-        assert result.name == self.ts.name
+    def test_sort_index_name(self, datetime_series):
+        result = datetime_series.sort_index(ascending=False)
+        assert result.name == datetime_series.name
 
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
-        result = self.series_klass(d)
-        expected = self.series_klass(d, index=sorted(d.keys()))
-        self._assert_series_equal(result, expected)
+        result = Series(d)
+        expected = Series(d, index=sorted(d.keys()))
+        tm.assert_series_equal(result, expected)
 
-        result = self.series_klass(d, index=["b", "c", "d", "a"])
-        expected = self.series_klass([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
-        self._assert_series_equal(result, expected)
+        result = Series(d, index=["b", "c", "d", "a"])
+        expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
+        tm.assert_series_equal(result, expected)
 
-    def test_constructor_subclass_dict(self):
-        data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
-        series = self.series_klass(data)
-        expected = self.series_klass(dict(data.items()))
-        self._assert_series_equal(series, expected)
+    def test_constructor_subclass_dict(self, dict_subclass):
+        data = dict_subclass((x, 10.0 * x) for x in range(10))
+        series = Series(data)
+        expected = Series(dict(data.items()))
+        tm.assert_series_equal(series, expected)
 
     def test_constructor_ordereddict(self):
         # GH3283
@@ -159,44 +140,44 @@ class SharedWithSparse:
             ("col{i}".format(i=i), np.random.random()) for i in range(12)
         )
 
-        series = self.series_klass(data)
-        expected = self.series_klass(list(data.values()), list(data.keys()))
-        self._assert_series_equal(series, expected)
+        series = Series(data)
+        expected = Series(list(data.values()), list(data.keys()))
+        tm.assert_series_equal(series, expected)
 
         # Test with subclass
         class A(OrderedDict):
             pass
 
-        series = self.series_klass(A(data))
-        self._assert_series_equal(series, expected)
+        series = Series(A(data))
+        tm.assert_series_equal(series, expected)
 
     def test_constructor_dict_multiindex(self):
         d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
         _d = sorted(d.items())
-        result = self.series_klass(d)
-        expected = self.series_klass(
+        result = Series(d)
+        expected = Series(
             [x[1] for x in _d], index=pd.MultiIndex.from_tuples([x[0] for x in _d])
         )
-        self._assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         d["z"] = 111.0
         _d.insert(0, ("z", d["z"]))
-        result = self.series_klass(d)
-        expected = self.series_klass(
+        result = Series(d)
+        expected = Series(
             [x[1] for x in _d], index=pd.Index([x[0] for x in _d], tupleize_cols=False)
         )
         result = result.reindex(index=expected.index)
-        self._assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_timedelta_index(self):
         # GH #12169 : Resample category data with timedelta index
         # construct Series from dict as data and TimedeltaIndex as index
         # will result NaN in result Series data
-        expected = self.series_klass(
+        expected = Series(
             data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], unit="s")
         )
 
-        result = self.series_klass(
+        result = Series(
             data={
                 pd.to_timedelta(0, unit="s"): "A",
                 pd.to_timedelta(10, unit="s"): "B",
@@ -204,26 +185,12 @@ class SharedWithSparse:
             },
             index=pd.to_timedelta([0, 10, 20], unit="s"),
         )
-        self._assert_series_equal(result, expected)
-
-    @pytest.mark.filterwarnings("ignore:Sparse:FutureWarning")
-    def test_from_array_deprecated(self):
-
-        # multiple FutureWarnings, so can't assert stacklevel
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.series_klass.from_array([1, 2, 3])
+        tm.assert_series_equal(result, expected)
 
     def test_sparse_accessor_updates_on_inplace(self):
         s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
         s.drop([0, 1], inplace=True)
         assert s.sparse.density == 1.0
-
-
-class TestSeriesMisc(TestData, SharedWithSparse):
-
-    series_klass = Series
-    # SharedWithSparse tests use generic, series_klass-agnostic assertion
-    _assert_series_equal = staticmethod(tm.assert_series_equal)
 
     def test_tab_completion(self):
         # GH 9910
@@ -255,9 +222,6 @@ class TestSeriesMisc(TestData, SharedWithSparse):
     def test_tab_completion_with_categorical(self):
         # test the tab completion display
         ok_for_cat = [
-            "name",
-            "index",
-            "categorical",
             "categories",
             "codes",
             "ordered",
@@ -273,11 +237,11 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
         def get_dir(s):
             results = [r for r in s.cat.__dir__() if not r.startswith("_")]
-            return list(sorted(set(results)))
+            return sorted(set(results))
 
         s = Series(list("aabbcde")).astype("category")
         results = get_dir(s)
-        tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
+        tm.assert_almost_equal(results, sorted(set(ok_for_cat)))
 
     @pytest.mark.parametrize(
         "index",
@@ -301,7 +265,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
     )
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
-        s = pd.Series(index=index)
+        s = pd.Series(index=index, dtype=object)
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
@@ -310,7 +274,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                 assert x not in dir_s
 
     def test_not_hashable(self):
-        s_empty = Series()
+        s_empty = Series(dtype=object)
         s = Series([1])
         msg = "'Series' objects are mutable, thus they cannot be hashed"
         with pytest.raises(TypeError, match=msg):
@@ -318,44 +282,49 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         with pytest.raises(TypeError, match=msg):
             hash(s)
 
-    def test_contains(self):
-        tm.assert_contains_all(self.ts.index, self.ts)
+    def test_contains(self, datetime_series):
+        tm.assert_contains_all(datetime_series.index, datetime_series)
 
-    def test_iter(self):
-        for i, val in enumerate(self.series):
-            assert val == self.series[i]
+    def test_iter_datetimes(self, datetime_series):
+        for i, val in enumerate(datetime_series):
+            assert val == datetime_series[i]
 
-        for i, val in enumerate(self.ts):
-            assert val == self.ts[i]
+    def test_iter_strings(self, string_series):
+        for i, val in enumerate(string_series):
+            assert val == string_series[i]
 
-    def test_keys(self):
+    def test_keys(self, datetime_series):
         # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
         # to .keys() in a list()
-        getkeys = self.ts.keys
-        assert getkeys() is self.ts.index
+        getkeys = datetime_series.keys
+        assert getkeys() is datetime_series.index
 
-    def test_values(self):
-        tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
+    def test_values(self, datetime_series):
+        tm.assert_almost_equal(
+            datetime_series.values, datetime_series, check_dtype=False
+        )
 
-    def test_iteritems(self):
-        for idx, val in self.series.iteritems():
-            assert val == self.series[idx]
+    def test_iteritems_datetimes(self, datetime_series):
+        for idx, val in datetime_series.iteritems():
+            assert val == datetime_series[idx]
 
-        for idx, val in self.ts.iteritems():
-            assert val == self.ts[idx]
+    def test_iteritems_strings(self, string_series):
+        for idx, val in string_series.iteritems():
+            assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
-        assert not hasattr(self.series.iteritems(), "reverse")
+        # assert is lazy (generators don't define reverse, lists do)
+        assert not hasattr(string_series.iteritems(), "reverse")
 
-    def test_items(self):
-        for idx, val in self.series.items():
-            assert val == self.series[idx]
+    def test_items_datetimes(self, datetime_series):
+        for idx, val in datetime_series.items():
+            assert val == datetime_series[idx]
 
-        for idx, val in self.ts.items():
-            assert val == self.ts[idx]
+    def test_items_strings(self, string_series):
+        for idx, val in string_series.items():
+            assert val == string_series[idx]
 
-        # assert is lazy (genrators don't define reverse, lists do)
-        assert not hasattr(self.series.items(), "reverse")
+        # assert is lazy (generators don't define reverse, lists do)
+        assert not hasattr(string_series.items(), "reverse")
 
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
@@ -405,16 +374,16 @@ class TestSeriesMisc(TestData, SharedWithSparse):
             # default deep is True
             if deep is None or deep is True:
                 # Did not modify original Series
-                assert_series_equal(s2, expected2)
-                assert_series_equal(s, expected)
+                tm.assert_series_equal(s2, expected2)
+                tm.assert_series_equal(s, expected)
             else:
                 # we DID modify the original Series
-                assert_series_equal(s2, expected2)
-                assert_series_equal(s, expected2)
+                tm.assert_series_equal(s2, expected2)
+                tm.assert_series_equal(s, expected2)
 
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
-        assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
+        tm.assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
         assert s.dropna().sum("rows") == 3
         assert s._get_axis_number("rows") == 0
         assert s._get_axis_name("rows") == "index"
@@ -424,9 +393,53 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         # no exception and no empty docstring
         assert pydoc.getdoc(Series.index)
 
-    def test_numpy_unique(self):
+    def test_numpy_unique(self, datetime_series):
         # it works!
-        np.unique(self.ts)
+        np.unique(datetime_series)
+
+    def test_item(self):
+        s = Series([1])
+        result = s.item()
+        assert result == 1
+        assert result == s.iloc[0]
+        assert isinstance(result, int)  # i.e. not np.int64
+
+        ser = Series([0.5], index=[3])
+        result = ser.item()
+        assert isinstance(result, float)
+        assert result == 0.5
+
+        ser = Series([1, 2])
+        msg = "can only convert an array of size 1"
+        with pytest.raises(ValueError, match=msg):
+            ser.item()
+
+        dti = pd.date_range("2016-01-01", periods=2)
+        with pytest.raises(ValueError, match=msg):
+            dti.item()
+        with pytest.raises(ValueError, match=msg):
+            Series(dti).item()
+
+        val = dti[:1].item()
+        assert isinstance(val, Timestamp)
+        val = Series(dti)[:1].item()
+        assert isinstance(val, Timestamp)
+
+        tdi = dti - dti
+        with pytest.raises(ValueError, match=msg):
+            tdi.item()
+        with pytest.raises(ValueError, match=msg):
+            Series(tdi).item()
+
+        val = tdi[:1].item()
+        assert isinstance(val, Timedelta)
+        val = Series(tdi)[:1].item()
+        assert isinstance(val, Timedelta)
+
+        # Case where ser[0] would not work
+        ser = Series(dti, index=[5, 6])
+        val = ser[:1].item()
+        assert val == dti[0]
 
     def test_ndarray_compat(self):
 
@@ -444,13 +457,6 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         expected = tsdf.max()
         tm.assert_series_equal(result, expected)
 
-        # .item()
-        with tm.assert_produces_warning(FutureWarning):
-            s = Series([1])
-            result = s.item()
-            assert result == 1
-            assert s.item() == s.iloc[0]
-
         # using an ndarray like function
         s = Series(np.random.randn(10))
         result = Series(np.ones_like(s))
@@ -460,30 +466,6 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         # ravel
         s = Series(np.random.randn(10))
         tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
-
-        # compress
-        # GH 6658
-        s = Series([0, 1.0, -1], index=list("abc"))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s > 0, s)
-        tm.assert_series_equal(result, Series([1.0], index=["b"]))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s < -1, s)
-        # result empty Index(dtype=object) as the same as original
-        exp = Series([], dtype="float64", index=Index([], dtype="object"))
-        tm.assert_series_equal(result, exp)
-
-        s = Series([0, 1.0, -1], index=[0.1, 0.2, 0.3])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s > 0, s)
-        tm.assert_series_equal(result, Series([1.0], index=[0.2]))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.compress(s < -1, s)
-        # result empty Float64Index as the same as original
-        exp = Series([], dtype="float64", index=Index([], dtype="float64"))
-        tm.assert_series_equal(result, exp)
 
     def test_str_accessor_updates_on_inplace(self):
         s = pd.Series(list("abc"))
@@ -496,7 +478,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         s = Series([" jack", "jill ", " jesse ", "frank"])
         for method in methods:
             expected = Series([getattr(str, method)(x) for x in s.values])
-            assert_series_equal(getattr(Series.str, method)(s.str), expected)
+            tm.assert_series_equal(getattr(Series.str, method)(s.str), expected)
 
         # str accessor only valid with string values
         s = Series(range(5))
@@ -504,19 +486,21 @@ class TestSeriesMisc(TestData, SharedWithSparse):
             s.str.repeat(2)
 
     def test_empty_method(self):
-        s_empty = pd.Series()
+        s_empty = pd.Series(dtype=object)
         assert s_empty.empty
 
-        for full_series in [pd.Series([1]), pd.Series(index=[1])]:
+        s2 = pd.Series(index=[1], dtype=object)
+        for full_series in [pd.Series([1]), s2]:
             assert not full_series.empty
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; s = pd.Series()"
-        ip.run_code(code)
+        await ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("s.", 1))
@@ -528,11 +512,12 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         s = Series(range(9), dtype="Int64")
         assert s.size == 9
 
-    def test_get_values_deprecation(self):
-        s = Series(range(9))
-        with tm.assert_produces_warning(FutureWarning):
-            res = s.get_values()
-        tm.assert_numpy_array_equal(res, s.values)
+    def test_attrs(self):
+        s = pd.Series([0, 1], name="abc")
+        assert s.attrs == {}
+        s.attrs["version"] = 1
+        result = s + 1
+        assert result.attrs == {"version": 1}
 
 
 class TestCategoricalSeries:
@@ -697,6 +682,7 @@ class TestCategoricalSeries:
             ("floor", ("D",), {}),
             ("ceil", ("D",), {}),
             ("asfreq", ("D",), {}),
+            # FIXME: don't leave commented-out
             # ('tz_localize', ("UTC",), {}),
         ]
         _special_func_names = [f[0] for f in special_func_defs]
@@ -729,20 +715,11 @@ class TestCategoricalSeries:
                     res = getattr(c.dt, func)(*args, **kwargs)
                     exp = getattr(s.dt, func)(*args, **kwargs)
 
-                if isinstance(res, DataFrame):
-                    tm.assert_frame_equal(res, exp)
-                elif isinstance(res, Series):
-                    tm.assert_series_equal(res, exp)
-                else:
-                    tm.assert_almost_equal(res, exp)
+                tm.assert_equal(res, exp)
 
             for attr in attr_names:
-                try:
-                    res = getattr(c.dt, attr)
-                    exp = getattr(s.dt, attr)
-                except Exception as e:
-                    print(name, attr)
-                    raise e
+                res = getattr(c.dt, attr)
+                exp = getattr(s.dt, attr)
 
             if isinstance(res, DataFrame):
                 tm.assert_frame_equal(res, exp)

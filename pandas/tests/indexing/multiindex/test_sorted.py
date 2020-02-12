@@ -2,7 +2,7 @@ import numpy as np
 from numpy.random import randn
 
 from pandas import DataFrame, MultiIndex, Series
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 class TestMultiIndexSorted:
