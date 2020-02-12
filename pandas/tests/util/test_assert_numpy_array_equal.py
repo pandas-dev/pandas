@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs.missing import NA
+
 from pandas import Timestamp
 import pandas._testing as tm
 
@@ -175,3 +177,18 @@ def test_numpy_array_equal_copy_flag(other_type, check_same):
             tm.assert_numpy_array_equal(a, other, check_same=check_same)
     else:
         tm.assert_numpy_array_equal(a, other, check_same=check_same)
+
+
+def test_numpy_array_equal_contains_na():
+    # https://github.com/pandas-dev/pandas/issues/31881
+    a = np.array([True, False])
+    b = np.array([True, NA])
+
+    msg = """numpy array are different
+
+numpy array values are different \\(50.0 %\\)
+\\[left\\]:  \\[True, False\\]
+\\[right\\]: \\[True, <NA>\\]"""
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(a, b)
