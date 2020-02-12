@@ -1032,7 +1032,8 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if ignore_na and ((val != val or val is None)
+            if ignore_na and (((val == val) is (val != val))
+                              or (val != val or val is None)
                               or (use_na_value and val == na_value)):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), skip the hashtable entry for them, and
