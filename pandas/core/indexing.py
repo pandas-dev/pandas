@@ -733,6 +733,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
             # We should never have retval.ndim < self.ndim, as that should
             #  be handled by the _getitem_lowerdim call above.
+            assert retval.ndim == self.ndim
 
         return retval
 
