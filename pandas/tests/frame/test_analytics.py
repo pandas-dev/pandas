@@ -63,12 +63,15 @@ def assert_stat_op_calc(
     f = getattr(frame, opname)
 
     if check_dates:
+        expected_warning = FutureWarning if opname in ["mean", "median"] else None
         df = DataFrame({"b": date_range("1/1/2001", periods=2)})
-        result = getattr(df, opname)()
+        with tm.assert_produces_warning(expected_warning):
+            result = getattr(df, opname)()
         assert isinstance(result, Series)
 
         df["a"] = range(len(df))
-        result = getattr(df, opname)()
+        with tm.assert_produces_warning(expected_warning):
+            result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
 
@@ -457,7 +460,8 @@ class TestDataFrameAnalytics:
     def test_mean_mixed_datetime_numeric(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
         df = pd.DataFrame({"A": [1, 1], "B": [pd.Timestamp("2000", tz=tz)] * 2})
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.mean()
         expected = pd.Series([1.0], index=["A"])
         tm.assert_series_equal(result, expected)
 
@@ -467,7 +471,9 @@ class TestDataFrameAnalytics:
         # Our long-term desired behavior is unclear, but the behavior in
         # 0.24.0rc1 was buggy.
         df = pd.DataFrame({"A": [pd.Timestamp("2000", tz=tz)] * 2})
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.mean()
+
         expected = pd.Series(dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
@@ -863,7 +869,9 @@ class TestDataFrameAnalytics:
         expected = pd.Series({"A": 1.0})
         tm.assert_series_equal(result, expected)
 
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            # in the future datetime columns will be included
+            result = df.mean()
         expected = pd.Series({"A": 1.0, "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
