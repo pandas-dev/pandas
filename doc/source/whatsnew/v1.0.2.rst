@@ -36,6 +36,10 @@ Bug fixes
 
 - Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
 
+**Experimental dtypes**
+
+- Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_102.contributors:
