@@ -94,6 +94,10 @@ class _IntegerDtype(ExtensionDtype):
         import pyarrow
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
+        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
+        if not array.type.equals(pyarrow_type):
+            array = array.cast(pyarrow_type)
+
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
