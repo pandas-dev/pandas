@@ -533,25 +533,28 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype="Int64"),
-                "b": pd.Series(["a", None, "c"], dtype="string"),
+                "b": pd.Series([1, 2, 3], dtype="UInt32"),
+                "c": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
             expected = df
         else:
             # de-serialized as plain int / object
-            expected = df.assign(a=df.a.astype("int64"), b=df.b.astype("object"))
+            expected = df.assign(
+                a=df.a.astype("int64"), b=df.b.astype("int64"), c=df.c.astype("object")
+            )
         check_round_trip(df, pa, expected=expected)
 
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.1.dev"):
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
             expected = df
         else:
             # if missing values in integer, currently de-serialized as float
             expected = df.assign(a=df.a.astype("float64"))
         check_round_trip(df, pa, expected=expected)
 
-    @td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+    @td.skip_if_no("pyarrow", min_version="0.16.0")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
