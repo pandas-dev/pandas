@@ -459,6 +459,7 @@ class TestCategoricalConstructors:
         tm.assert_categorical_equal(result, expected)
 
     def test_construction_with_na(self):
+        # https://github.com/pandas-dev/pandas/issues/31927
         values = ["a", pd.NA]
         result = Categorical(np.array(values, dtype=object))
         expected = Categorical(values)
