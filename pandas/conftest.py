@@ -106,8 +106,8 @@ axis_frame = axis
 @pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
 def axis_series(request):
     """
-     Fixture for returning the axis numbers of a Series.
-     """
+    Fixture for returning the axis numbers of a Series.
+    """
     return request.param
 
 
@@ -866,6 +866,16 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
             startingMonth=st.integers(min_value=1, max_value=12),
         ),
     )
+
+
+@pytest.fixture
+def datetime_series():
+    """
+    Fixture for Series of floats with DatetimeIndex
+    """
+    s = tm.makeTimeSeries()
+    s.name = "ts"
+    return s
 
 
 @pytest.fixture

@@ -37,9 +37,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.arrays import IntegerArray
+from pandas.arrays import DatetimeArray, IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimes import tz_to_dtype
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -282,7 +283,6 @@ def _convert_listlike_datetimes(
     Index-like of parsed dates
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays import DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype,
         objects_to_datetime64ns,
@@ -427,7 +427,8 @@ def _convert_listlike_datetimes(
             #  datetime objects are found without passing `utc=True`
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
-                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+                dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
+                return DatetimeIndex._simple_new(dta, name=name)
             except (ValueError, TypeError):
                 raise e
 
@@ -447,7 +448,8 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -600,7 +602,9 @@ def to_datetime(
     cache : bool, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate
-        date strings, especially ones with timezone offsets.
+        date strings, especially ones with timezone offsets. The cache is only
+        used when there are at least 50 values. The presence of out-of-bounds
+        values will render the cache unusable and may slow down parsing.
 
         .. versionadded:: 0.23.0
 
@@ -626,6 +630,7 @@ def to_datetime(
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_timedelta : Convert argument to timedelta.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------
@@ -731,7 +736,17 @@ dtype='datetime64[ns]', freq=None)
             convert_listlike = partial(convert_listlike, name=arg.name)
             result = convert_listlike(arg, format)
     elif is_list_like(arg):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        try:
+            cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        except tslibs.OutOfBoundsDatetime:
+            # caching attempts to create a DatetimeIndex, which may raise
+            # an OOB. If that's the desired behavior, then just reraise...
+            if errors == "raise":
+                raise
+            # ... otherwise, continue without the cache.
+            from pandas import Series
+
+            cache_array = Series([], dtype=object)  # just an empty array
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array)
         else:

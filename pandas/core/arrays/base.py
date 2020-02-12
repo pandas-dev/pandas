@@ -176,6 +176,9 @@ class ExtensionArray:
        types present.
 
     See :ref:`extending.extension.ufunc` for more.
+
+    By default, ExtensionArrays are not hashable.  Immutable subclasses may
+    override this behavior.
     """
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
@@ -1072,6 +1075,9 @@ class ExtensionArray:
         TypeError : subclass does not define reductions
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
+
+    def __hash__(self):
+        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
 
 class ExtensionOpsMixin:

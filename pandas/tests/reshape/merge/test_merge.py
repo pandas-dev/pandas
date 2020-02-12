@@ -371,10 +371,8 @@ class TestMerge:
 
         msg = (
             "No common columns to perform merge on. "
-            "Merge options: left_on={lon}, right_on={ron}, "
-            "left_index={lidx}, right_index={ridx}".format(
-                lon=None, ron=None, lidx=False, ridx=False
-            )
+            f"Merge options: left_on={None}, right_on={None}, "
+            f"left_index={False}, right_index={False}"
         )
 
         with pytest.raises(MergeError, match=msg):
@@ -2151,4 +2149,21 @@ def test_merge_multiindex_columns():
     expected = pd.DataFrame(columns=expected_index)
     expected["id"] = ""
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_upcast_dtype():
+    # https://github.com/pandas-dev/pandas/issues/31208
+    df1 = pd.DataFrame({"x": ["a", "b", "c"], "y": ["1", "2", "4"]})
+    df2 = pd.DataFrame(
+        {"y": ["1", "2", "3"], "z": pd.to_datetime(["2000", "2001", "2002"])}
+    )
+    result = pd.merge(df1, df2, how="left", on="y")
+    expected = pd.DataFrame(
+        {
+            "x": ["a", "b", "c"],
+            "y": ["1", "2", "4"],
+            "z": pd.to_datetime(["2000", "2001", "NaT"]),
+        }
+    )
     tm.assert_frame_equal(result, expected)

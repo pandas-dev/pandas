@@ -112,7 +112,7 @@ def reduction_func(request):
     return request.param
 
 
-@pytest.fixture(params=transformation_kernels)
+@pytest.fixture(params=sorted(transformation_kernels))
 def transformation_func(request):
     """yields the string names of all groupby transformation functions."""
     return request.param
