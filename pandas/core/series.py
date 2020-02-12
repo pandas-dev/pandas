@@ -25,7 +25,7 @@ from pandas._config import get_option
 from pandas._libs import lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
@@ -73,6 +73,7 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
+from pandas.core.generic import NDFrame
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -396,7 +397,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Override generic, we want to set the _typ here.
         """
-
         if not fastpath:
             labels = ensure_index(labels)
 
@@ -540,7 +540,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray
             Data of the Series.
         """
-
         return self._data.get_values()
 
     # ops
@@ -840,12 +839,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: int = 0, kind: str = "getitem") -> "Series":
-        assert kind in ["getitem", "iloc"]
-        if kind == "getitem":
-            # If called from getitem, we need to determine whether
-            #  this slice is positional or label-based.
-            slobj = self.index._convert_slice_indexer(slobj, kind="getitem")
+    def _slice(self, slobj: slice, axis: int = 0) -> "Series":
+        # axis kwarg is retained for compat with NDFrame method
+        #  _slice is *always* positional
         return self._get_values(slobj)
 
     def __getitem__(self, key):
@@ -865,7 +861,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 return result
             except InvalidIndexError:
-                pass
+                if not isinstance(self.index, MultiIndex):
+                    raise
+
             except (KeyError, ValueError):
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # kludge
@@ -887,7 +885,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            return self._slice(key, kind="getitem")
+            # _convert_slice_indexer to determing if this slice is positional
+            #  or label based, and if the latter, convert to positional
+            slobj = self.index._convert_slice_indexer(key, kind="getitem")
+            return self._slice(slobj)
         elif isinstance(key, ABCDataFrame):
             raise TypeError(
                 "Indexing a Series with DataFrame is not "
@@ -905,7 +906,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         return self._get_values(key)
                 raise
 
-        if not isinstance(key, (list, np.ndarray, Series, Index)):
+        if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
 
         if isinstance(key, Index):
@@ -916,11 +917,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Note: The key_type == "boolean" case should be caught by the
         #  com.is_bool_indexer check in __getitem__
         if key_type == "integer":
+            # We need to decide whether to treat this as a positional indexer
+            #  (i.e. self.iloc) or label-based (i.e. self.loc)
             if self.index.is_integer() or self.index.is_floating():
                 return self.loc[key]
             elif isinstance(self.index, IntervalIndex):
-                indexer = self.index.get_indexer_for(key)
-                return self.iloc[indexer]
+                return self.loc[key]
             else:
                 return self.iloc[key]
 
@@ -1004,8 +1006,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         try:
             self._set_with_engine(key, value)
-        except com.SettingWithCopyError:
-            raise
         except (KeyError, ValueError):
             values = self._values
             if is_integer(key) and not self.index.inferred_type == "integer":
@@ -1014,9 +1014,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self[:] = value
             else:
                 self.loc[key] = value
-        except InvalidIndexError:
-            # e.g. slice
-            self._set_with(key, value)
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
@@ -1087,7 +1084,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_labels(self, key, value):
         key = com.asarray_tuplesafe(key)
-        indexer = self.index.get_indexer(key)
+        indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
             raise ValueError(f"{key[mask]} not contained in the index")
@@ -1113,12 +1110,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         value : object
             Scalar value.
         takeable : interpret the index as indexers, default False
-
-        Returns
-        -------
-        Series
-            If label is contained, will be reference to calling Series,
-            otherwise a new object.
         """
         try:
             if takeable:
@@ -1131,8 +1122,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             # set using a non-recursive method
             self.loc[label] = value
-
-        return self
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -1412,7 +1401,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         str or None
             String representation of Series if ``buf=None``, otherwise None.
         """
-
         formatter = fmt.SeriesFormatter(
             self,
             name=name,
@@ -2181,7 +2169,6 @@ Name: Max Speed, dtype: float64
         0.75    3.25
         dtype: float64
         """
-
         validate_percentile(q)
 
         # We dispatch to DataFrame so that core.internals only has to worry
@@ -2593,7 +2580,6 @@ Name: Max Speed, dtype: float64
         -------
         Series
         """
-
         if not isinstance(other, Series):
             raise AssertionError("Other operand must be Series")
 
@@ -4159,8 +4145,7 @@ Name: Max Speed, dtype: float64
             errors=errors,
         )
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(generic.NDFrame.fillna.__doc__)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
