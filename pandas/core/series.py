@@ -25,7 +25,7 @@ from pandas._config import get_option
 from pandas._libs import lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
@@ -73,6 +73,7 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
+from pandas.core.generic import NDFrame
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
@@ -4149,8 +4150,7 @@ Name: Max Speed, dtype: float64
             errors=errors,
         )
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(generic.NDFrame.fillna.__doc__)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,

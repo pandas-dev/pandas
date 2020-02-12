@@ -11,7 +11,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, lib
 from pandas._libs.tslib import iNaT
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -487,9 +487,32 @@ def _factorize_array(
     return codes, uniques
 
 
-_shared_docs[
-    "factorize"
-] = """
+@doc(
+    values=dedent(
+        """\
+    values : sequence
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
+    """
+    ),
+    sort=dedent(
+        """\
+    sort : bool, default False
+        Sort `uniques` and shuffle `codes` to maintain the
+        relationship.
+    """
+    ),
+    size_hint=dedent(
+        """\
+    size_hint : int, optional
+        Hint to the hashtable sizer.
+    """
+    ),
+)
+def factorize(
+    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
+) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
+    """
     Encode the object as an enumerated type or categorical variable.
 
     This method is useful for obtaining a numeric representation of an
@@ -499,10 +522,10 @@ _shared_docs[
 
     Parameters
     ----------
-    %(values)s%(sort)s
+    {values}{sort}
     na_sentinel : int, default -1
         Value to mark "not found".
-    %(size_hint)s\
+    {size_hint}\
 
     Returns
     -------
@@ -580,34 +603,6 @@ _shared_docs[
     >>> uniques
     Index(['a', 'c'], dtype='object')
     """
-
-
-@Substitution(
-    values=dedent(
-        """\
-    values : sequence
-        A 1-D sequence. Sequences that aren't pandas objects are
-        coerced to ndarrays before factorization.
-    """
-    ),
-    sort=dedent(
-        """\
-    sort : bool, default False
-        Sort `uniques` and shuffle `codes` to maintain the
-        relationship.
-    """
-    ),
-    size_hint=dedent(
-        """\
-    size_hint : int, optional
-        Hint to the hashtable sizer.
-    """
-    ),
-)
-@Appender(_shared_docs["factorize"])
-def factorize(
-    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
-) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
     # 2.) factorizing codes and uniques
