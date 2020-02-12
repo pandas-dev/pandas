@@ -1,5 +1,5 @@
 """
-Utility functions related to concat
+Utility functions related to concat.
 """
 
 import numpy as np
@@ -261,6 +261,8 @@ def union_categoricals(
     >>> a = pd.Categorical(["a", "b"], ordered=True)
     >>> b = pd.Categorical(["a", "b", "c"], ordered=True)
     >>> union_categoricals([a, b])
+    Traceback (most recent call last):
+        ...
     TypeError: to union ordered Categoricals, all categories must be the same
 
     New in version 0.20.0

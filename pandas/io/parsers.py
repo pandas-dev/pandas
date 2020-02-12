@@ -89,7 +89,7 @@ Parameters
 ----------
 filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
-    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
@@ -705,7 +705,6 @@ def read_fwf(
     infer_nrows=100,
     **kwds,
 ):
-
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -1457,8 +1456,10 @@ class ParserBase:
     def _extract_multi_indexer_columns(
         self, header, index_names, col_names, passed_names=False
     ):
-        """ extract and return the names, index_names, col_names
-            header is a list-of-lists returned from the parsers """
+        """
+        extract and return the names, index_names, col_names
+        header is a list-of-lists returned from the parsers
+        """
         if len(header) < 2:
             return header[0], index_names, col_names, passed_names
 
@@ -2488,7 +2489,7 @@ class PythonParser(ParserBase):
     def _convert_data(self, data):
         # apply converters
         def _clean_mapping(mapping):
-            "converts col numbers to names"
+            """converts col numbers to names"""
             clean = {}
             for col, v in mapping.items():
                 if isinstance(col, int) and col not in self.orig_names:
