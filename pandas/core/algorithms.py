@@ -1869,6 +1869,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     is_timedelta = False
     is_bool = False
+    original_dtype = np.dtype(dtype)
     if needs_i8_conversion(arr):
         dtype = np.float64
         arr = arr.view("i8")
@@ -1928,6 +1929,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     if is_timedelta:
         out_arr = out_arr.astype("int64").view("timedelta64[ns]")
 
+    out_arr = out_arr.astype(original_dtype)
     return out_arr
 
 
