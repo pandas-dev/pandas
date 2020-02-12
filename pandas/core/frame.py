@@ -49,6 +49,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    doc,
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
@@ -4155,8 +4156,7 @@ class DataFrame(NDFrame):
             errors=errors,
         )
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.fillna.__doc__)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
