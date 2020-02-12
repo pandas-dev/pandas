@@ -357,7 +357,6 @@ class BlockManager(PandasObject):
         -------
         BlockManager
         """
-
         result_blocks = []
 
         # filter kwarg is used in replace-* family of methods
@@ -453,7 +452,6 @@ class BlockManager(PandasObject):
         -------
         Block Manager (new object)
         """
-
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
@@ -569,7 +567,6 @@ class BlockManager(PandasObject):
 
     def replace_list(self, src_list, dest_list, inplace=False, regex=False):
         """ do a list replace """
-
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         # figure out our mask a-priori to avoid repeated replacements
@@ -1243,7 +1240,6 @@ class BlockManager(PandasObject):
         -------
         new_blocks : list of Block
         """
-
         allow_fill = fill_tuple is not None
 
         sl_type, slobj, sllen = _preprocess_slice_or_indexer(
@@ -1774,7 +1770,6 @@ def _simple_blockify(tuples, dtype):
 
 def _multi_blockify(tuples, dtype=None):
     """ return an array of blocks that potentially have different dtypes """
-
     # group by dtype
     grouper = itertools.groupby(tuples, lambda x: x[2].dtype)
 
@@ -1840,7 +1835,6 @@ def _consolidate(blocks):
     """
     Merge blocks having same dtype, exclude non-consolidating blocks
     """
-
     # sort by _can_consolidate, dtype
     gkey = lambda x: x._consolidate_key
     grouper = itertools.groupby(sorted(blocks, key=gkey), gkey)

@@ -82,7 +82,6 @@ def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, ho
     DataFrame
         The expected merge result
     """
-
     # Handle on param if specified
     if on is not None:
         left_on, right_on = on, on

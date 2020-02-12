@@ -39,7 +39,6 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     -------
     attribute, method, property, or cache_readonly
     """
-
     attr = getattr(delegate, name)
 
     if isinstance(attr, property):

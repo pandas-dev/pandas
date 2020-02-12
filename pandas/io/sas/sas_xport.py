@@ -198,7 +198,6 @@ def _parse_float_vec(vec):
     Parse a vector of float values representing IBM 8 byte floats into
     native 8 byte floats.
     """
-
     dtype = np.dtype(">u4,>u4")
     vec1 = vec.view(dtype=dtype)
     xport1 = vec1["f0"]
@@ -411,7 +410,6 @@ class XportReader(abc.Iterator):
 
         Side effect: returns file position to record_start.
         """
-
         self.filepath_or_buffer.seek(0, 2)
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 

@@ -1508,7 +1508,6 @@ def assert_sp_array_equal(
         create a new BlockIndex for that array, with consolidated
         block indices.
     """
-
     _check_isinstance(left, right, pd.arrays.SparseArray)
 
     assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
@@ -1876,7 +1875,6 @@ def makeCustomIndex(
 
         if unspecified, string labels will be generated.
     """
-
     if ndupe_l is None:
         ndupe_l = [1] * nlevels
     assert is_sequence(ndupe_l) and len(ndupe_l) <= nlevels
@@ -2025,7 +2023,6 @@ def makeCustomDataframe(
 
     >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
     """
-
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or (
@@ -2229,7 +2226,6 @@ def can_connect(url, error_classes=None):
         Return True if no IOError (unable to connect) or URLError (bad url) was
         raised
     """
-
     if error_classes is None:
         error_classes = _get_default_network_errors()
 
@@ -2603,7 +2599,6 @@ def test_parallel(num_threads=2, kwargs_list=None):
     https://github.com/scikit-image/scikit-image/pull/1519
 
     """
-
     assert num_threads > 0
     has_kwargs_list = kwargs_list is not None
     if has_kwargs_list:
@@ -2685,7 +2680,6 @@ def set_timezone(tz: str):
     ...
     'EDT'
     """
-
     import os
     import time
 

@@ -95,7 +95,6 @@ class BinOp(ops.BinOp):
     def prune(self, klass):
         def pr(left, right):
             """ create and return a new specialized BinOp from myself """
-
             if left is None:
                 return right
             elif right is None:
@@ -476,7 +475,6 @@ def _validate_where(w):
     ------
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
-
     if not (isinstance(w, (PyTablesExpr, str)) or is_list_like(w)):
         raise TypeError(
             "where must be passed as a string, PyTablesExpr, "
@@ -574,7 +572,6 @@ class PyTablesExpr(expr.Expr):
 
     def evaluate(self):
         """ create and return the numexpr condition and filter """
-
         try:
             self.condition = self.terms.prune(ConditionBinOp)
         except AttributeError:

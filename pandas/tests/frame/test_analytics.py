@@ -60,7 +60,6 @@ def assert_stat_op_calc(
     skipna_alternative : function, default None
         NaN-safe version of alternative
     """
-
     f = getattr(frame, opname)
 
     if check_dates:
@@ -150,7 +149,6 @@ def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only
     has_numeric_only : bool, default False
         Whether the method "opname" has the kwarg "numeric_only"
     """
-
     # make sure works on mixed-type frame
     getattr(float_string_frame, opname)(axis=0)
     getattr(float_string_frame, opname)(axis=1)
@@ -178,7 +176,6 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
     has_skipna : bool, default True
         Whether the method "opname" has the kwarg "skip_na"
     """
-
     f = getattr(frame, opname)
 
     if has_skipna:

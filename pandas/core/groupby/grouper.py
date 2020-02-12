@@ -130,7 +130,6 @@ class Grouper:
         -------
         a tuple of binner, grouper, obj (possibly sorted)
         """
-
         self._set_grouper(obj)
         self.grouper, _, self.obj = get_grouper(
             self.obj,

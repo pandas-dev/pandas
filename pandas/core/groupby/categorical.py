@@ -41,7 +41,6 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool):
     Categorical or None
         If we are observed, return the original categorical, otherwise None
     """
-
     # we only care about observed values
     if observed:
         unique_codes = unique1d(c.codes)
@@ -90,7 +89,6 @@ def recode_from_groupby(c: Categorical, sort: bool, ci):
     -------
     CategoricalIndex
     """
-
     # we re-order to the original category orderings
     if sort:
         return ci.set_categories(c.categories)

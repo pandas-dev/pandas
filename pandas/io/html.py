@@ -395,7 +395,6 @@ class _HtmlFrameParser:
                - Move rows from bottom of body to footer only if
                  all elements inside row are <th>
         """
-
         header_rows = self._parse_thead_tr(table_html)
         body_rows = self._parse_tbody_tr(table_html)
         footer_rows = self._parse_tfoot_tr(table_html)
@@ -435,7 +434,6 @@ class _HtmlFrameParser:
         Any cell with ``rowspan`` or ``colspan`` will have its contents copied
         to subsequent cells.
         """
-
         all_texts = []  # list of rows, each a list of str
         remainder = []  # list of (index, text, nrows)
 

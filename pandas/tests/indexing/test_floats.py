@@ -505,7 +505,6 @@ class TestFloatIndexers:
         """ make sure that we are raising on positional indexing
         w.r.t. an integer index
         """
-
         s = Series(range(2, 6), index=range(2, 6))
 
         result = s[2:4]

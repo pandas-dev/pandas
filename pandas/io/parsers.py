@@ -407,7 +407,6 @@ def _validate_names(names):
     ValueError
         If names are not unique.
     """
-
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
@@ -760,7 +759,6 @@ def read_fwf(
     --------
     >>> pd.read_fwf('data.csv')  # doctest: +SKIP
     """
-
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -1252,7 +1250,6 @@ def _validate_skipfooter_arg(skipfooter):
     ------
     ValueError : 'skipfooter' was not a non-negative integer.
     """
-
     if not is_integer(skipfooter):
         raise ValueError("skipfooter must be an integer")
 
@@ -1795,7 +1792,6 @@ class ParserBase:
         -------
         converted : ndarray
         """
-
         if is_categorical_dtype(cast_type):
             known_cats = (
                 isinstance(cast_type, CategoricalDtype)
@@ -2863,7 +2859,6 @@ class PythonParser(ParserBase):
                   Because this row number is displayed, we 1-index,
                   even though we 0-index internally.
         """
-
         if self.error_bad_lines:
             raise ParserError(msg)
         elif self.warn_bad_lines:
@@ -2882,7 +2877,6 @@ class PythonParser(ParserBase):
         ----------
         row_num : The row number of the line being parsed.
         """
-
         try:
             return next(self.data)
         except csv.Error as e:
@@ -2942,7 +2936,6 @@ class PythonParser(ParserBase):
         filtered_lines : array-like
             The same array of lines with the "empty" ones removed.
         """
-
         ret = []
         for l in lines:
             # Remove empty lines and lines with only one whitespace value
@@ -3514,7 +3507,6 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
         1) na_values : the string NaN values for that column.
         2) na_fvalues : the float NaN values for that column.
     """
-
     if isinstance(na_values, dict):
         if col in na_values:
             return na_values[col], na_fvalues[col]

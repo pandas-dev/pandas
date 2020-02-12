@@ -55,7 +55,6 @@ def deprecate(
         The message to display in the warning.
         Default is '{name} is deprecated. Use {alt_name} instead.'
     """
-
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
     warning_msg = msg or f"{name} is deprecated, use {alt_name} instead"
@@ -163,7 +162,6 @@ def deprecate_kwarg(
     future version please takes steps to stop use of 'cols'
     should raise warning
     """
-
     if mapping is not None and not hasattr(mapping, "get") and not callable(mapping):
         raise TypeError(
             "mapping from old to new argument values must be dict or callable!"

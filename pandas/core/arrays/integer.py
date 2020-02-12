@@ -152,7 +152,6 @@ def safe_cast(values, dtype, copy: bool):
     ints.
 
     """
-
     try:
         return values.astype(dtype, casting="safe", copy=copy)
     except TypeError:
@@ -600,7 +599,6 @@ class IntegerArray(BaseMaskedArray):
         other : scalar or array-like
         op_name : str
         """
-
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide

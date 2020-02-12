@@ -99,7 +99,6 @@ def validate_argmin_with_skipna(skipna, args, kwargs):
     'skipna' parameter is either an instance of ndarray or
     is None, since 'skipna' itself should be a boolean
     """
-
     skipna, args = process_skipna(skipna, args)
     validate_argmin(args, kwargs)
     return skipna
@@ -113,7 +112,6 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
     'skipna' parameter is either an instance of ndarray or
     is None, since 'skipna' itself should be a boolean
     """
-
     skipna, args = process_skipna(skipna, args)
     validate_argmax(args, kwargs)
     return skipna
@@ -151,7 +149,6 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     either integer type or is None, since 'ascending' itself should
     be a boolean
     """
-
     if is_integer(ascending) or ascending is None:
         args = (ascending,) + args
         ascending = True
@@ -173,7 +170,6 @@ def validate_clip_with_axis(axis, args, kwargs):
     so check if the 'axis' parameter is an instance of ndarray, since
     'axis' itself should either be an integer or None
     """
-
     if isinstance(axis, ndarray):
         args = (axis,) + args
         axis = None
@@ -298,7 +294,6 @@ def validate_take_with_convert(convert, args, kwargs):
     ndarray or 'None', so check if the 'convert' parameter is either
     an instance of ndarray or is None
     """
-
     if isinstance(convert, ndarray) or convert is None:
         args = (convert,) + args
         convert = True

@@ -61,7 +61,6 @@ def can_set_locale(lc: str, lc_var: int = locale.LC_ALL) -> bool:
     bool
         Whether the passed locale can be set
     """
-
     try:
         with set_locale(lc, lc_var=lc_var):
             pass

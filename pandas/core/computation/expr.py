@@ -599,7 +599,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         might or might not exist in the resolvers
 
         """
-
         if len(node.targets) != 1:
             raise SyntaxError("can only assign a single expression")
         if not isinstance(node.targets[0], ast.Name):

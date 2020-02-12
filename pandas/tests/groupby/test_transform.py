@@ -520,7 +520,6 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     dtype : type
         The specified dtype of the data.
     """
-
     is_datetimelike = False
 
     data = np.array([[1], [2], [3], [4]], dtype=dtype)

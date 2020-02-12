@@ -51,7 +51,6 @@ class _OpenpyxlWriter(ExcelWriter):
         ----------
         style_dict : style dictionary to convert
         """
-
         from openpyxl.style import Style
 
         xls_style = Style()
@@ -92,7 +91,6 @@ class _OpenpyxlWriter(ExcelWriter):
             value has been replaced with a native openpyxl style object of the
             appropriate class.
         """
-
         _style_key_map = {"borders": "border"}
 
         style_kwargs = {}
@@ -128,7 +126,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         color : openpyxl.styles.Color
         """
-
         from openpyxl.styles import Color
 
         if isinstance(color_spec, str):
@@ -164,7 +161,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         font : openpyxl.styles.Font
         """
-
         from openpyxl.styles import Font
 
         _font_key_map = {
@@ -202,7 +198,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         stop : list of openpyxl.styles.Color
         """
-
         return map(cls._convert_to_color, stop_seq)
 
     @classmethod
@@ -230,7 +225,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         fill : openpyxl.styles.Fill
         """
-
         from openpyxl.styles import PatternFill, GradientFill
 
         _pattern_fill_key_map = {
@@ -286,7 +280,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         side : openpyxl.styles.Side
         """
-
         from openpyxl.styles import Side
 
         _side_key_map = {"border_style": "style"}
@@ -329,7 +322,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         border : openpyxl.styles.Border
         """
-
         from openpyxl.styles import Border
 
         _border_key_map = {"diagonalup": "diagonalUp", "diagonaldown": "diagonalDown"}
@@ -365,7 +357,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         alignment : openpyxl.styles.Alignment
         """
-
         from openpyxl.styles import Alignment
 
         return Alignment(**alignment_dict)
@@ -399,7 +390,6 @@ class _OpenpyxlWriter(ExcelWriter):
         Returns
         -------
         """
-
         from openpyxl.styles import Protection
 
         return Protection(**protection_dict)

@@ -224,7 +224,6 @@ def _maybe_get_mask(
     -------
     Optional[np.ndarray]
     """
-
     if mask is None:
         if is_bool_dtype(values.dtype) or is_integer_dtype(values.dtype):
             # Boolean data cannot contain nulls, so signal via mask being None
@@ -279,7 +278,6 @@ def _get_values(
     fill_value : Any
         fill value used
     """
-
     # In _get_values is only called from within nanops, and in all cases
     #  with scalar fill_value.  This guarantee is important for the
     #  maybe_upcast_putmask call below
@@ -338,7 +336,6 @@ def _na_ok_dtype(dtype) -> bool:
 
 def _wrap_results(result, dtype: Dtype, fill_value=None):
     """ wrap our results if needed """
-
     if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if fill_value is None:
             # GH#24293
@@ -833,7 +830,6 @@ def nansem(
     >>> nanops.nansem(s)
      0.5773502691896258
     """
-
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
     nanvar(values, axis, skipna, ddof=ddof, mask=mask)

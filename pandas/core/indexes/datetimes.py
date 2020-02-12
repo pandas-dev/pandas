@@ -939,7 +939,6 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
-
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 

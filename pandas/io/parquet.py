@@ -13,7 +13,6 @@ from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
 
 def get_engine(engine: str) -> "BaseImpl":
     """ return our implementation """
-
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 
@@ -297,6 +296,5 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     -------
     DataFrame
     """
-
     impl = get_engine(engine)
     return impl.read(path, columns=columns, **kwargs)

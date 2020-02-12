@@ -139,7 +139,6 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
         int, or 1-dimensional array of dtype object
             Integer(s) representing one combination (each).
         """
-
         # Shift the representation of each level by the pre-calculated number
         # of bits. Since this can overflow uint64, first make sure we are
         # working with Python integers:
@@ -1115,7 +1114,6 @@ class MultiIndex(Index):
         *this is in internal routine*
 
         """
-
         # for implementations with no useful getsizeof (PyPy)
         objsize = 24
 
@@ -1405,7 +1403,6 @@ class MultiIndex(Index):
         return if the index is monotonic increasing (only equal or
         increasing) values.
         """
-
         if all(x.is_monotonic for x in self.levels):
             # If each level is sorted, we can operate on the codes directly. GH27495
             return libalgos.is_lexsorted(
@@ -1466,7 +1463,6 @@ class MultiIndex(Index):
         -----
         we need to stringify if we have mixed levels
         """
-
         if not isinstance(key, tuple):
             return hash_tuples(key)
 
@@ -1526,7 +1522,6 @@ class MultiIndex(Index):
         -------
         values : ndarray
         """
-
         lev = self.levels[level]
         level_codes = self.codes[level]
         name = self._names[level]
@@ -1609,7 +1604,6 @@ class MultiIndex(Index):
         --------
         DataFrame
         """
-
         from pandas import DataFrame
 
         if name is not None:
@@ -1736,7 +1730,6 @@ class MultiIndex(Index):
                     ('b', 'bb')],
                    )
         """
-
         if self.is_lexsorted() and self.is_monotonic:
             return self
 
@@ -1805,7 +1798,6 @@ class MultiIndex(Index):
         >>> mi2.levels
         FrozenList([[1], ['a', 'b']])
         """
-
         new_levels = []
         new_codes = []
 
@@ -1870,7 +1862,6 @@ class MultiIndex(Index):
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
-
         if isinstance(state, dict):
             levels = state.get("levels")
             codes = state.get("codes")
@@ -2486,7 +2477,6 @@ class MultiIndex(Index):
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
                               sequence of such.
         """
-
         if not isinstance(label, tuple):
             label = (label,)
         return self._partial_tup_index(label, side=side)
@@ -2596,7 +2586,6 @@ class MultiIndex(Index):
         --------
         Index.get_loc : The get_loc method for (single-level) index.
         """
-
         if is_scalar(key) and isna(key):
             return -1
         else:
@@ -2751,7 +2740,6 @@ class MultiIndex(Index):
         >>> mi.get_loc_level(['b', 'e'])
         (1, None)
         """
-
         # different name to distinguish from maybe_droplevels
         def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:

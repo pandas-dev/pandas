@@ -119,7 +119,6 @@ def test_aaa_group_order():
 
 def test_aggregate_normal(resample_method):
     """Check TimeGrouper's aggregation is identical as normal groupby."""
-
     if resample_method == "ohlc":
         pytest.xfail(reason="DataError: No numeric types to aggregate")
 

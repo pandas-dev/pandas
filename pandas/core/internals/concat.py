@@ -408,7 +408,6 @@ def _trim_join_unit(join_unit, length):
 
     Extra items that didn't fit are returned as a separate block.
     """
-
     if 0 not in join_unit.indexers:
         extra_indexers = join_unit.indexers
 

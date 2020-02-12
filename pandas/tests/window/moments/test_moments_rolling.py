@@ -1335,7 +1335,6 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
     def test_rolling_max_gh6297(self):
         """Replicate result expected in GH #6297"""
-
         indices = [datetime(1975, 1, i) for i in range(1, 6)]
         # So that we can have 2 datapoints on one of the days
         indices.append(datetime(1975, 1, 3, 6, 0))

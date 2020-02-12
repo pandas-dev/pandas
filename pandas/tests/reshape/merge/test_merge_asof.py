@@ -35,7 +35,6 @@ class TestAsOfMerge:
 
     def test_examples1(self):
         """ doc-string examples """
-
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
         right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
 
@@ -48,7 +47,6 @@ class TestAsOfMerge:
 
     def test_examples2(self):
         """ doc-string examples """
-
         trades = pd.DataFrame(
             {
                 "time": pd.to_datetime(

@@ -229,7 +229,6 @@ def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
     encoding : an optional encoding
     is_verbose : show exception output
     """
-
     try:
         fh.seek(0)
         if encoding is not None:

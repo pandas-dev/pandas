@@ -225,7 +225,6 @@ class TestRangeIndexSetOps:
     )
     def unions(self, request):
         """Inputs and expected outputs for RangeIndex.union tests"""
-
         return request.param
 
     def test_union_sorted(self, unions):

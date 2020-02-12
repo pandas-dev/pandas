@@ -791,7 +791,6 @@ class TestDatetimeIndexTimezones:
         """ Test different DatetimeIndex constructions with timezone
         Follow-up of GH#4229
         """
-
         arr = ["11/10/2005 08:00:00", "11/10/2005 09:00:00"]
 
         idx1 = to_datetime(arr).tz_localize(tzstr)

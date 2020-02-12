@@ -65,7 +65,6 @@ def is_number(obj) -> bool:
     >>> pd.api.types.is_number("5")
     False
     """
-
     return isinstance(obj, (Number, np.number))
 
 
@@ -91,7 +90,6 @@ def _iterable_not_string(obj) -> bool:
     >>> _iterable_not_string(1)
     False
     """
-
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
@@ -124,7 +122,6 @@ def is_file_like(obj) -> bool:
     >>> is_file_like([1, 2, 3])
     False
     """
-
     if not (hasattr(obj, "read") or hasattr(obj, "write")):
         return False
 
@@ -177,7 +174,6 @@ def is_re_compilable(obj) -> bool:
     >>> is_re_compilable(1)
     False
     """
-
     try:
         re.compile(obj)
     except TypeError:
@@ -215,7 +211,6 @@ def is_array_like(obj) -> bool:
     >>> is_array_like(("a", "b"))
     False
     """
-
     return is_list_like(obj) and hasattr(obj, "dtype")
 
 
@@ -321,7 +316,6 @@ def is_named_tuple(obj) -> bool:
     >>> is_named_tuple((1, 2))
     False
     """
-
     return isinstance(obj, tuple) and hasattr(obj, "_fields")
 
 
@@ -386,7 +380,6 @@ def is_sequence(obj) -> bool:
     >>> is_sequence(iter(l))
     False
     """
-
     try:
         iter(obj)  # Can iterate over it.
         len(obj)  # Has a length associated with it.

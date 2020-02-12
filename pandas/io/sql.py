@@ -120,7 +120,6 @@ def _parse_date_columns(data_frame, parse_dates):
 
 def _wrap_result(data, columns, index_col=None, coerce_float=True, parse_dates=None):
     """Wrap result set of query in a DataFrame."""
-
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
 
     frame = _parse_date_columns(frame, parse_dates)
@@ -228,7 +227,6 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
-
     con = _engine_builder(con)
     if not _is_sqlalchemy_connectable(con):
         raise NotImplementedError(
@@ -758,7 +756,6 @@ class SQLTable(PandasObject):
         self, result, chunksize, columns, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set."""
-
         while True:
             data = result.fetchmany(chunksize)
             if not data:
@@ -1149,7 +1146,6 @@ class SQLDatabase(PandasSQL):
         result, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set"""
-
         while True:
             data = result.fetchmany(chunksize)
             if not data:
@@ -1606,7 +1602,6 @@ class SQLiteDatabase(PandasSQL):
         cursor, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set"""
-
         while True:
             data = cursor.fetchmany(chunksize)
             if type(data) == tuple:
@@ -1781,6 +1776,5 @@ def get_schema(frame, name, keys=None, con=None, dtype=None):
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
     """
-
     pandas_sql = pandasSQL_builder(con=con)
     return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)

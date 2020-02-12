@@ -308,7 +308,6 @@ class DateOffset(BaseOffset):
         -------
         y : DatetimeIndex
         """
-
         if type(self) is not DateOffset:
             raise NotImplementedError(
                 f"DateOffset subclass {type(self).__name__} "

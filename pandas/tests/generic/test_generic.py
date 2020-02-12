@@ -28,7 +28,6 @@ class Generic:
         if value is specified use that if its a scalar
         if value is an array, repeat it as needed
         """
-
         if isinstance(shape, int):
             shape = tuple([shape] * self._ndim)
         if value is not None:

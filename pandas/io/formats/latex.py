@@ -56,7 +56,6 @@ class LatexFormatter(TableFormatter):
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
         """
-
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
             info_line = "Empty {name}\nColumns: {col}\nIndex: {idx}".format(
