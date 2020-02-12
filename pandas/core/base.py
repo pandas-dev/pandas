@@ -13,7 +13,7 @@ from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -1386,7 +1386,8 @@ class IndexOpsMixin:
             v += lib.memory_usage_of_objects(self.array)
         return v
 
-    @Substitution(
+    @doc(
+        algorithms.factorize,
         values="",
         order="",
         size_hint="",
@@ -1398,7 +1399,6 @@ class IndexOpsMixin:
             """
         ),
     )
-    @Appender(algorithms._shared_docs["factorize"])
     def factorize(self, sort=False, na_sentinel=-1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 

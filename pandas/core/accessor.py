@@ -7,7 +7,7 @@ that can be mixed into or pinned onto other pandas classes.
 from typing import FrozenSet, Set
 import warnings
 
-from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 
 
 class DirNamesMixin:
@@ -193,7 +193,77 @@ class CachedAccessor:
         return accessor_obj
 
 
+@doc(klass="", others="")
 def _register_accessor(name, cls):
+    """
+    Register a custom accessor on {klass} objects.
+
+    Parameters
+    ----------
+    name : str
+        Name under which the accessor should be registered. A warning is issued
+        if this name conflicts with a preexisting attribute.
+
+    Returns
+    -------
+    callable
+        A class decorator.
+
+    See Also
+    --------
+    {others}
+
+    Notes
+    -----
+    When accessed, your accessor will be initialized with the pandas object
+    the user is interacting with. So the signature must be
+
+    .. code-block:: python
+
+        def __init__(self, pandas_object):  # noqa: E999
+            ...
+
+    For consistency with pandas methods, you should raise an ``AttributeError``
+    if the data passed to your accessor has an incorrect dtype.
+
+    >>> pd.Series(['a', 'b']).dt
+    Traceback (most recent call last):
+    ...
+    AttributeError: Can only use .dt accessor with datetimelike values
+
+    Examples
+    --------
+
+    In your library code::
+
+        import pandas as pd
+
+        @pd.api.extensions.register_dataframe_accessor("geo")
+        class GeoAccessor:
+            def __init__(self, pandas_obj):
+                self._obj = pandas_obj
+
+            @property
+            def center(self):
+                # return the geographic center point of this DataFrame
+                lat = self._obj.latitude
+                lon = self._obj.longitude
+                return (float(lon.mean()), float(lat.mean()))
+
+            def plot(self):
+                # plot this array's data on a map, e.g., using Cartopy
+                pass
+
+    Back in an interactive IPython session:
+
+        >>> ds = pd.DataFrame({{'longitude': np.linspace(0, 10),
+        ...                    'latitude': np.linspace(0, 20)}})
+        >>> ds.geo.center
+        (5.0, 10.0)
+        >>> ds.geo.plot()
+        # plots data on a map
+    """
+
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
@@ -210,81 +280,10 @@ def _register_accessor(name, cls):
     return decorator
 
 
-_doc = """
-Register a custom accessor on %(klass)s objects.
-
-Parameters
-----------
-name : str
-    Name under which the accessor should be registered. A warning is issued
-    if this name conflicts with a preexisting attribute.
-
-Returns
--------
-callable
-    A class decorator.
-
-See Also
---------
-%(others)s
-
-Notes
------
-When accessed, your accessor will be initialized with the pandas object
-the user is interacting with. So the signature must be
-
-.. code-block:: python
-
-    def __init__(self, pandas_object):  # noqa: E999
-        ...
-
-For consistency with pandas methods, you should raise an ``AttributeError``
-if the data passed to your accessor has an incorrect dtype.
-
->>> pd.Series(['a', 'b']).dt
-Traceback (most recent call last):
-...
-AttributeError: Can only use .dt accessor with datetimelike values
-
-Examples
---------
-
-In your library code::
-
-    import pandas as pd
-
-    @pd.api.extensions.register_dataframe_accessor("geo")
-    class GeoAccessor:
-        def __init__(self, pandas_obj):
-            self._obj = pandas_obj
-
-        @property
-        def center(self):
-            # return the geographic center point of this DataFrame
-            lat = self._obj.latitude
-            lon = self._obj.longitude
-            return (float(lon.mean()), float(lat.mean()))
-
-        def plot(self):
-            # plot this array's data on a map, e.g., using Cartopy
-            pass
-
-Back in an interactive IPython session:
-
-    >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
-    ...                    'latitude': np.linspace(0, 20)})
-    >>> ds.geo.center
-    (5.0, 10.0)
-    >>> ds.geo.plot()
-    # plots data on a map
-"""
-
-
-@Appender(
-    _doc
-    % dict(
-        klass="DataFrame", others=("register_series_accessor, register_index_accessor")
-    )
+@doc(
+    _register_accessor,
+    klass="DataFrame",
+    others="register_series_accessor, register_index_accessor",
 )
 def register_dataframe_accessor(name):
     from pandas import DataFrame
@@ -292,11 +291,10 @@ def register_dataframe_accessor(name):
     return _register_accessor(name, DataFrame)
 
 
-@Appender(
-    _doc
-    % dict(
-        klass="Series", others=("register_dataframe_accessor, register_index_accessor")
-    )
+@doc(
+    _register_accessor,
+    klass="Series",
+    others="register_dataframe_accessor, register_index_accessor",
 )
 def register_series_accessor(name):
     from pandas import Series
@@ -304,11 +302,10 @@ def register_series_accessor(name):
     return _register_accessor(name, Series)
 
 
-@Appender(
-    _doc
-    % dict(
-        klass="Index", others=("register_dataframe_accessor, register_series_accessor")
-    )
+@doc(
+    _register_accessor,
+    klass="Index",
+    others="register_dataframe_accessor, register_series_accessor",
 )
 def register_index_accessor(name):
     from pandas import Index
