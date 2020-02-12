@@ -5,7 +5,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 
 from collections import defaultdict
 from functools import partial
-from typing import Any, DefaultDict, List, Optional, Sequence, Tuple, Union
+from typing import Any, DefaultDict, Dict, List, Optional, Sequence, Tuple, Union
 
 from pandas._typing import Label
 
@@ -18,8 +18,8 @@ from pandas.core.indexes.api import Index
 
 
 def reconstruct_func(
-    func: Optional[Union[List, dict]], *args, **kwargs
-) -> Tuple[bool, Any, Optional[List[Label]], Optional[List[int]]]:
+    func: Optional[Union[List, Dict]], *args, **kwargs
+) -> Tuple[bool, Optional[List, Dict], Optional[List[Label]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
