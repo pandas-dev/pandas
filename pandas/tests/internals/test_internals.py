@@ -376,9 +376,6 @@ class TestBlockManager:
         mgr2 = tm.round_trip_pickle(mgr)
         tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
-        # share ref_items
-        # assert mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items
-
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
         assert hasattr(mgr2, "_known_consolidated")
@@ -789,40 +786,39 @@ class TestBlockManager:
         bm2 = BlockManager(bm1.blocks[::-1], bm1.axes)
         assert bm1.equals(bm2)
 
-    def test_equals_block_order_different_dtypes(self):
-        # GH 9330
-
-        mgr_strings = [
+    @pytest.mark.parametrize(
+        "mgr_string",
+        [
             "a:i8;b:f8",  # basic case
             "a:i8;b:f8;c:c8;d:b",  # many types
             "a:i8;e:dt;f:td;g:string",  # more types
             "a:i8;b:category;c:category2;d:category2",  # categories
             "c:sparse;d:sparse_na;b:f8",  # sparse
-        ]
-
-        for mgr_string in mgr_strings:
-            bm = create_mgr(mgr_string)
-            block_perms = itertools.permutations(bm.blocks)
-            for bm_perm in block_perms:
-                bm_this = BlockManager(bm_perm, bm.axes)
-                assert bm.equals(bm_this)
-                assert bm_this.equals(bm)
+        ],
+    )
+    def test_equals_block_order_different_dtypes(self, mgr_string):
+        # GH 9330
+        bm = create_mgr(mgr_string)
+        block_perms = itertools.permutations(bm.blocks)
+        for bm_perm in block_perms:
+            bm_this = BlockManager(bm_perm, bm.axes)
+            assert bm.equals(bm_this)
+            assert bm_this.equals(bm)
 
     def test_single_mgr_ctor(self):
         mgr = create_single_mgr("f8", num_rows=5)
         assert mgr.as_array().tolist() == [0.0, 1.0, 2.0, 3.0, 4.0]
 
-    def test_validate_bool_args(self):
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
+    @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_bool_args(self, value):
         bm1 = create_mgr("a,b,c: i8-1; d,e,f: i8-2")
 
-        for value in invalid_values:
-            msg = (
-                'For argument "inplace" expected type bool, '
-                f"received type {type(value).__name__}."
-            )
-            with pytest.raises(ValueError, match=msg):
-                bm1.replace_list([1], [2], inplace=value)
+        msg = (
+            'For argument "inplace" expected type bool, '
+            f"received type {type(value).__name__}."
+        )
+        with pytest.raises(ValueError, match=msg):
+            bm1.replace_list([1], [2], inplace=value)
 
 
 class TestIndexing:
@@ -851,7 +847,8 @@ class TestIndexing:
 
     # MANAGERS = [MANAGERS[6]]
 
-    def test_get_slice(self):
+    @pytest.mark.parametrize("mgr", MANAGERS)
+    def test_get_slice(self, mgr):
         def assert_slice_ok(mgr, axis, slobj):
             mat = mgr.as_array()
 
@@ -870,35 +867,33 @@ class TestIndexing:
             )
             tm.assert_index_equal(mgr.axes[axis][slobj], sliced.axes[axis])
 
-        for mgr in self.MANAGERS:
-            for ax in range(mgr.ndim):
-                # slice
-                assert_slice_ok(mgr, ax, slice(None))
-                assert_slice_ok(mgr, ax, slice(3))
-                assert_slice_ok(mgr, ax, slice(100))
-                assert_slice_ok(mgr, ax, slice(1, 4))
-                assert_slice_ok(mgr, ax, slice(3, 0, -2))
+        for ax in range(mgr.ndim):
+            # slice
+            assert_slice_ok(mgr, ax, slice(None))
+            assert_slice_ok(mgr, ax, slice(3))
+            assert_slice_ok(mgr, ax, slice(100))
+            assert_slice_ok(mgr, ax, slice(1, 4))
+            assert_slice_ok(mgr, ax, slice(3, 0, -2))
 
-                # boolean mask
-                assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
-                assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
-                assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
+            # boolean mask
+            assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
+            assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
+            assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
 
-                if mgr.shape[ax] >= 3:
-                    assert_slice_ok(mgr, ax, np.arange(mgr.shape[ax]) % 3 == 0)
-                    assert_slice_ok(
-                        mgr, ax, np.array([True, True, False], dtype=np.bool_)
-                    )
+            if mgr.shape[ax] >= 3:
+                assert_slice_ok(mgr, ax, np.arange(mgr.shape[ax]) % 3 == 0)
+                assert_slice_ok(mgr, ax, np.array([True, True, False], dtype=np.bool_))
 
-                # fancy indexer
-                assert_slice_ok(mgr, ax, [])
-                assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
+            # fancy indexer
+            assert_slice_ok(mgr, ax, [])
+            assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
 
-                if mgr.shape[ax] >= 3:
-                    assert_slice_ok(mgr, ax, [0, 1, 2])
-                    assert_slice_ok(mgr, ax, [-1, -2, -3])
+            if mgr.shape[ax] >= 3:
+                assert_slice_ok(mgr, ax, [0, 1, 2])
+                assert_slice_ok(mgr, ax, [-1, -2, -3])
 
-    def test_take(self):
+    @pytest.mark.parametrize("mgr", MANAGERS)
+    def test_take(self, mgr):
         def assert_take_ok(mgr, axis, indexer):
             mat = mgr.as_array()
             taken = mgr.take(indexer, axis)
@@ -907,18 +902,19 @@ class TestIndexing:
             )
             tm.assert_index_equal(mgr.axes[axis].take(indexer), taken.axes[axis])
 
-        for mgr in self.MANAGERS:
-            for ax in range(mgr.ndim):
-                # take/fancy indexer
-                assert_take_ok(mgr, ax, indexer=[])
-                assert_take_ok(mgr, ax, indexer=[0, 0, 0])
-                assert_take_ok(mgr, ax, indexer=list(range(mgr.shape[ax])))
+        for ax in range(mgr.ndim):
+            # take/fancy indexer
+            assert_take_ok(mgr, ax, indexer=[])
+            assert_take_ok(mgr, ax, indexer=[0, 0, 0])
+            assert_take_ok(mgr, ax, indexer=list(range(mgr.shape[ax])))
 
-                if mgr.shape[ax] >= 3:
-                    assert_take_ok(mgr, ax, indexer=[0, 1, 2])
-                    assert_take_ok(mgr, ax, indexer=[-1, -2, -3])
+            if mgr.shape[ax] >= 3:
+                assert_take_ok(mgr, ax, indexer=[0, 1, 2])
+                assert_take_ok(mgr, ax, indexer=[-1, -2, -3])
 
-    def test_reindex_axis(self):
+    @pytest.mark.parametrize("mgr", MANAGERS)
+    @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])
+    def test_reindex_axis(self, fill_value, mgr):
         def assert_reindex_axis_is_ok(mgr, axis, new_labels, fill_value):
             mat = mgr.as_array()
             indexer = mgr.axes[axis].get_indexer_for(new_labels)
@@ -931,33 +927,27 @@ class TestIndexing:
             )
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
-        for mgr in self.MANAGERS:
-            for ax in range(mgr.ndim):
-                for fill_value in (None, np.nan, 100.0):
-                    assert_reindex_axis_is_ok(mgr, ax, pd.Index([]), fill_value)
-                    assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax], fill_value)
-                    assert_reindex_axis_is_ok(
-                        mgr, ax, mgr.axes[ax][[0, 0, 0]], fill_value
-                    )
-                    assert_reindex_axis_is_ok(
-                        mgr, ax, pd.Index(["foo", "bar", "baz"]), fill_value
-                    )
-                    assert_reindex_axis_is_ok(
-                        mgr, ax, pd.Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
-                    )
+        for ax in range(mgr.ndim):
+            assert_reindex_axis_is_ok(mgr, ax, pd.Index([]), fill_value)
+            assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax], fill_value)
+            assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax][[0, 0, 0]], fill_value)
+            assert_reindex_axis_is_ok(
+                mgr, ax, pd.Index(["foo", "bar", "baz"]), fill_value
+            )
+            assert_reindex_axis_is_ok(
+                mgr, ax, pd.Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
+            )
 
-                    if mgr.shape[ax] >= 3:
-                        assert_reindex_axis_is_ok(
-                            mgr, ax, mgr.axes[ax][:-3], fill_value
-                        )
-                        assert_reindex_axis_is_ok(
-                            mgr, ax, mgr.axes[ax][-3::-1], fill_value
-                        )
-                        assert_reindex_axis_is_ok(
-                            mgr, ax, mgr.axes[ax][[0, 1, 2, 0, 1, 2]], fill_value
-                        )
+            if mgr.shape[ax] >= 3:
+                assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax][:-3], fill_value)
+                assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax][-3::-1], fill_value)
+                assert_reindex_axis_is_ok(
+                    mgr, ax, mgr.axes[ax][[0, 1, 2, 0, 1, 2]], fill_value
+                )
 
-    def test_reindex_indexer(self):
+    @pytest.mark.parametrize("mgr", MANAGERS)
+    @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])
+    def test_reindex_indexer(self, fill_value, mgr):
         def assert_reindex_indexer_is_ok(mgr, axis, new_labels, indexer, fill_value):
             mat = mgr.as_array()
             reindexed_mat = algos.take_nd(mat, indexer, axis, fill_value=fill_value)
@@ -969,60 +959,42 @@ class TestIndexing:
             )
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
-        for mgr in self.MANAGERS:
-            for ax in range(mgr.ndim):
-                for fill_value in (None, np.nan, 100.0):
-                    assert_reindex_indexer_is_ok(mgr, ax, pd.Index([]), [], fill_value)
-                    assert_reindex_indexer_is_ok(
-                        mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax]), fill_value
-                    )
-                    assert_reindex_indexer_is_ok(
-                        mgr,
-                        ax,
-                        pd.Index(["foo"] * mgr.shape[ax]),
-                        np.arange(mgr.shape[ax]),
-                        fill_value,
-                    )
-                    assert_reindex_indexer_is_ok(
-                        mgr,
-                        ax,
-                        mgr.axes[ax][::-1],
-                        np.arange(mgr.shape[ax]),
-                        fill_value,
-                    )
-                    assert_reindex_indexer_is_ok(
-                        mgr,
-                        ax,
-                        mgr.axes[ax],
-                        np.arange(mgr.shape[ax])[::-1],
-                        fill_value,
-                    )
-                    assert_reindex_indexer_is_ok(
-                        mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
-                    )
-                    assert_reindex_indexer_is_ok(
-                        mgr,
-                        ax,
-                        pd.Index(["foo", "bar", "baz"]),
-                        [-1, 0, -1],
-                        fill_value,
-                    )
-                    assert_reindex_indexer_is_ok(
-                        mgr,
-                        ax,
-                        pd.Index(["foo", mgr.axes[ax][0], "baz"]),
-                        [-1, -1, -1],
-                        fill_value,
-                    )
+        for ax in range(mgr.ndim):
+            assert_reindex_indexer_is_ok(mgr, ax, pd.Index([]), [], fill_value)
+            assert_reindex_indexer_is_ok(
+                mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax]), fill_value
+            )
+            assert_reindex_indexer_is_ok(
+                mgr,
+                ax,
+                pd.Index(["foo"] * mgr.shape[ax]),
+                np.arange(mgr.shape[ax]),
+                fill_value,
+            )
+            assert_reindex_indexer_is_ok(
+                mgr, ax, mgr.axes[ax][::-1], np.arange(mgr.shape[ax]), fill_value,
+            )
+            assert_reindex_indexer_is_ok(
+                mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value,
+            )
+            assert_reindex_indexer_is_ok(
+                mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
+            )
+            assert_reindex_indexer_is_ok(
+                mgr, ax, pd.Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value,
+            )
+            assert_reindex_indexer_is_ok(
+                mgr,
+                ax,
+                pd.Index(["foo", mgr.axes[ax][0], "baz"]),
+                [-1, -1, -1],
+                fill_value,
+            )
 
-                    if mgr.shape[ax] >= 3:
-                        assert_reindex_indexer_is_ok(
-                            mgr,
-                            ax,
-                            pd.Index(["foo", "bar", "baz"]),
-                            [0, 1, 2],
-                            fill_value,
-                        )
+            if mgr.shape[ax] >= 3:
+                assert_reindex_indexer_is_ok(
+                    mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value,
+                )
 
     # test_get_slice(slice_like, axis)
     # take(indexer, axis)

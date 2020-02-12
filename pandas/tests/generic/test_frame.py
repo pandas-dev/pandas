@@ -32,19 +32,20 @@ class TestDataFrame(Generic):
         )
         df.rename(str.lower)
 
-    def test_set_axis_name(self):
+    @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
+    def test_set_axis_name(self, func):
         df = pd.DataFrame([[1, 2], [3, 4]])
-        funcs = ["_set_axis_name", "rename_axis"]
-        for func in funcs:
-            result = methodcaller(func, "foo")(df)
-            assert df.index.name is None
-            assert result.index.name == "foo"
 
-            result = methodcaller(func, "cols", axis=1)(df)
-            assert df.columns.name is None
-            assert result.columns.name == "cols"
+        result = methodcaller(func, "foo")(df)
+        assert df.index.name is None
+        assert result.index.name == "foo"
 
-    def test_set_axis_name_mi(self):
+        result = methodcaller(func, "cols", axis=1)(df)
+        assert df.columns.name is None
+        assert result.columns.name == "cols"
+
+    @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
+    def test_set_axis_name_mi(self, func):
         df = DataFrame(
             np.empty((3, 3)),
             index=MultiIndex.from_tuples([("A", x) for x in list("aBc")]),
@@ -52,15 +53,14 @@ class TestDataFrame(Generic):
         )
 
         level_names = ["L1", "L2"]
-        funcs = ["_set_axis_name", "rename_axis"]
-        for func in funcs:
-            result = methodcaller(func, level_names)(df)
-            assert result.index.names == level_names
-            assert result.columns.names == [None, None]
 
-            result = methodcaller(func, level_names, axis=1)(df)
-            assert result.columns.names == ["L1", "L2"]
-            assert result.index.names == [None, None]
+        result = methodcaller(func, level_names)(df)
+        assert result.index.names == level_names
+        assert result.columns.names == [None, None]
+
+        result = methodcaller(func, level_names, axis=1)(df)
+        assert result.columns.names == ["L1", "L2"]
+        assert result.index.names == [None, None]
 
     def test_nonzero_single_element(self):
 
@@ -185,36 +185,35 @@ class TestDataFrame(Generic):
 
 # formerly in Generic but only test DataFrame
 class TestDataFrame2:
-    def test_validate_bool_args(self):
+    @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_bool_args(self, value):
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
 
-        for value in invalid_values:
-            with pytest.raises(ValueError):
-                super(DataFrame, df).rename_axis(
-                    mapper={"a": "x", "b": "y"}, axis=1, inplace=value
-                )
+        with pytest.raises(ValueError):
+            super(DataFrame, df).rename_axis(
+                mapper={"a": "x", "b": "y"}, axis=1, inplace=value
+            )
 
-            with pytest.raises(ValueError):
-                super(DataFrame, df).drop("a", axis=1, inplace=value)
+        with pytest.raises(ValueError):
+            super(DataFrame, df).drop("a", axis=1, inplace=value)
 
-            with pytest.raises(ValueError):
-                super(DataFrame, df)._consolidate(inplace=value)
+        with pytest.raises(ValueError):
+            super(DataFrame, df)._consolidate(inplace=value)
 
-            with pytest.raises(ValueError):
-                super(DataFrame, df).fillna(value=0, inplace=value)
+        with pytest.raises(ValueError):
+            super(DataFrame, df).fillna(value=0, inplace=value)
 
-            with pytest.raises(ValueError):
-                super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
+        with pytest.raises(ValueError):
+            super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
 
-            with pytest.raises(ValueError):
-                super(DataFrame, df).interpolate(inplace=value)
+        with pytest.raises(ValueError):
+            super(DataFrame, df).interpolate(inplace=value)
 
-            with pytest.raises(ValueError):
-                super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
+        with pytest.raises(ValueError):
+            super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
 
-            with pytest.raises(ValueError):
-                super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
+        with pytest.raises(ValueError):
+            super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
 
     def test_unexpected_keyword(self):
         # GH8597
@@ -243,23 +242,10 @@ class TestToXArray:
         and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
         reason="xarray >= 0.10.0 required",
     )
-    @pytest.mark.parametrize(
-        "index",
-        [
-            "FloatIndex",
-            "IntIndex",
-            "StringIndex",
-            "UnicodeIndex",
-            "DateIndex",
-            "PeriodIndex",
-            "CategoricalIndex",
-            "TimedeltaIndex",
-        ],
-    )
+    @pytest.mark.parametrize("index", tm.all_index_generator(3))
     def test_to_xarray_index_types(self, index):
         from xarray import Dataset
 
-        index = getattr(tm, f"make{index}")
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -273,7 +259,7 @@ class TestToXArray:
             }
         )
 
-        df.index = index(3)
+        df.index = index
         df.index.name = "foo"
         df.columns.name = "bar"
         result = df.to_xarray()
