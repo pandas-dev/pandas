@@ -925,7 +925,7 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, sdata, names):
+    def fast_apply(self, f, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
@@ -938,7 +938,7 @@ class FrameSplitter(DataSplitter):
 
 
 def get_splitter(
-    data: FrameOrSeries, labels, ngroups: int, axis: int = 0
+    data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: Type[DataSplitter] = SeriesSplitter
