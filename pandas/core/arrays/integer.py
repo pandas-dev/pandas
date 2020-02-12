@@ -1,10 +1,11 @@
 import numbers
-from typing import TYPE_CHECKING, Any, Dict, Tuple, Type, Union
+from typing import TYPE_CHECKING, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -347,13 +348,7 @@ class IntegerArray(BaseMaskedArray):
                 "mask should be boolean numpy array. Use "
                 "the 'integer_array' function instead"
             )
-
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
-
-        self._data = values
-        self._mask = mask
+        super().__init__(values, mask, copy=copy)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
@@ -417,7 +412,7 @@ class IntegerArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         _is_scalar = is_scalar(value)
         if _is_scalar:
             value = [value]
@@ -431,9 +426,9 @@ class IntegerArray(BaseMaskedArray):
         self._data[key] = value
         self._mask[key] = mask
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
-        Cast to a NumPy array or IntegerArray with 'dtype'.
+        Cast to a NumPy array or ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -446,8 +441,8 @@ class IntegerArray(BaseMaskedArray):
 
         Returns
         -------
-        array : ndarray or IntegerArray
-            NumPy ndarray or IntergerArray with 'dtype' for its dtype.
+        ndarray or ExtensionArray
+            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
 
         Raises
         ------
@@ -488,7 +483,7 @@ class IntegerArray(BaseMaskedArray):
         """
         return self._data
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
         # use masked algorithms, rather than object-dtype / np.nan.
         return self.to_numpy(na_value=np.nan), np.nan
@@ -565,7 +560,7 @@ class IntegerArray(BaseMaskedArray):
         name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         data = self._data
         mask = self._mask
 
@@ -592,7 +587,7 @@ class IntegerArray(BaseMaskedArray):
 
         return result
 
-    def _maybe_mask_result(self, result, mask, other, op_name):
+    def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters
         ----------
@@ -768,7 +763,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes: Dict[str, _IntegerDtype] = {
+_dtypes = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),
