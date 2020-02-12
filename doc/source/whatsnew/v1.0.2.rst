@@ -32,6 +32,10 @@ Bug fixes
 
 - Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
 
+**Testing**
+
+- Fixed bug where :meth:`assert_numpy_array_equal` would raise a ``TypeError`` when encountering ``pd.NA`` (:issue:`31881`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_102.contributors:
