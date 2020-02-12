@@ -1200,19 +1200,23 @@ class TestTypeInference:
         inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
         assert inferred == "interval"
 
-    def test_string_dtype(self):
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
+    def test_string_dtype(self, data, skipna, klass):
         # StringArray
-        arr = pd.array(["a", "b", pd.NA], dtype="string")
-        for val in [arr, pd.Series(arr)]:
-            inferred = lib.infer_dtype(val)
-            assert inferred == "string"
+        val = klass(data, dtype="string")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "string"
 
-    def test_boolean_dtype(self):
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
+    def test_boolean_dtype(self, data, skipna, klass):
         # BooleanArray
-        arr = pd.array([True, False, pd.NA], dtype="boolean")
-        for val in [arr, pd.Series(arr)]:
-            inferred = lib.infer_dtype(val)
-            assert inferred == "boolean"
+        val = klass(data, dtype="boolean")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "boolean"
 
 
 class TestNumberScalar:
