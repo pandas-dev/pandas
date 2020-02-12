@@ -176,6 +176,16 @@ MultiIndex
                           index=[["a", "a", "b", "b"], [1, 2, 1, 2]])
         # Rows are now ordered as the requested keys
         df.loc[(['b', 'a'], [2, 1]), :]
+
+- Bug in :meth:`MultiIndex.intersection` was not guaranteed to preserve order when ``sort=False``. (:issue:`31325`)
+
+.. ipython:: python
+
+        left = pd.MultiIndex.from_arrays([["b", "a"], [2, 1]])
+        right = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        # Common elements are now guaranteed to be ordered by the left side
+        left.intersection(right, sort=False)
+
 -
 
 I/O
