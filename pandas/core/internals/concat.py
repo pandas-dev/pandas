@@ -204,10 +204,9 @@ class JoinUnit:
                     missing_arr.fill(fill_value)
                     return missing_arr
 
-            if not self.indexers:
-                if not self.block._can_consolidate:
-                    # preserve these for validation in concat_compat
-                    return self.block.values
+            if (not self.indexers) and (not self.block._can_consolidate):
+                # preserve these for validation in concat_compat
+                return self.block.values
 
             if self.block.is_bool and not self.block.is_categorical:
                 # External code requested filling/upcasting, bool values must
@@ -372,7 +371,7 @@ def _get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def is_uniform_join_units(join_units):
+def is_uniform_join_units(join_units) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic

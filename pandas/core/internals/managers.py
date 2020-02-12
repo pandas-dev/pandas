@@ -589,7 +589,7 @@ class BlockManager(PandasObject):
                 )
             return _compare_or_regex_search(values, s, regex)
 
-        masks = [comp(s, regex) for i, s in enumerate(src_list)]
+        masks = [comp(s, regex) for s in src_list]
 
         result_blocks = []
         src_len = len(src_list) - 1
@@ -755,10 +755,7 @@ class BlockManager(PandasObject):
             # hit in e.g. tests.io.json.test_pandas
 
             def copy_func(ax):
-                if deep == "all":
-                    return ax.copy(deep=True)
-                else:
-                    return ax.view()
+                return ax.copy(deep=True) if deep == "all" else ax.view()
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
