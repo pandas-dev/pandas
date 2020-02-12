@@ -621,6 +621,7 @@ class TestPandasContainer:
         data = string_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
 
+        expected = string_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -636,6 +637,7 @@ class TestPandasContainer:
             data, typ="series", orient=orient, numpy=numpy, dtype=dtype
         )
 
+        expected = object_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -648,7 +650,7 @@ class TestPandasContainer:
         data = empty_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
 
-        # TODO: see what causes inconsistency
+        expected = empty_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         else:
@@ -661,6 +663,7 @@ class TestPandasContainer:
         data = datetime_series.to_json(orient=orient)
         result = pd.read_json(data, typ="series", orient=orient, numpy=numpy)
 
+        expected = datetime_series
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
