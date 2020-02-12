@@ -3133,7 +3133,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def _reset_cacher(self) -> None:
         """
-        Reset the cacher."""
+        Reset the cacher.
+        """
         if hasattr(self, "_cacher"):
             del self._cacher
 

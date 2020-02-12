@@ -76,7 +76,7 @@ def _expand_user(
 ) -> FilePathOrBuffer[AnyStr]:
     """
     Return the argument with an initial component of ~ or ~user
-       replaced by that user's home directory.
+    replaced by that user's home directory.
 
     Parameters
     ----------
