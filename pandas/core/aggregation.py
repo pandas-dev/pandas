@@ -31,7 +31,8 @@ def reconstruct_func(
     Parameters
     ----------
     func: aggregated function
-    **kwargs: dict
+    **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
+        normalize_keyword_aggregation function for relabelling
 
     Returns
     -------
