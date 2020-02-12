@@ -195,6 +195,6 @@ numpy array values are different \\(50.0 %\\)
 
 
 def test_numpy_array_equal_identical_na(nulls_fixture):
-    a = np.array([nulls_fixture])
+    a = np.array([nulls_fixture], dtype=object)
 
     tm.assert_numpy_array_equal(a, a)
