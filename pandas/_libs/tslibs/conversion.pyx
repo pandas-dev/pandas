@@ -559,7 +559,9 @@ cdef inline check_overflows(_TSObject obj):
 cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
-    representation of that timestamp in the given timezone.
+    representation of that timestamp in the given timezone. Attempt to shift
+    over the daylight saving time transition point according to the fold
+    argument.
 
     Parameters
     ----------
@@ -577,7 +579,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
 
     Notes
     -----
-    Sets obj.tzinfo inplace, alters obj.dts inplace.
+    Sets obj.tzinfo inplace, alters obj.dts inplace, alters obj.value inplace.
     """
     cdef:
         ndarray[int64_t] trans
