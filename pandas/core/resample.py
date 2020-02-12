@@ -183,7 +183,6 @@ class Resampler(_GroupBy, ShallowMixin):
         Create the BinGrouper, assume that self.set_grouper(obj)
         has already been called.
         """
-
         binner, bins, binlabels = self._get_binner_for_time()
         assert len(bins) == len(binlabels)
         bin_grouper = BinGrouper(bins, binlabels, indexer=self.groupby.indexer)
@@ -345,7 +344,6 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         Re-evaluate the obj with a groupby aggregation.
         """
-
         if grouper is None:
             self._set_binner()
             grouper = self.grouper
@@ -397,7 +395,6 @@ class Resampler(_GroupBy, ShallowMixin):
         result : Series or DataFrame
             the result of resample
         """
-
         needs_offset = (
             isinstance(self.loffset, (DateOffset, timedelta, np.timedelta64))
             and isinstance(result.index, DatetimeIndex)
@@ -1158,7 +1155,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
-
         # we may need to actually resample as if we are timestamps
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
@@ -1202,7 +1198,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         .fillna
 
         """
-
         # we may need to actually resample as if we are timestamps
         if self.kind == "timestamp":
             return super()._upsample(method, limit=limit, fill_value=fill_value)
@@ -1277,7 +1272,6 @@ def get_resampler_for_grouping(
     """
     Return our appropriate resampler when grouping as well.
     """
-
     # .resample uses 'on' similar to how .groupby uses 'key'
     kwargs["key"] = kwargs.pop("on", None)
 

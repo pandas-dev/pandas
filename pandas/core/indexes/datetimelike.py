@@ -528,7 +528,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-
         new_data = type(self._data)._concat_same_type(to_concat)
 
         return self._simple_new(new_data, name=name)
