@@ -755,17 +755,10 @@ class _LocationIndexer(_NDFrameIndexerBase):
                     new_key = tup[:i] + (_NS,) + tup[i + 1 :]
 
                 else:
+                    # Note: the section.ndim == self.ndim check above
+                    #  rules out having DataFrame here, so we dont need to worry
+                    #  about transposing.
                     new_key = tup[:i] + tup[i + 1 :]
-
-                    # unfortunately need an odious kludge here because of
-                    # DataFrame transposing convention
-                    if (
-                        isinstance(section, ABCDataFrame)
-                        and i > 0
-                        and len(new_key) == 2
-                    ):
-                        a, b = new_key
-                        new_key = b, a
 
                     if len(new_key) == 1:
                         new_key = new_key[0]
