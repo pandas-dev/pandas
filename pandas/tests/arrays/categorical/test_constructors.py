@@ -458,6 +458,13 @@ class TestCategoricalConstructors:
         result = Categorical(["a", "b"], categories=CategoricalIndex(["a", "b", "c"]))
         tm.assert_categorical_equal(result, expected)
 
+    def test_construction_with_na(self):
+        values = ["a", pd.NA]
+        result = Categorical(np.array(values, dtype=object))
+        expected = Categorical(values)
+
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories
