@@ -718,6 +718,25 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         return None
 
+    def _getitem_tuple_same_dim(self, tup: Tuple):
+        """
+        Index with indexers that should return an object of the same dimension
+        as self.obj.
+
+        This is only called after a failed call to _getitem_lowerdim.
+        """
+        retval = self.obj
+        for i, key in enumerate(tup):
+            if com.is_null_slice(key):
+                continue
+
+            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+            # We should never have retval.ndim < self.ndim, as that should
+            #  be handled by the _getitem_lowerdim call above.
+            assert retval.ndim == self.ndim
+
+        return retval
+
     def _getitem_lowerdim(self, tup: Tuple):
 
         # we can directly get the axis result since the axis is specified
@@ -1049,15 +1068,7 @@ class _LocIndexer(_LocationIndexer):
         if self._multi_take_opportunity(tup):
             return self._multi_take(tup)
 
-        # no shortcut needed
-        retval = self.obj
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                continue
-
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
-
-        return retval
+        return self._getitem_tuple_same_dim(tup)
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1468,25 +1479,7 @@ class _iLocIndexer(_LocationIndexer):
         except IndexingError:
             pass
 
-        retval = self.obj
-        axis = 0
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                axis += 1
-                continue
-
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=axis)
-
-            # if the dim was reduced, then pass a lower-dim the next time
-            if retval.ndim < self.ndim:
-                # TODO: this is never reached in tests; can we confirm that
-                #  it is impossible?
-                axis -= 1
-
-            # try to get for the next axis
-            axis += 1
-
-        return retval
+        return self._getitem_tuple_same_dim(tup)
 
     def _get_list_axis(self, key, axis: int):
         """
