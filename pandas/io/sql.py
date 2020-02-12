@@ -284,7 +284,7 @@ def read_sql_query(
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    index_col : str or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
@@ -364,7 +364,7 @@ def read_sql(
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
         for engine disposal and connection closure for the SQLAlchemy connectable. See
         `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
-    index_col : str or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
@@ -1440,7 +1440,7 @@ class SQLiteTable(SQLTable):
             for stmt in self.table:
                 conn.execute(stmt)
 
-    def insert_statement(self):
+    def insert_statement(self, *, num_rows):
         names = list(map(str, self.frame.columns))
         wld = "?"  # wildcard char
         escape = _get_valid_sqlite_name
@@ -1451,15 +1451,22 @@ class SQLiteTable(SQLTable):
 
         bracketed_names = [escape(column) for column in names]
         col_names = ",".join(bracketed_names)
-        wildcards = ",".join([wld] * len(names))
+
+        row_wildcards = ",".join([wld] * len(names))
+        wildcards = ",".join(f"({row_wildcards})" for _ in range(num_rows))
         insert_statement = (
-            f"INSERT INTO {escape(self.name)} ({col_names}) VALUES ({wildcards})"
+            f"INSERT INTO {escape(self.name)} ({col_names}) VALUES {wildcards}"
         )
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter):
         data_list = list(data_iter)
-        conn.executemany(self.insert_statement(), data_list)
+        conn.executemany(self.insert_statement(num_rows=1), data_list)
+
+    def _execute_insert_multi(self, conn, keys, data_iter):
+        data_list = list(data_iter)
+        flattened_data = [x for row in data_list for x in row]
+        conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
 
     def _create_table_setup(self):
         """

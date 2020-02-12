@@ -823,20 +823,22 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Copying Methods
 
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+    def copy(self, name=None, deep=False, dtype=None, names=None):
         """
         Make a copy of this object.  Name and dtype sets those attributes on
         the new object.
 
         Parameters
         ----------
-        name : str, optional
+        name : Label
         deep : bool, default False
-        dtype : numpy dtype or pandas type
+        dtype : numpy dtype or pandas type, optional
+        names : list-like, optional
+            Kept for compatibility with MultiIndex. Should not be used.
 
         Returns
         -------
-        copy : Index
+        Index
 
         Notes
         -----
@@ -848,7 +850,6 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             new_index = self._shallow_copy()
 
-        names = kwargs.get("names")
         names = self._validate_names(name=name, names=names, deep=deep)
         new_index = new_index.set_names(names)
 
@@ -3100,20 +3101,16 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
 
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str_t):
         """
         Convert a scalar indexer.
 
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        if kind == "iloc":
-            self._validate_indexer("positional", key, "iloc")
-            return key
+        assert kind in ["loc", "getitem"]
 
         if len(self) and not isinstance(self, ABCMultiIndex):
 
@@ -3146,7 +3143,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         return key
 
-    def _convert_slice_indexer(self, key: slice, kind=None):
+    def _validate_positional_slice(self, key: slice):
+        """
+        For positional indexing, a slice must have either int or None
+        for each of start, stop, and step.
+        """
+        self._validate_indexer("positional", key.start, "iloc")
+        self._validate_indexer("positional", key.stop, "iloc")
+        self._validate_indexer("positional", key.step, "iloc")
+
+    def _convert_slice_indexer(self, key: slice, kind: str_t):
         """
         Convert a slice indexer.
 
@@ -3156,16 +3162,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        # validate iloc
-        if kind == "iloc":
-            self._validate_indexer("slice", key.start, "iloc")
-            self._validate_indexer("slice", key.stop, "iloc")
-            self._validate_indexer("slice", key.step, "iloc")
-            return key
+        assert kind in ["loc", "getitem"], kind
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
@@ -3194,17 +3193,16 @@ class Index(IndexOpsMixin, PandasObject):
         # convert the slice to an indexer here
 
         # if we are mixed and have integers
-        try:
-            if is_positional and self.is_mixed():
+        if is_positional and self.is_mixed():
+            try:
                 # Validate start & stop
                 if start is not None:
                     self.get_loc(start)
                 if stop is not None:
                     self.get_loc(stop)
                 is_positional = False
-        except KeyError:
-            if self.inferred_type in ["mixed-integer-float", "integer-na"]:
-                raise
+            except KeyError:
+                pass
 
         if is_null_slicer:
             indexer = key
@@ -3289,8 +3287,8 @@ class Index(IndexOpsMixin, PandasObject):
         Consistent invalid indexer message.
         """
         raise TypeError(
-            f"cannot do {form} indexing on {type(self)} with these "
-            f"indexers [{key}] of {type(key)}"
+            f"cannot do {form} indexing on {type(self).__name__} with these "
+            f"indexers [{key}] of type {type(key).__name__}"
         )
 
     # --------------------------------------------------------------------
@@ -4601,7 +4599,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 raise
 
-        return self._get_values_for_loc(series, loc)
+        return self._get_values_for_loc(series, loc, key)
 
     def _should_fallback_to_positional(self) -> bool:
         """
@@ -4611,12 +4609,14 @@ class Index(IndexOpsMixin, PandasObject):
             return False
         return True
 
-    def _get_values_for_loc(self, series: "Series", loc):
+    def _get_values_for_loc(self, series: "Series", loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
 
         Assumes that `series.index is self`
+
+        key is included for MultiIndex compat.
         """
         if is_integer(loc):
             return series._values[loc]
