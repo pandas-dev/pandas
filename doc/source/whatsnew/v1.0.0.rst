@@ -1202,7 +1202,6 @@ Plotting
 - Bug in color validation incorrectly raising for non-color styles (:issue:`29122`).
 - Allow :meth:`DataFrame.plot.scatter` to plot ``objects`` and ``datetime`` type data (:issue:`18755`, :issue:`30391`)
 - Bug in :meth:`DataFrame.hist`, ``xrot=0`` does not work with ``by`` and subplots (:issue:`30288`).
-- Bug in BarPlot. Tick position where assigned by value order instead of using the value for numeric, or a smart order for sting. (:issue:`26186` and issue:`11465`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
