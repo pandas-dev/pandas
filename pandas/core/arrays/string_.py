@@ -1,5 +1,5 @@
 import operator
-from typing import Type
+from typing import TYPE_CHECKING, Type, Union
 
 import numpy as np
 
@@ -15,7 +15,11 @@ from pandas import compat
 from pandas.core import ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
+
+if TYPE_CHECKING:
+    import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
@@ -53,19 +57,30 @@ class StringDtype(ExtensionDtype):
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> "Type[StringArray]":
+    def construct_array_type(cls) -> Type["StringArray"]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return StringArray
 
     def __repr__(self) -> str:
         return "StringDtype"
 
-    def __from_arrow__(self, array):
-        """Construct StringArray from passed pyarrow Array/ChunkedArray"""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "StringArray":
+        """
+        Construct StringArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -224,6 +239,7 @@ class StringArray(PandasArray):
             # extract_array doesn't extract PandasArray subclasses
             value = value._ndarray
 
+        key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)
         scalar_value = lib.is_scalar(value)
         if scalar_key and not scalar_value:

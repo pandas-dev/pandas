@@ -205,8 +205,8 @@ DataFrame or dict of DataFrames
 
 See Also
 --------
-to_excel : Write DataFrame to an Excel file.
-to_csv : Write DataFrame to a comma-separated values (csv) file.
+DataFrame.to_excel : Write DataFrame to an Excel file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
@@ -756,7 +756,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @classmethod
     def check_extension(cls, ext):
         """checks that path's extension against the Writer's supported
-        extensions.  If it isn't supported, raises UnsupportedFiletypeError."""
+        extensions.  If it isn't supported, raises UnsupportedFiletypeError.
+        """
         if ext.startswith("."):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):

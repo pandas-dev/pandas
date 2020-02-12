@@ -8,7 +8,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, List, Optional, Union, cast
+from typing import Any, Callable, List, Optional, Type, Union, cast
 import warnings
 import zipfile
 
@@ -1508,7 +1508,6 @@ def assert_sp_array_equal(
         create a new BlockIndex for that array, with consolidated
         block indices.
     """
-
     _check_isinstance(left, right, pd.arrays.SparseArray)
 
     assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
@@ -1876,7 +1875,6 @@ def makeCustomIndex(
 
         if unspecified, string labels will be generated.
     """
-
     if ndupe_l is None:
         ndupe_l = [1] * nlevels
     assert is_sequence(ndupe_l) and len(ndupe_l) <= nlevels
@@ -2025,7 +2023,6 @@ def makeCustomDataframe(
 
     >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
     """
-
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or (
@@ -2150,7 +2147,8 @@ def optional_args(decorator):
         @my_decorator
         def function(): pass
 
-    Calls decorator with decorator(f, *args, **kwargs)"""
+    Calls decorator with decorator(f, *args, **kwargs)
+    """
 
     @wraps(decorator)
     def wrapper(*args, **kwargs):
@@ -2228,7 +2226,6 @@ def can_connect(url, error_classes=None):
         Return True if no IOError (unable to connect) or URLError (bad url) was
         raised
     """
-
     if error_classes is None:
         error_classes = _get_default_network_errors()
 
@@ -2602,7 +2599,6 @@ def test_parallel(num_threads=2, kwargs_list=None):
     https://github.com/scikit-image/scikit-image/pull/1519
 
     """
-
     assert num_threads > 0
     has_kwargs_list = kwargs_list is not None
     if has_kwargs_list:
@@ -2684,7 +2680,6 @@ def set_timezone(tz: str):
     ...
     'EDT'
     """
-
     import os
     import time
 
@@ -2757,3 +2752,24 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     sep = os.linesep
     expected = sep.join(rows_list) + sep
     return expected
+
+
+def external_error_raised(
+    expected_exception: Type[Exception],
+) -> Callable[[Type[Exception], None], None]:
+    """
+    Helper function to mark pytest.raises that have an external error message.
+
+    Parameters
+    ----------
+    expected_exception : Exception
+        Expected error to raise.
+
+    Returns
+    -------
+    Callable
+        Regular `pytest.raises` function with `match` equal to `None`.
+    """
+    import pytest
+
+    return pytest.raises(expected_exception, match=None)
