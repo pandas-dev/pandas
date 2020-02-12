@@ -3,7 +3,6 @@ import datetime
 from datetime import timedelta
 from io import StringIO
 import json
-import os
 
 import numpy as np
 import pytest
