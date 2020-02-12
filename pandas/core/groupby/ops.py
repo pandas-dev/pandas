@@ -148,7 +148,9 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f, data: FrameOrSeries, axis: int = 0):
+    def apply(
+        self, f, data: FrameOrSeries, axis: int = 0, engine="cython", engine_kwargs=None
+    ):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -169,7 +171,9 @@ class BaseGrouper:
             and not sdata.index._has_complex_internals
         ):
             try:
-                result_values, mutated = splitter.fast_apply(f, group_keys)
+                result_values, mutated = splitter.fast_apply(
+                    f, group_keys, engine=engine, engine_kwargs=engine_kwargs
+                )
 
             except libreduction.InvalidApply as err:
                 # This Exception is raised if `f` triggers an exception
@@ -927,7 +931,7 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, names):
+    def fast_apply(self, f, names, engine="cython", engine_kwargs=None):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 

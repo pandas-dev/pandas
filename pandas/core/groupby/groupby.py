@@ -703,7 +703,7 @@ b  2""",
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
+    def apply(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
 
         func = self._is_builtin_func(func)
 
@@ -732,7 +732,7 @@ b  2""",
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
-                result = self._python_apply_general(f)
+                result = self._python_apply_general(f, engine, engine_kwargs)
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -743,12 +743,14 @@ b  2""",
                 # on a string grouper column
 
                 with _group_selection_context(self):
-                    return self._python_apply_general(f)
+                    return self._python_apply_general(f, engine, engine_kwargs)
 
         return result
 
     def _python_apply_general(self, f):
-        keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
+        keys, values, mutated = self.grouper.apply(
+            f, self._selected_obj, self.axis, engine="cython", engine_kwargs=None
+        )
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=mutated or self.mutated

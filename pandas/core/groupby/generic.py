@@ -223,8 +223,10 @@ class SeriesGroupBy(GroupBy):
             input="series", examples=_apply_docs["series_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs):
-        return super().apply(func, *args, **kwargs)
+    def apply(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
+        return super().apply(
+            func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
+        )
 
     @Substitution(
         see_also=_agg_see_also_doc,
