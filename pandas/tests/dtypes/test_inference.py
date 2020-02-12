@@ -1203,14 +1203,14 @@ class TestTypeInference:
     def test_string_dtype(self):
         # StringArray
         arr = pd.array(["a", "b", pd.NA], dtype="string")
-        for val in [list(arr), arr, pd.Series(arr)]:
+        for val in [arr, pd.Series(arr)]:
             inferred = lib.infer_dtype(val)
             assert inferred == "string"
 
     def test_boolean_dtype(self):
         # BooleanArray
         arr = pd.array([True, False, pd.NA], dtype="boolean")
-        for val in [list(arr), arr, pd.Series(arr)]:
+        for val in [arr, pd.Series(arr)]:
             inferred = lib.infer_dtype(val)
             assert inferred == "boolean"
 
