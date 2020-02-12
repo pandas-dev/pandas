@@ -386,7 +386,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         key : label of the slice bound
         kind : {'loc', 'getitem'}
         """
-
         assert kind in ["loc", "getitem"]
 
         if not is_scalar(key):
@@ -556,7 +555,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-
         new_data = type(self._data)._concat_same_type(to_concat)
 
         return self._simple_new(new_data, name=name)

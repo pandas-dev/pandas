@@ -38,7 +38,6 @@ def get_dtype_kinds(l):
     -------
     a set of kinds that exist in this list of arrays
     """
-
     typs = set()
     for arr in l:
 
@@ -85,7 +84,6 @@ def concat_compat(to_concat, axis: int = 0):
     -------
     a single array, preserving the combined dtypes
     """
-
     # filter empty arrays
     # 1-d dtypes always are included here
     def is_nonempty(x) -> bool:
@@ -153,7 +151,6 @@ def concat_categorical(to_concat, axis: int = 0):
     Categorical
         A single array, preserving the combined dtypes
     """
-
     # we could have object blocks and categoricals here
     # if we only have a single categoricals then combine everything
     # else its a non-compat categorical
@@ -381,7 +378,6 @@ def concat_datetime(to_concat, axis=0, typs=None):
     -------
     a single array, preserving the combined dtypes
     """
-
     if typs is None:
         typs = get_dtype_kinds(to_concat)
 
@@ -466,7 +462,6 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     -------
     a single array, preserving the combined dtypes
     """
-
     from pandas.core.arrays import SparseArray
 
     fill_values = [x.fill_value for x in to_concat if isinstance(x, SparseArray)]

@@ -49,6 +49,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    doc,
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
@@ -4155,8 +4156,7 @@ class DataFrame(NDFrame):
             errors=errors,
         )
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.fillna.__doc__)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
@@ -5013,7 +5013,6 @@ class DataFrame(NDFrame):
         sorted_obj : DataFrame or None
             DataFrame with sorted index if inplace=False, None otherwise.
         """
-
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
@@ -7040,7 +7039,6 @@ Wild         185.0
         0   1.000000   4.494400
         1  11.262736  20.857489
         """
-
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if x.empty:
