@@ -7,8 +7,6 @@ from collections import defaultdict
 from functools import partial
 from typing import Any, DefaultDict, Dict, List, Optional, Sequence, Tuple, Union
 
-from pandas._typing import Label
-
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame
 
@@ -20,7 +18,7 @@ from pandas.core.indexes.api import Index
 def reconstruct_func(
     func: Optional[Union[List, Dict]], *args, **kwargs
 ) -> Tuple[
-    bool, Optional[Union[List, Dict]], Optional[List[Label]], Optional[List[int]]
+    bool, Optional[Union[List, Dict]], Optional[List[str]], Optional[List[int]]
 ]:
     """
     This is the internal function to reconstruct func given if there is relabeling
