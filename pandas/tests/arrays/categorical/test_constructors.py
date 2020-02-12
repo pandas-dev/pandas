@@ -560,6 +560,23 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes([0, 1])
 
+    def test_from_codes_with_nullable_int(self):
+        codes = pd.array([0, 1], dtype="Int64")
+        categories = ["a", "b"]
+
+        result = Categorical.from_codes(codes, categories=categories)
+        expected = Categorical.from_codes(codes.to_numpy(int), categories=categories)
+
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_codes_with_nullable_int_na_raises(self):
+        codes = pd.array([0, None], dtype="Int64")
+        categories = ["a", "b"]
+
+        msg = "codes cannot contain NA values"
+        with pytest.raises(ValueError, match=msg):
+            Categorical.from_codes(codes, categories=categories)
+
     @pytest.mark.parametrize("dtype", [None, "category"])
     def test_from_inferred_categories(self, dtype):
         cats = ["a", "b"]

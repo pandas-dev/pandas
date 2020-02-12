@@ -28,6 +28,10 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+**Categorical**
+
+- Fixed bug where :meth:`Categorical.from_codes` improperly raised a ``ValueError`` when passed nullable integer codes. (:issue:`31779`)
+
 **I/O**
 
 - Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
