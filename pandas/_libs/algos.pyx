@@ -1,4 +1,3 @@
-from cpython.buffer import PyBuffer_IsContiguous
 import cython
 from cython import Py_ssize_t
 
@@ -1180,7 +1179,7 @@ def diff_2d(diff_t[:, :] arr,
             Py_ssize_t periods, int axis):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = PyBuffer_IsContiguous(arr, 'F')
+        bint f_contig = arr.f_contiguous
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
