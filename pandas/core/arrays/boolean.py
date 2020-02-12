@@ -1,10 +1,11 @@
 import numbers
-from typing import TYPE_CHECKING, Any, List, Tuple, Type, Union
+from typing import TYPE_CHECKING, List, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
@@ -281,20 +282,15 @@ class BooleanArray(BaseMaskedArray):
         if not mask.ndim == 1:
             raise ValueError("mask must be a 1D array")
 
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
-
-        self._data = values
-        self._mask = mask
         self._dtype = BooleanDtype()
+        super().__init__(values, mask, copy=copy)
 
     @property
-    def dtype(self):
+    def dtype(self) -> BooleanDtype:
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -303,7 +299,7 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence_of_strings(
         cls, strings: List[str], dtype=None, copy: bool = False
-    ):
+    ) -> "BooleanArray":
         def map_string(s):
             if isna(s):
                 return s
@@ -317,18 +313,18 @@ class BooleanArray(BaseMaskedArray):
         scalars = [map_string(x) for x in strings]
         return cls._from_sequence(scalars, dtype, copy)
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         data = self._data.astype("int8")
         data[self._mask] = -1
         return data, -1
 
     @classmethod
-    def _from_factorized(cls, values, original: "BooleanArray"):
+    def _from_factorized(cls, values, original: "BooleanArray") -> "BooleanArray":
         return cls._from_sequence(values, dtype=original.dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -373,7 +369,7 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         _is_scalar = is_scalar(value)
         if _is_scalar:
             value = [value]
@@ -387,7 +383,7 @@ class BooleanArray(BaseMaskedArray):
         self._data[key] = value
         self._mask[key] = mask
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -402,8 +398,8 @@ class BooleanArray(BaseMaskedArray):
 
         Returns
         -------
-        array : ndarray or ExtensionArray
-            NumPy ndarray, BooleanArray or IntergerArray with 'dtype' for its dtype.
+        ndarray or ExtensionArray
+            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
 
         Raises
         ------
@@ -693,7 +689,7 @@ class BooleanArray(BaseMaskedArray):
         name = f"__{op.__name__}"
         return set_function_name(cmp_method, name, cls)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
@@ -722,7 +718,7 @@ class BooleanArray(BaseMaskedArray):
 
         return result
 
-    def _maybe_mask_result(self, result, mask, other, op_name):
+    def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters
         ----------
