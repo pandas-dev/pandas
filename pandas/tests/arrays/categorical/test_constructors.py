@@ -458,9 +458,9 @@ class TestCategoricalConstructors:
         result = Categorical(["a", "b"], categories=CategoricalIndex(["a", "b", "c"]))
         tm.assert_categorical_equal(result, expected)
 
-    def test_construction_with_na(self):
+    def test_construction_with_null(self, nulls_fixture):
         # https://github.com/pandas-dev/pandas/issues/31927
-        values = ["a", pd.NA]
+        values = ["a", nulls_fixture]
         result = Categorical(np.array(values, dtype=object))
         expected = Categorical(values)
 
