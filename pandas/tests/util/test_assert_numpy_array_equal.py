@@ -192,3 +192,9 @@ numpy array values are different \\(50.0 %\\)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_numpy_array_equal(a, b)
+
+
+def test_numpy_array_equal_identical_na(nulls_fixture):
+    a = np.array([nulls_fixture])
+
+    tm.assert_numpy_array_equal(a, a)
