@@ -18,7 +18,6 @@ def convert_to_line_delimits(s):
     """
     Helper function that converts JSON lists to line delimited JSON.
     """
-
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
     if not s[0] == "[" and s[-1] == "]":

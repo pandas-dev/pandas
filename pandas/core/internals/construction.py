@@ -78,7 +78,6 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
     """
     Extract from a masked rec array and create the manager.
     """
-
     # essentially process a record array then fill it
     fill_value = data.fill_value
     fdata = ma.getdata(data)
@@ -555,7 +554,6 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
-
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
@@ -603,7 +601,6 @@ def sanitize_index(data, index: Index):
     Sanitize an index type to return an ndarray of the underlying, pass
     through a non-Index.
     """
-
     if len(data) != len(index):
         raise ValueError("Length of values does not match length of index")
 
