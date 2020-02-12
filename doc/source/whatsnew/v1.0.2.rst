@@ -38,8 +38,10 @@ Bug fixes
 - Fixed bug in parquet roundtrip with nullable unsigned integer dtypes (:issue:`31896`).
 
 
+
 **Experimental dtypes**
 
+- Fix bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the ``"string"`` dtype (:issue:`31731`).
 - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
 
 .. ---------------------------------------------------------------------------

@@ -744,6 +744,7 @@ def any_numpy_dtype(request):
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
+    ("string", ["a", pd.NA, "c"]),
     ("bytes", [b"a", np.nan, b"c"]),
     ("empty", [np.nan, np.nan, np.nan]),
     ("empty", []),
@@ -754,6 +755,7 @@ _any_skipna_inferred_dtype = [
     ("mixed-integer-float", [1, np.nan, 2.0]),
     ("decimal", [Decimal(1), np.nan, Decimal(2)]),
     ("boolean", [True, np.nan, False]),
+    ("boolean", [True, pd.NA, False]),
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
     ("datetime", [pd.Timestamp("20130101"), np.nan, pd.Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
