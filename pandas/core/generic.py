@@ -6204,6 +6204,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * If `regex` is not a ``bool`` and `to_replace` is not
               ``None``.
         TypeError
+            * If `to_replace` is not any of the expected types
+              (``str``, `regex`, ``list``, ``dict``, ``Series``, ``int``,
+               ``float`` or ``None``)
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
@@ -6407,6 +6410,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         regex=False,
         method="pad",
     ):
+        if not (
+            is_scalar(to_replace)
+            or isinstance(to_replace, pd.Series)
+            or is_re_compilable(to_replace)
+            or is_list_like(to_replace)
+            or is_dict_like(to_replace)
+        ):
+            raise TypeError(
+                f"Expecting 'to_replace' to be str, regex, list, dict, Series, "
+                f"int, float or None, got invalid type "
+                f"{repr(type(to_replace).__name__)}"
+            )
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
