@@ -182,7 +182,7 @@ def test_numpy_array_equal_copy_flag(other_type, check_same):
 def test_numpy_array_equal_contains_na():
     # https://github.com/pandas-dev/pandas/issues/31881
     a = np.array([True, False])
-    b = np.array([True, NA])
+    b = np.array([True, NA], dtype=object)
 
     msg = """numpy array are different
 
