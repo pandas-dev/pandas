@@ -7957,6 +7957,19 @@ Wild         185.0
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
+
+        dtype_is_dt = self.dtypes.apply(lambda x: x.kind == "M")
+        if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
+            warnings.warn(
+                "DataFrame.mean and DataFrame.median with numeric_only=None "
+                "will include datetime64 and datetime64tz columns in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=3,
+            )
+            cols = self.columns[~dtype_is_dt]
+            self = self[cols]
+
         if axis is None and filter_type == "bool":
             labels = None
             constructor = None
@@ -7996,9 +8009,15 @@ Wild         185.0
 
             out_dtype = "bool" if filter_type == "bool" else None
 
+            def blk_func(values):
+                if values.ndim == 1 and not isinstance(values, np.ndarray):
+                    # we can't pass axis=1
+                    return op(values, axis=0, skipna=skipna, **kwds)
+                return op(values, axis=1, skipna=skipna, **kwds)
+
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(op, axis=1, skipna=skipna, **kwds)
+            res = df._data.reduce(blk_func)
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
