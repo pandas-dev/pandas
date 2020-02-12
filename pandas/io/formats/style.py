@@ -802,7 +802,6 @@ class Styler:
         --------
         Styler.applymap
         """
-
         if other is None:
             other = ""
 

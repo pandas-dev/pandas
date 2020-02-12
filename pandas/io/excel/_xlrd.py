@@ -60,7 +60,6 @@ class _XlrdReader(_BaseExcelReader):
             """
             converts the contents of the cell into a pandas appropriate object
             """
-
             if cell_typ == XL_CELL_DATE:
 
                 # Use the newer xlrd datetime handling.
