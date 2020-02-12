@@ -103,6 +103,10 @@ class _IntegerDtype(ExtensionDtype):
         import pyarrow  # noqa: F811
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
+        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
+        if not array.type.equals(pyarrow_type):
+            array = array.cast(pyarrow_type)
+
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
@@ -148,7 +152,6 @@ def safe_cast(values, dtype, copy: bool):
     ints.
 
     """
-
     try:
         return values.astype(dtype, casting="safe", copy=copy)
     except TypeError:
@@ -598,7 +601,6 @@ class IntegerArray(BaseMaskedArray):
         other : scalar or array-like
         op_name : str
         """
-
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide

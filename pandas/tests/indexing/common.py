@@ -106,7 +106,6 @@ class Base:
         if values is True , use the axis values
         is False, use the range
         """
-
         axes = f.axes
         if values:
             axes = (list(range(len(ax))) for ax in axes)
@@ -115,7 +114,6 @@ class Base:
 
     def get_value(self, name, f, i, values=False):
         """ return the value for the location i """
-
         # check against values
         if values:
             return f.values[i]
@@ -151,7 +149,6 @@ class Base:
     ):
         def _eq(axis, obj, key):
             """ compare equal for these 2 keys """
-
             axified = _axify(obj, key, axis)
             try:
                 getattr(obj, method).__getitem__(axified)

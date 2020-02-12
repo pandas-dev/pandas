@@ -298,7 +298,6 @@ def infer_compression(
     ------
     ValueError on invalid compression specified.
     """
-
     # No compression has been explicitly specified
     if compression is None:
         return None
