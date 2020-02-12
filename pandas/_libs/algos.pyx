@@ -32,6 +32,7 @@ cdef float64_t NaN = <float64_t>np.NaN
 
 cdef int64_t NPY_NAT = get_nat()
 
+
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,
     'min': TIEBREAK_MIN,
@@ -1173,8 +1174,8 @@ ctypedef fused out_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def diff_2d(ndarray[diff_t, ndim=2] arr,
-            ndarray[out_t, ndim=2] out,
+def diff_2d(diff_t[:, :] arr,
+            out_t[:, :] out,
             Py_ssize_t periods, int axis):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
