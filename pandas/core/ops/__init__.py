@@ -703,10 +703,14 @@ def _align_method_FRAME(
     return left, right
 
 
-def _should_reindex_op(left, right, axis, default_axis, fill_value, level) -> bool:
+def _should_reindex_frame_op(
+    left, right, axis, default_axis, fill_value, level
+) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
     """
+    assert isinstance(left, ABCDataFrame)
+
     if not isinstance(right, ABCDataFrame):
         return False
 
@@ -766,7 +770,7 @@ def _arith_method_FRAME(cls, op, special):
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
 
-        if _should_reindex_op(self, other, axis, default_axis, fill_value, level):
+        if _should_reindex_frame_op(self, other, axis, default_axis, fill_value, level):
             return _frame_arith_method_with_reindex(self, other, op)
 
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
