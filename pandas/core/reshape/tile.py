@@ -513,7 +513,6 @@ def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """ based on the dtype, return our labels """
-
     closed = "right" if right else "left"
 
     if is_datetime64tz_dtype(dtype):
@@ -544,7 +543,6 @@ def _preprocess_for_cut(x):
     input to array, strip the index information and store it
     separately
     """
-
     # Check that the passed array is a Pandas or Numpy object
     # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
     ndim = getattr(x, "ndim", None)

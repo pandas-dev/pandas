@@ -49,6 +49,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
     deprecate_kwarg,
+    doc,
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
@@ -4155,8 +4156,7 @@ class DataFrame(NDFrame):
             errors=errors,
         )
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(NDFrame.fillna.__doc__)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
@@ -5013,7 +5013,6 @@ class DataFrame(NDFrame):
         sorted_obj : DataFrame or None
             DataFrame with sorted index if inplace=False, None otherwise.
         """
-
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
@@ -7040,7 +7039,6 @@ Wild         185.0
         0   1.000000   4.494400
         1  11.262736  20.857489
         """
-
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if x.empty:
@@ -7959,6 +7957,19 @@ Wild         185.0
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
+
+        dtype_is_dt = self.dtypes.apply(lambda x: x.kind == "M")
+        if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
+            warnings.warn(
+                "DataFrame.mean and DataFrame.median with numeric_only=None "
+                "will include datetime64 and datetime64tz columns in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=3,
+            )
+            cols = self.columns[~dtype_is_dt]
+            self = self[cols]
+
         if axis is None and filter_type == "bool":
             labels = None
             constructor = None
@@ -7998,9 +8009,15 @@ Wild         185.0
 
             out_dtype = "bool" if filter_type == "bool" else None
 
+            def blk_func(values):
+                if values.ndim == 1 and not isinstance(values, np.ndarray):
+                    # we can't pass axis=1
+                    return op(values, axis=0, skipna=skipna, **kwds)
+                return op(values, axis=1, skipna=skipna, **kwds)
+
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(op, axis=1, skipna=skipna, **kwds)
+            res = df._data.reduce(blk_func)
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
