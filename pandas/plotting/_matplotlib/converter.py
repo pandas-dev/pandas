@@ -982,7 +982,6 @@ class TimeSeries_DateLocator(Locator):
 
     def _get_default_locs(self, vmin, vmax):
         """Returns the default locations of ticks."""
-
         if self.plot_obj.date_axis_info is None:
             self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
 
@@ -1063,7 +1062,6 @@ class TimeSeries_DateFormatter(Formatter):
 
     def _set_default_format(self, vmin, vmax):
         """Returns the default ticks spacing."""
-
         if self.plot_obj.date_axis_info is None:
             self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
         info = self.plot_obj.date_axis_info

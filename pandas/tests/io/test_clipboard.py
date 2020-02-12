@@ -114,7 +114,6 @@ def mock_clipboard(monkeypatch, request):
     This returns the local dictionary, for direct manipulation by
     tests.
     """
-
     # our local clipboard for tests
     _mock_data = {}
 
