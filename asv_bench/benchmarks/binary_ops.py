@@ -41,6 +41,20 @@ class IntFrameWithScalar:
         op(self.df, scalar)
 
 
+class TimeOpWithFillValue:
+    def setup(self):
+        # GH#31300
+        arr = np.arange(10 ** 6)
+        df = DataFrame({"A": arr})
+        ser = df["A"]
+
+        self.df = df
+        self.ser = ser
+
+    def time_op_with_fill_value_no_nas(self):
+        self.df.add(self.ser, fill_value=4)
+
+
 class Ops:
 
     params = [[True, False], ["default", 1]]
