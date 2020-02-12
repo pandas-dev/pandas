@@ -1571,7 +1571,6 @@ class DataFrameGroupBy(GroupBy):
         3  bar  4  1.0
         5  bar  6  9.0
         """
-
         indices = []
 
         obj = self._selected_obj
@@ -1626,7 +1625,6 @@ class DataFrameGroupBy(GroupBy):
         subset : object, default None
             subset to act on
         """
-
         if ndim == 2:
             if subset is None:
                 subset = self.obj
@@ -1844,7 +1842,6 @@ class DataFrameGroupBy(GroupBy):
         4   ham       5      x
         5   ham       5      y
         """
-
         obj = self._selected_obj
 
         def groupby_series(obj, col=None):

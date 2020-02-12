@@ -514,7 +514,7 @@ class TestFancy:
                 self.value = value
 
             def __str__(self) -> str:
-                return "[{0}]".format(self.value)
+                return f"[{self.value}]"
 
             __repr__ = __str__
 
