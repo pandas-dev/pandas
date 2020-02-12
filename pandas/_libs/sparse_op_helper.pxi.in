@@ -235,7 +235,7 @@ cdef inline tuple int_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
                                               {{dtype}}_t yfill):
     cdef:
         IntIndex out_index
-        Py_ssize_t xi = 0, yi = 0, out_i = 0 # fp buf indices
+        Py_ssize_t xi = 0, yi = 0, out_i = 0  # fp buf indices
         int32_t xloc, yloc
         int32_t[:] xindices, yindices, out_indices
         {{dtype}}_t[:] x, y

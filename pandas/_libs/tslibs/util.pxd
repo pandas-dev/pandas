@@ -42,7 +42,7 @@ cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_IsIntegerScalar(obj) nogil
     bint PyArray_Check(obj) nogil
 
-cdef extern from  "numpy/npy_common.h":
+cdef extern from "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
 
 
