@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
 - Fixed regression in :meth:`pandas.core.groupby.RollingGroupby.apply` where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
+- Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
 -
 
 .. ---------------------------------------------------------------------------
