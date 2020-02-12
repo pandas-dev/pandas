@@ -50,8 +50,8 @@ def reconstruct_func(
     False, "min", None, None
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-    columns: Optional[List[str]]
-    order: Optional[List[int]]
+    columns: Optional[List[str]] = None
+    order: Optional[List[int]] = None
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
