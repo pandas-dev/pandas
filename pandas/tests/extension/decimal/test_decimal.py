@@ -99,7 +99,7 @@ class BaseDecimal:
             check_names=kwargs.get("check_names", True),
             check_exact=kwargs.get("check_exact", False),
             check_categorical=kwargs.get("check_categorical", True),
-            obj="{obj}.columns".format(obj=kwargs.get("obj", "DataFrame")),
+            obj=f"{kwargs.get('obj', 'DataFrame')}.columns",
         )
 
         decimals = (left.dtypes == "decimal").index
