@@ -362,3 +362,19 @@ class TestSeriesReplace:
         expected = pd.Series(exp)
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ser, to_replace",
+        [
+            (['a', 'b', 'c'], lambda x: x.strip()),
+            (['a', 'b', 'c'], type('X', (object,), dict(myattr=1)))
+        ]
+    )
+    def test_replace_invalid_to_replace(self, ser, to_replace):
+        # GH 18634
+        # API: replace() should raise an exception if invalid argument is given
+        series = pd.Series(ser)
+        msg = r"Expecting 'to_replace' to be str, regex, list, dict, Series, "\
+              r"int, float or None, got invalid type.*"
+        with pytest.raises(TypeError, match=msg):
+            series.replace(self, to_replace)
