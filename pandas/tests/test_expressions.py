@@ -95,7 +95,10 @@ class TestExpressions:
                 expr.get_test_result()
                 result = op(df, other)
                 used_numexpr = expr.get_test_result()
-                assert used_numexpr, "Did not use numexpr as expected."
+
+                # We don't currently use numexpr for comparisons in Series,
+                #  so dont for DataFrame either.
+                assert not used_numexpr, "unexpectedly numexpr as expected."
                 tm.assert_equal(expected, result)
 
     def run_frame(self, df, other, run_binary=True):

@@ -375,7 +375,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
-    import pandas.core.computation.expressions as expressions
 
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
@@ -420,7 +419,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         # Remaining cases have less-obvious dispatch rules
         raise NotImplementedError(right)
 
-    new_data = expressions.evaluate(column_op, str_rep, left, right)
+    new_data = column_op(left, right)
     return new_data
 
 
