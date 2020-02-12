@@ -13,7 +13,7 @@ from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -1027,12 +1027,10 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.tolist
         """
-        if self.dtype.kind in ["m", "M"]:
-            return [com.maybe_box_datetimelike(x) for x in self._values]
-        elif is_extension_array_dtype(self._values):
+        if not isinstance(self._values, np.ndarray):
+            # check for ndarray instead of dtype to catch DTA/TDA
             return list(self._values)
-        else:
-            return self._values.tolist()
+        return self._values.tolist()
 
     to_list = tolist
 
@@ -1049,9 +1047,8 @@ class IndexOpsMixin:
         iterator
         """
         # We are explicitly making element iterators.
-        if self.dtype.kind in ["m", "M"]:
-            return map(com.maybe_box_datetimelike, self._values)
-        elif is_extension_array_dtype(self._values):
+        if not isinstance(self._values, np.ndarray):
+            # Check type instead of dtype to catch DTA/TDA
             return iter(self._values)
         else:
             return map(self._values.item, range(self._values.size))
@@ -1389,7 +1386,8 @@ class IndexOpsMixin:
             v += lib.memory_usage_of_objects(self.array)
         return v
 
-    @Substitution(
+    @doc(
+        algorithms.factorize,
         values="",
         order="",
         size_hint="",
@@ -1401,7 +1399,6 @@ class IndexOpsMixin:
             """
         ),
     )
-    @Appender(algorithms._shared_docs["factorize"])
     def factorize(self, sort=False, na_sentinel=-1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 

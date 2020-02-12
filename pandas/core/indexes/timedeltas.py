@@ -1,7 +1,5 @@
 """ implement the TimedeltaIndex """
 
-import numpy as np
-
 from pandas._libs import NaT, Timedelta, index as libindex
 from pandas.util._decorators import Appender
 
@@ -19,12 +17,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import (
-    Index,
-    InvalidIndexError,
-    _index_shared_docs,
-    maybe_extract_name,
-)
+from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import (
     DatetimeIndexOpsMixin,
     DatetimeTimedeltaMixin,
@@ -58,7 +51,6 @@ from pandas.tseries.frequencies import to_offset
         "_datetimelike_methods",
         "_other_ops",
         "components",
-        "_box_func",
         "to_pytimedelta",
         "sum",
         "std",
@@ -181,22 +173,15 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
     def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
         # `dtype` is passed by _shallow_copy in corner cases, should always
         #  be timedelta64[ns] if present
-
-        if not isinstance(values, TimedeltaArray):
-            values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)
-        else:
-            if freq is None:
-                freq = values.freq
-        assert isinstance(values, TimedeltaArray), type(values)
         assert dtype == _TD_DTYPE, dtype
-        assert values.dtype == "m8[ns]", values.dtype
+        assert isinstance(values, TimedeltaArray)
+        assert freq is None or values.freq == freq
 
-        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
-        result._data = tdarr
+        result._data = values
         result._name = name
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = tdarr._data
+        result._index_data = values._data
 
         result._reset_identity()
         return result
@@ -212,7 +197,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
     # -------------------------------------------------------------------
 
-    @Appender(_index_shared_docs["astype"])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
@@ -229,17 +214,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         if other.inferred_type == "timedelta":
             other = TimedeltaIndex(other)
         return self, other
-
-    def get_value(self, series, key):
-        """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
-        """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -266,11 +240,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
 
         else:
             raise KeyError(key)
-
-        if tolerance is not None:
-            # try converting tolerance now, so errors don't get swallowed by
-            # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
         return Index.get_loc(self, key, method, tolerance)
 
@@ -301,12 +270,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
             self._invalid_indexer("slice", label)
 
         return label
-
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
-        assert isinstance(key, str), type(key)
-        # given a key, try to figure out a location for a partial slice
-        raise NotImplementedError
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
