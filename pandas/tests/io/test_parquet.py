@@ -151,7 +151,6 @@ def check_round_trip(
     repeat: int, optional
         How many times to repeat the test
     """
-
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
 

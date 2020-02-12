@@ -500,7 +500,6 @@ def determine_clipboard():
     Determine the OS/platform and set the copy() and paste() functions
     accordingly.
     """
-
     global Foundation, AppKit, qtpy, PyQt4, PyQt5
 
     # Setup for the CYGWIN platform:

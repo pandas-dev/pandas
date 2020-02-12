@@ -5013,7 +5013,6 @@ class DataFrame(NDFrame):
         sorted_obj : DataFrame or None
             DataFrame with sorted index if inplace=False, None otherwise.
         """
-
         # TODO: this can be combined with Series.sort_index impl as
         # almost identical
 
@@ -7040,7 +7039,6 @@ Wild         185.0
         0   1.000000   4.494400
         1  11.262736  20.857489
         """
-
         # if we have a dtype == 'M8[ns]', provide boxed values
         def infer(x):
             if x.empty:

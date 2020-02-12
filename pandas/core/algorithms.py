@@ -85,7 +85,6 @@ def _ensure_data(values, dtype=None):
     values : ndarray
     pandas_dtype : str or dtype
     """
-
     # we check some simple dtypes first
     if is_object_dtype(dtype):
         return ensure_object(np.asarray(values)), "object"
@@ -182,7 +181,6 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
-
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_bool_dtype(dtype):
@@ -368,7 +366,6 @@ def unique(values):
     >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
-
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values):
@@ -791,7 +788,6 @@ def duplicated(values, keep="first") -> np.ndarray:
     -------
     duplicated : ndarray
     """
-
     values, _ = _ensure_data(values)
     ndtype = values.dtype.name
     f = getattr(htable, f"duplicated_{ndtype}")
