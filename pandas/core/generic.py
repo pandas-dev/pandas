@@ -6205,8 +6205,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               ``None``.
         TypeError
             * If `to_replace` is not any of the expected types
-              (``str``, `regex`, ``list``, ``dict``, ``Series``, ``int``,
-               ``float`` or ``None``)
+            (``str``, `regex`, ``list``, ``dict``, ``Series``, ``int``,
+            ``float`` or ``None``)
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
