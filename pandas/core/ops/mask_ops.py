@@ -191,7 +191,7 @@ def sum(
         Numpy array with the values (can be of any dtype that support the
         operation).
     mask : np.ndarray
-        Boolean numpy array (False for missing)
+        Boolean numpy array (True values indicate missing values).
     skipna : bool, default True
         Whether to skip NA.
     min_count : int, default 0
