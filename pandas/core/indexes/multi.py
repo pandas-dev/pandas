@@ -8,6 +8,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
 )
@@ -3311,7 +3312,7 @@ class MultiIndex(Index):
         lvals = self._ndarray_values
         rvals = other._ndarray_values
 
-        uniq_tuples = None  # flag whether _inner_indexer was succesful
+        uniq_tuples: Optional[List] = None  # flag whether _inner_indexer was succesful
         if self.is_monotonic and other.is_monotonic:
             try:
                 uniq_tuples = self._inner_indexer(lvals, rvals)[0]
@@ -3321,10 +3322,12 @@ class MultiIndex(Index):
 
         if uniq_tuples is None:
             other_uniq = set(rvals)
-            seen = set()
-            uniq_tuples = [
-                x for x in lvals if x in other_uniq and not (x in seen or seen.add(x))
-            ]
+            seen: Set = set()
+            uniq_tuples = []
+            for x in lvals:
+                if x in other_uniq and x not in seen:
+                    uniq_tuples.append(x)
+                    seen.add(x)
 
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)

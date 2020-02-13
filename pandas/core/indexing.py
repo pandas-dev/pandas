@@ -1006,7 +1006,7 @@ class _LocIndexer(_LocationIndexer):
             ):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
-                key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
+                key = tuple(key, *([slice(None)] * (len(labels.levels) - 1)))
 
             if isinstance(key, tuple):
                 # Convert (..., '2016-01-01', ...) in tuple to
