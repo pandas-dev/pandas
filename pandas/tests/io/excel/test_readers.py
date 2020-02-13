@@ -596,7 +596,8 @@ class TestReaders:
             # fails on some systems
             import platform
 
-            pytest.skip(f"failing on {' '.join(platform.uname()).strip()}")
+            platform_info = ' '.join(platform.uname()).strip()
+            pytest.skip(f"failing on {platform_info}")
 
         tm.assert_frame_equal(url_table, local_table)
 
