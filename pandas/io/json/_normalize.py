@@ -18,7 +18,6 @@ def convert_to_line_delimits(s):
     """
     Helper function that converts JSON lists to line delimited JSON.
     """
-
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
     if not s[0] == "[" and s[-1] == "]":
@@ -62,7 +61,6 @@ def nested_to_record(
 
     Examples
     --------
-
     IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),
                                   nested=dict(e=dict(c=1,d=2),d=2)))
     Out[52]:
@@ -161,7 +159,6 @@ def _json_normalize(
 
     Examples
     --------
-
     >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'}},

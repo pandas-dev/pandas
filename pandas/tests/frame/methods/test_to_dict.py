@@ -236,9 +236,9 @@ class TestDataFrameToDict:
 
     def test_to_dict_wide(self):
         # GH#24939
-        df = DataFrame({("A_{:d}".format(i)): [i] for i in range(256)})
+        df = DataFrame({(f"A_{i:d}"): [i] for i in range(256)})
         result = df.to_dict("records")[0]
-        expected = {"A_{:d}".format(i): i for i in range(256)}
+        expected = {f"A_{i:d}": i for i in range(256)}
         assert result == expected
 
     def test_to_dict_orient_dtype(self):
