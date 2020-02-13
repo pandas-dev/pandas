@@ -4565,6 +4565,13 @@ Name: Max Speed, dtype: float64
     index: "Index" = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
+    _AXIS_ORDERS = ["index"]
+    _AXIS_NUMBERS = {"index": 0}
+    _AXIS_NAMES = {0: "index"}
+    _AXIS_REVERSED = False
+    _info_axis_number = 0
+    _info_axis_name = _AXIS_ORDERS[_info_axis_number]
+    _AXIS_LEN = len(_AXIS_ORDERS)
 
     # ----------------------------------------------------------------------
     # Accessor Methods
@@ -4580,7 +4587,6 @@ Name: Max Speed, dtype: float64
     hist = pandas.plotting.hist_series
 
 
-Series._setup_axes(["index"], docs={"index": "The index (axis labels) of the Series."})
 Series._add_numeric_operations()
 Series._add_series_or_dataframe_operations()
 

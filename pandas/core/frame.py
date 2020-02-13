@@ -8575,6 +8575,13 @@ Wild         185.0
     columns: "Index" = properties.AxisProperty(
         axis=0, doc="The column labels of the DataFrame."
     )
+    _AXIS_ORDERS = ["index", "columns"]
+    _AXIS_NUMBERS = {"index": 0, "columns": 1}
+    _AXIS_NAMES = {0: "index", 1: "columns"}
+    _AXIS_REVERSED = True
+    _info_axis_number = 1
+    _info_axis_name = _AXIS_ORDERS[_info_axis_number]
+    _AXIS_LEN = len(_AXIS_ORDERS)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
@@ -8584,13 +8591,6 @@ Wild         185.0
     sparse = CachedAccessor("sparse", SparseFrameAccessor)
 
 
-DataFrame._setup_axes(
-    ["index", "columns"],
-    docs={
-        "index": "The index (row labels) of the DataFrame.",
-        "columns": "The column labels of the DataFrame.",
-    },
-)
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
