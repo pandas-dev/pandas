@@ -1363,25 +1363,31 @@ class TestDataFrameReplace:
         result = df.replace(1, 10)
         expected = pd.DataFrame({"grp": [10, 2, 3, 4, 5]}, dtype="Int64")
         tm.assert_frame_equal(result, expected)
-    
+
     @pytest.mark.parametrize(
         "df, to_replace",
         [
             (
-                {'one': ['1', '1 ', '10'], 'two': ['1 ', '20 ', '30 ']},
-                lambda x: x.strip()
+                {"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]},
+                lambda x: x.strip(),
             ),
             (
-                {'one': ['1', '1 ', '10'], 'two': ['1 ', '20 ', '30 ']},
-                type('X', (object,), dict(myattr=1))
-            )
-        ]
+                {"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]},
+                type("callable_object", (object,), dict(__call__=lambda x: x.strip())),
+            ),
+            (
+                {"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]},
+                pd.DataFrame({"one": ["a", "b ", "c"], "two": ["d ", "e ", "f"]}),
+            ),
+        ],
     )
     def test_replace_invalid_to_replace(self, df, to_replace):
         # GH 18634
         # API: replace() should raise an exception if invalid argument is given
         df = pd.DataFrame(df)
-        msg = r"Expecting 'to_replace' to be str, regex, list, dict, Series, "\
-              r"int, float or None, got invalid type.*"
+        msg = (
+            r"Expecting 'to_replace' to be str, regex, list, dict, Series, "
+            r"int, float or None, got invalid type.*"
+        )
         with pytest.raises(TypeError, match=msg):
             df.replace(self, to_replace)
