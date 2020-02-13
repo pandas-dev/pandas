@@ -1292,12 +1292,9 @@ def _get_join_indexers(
         right_keys
     ), "left_key and right_keys must be the same length"
 
-    # bind `sort` arg. of _factorize_keys
-    fkeys = partial(_factorize_keys, sort=sort)
-
     # get left & right join labels and num. of levels at each location
     mapped = (
-        _factorize_keys(left_keys[n], right_keys[n], sort=sort)
+        _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
@@ -1310,19 +1307,14 @@ def _get_join_indexers(
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
 
-    # flip left and right keys if performing a right merge
-    # to preserve right merge row order (GH 27453)
-    if how == "right":
-        factorized_rkey, factorized_lkey, count = fkeys(rkey, lkey)
-    else:
-        factorized_lkey, factorized_rkey, count = fkeys(lkey, rkey)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
     if how == "left":
         kwargs["sort"] = sort
     join_func = _join_functions[how]
 
-    return join_func(factorized_lkey, factorized_rkey, count, **kwargs)
+    return join_func(lkey, rkey, count, **kwargs)
 
 
 def _restore_dropped_levels_multijoin(
@@ -1858,7 +1850,7 @@ _join_functions = {
 }
 
 
-def _factorize_keys(lk, rk, sort=True):
+def _factorize_keys(lk, rk, sort=True, how="inner"):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
         lk = getattr(lk, "_values", lk)._data
@@ -1927,6 +1919,8 @@ def _factorize_keys(lk, rk, sort=True):
             np.putmask(rlab, rmask, count)
         count += 1
 
+    if how == "right":
+        return rlab, llab, count
     return llab, rlab, count
 
 
