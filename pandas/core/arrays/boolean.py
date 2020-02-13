@@ -699,7 +699,7 @@ class BooleanArray(BaseMaskedArray):
         mask = self._mask
 
         if name == "sum":
-            return mask_ops.sum(data, mask, skipna=skipna)
+            return mask_ops.sum(data, mask, skipna=skipna, **kwargs)
 
         # coerce to a nan-aware float if needed
         if self._hasna:

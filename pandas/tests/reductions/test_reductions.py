@@ -528,7 +528,7 @@ class TestSeriesReductions:
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
-    @pytest.mark.parametrize("dtype", ["float64", "Int64"])
+    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean"])
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty(self, method, unit, use_bottleneck, dtype):
@@ -609,7 +609,7 @@ class TestSeriesReductions:
             assert result == 1.0
 
             # GH#844 (changed in GH#9422)
-            df = DataFrame(np.empty((10, 0)))
+            df = DataFrame(np.empty((10, 0)), dtype=dtype)
             assert (getattr(df, method)(1) == unit).all()
 
             s = pd.Series([1], dtype=dtype)
