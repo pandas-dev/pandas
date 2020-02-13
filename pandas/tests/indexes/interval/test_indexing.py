@@ -24,11 +24,7 @@ class TestGetLoc:
         for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
             # if get_loc is supplied an interval, it should only search
             # for exact matches, not overlaps or covers, else KeyError.
-            msg = re.escape(
-                "Interval({bound[0]}, {bound[1]}, closed='{side}')".format(
-                    bound=bound, side=side
-                )
-            )
+            msg = re.escape(f"Interval({bound[0]}, {bound[1]}, closed='{side}')")
             if closed == side:
                 if bound == [0, 1]:
                     assert idx.get_loc(Interval(0, 1, closed=side)) == 0
@@ -86,11 +82,7 @@ class TestGetLoc:
         else:
             with pytest.raises(
                 KeyError,
-                match=re.escape(
-                    "Interval({left}, {right}, closed='{other_closed}')".format(
-                        left=left, right=right, other_closed=other_closed
-                    )
-                ),
+                match=re.escape(f"Interval({left}, {right}, closed='{other_closed}')"),
             ):
                 index.get_loc(interval)
 
