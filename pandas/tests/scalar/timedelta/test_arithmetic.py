@@ -271,8 +271,8 @@ class TestTimedeltaAdditionSubtraction:
         tm.assert_numpy_array_equal(td * np.array([2]), expected)
         tm.assert_numpy_array_equal(np.array([2]) * td, expected)
         msg = (
-            "ufunc '?multiply'? cannot use operands with types"
-            r" dtype\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)"
+            "ufunc '?multiply'? cannot use operands with types "
+            r"dtype\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)"
         )
         with pytest.raises(TypeError, match=msg):
             td * other
@@ -498,7 +498,7 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=3)
 
-        dt64 = np.datetime64("2016-01-01", dtype="datetime64[us]")
+        dt64 = np.datetime64("2016-01-01", "us")
         with pytest.raises(TypeError):
             td.__rfloordiv__(dt64)
 

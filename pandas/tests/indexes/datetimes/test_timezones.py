@@ -573,13 +573,7 @@ class TestDatetimeIndexTimezones:
             "2013-10-26 23:00", "2013-10-27 01:00", freq="H", tz=tz, ambiguous="infer"
         )
         assert times[0] == Timestamp("2013-10-26 23:00", tz=tz, freq="H")
-
-        if str(tz).startswith("dateutil"):
-            # fixed ambiguous behavior
-            # see GH#14621
-            assert times[-1] == Timestamp("2013-10-27 01:00:00+0100", tz=tz, freq="H")
-        else:
-            assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz, freq="H")
+        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz, freq="H")
 
     @pytest.mark.parametrize(
         "tz, option, expected",
@@ -587,12 +581,7 @@ class TestDatetimeIndexTimezones:
             ["US/Pacific", "shift_forward", "2019-03-10 03:00"],
             ["dateutil/US/Pacific", "shift_forward", "2019-03-10 03:00"],
             ["US/Pacific", "shift_backward", "2019-03-10 01:00"],
-            pytest.param(
-                "dateutil/US/Pacific",
-                "shift_backward",
-                "2019-03-10 01:00",
-                marks=pytest.mark.xfail(reason="GH 24329"),
-            ),
+            ["dateutil/US/Pacific", "shift_backward", "2019-03-10 01:00"],
             ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
         ],
     )
@@ -802,7 +791,6 @@ class TestDatetimeIndexTimezones:
         """ Test different DatetimeIndex constructions with timezone
         Follow-up of GH#4229
         """
-
         arr = ["11/10/2005 08:00:00", "11/10/2005 09:00:00"]
 
         idx1 = to_datetime(arr).tz_localize(tzstr)

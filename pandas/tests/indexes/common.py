@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs.tslib import iNaT
 
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -37,8 +38,8 @@ class Base:
     def test_pickle_compat_construction(self):
         # need an object to create with
         msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some"
-            r" kind, None was passed|"
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            r"kind, None was passed|"
             r"__new__\(\) missing 1 required positional argument: 'data'|"
             r"__new__\(\) takes at least 2 arguments \(1 given\)"
         )
@@ -97,7 +98,7 @@ class Base:
 
         # GH8083 test the base class for shift
         idx = self.create_index()
-        msg = "Not supported for type {}".format(type(idx).__name__)
+        msg = f"Not supported for type {type(idx).__name__}"
         with pytest.raises(NotImplementedError, match=msg):
             idx.shift(1)
         with pytest.raises(NotImplementedError, match=msg):
@@ -166,6 +167,10 @@ class Base:
     def test_numeric_compat(self):
 
         idx = self.create_index()
+        # Check that this doesn't cover MultiIndex case, if/when it does,
+        #  we can remove multi.test_compat.test_numeric_compat
+        assert not isinstance(idx, MultiIndex)
+
         with pytest.raises(TypeError, match="cannot perform __mul__"):
             idx * 1
         with pytest.raises(TypeError, match="cannot perform __rmul__"):
@@ -301,6 +306,9 @@ class Base:
 
         index_type = type(indices)
         result = index_type(indices.values, copy=True, **init_kwargs)
+        if is_datetime64tz_dtype(indices.dtype):
+            result = result.tz_localize("UTC").tz_convert(indices.tz)
+
         tm.assert_index_equal(indices, result)
         tm.assert_numpy_array_equal(
             indices._ndarray_values, result._ndarray_values, check_same="copy"
@@ -464,6 +472,11 @@ class Base:
         intersect = first.intersection(second)
         assert tm.equalContents(intersect, second)
 
+        if is_datetime64tz_dtype(indices.dtype):
+            # The second.values below will drop tz, so the rest of this test
+            #  is not applicable.
+            return
+
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
@@ -481,6 +494,11 @@ class Base:
         everything = indices
         union = first.union(second)
         assert tm.equalContents(union, everything)
+
+        if is_datetime64tz_dtype(indices.dtype):
+            # The second.values below will drop tz, so the rest of this test
+            #  is not applicable.
+            return
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
@@ -790,7 +808,7 @@ class Base:
 
         index = self.create_index()
         if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
-            pytest.skip("skipping tests for {}".format(type(index)))
+            pytest.skip(f"skipping tests for {type(index)}")
 
         identity = mapper(index.values, index)
 
@@ -806,6 +824,13 @@ class Base:
         # empty mappable
         expected = pd.Index([np.nan] * len(index))
         result = index.map(mapper(expected, index))
+        tm.assert_index_equal(result, expected)
+
+    def test_map_str(self):
+        # GH 31202
+        index = self.create_index()
+        result = index.map(str)
+        expected = Index([str(x) for x in index], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_putmask_with_wrong_mask(self):
@@ -883,3 +908,11 @@ class Base:
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
+
+    def test_contains_requires_hashable_raises(self):
+        idx = self.create_index()
+        with pytest.raises(TypeError, match="unhashable type"):
+            [] in idx
+
+        with pytest.raises(TypeError):
+            {} in idx._engine

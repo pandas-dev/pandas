@@ -1,5 +1,5 @@
 """
-concat routines
+Concat routines.
 """
 
 from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
@@ -7,6 +7,8 @@ from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
 import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.arrays.categorical import (
@@ -305,8 +307,7 @@ class _Concatenator:
         if isinstance(objs, (NDFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
-                "objects, you passed an object of type "
-                '"{name}"'.format(name=type(objs).__name__)
+                f'objects, you passed an object of type "{type(objs).__name__}"'
             )
 
         if join == "outer":
@@ -351,8 +352,8 @@ class _Concatenator:
         for obj in objs:
             if not isinstance(obj, (Series, DataFrame)):
                 msg = (
-                    "cannot concatenate object of type '{typ}'; "
-                    "only Series and DataFrame objs are valid".format(typ=type(obj))
+                    f"cannot concatenate object of type '{type(obj)}'; "
+                    "only Series and DataFrame objs are valid"
                 )
                 raise TypeError(msg)
 
@@ -395,15 +396,14 @@ class _Concatenator:
             axis = sample._get_axis_number(axis)
 
         # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, DataFrame)
+        self._is_frame = isinstance(sample, ABCDataFrame)
         if self._is_frame:
             axis = 1 if axis == 0 else 0
 
-        self._is_series = isinstance(sample, Series)
+        self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
-                "axis must be between 0 and {ndim}, input was "
-                "{axis}".format(ndim=sample.ndim, axis=axis)
+                f"axis must be between 0 and {sample.ndim}, input was {axis}"
             )
 
         # if we have mixed ndims, then convert to highest ndim
@@ -500,9 +500,7 @@ class _Concatenator:
                 new_data._consolidate_inplace()
 
             cons = self.objs[0]._constructor
-            return cons._from_axes(new_data, self.new_axes).__finalize__(
-                self, method="concat"
-            )
+            return cons(new_data).__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.axis == 1:
@@ -520,7 +518,11 @@ class _Concatenator:
     def _get_comb_axis(self, i: int) -> Index:
         data_axis = self.objs[0]._get_block_manager_axis(i)
         return get_objs_combined_axis(
-            self.objs, axis=data_axis, intersect=self.intersect, sort=self.sort
+            self.objs,
+            axis=data_axis,
+            intersect=self.intersect,
+            sort=self.sort,
+            copy=self.copy,
         )
 
     def _get_concat_axis(self) -> Index:
@@ -577,10 +579,7 @@ class _Concatenator:
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
-                raise ValueError(
-                    "Indexes have overlapping values: "
-                    "{overlap!s}".format(overlap=overlap)
-                )
+                raise ValueError(f"Indexes have overlapping values: {overlap}")
 
 
 def _concat_indexes(indexes) -> Index:
@@ -622,11 +621,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 try:
                     i = level.get_loc(key)
                 except KeyError:
-                    raise ValueError(
-                        "Key {key!s} not in level {level!s}".format(
-                            key=key, level=level
-                        )
-                    )
+                    raise ValueError(f"Key {key} not in level {level}")
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))
@@ -648,8 +643,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             # make sure that all of the passed indices have the same nlevels
             if not len({idx.nlevels for idx in indexes}) == 1:
                 raise AssertionError(
-                    "Cannot concat indices that do "
-                    "not have the same number of levels"
+                    "Cannot concat indices that do not have the same number of levels"
                 )
 
             # also copies
@@ -678,11 +672,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError(
-                "Values not found in passed level: {hlevel!s}".format(
-                    hlevel=hlevel[mask]
-                )
-            )
+            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
 
         new_codes.append(np.repeat(mapped, n))
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Simple static site generator for the pandas web.
 
@@ -28,16 +28,18 @@ import datetime
 import importlib
 import operator
 import os
+import re
 import shutil
 import sys
 import time
 import typing
 
-import feedparser
-import markdown
 import jinja2
 import requests
 import yaml
+
+import feedparser
+import markdown
 
 
 class Preprocessors:
@@ -74,6 +76,7 @@ class Preprocessors:
         preprocessor fetches the posts in the feeds, and returns the relevant
         information for them (sorted from newest to oldest).
         """
+        tag_expr = re.compile("<.*?>")
         posts = []
         for feed_url in context["blog"]["feed"]:
             feed_data = feedparser.parse(feed_url)
@@ -81,6 +84,7 @@ class Preprocessors:
                 published = datetime.datetime.fromtimestamp(
                     time.mktime(entry.published_parsed)
                 )
+                summary = re.sub(tag_expr, "", entry.summary)
                 posts.append(
                     {
                         "title": entry.title,
@@ -89,7 +93,7 @@ class Preprocessors:
                         "feed": feed_data["feed"]["title"],
                         "link": entry.link,
                         "description": entry.description,
-                        "summary": entry.summary,
+                        "summary": summary,
                     }
                 )
         posts.sort(key=operator.itemgetter("published"), reverse=True)

@@ -18,7 +18,6 @@ def convert_to_line_delimits(s):
     """
     Helper function that converts JSON lists to line delimited JSON.
     """
-
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
     if not s[0] == "[" and s[-1] == "]":
@@ -116,7 +115,7 @@ def _json_normalize(
     meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
     meta_prefix: Optional[str] = None,
     record_prefix: Optional[str] = None,
-    errors: Optional[str] = "raise",
+    errors: str = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
 ) -> "DataFrame":
@@ -317,8 +316,7 @@ def _json_normalize(
                                 meta_val = np.nan
                             else:
                                 raise KeyError(
-                                    "Try running with "
-                                    "errors='ignore' as key "
+                                    "Try running with errors='ignore' as key "
                                     f"{e} is not always present"
                                 )
                     meta_vals[key].append(meta_val)

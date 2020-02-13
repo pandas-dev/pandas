@@ -420,6 +420,18 @@ class TestUnique:
         tm.assert_numpy_array_equal(result, expected)
         assert result.dtype == expected.dtype
 
+    def test_datetime_non_ns(self):
+        a = np.array(["2000", "2000", "2001"], dtype="datetime64[s]")
+        result = pd.unique(a)
+        expected = np.array(["2000", "2001"], dtype="datetime64[ns]")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_timedelta_non_ns(self):
+        a = np.array(["2000", "2000", "2001"], dtype="timedelta64[s]")
+        result = pd.unique(a)
+        expected = np.array([2000000000000, 2001000000000], dtype="timedelta64[ns]")
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_timedelta64_dtype_array_returned(self):
         # GH 9431
         expected = np.array([31200, 45678, 10000], dtype="m8[ns]")
@@ -653,8 +665,8 @@ class TestIsin:
     def test_invalid(self):
 
         msg = (
-            r"only list-like objects are allowed to be passed to isin\(\),"
-            r" you passed a \[int\]"
+            r"only list-like objects are allowed to be passed to isin\(\), "
+            r"you passed a \[int\]"
         )
         with pytest.raises(TypeError, match=msg):
             algos.isin(1, 1)

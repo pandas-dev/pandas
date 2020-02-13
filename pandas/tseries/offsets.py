@@ -26,7 +26,7 @@ from pandas._libs.tslibs.offsets import (
     BaseOffset,
     _get_calendar,
     _is_normalized,
-    _to_dt64,
+    _to_dt64D,
     apply_index_wraps,
     as_datetime,
     roll_yearday,
@@ -308,7 +308,6 @@ class DateOffset(BaseOffset):
         -------
         y : DatetimeIndex
         """
-
         if type(self) is not DateOffset:
             raise NotImplementedError(
                 f"DateOffset subclass {type(self).__name__} "
@@ -1090,7 +1089,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        day64 = _to_dt64(dt, "datetime64[D]")
+        day64 = _to_dt64D(dt)
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
@@ -2062,7 +2061,7 @@ class FY5253(DateOffset):
     such as retail, manufacturing and parking industry.
 
     For more information see:
-    http://en.wikipedia.org/wiki/4-4-5_calendar
+    https://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
 
@@ -2270,7 +2269,7 @@ class FY5253Quarter(DateOffset):
     such as retail, manufacturing and parking industry.
 
     For more information see:
-    http://en.wikipedia.org/wiki/4-4-5_calendar
+    https://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
 
@@ -2667,8 +2666,8 @@ def _delta_to_tick(delta: timedelta) -> Tick:
                 return Second(seconds)
     else:
         nanos = delta_to_nanoseconds(delta)
-        if nanos % 1000000 == 0:
-            return Milli(nanos // 1000000)
+        if nanos % 1_000_000 == 0:
+            return Milli(nanos // 1_000_000)
         elif nanos % 1000 == 0:
             return Micro(nanos // 1000)
         else:  # pragma: no cover

@@ -49,6 +49,7 @@ def to_timedelta(arg, unit="ns", errors="raise"):
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_datetime : Convert argument to datetime.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------
@@ -110,7 +111,6 @@ def to_timedelta(arg, unit="ns", errors="raise"):
 
 def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     """Convert string 'r' to a timedelta object."""
-
     try:
         result = Timedelta(r, unit)
     except ValueError:
@@ -127,7 +127,6 @@ def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
 
 def _convert_listlike(arg, unit="ns", errors="raise", name=None):
     """Convert a list of objects to a timedelta index object."""
-
     if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
         # This is needed only to ensure that in the case where we end up
         #  returning arg (errors == "ignore"), and where the input is a

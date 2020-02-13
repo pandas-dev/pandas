@@ -781,6 +781,15 @@ class TestPivotTable:
         expected = DataFrame(data=data, index=index, columns=columns, dtype="object")
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_columns_none_raise_error(self):
+        # GH 30924
+        df = pd.DataFrame(
+            {"col1": ["a", "b", "c"], "col2": [1, 2, 3], "col3": [1, 2, 3]}
+        )
+        msg = r"pivot\(\) missing 1 required argument: 'columns'"
+        with pytest.raises(TypeError, match=msg):
+            df.pivot(index="col1", values="col3")
+
     @pytest.mark.xfail(
         reason="MultiIndexed unstack with tuple names fails with KeyError GH#19966"
     )
@@ -896,16 +905,68 @@ class TestPivotTable:
             totals = table.loc[("All", ""), value_col]
             assert totals == self.data[value_col].mean()
 
-        # no rows
-        rtable = self.data.pivot_table(
-            columns=["AA", "BB"], margins=True, aggfunc=np.mean
-        )
-        assert isinstance(rtable, Series)
-
         table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), item]
             assert totals == self.data[item].mean()
+
+    @pytest.mark.parametrize(
+        "columns, aggfunc, values, expected_columns",
+        [
+            (
+                "A",
+                np.mean,
+                [[5.5, 5.5, 2.2, 2.2], [8.0, 8.0, 4.4, 4.4]],
+                Index(["bar", "All", "foo", "All"], name="A"),
+            ),
+            (
+                ["A", "B"],
+                "sum",
+                [[9, 13, 22, 5, 6, 11], [14, 18, 32, 11, 11, 22]],
+                MultiIndex.from_tuples(
+                    [
+                        ("bar", "one"),
+                        ("bar", "two"),
+                        ("bar", "All"),
+                        ("foo", "one"),
+                        ("foo", "two"),
+                        ("foo", "All"),
+                    ],
+                    names=["A", "B"],
+                ),
+            ),
+        ],
+    )
+    def test_margin_with_only_columns_defined(
+        self, columns, aggfunc, values, expected_columns
+    ):
+        # GH 31016
+        df = pd.DataFrame(
+            {
+                "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
+                "B": ["one", "one", "one", "two", "two", "one", "one", "two", "two"],
+                "C": [
+                    "small",
+                    "large",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                    "small",
+                    "small",
+                    "large",
+                ],
+                "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+                "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
+            }
+        )
+
+        result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        expected = pd.DataFrame(
+            values, index=Index(["D", "E"]), columns=expected_columns
+        )
+
+        tm.assert_frame_equal(result, expected)
 
     def test_margins_dtype(self):
         # GH 17013
@@ -950,6 +1011,20 @@ class TestPivotTable:
         )
 
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize("cols", [(1, 2), ("a", "b"), (1, "b"), ("a", 1)])
+    def test_pivot_table_multiindex_only(self, cols):
+        # GH 17038
+        df2 = DataFrame({cols[0]: [1, 2, 3], cols[1]: [1, 2, 3], "v": [4, 5, 6]})
+
+        result = df2.pivot_table(values="v", columns=cols)
+        expected = DataFrame(
+            [[4, 5, 6]],
+            columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
+            index=Index(["v"]),
+        )
+
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
@@ -2549,6 +2624,19 @@ class TestCrosstab:
         result = pd.crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
 
+    def test_crosstab_both_tuple_names(self):
+        # GH 18321
+        s1 = pd.Series(range(3), name=("a", "b"))
+        s2 = pd.Series(range(3), name=("c", "d"))
+
+        expected = pd.DataFrame(
+            np.eye(3, dtype="int64"),
+            index=pd.Index(range(3), name=("a", "b")),
+            columns=pd.Index(range(3), name=("c", "d")),
+        )
+        result = crosstab(s1, s2)
+        tm.assert_frame_equal(result, expected)
+
     def test_crosstab_unsorted_order(self):
         df = pd.DataFrame({"b": [3, 1, 2], "a": [5, 4, 6]}, index=["C", "A", "B"])
         result = pd.crosstab(df.index, [df.b, df.a])
@@ -2558,6 +2646,46 @@ class TestCrosstab:
         )
         expected = pd.DataFrame(
             [[1, 0, 0], [0, 1, 0], [0, 0, 1]], index=e_idx, columns=e_columns
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_crosstab_normalize_multiple_columns(self):
+        # GH 15150
+        df = pd.DataFrame(
+            {
+                "A": ["one", "one", "two", "three"] * 6,
+                "B": ["A", "B", "C"] * 8,
+                "C": ["foo", "foo", "foo", "bar", "bar", "bar"] * 4,
+                "D": [0] * 24,
+                "E": [0] * 24,
+            }
+        )
+        result = pd.crosstab(
+            [df.A, df.B],
+            df.C,
+            values=df.D,
+            aggfunc=np.sum,
+            normalize=True,
+            margins=True,
+        )
+        expected = pd.DataFrame(
+            np.array([0] * 29 + [1], dtype=float).reshape(10, 3),
+            columns=Index(["bar", "foo", "All"], dtype="object", name="C"),
+            index=MultiIndex.from_tuples(
+                [
+                    ("one", "A"),
+                    ("one", "B"),
+                    ("one", "C"),
+                    ("three", "A"),
+                    ("three", "B"),
+                    ("three", "C"),
+                    ("two", "A"),
+                    ("two", "B"),
+                    ("two", "C"),
+                    ("All", ""),
+                ],
+                names=["A", "B"],
+            ),
         )
         tm.assert_frame_equal(result, expected)
 

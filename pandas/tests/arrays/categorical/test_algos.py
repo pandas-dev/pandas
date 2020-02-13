@@ -90,6 +90,21 @@ def test_isin_empty(empty):
     tm.assert_numpy_array_equal(expected, result)
 
 
+def test_diff():
+    s = pd.Series([1, 2, 3], dtype="category")
+    with tm.assert_produces_warning(FutureWarning):
+        result = s.diff()
+    expected = pd.Series([np.nan, 1, 1])
+    tm.assert_series_equal(result, expected)
+
+    expected = expected.to_frame(name="A")
+    df = s.to_frame(name="A")
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.diff()
+
+    tm.assert_frame_equal(result, expected)
+
+
 class TestTake:
     # https://github.com/pandas-dev/pandas/issues/20664
 
@@ -111,7 +126,7 @@ class TestTake:
         if allow_fill:
             msg = "indices are out-of-bounds"
         else:
-            msg = "index 4 is out of bounds for size 3"
+            msg = "index 4 is out of bounds for( axis 0 with)? size 3"
         with pytest.raises(IndexError, match=msg):
             cat.take([4, 5], allow_fill=allow_fill)
 

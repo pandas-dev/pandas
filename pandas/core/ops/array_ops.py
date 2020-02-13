@@ -8,7 +8,7 @@ from typing import Any, Optional, Union
 
 import numpy as np
 
-from pandas._libs import Timestamp, lib, ops as libops
+from pandas._libs import Timedelta, Timestamp, lib, ops as libops
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -95,7 +95,9 @@ def masked_arith_op(x, y, op):
 
     else:
         if not is_scalar(y):
-            raise TypeError(type(y))
+            raise TypeError(
+                f"Cannot broadcast np.ndarray with operand of type { type(y) }"
+            )
 
         # mask is only meaningful for x
         result = np.empty(x.size, dtype=x.dtype)
@@ -173,7 +175,6 @@ def arithmetic_op(
     ndarrray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
-
     from pandas.core.ops import maybe_upcast_for_op
 
     # NB: We assume that extract_array has already been called
@@ -184,11 +185,12 @@ def arithmetic_op(
     rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(left, rvalues) or isinstance(
-        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp)
+        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp, Timedelta)
     ):
         # TimedeltaArray, DatetimeArray, and Timestamp are included here
         #  because they have `freq` attribute which is handled correctly
         #  by dispatch_to_extension_op.
+        # Timedelta is included because numexpr will fail on it, see GH#31457
         res_values = dispatch_to_extension_op(op, lvalues, rvalues)
 
     else:
@@ -215,7 +217,6 @@ def comparison_op(
     -------
     ndarrray or ExtensionArray
     """
-
     # NB: We assume extract_array has already been called on left and right
     lvalues = left
     rvalues = right
@@ -277,7 +278,7 @@ def na_logical_op(x: np.ndarray, y, op):
             assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
             x = ensure_object(x)
             y = ensure_object(y)
-            result = libops.vec_binop(x, y, op)
+            result = libops.vec_binop(x.ravel(), y.ravel(), op)
         else:
             # let null fall thru
             assert lib.is_scalar(y)
@@ -298,7 +299,7 @@ def na_logical_op(x: np.ndarray, y, op):
                     f"and scalar of type [{typ}]"
                 )
 
-    return result
+    return result.reshape(x.shape)
 
 
 def logical_op(
@@ -319,7 +320,6 @@ def logical_op(
     -------
     ndarrray or ExtensionArray
     """
-
     fill_int = lambda x: x
 
     def fill_bool(x, left=None):

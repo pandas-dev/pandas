@@ -56,7 +56,6 @@ class LatexFormatter(TableFormatter):
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
         """
-
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
             info_line = "Empty {name}\nColumns: {col}\nIndex: {idx}".format(
@@ -114,8 +113,7 @@ class LatexFormatter(TableFormatter):
                 column_format = index_format + column_format
         elif not isinstance(self.column_format, str):  # pragma: no cover
             raise AssertionError(
-                "column_format must be str or unicode, "
-                "not {typ}".format(typ=type(column_format))
+                f"column_format must be str or unicode, not {type(column_format)}"
             )
         else:
             column_format = self.column_format

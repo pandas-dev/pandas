@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
+import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender
@@ -78,7 +79,7 @@ def cat_core(list_of_columns: List, sep: str):
         return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    arr_with_sep = np.asarray(list_with_sep)
+    arr_with_sep = np.asarray(list_with_sep, dtype=object)
     return np.sum(arr_with_sep, axis=0)
 
 
@@ -118,12 +119,15 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def _na_map(f, arr, na_result=np.nan, dtype=object):
-    # should really _check_ for NA
+def _na_map(f, arr, na_result=None, dtype=object):
     if is_extension_array_dtype(arr.dtype):
+        if na_result is None:
+            na_result = libmissing.NA
         # just StringDtype
         arr = extract_array(arr)
         return _map_stringarray(f, arr, na_value=na_result, dtype=dtype)
+    if na_result is None:
+        na_result = np.nan
     return _map_object(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
@@ -683,7 +687,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     2    NaN
     dtype: object
     """
-
     # Check whether repl is valid (GH 13438, GH 15055)
     if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
@@ -880,11 +883,12 @@ def _str_extract_noexpand(arr, pat, flags=0):
         if arr.empty:
             result = DataFrame(columns=columns, dtype=object)
         else:
+            dtype = _result_dtype(arr)
             result = DataFrame(
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,
-                dtype=object,
+                dtype=dtype,
             )
     return result, name
 
@@ -1080,7 +1084,6 @@ def str_extractall(arr, pat, flags=0):
     B 0          b     1
     C 0        NaN     1
     """
-
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:
@@ -1353,7 +1356,6 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     Series or Index
         Indexes where substring is found.
     """
-
     if not isinstance(sub, str):
         msg = f"expected a string object, not {type(sub).__name__}"
         raise TypeError(msg)
@@ -1925,7 +1927,6 @@ def forbid_nonstring_types(forbidden, name=None):
     TypeError
         If the inferred type of the underlying data is in `forbidden`.
     """
-
     # deal with None
     forbidden = [] if forbidden is None else forbidden
 
@@ -2008,7 +2009,7 @@ def _pat_wrapper(
 
 
 def copy(source):
-    "Copy a docstring from another source function (if present)"
+    """Copy a docstring from another source function (if present)"""
 
     def do_copy(target):
         if source.__doc__:

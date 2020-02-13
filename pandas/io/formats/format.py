@@ -57,10 +57,13 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
+    ABCPeriodIndex,
     ABCSeries,
     ABCSparseArray,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -295,6 +298,9 @@ class SeriesFormatter:
         footer = ""
 
         if getattr(self.series.index, "freq", None) is not None:
+            assert isinstance(
+                self.series.index, (ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
+            )
             footer += "Freq: {freq}".format(freq=self.series.index.freqstr)
 
         if self.name is not False and name is not None:
@@ -412,7 +418,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             self.ambiguous_width = 1
 
         # Definition of East Asian Width
-        # http://unicode.org/reports/tr11/
+        # https://unicode.org/reports/tr11/
         # Ambiguous width can be changed by option
         self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
 
@@ -737,12 +743,8 @@ class DataFrameFormatter(TableFormatter):
                 self.header = cast(List[str], self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
-                        (
-                            "Writing {ncols} cols but got {nalias} "
-                            "aliases".format(
-                                ncols=len(self.columns), nalias=len(self.header)
-                            )
-                        )
+                        f"Writing {len(self.columns)} cols "
+                        f"but got {len(self.header)} aliases"
                     )
                 str_columns = [[label] for label in self.header]
             else:
@@ -930,7 +932,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
-
         from pandas.io.formats.latex import LatexFormatter
 
         return LatexFormatter(
@@ -977,7 +978,7 @@ class DataFrameFormatter(TableFormatter):
         border : int
             A ``border=border`` attribute is included in the opening
             ``<table>`` tag. Default ``pd.options.display.html.border``.
-         """
+        """
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
@@ -1133,7 +1134,6 @@ def format_array(
     -------
     List[str]
     """
-
     fmt_klass: Type[GenericArrayFormatter]
     if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
@@ -1294,9 +1294,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         float_format: Optional[float_format_type] = None,
         threshold: Optional[Union[float, int]] = None,
     ) -> Callable:
-        """Returns a function to be applied on each value to format it
-        """
-
+        """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
         if float_format is None:
             float_format = self.float_format
@@ -1344,7 +1342,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
-
         if self.formatter is not None:
             return np.array([self.formatter(x) for x in self.values])
 
@@ -1459,7 +1456,6 @@ class Datetime64Formatter(GenericArrayFormatter):
 
     def _format_strings(self) -> List[str]:
         """ we by definition have DO NOT have a TZ """
-
         values = self.values
 
         if not isinstance(values, DatetimeIndex):
@@ -1539,7 +1535,6 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
-
     percentiles = np.asarray(percentiles)
 
     # It checks for np.NaN as well
@@ -1640,7 +1635,6 @@ def _get_format_datetime64_from_values(
     values: Union[np.ndarray, DatetimeArray, DatetimeIndex], date_format: Optional[str]
 ) -> Optional[str]:
     """ given values and a date_format, return a string format """
-
     if isinstance(values, np.ndarray) and values.ndim > 1:
         # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
@@ -1655,7 +1649,6 @@ def _get_format_datetime64_from_values(
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have a TZ """
-
         values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
         formatter = self.formatter or _get_format_datetime64(
@@ -1696,7 +1689,6 @@ def _get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-
     values_int = values.astype(np.int64)
 
     consider_values = values_int != iNaT
@@ -1911,7 +1903,6 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
 
     See also EngFormatter.
     """
-
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
     set_option("display.column_space", max(12, accuracy + 9))
 

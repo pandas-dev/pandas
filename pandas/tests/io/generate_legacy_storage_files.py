@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 self-contained to write legacy storage pickle files
@@ -136,7 +136,6 @@ def _create_sp_frame():
 
 def create_data():
     """ create the pickle data """
-
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],

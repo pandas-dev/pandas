@@ -7,6 +7,7 @@ import pytest
 
 from pandas._libs import lib
 
+import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas._testing as tm
 import pandas.core.strings as strings
@@ -206,6 +207,9 @@ class TestStringMethods:
         # one instance of parametrized fixture
         box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
+
+        if dtype == "category" and len(values) and values[1] is pd.NA:
+            pytest.xfail(reason="Categorical does not yet support pd.NA")
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
 
@@ -3521,7 +3525,7 @@ def test_string_array(any_string_method):
 
     if isinstance(expected, Series):
         if expected.dtype == "object" and lib.is_string_array(
-            expected.values, skipna=True
+            expected.dropna().values,
         ):
             assert result.dtype == "string"
             result = result.astype(object)
@@ -3573,3 +3577,18 @@ def test_string_array_boolean_array(method, expected):
     result = getattr(s.str, method)()
     expected = Series(expected, dtype="boolean")
     tm.assert_series_equal(result, expected)
+
+
+def test_string_array_extract():
+    # https://github.com/pandas-dev/pandas/issues/30969
+    # Only expand=False & multiple groups was failing
+    a = Series(["a1", "b2", "cc"], dtype="string")
+    b = Series(["a1", "b2", "cc"], dtype="object")
+    pat = r"(\w)(\d)"
+
+    result = a.str.extract(pat, expand=False)
+    expected = b.str.extract(pat, expand=False)
+    assert all(result.dtypes == "string")
+
+    result = result.astype(object)
+    tm.assert_equal(result, expected)

@@ -19,6 +19,7 @@ import pytest
 from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype,
@@ -233,7 +234,14 @@ class TestGroupby(base.BaseGroupbyTests):
 
 
 class TestNumericReduce(base.BaseNumericReduceTests):
-    pass
+    def check_reduce(self, s, op_name, skipna):
+        # overwrite to ensure pd.NA is tested instead of np.nan
+        # https://github.com/pandas-dev/pandas/issues/30958
+        result = getattr(s, op_name)(skipna=skipna)
+        expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
+        if np.isnan(expected):
+            expected = pd.NA
+        tm.assert_almost_equal(result, expected)
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
