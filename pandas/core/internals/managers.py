@@ -101,7 +101,9 @@ class BlockManager(PandasObject):
 
     Parameters
     ----------
-
+    blocks: Sequence of Block
+    axes: Sequence of Index
+    do_integrity_check: bool, default True
 
     Notes
     -----

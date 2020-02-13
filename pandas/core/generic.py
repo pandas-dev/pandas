@@ -579,9 +579,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         See Also
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
-
-        Examples
-        --------
         """
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
