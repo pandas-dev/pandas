@@ -133,6 +133,36 @@ class BaseSetitemTests(BaseExtensionTests):
         assert ser[0] == data[10]
         assert ser[1] == data[10]
 
+    def test_setitem_boolean_na_mask(self, data, box_in_series):
+        # https://github.com/pandas-dev/pandas/issues/31503
+        if box_in_series:
+            data = pd.Series(data)
+
+        mask = pd.array(np.zeros(len(data), dtype=bool), dtype="boolean")
+        mask[:2] = pd.NA
+        mask[2:4] = True
+        original = data.copy()
+
+        data[mask] = data[mask.fillna(False)]
+
+        if box_in_series:
+            tm.assert_series_equal(data, original)
+        else:
+            tm.assert_extension_array_equal(data, original)
+
+    def test_setitem_boolean_na_mask_frame(self, data):
+        # https://github.com/pandas-dev/pandas/issues/31503
+        df = pd.DataFrame({"a": range(len(data)), "b": data})
+        original = df.copy()
+
+        mask = pd.array(np.zeros(len(data), dtype=bool), dtype="boolean")
+        mask[:2] = pd.NA
+        mask[2:4] = True
+
+        df.loc[mask, "b"] = data[mask.fillna(False)]
+
+        tm.assert_frame_equal(df, original)
+
     def test_setitem_expand_columns(self, data):
         df = pd.DataFrame({"A": data})
         result = df.copy()
