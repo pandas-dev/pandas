@@ -396,6 +396,14 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         # Failed: DID NOT RAISE <class 'ValueError'>
         super().test_setitem_scalar_key_sequence_raise(data)
 
+    @skip_nested
+    def test_setitem_slice(self, data, box_in_series):
+        super().test_setitem_slice(data, box_in_series)
+
+    @skip_nested
+    def test_setitem_loc_iloc_slice(self, data):
+        super().test_setitem_loc_iloc_slice(data)
+
 
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):

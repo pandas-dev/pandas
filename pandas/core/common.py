@@ -332,7 +332,6 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     obj : NDFrame
     **kwargs
     """
-
     if callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
 
@@ -407,7 +406,6 @@ def random_state(state=None):
     -------
     np.random.RandomState
     """
-
     if is_integer(state):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):

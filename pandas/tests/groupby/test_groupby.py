@@ -1496,7 +1496,7 @@ def test_groupby_reindex_inside_function():
 
     def agg_before(hour, func, fix=False):
         """
-            Run an aggregate func on the subset of data.
+        Run an aggregate func on the subset of data.
         """
 
         def _func(data):

@@ -19,22 +19,20 @@ def test_set_ops_error_cases(idx, case, sort, method):
 
 
 @pytest.mark.parametrize("sort", [None, False])
-def test_intersection_base(idx, sort):
-    first = idx[:5]
-    second = idx[:3]
+@pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
+def test_intersection_base(idx, sort, klass):
+    first = idx[2::-1]  # first 3 elements reversed
+    second = idx[:5]
+
+    if klass is not MultiIndex:
+        second = klass(second.values)
+
     intersect = first.intersection(second, sort=sort)
-
     if sort is None:
-        tm.assert_index_equal(intersect, second.sort_values())
-    assert tm.equalContents(intersect, second)
-
-    # GH 10149
-    cases = [klass(second.values) for klass in [np.array, Series, list]]
-    for case in cases:
-        result = first.intersection(case, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, second.sort_values())
-        assert tm.equalContents(result, second)
+        expected = first.sort_values()
+    else:
+        expected = first
+    tm.assert_index_equal(intersect, expected)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
@@ -42,22 +40,20 @@ def test_intersection_base(idx, sort):
 
 
 @pytest.mark.parametrize("sort", [None, False])
-def test_union_base(idx, sort):
-    first = idx[3:]
+@pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
+def test_union_base(idx, sort, klass):
+    first = idx[::-1]
     second = idx[:5]
-    everything = idx
+
+    if klass is not MultiIndex:
+        second = klass(second.values)
+
     union = first.union(second, sort=sort)
     if sort is None:
-        tm.assert_index_equal(union, everything.sort_values())
-    assert tm.equalContents(union, everything)
-
-    # GH 10149
-    cases = [klass(second.values) for klass in [np.array, Series, list]]
-    for case in cases:
-        result = first.union(case, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, everything.sort_values())
-        assert tm.equalContents(result, everything)
+        expected = first.sort_values()
+    else:
+        expected = first
+    tm.assert_index_equal(union, expected)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):

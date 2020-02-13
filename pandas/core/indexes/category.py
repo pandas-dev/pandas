@@ -215,7 +215,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         -------
         CategoricalIndex
         """
-
         if dtype is None:
             dtype = self.dtype
         if name is None:
