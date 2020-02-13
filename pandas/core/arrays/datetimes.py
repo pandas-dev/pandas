@@ -283,7 +283,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_NS_DTYPE):
         assert isinstance(values, np.ndarray)
-        if values.dtype == "i8":
+        if values.dtype != _NS_DTYPE:
+            assert values.dtype == "i8"
             values = values.view(_NS_DTYPE)
 
         result = object.__new__(cls)

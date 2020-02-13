@@ -4378,7 +4378,7 @@ Name: Max Speed, dtype: float64
     # Convert to types that support pd.NA
 
     def _convert_dtypes(
-        self: ABCSeries,
+        self,
         infer_objects: bool = True,
         convert_string: bool = True,
         convert_integer: bool = True,

@@ -3504,6 +3504,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Slicing with this method is *always* positional.
         """
+        assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
         result = self._constructor(self._data.get_slice(slobj, axis=axis))
         result = result.__finalize__(self)

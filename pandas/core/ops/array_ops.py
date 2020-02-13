@@ -43,9 +43,9 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
 
-    # TODO: Should the checks below be ABCIndexClass?
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # TODO: should this be ABCIndexClass??
+        # Note: these checks can be for ABCIndex and not ABCIndexClass
+        #  because that is the only object-dtype class.
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
