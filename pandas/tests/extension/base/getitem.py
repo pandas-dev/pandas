@@ -159,6 +159,7 @@ class BaseGetitemTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_getitem_boolean_na_treated_as_false(self, data):
+        # https://github.com/pandas-dev/pandas/issues/31503
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
         mask[:2] = pd.NA
         mask[2:4] = True

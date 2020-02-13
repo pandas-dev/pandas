@@ -241,6 +241,7 @@ def test_mask_with_boolean(index):
 
 @pytest.mark.parametrize("index", [True, False])
 def test_mask_with_boolean_na_treated_as_false(index):
+    # https://github.com/pandas-dev/pandas/issues/31503
     s = Series(range(3))
     idx = Categorical([True, False, None])
     if index:

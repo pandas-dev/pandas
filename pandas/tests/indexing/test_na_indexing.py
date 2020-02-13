@@ -63,6 +63,7 @@ def test_series_mask_boolean(values, dtype, mask, box_mask, frame):
 
 @pytest.mark.parametrize("frame", [True, False])
 def test_na_treated_as_false(frame):
+    # https://github.com/pandas-dev/pandas/issues/31503
     s = pd.Series([1, 2, 3], name="name")
 
     if frame:

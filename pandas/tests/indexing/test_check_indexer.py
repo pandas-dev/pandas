@@ -35,6 +35,7 @@ def test_valid_input(indexer, expected):
     "indexer", [[True, False, None], pd.array([True, False, None], dtype="boolean")],
 )
 def test_boolean_na_returns_indexer(indexer):
+    # https://github.com/pandas-dev/pandas/issues/31503
     arr = np.array([1, 2, 3])
 
     result = check_array_indexer(arr, indexer)
