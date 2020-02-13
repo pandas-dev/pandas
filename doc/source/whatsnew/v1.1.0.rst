@@ -72,20 +72,25 @@ Backwards incompatible API changes
 :meth:`DataFrame.merge` now preserves right frame's row order when executing a right merge (:issue:`27453`)
 
 .. ipython:: python
+
     left_df = pd.DataFrame({'animal': ['dog', 'pig'], 'max_speed': [40, 11]})
     right_df = pd.DataFrame({'animal': ['quetzal', 'pig'], 'max_speed': [80, 11]})
     left_df
     right_df
+
 *pandas 1.0.x*
 
 .. code-block:: python
+
     >>> left_df.merge(right_df, on=['animal', 'max_speed'], how="right")
         animal  max_speed
     0      pig         11
     1  quetzal         80
+
 *pandas 1.1.0*
 
 .. ipython:: python
+
     left_df.merge(right_df, on=['animal', 'max_speed'], how="right")
 
 .. ---------------------------------------------------------------------------
