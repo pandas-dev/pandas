@@ -587,7 +587,7 @@ class IntegerArray(BaseMaskedArray):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ["sum", "min", "max", "prod"]:
+        elif name in ["min", "max", "prod"]:
             # GH#31409 more performant than casting-then-checking
             result = com.cast_scalar_indexer(result)
 
