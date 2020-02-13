@@ -2140,6 +2140,9 @@ class MultiIndex(Index):
 
         Parameters
         ----------
+        order : list of int or list of str
+            List representing new level order. Reference level by number
+            (position) or by key (label).
 
         Returns
         -------
