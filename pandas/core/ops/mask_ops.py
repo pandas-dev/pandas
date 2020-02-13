@@ -180,7 +180,7 @@ def raise_for_nan(value, method):
 
 
 def sum(
-    values: np.ndarray, mask: np.ndarray, skipna: bool,
+    values: np.ndarray, mask: np.ndarray, skipna: bool, min_count: int = 0,
 ):
     """
     Sum for 1D masked array.
@@ -192,16 +192,40 @@ def sum(
         operation).
     mask : np.ndarray
         Boolean numpy array (False for missing)
-    skipna: bool, default True
+    skipna : bool, default True
         Whether to skip NA.
+    min_count : int, default 0
+        The required number of valid values to perform the operation. If fewer than
+        ``min_count`` non-NA values are present the result will be NA.
     """
     if not skipna:
         if mask.any():
             return libmissing.NA
         else:
+            if _below_min_count(values, None, min_count):
+                return libmissing.NA
             return np.sum(values)
     else:
+        if _below_min_count(values, mask, min_count):
+            return libmissing.NA
+
         if _np_version_under1p17:
             return np.sum(values[~mask])
         else:
             return np.sum(values, where=~mask)
+
+
+def _below_min_count(values, mask, min_count):
+    """
+    Check for the `min_count` keyword. Returns True if below `min_count` (when
+    pd.NA should be returned from the reduction).
+    """
+    if min_count > 0:
+        if mask is None:
+            # no missing values, only check size
+            non_nulls = values.size
+        else:
+            non_nulls = mask.size - mask.sum()
+        if non_nulls < min_count:
+            return True
+    return False
