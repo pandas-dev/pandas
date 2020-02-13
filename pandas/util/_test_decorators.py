@@ -40,15 +40,15 @@ from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
     """
-    Parameters:
-    -----------
+    Parameters
+    ----------
     mod_name : str
         Name of the module to be imported
     min_version : str, default None
         Minimum required version of the specified mod_name
 
-    Returns:
-    --------
+    Returns
+    -------
     object
         The imported module if successful, or False
     """

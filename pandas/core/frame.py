@@ -927,7 +927,6 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-
         1. Because ``iterrows`` returns a Series for each row,
            it does **not** preserve dtypes across the rows (dtypes are
            preserved across columns for DataFrames). For example,
@@ -3821,6 +3820,8 @@ class DataFrame(NDFrame):
 
     @Appender(
         """
+        Examples
+        --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
         Change the row labels.

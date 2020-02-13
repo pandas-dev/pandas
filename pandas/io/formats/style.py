@@ -462,7 +462,6 @@ class Styler:
 
         Notes
         -----
-
         ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
         ``a`` is one of
 
@@ -474,7 +473,6 @@ class Styler:
 
         Examples
         --------
-
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']

@@ -4006,6 +4006,8 @@ Name: Max Speed, dtype: float64
 
     @Appender(
         """
+        Examples
+        --------
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
@@ -4378,7 +4380,7 @@ Name: Max Speed, dtype: float64
     # Convert to types that support pd.NA
 
     def _convert_dtypes(
-        self: ABCSeries,
+        self,
         infer_objects: bool = True,
         convert_string: bool = True,
         convert_integer: bool = True,
