@@ -366,11 +366,13 @@ class _OpenpyxlWriter(ExcelWriter):
         """
         Convert ``number_format_dict`` to an openpyxl v2.1.0 number format
         initializer.
+
         Parameters
         ----------
         number_format_dict : dict
             A dict with zero or more of the following keys.
                 'format_code' : str
+
         Returns
         -------
         number_format : str
@@ -381,12 +383,14 @@ class _OpenpyxlWriter(ExcelWriter):
     def _convert_to_protection(cls, protection_dict):
         """
         Convert ``protection_dict`` to an openpyxl v2 Protection object.
+
         Parameters
         ----------
         protection_dict : dict
             A dict with zero or more of the following keys.
                 'locked'
                 'hidden'
+
         Returns
         -------
         """
