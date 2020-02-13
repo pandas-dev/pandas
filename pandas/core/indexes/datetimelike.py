@@ -937,12 +937,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location
+
         Parameters
         ----------
         loc : int
         item : object
             if not either a Python datetime or a numpy integer-like, returned
             Index dtype will be object rather than datetime.
+
         Returns
         -------
         new_index : Index

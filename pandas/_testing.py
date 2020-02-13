@@ -2593,6 +2593,7 @@ def test_parallel(num_threads=2, kwargs_list=None):
     kwargs_list : list of dicts, optional
         The list of kwargs to update original
         function kwargs on different threads.
+
     Notes
     -----
     This decorator does not pass the return value of the decorated function.
