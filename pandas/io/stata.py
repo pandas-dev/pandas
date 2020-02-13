@@ -1671,17 +1671,13 @@ the string values returned are correct."""
                 continue
 
             if convert_missing:  # Replacement follows Stata notation
-                missing_loc = np.argwhere(missing._ndarray_values)
+                missing_loc = np.nonzero(missing._ndarray_values)[0]
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
                 replacement = Series(series, dtype=np.object)
                 for j, um in enumerate(umissing):
                     missing_value = StataMissingValue(um)
 
                     loc = missing_loc[umissing_loc == j]
-                    if loc.ndim == 2 and loc.shape[1] == 1:
-                        # GH#31813 avoid trying to set Series values with wrong
-                        #  dimension
-                        loc = loc[:, 0]
                     replacement.iloc[loc] = missing_value
             else:  # All replacements are identical
                 dtype = series.dtype
@@ -2133,8 +2129,8 @@ class StataWriter(StataParser):
 
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
         """Check for categorical columns, retain categorical information for
-        Stata file and convert categorical data to int"""
-
+        Stata file and convert categorical data to int
+        """
         is_cat = [is_categorical_dtype(data[col]) for col in data]
         self._is_col_cat = is_cat
         self._value_labels: List[StataValueLabel] = []
@@ -2175,7 +2171,8 @@ class StataWriter(StataParser):
     def _replace_nans(self, data: DataFrame) -> DataFrame:
         # return data
         """Checks floating point data columns for nans, and replaces these with
-        the generic Stata for missing value (.)"""
+        the generic Stata for missing value (.)
+        """
         for c in data:
             dtype = data[c].dtype
             if dtype in (np.float32, np.float64):
@@ -2773,7 +2770,6 @@ class StataStrLWriter:
           * 118: 6
           * 119: 5
         """
-
         gso_table = self._gso_table
         gso_df = self.df
         columns = list(gso_df.columns)
@@ -3041,7 +3037,8 @@ class StataWriter117(StataWriter):
     def _write_map(self) -> None:
         """Called twice during file write. The first populates the values in
         the map with 0s.  The second call writes the final map locations when
-        all blocks have been written."""
+        all blocks have been written.
+        """
         assert self._file is not None
         if not self._map:
             self._map = dict(
@@ -3189,7 +3186,8 @@ class StataWriter117(StataWriter):
 
     def _update_strl_names(self) -> None:
         """Update column names for conversion to strl if they might have been
-        changed to comply with Stata naming rules"""
+        changed to comply with Stata naming rules
+        """
         # Update convert_strl if names changed
         for orig, new in self._converted_names.items():
             if orig in self._convert_strl:
@@ -3198,7 +3196,8 @@ class StataWriter117(StataWriter):
 
     def _convert_strls(self, data: DataFrame) -> DataFrame:
         """Convert columns to StrLs if either very large or in the
-        convert_strl variable"""
+        convert_strl variable
+        """
         convert_cols = [
             col
             for i, col in enumerate(data)

@@ -568,7 +568,6 @@ def crosstab(
     b      0  1  0
     c      0  0  0
     """
-
     index = com.maybe_make_list(index)
     columns = com.maybe_make_list(columns)
 

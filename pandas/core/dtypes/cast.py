@@ -78,7 +78,6 @@ _int64_max = np.iinfo(np.int64).max
 
 def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
-
     if isinstance(values, (list, tuple, range)):
         values = construct_1d_object_array_from_listlike(values)
     if getattr(values, "dtype", None) == np.object_:
@@ -97,7 +96,6 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-
     if isinstance(obj, ABCSeries) and is_object_dtype(obj):
 
         if any(isinstance(v, ABCSeries) for v in obj.values):
@@ -525,7 +523,6 @@ def _ensure_dtype_type(value, dtype):
     -------
     object
     """
-
     # Start with exceptions in which we do _not_ cast to numpy types
     if is_extension_array_dtype(dtype):
         return value
@@ -566,7 +563,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         If False, scalar belongs to pandas extension types is inferred as
         object
     """
-
     dtype = np.object_
 
     # a 1-element ndarray
@@ -823,7 +819,6 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
-
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
@@ -965,7 +960,6 @@ def soft_convert_objects(
     copy: bool = True,
 ):
     """ if we have an object dtype, try to coerce dates and/or numbers """
-
     validate_bool_kwarg(datetime, "datetime")
     validate_bool_kwarg(numeric, "numeric")
     validate_bool_kwarg(timedelta, "timedelta")
@@ -1053,7 +1047,6 @@ def convert_dtypes(
     dtype
         new dtype
     """
-
     if convert_string or convert_integer or convert_boolean:
         try:
             inferred_dtype = lib.infer_dtype(input_array)
@@ -1133,7 +1126,6 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
        leave inferred dtype 'date' alone
 
     """
-
     # TODO: why not timedelta?
     if isinstance(
         value, (ABCDatetimeIndex, ABCPeriodIndex, ABCDatetimeArray, ABCPeriodArray)
@@ -1373,7 +1365,6 @@ def find_common_type(types):
     numpy.find_common_type
 
     """
-
     if len(types) == 0:
         raise ValueError("no types given")
 
@@ -1420,7 +1411,6 @@ def cast_scalar_to_array(shape, value, dtype=None):
     ndarray of shape, filled with value, of specified / inferred dtype
 
     """
-
     if dtype is None:
         dtype, fill_value = infer_dtype_from_scalar(value)
     else:

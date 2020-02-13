@@ -434,7 +434,6 @@ class BaseGrouper:
         Names is only useful when dealing with 2D results, like ohlc
         (see self._name_functions).
         """
-
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
@@ -749,7 +748,6 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def groups(self):
         """ dict {group name -> group labels} """
-
         # this is mainly for compat
         # GH 3881
         result = {

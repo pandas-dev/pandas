@@ -701,7 +701,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     2    NaN
     dtype: object
     """
-
     # Check whether repl is valid (GH 13438, GH 15055)
     if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
@@ -1099,7 +1098,6 @@ def str_extractall(arr, pat, flags=0):
     B 0          b     1
     C 0        NaN     1
     """
-
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:
@@ -1372,7 +1370,6 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     Series or Index
         Indexes where substring is found.
     """
-
     if not isinstance(sub, str):
         msg = f"expected a string object, not {type(sub).__name__}"
         raise TypeError(msg)
@@ -1944,7 +1941,6 @@ def forbid_nonstring_types(forbidden, name=None):
     TypeError
         If the inferred type of the underlying data is in `forbidden`.
     """
-
     # deal with None
     forbidden = [] if forbidden is None else forbidden
 
@@ -2027,7 +2023,7 @@ def _pat_wrapper(
 
 
 def copy(source):
-    "Copy a docstring from another source function (if present)"
+    """Copy a docstring from another source function (if present)"""
 
     def do_copy(target):
         if source.__doc__:
