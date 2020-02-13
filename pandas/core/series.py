@@ -4002,6 +4002,8 @@ Name: Max Speed, dtype: float64
 
     @Appender(
         """
+        Examples
+        --------
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
