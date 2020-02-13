@@ -1375,10 +1375,6 @@ class TestDataFrameReplace:
                 {"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]},
                 type("callable_object", (object,), dict(__call__=lambda x: x.strip())),
             ),
-            (
-                {"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]},
-                pd.DataFrame({"one": ["a", "b ", "c"], "two": ["d ", "e ", "f"]}),
-            ),
         ],
     )
     def test_replace_invalid_to_replace(self, df, to_replace):
@@ -1390,4 +1386,4 @@ class TestDataFrameReplace:
             r"int, float or None, got invalid type.*"
         )
         with pytest.raises(TypeError, match=msg):
-            df.replace(self, to_replace)
+            df.replace(to_replace)

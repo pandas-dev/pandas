@@ -371,7 +371,6 @@ class TestSeriesReplace:
                 ["a", "b", "c "],
                 type("callable_object", (object,), dict(__call__=lambda x: x.strip())),
             ),
-            (["a", "b", "c "], np.nan),
         ],
     )
     def test_replace_invalid_to_replace(self, ser, to_replace):
@@ -383,4 +382,4 @@ class TestSeriesReplace:
             r"int, float or None, got invalid type.*"
         )
         with pytest.raises(TypeError, match=msg):
-            series.replace(self, to_replace)
+            series.replace(to_replace)
