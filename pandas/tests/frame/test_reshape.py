@@ -765,10 +765,9 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_nan_index(self):  # GH7466
-        val_str = lambda val: "" if val != val else val
-
         def cast(val):
-            return f"{val_str(val):1}"
+            val_str = "" if val != val else val
+            return f"{val_str:1}"
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
