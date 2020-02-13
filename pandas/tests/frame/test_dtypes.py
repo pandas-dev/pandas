@@ -702,7 +702,7 @@ class TestDataFrameDataTypes:
     @pytest.mark.parametrize("cls", [CategoricalDtype, DatetimeTZDtype, IntervalDtype])
     def test_astype_categoricaldtype_class_raises(self, cls):
         df = DataFrame({"A": ["a", "a", "b", "c"]})
-        xpr = "Expected an instance of {}".format(cls.__name__)
+        xpr = f"Expected an instance of {cls.__name__}"
         with pytest.raises(TypeError, match=xpr):
             df.astype({"A": cls})
 
@@ -827,7 +827,7 @@ class TestDataFrameDataTypes:
     def test_astype_from_datetimelike_to_objectt(self, dtype, unit):
         # tests astype to object dtype
         # gh-19223 / gh-12425
-        dtype = "{}[{}]".format(dtype, unit)
+        dtype = f"{dtype}[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(object)
@@ -844,7 +844,7 @@ class TestDataFrameDataTypes:
     def test_astype_to_datetimelike_unit(self, arr_dtype, dtype, unit):
         # tests all units from numeric origination
         # gh-19223 / gh-12425
-        dtype = "{}[{}]".format(dtype, unit)
+        dtype = f"{dtype}[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=arr_dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
@@ -856,7 +856,7 @@ class TestDataFrameDataTypes:
     def test_astype_to_datetime_unit(self, unit):
         # tests all units from datetime origination
         # gh-19223
-        dtype = "M8[{}]".format(unit)
+        dtype = f"M8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
@@ -868,7 +868,7 @@ class TestDataFrameDataTypes:
     def test_astype_to_timedelta_unit_ns(self, unit):
         # preserver the timedelta conversion
         # gh-19223
-        dtype = "m8[{}]".format(unit)
+        dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
@@ -880,7 +880,7 @@ class TestDataFrameDataTypes:
     def test_astype_to_timedelta_unit(self, unit):
         # coerce to float
         # gh-19223
-        dtype = "m8[{}]".format(unit)
+        dtype = f"m8[{unit}]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)
@@ -892,21 +892,21 @@ class TestDataFrameDataTypes:
     def test_astype_to_incorrect_datetimelike(self, unit):
         # trying to astype a m to a M, or vice-versa
         # gh-19224
-        dtype = "M8[{}]".format(unit)
-        other = "m8[{}]".format(unit)
+        dtype = f"M8[{unit}]"
+        other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
         msg = (
-            r"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
-            r"\[timedelta64\[{}\]\]"
-        ).format(unit)
+            fr"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
+            fr"\[timedelta64\[{unit}\]\]"
+        )
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
         msg = (
-            r"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
-            r"\[datetime64\[{}\]\]"
-        ).format(unit)
+            fr"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
+            fr"\[datetime64\[{unit}\]\]"
+        )
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
