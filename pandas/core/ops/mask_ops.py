@@ -202,6 +202,6 @@ def sum(
             return np.sum(values)
     else:
         if _np_version_under1p17:
-            return np.sum(values[mask])
+            return np.sum(values[~mask])
         else:
             return np.sum(values, where=~mask)
