@@ -91,6 +91,7 @@ def validate_args(fname, args, max_fname_arg_count, compat_args):
         arguments **positionally** internally when calling downstream
         implementations, a dict ensures that the original
         order of the keyword arguments is enforced.
+
     Raises
     ------
     TypeError

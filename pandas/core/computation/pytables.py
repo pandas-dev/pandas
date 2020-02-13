@@ -503,7 +503,6 @@ class PyTablesExpr(expr.Expr):
 
     Examples
     --------
-
     'index>=date'
     "columns=['A', 'D']"
     'columns=A'

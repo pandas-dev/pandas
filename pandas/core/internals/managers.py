@@ -101,7 +101,9 @@ class BlockManager(PandasObject):
 
     Parameters
     ----------
-
+    blocks: Sequence of Block
+    axes: Sequence of Index
+    do_integrity_check: bool, default True
 
     Notes
     -----
@@ -1316,7 +1318,6 @@ class BlockManager(PandasObject):
         return blocks
 
     def _make_na_block(self, placement, fill_value=None):
-        # TODO: infer dtypes other than float64 from fill_value
 
         if fill_value is None:
             fill_value = np.nan
