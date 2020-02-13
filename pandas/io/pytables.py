@@ -1830,7 +1830,6 @@ class IndexCol:
 
     Parameters
     ----------
-
     axis   : axis which I reference
     values : the ndarray like converted values
     kind   : a string description of this type
@@ -2142,7 +2141,6 @@ class DataCol(IndexCol):
 
     Parameters
     ----------
-
     data   : the actual data
     cname  : the column name in the table to hold the data (typically
                 values)

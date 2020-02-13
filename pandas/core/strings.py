@@ -349,7 +349,6 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     Examples
     --------
-
     Returning a Series of booleans using only a literal pattern.
 
     >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
@@ -1274,7 +1273,6 @@ def str_findall(arr, pat, flags=0):
 
     Examples
     --------
-
     >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
 
     The search for the pattern 'Monkey' returns one match:
@@ -1743,7 +1741,6 @@ def str_wrap(arr, width, **kwargs):
 
     Examples
     --------
-
     >>> s = pd.Series(['line to be wrapped', 'another line to be wrapped'])
     >>> s.str.wrap(12)
     0             line to be\nwrapped

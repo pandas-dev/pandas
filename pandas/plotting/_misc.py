@@ -294,6 +294,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Examples
     --------
+    This example draws a basic bootstap plot for a Series.
 
     .. plot::
             :context: close-figs

@@ -1995,7 +1995,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({"A": list("aaabba")})
         >>> df
            A
@@ -2062,7 +2061,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
         ...                   columns=['A'])
         >>> df

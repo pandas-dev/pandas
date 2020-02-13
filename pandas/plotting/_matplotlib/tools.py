@@ -105,8 +105,8 @@ def _subplots(
     This utility wrapper makes it convenient to create common layouts of
     subplots, including the enclosing figure object, in a single call.
 
-    Keyword arguments:
-
+    Parameters
+    ----------
     naxes : int
       Number of required axes. Exceeded axes are set invisible. Default is
       nrows * ncols.
@@ -146,16 +146,16 @@ def _subplots(
         Note that all keywords not recognized above will be
         automatically included here.
 
-    Returns:
-
+    Returns
+    -------
     fig, ax : tuple
       - fig is the Matplotlib Figure object
       - ax can be either a single axis object or an array of axis objects if
       more than one subplot was created.  The dimensions of the resulting array
       can be controlled with the squeeze keyword, see above.
 
-    **Examples:**
-
+    Examples
+    --------
     x = np.linspace(0, 2*np.pi, 400)
     y = np.sin(x**2)
 

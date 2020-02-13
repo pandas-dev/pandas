@@ -1452,7 +1452,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx = pd.Index(list('abc'))
         >>> idx
         Index(['a', 'b', 'c'], dtype='object')
@@ -2501,7 +2500,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         Union matching dtypes
 
         >>> idx1 = pd.Index([1, 2, 3, 4])
@@ -2632,7 +2630,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.intersection(idx2)
@@ -2713,7 +2710,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx1 = pd.Index([2, 1, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.difference(idx2)

@@ -336,7 +336,6 @@ class SparseDtype(ExtensionDtype):
 
         Returns
         -------
-
         >>> SparseDtype(int, 1)._subtype_with_str
         dtype('int64')
 

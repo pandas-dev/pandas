@@ -61,7 +61,6 @@ def nested_to_record(
 
     Examples
     --------
-
     IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),
                                   nested=dict(e=dict(c=1,d=2),d=2)))
     Out[52]:
@@ -160,7 +159,6 @@ def _json_normalize(
 
     Examples
     --------
-
     >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'}},

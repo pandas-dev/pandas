@@ -1970,35 +1970,39 @@ def makeCustomDataframe(
     r_idx_type=None,
 ):
     """
-   nrows,  ncols - number of data rows/cols
-   c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
-        default names or uses the provided names for the levels of the
-        corresponding index. You can provide a single string when
-        c_idx_nlevels ==1.
-   c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
-   r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
-   data_gen_f - a function f(row,col) which return the data value
-        at that position, the default generator used yields values of the form
-        "RxCy" based on position.
-   c_ndupe_l, r_ndupe_l - list of integers, determines the number
-        of duplicates for each label at a given level of the corresponding
-        index. The default `None` value produces a multiplicity of 1 across
-        all levels, i.e. a unique index. Will accept a partial list of length
-        N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
-        nrows/ncol, the last label might have lower multiplicity.
-   dtype - passed to the DataFrame constructor as is, in case you wish to
-        have more control in conjunction with a custom `data_gen_f`
-   r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
-       If idx_type is not None, `idx_nlevels` must be 1.
-       "i"/"f" creates an integer/float index,
-       "s"/"u" creates a string/unicode index
-       "dt" create a datetime index.
-       "td" create a timedelta index.
+    Create a DataFrame using supplied parameters.
 
-        if unspecified, string labels will be generated.
+    Parameters
+    ----------
+    nrows,  ncols - number of data rows/cols
+    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
+            default names or uses the provided names for the levels of the
+            corresponding index. You can provide a single string when
+            c_idx_nlevels ==1.
+    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
+    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
+    data_gen_f - a function f(row,col) which return the data value
+            at that position, the default generator used yields values of the form
+            "RxCy" based on position.
+    c_ndupe_l, r_ndupe_l - list of integers, determines the number
+            of duplicates for each label at a given level of the corresponding
+            index. The default `None` value produces a multiplicity of 1 across
+            all levels, i.e. a unique index. Will accept a partial list of length
+            N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
+            nrows/ncol, the last label might have lower multiplicity.
+    dtype - passed to the DataFrame constructor as is, in case you wish to
+            have more control in conjunction with a custom `data_gen_f`
+    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
+        If idx_type is not None, `idx_nlevels` must be 1.
+        "i"/"f" creates an integer/float index,
+        "s"/"u" creates a string/unicode index
+        "dt" create a datetime index.
+        "td" create a timedelta index.
 
-    Examples:
+            if unspecified, string labels will be generated.
 
+    Examples
+    --------
     # 5 row, 3 columns, default names on both, single index on both axis
     >> makeCustomDataframe(5,3)
 
@@ -2514,7 +2518,6 @@ class RNGContext:
 
     Examples
     --------
-
     with RNGContext(42):
         np.random.randn()
     """
@@ -2669,7 +2672,6 @@ def set_timezone(tz: str):
 
     Examples
     --------
-
     >>> from datetime import datetime
     >>> from dateutil.tz import tzlocal
     >>> tzlocal().tzname(datetime.now())
