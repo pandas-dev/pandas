@@ -32,7 +32,6 @@ cdef float64_t NaN = <float64_t>np.NaN
 
 cdef int64_t NPY_NAT = get_nat()
 
-
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,
     'min': TIEBREAK_MIN,
