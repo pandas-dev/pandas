@@ -46,6 +46,33 @@ Bug fixes
 
 .. ---------------------------------------------------------------------------
 
+Indexing with Nullable Boolean Arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously indexing with a nullable Boolean array containing ``NA`` would raise a ``ValueError``, however this is now permitted with ``NA`` being treated as ``False``. (:issue:`31503`)
+
+.. ipython:: python
+
+    s = pd.Series([1, 2, 3, 4])
+    mask = pd.array([True, True, False, None], dtype="boolean")
+    s
+    mask
+
+*pandas 1.0.0-1.0.1*
+
+.. code-block:: python
+
+    >>> s[mask]
+    Traceback (most recent call last):
+    ...
+    ValueError: cannot mask with array containing NA / NaN values
+
+*pandas 1.0.2*
+
+.. ipython:: python
+
+    s[mask]
+
 .. _whatsnew_102.contributors:
 
 Contributors
