@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.numpy_ import PandasDtype
+import pandas._testing as tm
 
 from .base import BaseExtensionTests
 
@@ -92,6 +92,92 @@ class BaseSetitemTests(BaseExtensionTests):
         df = pd.DataFrame({"A": data, "B": data})
         df.iloc[10, 1] = data[1]
         assert df.loc[10, "B"] == data[1]
+
+    @pytest.mark.parametrize(
+        "mask",
+        [
+            np.array([True, True, True, False, False]),
+            pd.array([True, True, True, False, False], dtype="boolean"),
+        ],
+        ids=["numpy-array", "boolean-array"],
+    )
+    def test_setitem_mask(self, data, mask, box_in_series):
+        arr = data[:5].copy()
+        expected = arr.take([0, 0, 0, 3, 4])
+        if box_in_series:
+            arr = pd.Series(arr)
+            expected = pd.Series(expected)
+        arr[mask] = data[0]
+        self.assert_equal(expected, arr)
+
+    def test_setitem_mask_raises(self, data, box_in_series):
+        # wrong length
+        mask = np.array([True, False])
+
+        if box_in_series:
+            data = pd.Series(data)
+
+        with pytest.raises(IndexError, match="wrong length"):
+            data[mask] = data[0]
+
+        mask = pd.array(mask, dtype="boolean")
+        with pytest.raises(IndexError, match="wrong length"):
+            data[mask] = data[0]
+
+    def test_setitem_mask_boolean_array_raises(self, data, box_in_series):
+        # missing values in mask
+        mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
+        mask[:2] = pd.NA
+
+        if box_in_series:
+            data = pd.Series(data)
+
+        msg = (
+            "Cannot mask with a boolean indexer containing NA values|"
+            "cannot mask with array containing NA / NaN values"
+        )
+        with pytest.raises(ValueError, match=msg):
+            data[mask] = data[0]
+
+    @pytest.mark.parametrize(
+        "idx",
+        [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_setitem_integer_array(self, data, idx, box_in_series):
+        arr = data[:5].copy()
+        expected = data.take([0, 0, 0, 3, 4])
+
+        if box_in_series:
+            arr = pd.Series(arr)
+            expected = pd.Series(expected)
+
+        arr[idx] = arr[0]
+        self.assert_equal(arr, expected)
+
+    @pytest.mark.parametrize(
+        "idx, box_in_series",
+        [
+            ([0, 1, 2, pd.NA], False),
+            pytest.param(
+                [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
+            ),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
+        ],
+        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
+    )
+    def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
+        arr = data.copy()
+
+        # TODO(xfail) this raises KeyError about labels not found (it tries label-based)
+        # for list of labels with Series
+        if box_in_series:
+            arr = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+
+        msg = "Cannot index with an integer indexer containing NA values"
+        with pytest.raises(ValueError, match=msg):
+            arr[idx] = arr[0]
 
     @pytest.mark.parametrize("as_callable", [True, False])
     @pytest.mark.parametrize("setter", ["loc", None])
@@ -219,14 +305,3 @@ class BaseSetitemTests(BaseExtensionTests):
         data[0] = data[1]
         assert view1[0] == data[1]
         assert view2[0] == data[1]
-
-    def test_setitem_nullable_mask(self, data):
-        # GH 31446
-        # TODO: there is some issue with PandasArray, therefore,
-        # TODO: skip the setitem test for now, and fix it later
-        if data.dtype != PandasDtype("object"):
-            arr = data[:5]
-            expected = data.take([0, 0, 0, 3, 4])
-            mask = pd.array([True, True, True, False, False])
-            arr[mask] = data[0]
-            self.assert_extension_array_equal(expected, arr)
