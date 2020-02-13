@@ -282,8 +282,8 @@ class StringArray(PandasArray):
                 return getattr(self[~na_mask], name)(skipna=False, **kwargs)
             else:
                 return libmissing.NA
-        else:
-            raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
+        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
