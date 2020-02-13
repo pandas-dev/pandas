@@ -550,7 +550,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         ------
         ValueError if its a duplicate axis
         """
-
         # trying to reindex on an axis with duplicates
         if self.is_overlapping and len(indexer):
             raise ValueError("cannot reindex from an overlapping axis")
