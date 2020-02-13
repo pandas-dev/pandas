@@ -181,7 +181,7 @@ class TestIntervalIndex:
         other = interval_range(Timestamp("20180101"), periods=9, closed=closed)
         msg = (
             f"can only do {op_name} between two IntervalIndex objects that have "
-            f"compatible dtypes"
+            "compatible dtypes"
         )
         with pytest.raises(TypeError, match=msg):
             set_op(other, sort=sort)
