@@ -108,7 +108,6 @@ def _groupby_and_merge(
     check_duplicates: bool, default True
         should we check & clean duplicates
     """
-
     pieces = []
     if not isinstance(by, (list, tuple)):
         by = [by]

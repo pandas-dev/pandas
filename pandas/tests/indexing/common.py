@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 def _mklbl(prefix, n):
-    return ["{prefix}{i}".format(prefix=prefix, i=i) for i in range(n)]
+    return [f"{prefix}{i}" for i in range(n)]
 
 
 def _axify(obj, key, axis):
@@ -96,7 +96,7 @@ class Base:
         for kind in self._kinds:
             d = dict()
             for typ in self._typs:
-                d[typ] = getattr(self, "{kind}_{typ}".format(kind=kind, typ=typ))
+                d[typ] = getattr(self, f"{kind}_{typ}")
 
             setattr(self, kind, d)
 
@@ -105,7 +105,6 @@ class Base:
         if values is True , use the axis values
         is False, use the range
         """
-
         axes = f.axes
         if values:
             axes = (list(range(len(ax))) for ax in axes)
@@ -114,7 +113,6 @@ class Base:
 
     def get_value(self, name, f, i, values=False):
         """ return the value for the location i """
-
         # check against values
         if values:
             return f.values[i]
@@ -150,7 +148,6 @@ class Base:
     ):
         def _eq(axis, obj, key):
             """ compare equal for these 2 keys """
-
             axified = _axify(obj, key, axis)
             try:
                 getattr(obj, method).__getitem__(axified)
