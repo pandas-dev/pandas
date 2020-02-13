@@ -1318,6 +1318,44 @@ class TestMerge:
         result = left.merge(right, left_on="key", right_index=True, how="right")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("how", ["left", "right"])
+    def test_merge_preserves_row_order(self, how):
+        # GH 27453
+        a = [2, 5, 3, 5]
+        df1 = pd.DataFrame({"A": a, "B": [8, 2, 4, 1]})
+        df2 = pd.DataFrame({"A": a, "B": [7, 1, 3, 0]})
+
+        result = df1.merge(df2[["A", "B"]], on=["A", "B"], how=how)
+        expected = pd.DataFrame({"A": a})
+        if how == "right":
+            expected["B"] = df2["B"]
+        else:
+            expected["B"] = df1["B"]
+        tm.assert_frame_equal(result, expected)
+
+        left_df = pd.DataFrame({"colors": ["blue", "red"]}, index=pd.Index([0, 1]))
+        right_df = pd.DataFrame({"hats": ["small", "big"]}, index=pd.Index([1, 0]))
+        result = left_df.merge(right_df, left_index=True, right_index=True, how=how)
+        if how == "right":
+            expected = pd.DataFrame(
+                {"colors": ["red", "blue"], "hats": ["small", "big"]}
+            )
+        else:
+            expected = pd.DataFrame(
+                {"colors": ["blue", "red"], "hats": ["big", "small"]}
+            )
+
+        left_df = pd.DataFrame({"animal": ["dog", "pig"], "max_speed": [40, 11]})
+        right_df = pd.DataFrame({"animal": ["quetzal", "pig"], "max_speed": [80, 11]})
+        result = left_df.merge(right_df, on=["animal", "max_speed"], how=how)
+        if how == "right":
+            expected = pd.DataFrame(
+                {"animal": ["quetzal", "pig"], "max_speed": [80, 11]}
+            )
+        else:
+            expected = pd.DataFrame({"animal": ["dog", "pig"], "max_speed": [40, 11]})
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_take_missing_values_from_index_of_other_dtype(self):
         # GH 24212
         left = pd.DataFrame(
@@ -2167,35 +2205,3 @@ def test_merge_datetime_upcast_dtype():
         }
     )
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("how", ["left", "right"])
-def test_merge_preserves_row_order(how):
-    # GH 27453
-    population_df = DataFrame(
-        {
-            "name": ["Jenn", "Beth", "Carl"],
-            "country": ["Jamaica", "Bulgaria", "Canada"],
-            "population": [3, 7, 30],
-        }
-    )
-
-    people_df = DataFrame(
-        {"name": ["Abe", "Beth", "Carl"], "country": ["America", "Bulgaria", "Canada"]}
-    )
-
-    expected = DataFrame(
-        {
-            "name": ["Abe", "Beth", "Carl"],
-            "country": ["America", "Bulgaria", "Canada"],
-            "population": [np.nan, 7, 30],
-        }
-    )
-
-    if how == "right":
-        left_df, right_df = population_df, people_df
-    elif how == "left":
-        left_df, right_df = people_df, population_df
-
-    result = left_df.merge(right_df, on=("name", "country"), how=how)
-    tm.assert_frame_equal(expected, result)
