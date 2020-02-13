@@ -766,7 +766,9 @@ class TestDataFrameReshape:
 
     def test_unstack_nan_index(self):  # GH7466
         val_str = lambda val: "" if val != val else val
-        cast = lambda val: f"{val_str(val):1}"
+
+        def cast(val):
+            return f"{val_str(val):1}"
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
