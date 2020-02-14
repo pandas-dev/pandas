@@ -999,6 +999,8 @@ default 'raise'
                                                  dts.hour, dts.min, dts.sec,
                                                  dts.us),
                                         is_dst=not bool(fold))
+            # set fold after pytz resets it to 0 (GH 25057)
+            ts_input = ts_input.replace(fold=fold)
             _tzinfo = ts_input.tzinfo
         else:
             kwargs = {'year': dts.year, 'month': dts.month, 'day': dts.day,
