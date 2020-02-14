@@ -2452,18 +2452,19 @@ class Categorical(ExtensionArray, PandasObject):
         # to_replace is a dict, are handled separately in NDFrame
 
         for replace_value, new_value in replace_dict.items():
-            if isna(new_value):
-                continue
             if replace_value in cat.categories:
-                categories = cat.categories.tolist()
-                index = categories.index(replace_value)
-                if new_value in cat.categories:
-                    value_index = categories.index(new_value)
-                    cat._codes[cat._codes == index] = value_index
+                if isna(new_value):
                     cat.remove_categories(replace_value, inplace=True)
                 else:
-                    categories[index] = new_value
-                    cat.rename_categories(categories, inplace=True)
+                    categories = cat.categories.tolist()
+                    index = categories.index(replace_value)
+                    if new_value in cat.categories:
+                        value_index = categories.index(new_value)
+                        cat._codes[cat._codes == index] = value_index
+                        cat.remove_categories(replace_value, inplace=True)
+                    else:
+                        categories[index] = new_value
+                        cat.rename_categories(categories, inplace=True)
         if not inplace:
             return cat
 
