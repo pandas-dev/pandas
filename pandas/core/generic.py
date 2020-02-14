@@ -2182,46 +2182,141 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
+        >>> import json
         >>> df = pd.DataFrame(
         ...     [["a", "b"], ["c", "d"]],
         ...     index=["row 1", "row 2"],
         ...     columns=["col 1", "col 2"],
         ... )
 
-        >>> df.to_json(orient='split')
-        '{"columns":["col 1","col 2"],\
-"index":["row 1","row 2"],\
-"data":[["a","b"],["c","d"]]}'
+        >>> result = df.to_json(orient="split")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        {
+            "columns": [
+                "col 1",
+                "col 2"
+            ],
+            "index": [
+                "row 1",
+                "row 2"
+            ],
+            "data": [
+                [
+                    "a",
+                    "b"
+                ],
+                [
+                    "c",
+                    "d"
+                ]
+            ]
+        }
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
 
-        >>> df.to_json(orient='records')
-        '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+        >>> result = df.to_json(orient="records")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        [
+            {
+                "col 1": "a",
+                "col 2": "b"
+            },
+            {
+                "col 1": "c",
+                "col 2": "d"
+            }
+        ]
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
-        >>> df.to_json(orient='index')
-        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+        >>> result = df.to_json(orient="index")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        {
+            "row 1": {
+                "col 1": "a",
+                "col 2": "b"
+            },
+            "row 2": {
+                "col 1": "c",
+                "col 2": "d"
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
-        >>> df.to_json(orient='columns')
-        '{"col 1":{"row 1":"a","row 2":"c"},"col 2":{"row 1":"b","row 2":"d"}}'
+        >>> result = df.to_json(orient="columns")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        {
+            "col 1": {
+                "row 1": "a",
+                "row 2": "c"
+            },
+            "col 2": {
+                "row 1": "b",
+                "row 2": "d"
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
-        >>> df.to_json(orient='values')
-        '[["a","b"],["c","d"]]'
+        >>> result = df.to_json(orient="values")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        [
+            [
+                "a",
+                "b"
+            ],
+            [
+                "c",
+                "d"
+            ]
+        ]
 
-        Encoding with Table Schema
+        Encoding with Table Schema:
 
-        >>> df.to_json(orient='table')
-        '{"schema":{"fields":[{"name":"index","type":"string"},\
-{"name":"col 1","type":"string"},{"name":"col 2","type":"string"}],\
-"primaryKey":["index"],"pandas_version":"0.20.0"},\
-"data":[{"index":"row 1","col 1":"a","col 2":"b"},\
-{"index":"row 2","col 1":"c","col 2":"d"}]}'
+        >>> result = df.to_json(orient="table")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        {
+            "schema": {
+                "fields": [
+                    {
+                        "name": "index",
+                        "type": "string"
+                    },
+                    {
+                        "name": "col 1",
+                        "type": "string"
+                    },
+                    {
+                        "name": "col 2",
+                        "type": "string"
+                    }
+                ],
+                "primaryKey": [
+                    "index"
+                ],
+                "pandas_version": "0.20.0"
+            },
+            "data": [
+                {
+                    "index": "row 1",
+                    "col 1": "a",
+                    "col 2": "b"
+                },
+                {
+                    "index": "row 2",
+                    "col 1": "c",
+                    "col 2": "d"
+                }
+            ]
+        }
         """
         from pandas.io import json
 
