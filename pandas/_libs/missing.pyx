@@ -1,6 +1,7 @@
 import cython
 from cython import Py_ssize_t
 
+import platform
 import numbers
 
 import numpy as np
@@ -16,16 +17,11 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
-from pandas.compat import is_platform_32bit
-
-
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
 
     int64_t NPY_NAT = util.get_nat()
-
-    bint is_32bit = is_platform_32bit()
 
 
 cpdef bint checknull(object val):
@@ -361,7 +357,7 @@ class NAType(C_NAType):
 
     def __hash__(self):
         # GH 30013: Ensure hash is large enough to avoid hash collisions with integers
-        exponent = 31 if is_32bit else 61
+        exponent = 31 if platform.architecture()[0] == "32-bit" else 61
         return 2 ** exponent - 1
 
     # Binary arithmetic and comparison ops -> propagate
