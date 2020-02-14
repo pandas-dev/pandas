@@ -457,7 +457,7 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0,
-                                 fold)
+                                 fold or 0)
 
         if ts.value == NPY_NAT:
             return NaT

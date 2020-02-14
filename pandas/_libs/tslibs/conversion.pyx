@@ -226,7 +226,7 @@ cdef class _TSObject:
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
                          bint dayfirst, bint yearfirst, int32_t nanos=0,
-                         bint fold=1):
+                         bint fold=0):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
