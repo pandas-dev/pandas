@@ -755,6 +755,8 @@ def from_dummies(data, prefix=None, prefix_sep="_", dtype="category") -> "DataFr
     """
     The inverse transformation of ``pandas.get_dummies``.
 
+    .. versionadded:: 1.1.0
+
     Parameters
     ----------
     data : DataFrame
@@ -772,6 +774,10 @@ def from_dummies(data, prefix=None, prefix_sep="_", dtype="category") -> "DataFr
     -------
     DataFrame
         Decoded data.
+
+    See Also
+    --------
+    get_dummies : the inverse operation
 
     Examples
     --------
@@ -948,6 +954,7 @@ def get_dummies(
     See Also
     --------
     Series.str.get_dummies : Convert Series to dummy codes.
+    from_dummies : the inverse operation.
 
     Examples
     --------
