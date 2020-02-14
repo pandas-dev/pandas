@@ -393,11 +393,10 @@ class Float64Index(NumericIndex):
         return key
 
     @Appender(Index._convert_slice_indexer.__doc__)
-    def _convert_slice_indexer(self, key: slice, kind=None):
+    def _convert_slice_indexer(self, key: slice, kind: str):
+        assert kind in ["loc", "getitem"]
 
-        if kind == "iloc":
-            return super()._convert_slice_indexer(key, kind=kind)
-
+        # We always treat __getitem__ slicing as label-based
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
