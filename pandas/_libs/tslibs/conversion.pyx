@@ -367,10 +367,8 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
 
             if typ in ['pytz', 'dateutil']:
                 pos = trans.searchsorted(obj.value, side='right') - 1
-                # pytz assumes fold == 1, dateutil fold == 0
-                # adjust only if necessary
-                if (typ == 'pytz' and obj.fold == 0 or
-                        typ == 'dateutil' and obj.fold == 1):
+                # if ambiguous, pytz needs adjustment not in a fold
+                if typ == 'pytz' and obj.fold == 0:
                     pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos,
                                                     obj.fold)
                 obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
