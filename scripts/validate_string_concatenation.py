@@ -17,7 +17,7 @@ import token
 import tokenize
 from typing import IO, Callable, Generator, List, Tuple
 
-FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pyx.ini", ".pxd")
+FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.in", ".pxd")
 
 
 def _get_literal_string_prefix_len(token_string: str) -> int:
