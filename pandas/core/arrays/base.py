@@ -552,6 +552,9 @@ class ExtensionArray:
         Series.min : Return the minimum value in a Series.
         DataFrame.min : Return the minimum values in a DataFrame.
         """
+        return self._min()
+
+    def _min(self):
         if len(self) == 0:
             raise ValueError("attempt to get min of an empty sequence")
 
@@ -593,6 +596,9 @@ class ExtensionArray:
         Series.max : Return the maximum value in a Series.
         DataFrame.max : Return the maximum values in a DataFrame.
         """
+        return self._max()
+
+    def _max(self):
         if len(self) == 0:
             raise ValueError("attempt to get max of an empty sequence")
 

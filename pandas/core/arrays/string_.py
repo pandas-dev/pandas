@@ -282,46 +282,10 @@ class StringArray(PandasArray):
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
     def min(self):
-        """
-        Return the minimum value.
-
-        Returns
-        -------
-        scalar
-            Minimum value.
-
-        See Also
-        --------
-        ExtensionArray.max : Return the maximum value of the object.
-        Series.min : Return the minimum value in a Series.
-        DataFrame.min : Return the minimum values in a DataFrame.
-        """
-        if len(self) == 0:
-            raise ValueError("attempt to get min of an empty sequence")
-
-        min_idx = self.argmin()
-        return self[min_idx]
+        return self._min()
 
     def max(self):
-        """
-        Return the maximum value.
-
-        Returns
-        -------
-        scalar
-            Maximum value.
-
-        See Also
-        --------
-        ExtensionArray.min : Return the minimum value of the object.
-        Series.max : Return the maximum value in a Series.
-        DataFrame.max : Return the maximum values in a DataFrame.
-        """
-        if len(self) == 0:
-            raise ValueError("attempt to get max of an empty sequence")
-
-        max_idx = self.argmax()
-        return self[max_idx]
+        return self._max()
 
     # Overrride parent because we have different return types.
     @classmethod
