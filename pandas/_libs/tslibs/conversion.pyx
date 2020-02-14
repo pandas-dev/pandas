@@ -369,8 +369,11 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                 pos = trans.searchsorted(obj.value, side='right') - 1
                 # if ambiguous, pytz needs adjustment not in a fold
                 if typ == 'pytz' and obj.fold == 0:
-                    pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos,
-                                                    obj.fold)
+                    if pos > 0:
+                        fold_delta = deltas[pos - 1] - deltas[pos]
+                        if obj.value - fold_delta < trans[pos]:
+                            obj.value -= fold_delta
+                            pos -= 1
                 obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     check_dts_bounds(&obj.dts)
@@ -601,53 +604,6 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
             pass
 
     obj.tzinfo = tz
-
-
-cdef inline int32_t _adjust_tsobject_for_fold(_TSObject obj, object trans,
-                                              object deltas, int32_t pos,
-                                              bint fold):
-    """
-    Adjust _TSObject value for fold is possible. Return updated last offset
-    transition position in the trans list.
-
-    Parameters
-    ----------
-    obj : _TSObject
-    trans : object
-        List of offset transition points in nanoseconds since epoch.
-    deltas : object
-        List of offsets corresponding to transition points in trans.
-    pos : int32_t
-        Position of the last transition point before taking fold into account.
-    fold : bint
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
-
-    Returns
-    -------
-    int32_t
-        Position of the last transition point after taking fold into account.
-
-    Notes
-    -----
-    Alters obj.value inplace.
-    """
-    if fold == 0:
-        if pos > 0:
-            fold_delta = deltas[pos - 1] - deltas[pos]
-            if obj.value - fold_delta < trans[pos]:
-                obj.value -= fold_delta
-                pos -= 1
-    elif fold == 1:
-        if pos < len(deltas):
-            fold_delta = deltas[pos] - deltas[pos + 1]
-            if obj.value + fold_delta > trans[pos + 1]:
-                obj.value += fold_delta
-                pos += 1
-
-    return pos
 
 
 cdef inline bint _infer_tsobject_fold(_TSObject obj, object trans,
