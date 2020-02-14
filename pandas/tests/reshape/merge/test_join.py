@@ -264,7 +264,7 @@ class TestJoin:
         df = DataFrame({"a": [1, 1]})
         msg = (
             "Can only merge Series or DataFrame objects, "
-            f"a {str(type(wrong_type))} was passed"
+            f"a {type(wrong_type)} was passed"
         )
         with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on="a", right_on="a")
@@ -813,7 +813,7 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
         except KeyError:
             if how in ("left", "inner"):
                 raise AssertionError(
-                    f"key {group_key!s} should not have been in the join"
+                    f"key {group_key} should not have been in the join"
                 )
 
             _assert_all_na(l_joined, left.columns, join_col)
@@ -825,7 +825,7 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
         except KeyError:
             if how in ("right", "inner"):
                 raise AssertionError(
-                    f"key {group_key!s} should not have been in the join"
+                    f"key {group_key} should not have been in the join"
                 )
 
             _assert_all_na(r_joined, right.columns, join_col)

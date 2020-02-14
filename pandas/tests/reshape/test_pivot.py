@@ -1161,7 +1161,7 @@ class TestPivotTable:
     def test_pivot_table_with_margins_set_margin_name(self, margin_name):
         # see gh-3335
         msg = (
-            fr'Conflicting name "{margin_name}" in margins|'
+            f'Conflicting name "{margin_name}" in margins|'
             "margins_name argument must be a string"
         )
         with pytest.raises(ValueError, match=msg):
