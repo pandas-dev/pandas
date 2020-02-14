@@ -198,225 +198,225 @@ def test_strings_to_concatenate(data, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize(
-    "data, expected",
-    [
-        (
+class TestStringsWithWrongPlacedWhitespace:
+    @pytest.mark.parametrize(
+        "data",
+        [
             (
                 """
-msg = (
-    "foo\n"
-    " bar"
-)
-"""
+    msg = (
+        "foo\n"
+        " bar"
+    )
+    """
             ),
-            [],
-        ),
-        (
             (
                 """
-msg = (
-    "foo"
-    "  bar"
-    "baz"
-)
-"""
+    msg = (
+        "foo"
+        "  bar"
+        "baz"
+    )
+    """
             ),
-            [],
-        ),
-        (
             (
                 """
-msg = (
-    f"foo"
-    "  bar"
-)
-"""
+    msg = (
+        f"foo"
+        "  bar"
+    )
+    """
             ),
-            [],
-        ),
-        (
             (
                 """
-msg = (
-    "foo"
-    f"  bar"
-)
-"""
+    msg = (
+        "foo"
+        f"  bar"
+    )
+    """
             ),
-            [],
-        ),
-        (
             (
                 """
-msg = (
-    "foo"
-    rf"  bar"
-)
-"""
+    msg = (
+        "foo"
+        rf"  bar"
+    )
+    """
             ),
-            [],
-        ),
-        (
+        ],
+    )
+    def test_strings_with_wrong_placed_whitespace(self, data):
+        fd = io.StringIO(data.strip())
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        assert result == []
+
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
             (
-                """
-msg = (
-    "foo"
-    " bar"
-)
-"""
-            ),
-            [
                 (
-                    3,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
-                )
-            ],
-        ),
-        (
-            (
-                """
-msg = (
-    f"foo"
-    " bar"
-)
-"""
-            ),
-            [
-                (
-                    3,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
-                )
-            ],
-        ),
-        (
-            (
-                """
-msg = (
-    "foo"
-    f" bar"
-)
-"""
-            ),
-            [
-                (
-                    3,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
-                )
-            ],
-        ),
-        (
-            (
-                """
-msg = (
-    f"foo"
-    f" bar"
-)
-"""
-            ),
-            [
-                (
-                    3,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
-                )
-            ],
-        ),
-        (
-            (
-                """
-msg = (
-    "foo"
-    rf" bar"
-    " baz"
-)
-"""
-            ),
-            [
-                (
-                    3,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
+                    """
+    msg = (
+        "foo"
+        " bar"
+    )
+    """
                 ),
-                (
-                    4,
+                [
                     (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
-                ),
-            ],
-        ),
-        (
-            (
-                """
-msg = (
-    "foo"
-    " bar"
-    rf" baz"
-)
-"""
+                        3,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    )
+                ],
             ),
-            [
-                (
-                    3,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
-                ),
-                (
-                    4,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
-                ),
-            ],
-        ),
-        (
             (
-                """
-msg = (
-    "foo"
-    rf" bar"
-    rf" baz"
-)
-"""
+                (
+                    """
+    msg = (
+        f"foo"
+        " bar"
+    )
+    """
+                ),
+                [
+                    (
+                        3,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    )
+                ],
             ),
-            [
+            (
                 (
-                    3,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
+                    """
+    msg = (
+        "foo"
+        f" bar"
+    )
+    """
                 ),
+                [
+                    (
+                        3,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    )
+                ],
+            ),
+            (
                 (
-                    4,
-                    (
-                        "String has a space at the beginning instead "
-                        "of the end of the previous string."
-                    ),
+                    """
+    msg = (
+        f"foo"
+        f" bar"
+    )
+    """
                 ),
-            ],
-        ),
-    ],
-)
-def test_strings_with_wrong_placed_whitespace(data, expected):
-    fd = io.StringIO(data.strip())
-    result = list(validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd))
-    assert result == expected
+                [
+                    (
+                        3,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    )
+                ],
+            ),
+            (
+                (
+                    """
+    msg = (
+        "foo"
+        rf" bar"
+        " baz"
+    )
+    """
+                ),
+                [
+                    (
+                        3,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    ),
+                    (
+                        4,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    ),
+                ],
+            ),
+            (
+                (
+                    """
+    msg = (
+        "foo"
+        " bar"
+        rf" baz"
+    )
+    """
+                ),
+                [
+                    (
+                        3,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    ),
+                    (
+                        4,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    ),
+                ],
+            ),
+            (
+                (
+                    """
+    msg = (
+        "foo"
+        rf" bar"
+        rf" baz"
+    )
+    """
+                ),
+                [
+                    (
+                        3,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    ),
+                    (
+                        4,
+                        (
+                            "String has a space at the beginning instead "
+                            "of the end of the previous string."
+                        ),
+                    ),
+                ],
+            ),
+        ],
+    )
+    def test_strings_with_wrong_placed_whitespace_raises(self, data, expected):
+        fd = io.StringIO(data.strip())
+        result = list(
+            validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
+        )
+        assert result == expected
