@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Type, Union
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import pandas_dtype
@@ -12,7 +13,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
-from pandas.core import ops
+from pandas.core import nanops, ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -275,20 +276,19 @@ class StringArray(PandasArray):
 
     def _reduce(self, name, skipna=True, **kwargs):
         if name in ["min", "max"]:
-            return getattr(self, name)(
-                skipna=skipna, **kwargs
-            )
+            return getattr(self, name)(skipna=skipna, **kwargs)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def min(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_min((), dict(out=out, keepdims=keepdims))
-        return nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
+        return libmissing.NA if isna(result) else result
 
     def max(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_max((), dict(out=out, keepdims=keepdims))
-        return nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
-
+        result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
+        return libmissing.NA if isna(result) else result
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
