@@ -3319,6 +3319,21 @@ class DataFrame(NDFrame):
         2  3   6   9
         3  4   4   8
         4  5   2   7
+
+        Multiple columns can be assigned to using multi-line expressions:
+
+        >>> df.eval(
+        ...     '''
+        ... C = A + B
+        ... D = A - B
+        ... '''
+        ... )
+           A   B   C  D
+        0  1  10  11 -9
+        1  2   8  10 -6
+        2  3   6   9 -3
+        3  4   4   8  0
+        4  5   2   7  3
         """
         from pandas.core.computation.eval import eval as _eval
 
