@@ -52,13 +52,14 @@ cdef inline object create_datetime_from_ts(
         object tz, object freq, bint fold):
     """ convenience routine to construct a datetime.datetime from its parts """
     return datetime(dts.year, dts.month, dts.day, dts.hour,
-                    dts.min, dts.sec, dts.us, tz)
+                    dts.min, dts.sec, dts.us, tz, fold=fold)
 
 
 cdef inline object create_date_from_ts(
         int64_t value, npy_datetimestruct dts,
         object tz, object freq, bint fold):
     """ convenience routine to construct a datetime.date from its parts """
+    # GH 25057 add fold argument to match other func_create signatures
     return date(dts.year, dts.month, dts.day)
 
 
@@ -66,7 +67,7 @@ cdef inline object create_time_from_ts(
         int64_t value, npy_datetimestruct dts,
         object tz, object freq, bint fold):
     """ convenience routine to construct a datetime.time from its parts """
-    return time(dts.hour, dts.min, dts.sec, dts.us, tz)
+    return time(dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold)
 
 
 @cython.wraparound(False)
