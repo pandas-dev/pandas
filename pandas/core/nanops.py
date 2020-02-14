@@ -854,6 +854,8 @@ def _nanminmax(meth, fill_value_typ):
         mask: Optional[np.ndarray] = None,
     ) -> Dtype:
 
+        na_mask = isna(values)
+
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
@@ -864,6 +866,12 @@ def _nanminmax(meth, fill_value_typ):
                 result.fill(np.nan)
             except (AttributeError, TypeError, ValueError):
                 result = np.nan
+        elif is_object_dtype(dtype) and na_mask.any():
+            # Need to explicitly mask NA values for object dtypes
+            if skipna:
+                result = getattr(values[~na_mask], meth)(axis)
+            else:
+                return np.nan
         else:
             result = getattr(values, meth)(axis)
 
