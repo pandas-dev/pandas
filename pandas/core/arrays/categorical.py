@@ -644,7 +644,13 @@ class Categorical(ExtensionArray, PandasObject):
             )
             raise ValueError(msg)
 
-        codes = np.asarray(codes)  # #21767
+        if is_extension_array_dtype(codes) and is_integer_dtype(codes):
+            # Avoid the implicit conversion of Int to object
+            if isna(codes).any():
+                raise ValueError("codes cannot contain NA values")
+            codes = codes.to_numpy(dtype=np.int64)
+        else:
+            codes = np.asarray(codes)
         if len(codes) and not is_integer_dtype(codes):
             raise ValueError("codes need to be array-like integers")
 
@@ -695,7 +701,6 @@ class Categorical(ExtensionArray, PandasObject):
         [a, c]
         Categories (2, object): [a, c]
         """
-
         if fastpath:
             new_dtype = CategoricalDtype._from_fastpath(categories, self.ordered)
         else:
@@ -1221,7 +1226,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         shape : tuple
         """
-
         return tuple([len(self._codes)])
 
     def shift(self, periods, fill_value=None):
@@ -1378,7 +1382,6 @@ class Categorical(ExtensionArray, PandasObject):
         Categorical.notna : Boolean inverse of Categorical.isna.
 
         """
-
         ret = self._codes == -1
         return ret
 
@@ -1928,7 +1931,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Returns a string representation of the footer.
         """
-
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
@@ -2254,7 +2256,6 @@ class Categorical(ExtensionArray, PandasObject):
         Series.unique
 
         """
-
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
         cat = self.copy()
@@ -2314,7 +2315,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         bool
         """
-
         try:
             return hash(self.dtype) == hash(other.dtype)
         except (AttributeError, TypeError):
@@ -2388,7 +2388,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-
         >>> s = pd.Categorical(['lama', 'cow', 'lama', 'beetle', 'lama',
         ...                'hippo'])
         >>> s.isin(['cow', 'lama'])
