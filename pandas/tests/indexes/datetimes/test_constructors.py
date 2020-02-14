@@ -966,8 +966,8 @@ class TestTimeSeries:
     [
         (1572136200000000000, 0),
         ("2019-10-27 01:30:00+01:00", 0),
-        (datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc), 0)
-    ]
+        (datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc), 0),
+    ],
 )
 def test_timestamp_constructor_fold_conflict(ts_input, fold):
     # Test for #25057
