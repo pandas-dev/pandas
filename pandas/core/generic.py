@@ -6403,7 +6403,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             or isinstance(to_replace, pd.Series)
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
-            or is_dict_like(to_replace)
         ):
             raise TypeError(
                 "Expecting 'to_replace' to be str, regex, list, dict, Series, "
