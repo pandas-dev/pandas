@@ -840,8 +840,8 @@ class TestDataFrameOperators:
             df["a"] = [True, False, True]
 
         df_copy = df.copy()
-        iop = "__i{}__".format(op)
-        op = "__{}__".format(op)
+        iop = f"__i{op}__"
+        op = f"__{op}__"
 
         # no id change and value is correct
         getattr(df, iop)(operand)

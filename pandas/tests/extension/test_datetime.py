@@ -44,9 +44,9 @@ def data_missing_for_sorting(dtype):
 @pytest.fixture
 def data_for_grouping(dtype):
     """
-        Expected to be like [B, B, NA, NA, A, A, B, C]
+    Expected to be like [B, B, NA, NA, A, A, B, C]
 
-        Where A < B < C and NA is missing
+    Where A < B < C and NA is missing
     """
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
