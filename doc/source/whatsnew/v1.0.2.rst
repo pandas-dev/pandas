@@ -30,7 +30,7 @@ Bug fixes
 
 **ExtensionArray**
 
-- Fixed issue where taking the minimum, maximum, or sum of a ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
+- Fixed issue where taking the minimum or maximum of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 -
 
 **Categorical**
