@@ -53,7 +53,7 @@ class TestFloatIndexers:
             s.iloc[3.0]
 
         msg = (
-            fr"cannot do positional indexing on {type(i).__name__} with these "
+            f"cannot do positional indexing on {type(i).__name__} with these "
             r"indexers \[3\.0\] of type float"
         )
         with pytest.raises(TypeError, match=msg):

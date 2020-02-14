@@ -1196,7 +1196,7 @@ class TestAsOfMerge:
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_merge_on_nans(self, func, side):
         # GH 23189
-        msg = "Merge keys contain null values on {} side".format(side)
+        msg = f"Merge keys contain null values on {side} side"
         nulls = func([1.0, 5.0, np.nan])
         non_nulls = func([1.0, 5.0, 10.0])
         df_null = pd.DataFrame({"a": nulls, "left_val": ["a", "b", "c"]})

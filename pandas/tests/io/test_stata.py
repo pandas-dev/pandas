@@ -1715,7 +1715,7 @@ The repeated labels are:\n-+\nwolof
                 "'ascii' codec can't decode byte 0xef in position 14: "
                 r"ordinal not in range\(128\)"
             )
-            with pytest.raises(UnicodeEncodeError, match=r"{}|{}".format(msg1, msg2)):
+            with pytest.raises(UnicodeEncodeError, match=f"{msg1}|{msg2}"):
                 with tm.assert_produces_warning(ResourceWarning):
                     df.to_stata(path)
 

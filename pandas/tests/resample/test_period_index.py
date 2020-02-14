@@ -96,9 +96,7 @@ class TestPeriodIndex:
     def test_annual_upsample_cases(
         self, targ, conv, meth, month, simple_period_range_series
     ):
-        ts = simple_period_range_series(
-            "1/1/1990", "12/31/1991", freq="A-{month}".format(month=month)
-        )
+        ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=f"A-{month}")
 
         result = getattr(ts.resample(targ, convention=conv), meth)()
         expected = result.to_timestamp(targ, how=conv)
@@ -130,9 +128,9 @@ class TestPeriodIndex:
         # These are incompatible period rules for resampling
         ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="w-wed")
         msg = (
-            "Frequency <Week: weekday=2> cannot be resampled to {}, as they "
-            "are not sub or super periods"
-        ).format(expected_error_msg)
+            "Frequency <Week: weekday=2> cannot be resampled to "
+            f"{expected_error_msg}, as they are not sub or super periods"
+        )
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts.resample(rule).mean()
 
@@ -176,7 +174,7 @@ class TestPeriodIndex:
     def test_quarterly_upsample(
         self, month, target, convention, simple_period_range_series
     ):
-        freq = "Q-{month}".format(month=month)
+        freq = f"Q-{month}"
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
         result = ts.resample(target, convention=convention).ffill()
         expected = result.to_timestamp(target, how=convention)
@@ -351,7 +349,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("target", ["D", "B"])
     @pytest.mark.parametrize("convention", ["start", "end"])
     def test_weekly_upsample(self, day, target, convention, simple_period_range_series):
-        freq = "W-{day}".format(day=day)
+        freq = f"W-{day}"
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
         result = ts.resample(target, convention=convention).ffill()
         expected = result.to_timestamp(target, how=convention)
@@ -367,16 +365,14 @@ class TestPeriodIndex:
 
     def test_resample_to_quarterly(self, simple_period_range_series):
         for month in MONTHS:
-            ts = simple_period_range_series(
-                "1990", "1992", freq="A-{month}".format(month=month)
-            )
-            quar_ts = ts.resample("Q-{month}".format(month=month)).ffill()
+            ts = simple_period_range_series("1990", "1992", freq=f"A-{month}")
+            quar_ts = ts.resample(f"Q-{month}").ffill()
 
             stamps = ts.to_timestamp("D", how="start")
             qdates = period_range(
                 ts.index[0].asfreq("D", "start"),
                 ts.index[-1].asfreq("D", "end"),
-                freq="Q-{month}".format(month=month),
+                freq=f"Q-{month}",
             )
 
             expected = stamps.reindex(qdates.to_timestamp("D", "s"), method="ffill")

@@ -40,8 +40,8 @@ def html_encoding_file(request, datapath):
 def assert_framelist_equal(list1, list2, *args, **kwargs):
     assert len(list1) == len(list2), (
         "lists are not of equal size "
-        "len(list1) == {0}, "
-        "len(list2) == {1}".format(len(list1), len(list2))
+        f"len(list1) == {len(list1)}, "
+        f"len(list2) == {len(list2)}"
     )
     msg = "not all list elements are DataFrames"
     both_frames = all(
