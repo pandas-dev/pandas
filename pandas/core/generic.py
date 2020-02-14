@@ -315,28 +315,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _info_axis_name: str
     _AXIS_LEN: int
 
-    @classmethod
-    def _setup_axes(cls, axes: List[str], docs: Dict[str, str]) -> None:
-        """
-        Provide axes setup for the major PandasObjects.
-
-        Parameters
-        ----------
-        axes : the names of the axes in order (lowest to highest)
-        docs : docstrings for the axis properties
-        """
-        info_axis = len(axes) - 1
-        axes_are_reversed = len(axes) > 1
-
-        cls._AXIS_ORDERS = axes
-        cls._AXIS_NUMBERS = {a: i for i, a in enumerate(axes)}
-        cls._AXIS_LEN = len(axes)
-        cls._AXIS_NAMES = dict(enumerate(axes))
-        cls._AXIS_REVERSED = axes_are_reversed
-
-        cls._info_axis_number = info_axis
-        cls._info_axis_name = axes[info_axis]
-
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
