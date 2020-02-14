@@ -48,7 +48,6 @@ class _IndexSlice:
 
     Examples
     --------
-
     >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
@@ -124,7 +123,6 @@ class IndexingMixin:
 
         Examples
         --------
-
         >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
         ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
         ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
@@ -718,6 +716,25 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         return None
 
+    def _getitem_tuple_same_dim(self, tup: Tuple):
+        """
+        Index with indexers that should return an object of the same dimension
+        as self.obj.
+
+        This is only called after a failed call to _getitem_lowerdim.
+        """
+        retval = self.obj
+        for i, key in enumerate(tup):
+            if com.is_null_slice(key):
+                continue
+
+            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+            # We should never have retval.ndim < self.ndim, as that should
+            #  be handled by the _getitem_lowerdim call above.
+            assert retval.ndim == self.ndim
+
+        return retval
+
     def _getitem_lowerdim(self, tup: Tuple):
 
         # we can directly get the axis result since the axis is specified
@@ -755,17 +772,10 @@ class _LocationIndexer(_NDFrameIndexerBase):
                     new_key = tup[:i] + (_NS,) + tup[i + 1 :]
 
                 else:
+                    # Note: the section.ndim == self.ndim check above
+                    #  rules out having DataFrame here, so we dont need to worry
+                    #  about transposing.
                     new_key = tup[:i] + tup[i + 1 :]
-
-                    # unfortunately need an odious kludge here because of
-                    # DataFrame transposing convention
-                    if (
-                        isinstance(section, ABCDataFrame)
-                        and i > 0
-                        and len(new_key) == 2
-                    ):
-                        a, b = new_key
-                        new_key = b, a
 
                     if len(new_key) == 1:
                         new_key = new_key[0]
@@ -1056,15 +1066,7 @@ class _LocIndexer(_LocationIndexer):
         if self._multi_take_opportunity(tup):
             return self._multi_take(tup)
 
-        # no shortcut needed
-        retval = self.obj
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                continue
-
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
-
-        return retval
+        return self._getitem_tuple_same_dim(tup)
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1146,7 +1148,7 @@ class _LocIndexer(_LocationIndexer):
         )
 
         if isinstance(indexer, slice):
-            return self.obj._slice(indexer, axis=axis, kind="iloc")
+            return self.obj._slice(indexer, axis=axis)
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
@@ -1475,25 +1477,7 @@ class _iLocIndexer(_LocationIndexer):
         except IndexingError:
             pass
 
-        retval = self.obj
-        axis = 0
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                axis += 1
-                continue
-
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=axis)
-
-            # if the dim was reduced, then pass a lower-dim the next time
-            if retval.ndim < self.ndim:
-                # TODO: this is never reached in tests; can we confirm that
-                #  it is impossible?
-                axis -= 1
-
-            # try to get for the next axis
-            axis += 1
-
-        return retval
+        return self._getitem_tuple_same_dim(tup)
 
     def _get_list_axis(self, key, axis: int):
         """
@@ -1553,7 +1537,7 @@ class _iLocIndexer(_LocationIndexer):
 
         labels = obj._get_axis(axis)
         labels._validate_positional_slice(slice_obj)
-        return self.obj._slice(slice_obj, axis=axis, kind="iloc")
+        return self.obj._slice(slice_obj, axis=axis)
 
     def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
         """
