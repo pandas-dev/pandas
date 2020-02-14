@@ -871,7 +871,7 @@ def _nanminmax(meth, fill_value_typ):
             if skipna:
                 result = getattr(values[~na_mask], meth)(axis)
             else:
-                return np.nan
+                result = np.nan
         else:
             result = getattr(values, meth)(axis)
 
