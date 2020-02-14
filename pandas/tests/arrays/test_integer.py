@@ -1036,9 +1036,9 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_roundtrip(data):
-    # roundtrip possible from arrow 1.0.0
+    # roundtrip possible from arrow 0.16.0
     import pyarrow as pa
 
     df = pd.DataFrame({"a": data})
@@ -1046,6 +1046,19 @@ def test_arrow_roundtrip(data):
     assert table.field("a").type == str(data.dtype.numpy_dtype)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_arrow_from_arrow_uint():
+    # https://github.com/pandas-dev/pandas/issues/31896
+    # possible mismatch in types
+    import pyarrow as pa
+
+    dtype = pd.UInt32Dtype()
+    result = dtype.__from_arrow__(pa.array([1, 2, 3, 4, None], type="int64"))
+    expected = pd.array([1, 2, 3, 4, None], dtype="UInt32")
+
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
