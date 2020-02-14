@@ -1560,6 +1560,17 @@ class _iLocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
 
     def _setitem_with_indexer(self, indexer, value):
+        """
+        _setitem_with_indexer is for setting values on a Series/DataFrame
+        using positional indexers.
+
+        If the relevant keys are not present, the Series/DataFrame may be
+        expanded.
+
+        This method is currently broken when dealing with non-unique Indexes,
+        since it goes from positional indexers back to labels when calling
+        BlockManager methods, see GH#12991, GH#22046, GH#15686.
+        """
 
         # also has the side effect of consolidating in-place
         from pandas import Series
