@@ -2231,10 +2231,10 @@ or for constructing from components (see below).
 
 .. ipython:: python
 
-   pd.Timestamp(datetime(2019, 10, 27, 1, 30, 0, 0), tz='dateutil/Europe/London',
-				fold=0)
+   pd.Timestamp(datetime.datetime(2019, 10, 27, 1, 30, 0, 0),
+                tz='dateutil/Europe/London', fold=0)
    pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
-				tz='dateutil/Europe/London', fold=1)
+                tz='dateutil/Europe/London', fold=1)
 
 .. note::
 

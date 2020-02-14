@@ -52,7 +52,7 @@ For example:
 
 .. ipython:: python
 
-    ts = Timestamp(datetime(2019, 10, 27, 1, 30, 0, 0),
+    ts = Timestamp(datetime.datetime(2019, 10, 27, 1, 30, 0, 0),
                    tz="dateutil/Europe/London", fold=1)
     ts
 
