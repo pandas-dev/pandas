@@ -349,8 +349,8 @@ class TestArithmeticOps(BaseOpsUtil):
             msg = (
                 r"(:?can only perform ops with numeric values)"
                 r"|(:?cannot perform .* with this index type: DatetimeArray)"
-                r"|(:?Addition/subtraction of integers and integer-arrays"
-                r" with DatetimeArray is no longer supported. *)"
+                r"|(:?Addition/subtraction of integers and integer-arrays "
+                r"with DatetimeArray is no longer supported. *)"
             )
             with pytest.raises(TypeError, match=msg):
                 ops(pd.Series(pd.date_range("20180101", periods=len(s))))
