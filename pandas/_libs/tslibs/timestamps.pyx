@@ -232,12 +232,6 @@ class Timestamp(_Timestamp):
     >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
     Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
 
-    This converts a datetime-like string representing an ambiguous time
-    in a particular timezone with fold explicitly supplied:
-
-    >>> pd.Timestamp('2019-10-27 01:30:00', tz='Europe/London', fold=1)
-    Timestamp('2019-10-27 01:30:00+0000', tz='Europe/London')
-
     Using the other two forms that mimic the API for ``datetime.datetime``:
 
     >>> pd.Timestamp(2017, 1, 1, 12)
@@ -416,6 +410,9 @@ class Timestamp(_Timestamp):
                 "Pass naive datetime-like or build Timestamp from components."
             )
 
+        if getattr(ts_input, 'fold', None) is not None and fold is None:
+            fold = getattr(ts_input, 'fold', None)
+
         if fold is not None and fold not in [0, 1]:
             raise ValueError("Valid values for the fold argument are None, 0, "
                              "or 1.")
@@ -460,7 +457,7 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0,
-                                 fold or 0)
+                                 fold)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -1010,7 +1007,7 @@ default 'raise'
                       'fold': fold}
             ts_input = datetime(**kwargs)
 
-        ts = convert_datetime_to_tsobject(ts_input, _tzinfo, nanos=0, fold=fold)
+        ts = convert_datetime_to_tsobject(ts_input, _tzinfo, nanos=0)
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:
             check_dts_bounds(&dts)

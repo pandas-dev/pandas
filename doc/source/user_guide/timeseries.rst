@@ -2226,10 +2226,15 @@ For ambiguous times, pandas supports explicitly specifying the fold argument.
 Due to daylight saving time, one wall clock time can occur twice when shifting
 from summer to winter time; fold describes whether the datetime-like corresponds
 to the first (0) or the second time (1) the wall clock hits the ambiguous time.
+Fold is supported only for constructing from naive datetime or :class:`Timestamp`
+or for constructing from components (see below).
 
 .. ipython:: python
 
-   pd.Timestamp("2019-10-27 01:30:00", tz='Europe/London', fold=1)
+   pd.Timestamp(datetime(2019, 10, 27, 1, 30, 0, 0), tz='dateutil/Europe/London',
+				fold=0)
+   pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
+				tz='dateutil/Europe/London', fold=1)
 
 .. note::
 

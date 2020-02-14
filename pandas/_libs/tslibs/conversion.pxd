@@ -20,7 +20,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
                          int32_t nanos=*, bint fold=*)
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
-                                            int32_t nanos=*, bint fold=*)
+                                            int32_t nanos=*)
 
 cdef int64_t get_datetime64_nanos(object val) except? -1
 

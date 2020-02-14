@@ -47,13 +47,14 @@ For example:
 
 .. ipython:: python
 
-	ts = Timestamp("2019-10-27 01:30:00+00:00")
-	ts.fold
+    ts = Timestamp("2019-10-27 01:30:00+00:00")
+    ts.fold
 
 .. ipython:: python
 
-	ts = Timestamp("2019-10-27 01:30:00", fold=1, tz="Europe/London")
-	ts
+    ts = Timestamp(datetime(2019, 10, 27, 1, 30, 0, 0),
+                   tz="dateutil/Europe/London", fold=1)
+    ts
 
 .. _whatsnew_110.enhancements.other:
 

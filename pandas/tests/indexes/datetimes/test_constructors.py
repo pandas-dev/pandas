@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from operator import attrgetter
 
@@ -962,20 +962,23 @@ class TestTimeSeries:
 
 
 @pytest.mark.parametrize(
-    "tz", [pytz.timezone("Europe/London"), dateutil.tz.gettz("Europe/London")]
+    "ts_input,fold",
+    [
+        (1572136200000000000, 0),
+        ("2019-10-27 01:30:00+01:00", 0),
+        (datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc), 0)
+    ]
 )
-@pytest.mark.parametrize("fold_dt,fold_ts", [(0, 1), (1, 0)])
-def test_timestamp_constructor_fold_conflict(tz, fold_dt, fold_ts):
+def test_timestamp_constructor_fold_conflict(ts_input, fold):
     # Test for #25057
     # Check that we raise on fold conflict
-    dt = datetime(2019, 10, 27, 1, 30, 0, 0, fold=fold_dt, tzinfo=tz)
     msg = (
-        "Cannot pass timezone-aware datetime or "
-        "Timestamp with fold attribute not matching "
-        "passed fold argument."
+        "Cannot pass fold with possibly unambiguous input: int, float, "
+        "numpy.datetime64, str, or timezone-aware datetime-like. "
+        "Pass naive datetime-like or build Timestamp from components."
     )
     with pytest.raises(ValueError, match=msg):
-        Timestamp(ts_input=dt, tz=tz, fold=fold_ts)
+        Timestamp(ts_input=ts_input, fold=fold)
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
@@ -1015,13 +1018,8 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
 @pytest.mark.parametrize(
     "ts_input,fold,value_out",
     [
-        (1572136200000000000, 1, 1572139800000000000),
-        (1572139800000000000, 1, 1572139800000000000),
-        ("2019-10-27 01:30:00", 0, 1572136200000000000),
-        ("2019-10-27 01:30:00", 1, 1572139800000000000),
-        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 0, 1572136200000000000),
-        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), None, 1572136200000000000),
-        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), None, 1572139800000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000000),
     ],
 )
 def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_out):

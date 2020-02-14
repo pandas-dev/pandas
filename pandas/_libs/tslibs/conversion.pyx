@@ -226,7 +226,7 @@ cdef class _TSObject:
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
                          bint dayfirst, bint yearfirst, int32_t nanos=0,
-                         bint fold=0):
+                         bint fold=1):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -248,9 +248,10 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         tz = maybe_get_tz(tz)
 
     obj = _TSObject()
+    obj.fold = fold
 
     if isinstance(ts, str):
-        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst, fold)
+        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
     if ts is None or ts is NaT:
         obj.value = NPY_NAT
@@ -278,10 +279,12 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
     elif PyDateTime_Check(ts):
-        return convert_datetime_to_tsobject(ts, tz, nanos, fold)
+        ts = ts.replace(fold=obj.fold)
+        return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
+        ts = ts.replace(fold=obj.fold)
         return convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp "
@@ -291,7 +294,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
                         f'Timestamp')
 
     if tz is not None:
-        localize_tso(obj, tz, fold)
+        localize_tso(obj, tz)
 
     if obj.value != NPY_NAT:
         # check_overflows needs to run after localize_tso
@@ -301,7 +304,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
 
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
-                                            int32_t nanos=0, bint fold=0):
+                                            int32_t nanos=0):
     """
     Convert a datetime (or Timestamp) input `ts`, along with optional timezone
     object `tz` to a _TSObject.
@@ -317,11 +320,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         timezone for the timezone-aware output
     nanos : int32_t, default is 0
         nanoseconds supplement the precision of the datetime input ts
-    fold : bint, default is 0
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
 
     Returns
     -------
@@ -330,6 +328,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     cdef:
         _TSObject obj = _TSObject()
 
+    obj.fold = ts.fold
     if tz is not None:
         tz = maybe_get_tz(tz)
 
@@ -362,7 +361,6 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.value += nanos
         obj.dts.ps = nanos * 1000
 
-    obj.fold = 0
     if tz is not None:
         if is_utc(tz) or is_tzlocal(tz):
             # TODO: think on how we can infer fold for local Timezone
@@ -375,10 +373,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                 pos = trans.searchsorted(obj.value, side='right') - 1
                 # pytz assumes fold == 1, dateutil fold == 0
                 # adjust only if necessary
-                if (typ == 'pytz' and fold == 0 or
-                        typ == 'dateutil' and fold == 1):
+                if (typ == 'pytz' and obj.fold == 0 or
+                        typ == 'dateutil' and obj.fold == 1):
                     pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos,
-                                                    fold)
+                                                    obj.fold)
                 obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     check_dts_bounds(&obj.dts)
@@ -407,7 +405,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
-        bint fold = 0
+        bint fold
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -432,15 +430,15 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
-                  obj.dts.us, obj.tzinfo)
+                  obj.dts.us, obj.tzinfo, fold=fold)
     obj = convert_datetime_to_tsobject(
-        dt, tz, nanos=obj.dts.ps // 1000, fold=fold)
+        dt, tz, nanos=obj.dts.ps // 1000)
     return obj
 
 
 cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                                        bint dayfirst=False,
-                                       bint yearfirst=False, bint fold=0):
+                                       bint yearfirst=False):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
@@ -460,11 +458,6 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
     yearfirst : bool, default False
         When parsing an ambiguous date string, interpret e.g. "01/05/09"
         as "May 9, 2001", as opposed to the default "Jan 5, 2009"
-    fold : bint, default is 0
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
 
     Returns
     -------
@@ -507,7 +500,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                     if tz is not None:
                         # shift for localize_tso
                         ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                                ambiguous=not fold)[0]
+                                                ambiguous='raise')[0]
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil
@@ -556,7 +549,7 @@ cdef inline check_overflows(_TSObject obj):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
+cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone. Attempt to shift
@@ -567,11 +560,6 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
     ----------
     obj : _TSObject
     tz : tzinfo
-    fold : bint
-        Due to daylight saving time, one wall clock time can occur twice
-        when shifting from summer to winter time; fold describes whether the
-        datetime-like corresponds  to the first (0) or the second time (1)
-        the wall clock hits the ambiguous time
 
     Returns
     -------
@@ -590,7 +578,6 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
 
     assert obj.tzinfo is None
 
-    obj.fold = 0
     if is_utc(tz):
         pass
     elif obj.value == NPY_NAT:
@@ -612,9 +599,6 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz, bint fold):
             pos = trans.searchsorted(obj.value, side='right') - 1
             if typ == 'pytz':
                 tz = tz._tzinfos[tz._transition_info[pos]]
-            # Adjust value if fold was supplied
-            if fold == 1:
-                pos = _adjust_tsobject_for_fold(obj, trans, deltas, pos, fold)
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
 
             obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
