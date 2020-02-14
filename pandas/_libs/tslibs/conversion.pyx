@@ -225,8 +225,7 @@ cdef class _TSObject:
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
-                         bint dayfirst, bint yearfirst, int32_t nanos=0,
-                         bint fold=0):
+                         bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -248,7 +247,6 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         tz = maybe_get_tz(tz)
 
     obj = _TSObject()
-    obj.fold = fold
 
     if isinstance(ts, str):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
@@ -279,12 +277,10 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
     elif PyDateTime_Check(ts):
-        ts = ts.replace(fold=obj.fold)
         return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
-        ts = ts.replace(fold=obj.fold)
         return convert_datetime_to_tsobject(ts, tz)
     elif getattr(ts, '_typ', None) == 'period':
         raise ValueError("Cannot convert Period to Timestamp "

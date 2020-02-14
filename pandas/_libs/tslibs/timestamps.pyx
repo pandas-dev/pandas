@@ -410,12 +410,12 @@ class Timestamp(_Timestamp):
                 "Pass naive datetime-like or build Timestamp from components."
             )
 
-        if getattr(ts_input, 'fold', None) is not None and fold is None:
-            fold = getattr(ts_input, 'fold', None)
-
         if fold is not None and fold not in [0, 1]:
             raise ValueError("Valid values for the fold argument are None, 0, "
                              "or 1.")
+
+        if getattr(ts_input, 'fold', None) is not None and fold is not None:
+            ts_input = ts_input.replace(fold=fold)
 
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
@@ -441,13 +441,13 @@ class Timestamp(_Timestamp):
             # User passed keyword arguments.
             ts_input = datetime(year, month, day, hour or 0,
                                 minute or 0, second or 0,
-                                microsecond or 0)
+                                microsecond or 0, fold=fold or 0)
         elif is_integer_object(freq):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
             ts_input = datetime(ts_input, freq, tz, unit or 0,
-                                year or 0, month or 0, day or 0)
+                                year or 0, month or 0, day or 0, fold=fold or 0)
             nanosecond = hour
             tz = minute
             freq = None
@@ -456,8 +456,7 @@ class Timestamp(_Timestamp):
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
                              "the tz parameter. Use tz_convert instead.")
 
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0,
-                                 fold or 0)
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
             return NaT
