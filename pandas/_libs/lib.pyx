@@ -263,7 +263,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, bint sort=True):
+def fast_unique_multiple(list arrays, sort: bool = True):
     """
     Generate a list of unique values from a list of arrays.
 
@@ -303,7 +303,7 @@ def fast_unique_multiple(list arrays, bint sort=True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, bint sort=True) -> list:
+def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)
