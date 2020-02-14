@@ -215,13 +215,11 @@ def union_categoricals(
 
     Notes
     -----
-
     To learn more about categories, see `link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------
-
     >>> from pandas.api.types import union_categoricals
 
     If you want to combine categoricals that do not necessarily have

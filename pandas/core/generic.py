@@ -315,28 +315,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _info_axis_name: str
     _AXIS_LEN: int
 
-    @classmethod
-    def _setup_axes(cls, axes: List[str], docs: Dict[str, str]) -> None:
-        """
-        Provide axes setup for the major PandasObjects.
-
-        Parameters
-        ----------
-        axes : the names of the axes in order (lowest to highest)
-        docs : docstrings for the axis properties
-        """
-        info_axis = len(axes) - 1
-        axes_are_reversed = len(axes) > 1
-
-        cls._AXIS_ORDERS = axes
-        cls._AXIS_NUMBERS = {a: i for i, a in enumerate(axes)}
-        cls._AXIS_LEN = len(axes)
-        cls._AXIS_NAMES = dict(enumerate(axes))
-        cls._AXIS_REVERSED = axes_are_reversed
-
-        cls._info_axis_number = info_axis
-        cls._info_axis_name = axes[info_axis]
-
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
@@ -579,9 +557,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         See Also
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
-
-        Examples
-        --------
         """
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
@@ -899,7 +874,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
@@ -2208,7 +2182,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
         ...                   index=['row 1', 'row 2'],
         ...                   columns=['col 1', 'col 2'])
@@ -2507,7 +2480,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Create an in-memory SQLite database.
 
         >>> from sqlalchemy import create_engine
@@ -3504,6 +3476,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Slicing with this method is *always* positional.
         """
+        assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
         result = self._constructor(self._data.get_slice(slobj, axis=axis))
         result = result.__finalize__(self)
@@ -4184,7 +4157,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
@@ -5767,7 +5739,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Notes
         -----
-
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
         Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
         ``convert_string``, ``convert_integer``, and ``convert_boolean``, it is
@@ -7433,7 +7404,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Start by creating a series with 4 one minute timestamps.
 
         >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
@@ -7712,7 +7682,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Start by creating a series with 9 one minute timestamps.
 
         >>> index = pd.date_range('1/1/2000', periods=9, freq='T')
@@ -8099,7 +8068,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         >>> df = pd.DataFrame(data={'Animal': ['cat', 'penguin', 'dog',
         ...                                    'spider', 'snake'],
         ...                         'Number_legs': [4, 2, 4, 8, np.nan]})
@@ -9234,7 +9202,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Localize local times:
 
         >>> s = pd.Series([1],
