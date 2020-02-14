@@ -10,7 +10,7 @@ from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import timezones
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -31,7 +31,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 from pandas.core import algorithms
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-from pandas.core.base import _shared_docs
+from pandas.core.base import IndexOpsMixin
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
@@ -215,7 +215,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
 
-    @Appender(_shared_docs["searchsorted"])
+    @doc(IndexOpsMixin.searchsorted, klass="Datetime Index")
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, str):
             raise TypeError(
