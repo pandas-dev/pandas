@@ -961,12 +961,15 @@ class TestTimeSeries:
         tm.assert_numpy_array_equal(idx.values, expected.values)
 
 
+@pytest.mark.parametrize("fold", [0, 1])
 @pytest.mark.parametrize(
-    "ts_input,fold",
+    "ts_input",
     [
-        (1572136200000000000, 0),
-        ("2019-10-27 01:30:00+01:00", 0),
-        (datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc), 0),
+        1572136200000000000,
+        1572136200000000000.0,
+        np.datetime64(1572136200000000000, "ns"),
+        "2019-10-27 01:30:00+01:00",
+        datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc),
     ],
 )
 def test_timestamp_constructor_fold_conflict(ts_input, fold):
@@ -981,7 +984,7 @@ def test_timestamp_constructor_fold_conflict(ts_input, fold):
         Timestamp(ts_input=ts_input, fold=fold)
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London", None])
 @pytest.mark.parametrize("fold", [0, 1])
 def test_timestamp_constructor_retain_fold(tz, fold):
     # Test for #25057
