@@ -29,7 +29,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     check_dts_bounds,
     NPY_DATETIMEUNIT,
     NPY_FR_D,
-    NPY_FR_us
+    NPY_FR_us,
 )
 
 cdef extern from "src/datetime/np_datetime.h":

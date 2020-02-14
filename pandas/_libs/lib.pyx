@@ -20,7 +20,7 @@ from cpython.datetime cimport (
     PyDate_Check,
     PyTime_Check,
     PyDelta_Check,
-    PyDateTime_IMPORT
+    PyDateTime_IMPORT,
 )
 PyDateTime_IMPORT
 
@@ -80,7 +80,7 @@ from pandas._libs.missing cimport (
     is_null_datetime64,
     is_null_timedelta64,
     is_null_period,
-    C_NA
+    C_NA,
 )
 
 
