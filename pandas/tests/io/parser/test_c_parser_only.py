@@ -158,7 +158,7 @@ def test_precise_conversion(c_parser_only):
     # test numbers between 1 and 2
     for num in np.linspace(1.0, 2.0, num=500):
         # 25 decimal digits of precision
-        text = "a\n{0:.25}".format(num)
+        text = f"a\n{num:.25}"
 
         normal_val = float(parser.read_csv(StringIO(text))["a"][0])
         precise_val = float(
@@ -170,7 +170,7 @@ def test_precise_conversion(c_parser_only):
         actual_val = Decimal(text[2:])
 
         def error(val):
-            return abs(Decimal("{0:.100}".format(val)) - actual_val)
+            return abs(Decimal(f"{val:.100}") - actual_val)
 
         normal_errors.append(error(normal_val))
         precise_errors.append(error(precise_val))
@@ -299,9 +299,7 @@ def test_grow_boundary_at_cap(c_parser_only):
 
     def test_empty_header_read(count):
         s = StringIO("," * count)
-        expected = DataFrame(
-            columns=["Unnamed: {i}".format(i=i) for i in range(count + 1)]
-        )
+        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
         df = parser.read_csv(s)
         tm.assert_frame_equal(df, expected)
 
@@ -489,7 +487,7 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
     captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
     for line_num in (2, 3, 4, 9):
-        assert "Skipping line {}".format(line_num) in captured.err
+        assert f"Skipping line {line_num}" in captured.err
     expected = DataFrame([[1, 2], [5, 2], [6, 2], [7, np.nan], [8, np.nan]])
     tm.assert_frame_equal(df, expected)
 
