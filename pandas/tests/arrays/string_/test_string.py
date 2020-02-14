@@ -283,9 +283,14 @@ def test_reduction(func, skipna):
 
 @pytest.mark.parametrize("func", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
-def test_reduction_with_na(func, skipna):
-    s = pd.Series([pd.NA, "y", "z"], dtype="string")
-    result = getattr(s, func)(skipna=skipna)
+@pytest.mark.parametrize("box_in_series", [True, False])
+def test_reduction_with_na(func, skipna, box_in_series):
+    data = pd.array([pd.NA, "y", "z"], dtype="string")
+
+    if box_in_series:
+        data = pd.Series(data)
+
+    result = getattr(data, func)(skipna=skipna)
 
     if skipna:
         expected = "y" if func == "min" else "z"
