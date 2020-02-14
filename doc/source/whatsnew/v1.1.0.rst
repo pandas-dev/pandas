@@ -47,13 +47,13 @@ For example:
 
 .. ipython:: python
 
-    ts = Timestamp("2019-10-27 01:30:00+00:00")
+    ts = pd.Timestamp("2019-10-27 01:30:00+00:00")
     ts.fold
 
 .. ipython:: python
 
-    ts = Timestamp(datetime.datetime(2019, 10, 27, 1, 30, 0, 0),
-                   tz="dateutil/Europe/London", fold=1)
+    ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
+                      tz="dateutil/Europe/London", fold=1)
     ts
 
 .. _whatsnew_110.enhancements.other:
