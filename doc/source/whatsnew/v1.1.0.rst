@@ -42,6 +42,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
+- When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 -
 -
 
@@ -72,7 +73,8 @@ Backwards incompatible API changes
 
 Deprecations
 ~~~~~~~~~~~~
-
+- Lookups on a :class:`Series` with a single-item list containing a slice (e.g. ``ser[[slice(0, 4)]]``) are deprecated, will raise in a future version.  Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
+- :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
 -
 -
 
@@ -175,6 +177,16 @@ MultiIndex
                           index=[["a", "a", "b", "b"], [1, 2, 1, 2]])
         # Rows are now ordered as the requested keys
         df.loc[(['b', 'a'], [2, 1]), :]
+
+- Bug in :meth:`MultiIndex.intersection` was not guaranteed to preserve order when ``sort=False``. (:issue:`31325`)
+
+.. ipython:: python
+
+        left = pd.MultiIndex.from_arrays([["b", "a"], [2, 1]])
+        right = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        # Common elements are now guaranteed to be ordered by the left side
+        left.intersection(right, sort=False)
+
 -
 
 I/O
@@ -185,12 +197,15 @@ I/O
 - Bug in :meth:`DataFrame.to_parquet` overwriting pyarrow's default for
   ``coerce_timestamps``; following pyarrow's default allows writing nanosecond
   timestamps with ``version="2.0"`` (:issue:`31652`).
+- Bug in :class:`HDFStore` that caused it to set to ``int64`` the dtype of a ``datetime64`` column when reading a DataFrame in Python 3 from fixed format written in Python 2 (:issue:`31750`)
 
 Plotting
 ^^^^^^^^
 
 - :func:`.plot` for line/bar now accepts color by dictonary (:issue:`8193`).
 -
+- Bug in :meth:`DataFrame.boxplot` and :meth:`DataFrame.plot.boxplot` lost color attributes of ``medianprops``, ``whiskerprops``, ``capprops`` and ``medianprops`` (:issue:`30346`)
+
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -207,7 +222,9 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` when ``margin`` is ``True`` and only ``column`` is defined (:issue:`31016`)
 - Fix incorrect error message in :meth:`DataFrame.pivot` when ``columns`` is set to ``None``. (:issue:`30924`)
 - Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
+- :meth:`DataFrame.pivot` can now take lists for ``index`` and ``columns`` arguments (:issue:`21425`)
 - Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
+
 
 Sparse
 ^^^^^^
@@ -227,6 +244,8 @@ Other
 - Appending a dictionary to a :class:`DataFrame` without passing ``ignore_index=True`` will raise ``TypeError: Can only append a dict if ignore_index=True``
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
+- Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
+-
 
 .. ---------------------------------------------------------------------------
 
