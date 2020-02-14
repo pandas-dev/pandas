@@ -11,7 +11,7 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
-    is_integer_object, is_offset_object)
+    is_datetime64_object, is_float_object, is_integer_object, is_offset_object)
 
 from pandas._libs.tslibs.c_timestamp cimport _Timestamp
 cimport pandas._libs.tslibs.ccalendar as ccalendar
@@ -404,14 +404,17 @@ class Timestamp(_Timestamp):
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        if getattr(ts_input, 'fold', None) is not None:
-            if (fold is not None and ts_input.fold != fold
-                    and ts_input.tzinfo is not None):
-                raise ValueError("Cannot pass timezone-aware datetime or "
-                                 "Timestamp with fold attribute not matching "
-                                 "passed fold argument.")
-            elif fold is None:
-                fold = ts_input.fold
+        # Allow fold only for unambiguous input
+        if (fold is not None and ts_input is not _no_input and
+                (is_integer_object(ts_input) or is_float_object(ts_input) or
+                    is_datetime64_object(ts_input) or isinstance(ts_input, str)
+                    or getattr(ts_input, 'tzinfo', None) is not None
+                )):
+            raise ValueError(
+                "Cannot pass fold with possibly unambiguous input: int, float, "
+                "numpy.datetime64, str, or timezone-aware datetime-like. "
+                "Pass naive datetime-like or build Timestamp from components."
+            )
 
         if fold is not None and fold not in [0, 1]:
             raise ValueError("Valid values for the fold argument are None, 0, "
