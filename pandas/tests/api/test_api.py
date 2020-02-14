@@ -120,6 +120,7 @@ class TestPDApi(Base):
         "eval",
         "factorize",
         "get_dummies",
+        "from_dummies",
         "infer_freq",
         "isna",
         "isnull",
