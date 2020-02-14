@@ -6407,7 +6407,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             raise TypeError(
                 f"Expecting 'to_replace' to be str, regex, list, dict, Series, "
-                f"int, float or None, got invalid type "
+                "int, float or None, got invalid type "
                 f"{repr(type(to_replace).__name__)}"
             )
 
