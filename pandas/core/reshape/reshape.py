@@ -752,7 +752,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
 
 def from_dummies(
-    data, prefix=None, prefix_sep="_", dtype="category", fill_first=None
+    data, prefix=None, prefix_sep="_", dtype="category"
 ) -> "DataFrame":
     """
     The inverse transformation of ``pandas.get_dummies``.
@@ -762,14 +762,13 @@ def from_dummies(
     data : DataFrame
         Data which contains dummy indicators.
     prefix : list-like, default None
-        Prefixes of the columns in the DataFrame to be decoded.
-        If `prefix` is None then all the columns will be decoded.
+        How to name the decoded groups of columns. If there are columns
+        containing `prefix_sep`, then the part of their name preceding
+        `prefix_sep` will be used (see examples below).
     prefix_sep : str, default '_'
         Separator between original column name and dummy variable.
     dtype : dtype, default 'category'
         Data dtype for new columns - only a single data type is allowed.
-    fill_first : str, list, or dict, default None
-        Used to fill rows for which all the dummy variables are 0.
 
     Returns
     -------
@@ -782,90 +781,105 @@ def from_dummies(
 
     >>> df = pd.DataFrame(
     ...     {
-    ...         "animal_baboon": [0, 0, 1],
-    ...         "animal_lemur": [0, 1, 0],
-    ...         "animal_zebra": [1, 0, 0],
-    ...         "other_col": ["a", "b", "c"],
+    ...         "baboon": [0, 0, 1],
+    ...         "lemur": [0, 1, 0],
+    ...         "zebra": [1, 0, 0],
     ...     }
     ... )
     >>> df
-       animal_baboon  animal_lemur  animal_zebra other_col
-    0              0             0             1         a
-    1              0             1             0         b
-    2              1             0             0         c
+       baboon  lemur  zebra
+    0       0      0      1
+    1       0      1      0
+    2       1      0      0
 
     We can recover the original dataframe using `from_dummies`:
 
-    >>> pd.from_dummies(df, prefix=['animal'])
-      other_col  animal
-    0         a   zebra
-    1         b   lemur
-    2         c  baboon
+    >>> pd.from_dummies(df, prefix='animal')
+      animal
+    0  zebra
+    1  lemur
+    2 baboon
 
-    Suppose our dataframe has one column from each dummified column
-    dropped:
+    If our dataframe already has columns with `prefix_sep` in them,
+    we don't need to pass in the `prefix` argument:
 
-    >>> df = df.drop('animal_zebra', axis=1)
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "animal_baboon": [0, 0, 1],
+    ...         "animal_lemur": [0, 1, 0],
+    ...         "animal_zebra": [1, 0, 0],
+    ...         "other": ['a', 'b', 'c'],
+    ...     }
+    ... )
     >>> df
-       animal_baboon  animal_lemur other_col
-    0              0             0         a
-    1              0             1         b
-    2              1             0         c
+       animal_baboon  animal_lemur  animal_zebra other
+    0              0             0             1     a
+    1              0             1             0     b
+    2              1             0             0     c
 
-    We can still recover the original dataframe, by using the argument
-    `fill_first`:
-
-    >>> pd.from_dummies(df, prefix=["animal"], fill_first=["zebra"])
-      other_col  animal
-    0         a   zebra
-    1         b   lemur
-    2         c  baboon
+    >>> pd.from_dummies(df)
+      other  animal
+    0     a   zebra
+    1     b   lemur
+    2     c  baboon
     """
     if dtype is None:
         dtype = "category"
 
-    if prefix is None:
-        data_to_decode = data.copy()
-        prefix = data.columns.tolist()
-        prefix = list({i.split(prefix_sep)[0] for i in data.columns if prefix_sep in i})
+    columns_to_decode = [i for i in data.columns if prefix_sep in i]
+    if not columns_to_decode:
+        if prefix is None:
+            raise ValueError(
+                "If no columns contain `prefix_sep`, you must"
+                " pass a value to `prefix` with which to name"
+                " the decoded columns."
+                )
+        # If no column contains `prefix_sep`, we add `prefix`_`prefix_sep` to
+        # each column.
+        out = data.rename(columns = lambda x: f'{prefix}{prefix_sep}{x}').copy()
+        columns_to_decode = out.columns
+    else:
+        out = data.copy()
 
-    data_to_decode = data[
-        [i for i in data.columns for p in prefix if i.startswith(p + prefix_sep)]
-    ]
+    data_to_decode = out[columns_to_decode]
+
+    if prefix is None:
+        # If no prefix has been passed, extract it from columns containing
+        # `prefix_sep`
+        seen = set()
+        prefix = []
+        for i in columns_to_decode:
+            i = i.split(prefix_sep)[0]
+            if i in seen:
+                continue
+            seen.add(i)
+            prefix.append(i)
+    elif isinstance(prefix, str):
+        prefix = [prefix]
 
     # Check each row sums to 1 or 0
-    if not all(i in [0, 1] for i in data_to_decode.sum(axis=1).unique().tolist()):
-        raise ValueError(
-            "Data cannot be decoded! Each row must contain only 0s and"
-            " 1s, and each row may have at most one 1"
-        )
+    def _validate_values(data):
+        if not all(i in [0, 1] for i in data.sum(axis=1).unique().tolist()):
+            raise ValueError(
+                "Data cannot be decoded! Each row must contain only 0s and"
+                " 1s, and each row may have at most one 1."
+            )
 
-    if fill_first is None:
-        fill_first = [None] * len(prefix)
-    elif isinstance(fill_first, str):
-        fill_first = itertools.cycle([fill_first])
-    elif isinstance(fill_first, dict):
-        fill_first = [fill_first[p] for p in prefix]
-
-    out = data.copy()
-    for prefix_, fill_first_ in zip(prefix, fill_first):
-        cols, labels = [
+    for prefix_ in prefix:
+        cols, labels = (
             [
                 i.replace(x, "")
                 for i in data_to_decode.columns
                 if prefix_ + prefix_sep in i
             ]
             for x in ["", prefix_ + prefix_sep]
-        ]
+        )
         if not cols:
             continue
+        _validate_values(data_to_decode[cols])
         out = out.drop(cols, axis=1)
-        if fill_first_:
-            cols = [prefix_ + prefix_sep + fill_first_] + cols
-            labels = [fill_first_] + labels
-            data[cols[0]] = (1 - data[cols[1:]]).all(axis=1)
         out[prefix_] = Series(
-            np.array(labels)[np.argmax(data[cols].to_numpy(), axis=1)], dtype=dtype
+            np.array(labels)[np.argmax(data_to_decode[cols].to_numpy(), axis=1)], dtype=dtype
         )
     return out
 
