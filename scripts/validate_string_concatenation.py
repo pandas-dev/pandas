@@ -15,7 +15,7 @@ import os
 import sys
 import token
 import tokenize
-from typing import IO, Callable, Generator, List, Tuple
+from typing import IO, Callable, Iterable, List, Tuple
 
 FILE_EXTENSIONS_TO_CHECK: Tuple[str, ...] = (".py", ".pyx", ".pxi.in", ".pxd")
 
@@ -53,7 +53,7 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         return 0
 
 
-def bare_pytest_raises(file_obj: IO[str]) -> Generator[Tuple[int, str], None, None]:
+def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     """
     Test Case for bare pytest raises.
 
@@ -102,7 +102,7 @@ def bare_pytest_raises(file_obj: IO[str]) -> Generator[Tuple[int, str], None, No
                 break
 
 
-def strings_to_concatenate(file_obj: IO[str]) -> Generator[Tuple[int, str], None, None]:
+def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     """
     This test case is necessary after 'Black' (https://github.com/psf/black),
     is formating strings over multiple lines.
@@ -153,7 +153,7 @@ def strings_to_concatenate(file_obj: IO[str]) -> Generator[Tuple[int, str], None
 
 def strings_with_wrong_placed_whitespace(
     file_obj: IO[str],
-) -> Generator[Tuple[int, str], None, None]:
+) -> Iterable[Tuple[int, str]]:
     """
     Test case for leading spaces in concated strings.
 
@@ -277,7 +277,7 @@ def strings_with_wrong_placed_whitespace(
 
 
 def main(
-    function: Callable[[IO[str]], Generator[Tuple[int, str], None, None]],
+    function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
     source_path: str,
     output_format: str,
 ) -> bool:
