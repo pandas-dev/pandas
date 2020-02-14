@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
@@ -42,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -64,7 +62,7 @@ import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
-from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -3848,40 +3846,18 @@ Name: Max Speed, dtype: float64
         if axis is not None:
             self._get_axis_number(axis)
 
-        if isinstance(delegate, Categorical):
-            return delegate._reduce(name, skipna=skipna, **kwds)
-        elif isinstance(delegate, ExtensionArray):
+        if isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
-        elif is_datetime64_dtype(delegate):
-            # use DatetimeIndex implementation to handle skipna correctly
-            delegate = DatetimeIndex(delegate)
-        elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
-            # use TimedeltaIndex to handle skipna correctly
-            # TODO: remove hasattr check after TimedeltaIndex has `std` method
-            delegate = TimedeltaIndex(delegate)
 
-        # dispatch to numpy arrays
-        elif isinstance(delegate, np.ndarray):
+        else:
+            # dispatch to numpy arrays
             if numeric_only:
                 raise NotImplementedError(
                     f"Series.{name} does not implement numeric_only."
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
-
-        # TODO(EA) dispatch to Index
-        # remove once all internals extension types are
-        # moved to ExtensionArrays
-        return delegate._reduce(
-            op=op,
-            name=name,
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            filter_type=filter_type,
-            **kwds,
-        )
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is None:
