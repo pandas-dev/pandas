@@ -77,7 +77,19 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestNoReduce(base.BaseNoReduceTests):
-    pass
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        if isinstance(data, pd.arrays.StringArray) and all_numeric_reductions in [
+            "min",
+            "max",
+        ]:
+            pytest.skip("These reductions are implemented")
+
+        op_name = all_numeric_reductions
+        s = pd.Series(data)
+
+        with pytest.raises(TypeError):
+            getattr(s, op_name)(skipna=skipna)
 
 
 class TestMethods(base.BaseMethodsTests):
