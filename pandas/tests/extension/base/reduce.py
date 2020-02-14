@@ -28,7 +28,6 @@ class BaseNoReduceTests(BaseReduceTests):
         if isinstance(data, pd.arrays.StringArray) and all_numeric_reductions in [
             "min",
             "max",
-            "sum",
         ]:
             pytest.skip("These reductions are implemented")
 

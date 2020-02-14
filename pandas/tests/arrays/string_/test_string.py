@@ -215,6 +215,7 @@ def test_from_sequence_no_mutate(copy):
 
 
 @pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna):
     arr = pd.Series(["a", "b", "c"], dtype="string")
     result = arr.sum(skipna=skipna)
@@ -222,6 +223,7 @@ def test_reduce(skipna):
 
 
 @pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype="string")
     result = arr.sum(skipna=skipna)
