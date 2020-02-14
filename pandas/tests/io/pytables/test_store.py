@@ -2687,12 +2687,12 @@ class TestHDFStore:
 
             expected = df[df.boolv == True].reindex(columns=["A", "boolv"])  # noqa
             for v in [True, "true", 1]:
-                result = store.select("df", f"boolv == {v!s}", columns=["A", "boolv"])
+                result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
                 tm.assert_frame_equal(expected, result)
 
             expected = df[df.boolv == False].reindex(columns=["A", "boolv"])  # noqa
             for v in [False, "false", 0]:
-                result = store.select("df", f"boolv == {v!s}", columns=["A", "boolv"])
+                result = store.select("df", f"boolv == {v}", columns=["A", "boolv"])
                 tm.assert_frame_equal(expected, result)
 
             # integer index
