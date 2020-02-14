@@ -53,6 +53,7 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
+static PyTypeObject *cls_na;
 PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
@@ -149,6 +150,7 @@ int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 void *initObjToJSON(void) {
     PyObject *mod_pandas;
     PyObject *mod_nattype;
+    PyObject *mod_natype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
     type_decimal =
         (PyTypeObject *)PyObject_GetAttrString(mod_decimal, "Decimal");
@@ -172,6 +174,12 @@ void *initObjToJSON(void) {
         cls_nat =
             (PyTypeObject *)PyObject_GetAttrString(mod_nattype, "NaTType");
         Py_DECREF(mod_nattype);
+    }
+
+    mod_natype = PyImport_ImportModule("pandas._libs.missing");
+    if (mod_natype) {
+        cls_na = (PyTypeObject *)PyObject_GetAttrString(mod_natype, "NAType");
+        Py_DECREF(mod_natype);
     }
 
     /* Initialise numpy API */
@@ -1789,6 +1797,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                      "%R (0d array) is not JSON serializable at the moment",
                      obj);
         goto INVALID;
+    } else if (PyObject_TypeCheck(obj, cls_na)) {
+        PRINTMARK();
+        tc->type = JT_NULL;
+        return;
     }
 
 ISITERABLE:

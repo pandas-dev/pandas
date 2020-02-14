@@ -14,9 +14,7 @@ class TestDataFrameIndexingCategorical:
         df = DataFrame(
             {"value": np.array(np.random.randint(0, 10000, 100), dtype="int32")}
         )
-        labels = Categorical(
-            ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
-        )
+        labels = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
 
         df = df.sort_values(by=["value"], ascending=True)
         s = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
@@ -348,7 +346,7 @@ class TestDataFrameIndexingCategorical:
 
     def test_functions_no_warnings(self):
         df = DataFrame({"value": np.random.randint(0, 100, 20)})
-        labels = ["{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
+        labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
         with tm.assert_produces_warning(False):
             df["group"] = pd.cut(
                 df.value, range(0, 105, 10), right=False, labels=labels

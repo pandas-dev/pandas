@@ -19,7 +19,8 @@ def _check_is_partition(parts, whole):
 def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """ For arbitrary (MultiIndexed) sparse Series return
     (v, i, j, ilabels, jlabels) where (v, (i, j)) is suitable for
-    passing to scipy.sparse.coo constructor. """
+    passing to scipy.sparse.coo constructor.
+    """
     # index and column levels must be a partition of the index
     _check_is_partition([row_levels, column_levels], range(ss.index.nlevels))
 
@@ -30,7 +31,6 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
 
     def get_indexers(levels):
         """ Return sparse coords and dense labels for subset levels """
-
         # TODO: how to do this better? cleanly slice nonnull_labels given the
         # coord
         values_ilabels = [tuple(x[i] for i in levels) for x in nonnull_labels.index]
@@ -89,7 +89,6 @@ def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=F
     levels row_levels, column_levels as the row and column
     labels respectively. Returns the sparse_matrix, row and column labels.
     """
-
     import scipy.sparse
 
     if ss.index.nlevels < 2:
