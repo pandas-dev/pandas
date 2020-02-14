@@ -562,7 +562,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
 
     Notes
     -----
-    Sets obj.tzinfo inplace, alters obj.dts inplace, alters obj.value inplace.
+    Sets obj.tzinfo inplace, alters obj.dts inplace.
     """
     cdef:
         ndarray[int64_t] trans
