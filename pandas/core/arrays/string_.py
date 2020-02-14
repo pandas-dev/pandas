@@ -274,16 +274,21 @@ class StringArray(PandasArray):
         return super().astype(dtype, copy)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        if name in ["min", "max", "sum"]:
-            na_mask = isna(self)
-            if not na_mask.any():
-                return getattr(self, name)(skipna=False, **kwargs)
-            elif skipna:
-                return getattr(self[~na_mask], name)(skipna=False, **kwargs)
-            else:
-                return libmissing.NA
+        if name in ["min", "max"]:
+            return getattr(self, name)(
+                skipna=skipna, **kwargs
+            )
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
+    def min(self, axis=None, out=None, keepdims=False, skipna=True):
+        nv.validate_min((), dict(out=out, keepdims=keepdims))
+        return nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
+
+    def max(self, axis=None, out=None, keepdims=False, skipna=True):
+        nv.validate_max((), dict(out=out, keepdims=keepdims))
+        return nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
+
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
