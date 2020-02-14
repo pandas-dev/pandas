@@ -118,11 +118,14 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 
     Does not include the actual bytes of the pointers
     """
+    i: Py_ssize_t
+    n: Py_ssize_t
     size: int64_t
 
     size = 0
-    for value in arr:
-        size += value.__sizeof__()
+    n = len(arr)
+    for i in range(n):
+        size += arr[i].__sizeof__()
     return size
 
 
@@ -279,17 +282,21 @@ def fast_unique_multiple(list arrays, sort: bool = True):
     list of unique values
     """
     cdef:
-        ndarray[object] buf_array
+        ndarray[object] buf
+        Py_ssize_t k = len(arrays)
+        Py_ssize_t i, j, n
         list uniques = []
         dict table = {}
-        object value, stub = 0
+        object val, stub = 0
 
-
-    for buf_array in arrays:
-        for value in buf_array:
-            if value not in table:
-                table[value] = stub
-                uniques.append(value)
+    for i in range(k):
+        buf = arrays[i]
+        n = len(buf)
+        for j in range(n):
+            val = buf[j]
+            if val not in table:
+                table[val] = stub
+                uniques.append(val)
 
     if sort is None:
         try:

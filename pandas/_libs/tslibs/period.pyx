@@ -1469,9 +1469,12 @@ def extract_freq(ndarray[object] values):
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
+        Py_ssize_t i, n = len(values)
         object value
 
-    for value in values:
+    for i in range(n):
+        value = values[i]
+
         try:
             # now Timestamp / NaT has freq attr
             if is_period_object(value):
@@ -1480,7 +1483,6 @@ def extract_freq(ndarray[object] values):
             pass
 
     raise ValueError('freq not specified and cannot be inferred')
-
 
 # -----------------------------------------------------------------------
 # period helpers

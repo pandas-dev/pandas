@@ -137,8 +137,8 @@ def explode(ndarray[object] values):
 
         if c_is_list_like(v, False):
             if len(v):
-                for value in v:
-                    result[count] = value
+                for j in range(len(v)):
+                    result[count] = v[j]
                     count += 1
             else:
                 # empty list-like, use a nan marker
