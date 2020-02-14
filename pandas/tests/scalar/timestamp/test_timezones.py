@@ -327,6 +327,9 @@ class TestTimestampTZOperations:
             expected = Timestamp("2015-10-25 01:00").tz_localize(tz)
             assert result == expected
 
+            with pytest.raises(pytz.AmbiguousTimeError):
+                Timestamp("2015-10-25 02:00", tz=tz)
+
         result = Timestamp("2017-03-26 01:00", tz="Europe/Paris")
         expected = Timestamp("2017-03-26 01:00").tz_localize("Europe/Paris")
         assert result == expected
