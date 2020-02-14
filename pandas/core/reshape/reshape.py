@@ -777,7 +777,7 @@ def from_dummies(data, prefix=None, prefix_sep="_", dtype="category") -> "DataFr
 
     See Also
     --------
-    get_dummies : the inverse operation
+    get_dummies : The inverse operation.
 
     Examples
     --------
@@ -954,7 +954,7 @@ def get_dummies(
     See Also
     --------
     Series.str.get_dummies : Convert Series to dummy codes.
-    from_dummies : the inverse operation.
+    from_dummies : The inverse operation.
 
     Examples
     --------
