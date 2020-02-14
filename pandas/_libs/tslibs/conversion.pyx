@@ -552,9 +552,7 @@ cdef inline check_overflows(_TSObject obj):
 cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
-    representation of that timestamp in the given timezone. Attempt to shift
-    over the daylight saving time transition point according to the fold
-    argument.
+    representation of that timestamp in the given timezone.
 
     Parameters
     ----------
