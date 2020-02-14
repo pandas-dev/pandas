@@ -168,6 +168,19 @@ class TestReductions:
         result = getattr(np, func)(expected, expected)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("func", ["min", "max"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_object_with_na(self, func, skipna):
+        # https://github.com/pandas-dev/pandas/issues/18588
+        s = pd.Series(np.array(["a", "b", np.nan], dtype=object))
+        result = getattr(s, func)(skipna=skipna)
+
+        if skipna:
+            expected = "a" if func == "min" else "b"
+            assert result == expected
+        else:
+            assert result is np.nan
+
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
