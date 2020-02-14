@@ -1,7 +1,7 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from itertools import product, starmap
 import operator
 import warnings
@@ -1056,19 +1056,21 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
-    def test_timestamp_and_time_dtype_raises():
-    # https://github.com/pandas-dev/pandas/issues/10329
-    df = pd.DataFrame(
-        {
-            "date": pd.date_range("2012-01-01", periods=3),
-            "time": [time(i, i, i) for i in range(3)],
-        }
-    )
+    def test_timestamp_and_time_dtype_raises(self, box_with_array):
+        # https://github.com/pandas-dev/pandas/issues/10329
+        obj1 = pd.date_range("2012-01-01", periods=3)
+        obj2 = [time(i, i, i) for i in range(3)]
 
-    msg = r"unsupported operand type\(s\) for -: 'Timestamp' and 'datetime.time'"
+        obj1 = tm.box_expected(obj1, box_with_array)
+        obj2 = tm.box_expected(obj2, box_with_array)
 
-    with pytest.raises(TypeError, match=msg):
-        df["date"] - df["time"]
+        msg = (
+            "unsupported operand type\(s\) for -: "
+            "'(Timestamp|DatetimeArray)' and 'datetime.time'"
+        )
+
+        with pytest.raises(TypeError, match=msg):
+            obj1 - obj2
 
 
 class TestDatetime64DateOffsetArithmetic:
