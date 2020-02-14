@@ -591,20 +591,24 @@ class SeriesGroupBy(GroupBy):
 
         val = self.obj._internal_get_values()
 
-        # GH 27951
-        # temporary fix while we wait for NumPy bug 12629 to be fixed
-        val[isna(val)] = np.datetime64("NaT")
-
-        try:
-            sorter = np.lexsort((val, ids))
-        except TypeError:  # catches object dtypes
-            msg = f"val.dtype must be object, got {val.dtype}"
-            assert val.dtype == object, msg
+        def _object_sorter(val, ids):
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
             _isna = lambda a: a == -1
+            return val, sorter, _isna
+
+        if isna(val).any() and val.dtype == object:
+            # Deal with pandas.NaT
+            val, sorter, _isna = _object_sorter(val, ids)
         else:
-            _isna = isna
+            try:
+                sorter = np.lexsort((val, ids))
+            except TypeError:  # catches object dtypes
+                msg = f"val.dtype must be object, got {val.dtype}"
+                assert val.dtype == object, msg
+                val, sorter, _isna = _object_sorter(val, ids)
+            else:
+                _isna = isna
 
         ids, val = ids[sorter], val[sorter]
 
