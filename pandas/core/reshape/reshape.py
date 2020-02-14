@@ -1,6 +1,6 @@
 from functools import partial
 import itertools
-from typing import List, Optional, Union
+from typing import List, Optional, Set, Union
 
 import numpy as np
 
@@ -751,9 +751,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     return result
 
 
-def from_dummies(
-    data, prefix=None, prefix_sep="_", dtype="category"
-) -> "DataFrame":
+def from_dummies(data, prefix=None, prefix_sep="_", dtype="category") -> "DataFrame":
     """
     The inverse transformation of ``pandas.get_dummies``.
 
@@ -833,10 +831,10 @@ def from_dummies(
                 "If no columns contain `prefix_sep`, you must"
                 " pass a value to `prefix` with which to name"
                 " the decoded columns."
-                )
+            )
         # If no column contains `prefix_sep`, we add `prefix`_`prefix_sep` to
         # each column.
-        out = data.rename(columns = lambda x: f'{prefix}{prefix_sep}{x}').copy()
+        out = data.rename(columns=lambda x: f"{prefix}{prefix_sep}{x}").copy()
         columns_to_decode = out.columns
     else:
         out = data.copy()
@@ -846,7 +844,7 @@ def from_dummies(
     if prefix is None:
         # If no prefix has been passed, extract it from columns containing
         # `prefix_sep`
-        seen = set()
+        seen: Set[str] = set()
         prefix = []
         for i in columns_to_decode:
             i = i.split(prefix_sep)[0]
@@ -879,7 +877,8 @@ def from_dummies(
         _validate_values(data_to_decode[cols])
         out = out.drop(cols, axis=1)
         out[prefix_] = Series(
-            np.array(labels)[np.argmax(data_to_decode[cols].to_numpy(), axis=1)], dtype=dtype
+            np.array(labels)[np.argmax(data_to_decode[cols].to_numpy(), axis=1)],
+            dtype=dtype,
         )
     return out
 

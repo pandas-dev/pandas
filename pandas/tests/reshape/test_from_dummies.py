@@ -45,14 +45,18 @@ def test_prefix_sep(prefix_sep, input_dict):
     expected = pd.DataFrame({"col1": ["a", "a", "b"]}, dtype="category")
     tm.assert_frame_equal(result, expected)
 
+
 def test_no_prefix():
     df = pd.DataFrame({"a": [1, 1, 0], "b": [0, 0, 1]})
-    result = pd.from_dummies(df, prefix='letter')
-    expected = pd.DataFrame({'letter': ['a', 'a', 'b']}, dtype='category')
+    result = pd.from_dummies(df, prefix="letter")
+    expected = pd.DataFrame({"letter": ["a", "a", "b"]}, dtype="category")
     tm.assert_frame_equal(result, expected)
 
+
 def test_multiple_columns():
-    df = pd.DataFrame({"col1_a": [1, 0], "col1_b": [0, 1], "col2_a": [0, 0], "col2_c": [1, 1]})
+    df = pd.DataFrame(
+        {"col1_a": [1, 0], "col1_b": [0, 1], "col2_a": [0, 0], "col2_c": [1, 1]}
+    )
     result = pd.from_dummies(df)
-    expected = pd.DataFrame({'col1': ['a', 'b'], 'col2': ['c', 'c']}, dtype='category')
+    expected = pd.DataFrame({"col1": ["a", "b"], "col2": ["c", "c"]}, dtype="category")
     tm.assert_frame_equal(result, expected)
