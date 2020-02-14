@@ -6189,10 +6189,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         AssertionError
             * If `regex` is not a ``bool`` and `to_replace` is not
               ``None``.
+
         TypeError
             * If `to_replace` is not any of the expected types
-            (``str``, `regex`, ``list``, ``dict``, ``Series``, ``int``,
-            ``float`` or ``None``)
+              (``str``, `regex`, ``list``, ``dict``, ``Series``, ``int``,
+              ``float`` or ``None``)
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
@@ -6201,6 +6202,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * When replacing multiple ``bool`` or ``datetime64`` objects and
               the arguments to `to_replace` does not match the type of the
               value being replaced
+
         ValueError
             * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
               `value` but they are not the same length.
