@@ -114,7 +114,8 @@ def test_default_na_values(all_parsers):
         buf = f"{buf}{v}"
 
         if i < nv - 1:
-            buf = f"{buf}{''.join([','] * (nv - i - 1))}"
+            joined = "".join([","] * (nv - i - 1))
+            buf = f"{buf}{joined}"
 
         return buf
 
