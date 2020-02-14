@@ -34,8 +34,8 @@ def test_detect_console_encoding_from_stdout_stdin(monkeypatch, empty, filled):
     # they have values filled.
     # GH 21552
     with monkeypatch.context() as context:
-        context.setattr("sys.{}".format(empty), MockEncoding(""))
-        context.setattr("sys.{}".format(filled), MockEncoding(filled))
+        context.setattr(f"sys.{empty}", MockEncoding(""))
+        context.setattr(f"sys.{filled}", MockEncoding(filled))
         assert detect_console_encoding() == filled
 
 

@@ -323,17 +323,17 @@ def write_legacy_pickles(output_dir):
         "This script generates a storage file for the current arch, system, "
         "and python version"
     )
-    print("  pandas version: {0}".format(version))
-    print("  output dir    : {0}".format(output_dir))
+    print(f"  pandas version: {version}")
+    print(f"  output dir    : {output_dir}")
     print("  storage format: pickle")
 
-    pth = "{0}.pickle".format(platform_name())
+    pth = f"{platform_name()}.pickle"
 
     fh = open(os.path.join(output_dir, pth), "wb")
     pickle.dump(create_pickle_data(), fh, pickle.HIGHEST_PROTOCOL)
     fh.close()
 
-    print("created pickle file: {pth}".format(pth=pth))
+    print(f"created pickle file: {pth}")
 
 
 def write_legacy_file():
