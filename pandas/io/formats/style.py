@@ -452,7 +452,7 @@ class Styler:
             ``formatter`` is applied to.
         na_rep : str, optional
             Representation for missing values.
-            If ``na_rep`` is None, no special formatting is applied
+            If ``na_rep`` is None, no special formatting is applied.
 
             .. versionadded:: 1.0.0
 
