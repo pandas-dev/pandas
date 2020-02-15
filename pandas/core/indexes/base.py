@@ -5139,7 +5139,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         loc : int or list of int
             Location of item(-s) which will be deleted.
-            Use list of integer as loc parameter to delete multiple locations.
+            Use a list of locations to delete more than one value at the same time.
 
         Returns
         -------
