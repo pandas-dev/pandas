@@ -832,17 +832,17 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         name : Label, optional
-            name for new object
+            Set name for new object.
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
-            dtype for new object
+            Set dtype for new object.
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
         Returns
         -------
         Index
-            Index refer to new object which is a copy of this object
+            Index refer to new object which is a copy of this object.
 
         Notes
         -----
