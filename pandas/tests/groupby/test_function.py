@@ -7,6 +7,7 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _is_numpy_dev
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -685,6 +686,9 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
+@pytest.mark.xfail(
+    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
+)
 def test_cummin_cummax():
     # GH 15048
     num_types = [np.int32, np.int64, np.float32, np.float64]
