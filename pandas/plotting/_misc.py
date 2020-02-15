@@ -280,7 +280,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
     **kwds
-        Options to pass to matplotlib plotting method.
+        Optional, two dimensional properties from
+        :func:`matplotlib.lines.Line2D`.
 
     Returns
     -------
@@ -291,6 +292,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     --------
     DataFrame.plot : Basic plotting for DataFrame objects.
     Series.plot : Basic plotting for Series objects.
+    matplotlib.lines.Line2D : Matplotlib Line2D objects.
 
     Examples
     --------
