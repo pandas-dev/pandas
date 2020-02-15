@@ -34,6 +34,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.conftest import indices_dict
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -42,7 +43,6 @@ from pandas.core.indexes.api import (
     ensure_index_from_sequences,
 )
 from pandas.tests.indexes.common import Base
-from pandas.tests.indexes.conftest import indices_dict
 
 
 class TestIndex(Base):

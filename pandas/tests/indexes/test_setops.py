@@ -13,7 +13,7 @@ import pandas as pd
 from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
 import pandas._testing as tm
 from pandas.api.types import pandas_dtype
-from pandas.tests.indexes.conftest import indices_dict
+from pandas.conftest import indices_dict
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
     (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex),

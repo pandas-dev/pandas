@@ -17,6 +17,7 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.indexes.api import Index, MultiIndex
 
 hypothesis.settings.register_profile(
     "ci",
@@ -953,3 +954,69 @@ def non_mapping_dict_subclass():
             return self._data.__len__()
 
     return TestNonDictMapping
+
+
+indices_dict = {
+    "unicode": tm.makeUnicodeIndex(100),
+    "string": tm.makeStringIndex(100),
+    "datetime": tm.makeDateIndex(100),
+    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
+    "period": tm.makePeriodIndex(100),
+    "timedelta": tm.makeTimedeltaIndex(100),
+    "int": tm.makeIntIndex(100),
+    "uint": tm.makeUIntIndex(100),
+    "range": tm.makeRangeIndex(100),
+    "float": tm.makeFloatIndex(100),
+    "bool": tm.makeBoolIndex(2),
+    "categorical": tm.makeCategoricalIndex(100),
+    "interval": tm.makeIntervalIndex(100),
+    "empty": Index([]),
+    "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "repeats": Index([0, 0, 1, 1, 2, 2]),
+}
+
+
+@pytest.fixture(params=indices_dict.keys())
+def indices(request):
+    # copy to avoid mutation, e.g. setting .name
+    return indices_dict[request.param].copy()
+
+
+def _create_series(index):
+    """ Helper for the _series dict """
+    size = len(index)
+    data = np.random.randn(size)
+    return pd.Series(data, index=index, name="a")
+
+
+_series = {
+    f"series-with-{index_id}-index": _create_series(index)
+    for index_id, index in indices_dict.items()
+}
+
+
+_narrow_dtypes = [
+    np.float16,
+    np.float32,
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+]
+_narrow_series = {
+    f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
+    for dtype in _narrow_dtypes
+}
+
+_index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
+
+
+@pytest.fixture(params=_index_or_series_objs.keys())
+def index_or_series_obj(request):
+    """
+    Fixture for tests on indexes, series and series with a narrow dtype
+    copy to avoid mutation, e.g. setting .name
+    """
+    return _index_or_series_objs[request.param].copy(deep=True)

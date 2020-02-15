@@ -109,26 +109,26 @@ def test_binary_ops(klass, op_name, op):
     assert expected_str in getattr(klass, "r" + op_name).__doc__
 
 
-class TestTranspose(Ops):
+class TestTranspose:
     errmsg = "the 'axes' parameter is not supported"
 
-    def test_transpose(self):
-        for obj in self.objs:
-            tm.assert_equal(obj.transpose(), obj)
+    def test_transpose(self, index_or_series_obj):
+        obj = index_or_series_obj
+        tm.assert_equal(obj.transpose(), obj)
 
-    def test_transpose_non_default_axes(self):
-        for obj in self.objs:
-            with pytest.raises(ValueError, match=self.errmsg):
-                obj.transpose(1)
-            with pytest.raises(ValueError, match=self.errmsg):
-                obj.transpose(axes=1)
+    def test_transpose_non_default_axes(self, index_or_series_obj):
+        obj = index_or_series_obj
+        with pytest.raises(ValueError, match=self.errmsg):
+            obj.transpose(1)
+        with pytest.raises(ValueError, match=self.errmsg):
+            obj.transpose(axes=1)
 
-    def test_numpy_transpose(self):
-        for obj in self.objs:
-            tm.assert_equal(np.transpose(obj), obj)
+    def test_numpy_transpose(self, index_or_series_obj):
+        obj = index_or_series_obj
+        tm.assert_equal(np.transpose(obj), obj)
 
-            with pytest.raises(ValueError, match=self.errmsg):
-                np.transpose(obj, axes=1)
+        with pytest.raises(ValueError, match=self.errmsg):
+            np.transpose(obj, axes=1)
 
 
 class TestIndexOps(Ops):
