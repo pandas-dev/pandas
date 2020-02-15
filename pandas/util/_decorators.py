@@ -275,7 +275,8 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
             elif hasattr(arg, "_docstr_template"):
                 templates.append(arg._docstr_template)  # type: ignore
             elif arg.__doc__:
-                templates.append(arg.__doc__)
+                doc_tmp = arg.__doc__.replace("{", "{{").replace("}", "}}")
+                templates.append(doc_tmp)
 
         wrapper._docstr_template = "".join(dedent(t) for t in templates)  # type: ignore
         wrapper.__doc__ = wrapper._docstr_template.format(**kwargs)  # type: ignore

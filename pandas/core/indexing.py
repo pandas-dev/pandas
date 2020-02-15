@@ -90,7 +90,7 @@ class IndexingMixin:
 
     @property
     def iloc(self) -> "_iLocIndexer":
-        f"""
+        """
         Purely integer-location based indexing for selection by position.
 
         ``.iloc[]`` is primarily integer position based (from ``0`` to
@@ -123,9 +123,9 @@ class IndexingMixin:
 
         Examples
         --------
-        >>> mydict = [{{'a': 1, 'b': 2, 'c': 3, 'd': 4}},
-        ...           {{'a': 100, 'b': 200, 'c': 300, 'd': 400}},
-        ...           {{'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }}]
+        >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
+        ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
+        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
         >>> df = pd.DataFrame(mydict)
         >>> df
               a     b     c     d
