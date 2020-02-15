@@ -17,6 +17,7 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    _is_numpy_dev,
     date_range,
     isna,
 )
@@ -693,6 +694,9 @@ def test_numpy_compat(func):
         (np.float32, np.finfo(np.float32).min, np.finfo(np.float32).max),
         (np.float64, np.finfo(np.float64).min, np.finfo(np.float64).max),
     ],
+)
+@pytest.mark.xfail(
+    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
 )
 def test_cummin_cummax(dtype, min_val, max_val):
     # GH 15048
