@@ -93,6 +93,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
     tz : pytz.timezone or dateutil.tz.tzfile
+        Time zone information object corresponding to the desired time zone.
+        For example: :func:`dateutil.tz.UTC`.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
