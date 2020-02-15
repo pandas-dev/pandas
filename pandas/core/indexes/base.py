@@ -5138,6 +5138,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         loc : int
+            Location of item(-s) which will be deleted 
 
         Returns
         -------
