@@ -142,7 +142,9 @@ cdef int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil:
         int col = max_value(from_index, to_index)
     # row or col < 6 means frequency strictly lower than Daily, which
     # do not use daytime_conversion_factors
-    if row < 6 or col < 6:
+    if row < 6:
+        return 0
+    elif col < 6:
         return 0
     return daytime_conversion_factor_matrix[row - 6][col - 6]
 
