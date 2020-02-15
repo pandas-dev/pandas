@@ -394,6 +394,7 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         return obj
 
     # Infer fold from offset-adjusted obj.value
+    # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     if is_utc(tz) or is_tzlocal(tz):
         # TODO: think on how we can infer fold for local Timezone
         # and adjust value for fold
@@ -614,6 +615,11 @@ cdef inline bint _infer_tsobject_fold(_TSObject obj, object trans,
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time
+
+    References
+    ----------
+    .. [1] "PEP 495 - Local Time Disambiguation"
+           https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     """
     cdef:
         bint fold = 0
