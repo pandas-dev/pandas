@@ -5135,6 +5135,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index with passed location(-s) deleted.
 
+        Use array of integer as loc parameter to delete multiple locations.
+
         Parameters
         ----------
         loc : int
