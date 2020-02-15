@@ -1014,7 +1014,7 @@ def assert_extension_array_equal(
     Parameters
     ----------
     left, right : ExtensionArray
-        The two arrays to compare
+        The two arrays to compare.
     check_dtype : bool, default True
         Whether to check if the ExtensionArray dtypes are identical.
     check_less_precise : bool or int, default False
