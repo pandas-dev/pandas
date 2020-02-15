@@ -30,7 +30,7 @@ Bug fixes
 
 **ExtensionArray**
 
-- Fixed issue where taking :meth:`min` or :meth:`max` of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
+- Fixed issue where taking ``min`` or ``max`` of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 -
 
 **Categorical**
