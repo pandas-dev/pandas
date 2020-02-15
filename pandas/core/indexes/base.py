@@ -5147,6 +5147,10 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             New Index with passed location(-s) deleted.
 
+        See Also
+        --------
+        numpy.delete : Delete any rows and column from NumPy array (ndarray) 
+
         Examples
         --------
         >>> idx = pd.Index(['a', 'b', 'c'])
