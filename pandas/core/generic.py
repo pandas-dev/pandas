@@ -7904,7 +7904,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Parameters
         ----------
-        offset : str, pandas.tseries.offsets.DateOffset or dateutil.relativedelta
+        offset : str, DateOffset or dateutil.relativedelta
             The offset length of the data that will be selected. For instance,
             '1M' will display all the rows having their index within the first month.
 
