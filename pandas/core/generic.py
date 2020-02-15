@@ -7538,16 +7538,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Parameters
         ----------
         start_time : datetime.time or str
+                The first time value.
         end_time : datetime.time or str
+                The second time value.
         include_start : bool, default True
+                Adding start_time value in the result.
         include_end : bool, default True
+                Adding end_time value in the result.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-
+                Determine range time on index or columns value.
             .. versionadded:: 0.24.0
 
         Returns
         -------
         Series or DataFrame
+            If axis set on columns, it will return DataFrame format, vice versa.
 
         Raises
         ------
