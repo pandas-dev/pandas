@@ -934,6 +934,7 @@ class IndexOpsMixin:
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
 
         Returns
         -------
