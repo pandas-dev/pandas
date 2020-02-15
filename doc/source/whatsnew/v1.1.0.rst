@@ -246,7 +246,7 @@ Other
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 - Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
 - Bug in :meth:`Series.combine` was changing the result's dtype for nullable integers (:issue:`31899`)
-- 
+-
 
 .. ---------------------------------------------------------------------------
 
