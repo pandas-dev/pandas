@@ -5144,7 +5144,14 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
             New Index with passed location(-s) deleted.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.delete(1)  # Deleting 'b'
+        Index(['a', 'c'], dtype='object')
         """
+        
         return self._shallow_copy(np.delete(self._data, loc))
 
     def insert(self, loc: int, item):
