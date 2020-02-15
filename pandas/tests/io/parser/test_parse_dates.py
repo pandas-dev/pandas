@@ -1101,7 +1101,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly
     parser = all_parsers
-    s = StringIO(("{value},\n".format(value=value)) * 50000)
+    s = StringIO((f"{value},\n") * 50000)
 
     parser.read_csv(
         s,
