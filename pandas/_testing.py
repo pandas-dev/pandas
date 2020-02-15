@@ -8,7 +8,7 @@ import os
 from shutil import rmtree
 import string
 import tempfile
-from typing import Any, List, Optional, Union, cast
+from typing import Any, Callable, List, Optional, Type, Union, cast
 import warnings
 import zipfile
 
@@ -1014,7 +1014,7 @@ def assert_extension_array_equal(
     Parameters
     ----------
     left, right : ExtensionArray
-        The two arrays to compare
+        The two arrays to compare.
     check_dtype : bool, default True
         Whether to check if the ExtensionArray dtypes are identical.
     check_less_precise : bool or int, default False
@@ -1508,7 +1508,6 @@ def assert_sp_array_equal(
         create a new BlockIndex for that array, with consolidated
         block indices.
     """
-
     _check_isinstance(left, right, pd.arrays.SparseArray)
 
     assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
@@ -1876,7 +1875,6 @@ def makeCustomIndex(
 
         if unspecified, string labels will be generated.
     """
-
     if ndupe_l is None:
         ndupe_l = [1] * nlevels
     assert is_sequence(ndupe_l) and len(ndupe_l) <= nlevels
@@ -1972,35 +1970,39 @@ def makeCustomDataframe(
     r_idx_type=None,
 ):
     """
-   nrows,  ncols - number of data rows/cols
-   c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
-        default names or uses the provided names for the levels of the
-        corresponding index. You can provide a single string when
-        c_idx_nlevels ==1.
-   c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
-   r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
-   data_gen_f - a function f(row,col) which return the data value
-        at that position, the default generator used yields values of the form
-        "RxCy" based on position.
-   c_ndupe_l, r_ndupe_l - list of integers, determines the number
-        of duplicates for each label at a given level of the corresponding
-        index. The default `None` value produces a multiplicity of 1 across
-        all levels, i.e. a unique index. Will accept a partial list of length
-        N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
-        nrows/ncol, the last label might have lower multiplicity.
-   dtype - passed to the DataFrame constructor as is, in case you wish to
-        have more control in conjunction with a custom `data_gen_f`
-   r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
-       If idx_type is not None, `idx_nlevels` must be 1.
-       "i"/"f" creates an integer/float index,
-       "s"/"u" creates a string/unicode index
-       "dt" create a datetime index.
-       "td" create a timedelta index.
+    Create a DataFrame using supplied parameters.
 
-        if unspecified, string labels will be generated.
+    Parameters
+    ----------
+    nrows,  ncols - number of data rows/cols
+    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
+            default names or uses the provided names for the levels of the
+            corresponding index. You can provide a single string when
+            c_idx_nlevels ==1.
+    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
+    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
+    data_gen_f - a function f(row,col) which return the data value
+            at that position, the default generator used yields values of the form
+            "RxCy" based on position.
+    c_ndupe_l, r_ndupe_l - list of integers, determines the number
+            of duplicates for each label at a given level of the corresponding
+            index. The default `None` value produces a multiplicity of 1 across
+            all levels, i.e. a unique index. Will accept a partial list of length
+            N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
+            nrows/ncol, the last label might have lower multiplicity.
+    dtype - passed to the DataFrame constructor as is, in case you wish to
+            have more control in conjunction with a custom `data_gen_f`
+    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
+        If idx_type is not None, `idx_nlevels` must be 1.
+        "i"/"f" creates an integer/float index,
+        "s"/"u" creates a string/unicode index
+        "dt" create a datetime index.
+        "td" create a timedelta index.
 
-    Examples:
+            if unspecified, string labels will be generated.
 
+    Examples
+    --------
     # 5 row, 3 columns, default names on both, single index on both axis
     >> makeCustomDataframe(5,3)
 
@@ -2025,7 +2027,6 @@ def makeCustomDataframe(
 
     >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
     """
-
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
     assert r_idx_type is None or (
@@ -2150,7 +2151,8 @@ def optional_args(decorator):
         @my_decorator
         def function(): pass
 
-    Calls decorator with decorator(f, *args, **kwargs)"""
+    Calls decorator with decorator(f, *args, **kwargs)
+    """
 
     @wraps(decorator)
     def wrapper(*args, **kwargs):
@@ -2228,7 +2230,6 @@ def can_connect(url, error_classes=None):
         Return True if no IOError (unable to connect) or URLError (bad url) was
         raised
     """
-
     if error_classes is None:
         error_classes = _get_default_network_errors()
 
@@ -2517,7 +2518,6 @@ class RNGContext:
 
     Examples
     --------
-
     with RNGContext(42):
         np.random.randn()
     """
@@ -2593,6 +2593,7 @@ def test_parallel(num_threads=2, kwargs_list=None):
     kwargs_list : list of dicts, optional
         The list of kwargs to update original
         function kwargs on different threads.
+
     Notes
     -----
     This decorator does not pass the return value of the decorated function.
@@ -2602,7 +2603,6 @@ def test_parallel(num_threads=2, kwargs_list=None):
     https://github.com/scikit-image/scikit-image/pull/1519
 
     """
-
     assert num_threads > 0
     has_kwargs_list = kwargs_list is not None
     if has_kwargs_list:
@@ -2673,7 +2673,6 @@ def set_timezone(tz: str):
 
     Examples
     --------
-
     >>> from datetime import datetime
     >>> from dateutil.tz import tzlocal
     >>> tzlocal().tzname(datetime.now())
@@ -2684,7 +2683,6 @@ def set_timezone(tz: str):
     ...
     'EDT'
     """
-
     import os
     import time
 
@@ -2757,3 +2755,24 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     sep = os.linesep
     expected = sep.join(rows_list) + sep
     return expected
+
+
+def external_error_raised(
+    expected_exception: Type[Exception],
+) -> Callable[[Type[Exception], None], None]:
+    """
+    Helper function to mark pytest.raises that have an external error message.
+
+    Parameters
+    ----------
+    expected_exception : Exception
+        Expected error to raise.
+
+    Returns
+    -------
+    Callable
+        Regular `pytest.raises` function with `match` equal to `None`.
+    """
+    import pytest
+
+    return pytest.raises(expected_exception, match=None)

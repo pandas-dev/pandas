@@ -840,8 +840,8 @@ class TestDataFrameOperators:
             df["a"] = [True, False, True]
 
         df_copy = df.copy()
-        iop = "__i{}__".format(op)
-        op = "__{}__".format(op)
+        iop = f"__i{op}__"
+        op = f"__{op}__"
 
         # no id change and value is correct
         getattr(df, iop)(operand)
@@ -864,10 +864,10 @@ class TestDataFrameOperators:
         ]:
 
             tm.assert_series_equal(
-                align(df, val, "index"), Series([1, 2, 3], index=df.index)
+                align(df, val, "index")[1], Series([1, 2, 3], index=df.index)
             )
             tm.assert_series_equal(
-                align(df, val, "columns"), Series([1, 2, 3], index=df.columns)
+                align(df, val, "columns")[1], Series([1, 2, 3], index=df.columns)
             )
 
         # length mismatch
@@ -882,10 +882,11 @@ class TestDataFrameOperators:
 
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         tm.assert_frame_equal(
-            align(df, val, "index"), DataFrame(val, index=df.index, columns=df.columns)
+            align(df, val, "index")[1],
+            DataFrame(val, index=df.index, columns=df.columns),
         )
         tm.assert_frame_equal(
-            align(df, val, "columns"),
+            align(df, val, "columns")[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
 
