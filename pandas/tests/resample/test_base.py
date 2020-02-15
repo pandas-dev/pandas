@@ -195,30 +195,6 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 
 
 @all_ts
-@pytest.mark.parametrize("arg", ["mean", {"value": "mean"}, ["mean"]])
-def test_resample_loffset_arg_type(frame, create_index, arg):
-    # GH 13218, 15002
-    df = frame
-    expected_means = [df.values[i : i + 2].mean() for i in range(0, len(df.values), 2)]
-    expected_index = create_index(df.index[0], periods=len(df.index) / 2, freq="2D")
-
-    # loffset coerces PeriodIndex to DateTimeIndex
-    if isinstance(expected_index, PeriodIndex):
-        expected_index = expected_index.to_timestamp()
-
-    expected_index += timedelta(hours=2)
-    expected = DataFrame({"value": expected_means}, index=expected_index)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result_agg = df.resample("2D", loffset="2H").agg(arg)
-
-    if isinstance(arg, list):
-        expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
-
-    tm.assert_frame_equal(result_agg, expected)
-
-
-@all_ts
 def test_apply_to_empty_series(empty_series_dti):
     # GH 14313
     s = empty_series_dti

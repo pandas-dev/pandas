@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import dateutil
 import numpy as np
@@ -719,28 +719,6 @@ class TestPeriodIndex:
         result = df.resample("7D").sum()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
-    @pytest.mark.parametrize("agg_arg", ["mean", {"value": "mean"}, ["mean"]])
-    def test_loffset_returns_datetimeindex(self, frame, kind, agg_arg):
-        # make sure passing loffset returns DatetimeIndex in all cases
-        # basic method taken from Base.test_resample_loffset_arg_type()
-        df = frame
-        expected_means = [
-            df.values[i : i + 2].mean() for i in range(0, len(df.values), 2)
-        ]
-        expected_index = period_range(df.index[0], periods=len(df.index) / 2, freq="2D")
-
-        # loffset coerces PeriodIndex to DateTimeIndex
-        expected_index = expected_index.to_timestamp()
-        expected_index += timedelta(hours=2)
-        expected = DataFrame({"value": expected_means}, index=expected_index)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
-        if isinstance(agg_arg, list):
-            expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
-        tm.assert_frame_equal(result_agg, expected)
-
     @pytest.mark.parametrize("freq, period_mult", [("H", 24), ("12H", 2)])
     @pytest.mark.parametrize("kind", [None, "period"])
     def test_upsampling_ohlc(self, freq, period_mult, kind):
@@ -814,51 +792,6 @@ class TestPeriodIndex:
         expected = DataFrame(index=expected_index)
         result = frame.resample("1s").mean()
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "start,end,start_freq,end_freq,base,offset",
-        [
-            ("19910905", "19910909 03:00", "H", "24H", 10, "10H"),
-            ("19910905", "19910909 12:00", "H", "24H", 10, "10H"),
-            ("19910905", "19910909 23:00", "H", "24H", 10, "10H"),
-            ("19910905 10:00", "19910909", "H", "24H", 10, "10H"),
-            ("19910905 10:00", "19910909 10:00", "H", "24H", 10, "10H"),
-            ("19910905", "19910909 10:00", "H", "24H", 10, "10H"),
-            ("19910905 12:00", "19910909", "H", "24H", 10, "10H"),
-            ("19910905 12:00", "19910909 03:00", "H", "24H", 10, "10H"),
-            ("19910905 12:00", "19910909 12:00", "H", "24H", 10, "10H"),
-            ("19910905 12:00", "19910909 12:00", "H", "24H", 34, "34H"),
-            ("19910905 12:00", "19910909 12:00", "H", "17H", 10, "10H"),
-            ("19910905 12:00", "19910909 12:00", "H", "17H", 3, "3H"),
-            ("19910905 12:00", "19910909 1:00", "H", "M", 3, "3H"),
-            ("19910905", "19910913 06:00", "2H", "24H", 10, "10H"),
-            ("19910905", "19910905 01:39", "Min", "5Min", 3, "3Min"),
-            ("19910905", "19910905 03:18", "2Min", "5Min", 3, "3Min"),
-        ],
-    )
-    def test_resample_with_non_zero_base(
-        self, start, end, start_freq, end_freq, base, offset
-    ):
-        # GH 23882
-        s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
-        s = s + np.arange(len(s))
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.resample(end_freq, base=base).mean()
-        result = result.to_timestamp(end_freq)
-
-        # test that the replacement argument `offset` works
-        result_offset = s.resample(end_freq, offset=offset).mean()
-        result_offset = result_offset.to_timestamp(end_freq)
-        tm.assert_series_equal(result, result_offset)
-
-        # to_timestamp casts 24H -> D
-        result = result.asfreq(end_freq) if end_freq == "24H" else result
-        with tm.assert_produces_warning(FutureWarning):
-            expected = s.to_timestamp().resample(end_freq, base=base).mean()
-        if end_freq == "M":
-            # TODO: is non-tick the relevant characteristic? (GH 33815)
-            expected.index = expected.index._with_freq(None)
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "start,end,start_freq,end_freq,offset",

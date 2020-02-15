@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import partial
 from io import StringIO
 
@@ -18,7 +18,7 @@ from pandas.core.indexes.period import Period, period_range
 from pandas.core.resample import DatetimeIndex, _get_timestamp_range_edges
 
 import pandas.tseries.offsets as offsets
-from pandas.tseries.offsets import BDay, Minute
+from pandas.tseries.offsets import Minute
 
 
 @pytest.fixture()
@@ -412,77 +412,6 @@ def test_resample_frame_basic():
     df.resample("W-WED", kind="period").mean()
 
 
-@pytest.mark.parametrize(
-    "loffset", [timedelta(minutes=1), "1min", Minute(1), np.timedelta64(1, "m")]
-)
-def test_resample_loffset(loffset):
-    # GH 7687
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
-    s = Series(np.random.randn(14), index=rng)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = s.resample(
-            "5min", closed="right", label="right", loffset=loffset
-        ).mean()
-    idx = date_range("1/1/2000", periods=4, freq="5min")
-    expected = Series(
-        [s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
-        index=idx + timedelta(minutes=1),
-    )
-    tm.assert_series_equal(result, expected)
-    assert result.index.freq == Minute(5)
-
-    # from daily
-    dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D")
-    ser = Series(np.random.rand(len(dti)), dti)
-
-    # to weekly
-    result = ser.resample("w-sun").last()
-    business_day_offset = BDay()
-    with tm.assert_produces_warning(FutureWarning):
-        expected = ser.resample("w-sun", loffset=-business_day_offset).last()
-    assert result.index[0] - business_day_offset == expected.index[0]
-
-
-def test_resample_loffset_upsample():
-    # GH 20744
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
-    s = Series(np.random.randn(14), index=rng)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = s.resample(
-            "5min", closed="right", label="right", loffset=timedelta(minutes=1)
-        ).ffill()
-    idx = date_range("1/1/2000", periods=4, freq="5min")
-    expected = Series([s[0], s[5], s[10], s[-1]], index=idx + timedelta(minutes=1))
-
-    tm.assert_series_equal(result, expected)
-
-
-def test_resample_loffset_count():
-    # GH 12725
-    start_time = "1/1/2000 00:00:00"
-    rng = date_range(start_time, periods=100, freq="S")
-    ts = Series(np.random.randn(len(rng)), index=rng)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = ts.resample("10S", loffset="1s").count()
-
-    expected_index = date_range(start_time, periods=10, freq="10S") + timedelta(
-        seconds=1
-    )
-    expected = Series(10, index=expected_index)
-
-    tm.assert_series_equal(result, expected)
-
-    # Same issue should apply to .size() since it goes through
-    #   same code path
-    with tm.assert_produces_warning(FutureWarning):
-        result = ts.resample("10S", loffset="1s").size()
-
-    tm.assert_series_equal(result, expected)
-
-
 def test_resample_upsample():
     # from daily
     dti = date_range(
@@ -798,17 +727,9 @@ def test_resample_single_group():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_base():
-    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
-    ts = Series(np.random.randn(len(rng)), index=rng)
-
-    with tm.assert_produces_warning(FutureWarning):
-        resampled = ts.resample("5min", base=2).mean()
-    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
-    tm.assert_index_equal(resampled.index, exp_rng)
-
-
 def test_resample_offset():
+    # GH 31809
+
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -818,6 +739,8 @@ def test_resample_offset():
 
 
 def test_resample_origin():
+    # GH 31809
+
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -829,22 +752,6 @@ def test_resample_origin():
     offset_timestamp = pd.Timestamp(0) + pd.Timedelta("2min")
     resampled = ts.resample("5min", origin=offset_timestamp).mean()
     tm.assert_index_equal(resampled.index, exp_rng)
-
-
-def test_resample_float_base():
-    # GH25161
-    dt = pd.to_datetime(
-        ["2018-11-26 16:17:43.51", "2018-11-26 16:17:44.51", "2018-11-26 16:17:45.51"]
-    )
-    s = Series(np.arange(3), index=dt)
-
-    base = 17 + 43.51 / 60
-    with tm.assert_produces_warnding(FutureWarning):
-        result = s.resample("3min", base=base).size()
-    expected = Series(
-        3, index=pd.DatetimeIndex(["2018-11-26 16:17:43.51"], freq="3min")
-    )
-    tm.assert_series_equal(result, expected)
 
 
 def test_resample_daily_anchored():

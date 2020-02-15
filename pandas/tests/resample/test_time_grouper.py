@@ -287,11 +287,3 @@ def test_upsample_sum(method, method_args, expected_values):
     result = methodcaller(method, **method_args)(resampled)
     expected = pd.Series(expected_values, index=index)
     tm.assert_series_equal(result, expected)
-
-
-def test_deprecating_on_loffset_and_base():
-    with tm.assert_produces_warning(FutureWarning):
-        pd.Grouper(freq="10s", loffset="2s")
-
-    with tm.assert_produces_warning(FutureWarning):
-        pd.Grouper(freq="10s", base=2)

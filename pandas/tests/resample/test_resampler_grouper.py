@@ -133,6 +133,8 @@ def test_groupby_resample_on_api_with_getitem():
 
 
 def test_groupby_with_origin():
+    # GH 31809
+
     freq = "1399min"  # prime number that is smaller than 24h
     start, end = "1/1/2000 00:00:00", "1/31/2000 00:00"
     middle = "1/15/2000 00:00:00"
