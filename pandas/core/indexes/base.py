@@ -3956,6 +3956,17 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         DataFrame.where : Replace values in a DataFrame where the condition is False.
+
+        Examples
+        --------
+        >>> idx1 = pd.Index([42, 21, 34, 96, 72])
+        >>> idx1
+        Int64Index([42, 21, 34, 96, 72], dtype='int64')
+        >>> idx2 = pd.Index([140, 150, 140, 190, 170])
+        >>> idx2
+        Int64Index([140, 150, 140, 190, 170], dtype='int64')
+        >>> idx1.where((idx2 - 100) > idx1, idx2)
+        Int64Index([140, 21, 34, 190, 170], dtype='int64')
         """
         if other is None:
             other = self._na_value
