@@ -10,9 +10,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _is_numpy_dev
-
 import pandas as pd
+from pandas import _is_numpy_dev
 import pandas._testing as tm
 
 

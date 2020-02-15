@@ -7,7 +7,6 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _is_numpy_dev
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -18,6 +17,7 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    _is_numpy_dev,
     date_range,
     isna,
 )

@@ -9,9 +9,7 @@ tests.series.test_cumulative
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _is_numpy_dev
-
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, _is_numpy_dev
 import pandas._testing as tm
 
 

@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import groupby
-from pandas.compat.numpy import _is_numpy_dev
 
 from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
@@ -16,6 +15,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _is_numpy_dev,
     concat,
     date_range,
 )
