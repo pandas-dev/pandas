@@ -710,7 +710,7 @@ class TestMerge:
         df1 = pd.DataFrame({"entity_id": [101, 102]})
         s = pd.Series([None, None], index=[101, 102], name="days")
 
-        dtype = "m8[{}]".format(unit)
+        dtype = f"m8[{unit}]"
         df2 = s.astype(dtype).to_frame("days")
         assert df2["days"].dtype == "m8[ns]"
 
@@ -1012,9 +1012,9 @@ class TestMerge:
 
             msg = (
                 "Cannot use `indicator=True` option when data contains a "
-                "column named {}|"
+                f"column named {i}|"
                 "Cannot use name of an existing column for indicator column"
-            ).format(i)
+            )
             with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)
             with pytest.raises(ValueError, match=msg):
@@ -1555,11 +1555,9 @@ class TestMergeDtypes:
         df2 = DataFrame({"A": df2_vals})
 
         msg = (
-            "You are trying to merge on {lk_dtype} and "
-            "{rk_dtype} columns. If you wish to proceed "
-            "you should use pd.concat".format(
-                lk_dtype=df1["A"].dtype, rk_dtype=df2["A"].dtype
-            )
+            f"You are trying to merge on {df1['A'].dtype} and "
+            f"{df2['A'].dtype} columns. If you wish to proceed "
+            "you should use pd.concat"
         )
         msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
@@ -1567,11 +1565,9 @@ class TestMergeDtypes:
 
         # Check that error still raised when swapping order of dataframes
         msg = (
-            "You are trying to merge on {lk_dtype} and "
-            "{rk_dtype} columns. If you wish to proceed "
-            "you should use pd.concat".format(
-                lk_dtype=df2["A"].dtype, rk_dtype=df1["A"].dtype
-            )
+            f"You are trying to merge on {df2['A'].dtype} and "
+            f"{df1['A'].dtype} columns. If you wish to proceed "
+            "you should use pd.concat"
         )
         msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
