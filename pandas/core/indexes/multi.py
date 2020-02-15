@@ -58,7 +58,6 @@ from pandas.core.sorting import (
     indexer_from_factorized,
     lexsort_indexer,
 )
-from pandas.core.util.hashing import hash_tuples
 
 from pandas.io.formats.printing import (
     format_object_attrs,
@@ -1434,11 +1433,6 @@ class MultiIndex(Index):
     def _inferred_type_levels(self):
         """ return a list of the inferred types, one for each level """
         return [i.inferred_type for i in self.levels]
-
-    @cache_readonly
-    def _hashed_values(self):
-        """ return a uint64 ndarray of my hashed values """
-        return hash_tuples(self)
 
     @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep="first"):
