@@ -153,6 +153,12 @@ class Grouper:
     def __new__(cls, *args, **kwargs):
         if kwargs.get("freq") is not None:
             from pandas.core.resample import TimeGrouper
+            from pandas.core.resample import _validate_resample_deprecated_args
+
+            if cls is not TimeGrouper:
+                # validate only when pd.Grouper is called, otherwise
+                # the warning is handled by the resample function
+                _validate_resample_deprecated_args(**kwargs)
 
             cls = TimeGrouper
         return super().__new__(cls)

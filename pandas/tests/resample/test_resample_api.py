@@ -25,14 +25,13 @@ def test_str():
     r = test_series.resample("H")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
-        "label=left, convention=start, base=0]" in str(r)
+        "label=left, convention=start]" in str(r)
     )
 
     r = test_series.resample("H", origin="1970-01-01")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
-        "label=left, convention=start, base=0, "
-        "origin=1970-01-01 00:00:00]" in str(r)
+        "label=left, convention=start, origin=1970-01-01 00:00:00]" in str(r)
     )
 
 

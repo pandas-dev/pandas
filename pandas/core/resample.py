@@ -67,7 +67,6 @@ class Resampler(_GroupBy, ShallowMixin):
         "label",
         "convention",
         "loffset",
-        "base",
         "kind",
         "origin",
         "offset",
@@ -247,7 +246,7 @@ class Resampler(_GroupBy, ShallowMixin):
 
     >>> r = s.resample('2s')
     DatetimeIndexResampler [freq=<2 * Seconds>, axis=0, closed=left,
-                            label=left, convention=start, base=0]
+                            label=left, convention=start]
 
     >>> r.agg(np.sum)
     2013-01-01 00:00:00    3
@@ -1260,7 +1259,7 @@ def get_resampler(obj, kind=None, **kwds):
     """
     Create a TimeGrouper and return our resampler.
     """
-    tg = TimeGrouper(**kwds, _warning_stack_level=2)
+    tg = TimeGrouper(**kwds)
     return tg._get_resampler(obj, kind=kind)
 
 
@@ -1301,7 +1300,6 @@ class TimeGrouper(Grouper):
         "loffset",
         "kind",
         "convention",
-        "base",
         "origin",
         "offset",
     )
@@ -1321,7 +1319,6 @@ class TimeGrouper(Grouper):
         base=None,
         origin=None,
         offset=None,
-        _warning_stack_level=0,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
@@ -1361,44 +1358,19 @@ class TimeGrouper(Grouper):
 
         self.origin = Timestamp(origin) if origin is not None else None
         self.offset = Timedelta(offset) if offset is not None else None
+        if base and isinstance(freq, Tick):
+            # this conversion handle the default behavior of base
+            # and the special case of GH #10530
+            self.offset = Timedelta(base * freq.nanos // freq.n)
 
         # always sort time groupers
         kwargs["sort"] = True
 
-        self._warn_if_loffset_or_base_is_used(base, loffset, _warning_stack_level)
         if isinstance(loffset, str):
             loffset = to_offset(loffset)
         self.loffset = loffset
-        self.base = base if base else 0
 
         super().__init__(freq=freq, axis=axis, **kwargs)
-
-    @staticmethod
-    def _warn_if_loffset_or_base_is_used(base, loffset, _warning_stack_level):
-        if base is not None:
-            warnings.warn(
-                "'base' in .resample() and in Grouper() is deprecated.\n"
-                "The new arguments that you should use "
-                "are 'offset' or 'origin'.\n\n"
-                '>>> df.resample(freq="3s", base=2)\n'
-                "\nbecomes:\n\n"
-                '>>> df.resample(freq="3s", offset="2s")\n',
-                FutureWarning,
-                stacklevel=3 + _warning_stack_level,
-            )
-
-        if loffset is not None:
-            warnings.warn(
-                "'loffset' in .resample() and in Grouper() is deprecated.\n"
-                "Here an example to have the same behavior than loffset:\n\n"
-                '>>> df.resample(freq="3s", loffset="8H")\n'
-                "\nbecomes:\n\n"
-                ">>> from pandas.tseries.frequencies import to_offset\n"
-                '>>> df = df.resample(freq="3s").mean()\n'
-                '>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
-                FutureWarning,
-                stacklevel=3 + _warning_stack_level,
-            )
 
     def _get_resampler(self, obj, kind=None):
         """
@@ -1457,7 +1429,6 @@ class TimeGrouper(Grouper):
             ax.max(),
             self.freq,
             closed=self.closed,
-            base=self.base,
             origin=self.origin,
             offset=self.offset,
         )
@@ -1544,15 +1515,12 @@ class TimeGrouper(Grouper):
         end_stamps = labels + self.freq
         bins = ax.searchsorted(end_stamps, side="left")
 
-        if self.base > 0:
-            # GH #10530
-            labels += type(self.freq)(self.base)
-        if self.loffset:
-            # GH #33498
-            labels += self.loffset
-
         if self.offset:
+            # GH 10530 & 31809
             labels += self.offset
+        if self.loffset:
+            # GH 33498
+            labels += self.loffset
 
         return binner, bins, labels
 
@@ -1605,14 +1573,13 @@ class TimeGrouper(Grouper):
         bin_shift = 0
 
         # GH 23882 & 31809
-        if self.origin is not None or self.offset is not None or self.base:
+        if self.origin is not None or self.offset is not None:
             # get base adjusted bin edge labels
             p_start, end = _get_period_range_edges(
                 start,
                 end,
                 self.freq,
                 closed=self.closed,
-                base=self.base,
                 origin=self.origin,
                 offset=self.offset,
             )
@@ -1651,6 +1618,34 @@ class TimeGrouper(Grouper):
         return binner, bins, labels
 
 
+def _validate_resample_deprecated_args(offset=None, base=None, loffset=None, **kwds):
+    if base is not None:
+        warnings.warn(
+            "'base' in .resample() and in Grouper() is deprecated.\n"
+            "The new arguments that you should use are 'offset' or 'origin'.\n\n"
+            '>>> df.resample(freq="3s", base=2)\n'
+            "\nbecomes:\n\n"
+            '>>> df.resample(freq="3s", offset="2s")\n',
+            FutureWarning,
+            stacklevel=3,
+        )
+        if offset is not None:
+            raise ValueError("offset and base cannot be present at the same time")
+
+    if loffset is not None:
+        warnings.warn(
+            "'loffset' in .resample() and in Grouper() is deprecated.\n"
+            "Here an example to have the same behavior than loffset:\n\n"
+            '>>> df.resample(freq="3s", loffset="8H")\n'
+            "\nbecomes:\n\n"
+            ">>> from pandas.tseries.frequencies import to_offset\n"
+            '>>> df = df.resample(freq="3s").mean()\n'
+            '>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
+            FutureWarning,
+            stacklevel=3,
+        )
+
+
 def _take_new_index(obj, indexer, new_index, axis=0):
 
     if isinstance(obj, ABCSeries):
@@ -1667,7 +1662,7 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_timestamp_range_edges(
-    first, last, freq, closed="left", base=0, origin=None, offset=None
+    first, last, freq, closed="left", origin=None, offset=None
 ):
     """
     Adjust the `first` Timestamp to the preceding Timestamp that resides on
@@ -1686,8 +1681,6 @@ def _get_timestamp_range_edges(
         The dateoffset to which the Timestamps will be adjusted.
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
-    base : int, default 0
-        The "origin" of the adjusted Timestamps.
     origin : pd.Timestamp, default None
         The timestamp on which to adjust the grouping. If None is passed, the
         first day of the time series at midnight is used.
@@ -1708,7 +1701,7 @@ def _get_timestamp_range_edges(
             last = last.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, base=base, origin=origin, offset=offset,
+            first, last, freq, closed=closed, origin=origin, offset=offset,
         )
         if isinstance(freq, Day):
             first = first.tz_localize(tz)
@@ -1729,9 +1722,7 @@ def _get_timestamp_range_edges(
     return first, last
 
 
-def _get_period_range_edges(
-    first, last, freq, closed="left", base=0, origin=None, offset=None
-):
+def _get_period_range_edges(first, last, freq, closed="left", origin=None, offset=None):
     """
     Adjust the provided `first` and `last` Periods to the respective Period of
     the given offset that encompasses them.
@@ -1746,8 +1737,6 @@ def _get_period_range_edges(
         The freq to which the Periods will be adjusted.
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
-    base : int, default 0
-        The "origin" of the adjusted Periods.
     origin : pd.Timestamp, default None
         The timestamp on which to adjust the grouping. If None is passed, the
         first day of the time series at midnight is used.
@@ -1768,7 +1757,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, base=base, origin=origin, offset=offset,
+        first, last, freq, closed=closed, origin=origin, offset=offset,
     )
 
     first = (first + int(adjust_first) * freq).to_period(freq)
@@ -1776,9 +1765,7 @@ def _get_period_range_edges(
     return first, last
 
 
-def _adjust_dates_anchored(
-    first, last, freq, closed="right", base=0, origin=None, offset=None
-):
+def _adjust_dates_anchored(first, last, freq, closed="right", origin=None, offset=None):
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
     # not a multiple of the frequency. See GH 8683
@@ -1799,9 +1786,6 @@ def _adjust_dates_anchored(
         first = first.tz_convert("UTC")
     if last_tzinfo is not None:
         last = last.tz_convert("UTC")
-
-    base_nanos = (base % freq.n) * freq.nanos // freq.n
-    origin_nanos += base_nanos
 
     foffset = (first.value - origin_nanos) % freq.nanos
     loffset = (last.value - origin_nanos) % freq.nanos

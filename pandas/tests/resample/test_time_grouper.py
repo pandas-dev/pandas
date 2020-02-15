@@ -251,7 +251,7 @@ def test_repr():
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, "
         "closed='left', label='left', how='mean', "
-        "convention='e', base=0)"
+        "convention='e')"
     )
     assert result == expected
 
@@ -259,7 +259,7 @@ def test_repr():
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, "
         "closed='left', label='left', how='mean', "
-        "convention='e', base=0, origin=Timestamp('1970-01-01 00:00:00'))"
+        "convention='e', origin=Timestamp('1970-01-01 00:00:00'))"
     )
     assert result == expected
 
