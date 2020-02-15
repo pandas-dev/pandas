@@ -392,9 +392,9 @@ class _OpenpyxlWriter(ExcelWriter):
                 'hidden'
 
         Returns
-        ------
+        -------
+        openpyxl.styles.Protection
         """
-
         from openpyxl.styles import Protection
 
         return Protection(**protection_dict)
