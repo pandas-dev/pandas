@@ -961,6 +961,13 @@ class TestTimeSeries:
         tm.assert_numpy_array_equal(idx.values, expected.values)
 
 
+def test_timestamp_constructor_pytz_fold_raise():
+    # Test for #25057
+    # pytz doesn't support fold. Check that we raise
+    # if fold is passed with pytz
+    msg = "pytz timezones do not support fold. Please use dateutil " "timezones."
+
+
 @pytest.mark.parametrize("fold", [0, 1])
 @pytest.mark.parametrize(
     "ts_input",
@@ -984,7 +991,7 @@ def test_timestamp_constructor_fold_conflict(ts_input, fold):
         Timestamp(ts_input=ts_input, fold=fold)
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London", None])
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", None])
 @pytest.mark.parametrize("fold", [0, 1])
 def test_timestamp_constructor_retain_fold(tz, fold):
     # Test for #25057
@@ -995,7 +1002,7 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
 @pytest.mark.parametrize(
     "ts_input,fold_out",
     [
@@ -1017,7 +1024,7 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
     assert result == expected
 
 
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
 @pytest.mark.parametrize(
     "ts_input,fold,value_out",
     [

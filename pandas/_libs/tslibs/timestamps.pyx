@@ -416,6 +416,12 @@ class Timestamp(_Timestamp):
                     "Timestamp from components."
                 )
 
+            if tz is not None and treat_tz_as_pytz(tz):
+                raise ValueError(
+                    "pytz timezones do not support fold. Please use dateutil "
+                    "timezones."
+                )
+
         if getattr(ts_input, 'fold', None) is not None and fold is not None:
             ts_input = ts_input.replace(fold=fold)
 
