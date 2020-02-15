@@ -3948,6 +3948,10 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+
+        See Also
+        --------
+        DataFrame.where : Replace values in a DataFrame where the condition is False.
         """
         if other is None:
             other = self._na_value
