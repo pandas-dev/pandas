@@ -405,8 +405,8 @@ class Timestamp(_Timestamp):
                     "Valid values for the fold argument are None, 0, or 1."
                 )
 
-            if (ts_input is not _no_input and (is_integer_object(ts_input)
-                    or is_float_object(ts_input) or
+            if (ts_input is not _no_input and (
+                    is_integer_object(ts_input) or is_float_object(ts_input) or
                     is_datetime64_object(ts_input) or isinstance(ts_input, str)
                     or getattr(ts_input, 'tzinfo', None) is not None)):
                 raise ValueError(
