@@ -20,7 +20,8 @@ def multiindex_dataframe_random_data():
 
 @pytest.fixture
 def multiindex_year_month_day_dataframe_random_data():
-    """DataFrame with 3 level MultiIndex (year, month, day) covering
+    """
+    DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data
     """
     tdf = tm.makeTimeDataFrame(100)
