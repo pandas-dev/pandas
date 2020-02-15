@@ -356,12 +356,12 @@ def read_sql(
     sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
     con : SQLAlchemy connectable (engine/connection) or database str URI
-        or DBAPI2 connection (fallback mode)'
+        or DBAPI2 connection (fallback mode)'.
 
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
         for engine disposal and connection closure for the SQLAlchemy connectable. See
-        `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
+        `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
