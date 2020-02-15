@@ -23,6 +23,8 @@ cdef:
 
     int64_t NPY_NAT = util.get_nat()
 
+    bint is_32bit =  platform.architecture()[0] == "32-bit"
+
 
 cpdef bint checknull(object val):
     """
@@ -357,7 +359,7 @@ class NAType(C_NAType):
 
     def __hash__(self):
         # GH 30013: Ensure hash is large enough to avoid hash collisions with integers
-        exponent = 31 if platform.architecture()[0] == "32-bit" else 61
+        exponent = 31 if is_32bit else 61
         return 2 ** exponent - 1
 
     # Binary arithmetic and comparison ops -> propagate
