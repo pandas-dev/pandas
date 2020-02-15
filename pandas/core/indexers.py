@@ -296,7 +296,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     indexer : array-like or list-like
         The array-like that's used to index. List-like input that is not yet
         a numpy array or an ExtensionArray is converted to one. Other input
-        types are passed through as is
+        types are passed through as is.
 
     Returns
     -------

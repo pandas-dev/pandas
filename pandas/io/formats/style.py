@@ -85,7 +85,7 @@ class Styler:
         number and ``<num_col>`` is the column number.
     na_rep : str, optional
         Representation for missing values.
-        If ``na_rep`` is None, no special formatting is applied
+        If ``na_rep`` is None, no special formatting is applied.
 
         .. versionadded:: 1.0.0
 
@@ -446,7 +446,7 @@ class Styler:
         Parameters
         ----------
         formatter : str, callable, dict or None
-            If ``formatter`` is None, the default formatter is used
+            If ``formatter`` is None, the default formatter is used.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
