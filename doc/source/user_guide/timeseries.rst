@@ -2228,10 +2228,10 @@ you can use the ``tz_convert`` method.
     Due to daylight saving time, one wall clock time can occur twice when shifting
     from summer to winter time; fold describes whether the datetime-like corresponds
     to the first (0) or the second time (1) the wall clock hits the ambiguous time.
-    Fold is supported only for constructing from naive datetime or :class:`Timestamp`
-    or for constructing from components (see below) with dateutil timezones as pytz
+    Fold is supported only for constructing from naive ``datetime.datetime`` or :class:`Timestamp`
+    or for constructing from components (see below) with ``dateutil`` timezones as ``pytz``
     timezones do not support fold. When localizing an ambiguous datetime, we
-    recommend to rely on ``tz_localize`` instead as it gives more control.
+    recommend to rely on :meth:`Timestamp.tz_localize` instead as it gives more control.
 
     .. ipython:: python
 
