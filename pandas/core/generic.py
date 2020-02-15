@@ -2743,7 +2743,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Copy the contents of a DataFrame to the clipboard.
 
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
-        >>> df.to_clipboard(sep=',')
+
+        >>> df.to_clipboard(sep=',') # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # ,A,B,C
         ... # 0,1,2,3
@@ -2752,7 +2753,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         We can omit the index by passing the keyword `index` and setting
         it to false.
 
-        >>> df.to_clipboard(sep=',', index=False)
+        >>> df.to_clipboard(sep=',', index=False) # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # A,B,C
         ... # 1,2,3
