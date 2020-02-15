@@ -282,12 +282,12 @@ class StringArray(PandasArray):
 
     def min(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_min((), dict(out=out, keepdims=keepdims))
-        result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna, mask=isna(self))
         return libmissing.NA if isna(result) else result
 
     def max(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_max((), dict(out=out, keepdims=keepdims))
-        result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna, mask=isna(self))
         return libmissing.NA if isna(result) else result
 
     def value_counts(self, dropna=False):
