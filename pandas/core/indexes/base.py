@@ -5154,7 +5154,7 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index(['a', 'b', 'c'])
-        >>> idx.delete(1)  # Deleting 'b'
+        >>> idx.delete(1)
         Index(['a', 'c'], dtype='object')
         >>> idx = pd.Index(['a', 'b', 'c'])
         >>> idx.delete([0, 2])
