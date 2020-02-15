@@ -622,16 +622,11 @@ class TestDataFrameSubclassing:
         result = df.duplicated()
         assert isinstance(result, tm.SubclassedSeries)
 
-    def test_idxmin(self):
+    @pytest.mark.parametrize("idx_method", ["idxmax", "idxmin"])
+    def test_idx(self, idx_method):
 
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = df.idxmin()
-        assert isinstance(result, tm.SubclassedSeries)
-
-    def test_idxmax(self):
-
-        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-        result = df.idxmax()
+        result = getattr(df, idx_method)()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_dot(self):
