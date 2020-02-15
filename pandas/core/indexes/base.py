@@ -3936,9 +3936,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def where(self, cond, other=None):
         """
-        Return an Index of same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from
-        other.
+        Return a copy of self with entries replaced where cond is False.
+
+        The replacement is taken from other.
 
         Parameters
         ----------
