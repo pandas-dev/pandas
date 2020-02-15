@@ -1389,11 +1389,11 @@ class BarPlot(MPLPlot):
 
             if self.orientation == "vertical":
                 ax.xaxis.update_units(self.ax_index)
-                self.tick_pos = ax.convert_xunits(self.ax_index)
+                self.tick_pos = ax.convert_xunits(self.ax_index).astype(np.int)
                 self.ax_pos = self.tick_pos - self.tickoffset
             elif self.orientation == "horizontal":
                 ax.yaxis.update_units(self.ax_index)
-                self.tick_pos = ax.convert_yunits(self.ax_index)
+                self.tick_pos = ax.convert_yunits(self.ax_index).astype(np.int)
                 self.ax_pos = self.tick_pos - self.tickoffset
 
             kwds = self.kwds.copy()
