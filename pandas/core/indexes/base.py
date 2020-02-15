@@ -4856,6 +4856,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
+        Return index-based slice indexer from labels-based one.
+
         For an ordered or unique index, compute the slice indexer for input
         labels and step.
 
@@ -4866,16 +4868,22 @@ class Index(IndexOpsMixin, PandasObject):
         end : label, default None
             If None, defaults to the end.
         step : int, default None
-        kind : str, default None
+            If None, defaults to 1.
+        kind : {'loc', 'getitem'}, optional
 
         Returns
         -------
-        indexer : slice
+        slice :
+            Slice indexer for input labels and step.
 
         Raises
         ------
         KeyError : If key does not exist, or key is not unique and index is
             not ordered.
+
+        See Also
+        --------
+        Index.slice_locs : Compute slice locations for input labels.
 
         Notes
         -----
@@ -4887,11 +4895,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(list('abcd'))
         >>> idx.slice_indexer(start='b', end='c')
-        slice(1, 3)
+        slice(1, 3, None)
 
         >>> idx = pd.MultiIndex.from_arrays([list('abcd'), list('efgh')])
         >>> idx.slice_indexer(start='b', end=('c', 'g'))
-        slice(1, 3)
+        slice(1, 3, None)
         """
         start_slice, end_slice = self.slice_locs(start, end, step=step, kind=kind)
 
