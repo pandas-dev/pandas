@@ -3949,7 +3949,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        Index
+        pandas.Index
+            Copy of self with entries replaced from other
+            where the condition is False.
 
         See Also
         --------
