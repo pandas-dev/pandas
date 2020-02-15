@@ -30,7 +30,7 @@ Bug fixes
 
 **ExtensionArray**
 
-- Fixed issue where taking the minimum or maximum of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
+- Fixed issue where taking :meth:`min` or :meth:`max` of a ``StringArray`` or ``Series`` with ``StringDtype`` type would raise. (:issue:`31746`)
 -
 
 **Categorical**
@@ -42,7 +42,9 @@ Bug fixes
 - Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
 - Fixed bug in parquet roundtrip with nullable unsigned integer dtypes (:issue:`31896`).
 
+**Reduction**
 
+- Fixed bug where :meth:`Series.min` and :meth:`Series.max` would raise a ``TypeError`` in the presence of ``NaN`` for object dtype. (:issue:`18588`)
 
 **Experimental dtypes**
 
