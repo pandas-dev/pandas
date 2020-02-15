@@ -5160,7 +5160,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
-        
         return self._shallow_copy(np.delete(self._data, loc))
 
     def insert(self, loc: int, item):
