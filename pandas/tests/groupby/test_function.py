@@ -685,15 +685,16 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
-@pytest.mark.parametrize("dtype", [np.int32, np.int64, np.float32, np.float64])
-def test_cummin_cummax(dtype):
-    min_val = (
-        np.iinfo(dtype).min if np.dtype(dtype).kind == "i" else np.finfo(dtype).min
-    )
-    max_val = (
-        np.iinfo(dtype).max if np.dtype(dtype).kind == "i" else np.finfo(dtype).max
-    )
-
+@pytest.mark.parametrize(
+    "dtype, min_val, max_val",
+    [
+        (np.int32, np.iinfo(np.int32).min, np.iinfo(np.int32).max),
+        (np.int64, np.iinfo(np.int64).min, np.iinfo(np.int64).max),
+        (np.float32, np.finfo(np.float32).min, np.finfo(np.float32).max),
+        (np.float64, np.finfo(np.float64).min, np.finfo(np.float64).max),
+    ],
+)
+def test_cummin_cummax(dtype, min_val, max_val):
     # GH 15048
     base_df = pd.DataFrame(
         {"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]}
