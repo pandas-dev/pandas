@@ -19,7 +19,7 @@ def import_module(name):
     try:
         return importlib.import_module(name)
     except ModuleNotFoundError:  # noqa
-        pytest.skip("skipping as {} not available".format(name))
+        pytest.skip(f"skipping as {name} not available")
 
 
 @pytest.fixture

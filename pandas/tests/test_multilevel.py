@@ -896,10 +896,10 @@ Thur,Lunch,Yes,51.51,17"""
         values = np.arange(5)
         data = np.vstack(
             [
-                ["b{}".format(x) for x in values],  # b0, b1, ..
-                ["a{}".format(x) for x in values],
+                [f"b{x}" for x in values],  # b0, b1, ..
+                [f"a{x}" for x in values],  # a0, a1, ..
             ]
-        )  # a0, a1, ..
+        )
         df = pd.DataFrame(data.T, columns=["b", "a"])
         df.columns.name = "first"
         second_level_dict = {"x": df}
