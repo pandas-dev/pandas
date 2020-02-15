@@ -1441,6 +1441,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         |  1 | pig      |
         |  2 | dog      |
         |  3 | quetzal  |
+
+        See Also
+        --------
+        WIP.
         """
     )
     @Substitution(klass="Series")
