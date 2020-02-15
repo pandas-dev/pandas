@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, offsets
+from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, offsets
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -377,18 +377,28 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
 
-    @pytest.mark.parametrize("nan", [np.nan, np.float64("NaN"), float("nan")])
+    @pytest.mark.parametrize(
+        "nan",
+        [
+            np.nan,
+            pytest.param(
+                np.float64("NaN"),
+                marks=pytest.mark.xfail(
+                    _is_numpy_dev,
+                    reason="https://github.com/pandas-dev/pandas/issues/31992",
+                ),
+            ),
+            float("nan"),
+        ],
+    )
     def test_td_div_nan(self, nan):
         # np.float64('NaN') has a 'dtype' attr, avoid treating as array
         td = Timedelta(10, unit="d")
         result = td / nan
         assert result is NaT
 
-        # TODO: Don't leave commented, this is just a temporary fix for
-        # https://github.com/pandas-dev/pandas/issues/31992
-
-        # result = td // nan
-        # assert result is NaT
+        result = td // nan
+        assert result is NaT
 
     # ---------------------------------------------------------------
     # Timedelta.__rdiv__
