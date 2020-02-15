@@ -869,6 +869,7 @@ def _nanminmax(meth, fill_value_typ):
         elif (
             is_object_dtype(dtype)
             and values.ndim == 1
+            and mask is not None
             and mask.any()
         ):
             # Need to explicitly mask NA values for object dtypes
