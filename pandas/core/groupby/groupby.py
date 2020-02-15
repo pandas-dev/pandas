@@ -1447,7 +1447,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def ohlc(self) -> DataFrame:
         """
-        Compute sum of values, excluding missing values.
+        Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
 
@@ -2329,7 +2329,7 @@ class GroupBy(_GroupBy):
         periods : int, default 1
             Number of periods to shift.
         freq : str, optional
-            Frequency string
+            Frequency string.
         axis : axis to shift, default 0
         fill_value : optional
 
