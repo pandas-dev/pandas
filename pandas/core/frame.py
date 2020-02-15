@@ -6268,9 +6268,10 @@ Wild         185.0
     See Also
     --------
     %(other)s
-    pivot_table
-    DataFrame.pivot
-    Series.explode
+    pivot_table : Backward fill the new missing values in the resampled data.
+    DataFrame.pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    Series.explode : Transform each element of a list-like to a row,
+        replicating the index values.
 
     Examples
     --------
@@ -6335,7 +6336,10 @@ Wild         185.0
         % dict(
             caller="df.melt(",
             versionadded="\n    .. versionadded:: 0.20.0\n",
-            other="melt",
+            other=(
+                "melt: Unpivot a DataFrame from wide to long format,"
+                "    optionally leaving identifiers set."
+            ),
         )
     )
     def melt(
