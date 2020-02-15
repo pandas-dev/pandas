@@ -5133,7 +5133,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def delete(self, loc):
         """
-        Make new Index with passed location(-s) deleted.
+        Make new Index with passed location deleted.
 
         Parameters
         ----------
@@ -5141,7 +5141,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        new_index : Index
+        Index
+            New Index with passed location deleted.
         """
         return self._shallow_copy(np.delete(self._data, loc))
 
