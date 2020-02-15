@@ -608,6 +608,7 @@ class PlotAccessor(PandasObject):
         - 'hexbin' : hexbin plot.
 
     figsize : a tuple (width, height) in inches
+        The size of the figure to create in matplotlib.
     use_index : bool, default True
         Use index as ticks for x axis.
     title : str or list
@@ -637,7 +638,9 @@ class PlotAccessor(PandasObject):
     yticks : sequence
         Values to use for the yticks.
     xlim : 2-tuple/list
+        Set or query x-axis limits.
     ylim : 2-tuple/list
+        Set or query y-axis limits.
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
         plots).
