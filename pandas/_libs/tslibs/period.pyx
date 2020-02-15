@@ -1487,6 +1487,7 @@ def extract_freq(ndarray[object] values):
 # -----------------------------------------------------------------------
 # period helpers
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef int64_t[:] localize_dt64arr_to_period(const int64_t[:] stamps,
