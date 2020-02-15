@@ -842,6 +842,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+            Index refer to new object which is a copy of this object
 
         Notes
         -----
