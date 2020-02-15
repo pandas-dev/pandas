@@ -2691,7 +2691,7 @@ Name: Max Speed, dtype: float64
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = try_cast_to_ea(self._values, new_values)
+            new_values = try_cast_to_ea(self._values, new_values, dtype=self.dtype)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> "Series":
