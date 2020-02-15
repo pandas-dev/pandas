@@ -17,7 +17,7 @@ class TestTimestampRendering:
     )
     def test_repr(self, date, freq, tz):
         # avoid to match with timezone name
-        freq_repr = "'{0}'".format(freq)
+        freq_repr = f"'{freq}'"
         if tz.startswith("dateutil"):
             tz_repr = tz.replace("dateutil", "")
         else:

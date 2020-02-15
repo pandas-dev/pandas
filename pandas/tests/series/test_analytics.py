@@ -169,10 +169,10 @@ class TestSeriesAnalytics:
         name = func.__name__
 
         msg = (
-            r"the '{arg}' parameter is not "
-            r"supported in the pandas "
-            r"implementation of {fname}\(\)"
-        ).format(arg=param, fname=name)
+            f"the '{param}' parameter is not "
+            "supported in the pandas "
+            fr"implementation of {name}\(\)"
+        )
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 

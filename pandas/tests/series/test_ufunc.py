@@ -287,7 +287,7 @@ def test_object_dtype_ok():
             return type(other) is Thing and self.value == other.value
 
         def __repr__(self) -> str:
-            return "Thing({})".format(self.value)
+            return f"Thing({self.value})"
 
     s = pd.Series([Thing(1), Thing(2)])
     result = np.add(s, Thing(1))
