@@ -698,44 +698,27 @@ def test_numpy_compat(func):
 @pytest.mark.xfail(
     _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
 )
-def test_cummin_cummax(dtype, min_val, max_val):
+def test_cummin(dtype, min_val, max_val):
     # GH 15048
     base_df = pd.DataFrame(
         {"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]}
     )
     expected_mins = [3, 3, 3, 2, 2, 2, 2, 1]
-    expected_maxs = [3, 4, 4, 4, 2, 3, 3, 3]
 
     df = base_df.astype(dtype)
 
-    # cummin
     expected = pd.DataFrame({"B": expected_mins}).astype(dtype)
     result = df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected)
     result = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
     tm.assert_frame_equal(result, expected)
 
-    # Test cummin w/ min value for dtype
+    # Test w/ min value for dtype
     df.loc[[2, 6], "B"] = min_val
     expected.loc[[2, 3, 6, 7], "B"] = min_val
     result = df.groupby("A").cummin()
     tm.assert_frame_equal(result, expected)
     expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-    tm.assert_frame_equal(result, expected)
-
-    # cummax
-    expected = pd.DataFrame({"B": expected_maxs}).astype(dtype)
-    result = df.groupby("A").cummax()
-    tm.assert_frame_equal(result, expected)
-    result = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
-    tm.assert_frame_equal(result, expected)
-
-    # Test cummax w/ max value for dtype
-    df.loc[[2, 6], "B"] = max_val
-    expected.loc[[2, 3, 6, 7], "B"] = max_val
-    result = df.groupby("A").cummax()
-    tm.assert_frame_equal(result, expected)
-    expected = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
     tm.assert_frame_equal(result, expected)
 
     # Test nan in some values
@@ -746,6 +729,65 @@ def test_cummin_cummax(dtype, min_val, max_val):
     expected = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
     tm.assert_frame_equal(result, expected)
 
+    # Test nan in entire column
+    base_df["B"] = np.nan
+    expected = pd.DataFrame({"B": [np.nan] * 8})
+    result = base_df.groupby("A").cummin()
+    tm.assert_frame_equal(expected, result)
+    result = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    tm.assert_frame_equal(expected, result)
+
+    # GH 15561
+    df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
+    expected = pd.Series(pd.to_datetime("2001"), index=[0], name="b")
+
+    result = df.groupby("a")["b"].cummin()
+    tm.assert_series_equal(expected, result)
+
+    # GH 15635
+    df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
+    result = df.groupby("a").b.cummin()
+    expected = pd.Series([1, 2, 1], name="b")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, min_val, max_val",
+    [
+        (np.int32, np.iinfo(np.int32).min, np.iinfo(np.int32).max),
+        (np.int64, np.iinfo(np.int64).min, np.iinfo(np.int64).max),
+        (np.float32, np.finfo(np.float32).min, np.finfo(np.float32).max),
+        (np.float64, np.finfo(np.float64).min, np.finfo(np.float64).max),
+    ],
+)
+@pytest.mark.xfail(
+    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
+)
+def test_cummax(dtype, min_val, max_val):
+    # GH 15048
+    base_df = pd.DataFrame(
+        {"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]}
+    )
+    expected_maxs = [3, 4, 4, 4, 2, 3, 3, 3]
+
+    df = base_df.astype(dtype)
+
+    expected = pd.DataFrame({"B": expected_maxs}).astype(dtype)
+    result = df.groupby("A").cummax()
+    tm.assert_frame_equal(result, expected)
+    result = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    tm.assert_frame_equal(result, expected)
+
+    # Test w/ max value for dtype
+    df.loc[[2, 6], "B"] = max_val
+    expected.loc[[2, 3, 6, 7], "B"] = max_val
+    result = df.groupby("A").cummax()
+    tm.assert_frame_equal(result, expected)
+    expected = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    tm.assert_frame_equal(result, expected)
+
+    # Test nan in some values
+    base_df.loc[[0, 2, 4, 6], "B"] = np.nan
     expected = pd.DataFrame({"B": [np.nan, 4, np.nan, 4, np.nan, 3, np.nan, 3]})
     result = base_df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
@@ -755,10 +797,6 @@ def test_cummin_cummax(dtype, min_val, max_val):
     # Test nan in entire column
     base_df["B"] = np.nan
     expected = pd.DataFrame({"B": [np.nan] * 8})
-    result = base_df.groupby("A").cummin()
-    tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-    tm.assert_frame_equal(expected, result)
     result = base_df.groupby("A").cummax()
     tm.assert_frame_equal(expected, result)
     result = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
@@ -767,19 +805,14 @@ def test_cummin_cummax(dtype, min_val, max_val):
     # GH 15561
     df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
     expected = pd.Series(pd.to_datetime("2001"), index=[0], name="b")
-    for method in ["cummax", "cummin"]:
-        result = getattr(df.groupby("a")["b"], method)()
-        tm.assert_series_equal(expected, result)
+
+    result = df.groupby("a")["b"].cummax()
+    tm.assert_series_equal(expected, result)
 
     # GH 15635
     df = pd.DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
     result = df.groupby("a").b.cummax()
     expected = pd.Series([2, 1, 2], name="b")
-    tm.assert_series_equal(result, expected)
-
-    df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
-    result = df.groupby("a").b.cummin()
-    expected = pd.Series([1, 2, 1], name="b")
     tm.assert_series_equal(result, expected)
 
 
