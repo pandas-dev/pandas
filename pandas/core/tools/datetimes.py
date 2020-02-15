@@ -538,7 +538,7 @@ def to_datetime(
     infer_datetime_format=False,
     origin="unix",
     cache=True,
-):
+):  # noqa: D207
     """
     Convert argument to datetime.
 

@@ -23,6 +23,7 @@ dependencies:
   - isort  # check that imports are in the right order
   - mypy=0.730
   - pycodestyle  # used by flake8
+  - pydocstyle
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew

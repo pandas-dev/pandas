@@ -393,6 +393,7 @@ class _OpenpyxlWriter(ExcelWriter):
 
         Returns
         -------
+        openpyxl.styles.Protection
         """
         from openpyxl.styles import Protection
 

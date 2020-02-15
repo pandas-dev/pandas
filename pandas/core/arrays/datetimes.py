@@ -559,7 +559,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         ------
         tstamp : Timestamp
         """
-
         # convert in chunks of 10k for efficiency
         data = self.asi8
         length = len(self)
@@ -820,7 +819,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype = tz_to_dtype(tz)
         return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
-    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
+    def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):  # noqa
         """
         Localize tz-naive Datetime Array/Index to tz-aware
         Datetime Array/Index.
@@ -1640,7 +1639,6 @@ default 'raise'
         0 Julian date is noon January 1, 4713 BC.
         https://en.wikipedia.org/wiki/Julian_day
         """
-
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
         year = np.asarray(self.year)
         month = np.asarray(self.month)
@@ -1705,7 +1703,6 @@ def sequence_to_dt64ns(
     ------
     TypeError : PeriodDType data is passed
     """
-
     inferred_freq = None
 
     dtype = _validate_dt64_dtype(dtype)
