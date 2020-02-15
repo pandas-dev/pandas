@@ -5149,7 +5149,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.delete : Delete any rows and column from NumPy array (ndarray) 
+        numpy.delete : Delete any rows and column from NumPy array (ndarray).
 
         Examples
         --------
