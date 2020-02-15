@@ -828,11 +828,14 @@ class Index(IndexOpsMixin, PandasObject):
         Make a copy of this object.
 
         Name and dtype sets those attributes on the new object.
+
         Parameters
         ----------
-        name : Label
+        name : Label, optional
+            name for new object
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
+            dtype for new object
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
