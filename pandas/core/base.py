@@ -929,12 +929,17 @@ class IndexOpsMixin:
         """
         Return an ndarray of the maximum argument indexer.
 
+        If multiple values equal the maximum, the first row label with that
+        value is returned.
+
         Parameters
         ----------
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -943,7 +948,22 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.argmax
+        numpy.ndarray.argmax : Returns the indices of the maximum values along an axis.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1, None, 5, 4, 5],
+        ...               index=['A', 'B', 'C', 'D', 'E'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    5.0
+        D    4.0
+        E    5.0
+        dtype: float64
+
+        >>> s.argmax()
+        2
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
