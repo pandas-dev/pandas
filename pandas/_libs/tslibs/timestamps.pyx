@@ -399,20 +399,20 @@ class Timestamp(_Timestamp):
             tz, tzinfo = tzinfo, None
 
         # Allow fold only for unambiguous input
-        if (fold is not None and ts_input is not _no_input and
-                (is_integer_object(ts_input) or is_float_object(ts_input) or
-                    is_datetime64_object(ts_input) or isinstance(ts_input, str)
-                    or getattr(ts_input, 'tzinfo', None) is not None
-                )):
-            raise ValueError(
-                "Cannot pass fold with possibly unambiguous input: int, float, "
-                "numpy.datetime64, str, or timezone-aware datetime-like. "
-                "Pass naive datetime-like or build Timestamp from components."
-            )
+        if fold is not None:
+            if fold not in [0, 1]:
+                raise ValueError("Valid values for the fold argument are None, 0, "
+                                 "or 1.")
 
-        if fold is not None and fold not in [0, 1]:
-            raise ValueError("Valid values for the fold argument are None, 0, "
-                             "or 1.")
+            if (ts_input is not _no_input and (is_integer_object(ts_input)
+                    or is_float_object(ts_input) or
+                    is_datetime64_object(ts_input) or isinstance(ts_input, str)
+                    or getattr(ts_input, 'tzinfo', None) is not None)):
+                raise ValueError(
+                    "Cannot pass fold with possibly unambiguous input: int, float, "
+                    "numpy.datetime64, str, or timezone-aware datetime-like. "
+                    "Pass naive datetime-like or build Timestamp from components."
+                )
 
         if getattr(ts_input, 'fold', None) is not None and fold is not None:
             ts_input = ts_input.replace(fold=fold)
