@@ -17,13 +17,13 @@ from numpy cimport ndarray, int64_t, uint8_t, intp_t
 cnp.import_array()
 
 from pandas._libs.tslibs.ccalendar import DAY_SECONDS, HOUR_SECONDS
+from pandas._libs.tslibs.conversion cimport _TSObject
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dt64_to_dtstruct)
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info, is_tzlocal, is_utc, get_timezone, get_utcoffset)
-
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
 @cython.boundscheck(False)
@@ -480,6 +480,46 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     if not to_utc:
         return val + delta
     return val - delta
+
+
+cdef void _tz_convert_utctsobject_to_local(_TSObject obj, tzinfo tz):
+    """
+    Localize _TSObject (intermediate type holding future Timestamp data) from
+    UTC to local timezone.
+
+    Private, not intended for use outside of tslibs.conversion
+
+    Parameters
+    ----------
+    obj : _TSObject
+    tz : tzinfo
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Sets obj.tzinfo inplace, alters obj.dts inplace,
+    alters object.value inplace, alters obj.fold inplace
+    """
+    cdef:
+        npy_datetimestruct dts
+        int64_t delta
+        datetime dt
+
+    dt64_to_dtstruct(obj.value, &dts)
+    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                  dts.min, dts.sec, dts.us)
+    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
+    # is _wall time_, so if val is a UTC timestamp convert to wall time
+    dt = dt.replace(tzinfo=tzutc())
+    dt = dt.astimezone(tz)
+    delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+
+    obj.value += delta
+    obj.fold = dt.fold
+    dt64_to_dtstruct(obj.value, &obj.dts)
 
 
 @cython.boundscheck(False)
