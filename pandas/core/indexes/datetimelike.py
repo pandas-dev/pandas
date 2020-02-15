@@ -206,7 +206,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
 
-    @doc(IndexOpsMixin.searchsorted, klass="Datetime Index")
+    @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
     def searchsorted(self, value, side="left", sorter=None):
         if isinstance(value, str):
             raise TypeError(
