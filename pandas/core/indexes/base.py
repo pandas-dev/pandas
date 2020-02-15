@@ -825,9 +825,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(self, name=None, deep=False, dtype=None, names=None):
         """
-        Make a copy of this object.  Name and dtype sets those attributes on
-        the new object.
+        Make a copy of this object.
 
+        Name and dtype sets those attributes on the new object.
         Parameters
         ----------
         name : Label
