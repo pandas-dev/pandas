@@ -1891,7 +1891,8 @@ class Categorical(ExtensionArray, PandasObject):
         return contains(self, key, container=self._codes)
 
     def _tidy_repr(self, max_vals=10, footer=True) -> str:
-        """ a short repr displaying only max_vals and an optional (but default
+        """
+        a short repr displaying only max_vals and an optional (but default
         footer)
         """
         num = max_vals // 2
@@ -2388,7 +2389,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-
         >>> s = pd.Categorical(['lama', 'cow', 'lama', 'beetle', 'lama',
         ...                'hippo'])
         >>> s.isin(['cow', 'lama'])

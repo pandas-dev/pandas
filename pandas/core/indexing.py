@@ -49,7 +49,6 @@ class _IndexSlice:
 
     Examples
     --------
-
     >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
@@ -87,7 +86,8 @@ class IndexingError(Exception):
 
 
 class IndexingMixin:
-    """Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
+    """
+    Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
     """
 
     @property
@@ -125,7 +125,6 @@ class IndexingMixin:
 
         Examples
         --------
-
         >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
         ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
         ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
