@@ -395,7 +395,6 @@ class option_context:
 
     Examples
     --------
-
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     ...
     """
@@ -716,8 +715,8 @@ def config_prefix(prefix):
     Warning: This is not thread - safe, and won't work properly if you import
     the API functions into your module using the "from x import y" construct.
 
-    Example:
-
+    Example
+    -------
     import pandas._config.config as cf
     with cf.config_prefix("display.font"):
         cf.register_option("color", "red")
