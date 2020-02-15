@@ -5150,6 +5150,9 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(['a', 'b', 'c'])
         >>> idx.delete(1)  # Deleting 'b'
         Index(['a', 'c'], dtype='object')
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.delete([0, 2])
+        Index(['b'], dtype='object')
         """
         
         return self._shallow_copy(np.delete(self._data, loc))
