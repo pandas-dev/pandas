@@ -652,7 +652,8 @@ def _get_counts_nanvar(
     ddof: int,
     dtype: Dtype = float,
 ) -> Tuple[Union[int, np.ndarray], Union[int, np.ndarray]]:
-    """ Get the count of non-null values along an axis, accounting
+    """
+    Get the count of non-null values along an axis, accounting
     for degrees of freedom.
 
     Parameters
@@ -956,7 +957,8 @@ def nanskew(
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
 ) -> float:
-    """ Compute the sample skewness.
+    """
+    Compute the sample skewness.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
     moment coefficient G1. The algorithm computes this coefficient directly
@@ -1194,7 +1196,8 @@ def _get_counts(
     axis: Optional[int],
     dtype: Dtype = float,
 ) -> Union[int, np.ndarray]:
-    """ Get the count of non-null values along an axis
+    """
+    Get the count of non-null values along an axis
 
     Parameters
     ----------

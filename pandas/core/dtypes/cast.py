@@ -105,7 +105,8 @@ def is_nested_object(obj) -> bool:
 
 
 def maybe_downcast_to_dtype(result, dtype):
-    """ try to cast to the specified dtype (e.g. convert back to bool/int
+    """
+    try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
     do_round = False
@@ -750,7 +751,8 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool = False):
 
 
 def invalidate_string_dtypes(dtype_set):
-    """Change string like dtypes to object for
+    """
+    Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
     non_string_dtypes = dtype_set - {np.dtype("S").type, np.dtype("<U").type}
@@ -1216,7 +1218,8 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
 
 
 def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
-    """ try to cast the array/value to a datetimelike dtype, converting float
+    """
+    try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
     from pandas.core.tools.timedeltas import to_timedelta

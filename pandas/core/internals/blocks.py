@@ -256,7 +256,8 @@ class Block(PandasObject):
 
     @property
     def array_dtype(self):
-        """ the dtype to return if I want to construct this block as an
+        """
+        the dtype to return if I want to construct this block as an
         array
         """
         return self.dtype
@@ -374,7 +375,8 @@ class Block(PandasObject):
         self.mgr_locs = self.mgr_locs.delete(loc)
 
     def apply(self, func, **kwargs) -> List["Block"]:
-        """ apply the function to my values; return a block if we are not
+        """
+        apply the function to my values; return a block if we are not
         one
         """
         with np.errstate(all="ignore"):
@@ -400,7 +402,8 @@ class Block(PandasObject):
         return [result]
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
-        """ fillna on the block with the value. If we fail, then convert to
+        """
+        fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -648,7 +651,8 @@ class Block(PandasObject):
         timedelta: bool = True,
         coerce: bool = False,
     ):
-        """ attempt to coerce any object types to better types return a copy
+        """
+        attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
         """
@@ -693,7 +697,8 @@ class Block(PandasObject):
     def replace(
         self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
     ):
-        """replace the to_replace value with value, possible to create new
+        """
+        replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
         It is used in ObjectBlocks.  It is here for API compatibility.
         """
@@ -913,7 +918,8 @@ class Block(PandasObject):
         return block
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):
-        """ putmask the data to the block; it is possible that we may create a
+        """
+        putmask the data to the block; it is possible that we may create a
         new dtype of block
 
         return the resulting block(s)
@@ -1446,7 +1452,8 @@ class Block(PandasObject):
         return array_equivalent(self.values, other.values)
 
     def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
-        """Return a list of unstacked blocks of self
+        """
+        Return a list of unstacked blocks of self
 
         Parameters
         ----------
@@ -1584,7 +1591,8 @@ class NonConsolidatableMixIn:
     _validate_ndim = False
 
     def __init__(self, values, placement, ndim=None):
-        """Initialize a non-consolidatable block.
+        """
+        Initialize a non-consolidatable block.
 
         'ndim' may be inferred from 'placement'.
 
@@ -1699,7 +1707,8 @@ class NonConsolidatableMixIn:
 
 
 class ExtensionBlock(NonConsolidatableMixIn, Block):
-    """Block for holding extension types.
+    """
+    Block for holding extension types.
 
     Notes
     -----
@@ -1757,7 +1766,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.values.dtype._is_numeric
 
     def setitem(self, indexer, value):
-        """Set the value inplace, returning a same-typed block.
+        """
+        Set the value inplace, returning a same-typed block.
 
         This differs from Block.setitem by not allowing setitem to change
         the dtype of the Block.
@@ -2291,7 +2301,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return DatetimeArray
 
     def _maybe_coerce_values(self, values):
-        """Input validation for values passed to __init__. Ensure that
+        """
+        Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
         Parameters
@@ -2580,7 +2591,8 @@ class ObjectBlock(Block):
 
     @property
     def is_bool(self):
-        """ we can be a bool if we have only bool values but are of type
+        """
+        we can be a bool if we have only bool values but are of type
         object
         """
         return lib.is_bool_array(self.values.ravel())
@@ -2593,7 +2605,8 @@ class ObjectBlock(Block):
         timedelta: bool = True,
         coerce: bool = False,
     ):
-        """ attempt to coerce any object types to better types return a copy of
+        """
+        attempt to coerce any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
 
         can return multiple blocks!
@@ -2886,7 +2899,8 @@ class CategoricalBlock(ExtensionBlock):
 
     @property
     def array_dtype(self):
-        """ the dtype to return if I want to construct this block as an
+        """
+        the dtype to return if I want to construct this block as an
         array
         """
         return np.object_

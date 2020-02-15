@@ -587,7 +587,8 @@ def _round_frac(x, precision: int):
 
 
 def _infer_precision(base_precision: int, bins) -> int:
-    """Infer an appropriate precision for _round_frac
+    """
+    Infer an appropriate precision for _round_frac
     """
     for precision in range(base_precision, 20):
         levels = [_round_frac(b, precision) for b in bins]

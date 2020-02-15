@@ -477,7 +477,8 @@ class IntegerArray(BaseMaskedArray):
 
     @property
     def _ndarray_values(self) -> np.ndarray:
-        """Internal pandas method for lossy conversion to a NumPy ndarray.
+        """
+        Internal pandas method for lossy conversion to a NumPy ndarray.
 
         This method is not part of the pandas interface.
 
@@ -492,7 +493,8 @@ class IntegerArray(BaseMaskedArray):
         return self.to_numpy(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
-        """Return values for sorting.
+        """
+        Return values for sorting.
 
         Returns
         -------

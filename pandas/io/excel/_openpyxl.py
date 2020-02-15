@@ -468,7 +468,8 @@ class _OpenpyxlWriter(ExcelWriter):
 
 class _OpenpyxlReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
-        """Reader using openpyxl engine.
+        """
+        Reader using openpyxl engine.
 
         Parameters
         ----------

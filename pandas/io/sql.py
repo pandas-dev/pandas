@@ -653,7 +653,8 @@ class SQLTable(PandasObject):
             self._execute_create()
 
     def _execute_insert(self, conn, keys, data_iter):
-        """Execute SQL statement inserting data
+        """
+        Execute SQL statement inserting data
 
         Parameters
         ----------
@@ -667,7 +668,8 @@ class SQLTable(PandasObject):
         conn.execute(self.table.insert(), data)
 
     def _execute_insert_multi(self, conn, keys, data_iter):
-        """Alternative to _execute_insert for DBs support multivalue INSERT.
+        """
+        Alternative to _execute_insert for DBs support multivalue INSERT.
 
         Note: multi-value insert is usually faster for analytics DBs
         and tables containing a few columns
@@ -1092,7 +1094,8 @@ class SQLDatabase(PandasSQL):
         schema=None,
         chunksize=None,
     ):
-        """Read SQL database table into a DataFrame.
+        """
+        Read SQL database table into a DataFrame.
 
         Parameters
         ----------
@@ -1168,7 +1171,8 @@ class SQLDatabase(PandasSQL):
         params=None,
         chunksize=None,
     ):
-        """Read SQL query into a DataFrame.
+        """
+        Read SQL query into a DataFrame.
 
         Parameters
         ----------

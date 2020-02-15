@@ -1,4 +1,5 @@
-""":func:`~pandas.eval` source string parsing functions
+"""
+:func:`~pandas.eval` source string parsing functions
 """
 
 from io import StringIO

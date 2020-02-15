@@ -51,7 +51,8 @@ class BaseOpsUtil(BaseExtensionTests):
 
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
-    """Various Series and DataFrame arithmetic ops methods.
+    """
+    Various Series and DataFrame arithmetic ops methods.
 
     Subclasses supporting various ops should set the class variables
     to indicate that they support ops of that kind

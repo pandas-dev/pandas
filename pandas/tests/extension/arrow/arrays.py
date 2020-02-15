@@ -1,4 +1,5 @@
-"""Rudimentary Apache Arrow-backed ExtensionArray.
+"""
+Rudimentary Apache Arrow-backed ExtensionArray.
 
 At the moment, just a boolean array / type is implemented.
 Eventually, we'll want to parametrize the type and support

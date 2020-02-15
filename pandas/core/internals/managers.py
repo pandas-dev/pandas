@@ -1756,7 +1756,8 @@ def form_blocks(arrays, names, axes):
 
 
 def _simple_blockify(tuples, dtype):
-    """ return a single array of a block that has a single dtype; if dtype is
+    """
+    return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
     """
     values, placement = _stack_arrays(tuples, dtype)
@@ -1815,7 +1816,8 @@ def _stack_arrays(tuples, dtype):
 def _interleaved_dtype(
     blocks: List[Block],
 ) -> Optional[Union[np.dtype, ExtensionDtype]]:
-    """Find the common dtype for `blocks`.
+    """
+    Find the common dtype for `blocks`.
 
     Parameters
     ----------

@@ -149,7 +149,8 @@ class BinOp(ops.BinOp):
 
     @property
     def is_in_table(self) -> bool:
-        """ return True if this is a valid column name for generation (e.g. an
+        """
+        return True if this is a valid column name for generation (e.g. an
         actual column in the table)
         """
         return self.queryables.get(self.lhs) is not None
@@ -175,7 +176,8 @@ class BinOp(ops.BinOp):
         return f"({self.lhs} {self.op} {val})"
 
     def convert_value(self, v) -> "TermValue":
-        """ convert the expression that is in the term to something that is
+        """
+        convert the expression that is in the term to something that is
         accepted by pytables
         """
 

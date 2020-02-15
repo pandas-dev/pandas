@@ -100,7 +100,8 @@ def _subplots(
     layout_type="box",
     **fig_kw,
 ):
-    """Create a figure with a set of subplots already made.
+    """
+    Create a figure with a set of subplots already made.
 
     This utility wrapper makes it convenient to create common layouts of
     subplots, including the enclosing figure object, in a single call.

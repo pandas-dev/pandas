@@ -534,7 +534,8 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
-    """Convert list of dicts to numpy arrays
+    """
+    Convert list of dicts to numpy arrays
 
     if `columns` is not passed, column names are inferred from the records
     - for OrderedDict and dicts, the column names match

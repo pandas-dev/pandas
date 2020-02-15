@@ -460,7 +460,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return cls.from_arrays(left, right, closed, copy=False, dtype=dtype)
 
     def _validate(self):
-        """Verify that the IntervalArray is valid.
+        """
+        Verify that the IntervalArray is valid.
 
         Checks that
 

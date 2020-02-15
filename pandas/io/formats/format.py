@@ -1832,7 +1832,8 @@ class EngFormatter:
         self.use_eng_prefix = use_eng_prefix
 
     def __call__(self, num: Union[int, float]) -> str:
-        """ Formats a number in engineering notation, appending a letter
+        """
+        Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
 
         >>> format_eng(0)       # for self.accuracy = 0
@@ -1930,7 +1931,8 @@ def _binify(cols: List[int], line_width: int) -> List[int]:
 def get_level_lengths(
     levels: Any, sentinel: Union[bool, object, str] = ""
 ) -> List[Dict[int, int]]:
-    """For each index in each level the function returns lengths of indexes.
+    """
+    For each index in each level the function returns lengths of indexes.
 
     Parameters
     ----------
