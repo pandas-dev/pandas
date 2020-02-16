@@ -639,7 +639,7 @@ cdef inline int64_t parse_iso_format_string(object ts) except? -1:
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
 
-    err_msg = f"Invalid ISO 8601 Duration format - {ts}"
+    err_msg = "Invalid ISO 8601 Duration format - {}".format(ts)
 
     for c in ts:
         # number (ascii codes)
