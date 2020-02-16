@@ -43,7 +43,7 @@ from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, grouper
+from pandas.core.groupby import base, grouper, numba_
 from pandas.core.indexes.api import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
@@ -187,7 +187,7 @@ class BaseGrouper:
                 # Otherwise we need to fall back to the slow implementation.
                 if len(result_values) == len(group_keys):
                     return group_keys, result_values, mutated
-
+        import pdb; pdb.set_trace()
         for key, (i, group) in zip(group_keys, splitter):
             object.__setattr__(group, "name", key)
 
@@ -931,11 +931,10 @@ class FrameSplitter(DataSplitter):
     def fast_apply(self, f, names, engine="cython"):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-
+        import pdb; pdb.set_trace()
         sdata = self._get_sorted_data()
         if engine == "numba":
-            # TODO: Raise if we don't have a series here (or dataframe with >1 columns?)
-            pass
+            return numba_.execute_groupby_function(sdata, f, names, starts, ends)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:

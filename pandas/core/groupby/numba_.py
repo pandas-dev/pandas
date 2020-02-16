@@ -6,6 +6,36 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 
 
+class InvalidApply(Exception):
+    pass
+
+
+def execute_groupby_function(sdata, f, names, starts, ends):
+    """Mimics apply_frame_axis0 which is the Cython equivalent of this function."""
+    # Run function
+    # Check if its mutated?
+    # copy data (maybe not necessary)
+    # TODO: Raise if we don't have a series here (or dataframe with >1 columns?)
+    results = []
+    for start, end in zip(starts, ends):
+        group = sdata.iloc[start, end]
+        group_ndarray = group.values.to_numpy()
+        group_index = group.index.to_numpy()
+        try:
+            # TODO: support *args, **kwargs here
+            group_result = f(group_ndarray, group_index)
+        except Exception:
+            # We can't be more specific without knowing something about `f`
+            # Like we do in Cython
+            raise InvalidApply('Let this error raise above us')
+        # Reconstruct the pandas object (expected downstream)
+        group_result = group._constructor(group_result, index=group.index, columns = group.columns)
+        results.append(group_result)
+
+    # TODO: How do we check mutated?
+    return results, False
+
+
 def validate_apply_function_signature(func):
     """
     Validate that the apply function's first 2 arguments are 'values' and 'index'.
