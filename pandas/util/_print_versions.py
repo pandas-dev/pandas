@@ -34,6 +34,7 @@ def _get_sys_info() -> Dict[str, Optional[JSONSerializable]]:
     Returns system information as a JSON serializable dictionary.
     """
     uname_result = platform.uname()
+    language_code, encoding = locale.getlocale()
     return {
         "commit": _get_full_commit_hash(),
         "python": ".".join(str(i) for i in sys.version_info),
@@ -46,7 +47,7 @@ def _get_sys_info() -> Dict[str, Optional[JSONSerializable]]:
         "byteorder": sys.byteorder,
         "LC_ALL": os.environ.get("LC_ALL"),
         "LANG": os.environ.get("LANG"),
-        "LOCALE": list(locale.getlocale()),
+        "LOCALE": {"language-code": language_code, "encoding": encoding},
     }
 
 
@@ -108,8 +109,10 @@ def show_versions(as_json: Union[str, bool] = False) -> None:
                 json.dump(j, f, indent=2)
 
     else:
-        assert isinstance(sys_info["LOCALE"], list)  # needed for mypy
-        sys_info["LOCALE"] = ".".join(str(i) for i in sys_info["LOCALE"])
+        assert isinstance(sys_info["LOCALE"], dict)  # needed for mypy
+        language_code = sys_info["LOCALE"]["language-code"]
+        encoding = sys_info["LOCALE"]["encoding"]
+        sys_info["LOCALE"] = f"{language_code}.{encoding}"
 
         maxlen = max(len(x) for x in deps)
         print("\nINSTALLED VERSIONS")
