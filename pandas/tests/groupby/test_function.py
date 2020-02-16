@@ -32,7 +32,8 @@ from pandas.util import _test_decorators as td
 )
 def numpy_dtypes_min_max(request):
     """
-    Fixture of numpy dtypes with min and max values used for testing nanops
+    Fixture of numpy dtypes with min and max values used for testing
+    cummin and cummax
     """
     dtype = request.param
     dct = {
