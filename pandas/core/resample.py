@@ -1682,7 +1682,8 @@ def _get_timestamp_range_edges(
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
     origin : pd.Timestamp, default None
-        The timestamp on which to adjust the grouping. If None is passed, the
+        The timestamp on which to adjust the grouping. It must be timezone
+        aware if the index of the resampled data is. If None is passed, the
         first day of the time series at midnight is used.
     offset : pd.Timedelta, default is None
         An offset timedelta added to the origin.
@@ -1692,6 +1693,13 @@ def _get_timestamp_range_edges(
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
     if isinstance(freq, Tick):
+        is_idx_tz_aware = first.tzinfo is not None or last.tzinfo is not None
+        if origin is not None and origin.tzinfo is None and is_idx_tz_aware:
+            raise ValueError(
+                "The origin must be timezone aware when the index "
+                "of the resampled data is."
+            )
+
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
@@ -1738,7 +1746,8 @@ def _get_period_range_edges(first, last, freq, closed="left", origin=None, offse
     closed : {'right', 'left'}, default None
         Which side of bin interval is closed.
     origin : pd.Timestamp, default None
-        The timestamp on which to adjust the grouping. If None is passed, the
+        The timestamp on which to adjust the grouping. It must be timezone
+        aware if the index of the resampled data is. If None is passed, the
         first day of the time series at midnight is used.
     offset : pd.Timedelta, default is None
         An offset timedelta added to the origin.

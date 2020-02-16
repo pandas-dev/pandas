@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -9,7 +9,7 @@ import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
+from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import _asfreq_compat
 

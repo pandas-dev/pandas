@@ -86,12 +86,17 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : Timestamp, default None
-        Only when `freq` parameter is passed.
-        The timestamp on which to adjust the grouping. If None is passed, the
+    origin : pd.Timestamp, default None
+        The timestamp on which to adjust the grouping. It must be timezone
+        aware if the index of the resampled data is. If None is passed, the
         first day of the time series at midnight is used.
+
+        .. versionadded:: 1.1.0
+
     offset : pd.Timedelta, default is None
         An offset timedelta added to the origin.
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------

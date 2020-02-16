@@ -754,6 +754,23 @@ def test_resample_origin():
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
+def test_resample_origin_with_tz():
+    # GH 31809
+    msg = "The origin must be timezone aware when the index of the resampled data is."
+
+    tz = "Europe/Paris"
+    rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s", tz=tz)
+    ts = Series(np.random.randn(len(rng)), index=rng)
+
+    exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min", tz=tz)
+
+    resampled = ts.resample("5min", origin="12/31/1999 23:57:00+00:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    with pytest.raises(ValueError, match=msg):
+        ts.resample("5min", origin="12/31/1999 23:57:00").mean()
+
+
 def test_resample_daily_anchored():
     rng = date_range("1/1/2000 0:00:00", periods=10000, freq="T")
     ts = Series(np.random.randn(len(rng)), index=rng)

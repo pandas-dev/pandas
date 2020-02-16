@@ -7824,10 +7824,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
         origin : pd.Timestamp, default None
-            The timestamp on which to adjust the grouping. If None is passed,
-            the first day of the time series at midnight is used.
+            The timestamp on which to adjust the grouping. It must be timezone
+            aware if the index of the resampled data is. If None is passed, the
+            first day of the time series at midnight is used.
+
+            .. versionadded:: 1.1.0
+
         offset : pd.Timedelta, default is None
             An offset timedelta added to the origin.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
