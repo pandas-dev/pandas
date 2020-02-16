@@ -967,7 +967,7 @@ indices_dict = {
     "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
     "float": tm.makeFloatIndex(100),
-    "bool": tm.makeBoolIndex(2),
+    "bool": tm.makeBoolIndex(10),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
@@ -978,6 +978,7 @@ indices_dict = {
 
 @pytest.fixture(params=indices_dict.keys())
 def indices(request):
+    """ Fixture for all kinds of indices. """
     # copy to avoid mutation, e.g. setting .name
     return indices_dict[request.param].copy()
 
@@ -993,6 +994,14 @@ _series = {
     f"series-with-{index_id}-index": _create_series(index)
     for index_id, index in indices_dict.items()
 }
+
+
+@pytest.fixture(params=_series.keys())
+def series_with_differing_index(request):
+    """
+    Fixture for tests on series with different types of indices.
+    """
+    return _series[request.param].copy()
 
 
 _narrow_dtypes = [
