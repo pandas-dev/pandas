@@ -1,4 +1,5 @@
-"""Test extension array for storing nested data in a pandas container.
+"""
+Test extension array for storing nested data in a pandas container.
 
 The JSONArray stores lists of dictionaries. The storage mechanism is a list,
 not an ndarray.

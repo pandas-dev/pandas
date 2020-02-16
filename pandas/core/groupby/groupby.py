@@ -1447,7 +1447,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def ohlc(self) -> DataFrame:
         """
-        Compute sum of values, excluding missing values.
+        Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
 
