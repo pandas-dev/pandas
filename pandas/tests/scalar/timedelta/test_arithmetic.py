@@ -386,6 +386,7 @@ class TestTimedeltaMultiplicationDivision:
                 marks=pytest.mark.xfail(
                     _is_numpy_dev,
                     reason="https://github.com/pandas-dev/pandas/issues/31992",
+                    strict=False,
                 ),
             ),
             float("nan"),
