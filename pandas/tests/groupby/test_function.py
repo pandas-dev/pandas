@@ -687,7 +687,9 @@ def test_numpy_compat(func):
 
 
 @pytest.mark.xfail(
-    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
 )
 def test_cummin_cummax():
     # GH 15048
