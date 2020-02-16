@@ -29,7 +29,7 @@ def _get_full_commit_hash() -> Optional[str]:
     return None
 
 
-def _get_sys_info() -> Dict[str, Optional[JSONSerializable]]:
+def _get_sys_info() -> Dict[str, JSONSerializable]:
     """
     Returns system information as a JSON serializable dictionary.
     """
@@ -51,7 +51,7 @@ def _get_sys_info() -> Dict[str, Optional[JSONSerializable]]:
     }
 
 
-def _get_dependency_info() -> Dict[str, Optional[JSONSerializable]]:
+def _get_dependency_info() -> Dict[str, JSONSerializable]:
     """
     Returns dependency information as a JSON serializable dictionary.
     """
@@ -85,7 +85,7 @@ def _get_dependency_info() -> Dict[str, Optional[JSONSerializable]]:
     ]
     deps.extend(list(VERSIONS))
 
-    result: Dict[str, Optional[JSONSerializable]] = {}
+    result: Dict[str, JSONSerializable] = {}
     for modname in deps:
         mod = import_optional_dependency(
             modname, raise_on_missing=False, on_version="ignore"
