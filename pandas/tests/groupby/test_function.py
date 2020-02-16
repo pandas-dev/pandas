@@ -692,7 +692,9 @@ def test_numpy_compat(func):
 
 
 @pytest.mark.xfail(
-    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
 )
 def test_cummin(numpy_dtypes):
     dtype = numpy_dtypes
