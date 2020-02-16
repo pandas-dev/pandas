@@ -129,9 +129,9 @@ For example:
     f"Unknown received type, got: '{type(value).__name__}'"
 
 PEP8 / black
---------------------------------------
-pandas follows the PEP8 standard and uses Black and Flake8 to ensure a 
-consistent code format throughout the project. For details see the 
+------------
+pandas follows the PEP8 standard and uses Black and Flake8 to ensure a
+consistent code format throughout the project. For details see the
 contributing guide https://pandas.pydata.org/pandas-docs/stable/development/contributing.html#python-pep8-black.
 
 Imports (aim for absolute)
