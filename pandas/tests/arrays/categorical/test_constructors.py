@@ -460,7 +460,7 @@ class TestCategoricalConstructors:
 
     def test_construction_with_null(self, nulls_fixture):
         # https://github.com/pandas-dev/pandas/issues/31927
-        values = ["a", nulls_fixture]
+        values = ["a", nulls_fixture, "b"]
         result = Categorical(np.array(values, dtype=object))
         expected = Categorical(values)
 
