@@ -819,6 +819,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         dtype = tz_to_dtype(tz)
         return self._simple_new(self.asi8, dtype=dtype, freq=self.freq)
 
+    # TODO: remove # noqa once https://github.com/PyCQA/pydocstyle/pull/441
+    # is merged
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):  # noqa
         """
         Localize tz-naive Datetime Array/Index to tz-aware
