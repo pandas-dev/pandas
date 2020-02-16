@@ -1786,6 +1786,48 @@ natural and functions similarly to :py:func:`itertools.groupby`:
 
 See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
+.. _timeseries.adjust-the-start-of-the-bins:
+
+Use `origin` or `offset` to adjust the start of the bins
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed timestamp with the argument ``origin``.
+
+For example:
+
+.. ipython:: python
+
+    start, end = "1/10/2000 02:00:00", "1/20/2000 02:00"
+    middle = "1/15/2000 02:00"
+    rng = pd.date_range(start, end, freq="1231min")
+    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    ts
+
+Here we can see that, when not using ``origin``, the result after 1/15/2000 are not identical depending on the start of time series:
+
+.. ipython:: python
+
+    ts.resample("2711min").sum()
+    ts[middle:end].resample("2711min").sum()
+
+
+Here we can see that, when using ``origin``, the result after 1/15/2000 are identical depending on the start of time series:
+
+.. ipython:: python
+
+   origin = pd.Timestamp("1970-01-01")
+   ts.resample("2711min", origin=origin).sum()
+   ts[middle:end].resample("2711min", origin=origin).sum()
+
+
+If needed we can just adjust the bins with an offset that would be added to the default ``origin``.
+Those two examples are equivalent for this time series:
+
+.. ipython:: python
+
+    ts.resample("2711min", origin="1/10/2000 02:00:00").sum()
+    ts.resample("2711min", offset="2h").sum()
+
 
 .. _timeseries.periods:
 
