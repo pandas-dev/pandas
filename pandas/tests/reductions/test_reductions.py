@@ -232,13 +232,13 @@ class TestIndexReductions:
     def test_minmax_timedelta_empty_or_na(self, op):
         # Return NaT
         obj = TimedeltaIndex([])
-        assert pd.isna(getattr(obj, op)())
+        assert getattr(obj, op)() is pd.NaT
 
         obj = TimedeltaIndex([pd.NaT])
-        assert pd.isna(getattr(obj, op)())
+        assert getattr(obj, op)() is pd.NaT
 
         obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
-        assert pd.isna(getattr(obj, op)())
+        assert getattr(obj, op)() is pd.NaT
 
     def test_numpy_minmax_timedelta64(self):
         td = timedelta_range("16815 days", "16820 days", freq="D")
