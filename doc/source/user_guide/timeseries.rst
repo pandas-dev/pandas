@@ -1820,7 +1820,7 @@ Here we can see that, when using ``origin``, the result after 1/15/2000 are iden
    ts[middle:end].resample("2711min", origin=origin).sum()
 
 
-If needed we can just adjust the bins with an offset that would be added to the default ``origin``.
+If needed you can just adjust the bins with an offset that would be added to the default ``origin``.
 Those two examples are equivalent for this time series:
 
 .. ipython:: python
