@@ -174,11 +174,10 @@ def test_arg_passthru():
     )
 
     for attr in ["mean", "median"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
     # TODO: min, max *should* handle
@@ -195,11 +194,10 @@ def test_arg_passthru():
         ]
     )
     for attr in ["min", "max"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(
@@ -215,29 +213,26 @@ def test_arg_passthru():
         ]
     )
     for attr in ["first", "last"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(["int", "float", "string", "category_int", "timedelta"])
 
-    f = getattr(df.groupby("group"), "sum")
-    result = f()
+    result = df.groupby("group").sum()
     tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-    result = f(numeric_only=False)
+    result = df.groupby("group").sum(numeric_only=False)
     tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(["int", "float", "category_int"])
     for attr in ["prod", "cumprod"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     # like min, max, but don't include strings
@@ -245,21 +240,19 @@ def test_arg_passthru():
         ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
     )
     for attr in ["cummin", "cummax"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         # GH 15561: numeric_only=False set by default like min/max
         tm.assert_index_equal(result.columns, expected_columns)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(["int", "float", "category_int", "timedelta"])
 
-    f = getattr(df.groupby("group"), "cumsum")
-    result = f()
+    result = getattr(df.groupby("group"), "cumsum")()
     tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-    result = f(numeric_only=False)
+    result = getattr(df.groupby("group"), "cumsum")(numeric_only=False)
     tm.assert_index_equal(result.columns, expected_columns)
 
 
