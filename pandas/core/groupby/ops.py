@@ -96,6 +96,7 @@ class BaseGrouper:
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+        self._numba_apply_cache = dict()
 
     @property
     def groupings(self) -> List["grouper.Grouping"]:
@@ -148,9 +149,7 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(
-        self, f, data: FrameOrSeries, axis: int = 0, engine="cython", engine_kwargs=None
-    ):
+    def apply(self, f, data: FrameOrSeries, axis: int = 0, engine="cython"):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
@@ -172,7 +171,7 @@ class BaseGrouper:
         ):
             try:
                 result_values, mutated = splitter.fast_apply(
-                    f, group_keys, engine=engine, engine_kwargs=engine_kwargs
+                    f, group_keys, engine=engine
                 )
 
             except libreduction.InvalidApply as err:
@@ -929,11 +928,14 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, names, engine="cython", engine_kwargs=None):
+    def fast_apply(self, f, names, engine="cython"):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
 
         sdata = self._get_sorted_data()
+        if engine == "numba":
+            # TODO: Raise if we don't have a series here (or dataframe with >1 columns?)
+            pass
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:

@@ -58,7 +58,7 @@ from pandas.core.base import DataError, PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base, ops
+from pandas.core.groupby import base, ops, numba_
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
@@ -707,32 +707,46 @@ b  2""",
 
         func = self._is_builtin_func(func)
 
-        # this is needed so we don't try and wrap strings. If we could
-        # resolve functions to their callable functions prior, this
-        # wouldn't be needed
-        if args or kwargs:
-            if callable(func):
+        if engine == "cython":
+            # this is needed so we don't try and wrap strings. If we could
+            # resolve functions to their callable functions prior, this
+            # wouldn't be needed
+            if args or kwargs:
+                if callable(func):
 
-                @wraps(func)
-                def f(g):
-                    with np.errstate(all="ignore"):
-                        return func(g, *args, **kwargs)
+                    @wraps(func)
+                    def f(g):
+                        with np.errstate(all="ignore"):
+                            return func(g, *args, **kwargs)
 
-            elif hasattr(nanops, "nan" + func):
-                # TODO: should we wrap this in to e.g. _is_builtin_func?
-                f = getattr(nanops, "nan" + func)
+                elif hasattr(nanops, "nan" + func):
+                    # TODO: should we wrap this in to e.g. _is_builtin_func?
+                    f = getattr(nanops, "nan" + func)
 
+                else:
+                    raise ValueError(
+                        "func must be a callable if args or kwargs are supplied"
+                    )
             else:
-                raise ValueError(
-                    "func must be a callable if args or kwargs are supplied"
-                )
+                f = func
+        elif engine == "numba":
+
+            numba_.validate_apply_function_signature(func)
+
+            if func in self.grouper._numba_func_cache:
+                # Return an already compiled version of the function if available
+                # TODO: this cache needs to be populated
+                f = self.grouper._numba_func_cache[func]
+            else:
+                # TODO: support args
+                f = numba_.generate_numba_apply_func(args, kwargs, func, engine_kwargs)
         else:
-            f = func
+            raise ValueError("engine must be either 'numba' or 'cython'")
 
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
-                result = self._python_apply_general(f, engine, engine_kwargs)
+                result = self._python_apply_general(f, engine)
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -743,13 +757,13 @@ b  2""",
                 # on a string grouper column
 
                 with _group_selection_context(self):
-                    return self._python_apply_general(f, engine, engine_kwargs)
+                    return self._python_apply_general(f, engine)
 
         return result
 
-    def _python_apply_general(self, f):
+    def _python_apply_general(self, f, engine="cython"):
         keys, values, mutated = self.grouper.apply(
-            f, self._selected_obj, self.axis, engine="cython", engine_kwargs=None
+            f, self._selected_obj, self.axis, engine=engine
         )
 
         return self._wrap_applied_output(
