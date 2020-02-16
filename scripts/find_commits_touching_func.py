@@ -96,13 +96,7 @@ def get_hits(defname, files=()):
     cs = set()
     for f in files:
         try:
-            r = sh.git(
-                "blame",
-                "-L",
-                rf"/def\s*{defname}/,/def/",
-                f,
-                _tty_out=False,
-            )
+            r = sh.git("blame", "-L", rf"/def\s*{defname}/,/def/", f, _tty_out=False,)
         except sh.ErrorReturnCode_128:
             logger.debug("no matches in %s" % f)
             continue
@@ -117,14 +111,7 @@ def get_hits(defname, files=()):
 
 
 def get_commit_info(c, fmt, sep="\t"):
-    r = sh.git(
-        "log",
-        f"--format={fmt}",
-        f"{c}^..{c}",
-        "-n",
-        "1",
-        _tty_out=False,
-    )
+    r = sh.git("log", f"--format={fmt}", f"{c}^..{c}", "-n", "1", _tty_out=False,)
     return str(r).split(sep)
 
 
@@ -205,11 +192,12 @@ def pprint_hits(hits):
 
         if len(s) > SUBJ_LEN:
             s = s[: SUBJ_LEN - 5] + " ..."
-        print(f"{h[:HASH_LEN]:{HASH_LEN}} "
-              f"{d.isoformat()[:10]:10} "
-              f"{s:<{SUBJ_LEN}} "
-              f"{p[-20:]:<{PATH_LEN}}"
-              )
+        print(
+            f"{h[:HASH_LEN]:{HASH_LEN}} "
+            f"{d.isoformat()[:10]:10} "
+            f"{s:<{SUBJ_LEN}} "
+            f"{p[-20:]:<{PATH_LEN}}"
+        )
 
     print("\n")
 
