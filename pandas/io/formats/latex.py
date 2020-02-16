@@ -139,8 +139,8 @@ class LatexFormatter(TableFormatter):
                     buf.write("\\endhead\n")
                     buf.write("\\midrule\n")
                     buf.write(
-                        f"\\multicolumn{{{len(row)}}}{{r}}{{{{Continued on next "
-                        "page}}}} \\\\\n"
+                        f"\\multicolumn{{{len(row)}}}{{r}}"
+                        "{{Continued on next page}} \\\\\n"
                     )
                     buf.write("\\midrule\n")
                     buf.write("\\endfoot\n\n")
@@ -209,8 +209,8 @@ class LatexFormatter(TableFormatter):
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(
-                    f"\\multicolumn{{{ncol:d}}}{{{self.multicolumn_format:s}}}"
-                    f"{{{coltext.strip():s}}}"
+                    f"\\multicolumn{{{ncol:d}}}{{{self.multicolumn_format}}}"
+                    f"{{{coltext.strip()}}}"
                 )
             # don't modify where not needed
             else:
@@ -253,7 +253,7 @@ class LatexFormatter(TableFormatter):
                         break
                 if nrow > 1:
                     # overwrite non-multirow entry
-                    row[j] = f"\\multirow{{{nrow:d}}}{{*}}{{{row[j].strip():s}}}"
+                    row[j] = f"\\multirow{{{nrow:d}}}{{*}}{{{row[j].strip()}}}"
                     # save when to end the current block with \cline
                     self.clinebuf.append([i + nrow - 1, j + 1])
         return row
