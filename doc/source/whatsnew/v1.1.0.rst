@@ -98,6 +98,9 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
+**Index**
+
+- Fixed bug where :meth:`Index.astype` would lose the name attribute when converting from ``Float64Index`` to ``Int64Index``. (:issue:`32013`)
 
 Categorical
 ^^^^^^^^^^^
