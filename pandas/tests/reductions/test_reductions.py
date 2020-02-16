@@ -228,16 +228,17 @@ class TestIndexReductions:
             assert idx.argmin() == 0
             assert idx.argmax() == 2
 
-        for op in ["min", "max"]:
-            # Return NaT
-            obj = TimedeltaIndex([])
-            assert pd.isna(getattr(obj, op)())
+    @pytest.mark.parametrize("op", ["min", "max"])
+    def test_minmax_timedelta_empty_or_na(self, op):
+        # Return NaT
+        obj = TimedeltaIndex([])
+        assert pd.isna(getattr(obj, op)())
 
-            obj = TimedeltaIndex([pd.NaT])
-            assert pd.isna(getattr(obj, op)())
+        obj = TimedeltaIndex([pd.NaT])
+        assert pd.isna(getattr(obj, op)())
 
-            obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
-            assert pd.isna(getattr(obj, op)())
+        obj = TimedeltaIndex([pd.NaT, pd.NaT, pd.NaT])
+        assert pd.isna(getattr(obj, op)())
 
     def test_numpy_minmax_timedelta64(self):
         td = timedelta_range("16815 days", "16820 days", freq="D")
