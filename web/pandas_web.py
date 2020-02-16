@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Simple static site generator for the pandas web.
 
@@ -34,11 +34,12 @@ import sys
 import time
 import typing
 
-import feedparser
 import jinja2
-import markdown
 import requests
 import yaml
+
+import feedparser
+import markdown
 
 
 class Preprocessors:

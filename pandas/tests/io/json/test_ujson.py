@@ -33,7 +33,6 @@ def _clean_dict(d):
     -------
     cleaned_dict : dict
     """
-
     return {str(k): v for k, v in d.items()}
 
 

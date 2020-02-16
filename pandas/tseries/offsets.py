@@ -308,7 +308,6 @@ class DateOffset(BaseOffset):
         -------
         y : DatetimeIndex
         """
-
         if type(self) is not DateOffset:
             raise NotImplementedError(
                 f"DateOffset subclass {type(self).__name__} "
@@ -1018,8 +1017,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
-    DateOffset subclass representing possibly n custom business days,
-    excluding holidays.
+    DateOffset subclass representing custom business days excluding holidays.
 
     Parameters
     ----------
@@ -2062,7 +2060,7 @@ class FY5253(DateOffset):
     such as retail, manufacturing and parking industry.
 
     For more information see:
-    http://en.wikipedia.org/wiki/4-4-5_calendar
+    https://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
 
@@ -2270,7 +2268,7 @@ class FY5253Quarter(DateOffset):
     such as retail, manufacturing and parking industry.
 
     For more information see:
-    http://en.wikipedia.org/wiki/4-4-5_calendar
+    https://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
 

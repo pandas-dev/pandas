@@ -39,7 +39,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_array_like, is_hashable
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import ops
@@ -54,7 +54,7 @@ from pandas.core.arrays.base import (
 from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
-from pandas.core.indexers import check_bool_array_indexer
+from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
@@ -644,7 +644,13 @@ class Categorical(ExtensionArray, PandasObject):
             )
             raise ValueError(msg)
 
-        codes = np.asarray(codes)  # #21767
+        if is_extension_array_dtype(codes) and is_integer_dtype(codes):
+            # Avoid the implicit conversion of Int to object
+            if isna(codes).any():
+                raise ValueError("codes cannot contain NA values")
+            codes = codes.to_numpy(dtype=np.int64)
+        else:
+            codes = np.asarray(codes)
         if len(codes) and not is_integer_dtype(codes):
             raise ValueError("codes need to be array-like integers")
 
@@ -695,7 +701,6 @@ class Categorical(ExtensionArray, PandasObject):
         [a, c]
         Categories (2, object): [a, c]
         """
-
         if fastpath:
             new_dtype = CategoricalDtype._from_fastpath(categories, self.ordered)
         else:
@@ -1221,7 +1226,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         shape : tuple
         """
-
         return tuple([len(self._codes)])
 
     def shift(self, periods, fill_value=None):
@@ -1378,7 +1382,6 @@ class Categorical(ExtensionArray, PandasObject):
         Categorical.notna : Boolean inverse of Categorical.isna.
 
         """
-
         ret = self._codes == -1
         return ret
 
@@ -1888,7 +1891,8 @@ class Categorical(ExtensionArray, PandasObject):
         return contains(self, key, container=self._codes)
 
     def _tidy_repr(self, max_vals=10, footer=True) -> str:
-        """ a short repr displaying only max_vals and an optional (but default
+        """
+        a short repr displaying only max_vals and an optional (but default
         footer)
         """
         num = max_vals // 2
@@ -1928,7 +1932,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Returns a string representation of the footer.
         """
-
         category_strs = self._repr_categories()
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
@@ -2001,14 +2004,11 @@ class Categorical(ExtensionArray, PandasObject):
             else:
                 return self.categories[i]
 
-        if is_list_like(key) and not is_array_like(key):
-            key = np.asarray(key)
-
-        if com.is_bool_indexer(key):
-            key = check_bool_array_indexer(self, key)
+        key = check_array_indexer(self, key)
 
         result = self._codes[key]
         if result.ndim > 1:
+            deprecate_ndim_indexing(result)
             return result
         return self._constructor(result, dtype=self.dtype, fastpath=True)
 
@@ -2076,6 +2076,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         lindexer = self.categories.get_indexer(rvalue)
         lindexer = self._maybe_coerce_indexer(lindexer)
+
+        key = check_array_indexer(self, key)
         self._codes[key] = lindexer
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
@@ -2255,7 +2257,6 @@ class Categorical(ExtensionArray, PandasObject):
         Series.unique
 
         """
-
         # unlike np.unique, unique1d does not sort
         unique_codes = unique1d(self.codes)
         cat = self.copy()
@@ -2315,7 +2316,6 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         bool
         """
-
         try:
             return hash(self.dtype) == hash(other.dtype)
         except (AttributeError, TypeError):
@@ -2389,7 +2389,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-
         >>> s = pd.Categorical(['lama', 'cow', 'lama', 'beetle', 'lama',
         ...                'hippo'])
         >>> s.isin(['cow', 'lama'])
@@ -2504,10 +2503,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.as_ordered()
     >>> s.cat.as_unordered()
     """
-
-    _deprecations = PandasObject._deprecations | frozenset(
-        ["categorical", "index", "name"]
-    )
 
     def __init__(self, data):
         self._validate(data)

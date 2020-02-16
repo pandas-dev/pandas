@@ -2,6 +2,7 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 from warnings import catch_warnings, simplefilter, warn
@@ -10,7 +11,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, lib
 from pandas._libs.tslib import iNaT
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -28,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_extension_array_dtype,
     is_float_dtype,
@@ -83,7 +85,6 @@ def _ensure_data(values, dtype=None):
     values : ndarray
     pandas_dtype : str or dtype
     """
-
     # we check some simple dtypes first
     if is_object_dtype(dtype):
         return ensure_object(np.asarray(values)), "object"
@@ -180,7 +181,6 @@ def _reconstruct_data(values, dtype, original):
     -------
     Index for extension types, otherwise ndarray casted to dtype
     """
-
     if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_bool_dtype(dtype):
@@ -190,6 +190,11 @@ def _reconstruct_data(values, dtype, original):
         if isinstance(original, ABCIndexClass):
             values = values.astype(object, copy=False)
     elif dtype is not None:
+        if is_datetime64_dtype(dtype):
+            dtype = "datetime64[ns]"
+        elif is_timedelta64_dtype(dtype):
+            dtype = "timedelta64[ns]"
+
         values = values.astype(dtype, copy=False)
 
     return values
@@ -361,7 +366,6 @@ def unique(values):
     >>> pd.unique([('a', 'b'), ('b', 'a'), ('a', 'c'), ('b', 'a')])
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
-
     values = _ensure_arraylike(values)
 
     if is_extension_array_dtype(values):
@@ -480,9 +484,32 @@ def _factorize_array(
     return codes, uniques
 
 
-_shared_docs[
-    "factorize"
-] = """
+@doc(
+    values=dedent(
+        """\
+    values : sequence
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
+    """
+    ),
+    sort=dedent(
+        """\
+    sort : bool, default False
+        Sort `uniques` and shuffle `codes` to maintain the
+        relationship.
+    """
+    ),
+    size_hint=dedent(
+        """\
+    size_hint : int, optional
+        Hint to the hashtable sizer.
+    """
+    ),
+)
+def factorize(
+    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
+) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
+    """
     Encode the object as an enumerated type or categorical variable.
 
     This method is useful for obtaining a numeric representation of an
@@ -492,10 +519,10 @@ _shared_docs[
 
     Parameters
     ----------
-    %(values)s%(sort)s
+    {values}{sort}
     na_sentinel : int, default -1
         Value to mark "not found".
-    %(size_hint)s\
+    {size_hint}\
 
     Returns
     -------
@@ -573,34 +600,6 @@ _shared_docs[
     >>> uniques
     Index(['a', 'c'], dtype='object')
     """
-
-
-@Substitution(
-    values=dedent(
-        """\
-    values : sequence
-        A 1-D sequence. Sequences that aren't pandas objects are
-        coerced to ndarrays before factorization.
-    """
-    ),
-    sort=dedent(
-        """\
-    sort : bool, default False
-        Sort `uniques` and shuffle `codes` to maintain the
-        relationship.
-    """
-    ),
-    size_hint=dedent(
-        """\
-    size_hint : int, optional
-        Hint to the hashtable sizer.
-    """
-    ),
-)
-@Appender(_shared_docs["factorize"])
-def factorize(
-    values, sort: bool = False, na_sentinel: int = -1, size_hint: Optional[int] = None
-) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
     # 2.) factorizing codes and uniques
@@ -789,7 +788,6 @@ def duplicated(values, keep="first") -> np.ndarray:
     -------
     duplicated : ndarray
     """
-
     values, _ = _ensure_data(values)
     ndtype = values.dtype.name
     f = getattr(htable, f"duplicated_{ndtype}")
@@ -1812,7 +1810,7 @@ def searchsorted(arr, value, side="left", sorter=None):
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0):
+def diff(arr, n: int, axis: int = 0, stacklevel=3):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1824,15 +1822,41 @@ def diff(arr, n: int, axis: int = 0):
         number of periods
     axis : int
         axis to shift on
+    stacklevel : int
+        The stacklevel for the lost dtype warning.
 
     Returns
     -------
     shifted
     """
+    from pandas.core.arrays import PandasDtype
 
     n = int(n)
     na = np.nan
     dtype = arr.dtype
+
+    if dtype.kind == "b":
+        op = operator.xor
+    else:
+        op = operator.sub
+
+    if isinstance(dtype, PandasDtype):
+        # PandasArray cannot necessarily hold shifted versions of itself.
+        arr = np.asarray(arr)
+        dtype = arr.dtype
+
+    if is_extension_array_dtype(dtype):
+        if hasattr(arr, f"__{op.__name__}__"):
+            return op(arr, arr.shift(n))
+        else:
+            warn(
+                "dtype lost in 'diff()'. In the future this will raise a "
+                "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
+                FutureWarning,
+                stacklevel=stacklevel,
+            )
+            arr = np.asarray(arr)
+            dtype = arr.dtype
 
     is_timedelta = False
     is_bool = False
