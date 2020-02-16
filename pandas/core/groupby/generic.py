@@ -956,7 +956,8 @@ class DataFrameGroupBy(GroupBy):
                     result = self._aggregate_frame(func)
                 else:
                     result.columns = Index(
-                        result.columns.levels[0], name=self._selected_obj.columns.name
+                        [i[:-1] if len(i) > 2 else i[0] for i in result.columns],
+                        name=self._selected_obj.columns.name,
                     )
 
         if not self.as_index:

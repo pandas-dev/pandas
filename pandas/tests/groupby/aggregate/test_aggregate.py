@@ -691,6 +691,17 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
+def test_multiindex_custom_func():
+    # GH 31777
+    df = pd.DataFrame(
+        np.random.rand(10, 4), columns=pd.MultiIndex.from_product([[1, 2], [3, 4]])
+    )
+    grp = df.groupby(np.r_[np.ones(5), np.zeros(5)])
+    result = grp.agg(lambda s: s.mean())
+    expected = grp.agg("mean")
+    tm.assert_frame_equal(result, expected)
+
+
 def myfunc(s):
     return np.percentile(s, q=0.90)
 
