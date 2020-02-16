@@ -67,9 +67,9 @@ class TestReductions:
             assert result.value == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
-    @pytest.mark.parametrize("klass", [Index, Series])
-    def test_nanops(self, opname, klass):
+    def test_nanops(self, opname, index_or_series):
         # GH#7261
+        klass = index_or_series
         arg_op = "arg" + opname if klass is Index else "idx" + opname
 
         obj = klass([np.nan, 2.0])
@@ -108,9 +108,9 @@ class TestReductions:
             assert result == -1
 
     @pytest.mark.parametrize("opname", ["max", "min"])
-    @pytest.mark.parametrize("klass", [Index, Series])
     @pytest.mark.parametrize("dtype", ["M8[ns]", "datetime64[ns, UTC]"])
-    def test_nanops_empty_object(self, opname, klass, dtype):
+    def test_nanops_empty_object(self, opname, index_or_series, dtype):
+        klass = index_or_series
         arg_op = "arg" + opname if klass is Index else "idx" + opname
 
         obj = klass([], dtype=dtype)
