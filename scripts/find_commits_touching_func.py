@@ -205,7 +205,11 @@ def pprint_hits(hits):
 
         if len(s) > SUBJ_LEN:
             s = s[: SUBJ_LEN - 5] + " ..."
-        print(f"{h[:HASH_LEN]:{HASH_LEN}} {d.isoformat()[:10]:10} {s:<{SUBJ_LEN}} {p[-20:]:<{PATH_LEN}}")
+        print(f"{h[:HASH_LEN]:{HASH_LEN}} "
+              f"{d.isoformat()[:10]:10} "
+              f"{s:<{SUBJ_LEN}} "
+              f"{p[-20:]:<{PATH_LEN}}"
+              )
 
     print("\n")
 
