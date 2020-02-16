@@ -7802,9 +7802,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. deprecated:: 1.1.0
                 You should add the loffset to the `df.index` after the resample.
-                like this:
-                ``df.index = df.index.to_timestamp() + to_offset(loffset)``
-                (a more complete example is present below)
+                See below.
 
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
@@ -7813,9 +7811,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             .. deprecated:: 1.1.0
                 The new arguments that you should use are 'offset' or 'origin'.
-                ``df.resample(freq="3s", base=2)``
-                becomes
-                ``df.resample(freq="3s", offset="2s")``
 
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
@@ -8052,12 +8047,87 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2000-01-03     32     150
         2000-01-04     36      90
 
-        To replace the use of the deprecated loffset argument:
+        If you want to adjust the start of the bins based on a fixed timestamp:
+
+        >>> start, end = "1/10/2000 02:00:00", "1/20/2000 02:00"
+        >>> rng = pd.date_range(start, end, freq="1231min")
+        >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+        >>> ts
+        2000-01-10 02:00:00     0
+        2000-01-10 22:31:00     3
+        2000-01-11 19:02:00     6
+        2000-01-12 15:33:00     9
+        2000-01-13 12:04:00    12
+        2000-01-14 08:35:00    15
+        2000-01-15 05:06:00    18
+        2000-01-16 01:37:00    21
+        2000-01-16 22:08:00    24
+        2000-01-17 18:39:00    27
+        2000-01-18 15:10:00    30
+        2000-01-19 11:41:00    33
+        Freq: 1231T, dtype: int64
+        >>> ts.resample("2711min").sum()
+        2000-01-10 00:00:00     9
+        2000-01-11 21:11:00    21
+        2000-01-13 18:22:00    33
+        2000-01-15 15:33:00    45
+        2000-01-17 12:44:00    57
+        2000-01-19 09:55:00    33
+        Freq: 2711T, dtype: int64
+        >>> ts.resample("2711min", origin=pd.Timestamp("1970-01-01")).sum()
+        2000-01-08 11:44:00     0
+        2000-01-10 08:55:00     9
+        2000-01-12 06:06:00    21
+        2000-01-14 03:17:00    33
+        2000-01-16 00:28:00    72
+        2000-01-17 21:39:00    63
+        Freq: 2711T, dtype: int64
+
+        If you want to adjust the start of the bins with an offset, the two following
+        lines are equivalent:
+
+        >>> ts.resample("2711min", origin="1/10/2000 02:00:00").sum()
+        2000-01-10 02:00:00     9
+        2000-01-11 23:11:00    21
+        2000-01-13 20:22:00    33
+        2000-01-15 17:33:00    45
+        2000-01-17 14:44:00    90
+        Freq: 2711T, dtype: int64
+        >>> ts.resample("2711min", offset="2h").sum()
+        2000-01-10 02:00:00     9
+        2000-01-11 23:11:00    21
+        2000-01-13 20:22:00    33
+        2000-01-15 17:33:00    45
+        2000-01-17 14:44:00    90
+        Freq: 2711T, dtype: int64
+
+        To replace the use of the deprecated `base` argument:
+
+        >>> # ts.resample("2711min", base=2).sum()
+        >>> #   becomes:
+        >>> ts.resample("2711min", offset="2min").sum()
+        2000-01-10 00:02:00     9
+        2000-01-11 21:13:00    21
+        2000-01-13 18:24:00    33
+        2000-01-15 15:35:00    45
+        2000-01-17 12:46:00    57
+        2000-01-19 09:57:00    33
+        Freq: 2711T, dtype: int64
+
+        To replace the use of the deprecated `loffset` argument:
+
         >>> from pandas.tseries.frequencies import to_offset
-        >>> rng = pd.date_range("2000-01-01", "2000-01-01", freq="1s")
-        >>> ts = pd.Series(np.arange(len(rng)), index=rng)
-        >>> s = s.resample("3s").mean()
-        >>> s.index = s.index.to_timestamp() + to_offset("8H")
+        >>> loffset = "8H"
+        >>> ts_out = ts.resample("2711min").sum()
+        >>> ts_out.index = ts_out.index + to_offset(loffset)
+        >>> ts_out
+        2000-01-10 08:00:00     9
+        2000-01-12 05:11:00    21
+        2000-01-14 02:22:00    33
+        2000-01-15 23:33:00    45
+        2000-01-17 20:44:00    57
+        2000-01-19 17:55:00    33
+        Freq: 2711T, dtype: int64
         """
         from pandas.core.resample import get_resampler
         from pandas.core.resample import _validate_resample_deprecated_args
