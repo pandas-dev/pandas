@@ -99,7 +99,7 @@ def get_hits(defname, files=()):
             r = sh.git(
                 "blame",
                 "-L",
-                r"/def\s*{start}/,/def/".format(start=defname),
+                rf"/def\s*{defname}/,/def/",
                 f,
                 _tty_out=False,
             )
@@ -119,8 +119,8 @@ def get_hits(defname, files=()):
 def get_commit_info(c, fmt, sep="\t"):
     r = sh.git(
         "log",
-        "--format={}".format(fmt),
-        "{}^..{}".format(c, c),
+        f"--format={fmt}",
+        f"{c}^..{c}",
         "-n",
         "1",
         _tty_out=False,
@@ -203,10 +203,9 @@ def pprint_hits(hits):
         h, s, d = get_commit_vitals(hit.commit)
         p = hit.path.split(os.path.realpath(os.curdir) + os.path.sep)[-1]
 
-        fmt = "{:%d} {:10} {:<%d} {:<%d}" % (HASH_LEN, SUBJ_LEN, PATH_LEN)
         if len(s) > SUBJ_LEN:
             s = s[: SUBJ_LEN - 5] + " ..."
-        print(fmt.format(h[:HASH_LEN], d.isoformat()[:10], s, p[-20:]))
+        print(f"{h[:HASH_LEN]:{HASH_LEN}} {d.isoformat()[:10]:10} {s:<{SUBJ_LEN}} {p[-20:]:<{PATH_LEN}}")
 
     print("\n")
 
