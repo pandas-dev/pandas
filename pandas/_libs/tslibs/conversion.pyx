@@ -39,7 +39,8 @@ from pandas._libs.tslibs.nattype cimport (
 
 from pandas._libs.tslibs.tzconversion import (
     tz_localize_to_utc, tz_convert_single)
-from pandas._libs.tslibs.tzconversion cimport _tz_convert_tzlocal_utc
+from pandas._libs.tslibs.tzconversion cimport (
+    _tz_convert_tzlocal_utc, _tz_convert_tzlocal_fromutc)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -383,7 +384,6 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
-        bint fold = 0
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -395,21 +395,23 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
     # Infer fold from offset-adjusted obj.value
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
-    if is_utc(tz) or is_tzlocal(tz):
+    if is_utc(tz):
+        pass
+    elif is_tzlocal(tz):
         # TODO: think on how we can infer fold for local Timezone
         # and adjust value for fold
-        pass
+        _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
         if typ == 'dateutil':
             pos = trans.searchsorted(obj.value, side='right') - 1
-            fold = _infer_tsobject_fold(obj, trans, deltas, pos)
+            obj.fold = _infer_tsobject_fold(obj, trans, deltas, pos)
 
     # Keep the converter same as PyDateTime's
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
-                  obj.dts.us, obj.tzinfo, fold=fold)
+                  obj.dts.us, obj.tzinfo, fold=obj.fold)
     obj = convert_datetime_to_tsobject(
         dt, tz, nanos=obj.dts.ps // 1000)
     return obj
@@ -560,7 +562,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False)
+        local_val = _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
         # TODO: think on how we can infer fold for local Timezone
         # and adjust value for fold
