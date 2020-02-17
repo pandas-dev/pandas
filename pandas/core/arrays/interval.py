@@ -195,13 +195,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left = ensure_index(left, copy=copy)
         right = ensure_index(right, copy=copy)
 
-        if dtype is not None:
+        if dtype:
             # GH 19262: dtype must be an IntervalDtype to override inferred
             dtype = pandas_dtype(dtype)
             if not is_interval_dtype(dtype):
                 msg = f"dtype must be an IntervalDtype, got {dtype}"
                 raise TypeError(msg)
-            elif dtype.subtype is not None:
+            elif dtype.subtype:
                 left = left.astype(dtype.subtype)
                 right = right.astype(dtype.subtype)
 
@@ -637,9 +637,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         filled : IntervalArray with NA/NaN filled
         """
-        if method is not None:
+        if method:
             raise TypeError("Filling by method is not supported for IntervalArray.")
-        if limit is not None:
+        if limit:
             raise TypeError("limit is not supported for IntervalArray.")
 
         if not isinstance(value, ABCInterval):
@@ -1149,7 +1149,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 children=[storage_array.field(0), storage_array.field(1)],
             )
 
-        if type is not None:
+        if type:
             if type.equals(interval_type.storage_type):
                 return storage_array
             elif isinstance(type, ArrowIntervalType):
