@@ -1063,7 +1063,7 @@ class DataFrameFormatter(TableFormatter):
 
         # empty space for columns
         if self.show_col_idx_names:
-            col_header = [f"{x}" for x in self._get_column_name_list()]
+            col_header = [str(x) for x in self._get_column_name_list()]
         else:
             col_header = [""] * columns.nlevels
 
@@ -1225,10 +1225,10 @@ class GenericArrayFormatter:
                     pass
                 return self.na_rep
             elif isinstance(x, PandasObject):
-                return f"{x}"
+                return str(x)
             else:
                 # object dtype
-                return f"{formatter(x)}"
+                return str(formatter(x))
 
         vals = self.values
         if isinstance(vals, Index):
