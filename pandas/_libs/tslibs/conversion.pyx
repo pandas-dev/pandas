@@ -219,6 +219,9 @@ cdef class _TSObject:
     #    object tzinfo
     #    bint fold
 
+    def __cinit__(self):
+        self.fold = 0
+
     @property
     def value(self):
         # This is needed in order for `value` to be accessible in lib.pyx
