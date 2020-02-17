@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -60,6 +60,9 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame  # noqa:F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -704,7 +707,7 @@ def _align_method_FRAME(
 
 
 def _should_reindex_frame_op(
-    left, right, axis, default_axis, fill_value, level
+    left: "DataFrame", right, axis, default_axis: int, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
@@ -723,7 +726,9 @@ def _should_reindex_frame_op(
     return False
 
 
-def _frame_arith_method_with_reindex(left, right, op):
+def _frame_arith_method_with_reindex(
+    left: "DataFrame", right: "DataFrame", op
+) -> "DataFrame":
     """
     For DataFrame-with-DataFrame operations that require reindexing,
     operate only on shared columns, then reindex.
