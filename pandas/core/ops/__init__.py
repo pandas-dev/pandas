@@ -374,7 +374,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
-    import pandas.core.computation.expressions as expressions
 
     right = lib.item_from_zerodim(right)
     if lib.is_scalar(right) or np.ndim(right) == 0:
@@ -419,8 +418,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         # Remaining cases have less-obvious dispatch rules
         raise NotImplementedError(right)
 
-    new_data = expressions.evaluate(column_op, str_rep, left, right)
-    return new_data
+    return column_op(left, right)
 
 
 # -----------------------------------------------------------------------------
@@ -515,6 +513,7 @@ def _comp_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -528,7 +527,7 @@ def _comp_method_SERIES(cls, op, special):
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = comparison_op(lvalues, rvalues, op)
+        res_values = comparison_op(lvalues, rvalues, op, str_rep)
 
         return _construct_result(self, res_values, index=self.index, name=res_name)
 
