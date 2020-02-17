@@ -41,7 +41,7 @@ For example:
 Fold argument support in Timestamp constructor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Timestamp:` now supports the fold argument according to PEP 495 similar to parent `pydatetime` class. It supports both accepting fold as an initialization argument and inferring fold from other constructor arguments (:issue:`25057`, :issue:`31338`). Support is limited to `dateutil` timezones as `pytz` doesn't support fold.
+:class:`Timestamp:` now supports the keyword-only fold argument according to PEP 495 similar to parent `pydatetime` class. It supports both accepting fold as an initialization argument and inferring fold from other constructor arguments (:issue:`25057`, :issue:`31338`). Support is limited to `dateutil` timezones as `pytz` doesn't support fold.
 
 For example:
 

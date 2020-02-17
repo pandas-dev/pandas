@@ -2224,7 +2224,7 @@ you can use the ``tz_convert`` method.
 
     .. versionadded:: 1.1.0
 
-    For ambiguous times, pandas supports explicitly specifying the fold argument.
+    For ambiguous times, pandas supports explicitly specifying the keyword-only fold argument.
     Due to daylight saving time, one wall clock time can occur twice when shifting
     from summer to winter time; fold describes whether the datetime-like corresponds
     to the first (0) or the second time (1) the wall clock hits the ambiguous time.
