@@ -180,6 +180,7 @@ ul.task-bullet > li > p:first-child {
   border-radius: 0.5rem;
   max-width: 120px;
   padding: 0.5rem 0rem;
+  width: 100%
 }
 
 .custom-button a {
