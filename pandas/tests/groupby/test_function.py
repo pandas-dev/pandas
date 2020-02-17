@@ -747,7 +747,9 @@ def test_cummin(numpy_dtypes):
 
 
 @pytest.mark.xfail(
-    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
 )
 def test_cummin_all_nan_column():
     base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
@@ -760,7 +762,9 @@ def test_cummin_all_nan_column():
 
 
 @pytest.mark.xfail(
-    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
 )
 def test_cummax(numpy_dtypes):
     dtype = numpy_dtypes
@@ -813,7 +817,9 @@ def test_cummax(numpy_dtypes):
 
 
 @pytest.mark.xfail(
-    _is_numpy_dev, reason="https://github.com/pandas-dev/pandas/issues/31992"
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
 )
 def test_cummax_all_nan_column():
     base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
