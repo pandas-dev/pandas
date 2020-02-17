@@ -1173,12 +1173,12 @@ ctypedef fused out_t:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def diff_2d(ndarray[diff_t, ndim=2] arr,
-            ndarray[out_t, ndim=2] out,
+def diff_2d(diff_t[:, :] arr,
+            out_t[:, :] out,
             Py_ssize_t periods, int axis):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = arr.flags.f_contiguous
+        bint f_contig = arr.is_f_contig()
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
