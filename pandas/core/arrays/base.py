@@ -33,10 +33,11 @@ _extension_array_shared_docs: Dict[str, str] = dict()
 
 
 def try_cast_to_ea(cls_or_instance, obj, dtype=None):
-    """Call to `_from_sequence` that returns the object unchanged on Exception.
+    """
+    Call to `_from_sequence` that returns the object unchanged on Exception.
 
     Parameters
-    ---------
+    ----------
     cls_or_instance : ExtensionArray subclass or instance
     obj : arraylike
         Values to pass to cls._from_sequence
@@ -44,6 +45,7 @@ def try_cast_to_ea(cls_or_instance, obj, dtype=None):
 
     Returns
     -------
+    ExtensionArray or obj
     """
     try:
         result = cls_or_instance._from_sequence(obj, dtype=dtype)
@@ -179,6 +181,7 @@ class ExtensionArray:
     By default, ExtensionArrays are not hashable.  Immutable subclasses may
     override this behavior.
     """
+
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
@@ -235,7 +238,6 @@ class ExtensionArray:
 
     @classmethod
     def _from_factorized(cls, values, original):
-
         """
         Reconstruct an ExtensionArray after factorization.
 
@@ -251,7 +253,6 @@ class ExtensionArray:
         factorize
         ExtensionArray.factorize
         """
-
         raise AbstractMethodError(cls)
 
     # ------------------------------------------------------------------------
@@ -286,13 +287,13 @@ class ExtensionArray:
         if the slice is length 0 or 1.
 
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
-       to the values where ``item`` is True.
+        to the values where ``item`` is True.
         """
         raise AbstractMethodError(self)
 
     def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
         """
-         Set one or more values inplace.
+        Set one or more values inplace.
 
         This method is not required to satisfy the pandas extension array
         interface.
@@ -347,7 +348,8 @@ class ExtensionArray:
 
     def __iter__(self):
         """
-        Iterate over elements of the array."""
+        Iterate over elements of the array.
+        """
         # This needs to be implemented so that pandas recognizes extension
         # arrays as list-like. The default implementation makes successive
         # calls to ``__getitem__``, which may be slower than necessary.
@@ -393,7 +395,9 @@ class ExtensionArray:
 
     @property
     def dtype(self) -> ExtensionDtype:
-        "An instance of 'ExtensionDtype'."
+        """
+        An instance of 'ExtensionDtype'.
+        """
         raise AbstractMethodError(self)
 
     @property
@@ -426,9 +430,9 @@ class ExtensionArray:
     def astype(self, dtype, copy=True):
         """
         Cast to a NumPy array with 'dtype'.
+
         Parameters
         ----------
-
         dtype : str or dtype
             Typecode or data-type to which the array is cast.
         copy : bool, default True
@@ -471,6 +475,9 @@ class ExtensionArray:
 
         Returns
         -------
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
 
         See Also
         --------
@@ -503,7 +510,8 @@ class ExtensionArray:
 
         See Also
         --------
-        numpy.argsort : Sorting implementation used internally."""
+        numpy.argsort : Sorting implementation used internally.
+        """
         # Implementor note: You have two places to override the behavior of
         # argsort.
         # 1. _values_for_argsort : construct the values passed to np.argsort
@@ -577,39 +585,39 @@ class ExtensionArray:
 
     def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
         """
-            Shift values by desired number.
+        Shift values by desired number.
 
-            Newly introduced missing values are filled with
-            ``self.dtype.na_value``.
+        Newly introduced missing values are filled with
+        ``self.dtype.na_value``.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        periods : int, default 1
+            The number of periods to shift. Negative values are allowed
+            for shifting backwards.
+
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            The default is ``self.dtype.na_value``.
 
             .. versionadded:: 0.24.0
 
-            Parameters
-            ----------
-            periods : int, default 1
-                The number of periods to shift. Negative values are allowed
-                for shifting backwards.
+        Returns
+        -------
+        ExtensionArray
+            Shifted.
 
-            fill_value : object, optional
-                The scalar value to use for newly introduced missing values.
-                The default is ``self.dtype.na_value``.
+        Notes
+        -----
+        If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
+        returned.
 
-                .. versionadded:: 0.24.0
-
-            Returns
-            -------
-            ExtensionArray
-                Shifted.
-
-            Notes
-            -----
-            If ``self`` is empty or ``periods`` is 0, a copy of ``self`` is
-            returned.
-
-            If ``periods > len(self)``, then an array of size
-            len(self) is returned, with all values filled with
-            ``self.dtype.na_value``.
-            """
+        If ``periods > len(self)``, then an array of size
+        len(self) is returned, with all values filled with
+        ``self.dtype.na_value``.
+        """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
         if not len(self) or periods == 0:
@@ -630,7 +638,8 @@ class ExtensionArray:
         return self._concat_same_type([a, b])
 
     def unique(self):
-        """Compute the ExtensionArray of unique values.
+        """
+        Compute the ExtensionArray of unique values.
 
         Returns
         -------
