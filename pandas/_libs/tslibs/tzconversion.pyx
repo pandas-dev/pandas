@@ -467,7 +467,7 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
 
     Notes
     -----
-    Sets fold by pointer.
+    Sets fold by pointer
     """
     cdef:
         npy_datetimestruct dts
@@ -535,6 +535,10 @@ cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
     Returns
     -------
     result : int64_t
+
+    Notes
+    -----
+    Sets fold by pointer
     """
     cdef int64_t delta
 
