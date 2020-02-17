@@ -600,7 +600,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
 
 def _build_xpath_expr(attrs) -> str:
-    """Build an xpath expression to simulate bs4's ability to pass in kwargs to
+    """
+    Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
     Parameters
