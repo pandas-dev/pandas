@@ -15,7 +15,6 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
-    _is_numpy_dev,
     concat,
     date_range,
 )
@@ -316,34 +315,6 @@ def test_dispatch_transform(tsframe):
     fillit = lambda x: x.fillna(method="pad")
     expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
-
-
-def test_transform_transformation_func(transformation_func):
-    # GH 30918
-    df = DataFrame(
-        {
-            "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
-            "B": [1, 2, np.nan, 3, 3, np.nan, 4],
-        }
-    )
-
-    if transformation_func in ["pad", "backfill", "tshift", "corrwith", "cumcount"]:
-        # These transformation functions are not yet covered in this test
-        pytest.xfail("See GH 31269 and GH 31270")
-    elif _is_numpy_dev and transformation_func in ["cummin"]:
-        pytest.xfail("https://github.com/pandas-dev/pandas/issues/31992")
-    elif transformation_func == "fillna":
-        test_op = lambda x: x.transform("fillna", value=0)
-        mock_op = lambda x: x.fillna(value=0)
-    else:
-        test_op = lambda x: x.transform(transformation_func)
-        mock_op = lambda x: getattr(x, transformation_func)()
-
-    result = test_op(df.groupby("A"))
-    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
-    expected = concat([mock_op(g) for g in groups])
-
-    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_select_columns(df):
