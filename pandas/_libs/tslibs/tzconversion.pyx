@@ -445,8 +445,8 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz, bint to_utc):
 
 
 cdef inline void _tzlocal_get_offset_components(int64_t val, tzinfo tz,
-                                         bint to_utc, int64_t *delta,
-                                         bint *fold=NULL):
+                                                bint to_utc, int64_t *delta,
+                                                bint *fold=NULL):
     """
     Calculate offset in nanoseconds needed to convert the i8 representation of
     a datetime from a tzlocal timezone to UTC, or vice-versa.
