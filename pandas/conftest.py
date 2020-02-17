@@ -978,7 +978,15 @@ indices_dict = {
 
 @pytest.fixture(params=indices_dict.keys())
 def indices(request):
-    """ Fixture for all kinds of indices. """
+    """
+    Fixture for many "simple" kinds of indices.
+
+    These indices are unlikely to cover corner cases, e.g.
+        - no names
+        - no NaTs/NaNs
+        - no values near implementation bounds
+        - ...
+    """
     # copy to avoid mutation, e.g. setting .name
     return indices_dict[request.param].copy()
 
