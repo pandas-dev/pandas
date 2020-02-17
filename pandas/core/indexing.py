@@ -577,18 +577,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
         new_self.axis = axis
         return new_self
 
-    def _get_label(self, label, axis: int):
-        if self.ndim == 1:
-            # for perf reasons we want to try _xs first
-            # as its basically direct indexing
-            # but will fail when the index is not present
-            # see GH5667
-            return self.obj._xs(label, axis=axis)
-        elif isinstance(label, tuple) and isinstance(label[axis], slice):
-            raise IndexingError("no slices here, handle elsewhere")
-
-        return self.obj._xs(label, axis=axis)
-
     def _get_setitem_indexer(self, key):
         """
         Convert a potentially-label-based key into a positional indexer.
@@ -700,23 +688,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
-        # we have an axis0 multi-index, handle or raise
-        axis = self.axis or 0
-        try:
-            # fast path for series or for tup devoid of slices
-            return self._get_label(tup, axis=axis)
-        except TypeError:
-            # slices are unhashable
-            pass
-        except KeyError as ek:
-            # raise KeyError if number of indexers match
-            # else IndexingError will be raised
-            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
-                raise ek
-
-        return None
-
     def _getitem_tuple_same_dim(self, tup: Tuple):
         """
         Index with indexers that should return an object of the same dimension
@@ -798,6 +769,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # multi-index dimension, try to see if we have something like
         # a tuple passed to a series with a multi-index
         if len(tup) > self.ndim:
+            if self.name != "loc":
+                # This should never be reached, but lets be explicit about it
+                raise ValueError("Too many indices")
             result = self._handle_lowerdim_multi_index_axis0(tup)
             if result is not None:
                 return result
@@ -1068,6 +1042,35 @@ class _LocIndexer(_LocationIndexer):
             return self._multi_take(tup)
 
         return self._getitem_tuple_same_dim(tup)
+
+    def _get_label(self, label, axis: int):
+        if self.ndim == 1:
+            # for perf reasons we want to try _xs first
+            # as its basically direct indexing
+            # but will fail when the index is not present
+            # see GH5667
+            return self.obj._xs(label, axis=axis)
+        elif isinstance(label, tuple) and isinstance(label[axis], slice):
+            raise IndexingError("no slices here, handle elsewhere")
+
+        return self.obj._xs(label, axis=axis)
+
+    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
+        # we have an axis0 multi-index, handle or raise
+        axis = self.axis or 0
+        try:
+            # fast path for series or for tup devoid of slices
+            return self._get_label(tup, axis=axis)
+        except TypeError:
+            # slices are unhashable
+            pass
+        except KeyError as ek:
+            # raise KeyError if number of indexers match
+            # else IndexingError will be raised
+            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
+                raise ek
+
+        return None
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
