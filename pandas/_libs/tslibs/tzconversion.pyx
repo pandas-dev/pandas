@@ -444,9 +444,8 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz, bint to_utc):
     return converted
 
 
-cdef inline void _tzlocal_get_offset_components(int64_t val, tzinfo tz,
-                                                bint to_utc, int64_t *delta,
-                                                bint *fold=NULL):
+cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
+                                                bint to_utc, bint *fold=NULL):
     """
     Calculate offset in nanoseconds needed to convert the i8 representation of
     a datetime from a tzlocal timezone to UTC, or vice-versa.
@@ -457,23 +456,22 @@ cdef inline void _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     tz : tzinfo
     to_utc : bint
         True if converting tzlocal _to_ UTC, False if going the other direction
-    delta : int64_t*
-        pointer to delta: offset in nanoseconds needed to adjust val from/to UTC
     fold : bint*, default NULL
         pointer to fold: whether datetime ends up in a fold or not
         after adjustment
 
     Returns
     -------
-    None
+    delta : int64_t
 
     Notes
     -----
-    Sets delta by pointer, sets fold by pointer.
+    Sets fold by pointer.
     """
     cdef:
         npy_datetimestruct dts
         datetime dt
+        int64_t delta
 
     dt64_to_dtstruct(val, &dts)
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
@@ -484,13 +482,13 @@ cdef inline void _tzlocal_get_offset_components(int64_t val, tzinfo tz,
         dt = dt.replace(tzinfo=tzutc())
         dt = dt.astimezone(tz)
 
-    if to_utc:
-        delta[0] = -int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-    else:
-        delta[0] = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-
     if fold is not NULL:
         fold[0] = dt.fold
+
+    if to_utc:
+        return -int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    else:
+        return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
 
 
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
@@ -513,7 +511,7 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     """
     cdef int64_t delta
 
-    _tzlocal_get_offset_components(val, tz, to_utc, &delta, NULL)
+    delta = _tzlocal_get_offset_components(val, tz, to_utc, NULL)
 
     return val + delta
 
@@ -539,7 +537,7 @@ cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
     """
     cdef int64_t delta
 
-    _tzlocal_get_offset_components(val, tz, False, &delta, fold)
+    delta = _tzlocal_get_offset_components(val, tz, False, fold)
 
     return val + delta
 
