@@ -66,6 +66,7 @@
 }
 
 /* reference to user guide */
+
 .gs-torefguide {
   align-items: center;
   font-size: 0.9rem;
@@ -127,70 +128,6 @@ ul.task-bullet > li {
 ul.task-bullet > li > p:first-child {
   font-size: 1.1rem;
   padding-left: 0.75rem;
-}
-
-/* Getting started index page */
-
-.intro-card {
-  background:#FFF;
-  border-radius:0;
-  padding: 30px 10px 10px 10px;
-  margin: 10px 0px;
-}
-
-.intro-card .card-text {
-  margin:20px 0px;
-  /*min-height: 150px; */
-}
-
-.intro-card .card-img-top {
-  margin: 10px;
-}
-
-.install-block {
-  padding-bottom: 30px;
-}
-
-.install-card .card-header {
-  border: none;
-  background-color:white;
-  color: #150458;
-  font-size: 1.1rem;
-  font-weight: bold;
-  padding: 1rem 1rem 0rem 1rem;
-}
-
-.install-card .card-footer {
-  border: none;
-  background-color:white;
-}
-
-.install-card pre {
-  margin: 0 1em 1em 1em;
-}
-
-.custom-button {
-  background-color:#DCDCDC;
-  border: none;
-  color: #484848;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 0.9rem;
-  border-radius: 0.5rem;
-  max-width: 120px;
-  padding: 0.5rem 0rem;
-  width: 100%
-}
-
-.custom-button a {
-  color: #484848;
-}
-
-.custom-button p {
-  margin-top: 0;
-  margin-bottom: 0rem;
-  color: #484848;
 }
 
 /* intro to tutorial collapsed cards */

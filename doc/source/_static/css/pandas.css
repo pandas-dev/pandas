@@ -1,15 +1,30 @@
 /* Getting started index page */
 
 .intro-card {
-  background: #fff;
-  border-radius: 0;
-  padding: 30px 10px 10px 10px;
+  background:#FFF;
+  border-radius:0;
+  padding: 10px 10px 10px 10px;
   margin: 10px 0px;
+}
+
+.intro-card .card-title {
+  color: #150458;
+  font-size: 1.1rem;
+  font-weight: bold;
 }
 
 .intro-card .card-text {
   margin: 20px 0px;
-  /*min-height: 150px; */
+}
+
+.intro-card .card-img-top {
+  margin: 20px 10px 10px 10px;
+}
+
+.intro-card .card-footer {
+  border: none;
+  background-color:white;
+  padding: 0rem 1.25rem;
 }
 
 .custom-button {
@@ -23,6 +38,7 @@
   border-radius: 0.5rem;
   max-width: 220px;
   padding: 0.5rem 0rem;
+  width: 100%
 }
 
 .custom-button a {
