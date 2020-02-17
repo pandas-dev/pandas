@@ -30,12 +30,20 @@ from pandas.util import _test_decorators as td
     params=[np.int32, np.int64, np.float32, np.float64],
     ids=["np.int32", "np.int64", "np.float32", "np.float64"],
 )
-def numpy_dtypes(request):
+def numpy_dtypes_for_minmax(request):
     """
     Fixture of numpy dtypes with min and max values used for testing
     cummin and cummax
     """
-    return request.param
+    dtype = request.param
+    min_val = (
+        np.iinfo(dtype).min if np.dtype(dtype).kind == "i" else np.finfo(dtype).min
+    )
+    max_val = (
+        np.iinfo(dtype).max if np.dtype(dtype).kind == "i" else np.finfo(dtype).max
+    )
+
+    return (dtype, min_val, max_val)
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -696,11 +704,9 @@ def test_numpy_compat(func):
     reason="https://github.com/pandas-dev/pandas/issues/31992",
     strict=False,
 )
-def test_cummin(numpy_dtypes):
-    dtype = numpy_dtypes
-    min_val = (
-        np.iinfo(dtype).min if np.dtype(dtype).kind == "i" else np.finfo(dtype).min
-    )
+def test_cummin(numpy_dtypes_for_minmax):
+    dtype = numpy_dtypes_for_minmax[0]
+    min_val = numpy_dtypes_for_minmax[1]
 
     # GH 15048
     base_df = pd.DataFrame(
@@ -766,11 +772,9 @@ def test_cummin_all_nan_column():
     reason="https://github.com/pandas-dev/pandas/issues/31992",
     strict=False,
 )
-def test_cummax(numpy_dtypes):
-    dtype = numpy_dtypes
-    max_val = (
-        np.iinfo(dtype).max if np.dtype(dtype).kind == "i" else np.finfo(dtype).max
-    )
+def test_cummax(numpy_dtypes_for_minmax):
+    dtype = numpy_dtypes_for_minmax[0]
+    max_val = numpy_dtypes_for_minmax[2]
 
     # GH 15048
     base_df = pd.DataFrame(
