@@ -11,6 +11,63 @@ Installation
 
 Before you can use pandas, you’ll need to get it installed.
 
+.. container:: container
+
+    .. container:: row
+
+        .. container:: col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block
+
+            .. container:: card install-card shadow w-100
+
+                .. container:: card-header
+
+                    Working with conda?
+
+                .. container:: card-body
+
+                    Pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`_ distribution and can be
+                    installed with Anaconda or Miniconda:
+
+                .. container:: card-footer text-muted
+
+                    .. code-block:: bash
+
+                        conda install pandas
+
+        .. container:: col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block
+
+            .. container:: card install-card shadow w-100
+
+                .. container:: card-header
+
+                    Prefer pip?
+
+                .. container:: card-body
+
+                    Pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
+
+                .. container:: card-footer text-muted
+
+                    .. code-block:: bash
+
+                        pip install pandas
+
+        .. container:: col-12 d-flex install-block
+
+            .. container:: card install-card shadow w-100
+
+                .. container:: card-header
+
+                    In-depth instructions?
+
+                .. container:: card-body
+
+                    Installing a specific version? Installing from source? Check the advanced installation page.
+
+                    .. container:: custom-button
+
+                        :ref:`Learn more <install>`
+
 .. raw:: html
 
     <div class="container">
