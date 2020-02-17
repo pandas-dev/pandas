@@ -2,13 +2,16 @@
 Extend pandas with custom array types.
 """
 
-from typing import Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 
 import numpy as np
 
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import ExtensionArray  # noqa: F401
 
 
 class ExtensionDtype:
@@ -29,7 +32,6 @@ class ExtensionDtype:
 
     * type
     * name
-    * construct_from_string
 
     The following attributes influence the behavior of the dtype in
     pandas operations
@@ -74,7 +76,7 @@ class ExtensionDtype:
         class ExtensionDtype:
 
             def __from_arrow__(
-                self, array: pyarrow.Array/ChunkedArray
+                self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
             ) -> ExtensionArray:
                 ...
 
@@ -122,11 +124,11 @@ class ExtensionDtype:
     def __hash__(self) -> int:
         return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
-    def __ne__(self, other) -> bool:
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
     @property
-    def na_value(self):
+    def na_value(self) -> object:
         """
         Default NA value to use for this type.
 
@@ -184,7 +186,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(cls) -> Type["ExtensionArray"]:
         """
         Return the array type associated with this dtype.
 
@@ -250,7 +252,7 @@ class ExtensionDtype:
         return cls()
 
     @classmethod
-    def is_dtype(cls, dtype) -> bool:
+    def is_dtype(cls, dtype: object) -> bool:
         """
         Check if we match 'dtype'.
 
@@ -261,7 +263,7 @@ class ExtensionDtype:
 
         Returns
         -------
-        is_dtype : bool
+        bool
 
         Notes
         -----

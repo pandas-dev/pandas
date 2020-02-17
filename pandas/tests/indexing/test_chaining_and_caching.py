@@ -346,20 +346,17 @@ class TestChaining:
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from
         # 0.12
-        def check(result, expected):
-            tm.assert_numpy_array_equal(result, expected)
-            assert isinstance(result, np.ndarray)
 
         df = DataFrame({"A": 5 * [np.zeros(3)], "B": 5 * [np.ones(3)]})
         expected = df["A"].iloc[2]
         result = df.loc[2, "A"]
-        check(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
         result2 = df.iloc[2]["A"]
-        check(result2, expected)
+        tm.assert_numpy_array_equal(result2, expected)
         result3 = df["A"].loc[2]
-        check(result3, expected)
+        tm.assert_numpy_array_equal(result3, expected)
         result4 = df["A"].iloc[2]
-        check(result4, expected)
+        tm.assert_numpy_array_equal(result4, expected)
 
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
