@@ -6,6 +6,8 @@
 Reshaping and pivot tables
 **************************
 
+.. _reshaping.reshaping:
+
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
@@ -313,6 +315,8 @@ user-friendly.
   dft["id"] = dft.index
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
+
+.. _reshaping.combine_with_groupby:
 
 Combining with stats and GroupBy
 --------------------------------

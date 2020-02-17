@@ -232,6 +232,7 @@ html_logo = "../../web/pandas/static/img/pandas.svg"
 html_static_path = ["_static"]
 
 html_css_files = [
+    "css/getting_started.css",
     "css/pandas.css",
 ]
 
