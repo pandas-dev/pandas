@@ -955,7 +955,9 @@ class DataFrameGroupBy(GroupBy):
                         raise
                     result = self._aggregate_frame(func)
                 else:
-                    result.columns = result.columns.droplevel(-1)
+                    result.columns = result.columns.droplevel(-1).rename(
+                        self._selected_obj.columns.name
+                    )
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
