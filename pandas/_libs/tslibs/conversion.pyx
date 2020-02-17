@@ -401,8 +401,6 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
     if is_utc(tz):
         pass
     elif is_tzlocal(tz):
-        # TODO: think on how we can infer fold for local Timezone
-        # and adjust value for fold
         _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
@@ -567,8 +565,6 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif is_tzlocal(tz):
         local_val = _tz_convert_tzlocal_fromutc(obj.value, tz, &obj.fold)
         dt64_to_dtstruct(local_val, &obj.dts)
-        # TODO: think on how we can infer fold for local Timezone
-        # and adjust value for fold
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
