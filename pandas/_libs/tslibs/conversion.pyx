@@ -220,6 +220,7 @@ cdef class _TSObject:
     #    bint fold
 
     def __cinit__(self):
+        # GH 25057. As per PEP 495, set fold to 0 by default
         self.fold = 0
 
     @property
