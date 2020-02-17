@@ -98,7 +98,6 @@ class EWM(_Rolling):
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
     >>> df
          B
@@ -116,6 +115,7 @@ class EWM(_Rolling):
     3  1.615385
     4  3.670213
     """
+
     _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
 
     def __init__(
