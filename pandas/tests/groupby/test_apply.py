@@ -108,8 +108,9 @@ def test_fast_apply():
 
     splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
     group_keys = grouper._get_group_keys()
+    sdata = splitter._get_sorted_data()
 
-    values, mutated = splitter.fast_apply(f, group_keys)
+    values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
     assert not mutated
 
