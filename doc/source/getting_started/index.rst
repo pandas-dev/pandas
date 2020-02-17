@@ -17,13 +17,13 @@ Before you can use pandas, you’ll need to get it installed.
 
         .. container:: col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block
 
-            .. container:: card install-card shadow w-100
-
-                .. container:: card-header
-
-                    Working with conda?
+            .. container:: card intro-card shadow w-100
 
                 .. container:: card-body
+
+                    .. container:: card-title
+
+                        Working with conda?
 
                     Pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`_ distribution and can be
                     installed with Anaconda or Miniconda:
@@ -36,13 +36,13 @@ Before you can use pandas, you’ll need to get it installed.
 
         .. container:: col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block
 
-            .. container:: card install-card shadow w-100
-
-                .. container:: card-header
-
-                    Prefer pip?
+            .. container:: card intro-card shadow w-100
 
                 .. container:: card-body
+
+                    .. container:: card-title
+
+                        Prefer pip?
 
                     Pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
 
@@ -54,96 +54,19 @@ Before you can use pandas, you’ll need to get it installed.
 
         .. container:: col-12 d-flex install-block
 
-            .. container:: card install-card shadow w-100
-
-                .. container:: card-header
-
-                    In-depth instructions?
+            .. container:: card intro-card shadow w-100
 
                 .. container:: card-body
+
+                    .. container:: card-title
+
+                        In-depth instructions?
 
                     Installing a specific version? Installing from source? Check the advanced installation page.
 
                     .. container:: custom-button
 
                         :ref:`Learn more <install>`
-
-.. raw:: html
-
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block">
-                <div class="card install-card shadow w-100">
-                <div class="card-header">
-                    Working with conda?
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
-
-Pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution and can be
-installed with Anaconda or Miniconda:
-
-.. raw:: html
-
-                    </p>
-                </div>
-                <div class="card-footer text-muted">
-
-.. code-block:: bash
-
-   conda install pandas
-
-.. raw:: html
-
-                </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block">
-                <div class="card install-card shadow w-100">
-                <div class="card-header">
-                    Prefer pip?
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
-
-Pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
-
-.. raw:: html
-
-                    </p>
-                </div>
-                <div class="card-footer text-muted">
-
-.. code-block:: bash
-
-   pip install pandas
-
-.. raw:: html
-
-                </div>
-                </div>
-            </div>
-            <div class="col-12 d-flex install-block">
-                <div class="card install-card shadow w-100">
-                <div class="card-header">
-                    In-depth instructions?
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Installing a specific version?
-                      Installing from source?
-                      Check the advanced installation page.</p>
-
-.. container:: custom-button
-
-    :ref:`Learn more <install>`
-
-.. raw:: html
-
-                </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
 .. _gentle_intro:
 
@@ -676,7 +599,7 @@ the pandas syntax by looking for equivalents from the software you already know:
 
                 .. image:: ../_static/logo_stata.svg
                     :class: card-img-top
-                    :height: 72px
+                    :height: 52px
                     :alt: Stata logo
 
                 .. container:: card-body flex-fill
@@ -695,7 +618,7 @@ the pandas syntax by looking for equivalents from the software you already know:
 
                 .. image:: ../_static/logo_sas.svg
                     :class: card-img-top
-                    :height: 72px
+                    :height: 52px
                     :alt: SAS logo
 
                 .. container:: card-body flex-fill
