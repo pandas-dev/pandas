@@ -125,6 +125,18 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError, match="wrong length"):
             data[mask] = data[0]
 
+    def test_setitem_mask_boolean_array_with_na(self, data, box_in_series):
+        mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
+        mask[:3] = True
+        mask[3:5] = pd.NA
+
+        if box_in_series:
+            data = pd.Series(data)
+
+        data[mask] = data[0]
+
+        assert (data[:3] == data[0]).all()
+
     @pytest.mark.parametrize(
         "idx",
         [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
