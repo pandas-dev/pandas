@@ -629,81 +629,84 @@ Currently working with other software for data manipulation in a tabular format?
 data operations and know *what* to do with your tabular data, but lacking the syntax to execute these operations. Get to know
 the pandas syntax by looking for equivalents from the software you already know:
 
-.. raw:: html
+.. container:: container
 
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="../_static/logo_r.svg" class="card-img-top" alt="R project logo" height="72">
-                <div class="card-body flex-fill">
-                    <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>data.frame</code> data structure and multiple packages,
-                        such as <a href="https://www.tidyverse.org/">tidyverse</a> use and extend <code>data.frame</code>s for convenient data handling
-                        functionalities similar to pandas.</p>
+    .. container:: row
 
-.. container:: custom-button
+        .. container:: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
 
-    :ref:`Learn more <compare_with_r>`
+            .. container:: card text-center intro-card shadow
 
-.. raw:: html
+                .. image:: ../_static/logo_r.svg
+                    :class: card-img-top
+                    :height: 72px
+                    :alt: R project logo
 
-                </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="../_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72">
-                <div class="card-body flex-fill">
-                    <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>,...?
-                    Most of these SQL manipulations do have equivalents in pandas.</p>
+                .. container:: card-body flex-fill
 
-.. container:: custom-button
+                    The `R programming language <https://www.r-project.org/>`_ provides the ``data.frame`` data
+                    structure and multiple packages, such as `tidyverse <https://www.tidyverse.org/>`_ use and
+                    extend ``data.frame`` s for convenient data handling functionalities similar to pandas.
 
-    :ref:`Learn more <compare_with_sql>`
+                    .. container:: custom-button
 
-.. raw:: html
+                        :ref:`Learn more <compare_with_r>`
 
-                    </div>
-                    </div>
-                </div>
-                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
-                    <img src="../_static/logo_stata.svg" class="card-img-top" alt="STATA logo" height="52">
-                    <div class="card-body flex-fill">
-                        <p class="card-text">The <code>data set</code> included in the
-                            <a href="https://en.wikipedia.org/wiki/Stata">STATA</a> statistical software suite corresponds
-                            to the pandas <code>data.frame</code>. Many of the operations known from STATA have an equivalent
-                            in pandas.</p>
+        .. container:: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
 
-.. container:: custom-button
+            .. container:: card text-center intro-card shadow
 
-    :ref:`Learn more <compare_with_stata>`
+                .. image:: ../_static/logo_sql.svg
+                    :class: card-img-top
+                    :height: 72px
+                    :alt: SQL logo
 
-.. raw:: html
+                .. container:: card-body flex-fill
 
-                    </div>
-                    </div>
-                </div>
-                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
-                    <img src="../_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52">
-                    <div class="card-body flex-fill">
-                        <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite
-                            also provides the <code>data set</code> corresponding to the pandas <code>data.frame</code>.
-                            Also vectorized operations, filtering, string processing operations,... from SAS have similar
-                            functions in pandas.</p>
+                    Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``,...?
+                    Most of these SQL manipulations do have equivalents in pandas.
 
-.. container:: custom-button
+                    .. container:: custom-button
 
-    :ref:`Learn more <compare_with_sas>`
+                        :ref:`Learn more <compare_with_sql>`
 
-.. raw:: html
+        .. container:: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
 
-                    </div>
-                    </div>
-                </div>
-        </div>
-    </div>
+            .. container:: card text-center intro-card shadow
+
+                .. image:: ../_static/logo_stata.svg
+                    :class: card-img-top
+                    :height: 72px
+                    :alt: Stata logo
+
+                .. container:: card-body flex-fill
+
+                    The ``data set`` included in the `STATA <https://en.wikipedia.org/wiki/Stata>`_ statistical software
+                    suite corresponds to the pandas ``data.frame``. Many of the operations known from STATA have an equivalent
+                    in pandas.
+
+                    .. container:: custom-button
+
+                        :ref:`Learn more <compare_with_stata>`
+
+        .. container:: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
+
+            .. container:: card text-center intro-card shadow
+
+                .. image:: ../_static/logo_sas.svg
+                    :class: card-img-top
+                    :height: 72px
+                    :alt: SAS logo
+
+                .. container:: card-body flex-fill
+
+                    The  `SAS statistical software suite <https://en.wikipedia.org/wiki/SAS_(software)>`_
+                    provides the ``data set`` corresponding to the pandas ``data.frame``. Also vectorized operations,
+                    filtering, string processing operations,... from SAS have similar functions in pandas.
+
+                    .. container:: custom-button
+
+                        :ref:`Learn more <compare_with_sas>`
 
 Community tutorials
 -------------------
