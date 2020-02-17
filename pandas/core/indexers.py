@@ -270,6 +270,33 @@ def deprecate_ndim_indexing(result):
         )
 
 
+def unpack_1tuple(tup):
+    """
+    If we have a length-1 tuple/list that contains a slice, unpack to just
+    the slice.
+
+    Notes
+    -----
+    The list case is deprecated.
+    """
+    if len(tup) == 1 and isinstance(tup[0], slice):
+        # if we don't have a MultiIndex, we may still be able to handle
+        #  a 1-tuple.  see test_1tuple_without_multiindex
+
+        if isinstance(tup, list):
+            # GH#31299
+            warnings.warn(
+                "Indexing with a single-item list containing a "
+                "slice is deprecated and will raise in a future "
+                "version.  Pass a tuple instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
+        return tup[0]
+    return tup
+
+
 # -----------------------------------------------------------
 # Public indexer validation
 
