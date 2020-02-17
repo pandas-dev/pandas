@@ -65,12 +65,12 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 --format="$FLAKE8_FORMAT" .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Linting .pyx code' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
+    MSG='Linting .pyx and .pxd code' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas --append-config=flake8/cython.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Linting .pxd and .pxi.in' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
+    MSG='Linting .pxi.in' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-template.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "flake8-rst --version"
@@ -259,8 +259,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/frame.py \
-        -k" -itertuples -join -reindex -reindex_axis -round"
+    pytest -q --doctest-modules pandas/core/frame.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
@@ -294,8 +293,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     MSG='Doctests interval classes' ; echo $MSG
     pytest -q --doctest-modules \
         pandas/core/indexes/interval.py \
-        pandas/core/arrays/interval.py \
-        -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
+        pandas/core/arrays/interval.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays'; echo $MSG
@@ -303,6 +301,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         pandas/core/arrays/string_.py \
         pandas/core/arrays/integer.py \
         pandas/core/arrays/boolean.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests dtypes'; echo $MSG
+    pytest -q --doctest-modules pandas/core/dtypes/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays/boolean.py' ; echo $MSG

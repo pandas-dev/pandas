@@ -1,4 +1,6 @@
-""" routings for casting """
+"""
+Routines for casting.
+"""
 
 from datetime import date, datetime, timedelta
 
@@ -76,7 +78,6 @@ _int64_max = np.iinfo(np.int64).max
 
 def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
-
     if isinstance(values, (list, tuple, range)):
         values = construct_1d_object_array_from_listlike(values)
     if getattr(values, "dtype", None) == np.object_:
@@ -95,7 +96,6 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-
     if isinstance(obj, ABCSeries) and is_object_dtype(obj):
 
         if any(isinstance(v, ABCSeries) for v in obj.values):
@@ -105,7 +105,8 @@ def is_nested_object(obj) -> bool:
 
 
 def maybe_downcast_to_dtype(result, dtype):
-    """ try to cast to the specified dtype (e.g. convert back to bool/int
+    """
+    try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
     do_round = False
@@ -269,12 +270,12 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 
     Examples
     --------
-    >>> result, _ = maybe_upcast_putmask(np.arange(1,6),
-    np.array([False, True, False, True, True]), np.arange(21,23))
+    >>> arr = np.arange(1, 6)
+    >>> mask = np.array([False, True, False, True, True])
+    >>> result, _ = maybe_upcast_putmask(arr, mask, False)
     >>> result
-    array([1, 21, 3, 22, 21])
+    array([1, 0, 3, 0, 0])
     """
-
     if not isinstance(result, np.ndarray):
         raise ValueError("The result input must be a ndarray.")
     if not is_scalar(other):
@@ -523,7 +524,6 @@ def _ensure_dtype_type(value, dtype):
     -------
     object
     """
-
     # Start with exceptions in which we do _not_ cast to numpy types
     if is_extension_array_dtype(dtype):
         return value
@@ -564,7 +564,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False):
         If False, scalar belongs to pandas extension types is inferred as
         object
     """
-
     dtype = np.object_
 
     # a 1-element ndarray
@@ -662,9 +661,8 @@ def infer_dtype_from_array(arr, pandas_dtype: bool = False):
     array(['1', '1'], dtype='<U21')
 
     >>> infer_dtype_from_array([1, '1'])
-    (numpy.object_, [1, '1'])
+    (<class 'numpy.object_'>, [1, '1'])
     """
-
     if isinstance(arr, np.ndarray):
         return arr.dtype, arr
 
@@ -709,7 +707,7 @@ def maybe_infer_dtype_type(element):
     >>> from collections import namedtuple
     >>> Foo = namedtuple("Foo", "dtype")
     >>> maybe_infer_dtype_type(Foo(np.dtype("i8")))
-    numpy.int64
+    dtype('int64')
     """
     tipo = None
     if hasattr(element, "dtype"):
@@ -753,7 +751,8 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool = False):
 
 
 def invalidate_string_dtypes(dtype_set):
-    """Change string like dtypes to object for
+    """
+    Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
     non_string_dtypes = dtype_set - {np.dtype("S").type, np.dtype("<U").type}
@@ -822,7 +821,6 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
-
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
         return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
@@ -964,7 +962,6 @@ def soft_convert_objects(
     copy: bool = True,
 ):
     """ if we have an object dtype, try to coerce dates and/or numbers """
-
     validate_bool_kwarg(datetime, "datetime")
     validate_bool_kwarg(numeric, "numeric")
     validate_bool_kwarg(timedelta, "timedelta")
@@ -1052,7 +1049,6 @@ def convert_dtypes(
     dtype
         new dtype
     """
-
     if convert_string or convert_integer or convert_boolean:
         try:
             inferred_dtype = lib.infer_dtype(input_array)
@@ -1132,7 +1128,6 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
        leave inferred dtype 'date' alone
 
     """
-
     # TODO: why not timedelta?
     if isinstance(
         value, (ABCDatetimeIndex, ABCPeriodIndex, ABCDatetimeArray, ABCPeriodArray)
@@ -1223,7 +1218,8 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
 
 
 def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
-    """ try to cast the array/value to a datetimelike dtype, converting float
+    """
+    try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
     from pandas.core.tools.timedeltas import to_timedelta
@@ -1372,7 +1368,6 @@ def find_common_type(types):
     numpy.find_common_type
 
     """
-
     if len(types) == 0:
         raise ValueError("no types given")
 
@@ -1419,7 +1414,6 @@ def cast_scalar_to_array(shape, value, dtype=None):
     ndarray of shape, filled with value, of specified / inferred dtype
 
     """
-
     if dtype is None:
         dtype, fill_value = infer_dtype_from_scalar(value)
     else:
@@ -1555,8 +1549,8 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
 
     Returns
     -------
-    int_arr : ndarray
-        An array of integer or unsigned integer dtype
+    ndarray
+        Array of integer or unsigned integer dtype.
 
     Raises
     ------
@@ -1567,19 +1561,18 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
     --------
     If you try to coerce negative values to unsigned integers, it raises:
 
-    >>> Series([-1], dtype="uint64")
+    >>> pd.Series([-1], dtype="uint64")
     Traceback (most recent call last):
         ...
     OverflowError: Trying to coerce negative values to unsigned integers
 
     Also, if you try to coerce float values to integers, it raises:
 
-    >>> Series([1, 2, 3.5], dtype="int64")
+    >>> pd.Series([1, 2, 3.5], dtype="int64")
     Traceback (most recent call last):
         ...
     ValueError: Trying to coerce float values to integers
     """
-
     try:
         if not hasattr(arr, "astype"):
             casted = np.array(arr, dtype=dtype, copy=copy)
