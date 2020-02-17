@@ -13,8 +13,7 @@ pandas code style guide
 standard and uses `Black <https://black.readthedocs.io/en/stable/>`_
 and `Flake8 <https://flake8.pycqa.org/en/latest/>`_ to ensure a
 consistent code format throughout the project. For details see the
-`contributing guide to pandas
-<https://pandas.pydata.org/pandas-docs/stable/development/contributing.html#python-pep8-black>`_.
+:ref:`contributing guide to pandas<contributing.code-formatting>`.
 
 Patterns
 ========
