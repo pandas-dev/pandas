@@ -255,6 +255,9 @@ html_favicon = "../../web/pandas/static/img/favicon.ico"
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 
+# Do not make scaled images a link
+html_scaled_image_link = False
+
 # Add redirect for previously existing API pages
 # each item is like `(from_old, to_new)`
 # To redirect a class and all its methods, see below
