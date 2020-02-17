@@ -26,7 +26,7 @@ dependencies:
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
-  - gitdb2==3.0.1  # GH-32060
+  - gitdb2==2.0.6  # GH-32060
   - sphinx
 
   # documentation (jupyter notebooks)
