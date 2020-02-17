@@ -501,3 +501,15 @@ def test_read_pickle_with_subclass():
 
     tm.assert_series_equal(result[0], expected[0])
     assert isinstance(result[1], MyTz)
+
+
+def test_read_py27_pickle_with_MultiIndex_column(datapath):
+    # pickle file with MultiIndex column written with py27
+    # should be readable without raising UnicodeDecodeError
+    # see GH#31988
+    path = datapath("io", "data", "pickle", "test_mi_py27.pkl")
+    df = pd.read_pickle(path)
+
+    # just test the columns are correct since the values are random
+    expected = pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]])
+    tm.assert_index_equal(df.columns, expected)
