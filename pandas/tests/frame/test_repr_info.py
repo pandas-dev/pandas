@@ -129,9 +129,6 @@ class TestDataFrameReprInfoEtc:
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
 
-        # TODO(wesm): is this supposed to be used?
-        bval = uval.encode("utf-8")  # noqa
-
         df = DataFrame({"A": [uval, uval]})
 
         result = repr(df)
@@ -223,8 +220,7 @@ class TestDataFrameReprInfoEtc:
 
         for i, line in enumerate(lines):
             if i >= start and i < start + size:
-                index = i - start
-                line_nr = " {} ".format(index)
+                line_nr = f" {i - start} "
                 assert line.startswith(line_nr)
 
     def test_info_memory(self):
@@ -236,7 +232,7 @@ class TestDataFrameReprInfoEtc:
         bytes = float(df.memory_usage().sum())
 
         expected = textwrap.dedent(
-            """\
+            f"""\
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 2 entries, 0 to 1
         Data columns (total 1 columns):
@@ -244,10 +240,8 @@ class TestDataFrameReprInfoEtc:
         ---  ------  --------------  -----
          0   a       2 non-null      int64
         dtypes: int64(1)
-        memory usage: {} bytes
-        """.format(
-                bytes
-            )
+        memory usage: {bytes} bytes
+        """
         )
 
         assert result == expected
@@ -313,9 +307,7 @@ class TestDataFrameReprInfoEtc:
         )
         assert header in res
         for i, dtype in enumerate(dtypes):
-            name = " {i:d}   {i:d}       {n:d} non-null     {dtype}".format(
-                i=i, n=n, dtype=dtype
-            )
+            name = f" {i:d}   {i:d}       {n:d} non-null     {dtype}"
             assert name in res
 
     def test_info_max_cols(self):

@@ -79,7 +79,8 @@ class BaseJSON:
     # The default assert_series_equal eventually does a
     # Series.values, which raises. We work around it by
     # converting the UserDicts to dicts.
-    def assert_series_equal(self, left, right, **kwargs):
+    @classmethod
+    def assert_series_equal(cls, left, right, *args, **kwargs):
         if left.dtype.name == "json":
             assert left.dtype == right.dtype
             left = pd.Series(
@@ -90,9 +91,10 @@ class BaseJSON:
                 index=right.index,
                 name=right.name,
             )
-        tm.assert_series_equal(left, right, **kwargs)
+        tm.assert_series_equal(left, right, *args, **kwargs)
 
-    def assert_frame_equal(self, left, right, *args, **kwargs):
+    @classmethod
+    def assert_frame_equal(cls, left, right, *args, **kwargs):
         obj_type = kwargs.get("obj", "DataFrame")
         tm.assert_index_equal(
             left.columns,
@@ -107,7 +109,7 @@ class BaseJSON:
         jsons = (left.dtypes == "json").index
 
         for col in jsons:
-            self.assert_series_equal(left[col], right[col], *args, **kwargs)
+            cls.assert_series_equal(left[col], right[col], *args, **kwargs)
 
         left = left.drop(columns=jsons)
         right = right.drop(columns=jsons)

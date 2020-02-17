@@ -40,15 +40,15 @@ from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
     """
-    Parameters:
-    -----------
+    Parameters
+    ----------
     mod_name : str
         Name of the module to be imported
     min_version : str, default None
         Minimum required version of the specified mod_name
 
-    Returns:
-    --------
+    Returns
+    -------
     object
         The imported module if successful, or False
     """
@@ -77,8 +77,8 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
 
 
 # TODO:
-# remove when gh-24839 is fixed; this affects numpy 1.16
-# and pytables 3.4.4
+# remove when gh-24839 is fixed.
+# this affects numpy 1.16 and pytables 3.4.4
 tables = safe_import("tables")
 xfail_non_writeable = pytest.mark.xfail(
     tables
@@ -86,7 +86,7 @@ xfail_non_writeable = pytest.mark.xfail(
     and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
     reason=(
         "gh-25511, gh-24839. pytables needs a "
-        "release beyong 3.4.4 to support numpy 1.16x"
+        "release beyond 3.4.4 to support numpy 1.16.x"
     ),
 )
 

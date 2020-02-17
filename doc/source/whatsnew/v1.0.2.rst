@@ -1,0 +1,54 @@
+.. _whatsnew_102:
+
+What's new in 1.0.2 (February ??, 2020)
+---------------------------------------
+
+These are the changes in pandas 1.0.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :meth:`DataFrame.to_excel` when ``columns`` kwarg is passed (:issue:`31677`)
+- Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
+- Fixed regression in :meth:`pandas.core.groupby.RollingGroupby.apply` where the ``raw`` parameter was ignored (:issue:`31754`)
+- Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+**Categorical**
+
+- Fixed bug where :meth:`Categorical.from_codes` improperly raised a ``ValueError`` when passed nullable integer codes. (:issue:`31779`)
+
+**I/O**
+
+- Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
+- Fixed bug in parquet roundtrip with nullable unsigned integer dtypes (:issue:`31896`).
+
+
+
+**Experimental dtypes**
+
+- Fix bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the ``"string"`` dtype (:issue:`31731`).
+- Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.0.1..v1.0.2|HEAD
