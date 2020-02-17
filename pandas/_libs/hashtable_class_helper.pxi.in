@@ -10,7 +10,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # ----------------------------------------------------------------------
 
 from pandas._libs.tslibs.util cimport get_c_string
-from pandas._libs.missing cimport C_NA
+from pandas._libs.missing cimport checknull
 
 {{py:
 
@@ -1034,9 +1034,7 @@ cdef class PyObjectHashTable(HashTable):
             hash(val)
 
             if ignore_na and (
-                (val is C_NA)
-                or (val != val)
-                or (val is None)
+                checknull(val)
                 or (use_na_value and val == na_value)
             ):
                 # if missing values do not count as unique values (i.e. if

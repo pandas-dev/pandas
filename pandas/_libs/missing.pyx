@@ -33,6 +33,7 @@ cpdef bint checknull(object val):
     Return boolean describing of the input is NA-like, defined here as any
     of:
      - None
+     - pd.NA
      - nan
      - NaT
      - np.datetime64 representation of NaT
