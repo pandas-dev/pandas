@@ -13,5 +13,5 @@ typedef struct {
 // Provided a DataFrame and axis deconstructs the block
 // data to match the order represented by the BlockManager
 // Returns NULL on error
-PdIter *PdFrameIter_New(PyObject *df, int axis);
+PdBlocksIter *PdFrameIter_New(PyObject *df, int axis);
 

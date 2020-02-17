@@ -730,8 +730,17 @@ ujson_ext = Extension(
 
 
 extensions.append(ujson_ext)
+# ----------------------------------------------------------------------w
+# native frame access functions
+native_frame_ext = Extension(
+    "pandas._libs.ndframe_data",
+    sources=["pandas/_libs/ndframe_iter.c"],
+    include_dirs=["pandas/_libs"],
+    define_macros=macros,
+)
 
-# ----------------------------------------------------------------------
+extensions.append(native_frame_ext)
+# ----------------------------------------------------------------------w
 
 
 def setup_package():
