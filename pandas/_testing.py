@@ -1107,6 +1107,8 @@ def assert_series_equal(
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
         Whether to compare category order of internal Categoricals
+
+        .. versionadded:: 1.0.2
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.

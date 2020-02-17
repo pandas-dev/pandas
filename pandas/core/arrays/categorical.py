@@ -2448,9 +2448,9 @@ class Categorical(ExtensionArray, PandasObject):
         else:
             # if both to_replace and value are scalar
             replace_dict = {to_replace: value}
+
         # other cases, like if both to_replace and value are list-like or if
         # to_replace is a dict, are handled separately in NDFrame
-
         for replace_value, new_value in replace_dict.items():
             if replace_value in cat.categories:
                 if isna(new_value):
