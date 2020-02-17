@@ -678,7 +678,7 @@ class TestPandasContainer:
         else:
             expected.index = expected.index.astype(float)
 
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected, check_index_type=False)
 
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_timeseries(self, orient, numpy):

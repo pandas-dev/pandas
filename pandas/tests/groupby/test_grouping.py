@@ -641,7 +641,7 @@ class TestGrouping:
         gr = s.groupby([])
 
         result = gr.mean()
-        tm.assert_series_equal(result, s)
+        tm.assert_series_equal(result, s, check_index_type=False)
 
         # check group properties
         assert len(gr.grouper.groupings) == 1

@@ -86,7 +86,7 @@ class BaseDecimal:
         else:
             right_na = right.isna()
 
-        tm.assert_series_equal(left_na, right_na)
+        tm.assert_series_equal(left_na, right_na, *args, **kwargs)
         return tm.assert_series_equal(left[~left_na], right[~right_na], *args, **kwargs)
 
     @classmethod
