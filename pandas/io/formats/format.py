@@ -217,7 +217,6 @@ class CategoricalFormatter:
 
         fmt_values = self._get_formatted_values()
 
-        fmt_values = [f"{i}" for i in fmt_values]
         fmt_values = [i.strip() for i in fmt_values]
         values = ", ".join(fmt_values)
         result = ["[" + values + "]"]
@@ -308,7 +307,7 @@ class SeriesFormatter:
                 footer += ", "
 
             series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-            footer += f"Name: {series_name}" if name is not None else ""
+            footer += f"Name: {series_name}"
 
         if self.length is True or (self.length == "truncate" and self.truncate_v):
             if footer:
@@ -1252,10 +1251,10 @@ class GenericArrayFormatter:
                 if leading_space is False:
                     # False specifically, so that the default is
                     # to include a space if we get here.
-                    tpl = f"{_format(v)}"
+                    tpl = "{v}"
                 else:
-                    tpl = f" {_format(v)}"
-                fmt_values.append(tpl)
+                    tpl = " {v}"
+                fmt_values.append(tpl.format(v=_format(v)))
 
         return fmt_values
 
@@ -1704,7 +1703,7 @@ def _get_format_timedelta64(
             x = Timedelta(x)
         result = x._repr_base(format=format)
         if box:
-            result = f"'{result}'"
+            result = repr(result)
         return result
 
     return _formatter

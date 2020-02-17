@@ -60,7 +60,8 @@ class LatexFormatter(TableFormatter):
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
             info_line = (
                 f"Empty {type(self.frame).__name__}\n"
-                f"Columns: {self.frame.columns}\nIndex: {self.frame.index}"
+                f"Columns: {self.frame.columns}\n"
+                f"Index: {self.frame.index}"
             )
             strcols = [[info_line]]
         else:
