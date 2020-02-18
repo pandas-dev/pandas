@@ -1074,6 +1074,7 @@ def assert_series_equal(
     check_exact=False,
     check_datetimelike_compat=False,
     check_categorical=True,
+    check_category_order=True,
     obj="Series",
 ):
     """
@@ -1108,6 +1109,10 @@ def assert_series_equal(
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_category_order : bool, default True
+        Whether to compare category order of internal Categoricals
+
+        .. versionadded:: 1.0.2
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1210,7 +1215,12 @@ def assert_series_equal(
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
-            assert_categorical_equal(left.values, right.values, obj=f"{obj} category")
+            assert_categorical_equal(
+                left.values,
+                right.values,
+                obj=f"{obj} category",
+                check_category_order=check_category_order,
+            )
 
 
 # This could be refactored to use the NDFrame.equals method
