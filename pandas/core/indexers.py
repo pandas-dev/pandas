@@ -219,7 +219,7 @@ def maybe_convert_indices(indices, n: int):
 
 def length_of_indexer(indexer, target=None) -> int:
     """
-    Return the length of a single non-tuple indexer which could be a slice.
+    Return the expected length of target[indexer]
 
     Returns
     -------
@@ -245,6 +245,12 @@ def length_of_indexer(indexer, target=None) -> int:
             step = -step
         return (stop - start + step - 1) // step
     elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):
+        if isinstance(indexer, list):
+            indexer = np.array(indexer)
+
+        if indexer.dtype == bool:
+            # GH#25774
+            return indexer.sum()
         return len(indexer)
     elif not is_list_like_indexer(indexer):
         return 1
