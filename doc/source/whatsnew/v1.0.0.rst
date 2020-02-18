@@ -1040,7 +1040,7 @@ Indexing
 Missing
 ^^^^^^^
 
--  Bug in :meth:`Series.interpolate` where kwarg ``limit_area`` and ``limit_direction`` had no effect when using methods ``pad`` and `backfill`` (:issue:`31048`)
+-
 -
 
 MultiIndex
