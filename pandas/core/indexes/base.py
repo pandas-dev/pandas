@@ -3822,6 +3822,9 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
             join_index = self._wrap_joined_index(join_index, other)
 
+        if self._typ == "categoricalindex":
+            join_index = self._create_from_codes(join_index)
+
         if return_indexers:
             lidx = None if lidx is None else ensure_platform_int(lidx)
             ridx = None if ridx is None else ensure_platform_int(ridx)

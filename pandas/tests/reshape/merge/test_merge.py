@@ -2163,3 +2163,17 @@ def test_merge_datetime_upcast_dtype():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_non_unique_monotonic():
+    # GH 28189
+    df = DataFrame(range(4), columns=["value"], index=CategoricalIndex(["1"] * 4))
+    df2 = DataFrame([[6]], columns=["value"], index=CategoricalIndex(["1"]))
+
+    result = merge(df, df2, how="left", left_index=True, right_index=True)
+    expected = DataFrame(
+        [[0, 6], [1, 6], [2, 6], [3, 6]],
+        columns=["value_x", "value_y"],
+        index=CategoricalIndex(["1"] * 4),
+    )
+    tm.assert_frame_equal(expected, result)
