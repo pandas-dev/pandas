@@ -58,7 +58,6 @@ from pandas.core.sorting import (
     indexer_from_factorized,
     lexsort_indexer,
 )
-from pandas.core.util.hashing import hash_tuple, hash_tuples
 
 from pandas.io.formats.printing import (
     format_object_attrs,
@@ -247,6 +246,7 @@ class MultiIndex(Index):
     rename = Index.set_names
 
     _tuples = None
+    sortorder: Optional[int]
 
     # --------------------------------------------------------------------
     # Constructors
@@ -1431,53 +1431,9 @@ class MultiIndex(Index):
         return self[::-1].is_monotonic_increasing
 
     @cache_readonly
-    def _have_mixed_levels(self):
-        """ return a boolean list indicated if we have mixed levels """
-        return ["mixed" in l for l in self._inferred_type_levels]
-
-    @cache_readonly
     def _inferred_type_levels(self):
         """ return a list of the inferred types, one for each level """
         return [i.inferred_type for i in self.levels]
-
-    @cache_readonly
-    def _hashed_values(self):
-        """ return a uint64 ndarray of my hashed values """
-        return hash_tuples(self)
-
-    def _hashed_indexing_key(self, key):
-        """
-        validate and return the hash for the provided key
-
-        *this is internal for use for the cython routines*
-
-        Parameters
-        ----------
-        key : string or tuple
-
-        Returns
-        -------
-        np.uint64
-
-        Notes
-        -----
-        we need to stringify if we have mixed levels
-        """
-        if not isinstance(key, tuple):
-            return hash_tuples(key)
-
-        if not len(key) == self.nlevels:
-            raise KeyError
-
-        def f(k, stringify):
-            if stringify and not isinstance(k, str):
-                k = str(k)
-            return k
-
-        key = tuple(
-            f(k, stringify) for k, stringify in zip(key, self._have_mixed_levels)
-        )
-        return hash_tuple(key)
 
     @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep="first"):
@@ -1857,27 +1813,6 @@ class MultiIndex(Index):
             names=list(self.names),
         )
         return ibase._new_Index, (type(self), d), None
-
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-        if isinstance(state, dict):
-            levels = state.get("levels")
-            codes = state.get("codes")
-            sortorder = state.get("sortorder")
-            names = state.get("names")
-
-        elif isinstance(state, tuple):
-
-            nd_state, own_state = state
-            levels, codes, sortorder, names = own_state
-
-        self._set_levels([Index(x) for x in levels], validate=False)
-        self._set_codes(codes)
-        new_codes = self._verify_integrity()
-        self._set_codes(new_codes)
-        self._set_names(names)
-        self.sortorder = sortorder
-        self._reset_identity()
 
     # --------------------------------------------------------------------
 
