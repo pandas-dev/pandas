@@ -1170,34 +1170,15 @@ class Block(PandasObject):
         # We only get here for non-ExtensionBlock
         fill_value = convert_scalar(self.values, fill_value)
 
-        # We have to distinguish two cases:
-        # 1. When kwarg `limit_area` is used: It is not
-        #    supported by `missing.interpolate_2d()`. Using this kwarg only
-        #    works by applying the fill along a certain axis.
-        # 2. All other cases: Then, `missing.interpolate_2d()` can be used.
-        if limit_area is not None:
-
-            def func(x):
-                return missing.interpolate_1d_fill(
-                    x,
-                    method=method,
-                    limit=limit,
-                    limit_area=limit_area,
-                    fill_value=fill_value,
-                    dtype=self.dtype,
-                )
-
-            # Beware that this also changes the input array `values`!
-            interp_values = np.apply_along_axis(func, axis, values)
-        else:
-            interp_values = missing.interpolate_2d(
-                values,
-                method=method,
-                axis=axis,
-                limit=limit,
-                fill_value=fill_value,
-                dtype=self.dtype,
-            )
+        interp_values = missing.interpolate_2d(
+            values,
+            method=method,
+            axis=axis,
+            limit=limit,
+            fill_value=fill_value,
+            limit_area=limit_area,
+            dtype=self.dtype,
+        )
 
         blocks = [self.make_block_same_class(interp_values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)

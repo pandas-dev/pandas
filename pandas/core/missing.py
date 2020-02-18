@@ -577,7 +577,13 @@ def interpolate_1d_fill(
 
 
 def interpolate_2d(
-    values, method="pad", axis=0, limit=None, fill_value=None, dtype=None
+    values,
+    method="pad",
+    axis=0,
+    limit=None,
+    fill_value=None,
+    limit_area=None,
+    dtype=None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
@@ -585,35 +591,55 @@ def interpolate_2d(
     """
     orig_values = values
 
-    transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
+    # We have to distinguish two cases:
+    # 1. When kwarg `limit_area` is used: It is not
+    #    supported by `pad_2d` and `backfill_2d`. Using this kwarg only
+    #    works by applying the fill along a certain axis.
+    # 2. All other cases.
+    if limit_area is not None:
 
-    # reshape a 1 dim if needed
-    ndim = values.ndim
-    if values.ndim == 1:
-        if axis != 0:  # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
+        def func(x):
+            return interpolate_1d_fill(
+                x,
+                method=method,
+                limit=limit,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                dtype=dtype,
+            )
 
-    if fill_value is None:
-        mask = None
-    else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), fill_value)
-
-    method = clean_fill_method(method)
-    if method == "pad":
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        # Beware that this also changes the input array `values`!
+        values = np.apply_along_axis(func, axis, values)
     else:
-        values = transf(
-            backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
-        )
+        transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
-    # reshape back
-    if ndim == 1:
-        values = values[0]
+        # reshape a 1 dim if needed
+        ndim = values.ndim
+        if values.ndim == 1:
+            if axis != 0:  # pragma: no cover
+                raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
+            values = values.reshape(tuple((1,) + values.shape))
 
-    if orig_values.dtype.kind == "M":
-        # convert float back to datetime64
-        values = values.astype(orig_values.dtype)
+        if fill_value is None:
+            mask = None
+        else:  # todo create faster fill func without masking
+            mask = mask_missing(transf(values), fill_value)
+
+        method = clean_fill_method(method)
+        if method == "pad":
+            values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        else:
+            values = transf(
+                backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
+            )
+
+        # reshape back
+        if ndim == 1:
+            values = values[0]
+
+        if orig_values.dtype.kind == "M":
+            # convert float back to datetime64
+            values = values.astype(orig_values.dtype)
 
     return values
 
