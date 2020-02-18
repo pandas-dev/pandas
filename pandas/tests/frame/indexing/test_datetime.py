@@ -40,7 +40,7 @@ class TestDataFrameIndexingDatetimeWithTZ:
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
         result = df.reset_index()
-        assert result["foo"].dtype, "M8[ns, US/Eastern"
+        assert result["foo"].dtype == "datetime64[ns, US/Eastern]"
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
