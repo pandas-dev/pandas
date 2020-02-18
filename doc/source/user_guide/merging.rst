@@ -716,10 +716,6 @@ either the left or right tables, the values in the joined table will be
 
    result = pd.merge(left, right, how='inner', on=['key1', 'key2'])
 
-To join a Series with a MultiIndex and a DataFrame, using the levels of the
-MultiIndex and columns from the DataFrame, transform the Series to a DataFrame
-using :meth:`Series.reset_index`.
-
 .. ipython:: python
    :suppress:
 
@@ -727,6 +723,10 @@ using :meth:`Series.reset_index`.
    p.plot([left, right], result,
           labels=['left', 'right'], vertical=False);
    plt.close('all');
+
+To join a Series with a MultiIndex and a DataFrame, using the levels of the
+MultiIndex and columns from the DataFrame, transform the Series to a DataFrame
+using :meth:`Series.reset_index`.
 
 .. ipython:: python
 
