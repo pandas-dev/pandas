@@ -160,7 +160,7 @@ jobs:
 
     - name: Create git repo to upload the built docs to GitHub pages
       run: |
-        cd to_deploy
+        cd pandas_web
         git init
         touch .nojekyll
         echo "dev.pandas.io" > CNAME
@@ -186,7 +186,7 @@ jobs:
 
     - name: Publish web and docs to GitHub pages
       run: |
-        cd to_deploy
+        cd pandas_web
         git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
         git push -f origin master
       if: github.event_name == 'push'
