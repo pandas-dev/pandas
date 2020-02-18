@@ -949,21 +949,26 @@ class IndexOpsMixin:
         See Also
         --------
         numpy.ndarray.argmax : Returns the indices of the maximum values along an axis.
+        Series.argmin : Return a ndarray of the minimum argument indexer.
 
         Examples
         --------
-        >>> s = pd.Series(data=[1, None, 5, 4, 5],
-        ...               index=['A', 'B', 'C', 'D', 'E'])
+        Consider dataset containing cereal calories
+
+        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...               'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
         >>> s
-        A    1.0
-        B    NaN
-        C    5.0
-        D    4.0
-        E    5.0
+        Corn Flakes              100.0
+        Almond Delight           110.0
+        Cinnamon Toast Crunch    120.0
+        Cocoa Puff               110.0
         dtype: float64
 
         >>> s.argmax()
         2
+
+        The maximum cereal calories is in the third element,
+        since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
