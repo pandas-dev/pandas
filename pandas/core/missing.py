@@ -288,10 +288,7 @@ def interpolate_1d(
 
 
 def _derive_indices_of_nans_to_preserve(
-    yvalues: ArrayLike,
-    limit: int,
-    limit_area: str,
-    limit_direction: str,
+    yvalues: ArrayLike, limit: int, limit_area: str, limit_direction: str
 ):
     """
     Derive the indices of NaNs that shall be preserved after interpolation
@@ -544,8 +541,6 @@ def interpolate_1d_fill(
     orig_values = values
 
     yvalues = values
-    invalid = isna(yvalues)
-    valid = ~invalid
 
     if values.ndim > 1:
         raise AssertionError("This only works with 1D data.")
