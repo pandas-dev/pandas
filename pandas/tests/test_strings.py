@@ -3592,3 +3592,11 @@ def test_string_array_extract():
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
+
+
+def test_bytes_encode():
+    # gh-32049
+    ser = pd.Series(list("abc"))
+    result = ser.str.encode(encoding="utf-8").str.encode(encoding="base64")
+    expected = pd.Series([b"YQ==\n", b"Yg==\n", b"Yw==\n"])
+    tm.assert_series_equal(result, expected)
