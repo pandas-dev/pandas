@@ -4,16 +4,10 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type, Un
 
 import numpy as np
 
-from pandas._libs import reduction as libreduction
 from pandas._typing import Axis
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_dict_like,
-    is_extension_array_dtype,
-    is_list_like,
-    is_sequence,
-)
+from pandas.core.dtypes.common import is_dict_like, is_list_like, is_sequence
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -224,15 +218,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        try:
-            result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
-        except ValueError as err:
-            if "Function does not reduce" not in str(err):
-                # catch only ValueError raised intentionally in libreduction
-                raise
-            # We expect np.apply_along_axis to give a two-dimensional result, or
-            #  also raise.
-            result = np.apply_along_axis(self.f, self.axis, self.values)
+        result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -268,51 +254,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         return result
 
     def apply_standard(self):
-
-        # try to reduce first (by default)
-        # this only matters if the reduction in values is of different dtype
-        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
-
-        # we cannot reduce using non-numpy dtypes,
-        # as demonstrated in gh-12244
-        if (
-            self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_array_dtype).any()
-            # Disallow dtypes where setting _index_data will break
-            #  ExtensionArray values, see GH#31182
-            and not self.dtypes.apply(lambda x: x.kind in ["m", "M"]).any()
-            # Disallow complex_internals since libreduction shortcut raises a TypeError
-            and not self.agg_axis._has_complex_internals
-        ):
-
-            values = self.values
-            index = self.obj._get_axis(self.axis)
-            labels = self.agg_axis
-            empty_arr = np.empty(len(index), dtype=values.dtype)
-
-            # Preserve subclass for e.g. test_subclassed_apply
-            dummy = self.obj._constructor_sliced(
-                empty_arr, index=index, dtype=values.dtype
-            )
-
-            try:
-                result = libreduction.compute_reduction(
-                    values, self.f, axis=self.axis, dummy=dummy, labels=labels
-                )
-            except ValueError as err:
-                if "Function does not reduce" not in str(err):
-                    # catch only ValueError raised intentionally in libreduction
-                    raise
-            except TypeError:
-                # e.g. test_apply_ignore_failures we just ignore
-                if not self.ignore_failures:
-                    raise
-            except ZeroDivisionError:
-                # reached via numexpr; fall back to python implementation
-                pass
-            else:
-                return self.obj._constructor_sliced(result, index=labels)
-
         # compute the result using the series generator
         results, res_index = self.apply_series_generator()
 
@@ -353,9 +294,23 @@ class FrameApply(metaclass=abc.ABCMeta):
         from pandas import Series
 
         # see if we can infer the results
-        if len(results) > 0 and 0 in results and is_sequence(results[0]):
+        if (
+            len(results) > 0
+            and 0 in results
+            and is_sequence(results[0])
+            and (not isinstance(results[0], dict) or self.result_type == "expand")
+        ):
 
-            return self.wrap_results_for_axis(results, res_index)
+            try:
+                return self.wrap_results_for_axis(results, res_index)
+            except ValueError as err:
+                # See e.g. test_agg_listlike_result
+                # FIXME: kludge for ragged array
+                if "arrays must all be same length" in str(err):
+                    # Fall back to constructing Series
+                    pass
+                else:
+                    raise
 
         # dict of scalars
 
@@ -444,9 +399,8 @@ class FrameColumnApply(FrameApply):
 
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
-            from pandas import Series
 
-            result = Series(results)
+            result = self.obj._constructor_sliced(results)
             result.index = res_index
 
         # we may want to infer results
