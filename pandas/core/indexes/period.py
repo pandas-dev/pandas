@@ -85,7 +85,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     copy : bool
         Make a copy of input ndarray.
     freq : str or period object, optional
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
     year : int, array, or Series, default None
     month : int, array, or Series, default None
     quarter : int, array, or Series, default None
@@ -788,7 +788,6 @@ def period_range(
 
     Examples
     --------
-
     >>> pd.period_range(start='2017-01-01', end='2018-01-01', freq='M')
     PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05',
                  '2017-06', '2017-06', '2017-07', '2017-08', '2017-09',

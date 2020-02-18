@@ -136,7 +136,8 @@ def concat_compat(to_concat, axis: int = 0):
 
 
 def concat_categorical(to_concat, axis: int = 0):
-    """Concatenate an object/categorical array of arrays, each of which is a
+    """
+    Concatenate an object/categorical array of arrays, each of which is a
     single dtype
 
     Parameters
@@ -215,13 +216,11 @@ def union_categoricals(
 
     Notes
     -----
-
     To learn more about categories, see `link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------
-
     >>> from pandas.api.types import union_categoricals
 
     If you want to combine categoricals that do not necessarily have

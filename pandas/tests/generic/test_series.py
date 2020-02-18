@@ -38,29 +38,29 @@ class TestSeries(Generic):
         )
         s.rename(str.lower)
 
-    def test_set_axis_name(self):
+    @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
+    def test_set_axis_name(self, func):
         s = Series([1, 2, 3], index=["a", "b", "c"])
-        funcs = ["rename_axis", "_set_axis_name"]
         name = "foo"
-        for func in funcs:
-            result = methodcaller(func, name)(s)
-            assert s.index.name is None
-            assert result.index.name == name
 
-    def test_set_axis_name_mi(self):
+        result = methodcaller(func, name)(s)
+        assert s.index.name is None
+        assert result.index.name == name
+
+    @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
+    def test_set_axis_name_mi(self, func):
         s = Series(
             [11, 21, 31],
             index=MultiIndex.from_tuples(
                 [("A", x) for x in ["a", "B", "c"]], names=["l1", "l2"]
             ),
         )
-        funcs = ["rename_axis", "_set_axis_name"]
-        for func in funcs:
-            result = methodcaller(func, ["L1", "L2"])(s)
-            assert s.index.name is None
-            assert s.index.names == ["l1", "l2"]
-            assert result.index.name is None
-            assert result.index.names, ["L1", "L2"]
+
+        result = methodcaller(func, ["L1", "L2"])(s)
+        assert s.index.name is None
+        assert s.index.names == ["l1", "l2"]
+        assert result.index.name is None
+        assert result.index.names, ["L1", "L2"]
 
     def test_set_axis_name_raises(self):
         s = pd.Series([1])
@@ -230,24 +230,11 @@ class TestToXArray:
         and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
         reason="xarray >= 0.10.0 required",
     )
-    @pytest.mark.parametrize(
-        "index",
-        [
-            "FloatIndex",
-            "IntIndex",
-            "StringIndex",
-            "UnicodeIndex",
-            "DateIndex",
-            "PeriodIndex",
-            "TimedeltaIndex",
-            "CategoricalIndex",
-        ],
-    )
+    @pytest.mark.parametrize("index", tm.all_index_generator(6))
     def test_to_xarray_index_types(self, index):
         from xarray import DataArray
 
-        index = getattr(tm, f"make{index}")
-        s = Series(range(6), index=index(6))
+        s = Series(range(6), index=index)
         s.index.name = "foo"
         result = s.to_xarray()
         repr(result)
