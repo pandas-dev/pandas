@@ -299,10 +299,11 @@ class TestDatetimeIndex:
 class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz)
+        obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype("category")
         expected = pd.CategoricalIndex(
-            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
+            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)],
+            name="idx",
         )
         tm.assert_index_equal(result, expected)
 
@@ -312,9 +313,9 @@ class TestAstype:
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_array_fallback(self, tz):
-        obj = pd.date_range("2000", periods=2, tz=tz)
+        obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype(bool)
-        expected = pd.Index(np.array([True, True]))
+        expected = pd.Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype(bool)
