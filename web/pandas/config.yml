@@ -54,7 +54,7 @@ blog:
   - https://dev.pandas.io/pandas-blog/feeds/all.atom.xml
   - https://wesmckinney.com/feeds/pandas.atom.xml
   - https://tomaugspurger.github.io/feed
-  - https://jorisvandenbossche.github.io/feeds/all.atom.xml
+  - https://jorisvandenbossche.github.io/feeds/pandas.atom.xml
   - https://datapythonista.github.io/blog/feeds/pandas.atom.xml
   - https://numfocus.org/tag/pandas/feed/
 maintainers:
