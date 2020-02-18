@@ -1196,3 +1196,27 @@ def test_transform_lambda_indexing():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input_df",
+    [
+        DataFrame(
+            {
+                "A": [121, 121, 121, 121, 231, 231, 676],
+                "B": [1, 2, np.nan, 3, 3, np.nan, 4],
+            }
+        ),
+        DataFrame(
+            {
+                "A": [121, 121, 121, 121, 231, 231, 676],
+                "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0],
+            }
+        ),
+    ],
+)
+def test_groupby_transform_fillna(input_df):
+    # GH 27905
+    result = input_df.groupby("A").transform(lambda x: x.fillna(x.mean()))
+    expected = pd.DataFrame({"B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0]})
+    tm.assert_frame_equal(result, expected)
