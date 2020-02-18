@@ -948,8 +948,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.argmax : Returns the indices of the maximum values along an axis.
-        Series.argmin : Return a ndarray of the minimum argument indexer.
+        numpy.ndarray.argmax : Equivalent method for numpy arrays.
+        Series.argmin : Similar method, but returning the minimum.
 
         Examples
         --------
