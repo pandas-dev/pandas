@@ -134,7 +134,8 @@ class AttributesMixin:
 
     @property
     def _scalar_type(self) -> Type[DatetimeLikeScalar]:
-        """The scalar associated with this datelike
+        """
+        The scalar associated with this datelike
 
         * PeriodArray : Period
         * DatetimeArray : Timestamp
@@ -500,7 +501,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-
         is_int = lib.is_integer(key)
         if lib.is_scalar(key) and not is_int:
             raise IndexError(
@@ -892,7 +892,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         This is an internal routine.
         """
-
         if self._hasnans:
             if convert:
                 result = result.astype(convert)

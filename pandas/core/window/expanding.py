@@ -37,7 +37,6 @@ class Expanding(_Rolling_and_Expanding):
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
          B
     0  0.0

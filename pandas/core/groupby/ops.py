@@ -170,7 +170,7 @@ class BaseGrouper:
             and not sdata.index._has_complex_internals
         ):
             try:
-                result_values, mutated = splitter.fast_apply(f, group_keys)
+                result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
             except libreduction.InvalidApply as err:
                 # This Exception is raised if `f` triggers an exception
@@ -434,7 +434,6 @@ class BaseGrouper:
         Names is only useful when dealing with 2D results, like ohlc
         (see self._name_functions).
         """
-
         assert kind in ["transform", "aggregate"]
         orig_values = values
 
@@ -749,7 +748,6 @@ class BinGrouper(BaseGrouper):
     @cache_readonly
     def groups(self):
         """ dict {group name -> group labels} """
-
         # this is mainly for compat
         # GH 3881
         result = {
@@ -928,11 +926,9 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, names):
+    def fast_apply(self, f, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-
-        sdata = self._get_sorted_data()
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
@@ -942,7 +938,9 @@ class FrameSplitter(DataSplitter):
             return sdata.iloc[:, slice_obj]
 
 
-def get_splitter(data: FrameOrSeries, *args, **kwargs) -> "DataSplitter[FrameOrSeries]":
+def get_splitter(
+    data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
+) -> "DataSplitter[FrameOrSeries]":
     klass: Type[DataSplitter]
     if isinstance(data, Series):
         klass = SeriesSplitter
@@ -950,4 +948,4 @@ def get_splitter(data: FrameOrSeries, *args, **kwargs) -> "DataSplitter[FrameOrS
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(data, *args, **kwargs)
+    return klass(data, labels, ngroups, axis)

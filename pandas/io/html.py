@@ -398,7 +398,6 @@ class _HtmlFrameParser:
                - Move rows from bottom of body to footer only if
                  all elements inside row are <th>
         """
-
         header_rows = self._parse_thead_tr(table_html)
         body_rows = self._parse_tbody_tr(table_html)
         footer_rows = self._parse_tfoot_tr(table_html)
@@ -438,7 +437,6 @@ class _HtmlFrameParser:
         Any cell with ``rowspan`` or ``colspan`` will have its contents copied
         to subsequent cells.
         """
-
         all_texts = []  # list of rows, each a list of str
         remainder: List[Tuple[int, str, int]] = []  # list of (index, text, nrows)
 
@@ -607,7 +605,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
 
 def _build_xpath_expr(attrs) -> str:
-    """Build an xpath expression to simulate bs4's ability to pass in kwargs to
+    """
+    Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
     Parameters

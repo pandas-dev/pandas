@@ -46,6 +46,7 @@ def _make_flex_doc(op_name, typ):
             op_name=op_name,
             equiv=equiv,
             reverse=op_desc["reverse"],
+            series_returns=op_desc["series_returns"],
         )
         if op_desc["series_examples"] is not None:
             doc = doc_no_examples + op_desc["series_examples"]
@@ -246,6 +247,10 @@ dtype: float64
 """
 
 
+_returns_series = """Series\n    The result of the operation."""
+
+_returns_tuple = """2-Tuple of Series\n    The result of the operation."""
+
 _op_descriptions: Dict[str, "_OpDescriptions"] = {
     # Arithmetic Operators
     "add": {
@@ -253,18 +258,21 @@ _op_descriptions: Dict[str, "_OpDescriptions"] = {
         "desc": "Addition",
         "reverse": "radd",
         "series_examples": _add_example_SERIES,
+        "series_returns": _returns_series,
     },
     "sub": {
         "op": "-",
         "desc": "Subtraction",
         "reverse": "rsub",
         "series_examples": _sub_example_SERIES,
+        "series_returns": _returns_series,
     },
     "mul": {
         "op": "*",
         "desc": "Multiplication",
         "reverse": "rmul",
         "series_examples": _mul_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "mod": {
@@ -272,12 +280,14 @@ _op_descriptions: Dict[str, "_OpDescriptions"] = {
         "desc": "Modulo",
         "reverse": "rmod",
         "series_examples": _mod_example_SERIES,
+        "series_returns": _returns_series,
     },
     "pow": {
         "op": "**",
         "desc": "Exponential power",
         "reverse": "rpow",
         "series_examples": _pow_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "truediv": {
@@ -285,6 +295,7 @@ _op_descriptions: Dict[str, "_OpDescriptions"] = {
         "desc": "Floating division",
         "reverse": "rtruediv",
         "series_examples": _div_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "floordiv": {
@@ -292,6 +303,7 @@ _op_descriptions: Dict[str, "_OpDescriptions"] = {
         "desc": "Integer division",
         "reverse": "rfloordiv",
         "series_examples": _floordiv_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "divmod": {
@@ -299,29 +311,51 @@ _op_descriptions: Dict[str, "_OpDescriptions"] = {
         "desc": "Integer division and modulo",
         "reverse": "rdivmod",
         "series_examples": None,
+        "series_returns": _returns_tuple,
         "df_examples": None,
     },
     # Comparison Operators
-    "eq": {"op": "==", "desc": "Equal to", "reverse": None, "series_examples": None},
+    "eq": {
+        "op": "==",
+        "desc": "Equal to",
+        "reverse": None,
+        "series_examples": None,
+        "series_returns": _returns_series,
+    },
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
         "reverse": None,
         "series_examples": None,
+        "series_returns": _returns_series,
     },
-    "lt": {"op": "<", "desc": "Less than", "reverse": None, "series_examples": None},
+    "lt": {
+        "op": "<",
+        "desc": "Less than",
+        "reverse": None,
+        "series_examples": None,
+        "series_returns": _returns_series,
+    },
     "le": {
         "op": "<=",
         "desc": "Less than or equal to",
         "reverse": None,
         "series_examples": None,
+        "series_returns": _returns_series,
     },
-    "gt": {"op": ">", "desc": "Greater than", "reverse": None, "series_examples": None},
+    "gt": {
+        "op": ">",
+        "desc": "Greater than",
+        "reverse": None,
+        "series_examples": None,
+        "series_returns": _returns_series,
+    },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
         "reverse": None,
         "series_examples": None,
+        "series_returns": _returns_series,
     },
 }
 
@@ -352,8 +386,7 @@ level : int or name
 
 Returns
 -------
-Series
-    The result of the operation.
+{series_returns}
 
 See Also
 --------

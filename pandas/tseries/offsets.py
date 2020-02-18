@@ -310,7 +310,6 @@ class DateOffset(BaseOffset):
         -------
         y : DatetimeIndex
         """
-
         if type(self) is not DateOffset:
             raise NotImplementedError(
                 f"DateOffset subclass {type(self).__name__} "
@@ -1024,8 +1023,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
-    DateOffset subclass representing possibly n custom business days,
-    excluding holidays.
+    DateOffset subclass representing custom business days excluding holidays.
 
     Parameters
     ----------

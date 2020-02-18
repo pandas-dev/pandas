@@ -77,7 +77,6 @@ class Grouper(Generic[FrameOrSeries]):
 
     Examples
     --------
-
     Syntactic sugar for ``df.groupby('A')``
 
     >>> df.groupby(Grouper(key='A'))
@@ -130,7 +129,6 @@ class Grouper(Generic[FrameOrSeries]):
         -------
         a tuple of binner, grouper, obj (possibly sorted)
         """
-
         self._set_grouper(obj)
         assert self.obj is not None
         self.grouper, _, self.obj = get_grouper(
