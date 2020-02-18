@@ -1400,7 +1400,7 @@ class _iLocIndexer(_LocationIndexer):
         bool
         """
         if isinstance(indexer, dict):
-            raise IndexError(f"{self.name} cannot enlarge its target object")
+            raise IndexError("iloc cannot enlarge its target object")
         else:
             if not isinstance(indexer, tuple):
                 indexer = _tuplify(self.ndim, indexer)
@@ -1413,11 +1413,9 @@ class _iLocIndexer(_LocationIndexer):
                     pass
                 elif is_integer(i):
                     if i >= len(ax):
-                        raise IndexError(
-                            f"{self.name} cannot enlarge its target object"
-                        )
+                        raise IndexError("iloc cannot enlarge its target object")
                 elif isinstance(i, dict):
-                    raise IndexError(f"{self.name} cannot enlarge its target object")
+                    raise IndexError("iloc cannot enlarge its target object")
 
         return True
 
@@ -1548,8 +1546,8 @@ class _iLocIndexer(_LocationIndexer):
             return key
 
         elif is_float(key):
+            # _validate_indexer call will always raise
             labels._validate_indexer("positional", key, "iloc")
-            return key
 
         self._validate_key(key, axis)
         return key
