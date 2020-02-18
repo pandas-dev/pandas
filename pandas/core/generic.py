@@ -6527,7 +6527,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             0.
         inplace : bool, default False
             Update the data in place if possible.
-        limit_direction : {'forward', 'backward', 'both'}, default is None
+        limit_direction : {'forward', 'backward', 'both'}, default is 'forward'
             If limit is specified, consecutive NaNs will be filled in this
             direction. If the methods 'pad' or 'ffill' are used it must be
             None or 'forward'. If 'backfill' or 'bfill' are use it must be
