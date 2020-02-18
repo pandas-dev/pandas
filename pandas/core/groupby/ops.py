@@ -621,49 +621,7 @@ class BaseGrouper:
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
-        if len(obj) == 0:
-            # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
-
-        elif is_extension_array_dtype(obj.dtype):
-            # _aggregate_series_fast would raise TypeError when
-            #  calling libreduction.Slider
-            # In the datetime64tz case it would incorrectly cast to tz-naive
-            # TODO: can we get a performant workaround for EAs backed by ndarray?
-            return self._aggregate_series_pure_python(obj, func)
-
-        elif obj.index._has_complex_internals:
-            # Pre-empt TypeError in _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
-
-        try:
-            return self._aggregate_series_fast(obj, func)
-        except ValueError as err:
-            if "Function does not reduce" in str(err):
-                # raised in libreduction
-                pass
-            else:
-                raise
         return self._aggregate_series_pure_python(obj, func)
-
-    def _aggregate_series_fast(self, obj: Series, func):
-        # At this point we have already checked that
-        #  - obj.index is not a MultiIndex
-        #  - obj is backed by an ndarray, not ExtensionArray
-        #  - len(obj) > 0
-        #  - ngroups != 0
-        func = self._is_builtin_func(func)
-
-        group_index, _, ngroups = self.group_info
-
-        # avoids object / Series creation overhead
-        dummy = obj.iloc[:0]
-        indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj.take(indexer)
-        group_index = algorithms.take_nd(group_index, indexer, allow_fill=False)
-        grouper = libreduction.SeriesGrouper(obj, func, group_index, ngroups, dummy)
-        result, counts = grouper.get_result()
-        return result, counts
 
     def _aggregate_series_pure_python(self, obj: Series, func):
 
@@ -856,13 +814,7 @@ class BinGrouper(BaseGrouper):
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
 
-        if is_extension_array_dtype(obj.dtype):
-            # pre-empt SeriesBinGrouper from raising TypeError
-            return self._aggregate_series_pure_python(obj, func)
-
-        dummy = obj[:0]
-        grouper = libreduction.SeriesBinGrouper(obj, func, self.bins, dummy)
-        return grouper.get_result()
+        return self._aggregate_series_pure_python(obj, func)
 
 
 def _is_indexed_like(obj, axes) -> bool:

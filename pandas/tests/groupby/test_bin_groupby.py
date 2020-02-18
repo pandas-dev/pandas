@@ -9,48 +9,6 @@ from pandas import Index, Series, isna
 import pandas._testing as tm
 
 
-def test_series_grouper():
-    obj = Series(np.random.randn(10))
-    dummy = obj.iloc[:0]
-
-    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
-
-    grouper = libreduction.SeriesGrouper(obj, np.mean, labels, 2, dummy)
-    result, counts = grouper.get_result()
-
-    expected = np.array([obj[3:6].mean(), obj[6:].mean()])
-    tm.assert_almost_equal(result, expected)
-
-    exp_counts = np.array([3, 4], dtype=np.int64)
-    tm.assert_almost_equal(counts, exp_counts)
-
-
-def test_series_grouper_requires_nonempty_raises():
-    # GH#29500
-    obj = Series(np.random.randn(10))
-    dummy = obj.iloc[:0]
-    labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
-
-    with pytest.raises(ValueError, match="SeriesGrouper requires non-empty `series`"):
-        libreduction.SeriesGrouper(dummy, np.mean, labels, 2, dummy)
-
-
-def test_series_bin_grouper():
-    obj = Series(np.random.randn(10))
-    dummy = obj[:0]
-
-    bins = np.array([3, 6])
-
-    grouper = libreduction.SeriesBinGrouper(obj, np.mean, bins, dummy)
-    result, counts = grouper.get_result()
-
-    expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
-    tm.assert_almost_equal(result, expected)
-
-    exp_counts = np.array([3, 3, 4], dtype=np.int64)
-    tm.assert_almost_equal(counts, exp_counts)
-
-
 @pytest.mark.parametrize(
     "binner,closed,expected",
     [
