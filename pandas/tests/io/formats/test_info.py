@@ -1,5 +1,6 @@
 from io import StringIO
 import re
+from string import ascii_uppercase as uppercase
 import sys
 import textwrap
 
@@ -8,15 +9,54 @@ import pytest
 
 from pandas.compat import PYPY
 
-import pandas as pd
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    MultiIndex,
+    Series,
+    date_range,
+    option_context,
+    reset_option,
+    set_option,
+)
+import pandas._testing as tm
+
+
+@pytest.fixture
+def datetime_frame():
+    """
+    Fixture for DataFrame of floats with DatetimeIndex
+
+    Columns are ['A', 'B', 'C', 'D']
+
+                       A         B         C         D
+    2000-01-03 -1.122153  0.468535  0.122226  1.693711
+    2000-01-04  0.189378  0.486100  0.007864 -1.216052
+    2000-01-05  0.041401 -0.835752 -0.035279 -0.414357
+    2000-01-06  0.430050  0.894352  0.090719  0.036939
+    2000-01-07 -0.620982 -0.668211 -0.706153  1.466335
+    2000-01-10 -0.752633  0.328434 -0.815325  0.699674
+    2000-01-11 -2.236969  0.615737 -0.829076 -1.196106
+    ...              ...       ...       ...       ...
+    2000-02-03  1.642618 -0.579288  0.046005  1.385249
+    2000-02-04 -0.544873 -1.160962 -0.284071 -1.418351
+    2000-02-07 -2.656149 -0.601387  1.410148  0.444150
+    2000-02-08 -1.201881 -1.289040  0.772992 -1.445300
+    2000-02-09  1.377373  0.398619  1.008453 -0.928207
+    2000-02-10  0.473194 -0.636677  0.984058  0.511519
+    2000-02-11 -0.965556  0.408313 -1.312844 -0.381948
+
+    [30 rows x 4 columns]
+    """
+    return DataFrame(tm.getTimeSeriesData())
 
 
 def test_info_categorical_column():
 
     # make sure it works
     n = 2500
-    df = pd.DataFrame({"int64": np.random.randint(100, size=n)})
-    df["category"] = pd.Series(
+    df = DataFrame({"int64": np.random.randint(100, size=n)})
+    df["category"] = Series(
         np.array(list("abcdefghij")).take(np.random.randint(0, 10, size=n))
     ).astype("category")
     df.isna()
@@ -33,7 +73,7 @@ def test_info(float_frame, datetime_frame):
     float_frame.info(buf=io)
     datetime_frame.info(buf=io)
 
-    frame = pd.DataFrame(np.random.randn(5, 3))
+    frame = DataFrame(np.random.randn(5, 3))
 
     frame.info()
     frame.info(verbose=False)
@@ -43,7 +83,7 @@ def test_info_verbose():
     buf = StringIO()
     size = 1001
     start = 5
-    frame = pd.DataFrame(np.random.randn(3, size))
+    frame = DataFrame(np.random.randn(3, size))
     frame.info(verbose=True, buf=buf)
 
     res = buf.getvalue()
@@ -63,7 +103,7 @@ def test_info_verbose():
 
 def test_info_memory():
     # https://github.com/pandas-dev/pandas/issues/21056
-    df = pd.DataFrame({"a": pd.Series([1, 2], dtype="i8")})
+    df = DataFrame({"a": Series([1, 2], dtype="i8")})
     buf = StringIO()
     df.info(buf=buf)
     result = buf.getvalue()
@@ -84,10 +124,8 @@ def test_info_memory():
 
 
 def test_info_wide():
-    from pandas import set_option, reset_option
-
     io = StringIO()
-    df = pd.DataFrame(np.random.randn(5, 101))
+    df = DataFrame(np.random.randn(5, 101))
     df.info(buf=io)
 
     io = StringIO()
@@ -107,7 +145,7 @@ def test_info_duplicate_columns():
     io = StringIO()
 
     # it works!
-    frame = pd.DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
+    frame = DataFrame(np.random.randn(1500, 4), columns=["a", "a", "b", "b"])
     frame.info(buf=io)
 
 
@@ -115,7 +153,7 @@ def test_info_duplicate_columns_shows_correct_dtypes():
     # GH11761
     io = StringIO()
 
-    frame = pd.DataFrame([[1, 2.0]], columns=["a", "a"])
+    frame = DataFrame([[1, 2.0]], columns=["a", "a"])
     frame.info(buf=io)
     io.seek(0)
     lines = io.readlines()
@@ -137,7 +175,7 @@ def test_info_shows_column_dtypes():
     n = 10
     for i, dtype in enumerate(dtypes):
         data[i] = np.random.randint(2, size=n).astype(dtype)
-    df = pd.DataFrame(data)
+    df = DataFrame(data)
     buf = StringIO()
     df.info(buf=buf)
     res = buf.getvalue()
@@ -152,10 +190,10 @@ def test_info_shows_column_dtypes():
 
 
 def test_info_max_cols():
-    df = pd.DataFrame(np.random.randn(10, 5))
+    df = DataFrame(np.random.randn(10, 5))
     for len_, verbose in [(5, None), (5, False), (12, True)]:
         # For verbose always      ^ setting  ^ summarize ^ full output
-        with pd.option_context("max_info_columns", 4):
+        with option_context("max_info_columns", 4):
             buf = StringIO()
             df.info(buf=buf, verbose=verbose)
             res = buf.getvalue()
@@ -164,7 +202,7 @@ def test_info_max_cols():
     for len_, verbose in [(12, None), (5, False), (12, True)]:
 
         # max_cols not exceeded
-        with pd.option_context("max_info_columns", 5):
+        with option_context("max_info_columns", 5):
             buf = StringIO()
             df.info(buf=buf, verbose=verbose)
             res = buf.getvalue()
@@ -172,14 +210,14 @@ def test_info_max_cols():
 
     for len_, max_cols in [(12, 5), (5, 4)]:
         # setting truncates
-        with pd.option_context("max_info_columns", 4):
+        with option_context("max_info_columns", 4):
             buf = StringIO()
             df.info(buf=buf, max_cols=max_cols)
             res = buf.getvalue()
             assert len(res.strip().split("\n")) == len_
 
         # setting wouldn't truncate
-        with pd.option_context("max_info_columns", 5):
+        with option_context("max_info_columns", 5):
             buf = StringIO()
             df.info(buf=buf, max_cols=max_cols)
             res = buf.getvalue()
@@ -201,7 +239,7 @@ def test_info_memory_usage():
     n = 10
     for i, dtype in enumerate(dtypes):
         data[i] = np.random.randint(2, size=n).astype(dtype)
-    df = pd.DataFrame(data)
+    df = DataFrame(data)
     buf = StringIO()
 
     # display memory usage case
@@ -232,10 +270,10 @@ def test_info_memory_usage():
     n = 100
     for i, dtype in enumerate(dtypes):
         data[i] = np.random.randint(2, size=n).astype(dtype)
-    df = pd.DataFrame(data)
+    df = DataFrame(data)
     df.columns = dtypes
 
-    df_with_object_index = pd.DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
     df_with_object_index.info(buf=buf, memory_usage=True)
     res = buf.getvalue().splitlines()
     assert re.match(r"memory usage: [^+]+\+", res[-1])
@@ -258,10 +296,10 @@ def test_info_memory_usage():
     assert df.memory_usage().sum() == df.memory_usage(deep=True).sum()
 
     # test for validity
-    pd.DataFrame(1, index=["a"], columns=["A"]).memory_usage(index=True)
-    pd.DataFrame(1, index=["a"], columns=["A"]).index.nbytes
-    df = pd.DataFrame(
-        data=1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+    DataFrame(1, index=["a"], columns=["A"]).memory_usage(index=True)
+    DataFrame(1, index=["a"], columns=["A"]).index.nbytes
+    df = DataFrame(
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
     )
     df.index.nbytes
     df.memory_usage(index=True)
@@ -273,32 +311,32 @@ def test_info_memory_usage():
 
 @pytest.mark.skipif(PYPY, reason="on PyPy deep=True doesn't change result")
 def test_info_memory_usage_deep_not_pypy():
-    df_with_object_index = pd.DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         > df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = pd.DataFrame({"a": ["a"]})
+    df_object = DataFrame({"a": ["a"]})
     assert df_object.memory_usage(deep=True).sum() > df_object.memory_usage().sum()
 
 
 @pytest.mark.skipif(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
-    df_with_object_index = pd.DataFrame({"a": [1]}, index=["foo"])
+    df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         == df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = pd.DataFrame({"a": ["a"]})
+    df_object = DataFrame({"a": ["a"]})
     assert df_object.memory_usage(deep=True).sum() == df_object.memory_usage().sum()
 
 
 @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
 def test_usage_via_getsizeof():
-    df = pd.DataFrame(
-        data=1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+    df = DataFrame(
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
     )
     mem = df.memory_usage(deep=True).sum()
     # sys.getsizeof will call the .memory_usage with
@@ -310,27 +348,27 @@ def test_usage_via_getsizeof():
 def test_info_memory_usage_qualified():
 
     buf = StringIO()
-    df = pd.DataFrame(1, columns=list("ab"), index=[1, 2, 3])
+    df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
-    df = pd.DataFrame(1, columns=list("ab"), index=list("ABC"))
+    df = DataFrame(1, columns=list("ab"), index=list("ABC"))
     df.info(buf=buf)
     assert "+" in buf.getvalue()
 
     buf = StringIO()
-    df = pd.DataFrame(
-        1, columns=list("ab"), index=pd.MultiIndex.from_product([range(3), range(3)]),
+    df = DataFrame(
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)]),
     )
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
-    df = pd.DataFrame(
+    df = DataFrame(
         1,
         columns=list("ab"),
-        index=pd.MultiIndex.from_product([range(3), ["foo", "bar"]]),
+        index=MultiIndex.from_product([range(3), ["foo", "bar"]]),
     )
     df.info(buf=buf)
     assert "+" in buf.getvalue()
@@ -340,17 +378,15 @@ def test_info_memory_usage_bug_on_multiindex():
     # GH 14308
     # memory usage introspection should not materialize .values
 
-    from string import ascii_uppercase as uppercase
-
     def memory_usage(f):
         return f.memory_usage(deep=True).sum()
 
     N = 100
     M = len(uppercase)
-    index = pd.MultiIndex.from_product(
-        [list(uppercase), pd.date_range("20160101", periods=N)], names=["id", "date"],
+    index = MultiIndex.from_product(
+        [list(uppercase), date_range("20160101", periods=N)], names=["id", "date"],
     )
-    df = pd.DataFrame({"value": np.random.randn(N * M)}, index=index)
+    df = DataFrame({"value": np.random.randn(N * M)}, index=index)
 
     unstacked = df.unstack("id")
     assert df.values.nbytes == unstacked.values.nbytes
@@ -362,8 +398,8 @@ def test_info_memory_usage_bug_on_multiindex():
 
 def test_info_categorical():
     # GH14298
-    idx = pd.CategoricalIndex(["a", "b"])
-    df = pd.DataFrame(np.zeros((2, 2)), index=idx, columns=idx)
+    idx = CategoricalIndex(["a", "b"])
+    df = DataFrame(np.zeros((2, 2)), index=idx, columns=idx)
 
     buf = StringIO()
     df.info(buf=buf)
