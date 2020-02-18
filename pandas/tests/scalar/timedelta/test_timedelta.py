@@ -821,3 +821,16 @@ class TestTimedeltas:
 def test_truthiness(value, expected):
     # https://github.com/pandas-dev/pandas/issues/21484
     assert bool(value) is expected
+
+
+def test_timedelta_attribute_precision():
+    # GH 31354
+    td = Timedelta(1552211999999999872, unit="ns")
+    result = td.days * 86400
+    result += td.seconds
+    result *= 1000000
+    result += td.microseconds
+    result *= 1000
+    result += td.nanoseconds
+    expected = td.value
+    assert result == expected

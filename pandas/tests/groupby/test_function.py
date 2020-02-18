@@ -17,6 +17,7 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
+    _is_numpy_dev,
     date_range,
     isna,
 )
@@ -671,7 +672,7 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
 
 
-@pytest.mark.parametrize("func", ["mean", "var", "std", "cumprod", "cumsum"])
+@pytest.mark.parametrize("func", ["cumprod", "cumsum"])
 def test_numpy_compat(func):
     # see gh-12811
     df = pd.DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})
@@ -685,6 +686,11 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
+@pytest.mark.xfail(
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
+)
 def test_cummin_cummax():
     # GH 15048
     num_types = [np.int32, np.int64, np.float32, np.float64]

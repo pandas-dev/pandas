@@ -254,7 +254,6 @@ def _get_opstr(op):
     -------
     op_str : string or None
     """
-
     return {
         operator.add: "+",
         radd: "+",
@@ -266,7 +265,7 @@ def _get_opstr(op):
         rtruediv: "/",
         operator.floordiv: "//",
         rfloordiv: "//",
-        operator.mod: None,  # TODO: Why None for mod but '%' for rmod?
+        operator.mod: "%",
         rmod: "%",
         operator.pow: "**",
         rpow: "**",
@@ -430,7 +429,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
 def _align_method_SERIES(left, right, align_asobject=False):
     """ align lhs and rhs Series """
-
     # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
