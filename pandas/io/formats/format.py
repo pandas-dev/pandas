@@ -315,11 +315,11 @@ class SeriesFormatter:
             footer += f"Length: {len(self.series)}"
 
         if self.dtype is not False and self.dtype is not None:
-            name = getattr(self.tr_series.dtype, "name", None)
-            if name:
+            dtype_name = getattr(self.tr_series.dtype, "name", None)
+            if dtype_name:
                 if footer:
                     footer += ", "
-                footer += f"dtype: {pprint_thing(name)}"
+                footer += f"dtype: {pprint_thing(dtype_name)}"
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
