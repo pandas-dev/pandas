@@ -716,6 +716,10 @@ either the left or right tables, the values in the joined table will be
 
    result = pd.merge(left, right, how='inner', on=['key1', 'key2'])
 
+To join a Series with a MultiIndex and a DataFrame, using the levels of the
+MultiIndex and columns from the DataFrame, transform the Series to a DataFrame
+using :meth:`Series.reset_index`.
+
 .. ipython:: python
    :suppress:
 
@@ -723,6 +727,25 @@ either the left or right tables, the values in the joined table will be
    p.plot([left, right], result,
           labels=['left', 'right'], vertical=False);
    plt.close('all');
+
+.. ipython:: python
+
+   df = pd.DataFrame({"Let": ["A", "B", "C"], "Num": [1, 2, 3]})
+   df
+
+   # The series has a multi-index with levels corresponding to columns in the DataFrame we want to merge with
+   ser = pd.Series(
+       ['a', 'b', 'c', 'd', 'e', 'f'],
+       index=pd.MultiIndex.from_arrays([["A", "B", "C"] * 2, [1, 2, 3, 4, 5, 6]], names=['Let', 'Num']
+       )
+   ser
+
+   # Convert the Series to a DataFrame and merge
+   pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
+   type(df2)
+
+   # Now we merge the DataFrames
+   pd.merge(df, df2, on=['Let', 'Num'])
 
 Here is another example with duplicate join keys in DataFrames:
 
