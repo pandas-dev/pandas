@@ -1325,7 +1325,7 @@ class _LocIndexer(_LocationIndexer):
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
-            if not (self.name == "loc" and not raise_missing):
+            if raise_missing:
                 not_found = list(set(key) - set(ax))
                 raise KeyError(f"{not_found} not in index")
 
@@ -1390,10 +1390,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
             raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
-    def _has_valid_setitem_indexer(self, indexer):
-        self._has_valid_positional_setitem_indexer(indexer)
-
-    def _has_valid_positional_setitem_indexer(self, indexer) -> bool:
+    def _has_valid_setitem_indexer(self, indexer) -> bool:
         """
         Validate that a positional indexer cannot enlarge its target
         will raise if needed, does not modify the indexer externally.
@@ -1602,7 +1599,7 @@ class _iLocIndexer(_LocationIndexer):
                     # this correctly sets the dtype and avoids cache issues
                     # essentially this separates out the block that is needed
                     # to possibly be modified
-                    if self.ndim > 1 and i == self.obj._info_axis_number:
+                    if self.ndim > 1 and i == info_axis:
 
                         # add the new item, and set the value
                         # must have all defined axes if we have a scalar
