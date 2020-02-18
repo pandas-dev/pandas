@@ -1703,7 +1703,7 @@ def _get_format_timedelta64(
             x = Timedelta(x)
         result = x._repr_base(format=format)
         if box:
-            result = repr(result)
+            result = f"'{result}'"
         return result
 
     return _formatter
