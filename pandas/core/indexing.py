@@ -1700,7 +1700,8 @@ class _iLocIndexer(_LocationIndexer):
 
                 # require that we are setting the right number of values that
                 # we are indexing
-                if is_list_like_indexer(value) and lplane_indexer != len(value):
+                if is_list_like_indexer(value) and 0 != lplane_indexer != len(value):
+                    # Exclude zero-len for e.g. boolean masking that is all-false
                     raise ValueError(
                         "cannot set using a multi-index "
                         "selection indexer with a different "
