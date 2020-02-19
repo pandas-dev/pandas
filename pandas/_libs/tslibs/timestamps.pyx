@@ -421,8 +421,8 @@ class Timestamp(_Timestamp):
                     "timezones."
                 )
 
-        if hasattr(ts_input, 'fold') and fold is not None:
-            ts_input = ts_input.replace(fold=fold)
+            if hasattr(ts_input, 'fold'):
+                ts_input = ts_input.replace(fold=fold)
 
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
