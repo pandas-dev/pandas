@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -267,3 +269,9 @@ def test_integer_hash_collision_set():
     assert len(result) == 2
     assert NA in result
     assert hash(NA) in result
+
+
+def test_pickle_roundtrip():
+    # https://github.com/pandas-dev/pandas/issues/31847
+    result = pickle.loads(pickle.dumps(pd.NA))
+    assert result is pd.NA
