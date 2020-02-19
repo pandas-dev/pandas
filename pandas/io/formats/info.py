@@ -3,7 +3,7 @@ from typing import IO, Optional, Union
 
 from pandas._config import get_option
 
-from pandas._typing import FrameOrSeries, Dtype
+from pandas._typing import Dtype, FrameOrSeries
 
 from pandas.core.indexes.api import Index
 
