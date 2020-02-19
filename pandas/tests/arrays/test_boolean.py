@@ -130,8 +130,8 @@ def test_to_boolean_array_missing_indicators(a, b):
     ],
 )
 def test_to_boolean_array_error(values):
-    # error in converting existing arrays to BooleanArray
-    with pytest.raises(TypeError):
+    msg = "Error converting existing arrays to BooleanArray"
+    with pytest.raises(TypeError, match=msg):
         pd.array(values, dtype="boolean")
 
 
