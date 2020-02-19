@@ -367,7 +367,6 @@ def test_groupby_selection_with_methods(df):
         "ffill",
         "bfill",
         "pct_change",
-        "tshift",
     ]
 
     for m in methods:
@@ -376,6 +375,11 @@ def test_groupby_selection_with_methods(df):
 
         # should always be frames!
         tm.assert_frame_equal(res, exp)
+
+    with pytest.raises(ValueError, match="Freq was not given"):
+        g.tshift()
+    with pytest.raises(ValueError, match="Freq was not given"):
+        g_exp.tshift()
 
     # methods which aren't just .foo()
     tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))

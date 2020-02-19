@@ -82,39 +82,6 @@ def test_apply_trivial_fail():
     tm.assert_frame_equal(result, expected)
 
 
-def test_fast_apply():
-    # make sure that fast apply is correctly called
-    # rather than raising any kind of error
-    # otherwise the python path will be callsed
-    # which slows things down
-    N = 1000
-    labels = np.random.randint(0, 2000, size=N)
-    labels2 = np.random.randint(0, 3, size=N)
-    df = DataFrame(
-        {
-            "key": labels,
-            "key2": labels2,
-            "value1": np.random.randn(N),
-            "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
-        }
-    )
-
-    def f(g):
-        return 1
-
-    g = df.groupby(["key", "key2"])
-
-    grouper = g.grouper
-
-    splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
-    group_keys = grouper._get_group_keys()
-    sdata = splitter._get_sorted_data()
-
-    values, mutated = splitter.fast_apply(f, sdata, group_keys)
-
-    assert not mutated
-
-
 @pytest.mark.parametrize(
     "df, group_names",
     [
