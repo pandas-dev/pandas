@@ -486,10 +486,7 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     if fold is not NULL:
         fold[0] = dt.fold
 
-    if to_utc:
-        return -int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-    else:
-        return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
 
 
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
@@ -514,7 +511,10 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
 
     delta = _tzlocal_get_offset_components(val, tz, to_utc, NULL)
 
-    return val + delta
+    if to_utc:
+        return val - delta
+    else:
+        return val + delta
 
 
 cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
