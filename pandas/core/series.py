@@ -2453,7 +2453,7 @@ Name: Max Speed, dtype: float64
     # -------------------------------------------------------------------
     # Combination
 
-    def append(self, to_append, ignore_index=False, verify_integrity=False):
+    def append(self, to_append, ignore_index=False, verify_integrity=False) -> "Series":
         """
         Concatenate two or more Series.
 
@@ -2530,6 +2530,13 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
+        for x in to_concat[1:]:
+            if isinstance(x, ABCDataFrame):
+                msg = (
+                    f"to_append should be a Series or list/tuple of Series, "
+                    f"got {type(x).__name__}"
+                )
+                raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
