@@ -1577,25 +1577,28 @@ class TestTimedeltaArraylikeMulDivOps:
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
 
-    # TODO: Moved from tests.series.test_operators; needs cleanup
     @pytest.mark.parametrize("m", [1, 3, 10])
     @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
-    def test_timedelta64_conversions(self, m, unit):
+    def test_timedelta64_conversions(self, m, unit, box_with_array):
         startdate = Series(pd.date_range("2013-01-01", "2013-01-03"))
         enddate = Series(pd.date_range("2013-03-01", "2013-03-03"))
 
         ser = enddate - startdate
         ser[2] = np.nan
+        flat = ser
+        ser = tm.box_expected(ser, box_with_array)
 
         # op
-        expected = Series([x / np.timedelta64(m, unit) for x in ser])
+        expected = Series([x / np.timedelta64(m, unit) for x in flat])
+        expected = tm.box_expected(expected, box_with_array)
         result = ser / np.timedelta64(m, unit)
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         # reverse op
-        expected = Series([Timedelta(np.timedelta64(m, unit)) / x for x in ser])
+        expected = Series([Timedelta(np.timedelta64(m, unit)) / x for x in flat])
+        expected = tm.box_expected(expected, box_with_array)
         result = np.timedelta64(m, unit) / ser
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     # ------------------------------------------------------------------
     # Multiplication
