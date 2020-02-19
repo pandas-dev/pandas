@@ -351,6 +351,16 @@ class OffsetArrayArithmetic:
         with warnings.catch_warnings(record=True):
             self.rng + offset
 
+
+class ApplyIndex:
+    params = other_offsets
+    param_names = ["offset"]
+
+    def setup(self, offset):
+        N = 10000
+        rng = pd.date_range(start="1/1/2000", periods=N, freq="T")
+        self.rng = rng
+
     def time_apply_index(self, offset):
         offset.apply_index(self.rng)
 
