@@ -26,7 +26,15 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, DatetimeIndex, IntervalIndex, Series, date_range
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DatetimeIndex,
+    IntervalIndex,
+    Series,
+    date_range,
+)
+
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
