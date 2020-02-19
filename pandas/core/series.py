@@ -25,7 +25,7 @@ from pandas._config import get_option
 from pandas._libs import lib, properties, reshape, tslibs
 from pandas._typing import Label
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.cast import convert_dtypes, validate_numeric_casting
@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
-    is_datetime64_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
@@ -42,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -64,7 +62,7 @@ import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, try_cast_to_ea
-from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -73,7 +71,8 @@ from pandas.core.construction import (
     is_empty_data,
     sanitize_array,
 )
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.generic import NDFrame
+from pandas.core.indexers import maybe_convert_indices, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
@@ -396,7 +395,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Override generic, we want to set the _typ here.
         """
-
         if not fastpath:
             labels = ensure_index(labels)
 
@@ -540,7 +538,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray
             Data of the Series.
         """
-
         return self._data.get_values()
 
     # ops
@@ -854,6 +851,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         key_is_scalar = is_scalar(key)
         if key_is_scalar:
             key = self.index._convert_scalar_indexer(key, kind="getitem")
+        elif isinstance(key, (list, tuple)):
+            key = unpack_1tuple(key)
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
             # Otherwise index.get_value will raise InvalidIndexError
@@ -896,16 +895,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "supported, use the appropriate DataFrame column"
             )
         elif isinstance(key, tuple):
-            try:
-                return self._get_values_tuple(key)
-            except ValueError:
-                # if we don't have a MultiIndex, we may still be able to handle
-                #  a 1-tuple.  see test_1tuple_without_multiindex
-                if len(key) == 1:
-                    key = key[0]
-                    if isinstance(key, slice):
-                        return self._get_values(key)
-                raise
+            return self._get_values_tuple(key)
 
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
@@ -927,26 +917,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self.iloc[key]
 
-        if isinstance(key, (list, tuple)):
-            # TODO: de-dup with tuple case handled above?
+        if isinstance(key, list):
             # handle the dup indexing case GH#4246
-            if len(key) == 1 and isinstance(key[0], slice):
-                # [slice(0, 5, None)] will break if you convert to ndarray,
-                # e.g. as requested by np.median
-                # FIXME: hack
-                if isinstance(key, list):
-                    # GH#31299
-                    warnings.warn(
-                        "Indexing with a single-item list containing a "
-                        "slice is deprecated and will raise in a future "
-                        "version.  Pass a tuple instead.",
-                        FutureWarning,
-                        stacklevel=3,
-                    )
-                    # TODO: use a message more like numpy's?
-                    key = tuple(key)
-                return self._get_values(key)
-
             return self.loc[key]
 
         return self.reindex(key)
@@ -1402,7 +1374,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         str or None
             String representation of Series if ``buf=None``, otherwise None.
         """
-
         formatter = fmt.SeriesFormatter(
             self,
             name=name,
@@ -2171,7 +2142,6 @@ Name: Max Speed, dtype: float64
         0.75    3.25
         dtype: float64
         """
-
         validate_percentile(q)
 
         # We dispatch to DataFrame so that core.internals only has to worry
@@ -2583,7 +2553,6 @@ Name: Max Speed, dtype: float64
         -------
         Series
         """
-
         if not isinstance(other, Series):
             raise AssertionError("Other operand must be Series")
 
@@ -3852,40 +3821,18 @@ Name: Max Speed, dtype: float64
         if axis is not None:
             self._get_axis_number(axis)
 
-        if isinstance(delegate, Categorical):
-            return delegate._reduce(name, skipna=skipna, **kwds)
-        elif isinstance(delegate, ExtensionArray):
+        if isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
-        elif is_datetime64_dtype(delegate):
-            # use DatetimeIndex implementation to handle skipna correctly
-            delegate = DatetimeIndex(delegate)
-        elif is_timedelta64_dtype(delegate) and hasattr(TimedeltaIndex, name):
-            # use TimedeltaIndex to handle skipna correctly
-            # TODO: remove hasattr check after TimedeltaIndex has `std` method
-            delegate = TimedeltaIndex(delegate)
 
-        # dispatch to numpy arrays
-        elif isinstance(delegate, np.ndarray):
+        else:
+            # dispatch to numpy arrays
             if numeric_only:
                 raise NotImplementedError(
                     f"Series.{name} does not implement numeric_only."
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
-
-        # TODO(EA) dispatch to Index
-        # remove once all internals extension types are
-        # moved to ExtensionArrays
-        return delegate._reduce(
-            op=op,
-            name=name,
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            filter_type=filter_type,
-            **kwds,
-        )
 
     def _reindex_indexer(self, new_index, indexer, copy):
         if indexer is None:
@@ -4010,6 +3957,8 @@ Name: Max Speed, dtype: float64
 
     @Appender(
         """
+        Examples
+        --------
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
@@ -4149,8 +4098,7 @@ Name: Max Speed, dtype: float64
             errors=errors,
         )
 
-    @Substitution(**_shared_doc_kwargs)
-    @Appender(generic.NDFrame.fillna.__doc__)
+    @doc(NDFrame.fillna, **_shared_doc_kwargs)
     def fillna(
         self,
         value=None,
@@ -4383,7 +4331,7 @@ Name: Max Speed, dtype: float64
     # Convert to types that support pd.NA
 
     def _convert_dtypes(
-        self: ABCSeries,
+        self,
         infer_objects: bool = True,
         convert_string: bool = True,
         convert_integer: bool = True,
@@ -4567,6 +4515,14 @@ Name: Max Speed, dtype: float64
 
     # ----------------------------------------------------------------------
     # Add index
+    _AXIS_ORDERS = ["index"]
+    _AXIS_NUMBERS = {"index": 0}
+    _AXIS_NAMES = {0: "index"}
+    _AXIS_REVERSED = False
+    _AXIS_LEN = len(_AXIS_ORDERS)
+    _info_axis_number = 0
+    _info_axis_name = "index"
+
     index: "Index" = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
@@ -4585,7 +4541,6 @@ Name: Max Speed, dtype: float64
     hist = pandas.plotting.hist_series
 
 
-Series._setup_axes(["index"], docs={"index": "The index (axis labels) of the Series."})
 Series._add_numeric_operations()
 Series._add_series_or_dataframe_operations()
 

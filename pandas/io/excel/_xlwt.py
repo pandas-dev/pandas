@@ -80,7 +80,8 @@ class _XlwtWriter(ExcelWriter):
     def _style_to_xlwt(
         cls, item, firstlevel: bool = True, field_sep=",", line_sep=";"
     ) -> str:
-        """helper which recursively generate an xlwt easy style string
+        """
+        helper which recursively generate an xlwt easy style string
         for example:
 
             hstyle = {"font": {"bold": True},
