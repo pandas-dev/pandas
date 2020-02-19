@@ -244,6 +244,14 @@ def test_info_shows_column_dtypes():
         name = f" {i:d}   {i:d}       {n:d} non-null     {dtype}"
         assert name in res
 
+    for dtype in dtypes:
+        s = Series(np.random.randint(2, size=n).astype(dtype))
+        buf = StringIO()
+        s.info(buf=buf)
+        res = buf.getvalue()
+        name = f" 0   {n:d} non-null     {dtype}"
+        assert name in res
+
 
 def test_info_max_cols():
     df = DataFrame(np.random.randn(10, 5))
