@@ -25,6 +25,16 @@ from pandas.tests.arithmetic.common import (
     get_upcast_box,
 )
 
+
+def _get_dtype(obj):
+    """
+    Helper to get the dtype for a Series, Index, or single-column DataFrame.
+    """
+    if isinstance(obj, DataFrame):
+        return obj.dtypes.iat[0]
+    return obj.dtype
+
+
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons
 
@@ -1219,7 +1229,6 @@ class TestTimedeltaArraylikeAddSubOps:
         result = tdarr - tdi
         tm.assert_equal(result, expected)
 
-    # TODO: parametrize over [add, sub, radd, rsub]?
     @pytest.mark.parametrize(
         "names",
         [
@@ -1248,17 +1257,11 @@ class TestTimedeltaArraylikeAddSubOps:
 
         result = tdi + ser
         tm.assert_equal(result, expected)
-        if box is not pd.DataFrame:
-            assert result.dtype == "timedelta64[ns]"
-        else:
-            assert result.dtypes[0] == "timedelta64[ns]"
+        assert _get_dtype(result) == "timedelta64[ns]"
 
         result = ser + tdi
         tm.assert_equal(result, expected)
-        if box is not pd.DataFrame:
-            assert result.dtype == "timedelta64[ns]"
-        else:
-            assert result.dtypes[0] == "timedelta64[ns]"
+        assert _get_dtype(result) == "timedelta64[ns]"
 
         expected = Series(
             [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=names[2]
@@ -1267,17 +1270,11 @@ class TestTimedeltaArraylikeAddSubOps:
 
         result = tdi - ser
         tm.assert_equal(result, expected)
-        if box is not pd.DataFrame:
-            assert result.dtype == "timedelta64[ns]"
-        else:
-            assert result.dtypes[0] == "timedelta64[ns]"
+        assert _get_dtype(result) == "timedelta64[ns]"
 
         result = ser - tdi
         tm.assert_equal(result, -expected)
-        if box is not pd.DataFrame:
-            assert result.dtype == "timedelta64[ns]"
-        else:
-            assert result.dtypes[0] == "timedelta64[ns]"
+        assert _get_dtype(result) == "timedelta64[ns]"
 
     def test_td64arr_add_sub_td64_nat(self, box_with_array):
         # GH#23320 special handling for timedelta64("NaT")
@@ -1312,6 +1309,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
     def test_td64arr_add_timedeltalike(self, two_hours, box_with_array):
         # only test adding/sub offsets as + is now numeric
+        # GH#10699 for Tick cases
         box = box_with_array
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("1 days 02:00:00", "10 days 02:00:00", freq="D")
@@ -1323,6 +1321,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
     def test_td64arr_sub_timedeltalike(self, two_hours, box_with_array):
         # only test adding/sub offsets as - is now numeric
+        # GH#10699 for Tick cases
         box = box_with_array
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("0 days 22:00:00", "9 days 22:00:00")
@@ -1335,43 +1334,6 @@ class TestTimedeltaArraylikeAddSubOps:
 
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
-
-    # TODO: this was taken from tests.series.test_operators; de-duplicate
-    def test_timedelta64_operations_with_DateOffset(self):
-        # GH#10699
-        td = Series([timedelta(minutes=5, seconds=3)] * 3)
-        result = td + pd.offsets.Minute(1)
-        expected = Series([timedelta(minutes=6, seconds=3)] * 3)
-        tm.assert_series_equal(result, expected)
-
-        result = td - pd.offsets.Minute(1)
-        expected = Series([timedelta(minutes=4, seconds=3)] * 3)
-        tm.assert_series_equal(result, expected)
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            result = td + Series(
-                [pd.offsets.Minute(1), pd.offsets.Second(3), pd.offsets.Hour(2)]
-            )
-        expected = Series(
-            [
-                timedelta(minutes=6, seconds=3),
-                timedelta(minutes=5, seconds=6),
-                timedelta(hours=2, minutes=5, seconds=3),
-            ]
-        )
-        tm.assert_series_equal(result, expected)
-
-        result = td + pd.offsets.Minute(1) + pd.offsets.Second(12)
-        expected = Series([timedelta(minutes=6, seconds=15)] * 3)
-        tm.assert_series_equal(result, expected)
-
-        # valid DateOffsets
-        for do in ["Hour", "Minute", "Second", "Day", "Micro", "Milli", "Nano"]:
-            op = getattr(pd.offsets, do)
-            td + op(5)
-            op(5) + td
-            td - op(5)
-            op(5) - td
 
     @pytest.mark.parametrize(
         "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
