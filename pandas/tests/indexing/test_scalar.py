@@ -292,7 +292,8 @@ class TestScalar2:
 
 
 def test_iat_dont_wrap_object_datetimelike():
-    # .iat calls go through DataFrame._get_value
+    # GH#32809 .iat calls go through DataFrame._get_value, should not
+    #  call maybe_box_datetimelike
     dti = date_range("2016-01-01", periods=3)
     tdi = dti - dti
     ser = Series(dti.to_pydatetime(), dtype=object)
