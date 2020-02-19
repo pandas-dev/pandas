@@ -15,6 +15,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    Union,
 )
 import warnings
 
@@ -92,6 +93,7 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
+from pandas.io.formats.info import info
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -4137,12 +4139,82 @@ Name: Max Speed, dtype: float64
             method=method,
         )
 
-    @Substitution(klass="Series", type_sub="", max_cols_sub="")
-    @Appender(NDFrame.info.__doc__)
+    @Substitution(
+        klass="Series",
+        type_sub="",
+        max_cols_sub="",
+        examples_sub="""
+>>> int_values = [1, 2, 3, 4, 5]
+>>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+>>> s = pd.Series(text_values, index=int_values)
+>>> s.info()
+<class 'pandas.core.series.Series'>
+Int64Index: 5 entries, 1 to 5
+Series name: None
+ #   Non-Null Count  Dtype
+---  --------------  -----
+ 0   5 non-null      object
+dtypes: object(1)
+memory usage: 80.0+ bytes
+
+Prints a summary excluding information about its values:
+
+>>> s.info(verbose=False)
+<class 'pandas.core.series.Series'>
+Int64Index: 5 entries, 1 to 5
+dtypes: object(1)
+memory usage: 80.0+ bytes
+
+Pipe output of Series.info to buffer instead of sys.stdout, get
+buffer content and writes to a text file:
+
+>>> import io
+>>> buffer = io.StringIO()
+>>> s.info(buf=buffer)
+>>> s = buffer.getvalue()
+>>> with open("df_info.txt", "w",
+...           encoding="utf-8") as f:  # doctest: +SKIP
+...     f.write(s)
+260
+
+The `memory_usage` parameter allows deep introspection mode, specially
+useful for big Series and fine-tune memory optimization:
+
+>>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+>>> s = pd.Series(np.random.choice(['a', 'b', 'c'], 10 ** 6))
+>>> s.info()
+<class 'pandas.core.series.Series'>
+RangeIndex: 1000000 entries, 0 to 999999
+Series name: None
+    #   Non-Null Count    Dtype
+---  --------------    -----
+    0   1000000 non-null  object
+dtypes: object(1)
+memory usage: 7.6+ MB
+
+>>> s.info(memory_usage='deep')
+<class 'pandas.core.series.Series'>
+RangeIndex: 1000000 entries, 0 to 999999
+Series name: None
+    #   Non-Null Count    Dtype
+---  --------------    -----
+    0   1000000 non-null  object
+dtypes: object(1)
+memory usage: 62.9 MB""",
+        see_also_sub="""
+Series.describe: Generate descriptive statistics of Series.
+Series.memory_usage: Memory usage of Series.""",
+    )
+    @Appender(info.__doc__)
     def info(
-        self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
-    ):
-        return super().info(verbose, buf, None, memory_usage, null_counts)
+        self,
+        verbose: Optional[bool] = None,
+        buf: Optional[IO[str]] = None,
+        max_cols: Optional[int] = None,
+        memory_usage: Optional[Union[bool, str]] = None,
+        null_counts: Optional[bool] = None,
+    ) -> None:
+        return info(self, verbose, buf, None, memory_usage, null_counts)
 
     @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":

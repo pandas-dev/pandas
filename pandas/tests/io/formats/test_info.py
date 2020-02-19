@@ -67,8 +67,19 @@ def test_info_categorical_column():
     buf = StringIO()
     df2.info(buf=buf)
 
+    s = Series(
+        np.array(list("abcdefghij")).take(np.random.randint(0, 10, size=n))
+    ).astype("category")
+    s.isna()
+    buf = StringIO()
+    s.info(buf=buf)
 
-def test_info(float_frame, datetime_frame):
+    s2 = s[s == "d"]
+    buf = StringIO()
+    s2.info(buf=buf)
+
+
+def test_info_frame(float_frame, datetime_frame):
     io = StringIO()
     float_frame.info(buf=io)
     datetime_frame.info(buf=io)
@@ -77,6 +88,32 @@ def test_info(float_frame, datetime_frame):
 
     frame.info()
     frame.info(verbose=False)
+
+
+@pytest.mark.parametrize("verbose", [True, False])
+def test_info_series(self, verbose):
+    index = MultiIndex(
+        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+        names=["first", "second"],
+    )
+    s = Series(range(len(index)), index=index, name="sth")
+    buf = StringIO()
+    s.info(verbose=verbose, buf=buf)
+    expected = """<class 'pandas.core.series.Series'>
+MultiIndex: 10 entries, ('foo', 'one') to ('qux', 'three')
+"""
+    if verbose:
+        expected += """Series name: sth
+ #   Non-Null Count  Dtype
+---  --------------  -----
+ 0   10 non-null     int64
+"""
+    expected += f"""dtypes: int64(1)
+memory usage: {s.memory_usage()}.0+ bytes
+"""
+    result = buf.getvalue()
+    assert result == expected
 
 
 def test_info_verbose():
@@ -320,6 +357,14 @@ def test_info_memory_usage_deep_not_pypy():
     df_object = DataFrame({"a": ["a"]})
     assert df_object.memory_usage(deep=True).sum() > df_object.memory_usage().sum()
 
+    s_with_object_index = Series({"a": [1]}, index=["foo"])
+    assert s_with_object_index.memory_usage(
+        index=True, deep=True
+    ) > s_with_object_index.memory_usage(index=True)
+
+    s_object = Series({"a": ["a"]})
+    assert s_object.memory_usage(deep=True) > s_object.memory_usage()
+
 
 @pytest.mark.skipif(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
@@ -331,6 +376,14 @@ def test_info_memory_usage_deep_pypy():
 
     df_object = DataFrame({"a": ["a"]})
     assert df_object.memory_usage(deep=True).sum() == df_object.memory_usage().sum()
+
+    s_with_object_index = Series({"a": [1]}, index=["foo"])
+    assert s_with_object_index.memory_usage(
+        index=True, deep=True
+    ) == s_with_object_index.memory_usage(index=True)
+
+    s_object = Series({"a": ["a"]})
+    assert s_object.memory_usage(deep=True) == s_object.memory_usage()
 
 
 @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
@@ -373,6 +426,26 @@ def test_info_memory_usage_qualified():
     df.info(buf=buf)
     assert "+" in buf.getvalue()
 
+    buf = StringIO()
+    s = Series(1, index=[1, 2, 3])
+    s.info(buf=buf)
+    assert "+" not in buf.getvalue()
+
+    buf = StringIO()
+    s = Series(1, index=list("ABC"))
+    s.info(buf=buf)
+    assert "+" in buf.getvalue()
+
+    buf = StringIO()
+    s = Series(1, index=MultiIndex.from_product([range(3), range(3)]),)
+    s.info(buf=buf)
+    assert "+" not in buf.getvalue()
+
+    buf = StringIO()
+    s = Series(1, index=MultiIndex.from_product([range(3), ["foo", "bar"]]),)
+    s.info(buf=buf)
+    assert "+" in buf.getvalue()
+
 
 def test_info_memory_usage_bug_on_multiindex():
     # GH 14308
@@ -395,6 +468,15 @@ def test_info_memory_usage_bug_on_multiindex():
     # high upper bound
     assert memory_usage(unstacked) - memory_usage(df) < 2000
 
+    s = Series(np.random.randn(N * M), index=index)
+
+    unstacked = s.unstack("id")
+    assert s.values.nbytes == unstacked.values.nbytes
+    assert s.memory_usage(deep=True) > unstacked.memory_usage(deep=True).sum()
+
+    # high upper bound
+    assert unstacked.memory_usage(deep=True).sum() - s.memory_usage(deep=True) < 2000
+
 
 def test_info_categorical():
     # GH14298
@@ -403,3 +485,8 @@ def test_info_categorical():
 
     buf = StringIO()
     df.info(buf=buf)
+
+    s = Series(np.zeros((2)), index=idx)
+
+    buf = StringIO()
+    s.info(buf=buf)
