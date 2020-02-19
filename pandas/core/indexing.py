@@ -8,7 +8,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    is_float,
     is_integer,
     is_iterator,
     is_list_like,
@@ -1547,18 +1546,13 @@ class _iLocIndexer(_LocationIndexer):
         """
         Much simpler as we only have to deal with our valid types.
         """
-        labels = self.obj._get_axis(axis)
+        return key
 
-        # make need to convert a float key
-        if isinstance(key, slice):
-            labels._validate_positional_slice(key)
-            return key
+    def _get_setitem_indexer(self, key):
+        if isinstance(key, tuple):
+            if len(key) > self.ndim:
+                raise IndexingError("Too many indexers")
 
-        elif is_float(key):
-            labels._validate_indexer("positional", key, "iloc")
-            return key
-
-        self._validate_key(key, axis)
         return key
 
     # -------------------------------------------------------------------
