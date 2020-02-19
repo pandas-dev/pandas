@@ -149,7 +149,7 @@ Strings
 Interval
 ^^^^^^^^
 
--
+- Fixed bug in :class:`Interval` where a :class:`Timedelta` could not be added or subtracted from a :class:`Timestamp` interval (:issue:`32023`)
 -
 
 Indexing
