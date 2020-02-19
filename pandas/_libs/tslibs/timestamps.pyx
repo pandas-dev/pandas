@@ -6,7 +6,7 @@ from numpy cimport int64_t
 cnp.import_array()
 
 from datetime import time as datetime_time, timedelta
-from cpython.datetime cimport (datetime,
+from cpython.datetime cimport (datetime, PyDateTime_Check,
                                PyTZInfo_Check, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
@@ -405,10 +405,8 @@ class Timestamp(_Timestamp):
                     "Valid values for the fold argument are None, 0, or 1."
                 )
 
-            if (ts_input is not _no_input and (
-                    is_integer_object(ts_input) or is_float_object(ts_input) or
-                    is_datetime64_object(ts_input) or isinstance(ts_input, str)
-                    or getattr(ts_input, 'tzinfo', None) is not None)):
+            if (ts_input is not _no_input and not (PyDateTime_Check(ts_input) and
+                    getattr(ts_input, 'tzinfo', None) is None)):
                 raise ValueError(
                     "Cannot pass fold with possibly unambiguous input: int, "
                     "float, numpy.datetime64, str, or timezone-aware "
