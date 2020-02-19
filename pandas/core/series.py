@@ -13,10 +13,8 @@ from typing import (
     Iterable,
     List,
     Optional,
-    Sequence,
     Tuple,
     Type,
-    Union,
 )
 import warnings
 
@@ -2456,11 +2454,8 @@ Name: Max Speed, dtype: float64
     # Combination
 
     def append(
-        self,
-        to_append: Union[ABCSeries, Sequence[ABCSeries]],
-        ignore_index=False,
-        verify_integrity=False,
-    ):
+        self, to_append, ignore_index=False, verify_integrity=False,
+        ):
         """
         Concatenate two or more Series.
 
