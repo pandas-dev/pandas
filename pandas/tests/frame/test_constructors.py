@@ -2590,3 +2590,24 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
         expected = pd.DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
+
+    def test_from_noniterable_2d_array_like(self):
+        class Sample:
+            def __init__(self, length, width):
+                self.length = length
+                self.width = width
+                self.columns = ["X" + str(i) for i in range(self.width)]
+
+            def __getitem__(self, index):
+                if isinstance(index, int):
+                    i = index
+                if i >= self.length:
+                    raise IndexError("end")
+                return [3 * i + j for j in range(self.width)]
+
+            def __len__(self):
+                return self.length
+
+        sample = Sample(4, 5)
+        df = pd.DataFrame(sample, columns=sample.columns)
+        assert df.shape == (4, 5)

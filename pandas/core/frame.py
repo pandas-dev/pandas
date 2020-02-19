@@ -511,6 +511,10 @@ class DataFrame(NDFrame):
                 mgr = init_ndarray(
                     values, index, columns, dtype=values.dtype, copy=False
                 )
+            elif arr.ndim == 2 and columns is not None:
+                if index is None:
+                    index = ibase.default_index(len(arr))
+                mgr = init_ndarray(arr, index, columns, dtype=dtype, copy=copy)
             else:
                 raise ValueError("DataFrame constructor not properly called!")
 
