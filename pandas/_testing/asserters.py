@@ -644,7 +644,7 @@ def assert_extension_array_equal(
 
     if hasattr(left, "asi8") and type(right) == type(left):
         # Avoid slow object-dtype comparisons
-        assert_numpy_array_equal(left.asi8, right.asi8)
+        assert_numpy_array_equal(left.asi8, right.asi8)  # type: ignore
         return
 
     left_na = np.asarray(left.isna())
