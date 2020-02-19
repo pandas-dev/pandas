@@ -388,6 +388,8 @@ cdef _TSObject create_tsobject_tz_using_offset(npy_datetimestruct dts,
         _TSObject obj = _TSObject()
         int64_t value  # numpy dt64
         datetime dt
+        ndarray[int64_t] trans
+        int64_t[:] deltas
 
     value = dtstruct_to_dt64(&dts)
     obj.dts = dts
@@ -594,8 +596,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     obj.tzinfo = tz
 
 
-cdef inline bint _infer_tsobject_fold(_TSObject obj, object trans,
-                                      object deltas, int32_t pos):
+cdef inline bint _infer_tsobject_fold(_TSObject obj, ndarray[int64_t] trans,
+                                      int64_t[:] deltas, int32_t pos):
     """
     Infer _TSObject fold property from value by assuming 0 and then setting
     to 1 if necessary.
@@ -603,10 +605,10 @@ cdef inline bint _infer_tsobject_fold(_TSObject obj, object trans,
     Parameters
     ----------
     obj : _TSObject
-    trans : object
-        List of offset transition points in nanoseconds since epoch.
-    deltas : object
-        List of offsets corresponding to transition points in trans.
+    trans : ndarray[int64_t]
+        ndarray of offset transition points in nanoseconds since epoch.
+    deltas : int64_t[:]
+        array of offsets corresponding to transition points in trans.
     pos : int32_t
         Position of the last transition point before taking fold into account.
 
