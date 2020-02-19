@@ -3,7 +3,7 @@ from typing import IO, Optional, Union
 
 from pandas._config import get_option
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, Dtype
 
 from pandas.core.indexes.api import Index
 
@@ -11,8 +11,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 
-def _put_str(s, space: int) -> str:
-    # todo type s
+def _put_str(s: Union[str, Dtype], space: int) -> str:
     return str(s)[:space].ljust(space)
 
 
@@ -141,7 +140,6 @@ def info(
             space_count = max(len_count, max_count) + col_space
             count_temp = "{count}" + non_null
         else:
-            counts = None  # can this be remove?
             count_header = ""
             space_count = len(count_header)
             len_count = space_count

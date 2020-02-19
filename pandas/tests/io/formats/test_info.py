@@ -91,7 +91,7 @@ def test_info_frame(float_frame, datetime_frame):
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_info_series(self, verbose):
+def test_info_series(verbose):
     index = MultiIndex(
         levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
         codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
