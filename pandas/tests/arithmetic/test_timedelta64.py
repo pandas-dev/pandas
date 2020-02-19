@@ -1145,60 +1145,6 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Operations with timedelta-like others
 
-    # TODO: this was taken from tests.series.test_ops; de-duplicate
-    def test_operators_timedelta64_with_timedelta(self, scalar_td):
-        # smoke tests
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        td1 + scalar_td
-        scalar_td + td1
-        td1 - scalar_td
-        scalar_td - td1
-        td1 / scalar_td
-        scalar_td / td1
-
-    # TODO: this was taken from tests.series.test_ops; de-duplicate
-    def test_timedelta64_operations_with_timedeltas(self):
-        # td operate with td
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td2 = timedelta(minutes=5, seconds=4)
-        result = td1 - td2
-        expected = Series([timedelta(seconds=0)] * 3) - Series(
-            [timedelta(seconds=1)] * 3
-        )
-        assert result.dtype == "m8[ns]"
-        tm.assert_series_equal(result, expected)
-
-        result2 = td2 - td1
-        expected = Series([timedelta(seconds=1)] * 3) - Series(
-            [timedelta(seconds=0)] * 3
-        )
-        tm.assert_series_equal(result2, expected)
-
-        # roundtrip
-        tm.assert_series_equal(result + td2, td1)
-
-        # Now again, using pd.to_timedelta, which should build
-        # a Series or a scalar, depending on input.
-        td1 = Series(pd.to_timedelta(["00:05:03"] * 3))
-        td2 = pd.to_timedelta("00:05:04")
-        result = td1 - td2
-        expected = Series([timedelta(seconds=0)] * 3) - Series(
-            [timedelta(seconds=1)] * 3
-        )
-        assert result.dtype == "m8[ns]"
-        tm.assert_series_equal(result, expected)
-
-        result2 = td2 - td1
-        expected = Series([timedelta(seconds=1)] * 3) - Series(
-            [timedelta(seconds=0)] * 3
-        )
-        tm.assert_series_equal(result2, expected)
-
-        # roundtrip
-        tm.assert_series_equal(result + td2, td1)
-
     def test_td64arr_add_td64_array(self, box_with_array):
         box = box_with_array
         dti = pd.date_range("2016-01-01", periods=3)
@@ -1319,6 +1265,9 @@ class TestTimedeltaArraylikeAddSubOps:
         result = rng + two_hours
         tm.assert_equal(result, expected)
 
+        result = two_hours + rng
+        tm.assert_equal(result, expected)
+
     def test_td64arr_sub_timedeltalike(self, two_hours, box_with_array):
         # only test adding/sub offsets as - is now numeric
         # GH#10699 for Tick cases
@@ -1331,6 +1280,9 @@ class TestTimedeltaArraylikeAddSubOps:
 
         result = rng - two_hours
         tm.assert_equal(result, expected)
+
+        result = two_hours - rng
+        tm.assert_equal(result, -expected)
 
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
@@ -1539,29 +1491,6 @@ class TestTimedeltaArraylikeMulDivOps:
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
 
-    @pytest.mark.parametrize("m", [1, 3, 10])
-    @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
-    def test_timedelta64_conversions(self, m, unit, box_with_array):
-        startdate = Series(pd.date_range("2013-01-01", "2013-01-03"))
-        enddate = Series(pd.date_range("2013-03-01", "2013-03-03"))
-
-        ser = enddate - startdate
-        ser[2] = np.nan
-        flat = ser
-        ser = tm.box_expected(ser, box_with_array)
-
-        # op
-        expected = Series([x / np.timedelta64(m, unit) for x in flat])
-        expected = tm.box_expected(expected, box_with_array)
-        result = ser / np.timedelta64(m, unit)
-        tm.assert_equal(result, expected)
-
-        # reverse op
-        expected = Series([Timedelta(np.timedelta64(m, unit)) / x for x in flat])
-        expected = tm.box_expected(expected, box_with_array)
-        result = np.timedelta64(m, unit) / ser
-        tm.assert_equal(result, expected)
-
     # ------------------------------------------------------------------
     # Multiplication
     # organized with scalar others first, then array-like
@@ -1713,6 +1642,29 @@ class TestTimedeltaArraylikeMulDivOps:
 
         result = two_hours / rng
         expected = 1 / expected
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("m", [1, 3, 10])
+    @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
+    def test_td64arr_div_td64_scalar(self, m, unit, box_with_array):
+        startdate = Series(pd.date_range("2013-01-01", "2013-01-03"))
+        enddate = Series(pd.date_range("2013-03-01", "2013-03-03"))
+
+        ser = enddate - startdate
+        ser[2] = np.nan
+        flat = ser
+        ser = tm.box_expected(ser, box_with_array)
+
+        # op
+        expected = Series([x / np.timedelta64(m, unit) for x in flat])
+        expected = tm.box_expected(expected, box_with_array)
+        result = ser / np.timedelta64(m, unit)
+        tm.assert_equal(result, expected)
+
+        # reverse op
+        expected = Series([Timedelta(np.timedelta64(m, unit)) / x for x in flat])
+        expected = tm.box_expected(expected, box_with_array)
+        result = np.timedelta64(m, unit) / ser
         tm.assert_equal(result, expected)
 
     def test_td64arr_div_tdlike_scalar_with_nat(self, two_hours, box_with_array):
