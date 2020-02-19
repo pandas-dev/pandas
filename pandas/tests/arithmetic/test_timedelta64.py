@@ -1039,15 +1039,6 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # Invalid __add__/__sub__ operations
 
-    # TODO: moved from frame tests; needs parametrization/de-duplication
-    def test_td64_df_add_int_frame(self):
-        # GH#22696 Check that we don't dispatch to numpy implementation,
-        #  which treats int64 as m8[ns]
-        tdi = pd.timedelta_range("1", periods=3)
-        df = tdi.to_frame()
-        other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
-        assert_invalid_addsub_type(df, other)
-
     @pytest.mark.parametrize("pi_freq", ["D", "W", "Q", "H"])
     @pytest.mark.parametrize("tdi_freq", [None, "H"])
     def test_td64arr_sub_periodlike(self, box_with_array, tdi_freq, pi_freq):
@@ -1126,6 +1117,9 @@ class TestTimedeltaArraylikeAddSubOps:
 
     def test_td64arr_add_sub_integer_array(self, box_with_array):
         # GH#19959, deprecated GH#22535
+        # GH#22696 for DataFrame case, check that we don't dispatch to numpy
+        #  implementation, which treats int64 as m8[ns]
+
         rng = timedelta_range("1 days 09:00:00", freq="H", periods=3)
         tdarr = tm.box_expected(rng, box_with_array)
         other = tm.box_expected([4, 3, 2], box_with_array)
