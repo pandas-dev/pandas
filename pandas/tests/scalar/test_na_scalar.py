@@ -275,3 +275,23 @@ def test_pickle_roundtrip():
     # https://github.com/pandas-dev/pandas/issues/31847
     result = pickle.loads(pickle.dumps(pd.NA))
     assert result is pd.NA
+
+
+def test_pickle_roundtrip_pandas():
+    with tm.ensure_clean("data.pkl") as f:
+        with open(f):
+            pd.to_pickle(pd.NA, f)
+        with open(f):
+            result = pd.read_pickle(f)
+    assert result is pd.NA
+
+
+def test_pickle_roundtrip_series():
+    s = pd.Series(pd.array([1, 2, pd.NA]))
+    with tm.ensure_clean("data.pkl") as f:
+        with open(f):
+            pd.to_pickle(s, f)
+        with open(f):
+            result = pd.read_pickle(f)
+
+    tm.assert_series_equal(result, s)
