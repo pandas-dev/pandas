@@ -79,12 +79,12 @@ iterator : boolean, default False
     Return XportReader object for reading file incrementally."""
 
 
-_read_sas_doc = """Read a SAS file into a DataFrame.
+_read_sas_doc = f"""Read a SAS file into a DataFrame.
 
-%(_base_params_doc)s
-%(_format_params_doc)s
-%(_params2_doc)s
-%(_iterator_doc)s
+{_base_params_doc}
+{_format_params_doc}
+{_params2_doc}
+{_iterator_doc}
 
 Returns
 -------
@@ -102,19 +102,13 @@ Read a Xport file in 10,000 line chunks:
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
-""" % {
-    "_base_params_doc": _base_params_doc,
-    "_format_params_doc": _format_params_doc,
-    "_params2_doc": _params2_doc,
-    "_iterator_doc": _iterator_doc,
-}
+"""
 
-
-_xport_reader_doc = """\
+_xport_reader_doc = f"""\
 Class for reading SAS Xport files.
 
-%(_base_params_doc)s
-%(_params2_doc)s
+{_base_params_doc}
+{_params2_doc}
 
 Attributes
 ----------
@@ -122,11 +116,7 @@ member_info : list
     Contains information about the file
 fields : list
     Contains information about the variables in the file
-""" % {
-    "_base_params_doc": _base_params_doc,
-    "_params2_doc": _params2_doc,
-}
-
+"""
 
 _read_method_doc = """\
 Read observations from SAS Xport file, returning as data frame.
@@ -185,7 +175,7 @@ def _handle_truncated_float_vec(vec, nbytes):
 
     if nbytes != 8:
         vec1 = np.zeros(len(vec), np.dtype("S8"))
-        dtype = np.dtype("S%d,S%d" % (nbytes, 8 - nbytes))
+        dtype = np.dtype(f"S{nbytes},S{8 - nbytes}")
         vec2 = vec1.view(dtype=dtype)
         vec2["f0"] = vec
         return vec2

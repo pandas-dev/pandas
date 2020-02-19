@@ -281,21 +281,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def _constructor(self: FrameOrSeries) -> Type[FrameOrSeries]:
-        """Used when a manipulation result has the same dimensions as the
+        """
+        Used when a manipulation result has the same dimensions as the
         original.
         """
         raise AbstractMethodError(self)
 
     @property
     def _constructor_sliced(self):
-        """Used when a manipulation result has one lower dimension(s) as the
+        """
+        Used when a manipulation result has one lower dimension(s) as the
         original, such as DataFrame single columns slicing.
         """
         raise AbstractMethodError(self)
 
     @property
     def _constructor_expanddim(self):
-        """Used when a manipulation result has one higher dimension as the
+        """
+        Used when a manipulation result has one higher dimension as the
         original, such as Series.to_frame()
         """
         raise NotImplementedError
@@ -315,28 +318,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _info_axis_name: str
     _AXIS_LEN: int
 
-    @classmethod
-    def _setup_axes(cls, axes: List[str], docs: Dict[str, str]) -> None:
-        """
-        Provide axes setup for the major PandasObjects.
-
-        Parameters
-        ----------
-        axes : the names of the axes in order (lowest to highest)
-        docs : docstrings for the axis properties
-        """
-        info_axis = len(axes) - 1
-        axes_are_reversed = len(axes) > 1
-
-        cls._AXIS_ORDERS = axes
-        cls._AXIS_NUMBERS = {a: i for i, a in enumerate(axes)}
-        cls._AXIS_LEN = len(axes)
-        cls._AXIS_NAMES = dict(enumerate(axes))
-        cls._AXIS_REVERSED = axes_are_reversed
-
-        cls._info_axis_number = info_axis
-        cls._info_axis_name = axes[info_axis]
-
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
@@ -346,7 +327,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _construct_axes_from_arguments(
         self, args, kwargs, require_all: bool = False, sentinel=None
     ):
-        """Construct and returns axes if supplied in args/kwargs.
+        """
+        Construct and returns axes if supplied in args/kwargs.
 
         If require_all, raise if all axis arguments are not supplied
         return a tuple of (axes, kwargs).
@@ -579,9 +561,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         See Also
         --------
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
-
-        Examples
-        --------
         """
         if inplace:
             setattr(self, self._get_axis_name(axis), labels)
@@ -899,7 +878,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
@@ -1739,7 +1717,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._info_axis
 
     def items(self):
-        """Iterate over (label, values) on info axis
+        """
+        Iterate over (label, values) on info axis
 
         This is index for Series and columns for DataFrame.
 
@@ -2208,7 +2187,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
         ...                   index=['row 1', 'row 2'],
         ...                   columns=['col 1', 'col 2'])
@@ -2442,7 +2420,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             library. Legacy support is provided for sqlite3.Connection objects. The user
             is responsible for engine disposal and connection closure for the SQLAlchemy
             connectable See `here \
-                <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
+                <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
 
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
@@ -2507,7 +2485,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Create an in-memory SQLite database.
 
         >>> from sqlalchemy import create_engine
@@ -3121,18 +3098,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Lookup Caching
 
     def _set_as_cached(self, item, cacher) -> None:
-        """Set the _cacher attribute on the calling object with a weakref to
+        """
+        Set the _cacher attribute on the calling object with a weakref to
         cacher.
         """
         self._cacher = (item, weakref.ref(cacher))
 
     def _reset_cacher(self) -> None:
-        """Reset the cacher."""
+        """
+        Reset the cacher.
+        """
         if hasattr(self, "_cacher"):
             del self._cacher
 
     def _maybe_cache_changed(self, item, value) -> None:
-        """The object has called back to us saying maybe it has changed.
+        """
+        The object has called back to us saying maybe it has changed.
         """
         self._data.set(item, value)
 
@@ -4185,7 +4166,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
@@ -5080,7 +5060,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self
 
     def __getattr__(self, name: str):
-        """After regular attribute access, try looking up the name
+        """
+        After regular attribute access, try looking up the name
         This allows simpler access to columns for interactive use.
         """
         # Note: obj.x will always call obj.__getattribute__('x') prior to
@@ -5098,7 +5079,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return object.__getattribute__(self, name)
 
     def __setattr__(self, name: str, value) -> None:
-        """After regular attribute access, try setting the name
+        """
+        After regular attribute access, try setting the name
         This allows simpler access to columns for interactive use.
         """
         # first try regular attribute access via __getattribute__, so that
@@ -5138,7 +5120,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 object.__setattr__(self, name, value)
 
     def _dir_additions(self):
-        """ add the string-like attributes from the info_axis.
+        """
+        add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
         """
         additions = {
@@ -5152,7 +5135,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Consolidation of internals
 
     def _protect_consolidate(self, f):
-        """Consolidate _data -- if the blocks have changed, then clear the
+        """
+        Consolidate _data -- if the blocks have changed, then clear the
         cache
         """
         blocks_before = len(self._data.blocks)
@@ -5768,7 +5752,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Notes
         -----
-
         By default, ``convert_dtypes`` will attempt to convert a Series (or each
         Series in a DataFrame) to dtypes that support ``pd.NA``. By using the options
         ``convert_string``, ``convert_integer``, and ``convert_boolean``, it is
@@ -7434,7 +7417,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Start by creating a series with 4 one minute timestamps.
 
         >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
@@ -7569,16 +7551,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Parameters
         ----------
         start_time : datetime.time or str
+            Initial time as a time filter limit.
         end_time : datetime.time or str
+            End time as a time filter limit.
         include_start : bool, default True
+            Whether the start time needs to be included in the result.
         include_end : bool, default True
+            Whether the end time needs to be included in the result.
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            Determine range time on index or columns value.
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
         Series or DataFrame
+            Data from the original object filtered to the specified dates range.
 
         Raises
         ------
@@ -7713,7 +7701,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Start by creating a series with 9 one minute timestamps.
 
         >>> index = pd.date_range('1/1/2000', periods=9, freq='T')
@@ -8100,7 +8087,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         >>> df = pd.DataFrame(data={'Animal': ['cat', 'penguin', 'dog',
         ...                                    'spider', 'snake'],
         ...                         'Number_legs': [4, 2, 4, 8, np.nan]})
@@ -9235,7 +9221,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-
         Localize local times:
 
         >>> s = pd.Series([1],
