@@ -111,13 +111,3 @@ class TestMultiIndexBasic:
         df3 = df.copy(deep=True)
         df3.loc[[(dti[0], "a")], "c2"] = 1.0
         tm.assert_frame_equal(df3, expected)
-
-    def test_multiindex_from_product_contains_na(self):
-        # https://github.com/pandas-dev/pandas/issues/31883
-        values = [np.array([0.0, pd.NA], dtype="object"), ["a", "b"]]
-        tuples = [(0.0, "a"), (0.0, "b"), (np.nan, "a"), (np.nan, "b")]
-
-        result = pd.MultiIndex.from_product(values)
-        expected = pd.MultiIndex.from_tuples(tuples)
-
-        tm.assert_index_equal(result, expected)

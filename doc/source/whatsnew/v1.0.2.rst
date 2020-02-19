@@ -34,10 +34,6 @@ Bug fixes
 - Fixed bug where :meth:`Categorical` constructor would raise a ``TypeError`` when given a numpy array containing ``pd.NA``. (:issue:`31927`)
 - Bug in :class:`Categorical` that would ignore or crash when calling :meth:`Series.replace` with a list-like ``to_replace`` (:issue:`31720`)
 
-**MultiIndex**
-
-- Fixed bug where :meth:`MultiIndex.from_product` would break when handling numpy object arrays containing ``NA``. (:issue:`31883`)
-
 **I/O**
 
 - Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
