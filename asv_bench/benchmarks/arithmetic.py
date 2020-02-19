@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, Series, Timestamp, date_range, to_timedelta
 import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -158,6 +158,27 @@ class Timeseries:
 
     def time_timestamp_ops_diff_with_shift(self, tz):
         self.s - self.s.shift()
+
+
+class IrregularOps:
+    def setup(self):
+        N = 10 ** 5
+        idx = date_range(start="1/1/2000", periods=N, freq="s")
+        s = Series(np.random.randn(N), index=idx)
+        self.left = s.sample(frac=1)
+        self.right = s.sample(frac=1)
+
+    def time_add(self):
+        self.left + self.right
+
+
+class TimedeltaOps:
+    def setup(self):
+        self.td = to_timedelta(np.arange(1000000))
+        self.ts = Timestamp("2000")
+
+    def time_add_td_ts(self):
+        self.td + self.ts
 
 
 class CategoricalComparisons:
