@@ -1,10 +1,11 @@
-"""Test extension array for storing nested data in a pandas container.
+"""
+Test extension array for storing nested data in a pandas container.
 
 The JSONArray stores lists of dictionaries. The storage mechanism is a list,
 not an ndarray.
 
-Note:
-
+Note
+----
 We currently store lists of UserDicts. Pandas has a few places
 internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
@@ -16,7 +17,7 @@ import numbers
 import random
 import string
 import sys
-from typing import Type
+from typing import Any, Mapping, Type
 
 import numpy as np
 
@@ -27,7 +28,7 @@ from pandas.api.extensions import ExtensionArray, ExtensionDtype
 class JSONDtype(ExtensionDtype):
     type = abc.Mapping
     name = "json"
-    na_value = UserDict()
+    na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
     def construct_array_type(cls) -> Type["JSONArray"]:
@@ -76,11 +77,8 @@ class JSONArray(ExtensionArray):
             # slice
             return type(self)(self.data[item])
         else:
-            if not pd.api.types.is_array_like(item):
-                item = pd.array(item)
-            dtype = item.dtype
-            if pd.api.types.is_bool_dtype(dtype):
-                item = pd.api.indexers.check_bool_array_indexer(self, item)
+            item = pd.api.indexers.check_array_indexer(self, item)
+            if pd.api.types.is_bool_dtype(item.dtype):
                 return self._from_sequence([x for x, m in zip(self, item) if m])
             # integer
             return type(self)([self.data[i] for i in item])

@@ -16,7 +16,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.indexes.base import Index, deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
+from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 
 
@@ -38,7 +39,6 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     -------
     attribute, method, property, or cache_readonly
     """
-
     attr = getattr(delegate, name)
 
     if isinstance(attr, property):
@@ -111,7 +111,7 @@ def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = 
     return wrapper
 
 
-def _make_wrapped_comparison_op(opname):
+def _make_wrapped_comparison_op(opname: str):
     """
     Create a comparison method that dispatches to ``._data``.
     """
@@ -131,7 +131,7 @@ def _make_wrapped_comparison_op(opname):
     return wrapper
 
 
-def make_wrapped_arith_op(opname):
+def make_wrapped_arith_op(opname: str):
     def method(self, other):
         if (
             isinstance(other, Index)
@@ -195,6 +195,9 @@ class ExtensionIndex(Index):
     Index subclass for indexes backed by ExtensionArray.
     """
 
+    # The base class already passes through to _data:
+    #  size, __len__, dtype
+
     _data: ExtensionArray
 
     __eq__ = _make_wrapped_comparison_op("__eq__")
@@ -203,6 +206,9 @@ class ExtensionIndex(Index):
     __gt__ = _make_wrapped_comparison_op("__gt__")
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
+
+    # ---------------------------------------------------------------------
+    # NDarray-Like Methods
 
     def __getitem__(self, key):
         result = self._data[key]
@@ -215,6 +221,8 @@ class ExtensionIndex(Index):
 
     def __iter__(self):
         return self._data.__iter__()
+
+    # ---------------------------------------------------------------------
 
     @property
     def _ndarray_values(self) -> np.ndarray:
@@ -233,6 +241,10 @@ class ExtensionIndex(Index):
         nv.validate_repeat(tuple(), dict(axis=axis))
         result = self._data.repeat(repeats, axis=axis)
         return self._shallow_copy(result)
+
+    def _concat_same_dtype(self, to_concat, name):
+        arr = type(self._data)._concat_same_type(to_concat)
+        return type(self)._simple_new(arr, name=name)
 
     @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):

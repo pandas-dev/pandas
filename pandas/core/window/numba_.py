@@ -110,7 +110,6 @@ def generate_numba_apply_func(
     -------
     Numba function
     """
-
     if engine_kwargs is None:
         engine_kwargs = {}
 

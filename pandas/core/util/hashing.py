@@ -269,7 +269,6 @@ def hash_array(
     -------
     1d uint64 numpy array of hash values, same length as the vals
     """
-
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
     dtype = vals.dtype
@@ -340,7 +339,6 @@ def _hash_scalar(
     -------
     1d uint64 numpy array of hash value, of length 1
     """
-
     if isna(val):
         # this is to be consistent with the _hash_categorical implementation
         return np.array([np.iinfo(np.uint64).max], dtype="u8")
