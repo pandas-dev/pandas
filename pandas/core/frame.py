@@ -2283,8 +2283,10 @@ buffer content and writes to a text file:
 ...           encoding="utf-8") as f:  # doctest: +SKIP
 ...     f.write(s)
 260
+
 The `memory_usage` parameter allows deep introspection mode, specially
 useful for big DataFrames and fine-tune memory optimization:
+
 >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
 >>> df = pd.DataFrame({
 ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
@@ -2302,6 +2304,7 @@ Data columns (total 3 columns):
     2   column_3  1000000 non-null  object
 dtypes: object(3)
 memory usage: 22.9+ MB
+
 >>> df.info(memory_usage='deep')
 <class 'pandas.core.frame.DataFrame'>
 RangeIndex: 1000000 entries, 0 to 999999
