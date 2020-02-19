@@ -711,6 +711,25 @@ class TestFrameArithmetic:
         expected = pd.DataFrame([[getattr(n, op)(num) for n in data]], columns=ind)
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_with_frame_reindex(self):
+        # GH#31623
+        df = pd.DataFrame(
+            {
+                "foo": [pd.Timestamp("2019"), pd.Timestamp("2020")],
+                "bar": [pd.Timestamp("2018"), pd.Timestamp("2021")],
+            },
+            columns=["foo", "bar"],
+        )
+        df2 = df[["foo"]]
+
+        result = df - df2
+
+        expected = pd.DataFrame(
+            {"foo": [pd.Timedelta(0), pd.Timedelta(0)], "bar": [np.nan, np.nan]},
+            columns=["bar", "foo"],
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
