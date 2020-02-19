@@ -50,7 +50,8 @@ class TestDataFrameIndexingWhere:
         # check getting
         df = where_frame
         if df is float_string_frame:
-            with pytest.raises(TypeError):
+            msg = "'>' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
                 df > 0
             return
         cond = df > 0
@@ -114,7 +115,8 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            with pytest.raises(TypeError):
+            msg = "'>' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
                 df > 0
             return
 
@@ -172,7 +174,8 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            with pytest.raises(TypeError):
+            msg = "'>' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
                 df > 0
             return
 
@@ -358,7 +361,8 @@ class TestDataFrameIndexingWhere:
         )
 
         stamp = datetime(2013, 1, 3)
-        with pytest.raises(TypeError):
+        msg = "'>' not supported between instances of 'float' and 'datetime.datetime'"
+        with pytest.raises(TypeError, match=msg):
             df > stamp
 
         result = df[df.iloc[:, :-1] > stamp]

@@ -34,7 +34,8 @@ class TestDataFrameRound:
 
         # Round with a list
         round_list = [1, 2]
-        with pytest.raises(TypeError):
+        msg = "decimals must be an integer, a dict-like or a Series"
+        with pytest.raises(TypeError, match=msg):
             df.round(round_list)
 
         # Round with a dictionary
@@ -57,34 +58,37 @@ class TestDataFrameRound:
 
         # float input to `decimals`
         non_int_round_dict = {"col1": 1, "col2": 0.5}
-        with pytest.raises(TypeError):
+        msg = "integer argument expected, got float"
+        with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
         # String input
         non_int_round_dict = {"col1": 1, "col2": "foo"}
-        with pytest.raises(TypeError):
+        msg = r"an integer is required \(got type str\)"
+        with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
         non_int_round_Series = Series(non_int_round_dict)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_Series)
 
         # List input
         non_int_round_dict = {"col1": 1, "col2": [1, 2]}
-        with pytest.raises(TypeError):
+        msg = r"an integer is required \(got type list\)"
+        with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
         non_int_round_Series = Series(non_int_round_dict)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_Series)
 
         # Non integer Series inputs
         non_int_round_Series = Series(non_int_round_dict)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_Series)
 
         non_int_round_Series = Series(non_int_round_dict)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_Series)
 
         # Negative numbers
@@ -103,7 +107,8 @@ class TestDataFrameRound:
             {"col1": [1.123, 2.123, 3.123], "col2": [1.2, 2.2, 3.2]}
         )
 
-        with pytest.raises(TypeError):
+        msg = "integer argument expected, got float"
+        with pytest.raises(TypeError, match=msg):
             df.round(nan_round_Series)
 
         # Make sure this doesn't break existing Series.round

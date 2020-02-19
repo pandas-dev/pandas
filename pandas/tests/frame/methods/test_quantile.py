@@ -75,7 +75,8 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
         # must raise
-        with pytest.raises(TypeError):
+        msg = "'<' not supported between instances of 'Timestamp' and 'float'"
+        with pytest.raises(TypeError, match=msg):
             df.quantile(0.5, axis=1, numeric_only=False)
 
     def test_quantile_axis_parameter(self):
