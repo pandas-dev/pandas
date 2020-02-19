@@ -487,23 +487,3 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
                                    8 days 01:00:00 < 9 days 01:00:00]"""  # noqa
 
         assert repr(s) == exp
-
-    def test_info(self, capsys):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        s = Series(range(len(index)), index=index, name="sth")
-        s.info()
-        expected = """<class 'pandas.core.series.Series'>
-MultiIndex: 10 entries, ('foo', 'one') to ('qux', 'three')
-Series name: sth
- #   Non-Null Count  Dtype
----  --------------  -----
- 0   10 non-null     int64
-dtypes: int64(1)
-memory usage: 505.0+ bytes
-"""
-        result = capsys.readouterr().out
-        assert result == expected
