@@ -271,3 +271,21 @@ class TestComparison:
         result = op(index, other)
         expected = expected_type(self.elementwise_comparison(op, index, other))
         assert_func(result, expected)
+
+
+@pytest.mark.parametrize("add", [True, False])
+def test_timestamp_interval_can_add_timedelta(add):
+    # https://github.com/pandas-dev/pandas/issues/32023
+    interval = pd.Interval(
+        pd.Timestamp("2017-01-01 00:00:00"), pd.Timestamp("2018-01-01 00:00:00")
+    )
+    delta = pd.Timedelta(days=7)
+
+    if add:
+        result = interval + delta
+        expected = pd.Interval(interval.left + delta, interval.right + delta)
+    else:
+        result = interval - delta
+        expected = pd.Interval(interval.left - delta, interval.right - delta)
+
+    assert result == expected
