@@ -383,14 +383,14 @@ cdef class Interval(IntervalMixin):
         return f'{start_symbol}{left}, {right}{end_symbol}'
 
     def __add__(self, y):
-        if isinstance(y, numbers.Number):
+        if isinstance(y, (numbers.Number, Timedelta)):
             return Interval(self.left + y, self.right + y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __sub__(self, y):
-        if isinstance(y, numbers.Number):
+        if isinstance(y, (numbers.Number, Timedelta)):
             return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
 
