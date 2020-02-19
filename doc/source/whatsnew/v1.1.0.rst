@@ -408,6 +408,17 @@ MultiIndex
         left.intersection(right, sort=False)
 
 - Bug in :meth:`MultiIndex.get_indexer` incorrectly handling use of pad and backfill options (:issue:`29896`)
+.. ipython:: python
+
+        df = pd.DataFrame({
+            'a': [0, 0, 0, 0],
+            'b': [0, 2, 3, 4],
+            'c': ['A', 'B', 'C', 'D']
+        }).set_index(['a', 'b'])
+        mi_2 = pd.MultiIndex.from_product([[0], [-1, 0, 1, 3, 4, 5]])
+
+        df.reindex(mi_2, method='backfill')
+        df.reindex(mi_2, method='pad')
 -
 
 I/O
