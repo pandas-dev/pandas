@@ -2455,7 +2455,9 @@ class MultiIndex(Index):
                 raise NotImplementedError(
                     "tolerance not implemented yet for MultiIndex"
                 )
-            indexer = self._engine.get_indexer(target, method, limit)
+            indexer = self._engine.get_indexer_and_fill(
+                self.values, target, method=method, limit=limit
+            )
         elif method == "nearest":
             raise NotImplementedError(
                 "method='nearest' not implemented yet "

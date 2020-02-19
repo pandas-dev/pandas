@@ -354,7 +354,7 @@ class TestGetIndexer:
         expected = np.array([0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
-    def test_get_indexer_backfill_with_carrying(self):
+    def test_get_indexer_crossing_levels(self):
         # https://github.com/pandas-dev/pandas/issues/29896
         # tests a corner case with get_indexer() with MultiIndexes where, when we
         # need to "carry" across levels, proper tuple ordering is respected

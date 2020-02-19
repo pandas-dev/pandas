@@ -593,89 +593,7 @@ cdef class BaseMultiIndexCodesEngine:
     def _codes_to_ints(self, codes):
         raise NotImplementedError("Implemented by subclass")
 
-    def _do_backfill_carrying(self, object level_codes,
-                              object level_codes_no_fill):
-        """
-        cleanup for the case of per-level backfills of too-large values to -1
-
-        given a 2d list of level_codes, i.e. integers representing the index
-        of a target index inside `self.level_codes` for each level, which
-        were backfilled at each level, handle cases where too-large values
-        which were backfilled to 0 (and became 1 after adding 1 to handle use
-        of unsigned integers) and thus the backfilling on the level code, when
-        represented as an int, will not be correct
-
-        in particular, this involves a sort of "carrying", whereby, when a
-        value at a given level is too large, we set it to the minimum value
-        and then attempt to bump the value to the left, and, in the event that
-        we need to do this at the first index
-
-        e.g. if the highest two values in `self`'s index tuples are (8, 4, 7)
-        and (8, 4, 9), then, in order to determine that the value (8, 4, 10) is
-        too large, we would need to determine that 10 > 9, meaning we need to
-        "carry" to the middle level, at which we try to bump 4 to 5, which is
-        in turn too large, requiring us to try to bump 8 to 9, also too large,
-        meaning that the entire row representing (8, 4, 10)'s level_codes
-        should be set to -1
-
-        Parameters
-        ----------
-        level_codes : ndarray[ndim=2]
-            per-level backfilled codes of a target index. a 0 represents NaN,
-            and the remainder of the values should be from 1, ..., L_i, where
-            L_i is the length of `self.levels[i]`
-        level_codes_no_fill: 2D-list-like, M x N
-            the same as above, but computed without backfilling
-
-        Returns
-        -------
-        level_codes : 2D integer array, also M x N
-            same as level_codes but with appropriate "carrying" operations
-            performed, where values which are too large are represented by
-            rows consisting of all 0s
-        """
-        for i, row in enumerate(level_codes):
-            need_to_carry = False
-            highest_level_adjustment = None
-            # go from right to left for place-value arithmetic
-            for j in range(len(row) - 1, -1, -1):
-                max_val = len(self.levels[j])
-                # the value here was too large, so backfilling returns
-                # -1, which, after adding 1, becomes 0
-                if row[j] == 0:
-                    need_to_carry = True
-
-                if need_to_carry:
-                    # if row[j] was backfilled to its value, then even
-                    # if we are "carrying," it can remain as is
-                    new_val = (
-                        row[j] + 1
-                        if row[j] == level_codes_no_fill[i][j]
-                        else row[j])
-                    if new_val > max_val or row[j] == 0:
-                        # at this point, no more room to carry, so the
-                        # entire value is too large
-                        if j == 0:
-                            for k in range(len(row)):
-                                row[k] = 0
-                        # still possible value is not too large, but need to
-                        # keep track of values which will need to be decreased
-                        else:
-                            highest_level_adjustment = j
-                    # done carrying, for now
-                    else:
-                        row[j] = new_val
-                        need_to_carry = False
-
-            # if we increased any values, all lower levels (visually, all
-            # levels to the left) should be set to their lowest level
-            if row[0] > 0 and highest_level_adjustment is not None:
-                for k in range(highest_level_adjustment + 1, len(row)):
-                    row[k] = 1
-
-        return level_codes
-
-    def _extract_level_codes(self, object target, object method=None):
+    def _extract_level_codes(self, object target):
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.
@@ -684,82 +602,80 @@ cdef class BaseMultiIndexCodesEngine:
         ----------
         target : list-like of keys
             Each key is a tuple, with a label for each level of the index.
-        method : string (optional)
-            whether to fill missing keys with either the previous (using "pad"
-            of "ffill" or next ("bfill"/"backfill") values, in terms of the
-            ordering of the tuples and the underlying index
 
         Returns
         ------
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = np.array([
-            lev.get_indexer(codes, method=method) for lev, codes
-            in zip(self.levels, zip(*target))
-        ], dtype='uint64').T + 1
+        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
+                       in zip(self.levels, zip(*target))]
+        return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-        # handle intricacies required to properly respect tuple ordering
-        # properties
-        if method is not None:
-            level_codes_no_fill = np.array([
-                lev.get_indexer(codes) for lev, codes
-                in zip(self.levels, zip(*target))
-            ], dtype='uint64').T + 1
+    def get_indexer(self, object target, object limit=None) -> np.ndarray:
+        lab_ints = self._extract_level_codes(target)
+        return self._base.get_indexer(self, lab_ints)
 
-            # necessary to respect tuple ordering.  intuition is that bumping
-            # the value at level i should make the values at levels i+1, ..., n
-            # as small as possible, and vice versa
-            for i, row in enumerate(level_codes):
-                for j, level in enumerate(row):
-                    if level_codes_no_fill[i][j] != level_codes[i][j]:
-                        for k in range(j + 1, len(row)):
-                            row[k] = (1 if method == 'backfill' else
-                                      len(self.levels[k]))
-                        break
+    def get_indexer_and_fill(self, object values, object target,
+                             object method, object limit = None) -> np.ndarray:
+        """ get an indexer for `target`, a sortable, array-like collection of
+        values which are themselves comparable to `values`, which should be the
+        index values of the MultiIndex object for which `self` is the engine """
+        if method not in ("backfill", "pad"):
+            raise ValueError(
+                f"{method} is not a valid method value; only 'backfill' and "
+                 "'pad' filling methods are supported")
 
-            # after doing per-level indexing, backfilled level codes need
-            # additional cleanup, as too-large values are 0, which will in
-            # turn be backfilled to 1 without cleanup.  This is not an issue
-            # for padded level codes because the final padding will (correctly)
-            # exclude them anyway
-            if method == 'backfill':
-                level_codes = self._do_backfill_carrying(level_codes,
-                                                         level_codes_no_fill)
+        cdef:
+            int64_t i, j, next_code
+            int64_t num_values, num_target_values
+            ndarray[int64_t, ndim=1] target_order
+            ndarray[object, ndim=1] target_values
+            ndarray[int64_t, ndim=1] new_codes, new_target_codes
+            ndarray[int64_t, ndim=1] sorted_indexer
 
-        return self._codes_to_ints(level_codes)
+        target_order = np.argsort(target.values)
+        target_values = target.values[target_order]
+        num_values, num_target_values = len(values), len(target_values)
+        new_codes, new_target_codes = \
+            np.empty((num_values,)).astype('int64'), \
+            np.empty((num_target_values,)).astype('int64')
 
-    def get_indexer(self, object target, object method=None,
-                    object limit=None):
-        lab_ints = self._extract_level_codes(target, method=method)
+        # `values` and `target_values` are both sorted, so we walk through them
+        # and memoize the set of indices in the (implicit) merged sorted list,
+        # the effect of which is to create a factorization for the (sorted)
+        # merger of the index values, where `new_codes` and `new_target_codes`
+        # are the subset of the factors which appear in `values` and `target`,
+        # respectively
+        i, j, next_code = 0, 0, 0
+        while i < num_values and j < num_target_values:
+            val, target_val = values[i], target_values[j]
+            if val <= target_val:
+                new_codes[i] = next_code
+                i += 1
+            if target_val <= val:
+                new_target_codes[j] = next_code
+                j += 1
+            next_code += 1
+        # at this point, at least one should have reached the end
+        # the remaining values of the other should be added to the end
+        assert i == num_values or j == num_target_values
+        while i < num_values:
+            new_codes[i] = next_code
+            i += 1
+            next_code += 1
+        while j < num_target_values:
+            new_target_codes[j] = next_code
+            j += 1
+            next_code += 1
 
-        # All methods (exact, backfill, pad) directly map to the respective
-        # methods of the underlying (integers) index...
-        if method is not None:
-            # but underlying backfill and pad methods require index and keys
-            # to be sorted. The index already is (checked in
-            # Index._get_fill_indexer), sort (integer representations of) keys:
-            order = np.argsort(lab_ints)
-            lab_ints = lab_ints[order]
-            indexer = (getattr(self._base, f'get_{method}_indexer')
-                       (self, lab_ints, limit=limit))
-
-            # handle the case where too-large values are backfilled to NaN, for
-            # which the integer representation from _extract_level_codes() is 0
-            if method == 'backfill':
-                for i in range(len(indexer)):
-                    if lab_ints[i] == 0:
-                        indexer[i] = -1
-
-            # restore the ordering
-            new_indexer = [0] * len(indexer)
-            for i, idx in enumerate(order):
-                new_indexer[idx] = indexer[i]
-            return new_indexer
-        else:
-            indexer = self._base.get_indexer(self, lab_ints)
-
-        return indexer
+        # get the indexer, and undo the sorting of `target.values`
+        sorted_indexer = (
+            algos.backfill(new_codes, new_target_codes, limit=limit)
+            if method == "backfill" else
+            algos.pad(new_codes, new_target_codes, limit=limit)
+        )
+        return sorted_indexer[np.argsort(target_order)]
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
