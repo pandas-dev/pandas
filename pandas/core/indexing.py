@@ -1690,31 +1690,17 @@ class _iLocIndexer(_LocationIndexer):
 
                 plane_indexer = tuple([idx]) + indexer[info_axis + 1 :]
                 lplane_indexer = length_of_indexer(plane_indexer[0], index)
+                # lplane_indexer gives the expected length of obj[idx]
 
                 # require that we are setting the right number of values that
                 # we are indexing
-                if (
-                    is_list_like_indexer(value)
-                    and np.iterable(value)
-                    and lplane_indexer != len(value)
-                ):
+                if is_list_like_indexer(value) and lplane_indexer != len(value):
 
-                    if len(obj[idx]) != len(value):
-                        raise ValueError(
-                            "cannot set using a multi-index "
-                            "selection indexer with a different "
-                            "length than the value"
-                        )
-
-                    # make sure we have an ndarray
-                    value = getattr(value, "values", value).ravel()
-
-                    # we can directly set the series here
-                    obj._consolidate_inplace()
-                    obj = obj.copy()
-                    obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)
-                    self.obj[item] = obj
-                    return
+                    raise ValueError(
+                        "cannot set using a multi-index "
+                        "selection indexer with a different "
+                        "length than the value"
+                    )
 
             # non-mi
             else:
