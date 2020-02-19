@@ -612,15 +612,56 @@ cdef class BaseMultiIndexCodesEngine:
                        in zip(self.levels, zip(*target))]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-    def get_indexer(self, object target, object limit=None) -> np.ndarray:
+    def get_indexer(self, object target) -> np.ndarray:
+        """
+        Gets an indexer, i.e. set of indexes into `self`'s values for the
+        values in `target`, where -1 represents a value in `target` not existing
+        in (the cross-product of) `self.levels`
+
+        Parameters
+        ----------
+        target : list-like of keys
+            Each key is a tuple, with a label for each level of the index
+
+        Returns
+        -------
+        1-dimensional array of dtype int64 of the index
+        """
         lab_ints = self._extract_level_codes(target)
         return self._base.get_indexer(self, lab_ints)
 
-    def get_indexer_and_fill(self, object values, object target,
+    @staticmethod
+    def get_indexer_and_fill(object values, object target,
                              object method, object limit = None) -> np.ndarray:
-        """ get an indexer for `target`, a sortable, array-like collection of
-        values which are themselves comparable to `values`, which should be the
-        index values of the MultiIndex object for which `self` is the engine """
+        """
+        Gets an indexer, i.e. a set of indexes into `values`, for the values in
+        `target`, where the index value.
+
+        If method is "backfill" then the index for a value in `target` which
+        does not exist in `values` is the index of the next match, or -1 is the
+        value is larger than the largest value in `values`.
+
+        Similarly, if the method if "pad" then the index for a value in `target`
+        which does not exist in `values` is the index of the previous match, or
+        -1 if the value is smaller then the largest value in `values`.
+
+        Parameters
+        ----------
+        values : list-like of tuples
+            must be sorted and all have the same length
+        target: list-like of tuples
+            need not be sorted, but all must have the same length, which must be
+            the same as the length of all tuples in `values`
+        method: string
+            "backfill" or "pad"
+        limit: int, optional
+            if provided, limit the number of fills to this value
+
+        Returns
+        -------
+        np.ndarray[int64_t, ndim=1] of the indexer of `target` into `values`,
+        filled with the `method` (and optionally `limit`) specified
+        """
         if method not in ("backfill", "pad"):
             raise ValueError(
                 f"{method} is not a valid method value; only 'backfill' and "
@@ -642,8 +683,9 @@ cdef class BaseMultiIndexCodesEngine:
             np.empty((num_target_values,)).astype('int64')
 
         # `values` and `target_values` are both sorted, so we walk through them
-        # and memoize the set of indices in the (implicit) merged sorted list,
-        # the effect of which is to create a factorization for the (sorted)
+        # and memoize the (ordered) set of indices in the (implicit) merged-and
+        # sorted list of the two which belong to each of them
+        # the effect of this is to create a factorization for the (sorted)
         # merger of the index values, where `new_codes` and `new_target_codes`
         # are the subset of the factors which appear in `values` and `target`,
         # respectively
@@ -671,9 +713,9 @@ cdef class BaseMultiIndexCodesEngine:
 
         # get the indexer, and undo the sorting of `target.values`
         sorted_indexer = (
-            algos.backfill(new_codes, new_target_codes, limit=limit)
-            if method == "backfill" else
-            algos.pad(new_codes, new_target_codes, limit=limit)
+            (algos.backfill if method == "backfill" else algos.pad)(
+                new_codes, new_target_codes, limit=limit
+            )
         )
         return sorted_indexer[np.argsort(target_order)]
 
