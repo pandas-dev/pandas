@@ -615,7 +615,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 raise
             raise IndexingError(key) from e
 
-    def _ensure_listlike_indexer(self, key):
+    def _ensure_listlike_indexer(self, key, axis=None):
         """
         Ensure that a list-like of column labels are all present by adding them if
         they do not already exist.
@@ -624,6 +624,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
         ----------
         key : _LocIndexer key or list-like of column labels
             Target labels.
+        axis : key axis if known
         """
         column_axis = 1
 
@@ -635,9 +636,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
             # key may be a tuple if key is a _LocIndexer key
             # in that case, set key to the column part of key
             key = key[column_axis]
+            axis = column_axis
 
         if (
-            not isinstance(self.obj._get_axis(column_axis), ABCMultiIndex)
+            axis == column_axis
+            and not isinstance(self.obj._get_axis(column_axis), ABCMultiIndex)
             and is_list_like_indexer(key)
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
