@@ -2,6 +2,7 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 from datetime import datetime
+import re
 
 from dateutil.parser import parse
 import numpy as np
@@ -24,7 +25,7 @@ def test_parse_time_string():
 
 def test_parse_time_string_invalid_type():
     # Raise on invalid input, don't just return it
-    msg = "Invalid time string provided, unable to parse"
+    msg = re.escape("Argument 'arg' has incorrect type (expected str, got tuple)")
     with pytest.raises(TypeError, match=msg):
         parse_time_string((4, 5))
 
@@ -218,7 +219,7 @@ def test_try_parse_dates():
 
 def test_parse_time_string_check_instance_type_raise_exception():
     # issue 20684
-    msg = "Invalid time string provided, unable to parse"
+    msg = re.escape("Argument 'arg' has incorrect type (expected str, got tuple)")
     with pytest.raises(TypeError, match=msg):
         parse_time_string((1, 2, 3))
 
