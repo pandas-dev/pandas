@@ -2229,11 +2229,11 @@ you can use the ``tz_convert`` method.
     from summer to winter time; fold describes whether the datetime-like corresponds
     to the first (0) or the second time (1) the wall clock hits the ambiguous time.
     Fold is supported only for constructing from naive ``datetime.datetime``
-    (see `here <https://docs.python.org/3/library/datetime.html>`__ for details) or :class:`Timestamp`
+    (see `datetime documentation <https://docs.python.org/3/library/datetime.html>`__ for details) or :class:`Timestamp`
     or for constructing from components (see below) with ``dateutil`` timezones
-    (see `here <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
+    (see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
     for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
-    timezones do not support fold (see `here <http://pytz.sourceforge.net/index.html>`__
+    timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
     for details on how ``pytz`` deals with ambiguous datetimes). To localize an ambiguous datetime
     with ``pytz``, please use :meth:`Timestamp.tz_localize`. In general, we recommend to rely
     on :meth:`Timestamp.tz_localize` when localizing ambiguous datetimes if you need direct
