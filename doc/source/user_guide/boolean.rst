@@ -31,6 +31,12 @@ pandas allows indexing with ``NA`` values in a boolean array, which are treated 
    mask = pd.array([True, False, pd.NA], dtype="boolean")
    s[mask]
 
+If you would prefer to keep the ``NA`` values you can manually fill them with ``fillna(True)``.
+
+.. ipython:: python
+
+   s[mask.fillna(True)]
+
 .. _boolean.kleene:
 
 Kleene Logical Operations
