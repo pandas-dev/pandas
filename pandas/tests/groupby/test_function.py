@@ -26,6 +26,26 @@ import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td
 
 
+@pytest.fixture(
+    params=[np.int32, np.int64, np.float32, np.float64],
+    ids=["np.int32", "np.int64", "np.float32", "np.float64"],
+)
+def numpy_dtypes_for_minmax(request):
+    """
+    Fixture of numpy dtypes with min and max values used for testing
+    cummin and cummax
+    """
+    dtype = request.param
+    min_val = (
+        np.iinfo(dtype).min if np.dtype(dtype).kind == "i" else np.finfo(dtype).min
+    )
+    max_val = (
+        np.iinfo(dtype).max if np.dtype(dtype).kind == "i" else np.finfo(dtype).max
+    )
+
+    return (dtype, min_val, max_val)
+
+
 @pytest.mark.parametrize("agg_func", ["any", "all"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
@@ -174,11 +194,10 @@ def test_arg_passthru():
     )
 
     for attr in ["mean", "median"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
     # TODO: min, max *should* handle
@@ -195,11 +214,10 @@ def test_arg_passthru():
         ]
     )
     for attr in ["min", "max"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(
@@ -215,29 +233,26 @@ def test_arg_passthru():
         ]
     )
     for attr in ["first", "last"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(["int", "float", "string", "category_int", "timedelta"])
-    for attr in ["sum"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
-        tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = f(numeric_only=False)
-        tm.assert_index_equal(result.columns, expected_columns)
+    result = df.groupby("group").sum()
+    tm.assert_index_equal(result.columns, expected_columns_numeric)
+
+    result = df.groupby("group").sum(numeric_only=False)
+    tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(["int", "float", "category_int"])
     for attr in ["prod", "cumprod"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     # like min, max, but don't include strings
@@ -245,22 +260,20 @@ def test_arg_passthru():
         ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
     )
     for attr in ["cummin", "cummax"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
+        result = getattr(df.groupby("group"), attr)()
         # GH 15561: numeric_only=False set by default like min/max
         tm.assert_index_equal(result.columns, expected_columns)
 
-        result = f(numeric_only=False)
+        result = getattr(df.groupby("group"), attr)(numeric_only=False)
         tm.assert_index_equal(result.columns, expected_columns)
 
     expected_columns = Index(["int", "float", "category_int", "timedelta"])
-    for attr in ["cumsum"]:
-        f = getattr(df.groupby("group"), attr)
-        result = f()
-        tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = f(numeric_only=False)
-        tm.assert_index_equal(result.columns, expected_columns)
+    result = getattr(df.groupby("group"), "cumsum")()
+    tm.assert_index_equal(result.columns, expected_columns_numeric)
+
+    result = getattr(df.groupby("group"), "cumsum")(numeric_only=False)
+    tm.assert_index_equal(result.columns, expected_columns)
 
 
 def test_non_cython_api():
@@ -691,59 +704,31 @@ def test_numpy_compat(func):
     reason="https://github.com/pandas-dev/pandas/issues/31992",
     strict=False,
 )
-def test_cummin_cummax():
+def test_cummin(numpy_dtypes_for_minmax):
+    dtype = numpy_dtypes_for_minmax[0]
+    min_val = numpy_dtypes_for_minmax[1]
+
     # GH 15048
-    num_types = [np.int32, np.int64, np.float32, np.float64]
-    num_mins = [
-        np.iinfo(np.int32).min,
-        np.iinfo(np.int64).min,
-        np.finfo(np.float32).min,
-        np.finfo(np.float64).min,
-    ]
-    num_max = [
-        np.iinfo(np.int32).max,
-        np.iinfo(np.int64).max,
-        np.finfo(np.float32).max,
-        np.finfo(np.float64).max,
-    ]
     base_df = pd.DataFrame(
         {"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]}
     )
     expected_mins = [3, 3, 3, 2, 2, 2, 2, 1]
-    expected_maxs = [3, 4, 4, 4, 2, 3, 3, 3]
 
-    for dtype, min_val, max_val in zip(num_types, num_mins, num_max):
-        df = base_df.astype(dtype)
+    df = base_df.astype(dtype)
 
-        # cummin
-        expected = pd.DataFrame({"B": expected_mins}).astype(dtype)
-        result = df.groupby("A").cummin()
-        tm.assert_frame_equal(result, expected)
-        result = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-        tm.assert_frame_equal(result, expected)
+    expected = pd.DataFrame({"B": expected_mins}).astype(dtype)
+    result = df.groupby("A").cummin()
+    tm.assert_frame_equal(result, expected)
+    result = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    tm.assert_frame_equal(result, expected)
 
-        # Test cummin w/ min value for dtype
-        df.loc[[2, 6], "B"] = min_val
-        expected.loc[[2, 3, 6, 7], "B"] = min_val
-        result = df.groupby("A").cummin()
-        tm.assert_frame_equal(result, expected)
-        expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-        tm.assert_frame_equal(result, expected)
-
-        # cummax
-        expected = pd.DataFrame({"B": expected_maxs}).astype(dtype)
-        result = df.groupby("A").cummax()
-        tm.assert_frame_equal(result, expected)
-        result = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
-        tm.assert_frame_equal(result, expected)
-
-        # Test cummax w/ max value for dtype
-        df.loc[[2, 6], "B"] = max_val
-        expected.loc[[2, 3, 6, 7], "B"] = max_val
-        result = df.groupby("A").cummax()
-        tm.assert_frame_equal(result, expected)
-        expected = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
-        tm.assert_frame_equal(result, expected)
+    # Test w/ min value for dtype
+    df.loc[[2, 6], "B"] = min_val
+    expected.loc[[2, 3, 6, 7], "B"] = min_val
+    result = df.groupby("A").cummin()
+    tm.assert_frame_equal(result, expected)
+    expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    tm.assert_frame_equal(result, expected)
 
     # Test nan in some values
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan
@@ -753,30 +738,80 @@ def test_cummin_cummax():
     expected = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
     tm.assert_frame_equal(result, expected)
 
+    # GH 15561
+    df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
+    expected = pd.Series(pd.to_datetime("2001"), index=[0], name="b")
+
+    result = df.groupby("a")["b"].cummin()
+    tm.assert_series_equal(expected, result)
+
+    # GH 15635
+    df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
+    result = df.groupby("a").b.cummin()
+    expected = pd.Series([1, 2, 1], name="b")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
+)
+def test_cummin_all_nan_column():
+    base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
+
+    expected = pd.DataFrame({"B": [np.nan] * 8})
+    result = base_df.groupby("A").cummin()
+    tm.assert_frame_equal(expected, result)
+    result = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+    tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.xfail(
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
+)
+def test_cummax(numpy_dtypes_for_minmax):
+    dtype = numpy_dtypes_for_minmax[0]
+    max_val = numpy_dtypes_for_minmax[2]
+
+    # GH 15048
+    base_df = pd.DataFrame(
+        {"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]}
+    )
+    expected_maxs = [3, 4, 4, 4, 2, 3, 3, 3]
+
+    df = base_df.astype(dtype)
+
+    expected = pd.DataFrame({"B": expected_maxs}).astype(dtype)
+    result = df.groupby("A").cummax()
+    tm.assert_frame_equal(result, expected)
+    result = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    tm.assert_frame_equal(result, expected)
+
+    # Test w/ max value for dtype
+    df.loc[[2, 6], "B"] = max_val
+    expected.loc[[2, 3, 6, 7], "B"] = max_val
+    result = df.groupby("A").cummax()
+    tm.assert_frame_equal(result, expected)
+    expected = df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    tm.assert_frame_equal(result, expected)
+
+    # Test nan in some values
+    base_df.loc[[0, 2, 4, 6], "B"] = np.nan
     expected = pd.DataFrame({"B": [np.nan, 4, np.nan, 4, np.nan, 3, np.nan, 3]})
     result = base_df.groupby("A").cummax()
     tm.assert_frame_equal(result, expected)
     expected = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
     tm.assert_frame_equal(result, expected)
 
-    # Test nan in entire column
-    base_df["B"] = np.nan
-    expected = pd.DataFrame({"B": [np.nan] * 8})
-    result = base_df.groupby("A").cummin()
-    tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-    tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").cummax()
-    tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
-    tm.assert_frame_equal(expected, result)
-
     # GH 15561
     df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
     expected = pd.Series(pd.to_datetime("2001"), index=[0], name="b")
-    for method in ["cummax", "cummin"]:
-        result = getattr(df.groupby("a")["b"], method)()
-        tm.assert_series_equal(expected, result)
+
+    result = df.groupby("a")["b"].cummax()
+    tm.assert_series_equal(expected, result)
 
     # GH 15635
     df = pd.DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
@@ -784,10 +819,20 @@ def test_cummin_cummax():
     expected = pd.Series([2, 1, 2], name="b")
     tm.assert_series_equal(result, expected)
 
-    df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
-    result = df.groupby("a").b.cummin()
-    expected = pd.Series([1, 2, 1], name="b")
-    tm.assert_series_equal(result, expected)
+
+@pytest.mark.xfail(
+    _is_numpy_dev,
+    reason="https://github.com/pandas-dev/pandas/issues/31992",
+    strict=False,
+)
+def test_cummax_all_nan_column():
+    base_df = pd.DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
+
+    expected = pd.DataFrame({"B": [np.nan] * 8})
+    result = base_df.groupby("A").cummax()
+    tm.assert_frame_equal(expected, result)
+    result = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
+    tm.assert_frame_equal(expected, result)
 
 
 @pytest.mark.parametrize(
