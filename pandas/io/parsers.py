@@ -1138,7 +1138,7 @@ class TextFileReader(abc.Iterator):
     def _make_engine(self, engine="c"):
         if engine == "c":
             self._engine = CParserWrapper(self.f, **self.options)
-        elif engine == "arrow":
+        elif engine == "pyarrow":
             self._engine = ArrowParserWrapper(self.f, **self.options)
         else:
             if engine == "python":
@@ -1157,7 +1157,7 @@ class TextFileReader(abc.Iterator):
 
     def read(self, nrows=None):
         nrows = _validate_integer("nrows", nrows)
-        if self.engine == "arrow":
+        if self.engine == "pyarrow":
             return self._engine.read(nrows)
         ret = self._engine.read(nrows)
 
@@ -2208,21 +2208,19 @@ class ArrowParserWrapper(ParserBase):
                 include_columns=self.usecols, column_types=self.kwds.get("dtype")
             ),
         )
-
+        frame = table.to_pandas()
         table_width = len(table.column_names)
         if self.names is None:
             if self.prefix:
                 self.names = [f"{self.prefix}{i}" for i in range(table_width)]
-            elif self.header is not None:
-                if self.header == "infer":
-                    header = 0
-                else:
-                    header = self.header
-                self.names = table[header]
-                del table[header]
+            elif self.header is not None and self.header != "infer":
+                header = self.header
+                self.names = frame.iloc[header]
+                frame = frame.drop(header, axis=0)
+
         if self.names:
-            table = table.rename_columns(self.names)
-        return table.to_pandas()
+            frame = frame.rename(self.names, axis="columns")
+        return frame
 
 
 def TextParser(*args, **kwds):
