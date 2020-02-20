@@ -675,10 +675,9 @@ class TestPandasContainer:
         # TODO: see what causes inconsistency
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
-        else:
-            expected.index = expected.index.astype(float)
+        expected.index = expected.index.astype(float)
 
-        tm.assert_series_equal(result, expected, check_index_type=False)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numpy", [True, False])
     def test_series_roundtrip_timeseries(self, orient, numpy):

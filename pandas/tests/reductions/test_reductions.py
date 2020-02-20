@@ -1090,7 +1090,7 @@ class TestSeriesMode:
     def test_mode_empty(self, dropna, expected):
         s = Series([], dtype=np.float64)
         result = s.mode(dropna)
-        tm.assert_series_equal(result, expected, check_index_type=False)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "dropna, data, expected",

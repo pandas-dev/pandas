@@ -5580,7 +5580,9 @@ def _validate_join_method(method):
 def default_index(n):
     from pandas.core.indexes.range import RangeIndex
 
-    return RangeIndex(0, n, name=None)
+    if n == 0:
+        return Index([])
+    return RangeIndex(0, n)
 
 
 def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:

@@ -638,10 +638,13 @@ class TestGrouping:
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
         s = pd.Series([], name="name", dtype="float64")
-        gr = s.groupby([])
 
+        expected = s.copy()
+        expected.index = pd.RangeIndex.from_range(range(0))
+
+        gr = s.groupby([])
         result = gr.mean()
-        tm.assert_series_equal(result, s, check_index_type=False)
+        tm.assert_series_equal(result, expected)
 
         # check group properties
         assert len(gr.grouper.groupings) == 1
