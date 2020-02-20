@@ -983,7 +983,6 @@ class MultiIndex(Index):
     def _constructor(self):
         return MultiIndex.from_tuples
 
-    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
             names = kwargs.pop("names", kwargs.pop("name", self.names))
@@ -1435,7 +1434,6 @@ class MultiIndex(Index):
         """ return a list of the inferred types, one for each level """
         return [i.inferred_type for i in self.levels]
 
-    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep="first"):
         shape = map(len, self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
@@ -1448,7 +1446,6 @@ class MultiIndex(Index):
         """
         raise NotImplementedError("isna is not defined for MultiIndex")
 
-    @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":

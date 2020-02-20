@@ -102,7 +102,6 @@ class NumericIndex(Index):
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
 
-    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None and not self._can_hold_na:
             # Ensure we are not returning an Int64Index with float data:

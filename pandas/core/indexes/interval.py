@@ -332,7 +332,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, left=None, right=None, **kwargs):
         result = self._data._shallow_copy(left=left, right=right)
         attributes = self._get_attributes_dict()

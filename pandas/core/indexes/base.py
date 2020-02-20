@@ -5436,6 +5436,25 @@ class Index(IndexOpsMixin, PandasObject):
         # overridden in MultiIndex.shape to avoid materializing the values
         return self._values.shape
 
+    @classmethod
+    def __init_subclass__(cls):
+        """
+        Automatically inherit some docstrings, so we dont have to decorate
+        every method with @Appender(Index.foo.__doc__)
+        """
+        names = ["_shallow_copy", "dropna", "duplicated"]
+
+        for name in names:
+            method = getattr(cls, name)
+            if method.__doc__ is None:
+                for parent in cls.__mro__[1:]:
+                    parent_method = getattr(parent, name, None)
+                    if parent_method is not None:
+                        if parent_method.__doc__ is not None:
+                            # Implicitly assuming here that it is a method
+                            method.__doc__ = parent_method.__doc__
+                            break
+
 
 Index._add_numeric_methods_disabled()
 Index._add_logical_methods()

@@ -263,7 +263,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
@@ -426,7 +425,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         # if not otherwise specified
         return self._shallow_copy(result, dtype=result.dtype)
 
-    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep="first"):
         codes = self.codes.astype("i8")
         return duplicated_int64(codes, keep)

@@ -384,7 +384,6 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return list(self._range)
 
-    @Appender(Int64Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             name = kwargs.get("name", self.name)

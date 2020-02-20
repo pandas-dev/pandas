@@ -228,7 +228,6 @@ class ExtensionIndex(Index):
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
-    @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
