@@ -481,7 +481,8 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
@@ -865,7 +866,8 @@ class TestDataFrameIndexing:
         # setting it triggers setting with copy
         sliced = float_frame.iloc[:, -3:]
 
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             sliced["C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
@@ -992,7 +994,7 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError):
+        with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
@@ -1071,10 +1073,10 @@ class TestDataFrameIndexing:
 
         cp = df.copy()
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             cp.iloc[1.0:5] = 0
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             result = cp.iloc[1.0:5] == 0  # noqa
 
         assert result.values.all()
@@ -1470,7 +1472,8 @@ class TestDataFrameIndexing:
 
         # verify slice is view
         # setting it makes it raise/warn
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             result[2] = 0.0
 
         exp_col = df[2].copy()
@@ -1501,7 +1504,8 @@ class TestDataFrameIndexing:
 
         # verify slice is view
         # and that we are setting a copy
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             result[8] = 0.0
 
         assert (df[8] == 0).all()
