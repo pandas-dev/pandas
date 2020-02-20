@@ -13,7 +13,6 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
-    Hashable,
     List,
     Mapping,
     Optional,
@@ -191,7 +190,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _metadata: List[str] = []
     _is_copy = None
     _data: BlockManager
-    _attrs: Dict[Optional[Hashable], Any]
+    _attrs: Dict[Label, Any]
     _typ: str
 
     # ----------------------------------------------------------------------
@@ -203,7 +202,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axes: Optional[List[Index]] = None,
         copy: bool = False,
         dtype: Optional[Dtype] = None,
-        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
+        attrs: Optional[Mapping[Label, Any]] = None,
         fastpath: bool = False,
     ):
 
@@ -246,7 +245,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
 
     @property
-    def attrs(self) -> Dict[Optional[Hashable], Any]:
+    def attrs(self) -> Dict[Label, Any]:
         """
         Dictionary of global attributes on this object.
 
@@ -259,7 +258,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
+    def attrs(self, value: Mapping[Label, Any]) -> None:
         self._attrs = dict(value)
 
     def _validate_dtype(self, dtype):
@@ -9726,7 +9725,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         ldesc = [describe_1d(s) for _, s in data.items()]
         # set a convenient order for rows
-        names: List[Optional[Hashable]] = []
+        names: List[Label] = []
         ldesc_indexes = sorted((x.index for x in ldesc), key=len)
         for idxnames in ldesc_indexes:
             for name in idxnames:

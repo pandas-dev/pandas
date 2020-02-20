@@ -9,7 +9,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Iterable,
     List,
     Optional,
@@ -177,7 +176,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _typ = "series"
 
-    _name: Optional[Hashable]
+    _name: Label
     _metadata: List[str] = ["name"]
     _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
@@ -435,11 +434,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._data.dtype
 
     @property
-    def name(self) -> Optional[Hashable]:
+    def name(self) -> Label:
         return self._name
 
     @name.setter
-    def name(self, value: Optional[Hashable]) -> None:
+    def name(self, value: Label) -> None:
         if not is_hashable(value):
             raise TypeError("Series.name must be a hashable type")
         object.__setattr__(self, "_name", value)
@@ -689,11 +688,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        name: Optional[Hashable]
-        if len(set(names)) == 1:
-            name = names[0]
-        else:
-            name = None
+        name = names[0] if len(set(names)) == 1 else None
 
         def construct_return(result):
             if lib.is_scalar(result):
