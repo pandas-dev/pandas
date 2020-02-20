@@ -782,7 +782,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             return res
         return CategoricalIndex(res, name=self.name)
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(
+        self, joined: np.ndarray, other: "CategoricalIndex"
+    ) -> "CategoricalIndex":
         name = get_op_result_name(self, other)
         return self._create_from_codes(joined, name=name)
 
