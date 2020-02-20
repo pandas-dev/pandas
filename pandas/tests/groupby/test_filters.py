@@ -98,6 +98,7 @@ def test_filter_out_all_groups_in_df():
     res = df.groupby("a")
     res = res.filter(lambda x: x["b"].sum() > 5, dropna=True)
     expected = pd.DataFrame({"a": [], "b": []}, dtype="int64")
+    expected.index = pd.RangeIndex(0)
     tm.assert_frame_equal(expected, res)
 
 

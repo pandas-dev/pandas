@@ -255,12 +255,15 @@ class TestPandasContainer:
         )
         expected = self.empty_frame.copy()
 
-        # TODO: both conditions below are probably bugs
+        # TODO: conditions below are probably bugs
         if convert_axes:
-            expected.index = expected.index.astype(float)
             expected.columns = expected.columns.astype(float)
+
         if numpy and orient == "values":
             expected = expected.reindex([0], axis=1).reset_index(drop=True)
+
+        if convert_axes:
+            expected.index = expected.index.astype(float)
 
         tm.assert_frame_equal(result, expected)
 
