@@ -407,7 +407,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
-- Bug in :meth:`MultiIndex.get_indexer` incorrectly handling use of pad and backfill options (:issue:`29896`)
+- Bug in :meth:`MultiIndex.get_indexer` incorrectly handling use of pad and backfill options.  This is a regression introduced in pandas 0.23.0 (:issue:`29896`)
 
 *pandas [0.23.0, 1.1.0)*
 
