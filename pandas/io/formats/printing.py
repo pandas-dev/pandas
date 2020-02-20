@@ -229,7 +229,7 @@ def pprint_thing(
             max_seq_items=max_seq_items,
         )
     elif isinstance(thing, str) and quote_strings:
-        result = "'{thing}'".format(thing=as_escaped_string(thing))
+        result = f"'{as_escaped_string(thing)}'"
     else:
         result = as_escaped_string(thing)
 

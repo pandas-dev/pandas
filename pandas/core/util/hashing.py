@@ -294,7 +294,7 @@ def hash_array(
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
     elif issubclass(dtype.type, np.number) and dtype.itemsize <= 8:
-        vals = vals.view("u{}".format(vals.dtype.itemsize)).astype("u8")
+        vals = vals.view(f"u{vals.dtype.itemsize}").astype("u8")
     else:
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization

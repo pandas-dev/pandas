@@ -187,7 +187,7 @@ class CategoricalFormatter:
         if self.length:
             if footer:
                 footer += ", "
-            footer += "Length: {length}".format(length=len(self.categorical))
+            footer += f"Length: {len(self.categorical)}"
 
         level_info = self.categorical._repr_categories_info()
 
@@ -217,7 +217,6 @@ class CategoricalFormatter:
 
         fmt_values = self._get_formatted_values()
 
-        fmt_values = ["{i}".format(i=i) for i in fmt_values]
         fmt_values = [i.strip() for i in fmt_values]
         values = ", ".join(fmt_values)
         result = ["[" + values + "]"]
@@ -301,28 +300,26 @@ class SeriesFormatter:
             assert isinstance(
                 self.series.index, (ABCDatetimeIndex, ABCPeriodIndex, ABCTimedeltaIndex)
             )
-            footer += "Freq: {freq}".format(freq=self.series.index.freqstr)
+            footer += f"Freq: {self.series.index.freqstr}"
 
         if self.name is not False and name is not None:
             if footer:
                 footer += ", "
 
             series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-            footer += (
-                ("Name: {sname}".format(sname=series_name)) if name is not None else ""
-            )
+            footer += f"Name: {series_name}"
 
         if self.length is True or (self.length == "truncate" and self.truncate_v):
             if footer:
                 footer += ", "
-            footer += "Length: {length}".format(length=len(self.series))
+            footer += f"Length: {len(self.series)}"
 
         if self.dtype is not False and self.dtype is not None:
-            name = getattr(self.tr_series.dtype, "name", None)
-            if name:
+            dtype_name = getattr(self.tr_series.dtype, "name", None)
+            if dtype_name:
                 if footer:
                     footer += ", "
-                footer += "dtype: {typ}".format(typ=pprint_thing(name))
+                footer += f"dtype: {pprint_thing(dtype_name)}"
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
@@ -359,9 +356,7 @@ class SeriesFormatter:
         footer = self._get_footer()
 
         if len(series) == 0:
-            return "{name}([], {footer})".format(
-                name=type(self.series).__name__, footer=footer
-            )
+            return f"{type(self.series).__name__}([], {footer})"
 
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
@@ -584,10 +579,8 @@ class DataFrameFormatter(TableFormatter):
             self.formatters = formatters
         else:
             raise ValueError(
-                (
-                    "Formatters length({flen}) should match "
-                    "DataFrame number of columns({dlen})"
-                ).format(flen=len(formatters), dlen=len(frame.columns))
+                f"Formatters length({len(formatters)}) should match "
+                f"DataFrame number of columns({len(frame.columns)})"
             )
         self.na_rep = na_rep
         self.decimal = decimal
@@ -816,10 +809,10 @@ class DataFrameFormatter(TableFormatter):
         frame = self.frame
 
         if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = "Empty {name}\nColumns: {col}\nIndex: {idx}".format(
-                name=type(self.frame).__name__,
-                col=pprint_thing(frame.columns),
-                idx=pprint_thing(frame.index),
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {pprint_thing(frame.columns)}\n"
+                f"Index: {pprint_thing(frame.index)}"
             )
             text = info_line
         else:
@@ -865,11 +858,7 @@ class DataFrameFormatter(TableFormatter):
         buf.writelines(text)
 
         if self.should_show_dimensions:
-            buf.write(
-                "\n\n[{nrows} rows x {ncols} columns]".format(
-                    nrows=len(frame), ncols=len(frame.columns)
-                )
-            )
+            buf.write(f"\n\n[{len(frame)} rows x {len(frame.columns)} columns]")
 
     def _join_multiline(self, *args) -> str:
         lwidth = self.line_width
@@ -1074,7 +1063,7 @@ class DataFrameFormatter(TableFormatter):
 
         # empty space for columns
         if self.show_col_idx_names:
-            col_header = ["{x}".format(x=x) for x in self._get_column_name_list()]
+            col_header = [str(x) for x in self._get_column_name_list()]
         else:
             col_header = [""] * columns.nlevels
 
@@ -1209,10 +1198,8 @@ class GenericArrayFormatter:
         if self.float_format is None:
             float_format = get_option("display.float_format")
             if float_format is None:
-                fmt_str = "{{x: .{prec:d}g}}".format(
-                    prec=get_option("display.precision")
-                )
-                float_format = lambda x: fmt_str.format(x=x)
+                precision = get_option("display.precision")
+                float_format = lambda x: f"{x: .{precision:d}g}"
         else:
             float_format = self.float_format
 
@@ -1238,10 +1225,10 @@ class GenericArrayFormatter:
                     pass
                 return self.na_rep
             elif isinstance(x, PandasObject):
-                return "{x}".format(x=x)
+                return str(x)
             else:
                 # object dtype
-                return "{x}".format(x=formatter(x))
+                return str(formatter(x))
 
         vals = self.values
         if isinstance(vals, Index):
@@ -1257,7 +1244,7 @@ class GenericArrayFormatter:
         fmt_values = []
         for i, v in enumerate(vals):
             if not is_float_type[i] and leading_space:
-                fmt_values.append(" {v}".format(v=_format(v)))
+                fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
             else:
@@ -1437,7 +1424,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or (lambda x: "{x: d}".format(x=x))
+        formatter = self.formatter or (lambda x: f"{x: d}")
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -1716,7 +1703,7 @@ def _get_format_timedelta64(
             x = Timedelta(x)
         result = x._repr_base(format=format)
         if box:
-            result = "'{res}'".format(res=result)
+            result = f"'{result}'"
         return result
 
     return _formatter
@@ -1880,16 +1867,16 @@ class EngFormatter:
             prefix = self.ENG_PREFIXES[int_pow10]
         else:
             if int_pow10 < 0:
-                prefix = "E-{pow10:02d}".format(pow10=-int_pow10)
+                prefix = f"E-{-int_pow10:02d}"
             else:
-                prefix = "E+{pow10:02d}".format(pow10=int_pow10)
+                prefix = f"E+{int_pow10:02d}"
 
         mant = sign * dnum / (10 ** pow10)
 
         if self.accuracy is None:  # pragma: no cover
             format_str = "{mant: g}{prefix}"
         else:
-            format_str = "{{mant: .{acc:d}f}}{{prefix}}".format(acc=self.accuracy)
+            format_str = f"{{mant: .{self.accuracy:d}f}}{{prefix}}"
 
         formatted = format_str.format(mant=mant, prefix=prefix)
 

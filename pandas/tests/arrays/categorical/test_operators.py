@@ -338,7 +338,7 @@ class TestCategoricalOps:
     def test_numeric_like_ops(self):
 
         df = DataFrame({"value": np.random.randint(0, 10000, 100)})
-        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=["value"], ascending=True)
@@ -353,9 +353,7 @@ class TestCategoricalOps:
             ("__mul__", r"\*"),
             ("__truediv__", "/"),
         ]:
-            msg = r"Series cannot perform the operation {}|unsupported operand".format(
-                str_rep
-            )
+            msg = f"Series cannot perform the operation {str_rep}|unsupported operand"
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)(df)
 
@@ -363,7 +361,7 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = "Categorical cannot perform the operation {}".format(op)
+            msg = f"Categorical cannot perform the operation {op}"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
@@ -383,9 +381,7 @@ class TestCategoricalOps:
             ("__mul__", r"\*"),
             ("__truediv__", "/"),
         ]:
-            msg = r"Series cannot perform the operation {}|unsupported operand".format(
-                str_rep
-            )
+            msg = f"Series cannot perform the operation {str_rep}|unsupported operand"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(2)
 
