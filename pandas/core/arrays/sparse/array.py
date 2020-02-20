@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable
+from typing import Any, Callable, Union
 import warnings
 
 import numpy as np
@@ -479,7 +479,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return self._sparse_index
 
     @property
-    def sp_values(self):
+    def sp_values(self) -> np.ndarray:
         """
         An ndarray containing the non- ``fill_value`` values.
 
@@ -798,13 +798,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, allow_fill=False, fill_value=None):
+    def take(self, indices, allow_fill=False, fill_value=None) -> "SparseArray":
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
 
         if indices.size == 0:
-            result = []
+            result = np.array([], dtype="object")
             kwargs = {"dtype": self.dtype}
         elif allow_fill:
             result = self._take_with_fill(indices, fill_value=fill_value)
@@ -815,7 +815,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return type(self)(result, fill_value=self.fill_value, kind=self.kind, **kwargs)
 
-    def _take_with_fill(self, indices, fill_value=None):
+    def _take_with_fill(self, indices, fill_value=None) -> np.ndarray:
         if fill_value is None:
             fill_value = self.dtype.na_value
 
@@ -878,7 +878,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return taken
 
-    def _take_without_fill(self, indices):
+    def _take_without_fill(self, indices) -> Union[np.ndarray, "SparseArray"]:
         to_shift = indices < 0
         indices = indices.copy()
 
