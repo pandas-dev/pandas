@@ -114,7 +114,6 @@ def _ensure_term(where, scope_level: int):
     that are passed
     create the terms here with a frame_level=2 (we are 2 levels down)
     """
-
     # only consider list/tuple here as an ndarray is automatically a coordinate
     # list
     level = scope_level + 1
@@ -246,7 +245,6 @@ def to_hdf(
     encoding: str = "UTF-8",
 ):
     """ store this object, close it if we opened it """
-
     if append:
         f = lambda store: store.append(
             key,
@@ -362,7 +360,6 @@ def read_hdf(
     >>> df.to_hdf('./store.h5', 'data')
     >>> reread = pd.read_hdf('./store.h5')
     """
-
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
             f"mode {mode} is not allowed while performing a read. "
@@ -569,9 +566,10 @@ class HDFStore:
         )
 
     def __contains__(self, key: str) -> bool:
-        """ check for existence of this key
-              can match the exact pathname or the pathnm w/o the leading '/'
-              """
+        """
+        check for existence of this key
+        can match the exact pathname or the pathnm w/o the leading '/'
+        """
         node = self.get_node(key)
         if node is not None:
             name = node._v_pathname
@@ -902,7 +900,6 @@ class HDFStore:
         raises TypeError if keys is not a list or tuple
         raises ValueError if the tables are not ALL THE SAME DIMENSIONS
         """
-
         # default to single select
         where = _ensure_term(where, scope_level=1)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
@@ -1139,11 +1136,11 @@ class HDFStore:
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
-        min_itemsize : dict of columns that specify minimum string sizes
-        nan_rep      : string to use as string nan representation
+        min_itemsize : dict of columns that specify minimum str sizes
+        nan_rep      : str to use as str nan representation
         chunksize    : size to chunk the writing
         expectedrows : expected TOTAL row size of this table
-        encoding     : default None, provide an encoding for strings
+        encoding     : default None, provide an encoding for str
         dropna : bool, default False
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
@@ -1302,7 +1299,6 @@ class HDFStore:
         ------
         TypeError: raises if the node is not a table
         """
-
         # version requirements
         _tables()
         s = self.get_storer(key)
@@ -1522,7 +1518,6 @@ class HDFStore:
 
     def _validate_format(self, format: str) -> str:
         """ validate / deprecate formats """
-
         # validate
         try:
             format = _FORMAT_MAP[format.lower()]
@@ -1540,7 +1535,6 @@ class HDFStore:
         errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
-
         cls: Union[Type["GenericFixed"], Type["Table"]]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
@@ -1831,18 +1825,18 @@ class TableIterator:
 
 
 class IndexCol:
-    """ an index column description class
+    """
+    an index column description class
 
-        Parameters
-        ----------
+    Parameters
+    ----------
+    axis   : axis which I reference
+    values : the ndarray like converted values
+    kind   : a string description of this type
+    typ    : the pytables type
+    pos    : the position in the pytables
 
-        axis   : axis which I reference
-        values : the ndarray like converted values
-        kind   : a string description of this type
-        typ    : the pytables type
-        pos    : the position in the pytables
-
-        """
+    """
 
     is_an_indexable = True
     is_data_indexable = True
@@ -1999,9 +1993,11 @@ class IndexCol:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None):
-        """ maybe set a string col itemsize:
-               min_itemsize can be an integer or a dict with this columns name
-               with an integer size """
+        """
+        maybe set a string col itemsize:
+            min_itemsize can be an integer or a dict with this columns name
+            with an integer size
+        """
         if _ensure_decoded(self.kind) == "string":
 
             if isinstance(min_itemsize, dict):
@@ -2023,7 +2019,6 @@ class IndexCol:
 
     def validate_col(self, itemsize=None):
         """ validate this column: return the compared against itemsize """
-
         # validate this column for string truncation (or reset to the max size)
         if _ensure_decoded(self.kind) == "string":
             c = self.col
@@ -2051,9 +2046,10 @@ class IndexCol:
                 )
 
     def update_info(self, info):
-        """ set/update the info for this indexable with the key/value
-            if there is a conflict raise/warn as needed """
-
+        """
+        set/update the info for this indexable with the key/value
+        if there is a conflict raise/warn as needed
+        """
         for key in self._info_fields:
 
             value = getattr(self, key, None)
@@ -2140,17 +2136,17 @@ class GenericIndexCol(IndexCol):
 
 
 class DataCol(IndexCol):
-    """ a data holding column, by definition this is not indexable
+    """
+    a data holding column, by definition this is not indexable
 
-        Parameters
-        ----------
-
-        data   : the actual data
-        cname  : the column name in the table to hold the data (typically
-                 values)
-        meta   : a string description of the metadata
-        metadata : the actual metadata
-        """
+    Parameters
+    ----------
+    data   : the actual data
+    cname  : the column name in the table to hold the data (typically
+                values)
+    meta   : a string description of the metadata
+    metadata : the actual metadata
+    """
 
     is_an_indexable = False
     is_data_indexable = False
@@ -2235,7 +2231,6 @@ class DataCol(IndexCol):
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
-
         dtype = values.dtype
         itemsize = dtype.itemsize
 
@@ -2460,16 +2455,17 @@ class GenericDataIndexableCol(DataIndexableCol):
 
 
 class Fixed:
-    """ represent an object in my store
-        facilitate read/write of various types of objects
-        this is an abstract base class
+    """
+    represent an object in my store
+    facilitate read/write of various types of objects
+    this is an abstract base class
 
-        Parameters
-        ----------
-        parent : HDFStore
-        group : Node
-            The group node where the table resides.
-        """
+    Parameters
+    ----------
+    parent : HDFStore
+    group : Node
+        The group node where the table resides.
+    """
 
     pandas_kind: str
     format_type: str = "fixed"  # GH#30962 needed by dask
@@ -2596,9 +2592,10 @@ class Fixed:
         return True
 
     def infer_axes(self):
-        """ infer the axes of my storer
-              return a boolean indicating if we have a valid storer or not """
-
+        """
+        infer the axes of my storer
+        return a boolean indicating if we have a valid storer or not
+        """
         s = self.storable
         if s is None:
             return False
@@ -2722,7 +2719,7 @@ class GenericFixed(Fixed):
         if isinstance(node, tables.VLArray):
             ret = node[0][start:stop]
         else:
-            dtype = getattr(attrs, "value_type", None)
+            dtype = _ensure_decoded(getattr(attrs, "value_type", None))
             shape = getattr(attrs, "shape", None)
 
             if shape is not None:
@@ -2884,7 +2881,6 @@ class GenericFixed(Fixed):
 
     def write_array_empty(self, key: str, value: ArrayLike):
         """ write a 0-len array """
-
         # ugly hack for length 0 axes
         arr = np.empty((1,) * value.ndim)
         self._handle.create_array(self.group, key, arr)
@@ -3085,9 +3081,8 @@ class BlockManagerFixed(GenericFixed):
 
         self.attrs.ndim = data.ndim
         for i, ax in enumerate(data.axes):
-            if i == 0:
-                if not ax.is_unique:
-                    raise ValueError("Columns index has to be unique for fixed format")
+            if i == 0 and (not ax.is_unique):
+                raise ValueError("Columns index has to be unique for fixed format")
             self.write_index(f"axis{i}", ax)
 
         # Supporting mixed-type DataFrame objects...nontrivial
@@ -3105,29 +3100,29 @@ class FrameFixed(BlockManagerFixed):
 
 
 class Table(Fixed):
-    """ represent a table:
-          facilitate read/write of various types of tables
+    """
+    represent a table:
+        facilitate read/write of various types of tables
 
-        Attrs in Table Node
-        -------------------
-        These are attributes that are store in the main table node, they are
-        necessary to recreate these tables when read back in.
+    Attrs in Table Node
+    -------------------
+    These are attributes that are store in the main table node, they are
+    necessary to recreate these tables when read back in.
 
-        index_axes    : a list of tuples of the (original indexing axis and
-            index column)
-        non_index_axes: a list of tuples of the (original index axis and
-            columns on a non-indexing axis)
-        values_axes   : a list of the columns which comprise the data of this
-            table
-        data_columns  : a list of the columns that we are allowing indexing
-            (these become single columns in values_axes), or True to force all
-            columns
-        nan_rep       : the string to use for nan representations for string
-            objects
-        levels        : the names of levels
-        metadata      : the names of the metadata columns
-
-        """
+    index_axes    : a list of tuples of the (original indexing axis and
+        index column)
+    non_index_axes: a list of tuples of the (original index axis and
+        columns on a non-indexing axis)
+    values_axes   : a list of the columns which comprise the data of this
+        table
+    data_columns  : a list of the columns that we are allowing indexing
+        (these become single columns in values_axes), or True to force all
+        columns
+    nan_rep       : the string to use for nan representations for string
+        objects
+    levels        : the names of levels
+    metadata      : the names of the metadata columns
+    """
 
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
@@ -3229,7 +3224,8 @@ class Table(Fixed):
         return isinstance(self.levels, list)
 
     def validate_multiindex(self, obj):
-        """validate that we can store the multi-index; reset and return the
+        """
+        validate that we can store the multi-index; reset and return the
         new object
         """
         levels = [
@@ -3294,7 +3290,6 @@ class Table(Fixed):
 
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
-
         # mypy doesn't recognize DataFrame._AXIS_NAMES, so we re-write it here
         axis_names = {0: "index", 1: "columns"}
 
@@ -3381,7 +3376,8 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemsize doesn't contain items that are not in the
+        """
+        validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3503,7 +3499,6 @@ class Table(Fixed):
         Cannot index Time64Col or ComplexCol.
         Pytables must be >= 3.0.
         """
-
         if not self.infer_axes():
             return
         if columns is False:
@@ -3570,7 +3565,6 @@ class Table(Fixed):
         -------
         List[Tuple[index_values, column_values]]
         """
-
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
@@ -3595,10 +3589,10 @@ class Table(Fixed):
         return obj
 
     def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
-        """take the input data_columns and min_itemize and create a data
+        """
+        take the input data_columns and min_itemize and create a data
         columns spec
         """
-
         if not len(non_index_axes):
             return []
 
@@ -3665,7 +3659,6 @@ class Table(Fixed):
         min_itemsize: Dict[str, int] or None, default None
             The min itemsize for a column in bytes.
         """
-
         if not isinstance(obj, DataFrame):
             group = self.group._v_name
             raise TypeError(
@@ -3919,7 +3912,6 @@ class Table(Fixed):
 
     def process_axes(self, obj, selection: "Selection", columns=None):
         """ process axes filters """
-
         # make a copy to avoid side effects
         if columns is not None:
             columns = list(columns)
@@ -3984,7 +3976,6 @@ class Table(Fixed):
         expectedrows: Optional[int],
     ) -> Dict[str, Any]:
         """ create the description of the table from the axes & values """
-
         # provided expected rows if its passed
         if expectedrows is None:
             expectedrows = max(self.nrows_expected, 10000)
@@ -4011,10 +4002,10 @@ class Table(Fixed):
     def read_coordinates(
         self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
     ):
-        """select coordinates (row numbers) from a table; return the
+        """
+        select coordinates (row numbers) from a table; return the
         coordinates object
         """
-
         # validate the version
         self.validate_version(where)
 
@@ -4041,10 +4032,10 @@ class Table(Fixed):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """return a single column from the table, generally only indexables
+        """
+        return a single column from the table, generally only indexables
         are interesting
         """
-
         # validate the version
         self.validate_version()
 
@@ -4080,10 +4071,11 @@ class Table(Fixed):
 
 
 class WORMTable(Table):
-    """ a write-once read-many table: this format DOES NOT ALLOW appending to a
-         table. writing is a one-time operation the data are stored in a format
-         that allows for searching the data on disk
-         """
+    """
+    a write-once read-many table: this format DOES NOT ALLOW appending to a
+    table. writing is a one-time operation the data are stored in a format
+    that allows for searching the data on disk
+    """
 
     table_type = "worm"
 
@@ -4094,14 +4086,16 @@ class WORMTable(Table):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """ read the indices and the indexing array, calculate offset rows and
-        return """
+        """
+        read the indices and the indexing array, calculate offset rows and return
+        """
         raise NotImplementedError("WORMTable needs to implement read")
 
     def write(self, **kwargs):
-        """ write in a format that we can search later on (but cannot append
-               to): write out the indices and the values using _write_array
-               (e.g. a CArray) create an indexing table so that we can search
+        """
+        write in a format that we can search later on (but cannot append
+        to): write out the indices and the values using _write_array
+        (e.g. a CArray) create an indexing table so that we can search
         """
         raise NotImplementedError("WORMTable needs to implement write")
 
@@ -4170,9 +4164,9 @@ class AppendableTable(Table):
         table.write_data(chunksize, dropna=dropna)
 
     def write_data(self, chunksize: Optional[int], dropna: bool = False):
-        """ we form the data into a 2-d including indexes,values,mask
-            write chunk-by-chunk """
-
+        """
+        we form the data into a 2-d including indexes,values,mask write chunk-by-chunk
+        """
         names = self.dtype.names
         nrows = self.nrows_expected
 
@@ -4216,7 +4210,7 @@ class AppendableTable(Table):
             chunksize = 100000
 
         rows = np.empty(min(chunksize, nrows), dtype=self.dtype)
-        chunks = int(nrows / chunksize) + 1
+        chunks = nrows // chunksize + 1
         for i in range(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, nrows)
@@ -4245,7 +4239,6 @@ class AppendableTable(Table):
         mask : an array of the masks
         values : an array of the values
         """
-
         # 0 len
         for v in values:
             if not np.prod(v.shape):
@@ -4840,7 +4833,6 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     -------
     np.ndarray[fixed-length-string]
     """
-
     # encode if needed
     if len(data):
         data = (

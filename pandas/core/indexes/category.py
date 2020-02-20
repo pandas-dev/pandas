@@ -215,7 +215,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         -------
         CategoricalIndex
         """
-
         if dtype is None:
             dtype = self.dtype
         if name is None:
@@ -520,7 +519,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return new_target, indexer
 
     def _reindex_non_unique(self, target):
-        """ reindex from a non-unique; which CategoricalIndex's are almost
+        """
+        reindex from a non-unique; which CategoricalIndex's are almost
         always
         """
         new_target, indexer = self.reindex(target)

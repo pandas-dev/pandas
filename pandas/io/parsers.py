@@ -90,7 +90,7 @@ Parameters
 ----------
 filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
-    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
@@ -410,7 +410,6 @@ def _validate_names(names):
     ValueError
         If names are not unique.
     """
-
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
@@ -768,7 +767,6 @@ def read_fwf(
     --------
     >>> pd.read_fwf('data.csv')  # doctest: +SKIP
     """
-
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -1286,7 +1284,6 @@ def _validate_skipfooter_arg(skipfooter):
     ------
     ValueError : 'skipfooter' was not a non-negative integer.
     """
-
     if not is_integer(skipfooter):
         raise ValueError("skipfooter must be an integer")
 
@@ -1490,8 +1487,10 @@ class ParserBase:
     def _extract_multi_indexer_columns(
         self, header, index_names, col_names, passed_names=False
     ):
-        """ extract and return the names, index_names, col_names
-            header is a list-of-lists returned from the parsers """
+        """
+        extract and return the names, index_names, col_names
+        header is a list-of-lists returned from the parsers
+        """
         if len(header) < 2:
             return header[0], index_names, col_names, passed_names
 
@@ -1525,11 +1524,10 @@ class ParserBase:
         # level, then our header was too long.
         for n in range(len(columns[0])):
             if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
+                header = ",".join(str(x) for x in self.header)
                 raise ParserError(
-                    "Passed header=[{header}] are too many rows for this "
-                    "multi_index of columns".format(
-                        header=",".join(str(x) for x in self.header)
-                    )
+                    f"Passed header=[{header}] are too many rows "
+                    "for this multi_index of columns"
                 )
 
         # Clean the column names (if we have an index_col).
@@ -1828,7 +1826,6 @@ class ParserBase:
         -------
         converted : ndarray
         """
-
         if is_categorical_dtype(cast_type):
             known_cats = (
                 isinstance(cast_type, CategoricalDtype)
@@ -2574,7 +2571,7 @@ class PythonParser(ParserBase):
     def _convert_data(self, data):
         # apply converters
         def _clean_mapping(mapping):
-            "converts col numbers to names"
+            """converts col numbers to names"""
             clean = {}
             for col, v in mapping.items():
                 if isinstance(col, int) and col not in self.orig_names:
@@ -2949,7 +2946,6 @@ class PythonParser(ParserBase):
                   Because this row number is displayed, we 1-index,
                   even though we 0-index internally.
         """
-
         if self.error_bad_lines:
             raise ParserError(msg)
         elif self.warn_bad_lines:
@@ -2968,7 +2964,6 @@ class PythonParser(ParserBase):
         ----------
         row_num : The row number of the line being parsed.
         """
-
         try:
             return next(self.data)
         except csv.Error as e:
@@ -3028,7 +3023,6 @@ class PythonParser(ParserBase):
         filtered_lines : array-like
             The same array of lines with the "empty" ones removed.
         """
-
         ret = []
         for l in lines:
             # Remove empty lines and lines with only one whitespace value
@@ -3599,7 +3593,6 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
         1) na_values : the string NaN values for that column.
         2) na_fvalues : the float NaN values for that column.
     """
-
     if isinstance(na_values, dict):
         if col in na_values:
             return na_values[col], na_fvalues[col]
