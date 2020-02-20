@@ -240,8 +240,8 @@ class TestBlock:
         assert len(self.fblock) == len(self.fblock.values)
 
     def test_merge(self):
-        avals = tm.randn(2, 10)
-        bvals = tm.randn(2, 10)
+        avals = np.random.randn(2, 10)
+        bvals = np.random.randn(2, 10)
 
         ref_cols = Index(["e", "a", "b", "d", "f"])
 
@@ -435,10 +435,10 @@ class TestBlockManager:
         mgr2.set("baz", np.repeat("foo", N))
         assert mgr2.get("baz").dtype == np.object_
 
-        mgr2.set("quux", tm.randn(N).astype(int))
+        mgr2.set("quux", np.random.randn(N).astype(int))
         assert mgr2.get("quux").dtype == np.int_
 
-        mgr2.set("quux", tm.randn(N))
+        mgr2.set("quux", np.random.randn(N))
         assert mgr2.get("quux").dtype == np.float_
 
     def test_set_change_dtype_slice(self):  # GH8850
@@ -667,11 +667,11 @@ class TestBlockManager:
         pass
 
     def test_consolidate_ordering_issues(self, mgr):
-        mgr.set("f", tm.randn(N))
-        mgr.set("d", tm.randn(N))
-        mgr.set("b", tm.randn(N))
-        mgr.set("g", tm.randn(N))
-        mgr.set("h", tm.randn(N))
+        mgr.set("f", np.random.randn(N))
+        mgr.set("d", np.random.randn(N))
+        mgr.set("b", np.random.randn(N))
+        mgr.set("g", np.random.randn(N))
+        mgr.set("h", np.random.randn(N))
 
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()
