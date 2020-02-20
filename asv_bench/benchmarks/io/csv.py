@@ -254,12 +254,12 @@ class ReadCSVFloatPrecision(StringIORewind):
             names=list("abc"),
         )
 
-    def time_read_csv_arrow_engine(self, sep, decimal, float_precision):
+    def time_read_csv_pyarrow_engine(self, sep, decimal, float_precision):
         read_csv(
             self.data(self.StringIO_input),
             sep=sep,
             header=None,
-            engine="arrow",
+            engine="pyarrow",
             float_precision=None,
             names=list("abc"),
         )

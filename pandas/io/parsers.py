@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
+from io import BufferedIOBase, BytesIO, RawIOBase, StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -166,10 +166,11 @@ dtype : Type name or dict of column -> type, optional
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-engine : {{'c', 'python', 'arrow'}}, optional
-    Parser engine to use. The C and arrow engines are faster, while the python engine is
-    currently more feature-complete. The arrow engine requires ``pyarrow``
+engine : {{'c', 'python', 'pyarrow'}}, optional
+    Parser engine to use. The C and pyarrow engines are faster, while the python engine
+    is currently more feature-complete. The pyarrow engine requires ``pyarrow`` > 0.13
     as a dependency however.
+    .. versionchanged(1.1)
 converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
@@ -521,9 +522,8 @@ _c_parser_defaults = {
 _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 
 _c_unsupported = {"skipfooter"}
-_arrow_unsupported = {
+_pyarrow_unsupported = {
     "skipfooter",
-    "low_memory",
     "float_precision",
     "chunksize",
     "comment",
@@ -951,20 +951,29 @@ class TextFileReader(abc.Iterator):
         sep = options["delimiter"]
         delim_whitespace = options["delim_whitespace"]
 
-        # arrow engine not supported yet
-        if engine == "arrow":
-            if self.chunksize is not None:
-                fallback_reason = f"the arrow engine does not support chunksize"
-                engine = "python"
-        # C and arrow engine not supported yet
-        if engine == "c" or engine == "arrow":
+        # pyarrow engine not supported yet
+        if engine == "pyarrow":
+            for option in _pyarrow_unsupported:
+                if option != "chunksize" and option != "skipfooter":
+                    if options[option] is not None:
+                        fallback_reason = (
+                            f"the pyarrow engine does not support the {option} argumnet"
+                        )
+                        engine = "python"
+                else:
+                    if self.chunksize is not None:
+                        fallback_reason = (
+                            "the pyarrow engine does not support using chunksize"
+                        )
+        # C and pyarrow engine not supported yet
+        if engine == "c" or "pyarrow":
             if options["skipfooter"] > 0:
                 fallback_reason = f"the {engine} engine does not support skipfooter"
                 engine = "python"
 
         encoding = sys.getfilesystemencoding() or "utf-8"
         if sep is None and not delim_whitespace:
-            if engine == "c" or engine == "arrow":
+            if engine == "c" or engine == "pyarrow":
                 fallback_reason = (
                     f"the {engine} engine does not support "
                     "sep=None with delim_whitespace=False"
@@ -1093,13 +1102,14 @@ class TextFileReader(abc.Iterator):
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         # handle skiprows; this is internally handled by the
-        # c-engine, so only need for python and arrow parsers
+        # c-engine, so only need for python and pyarrow parsers
         if engine != "c":
-            if engine == "arrow":
+            if engine == "pyarrow":
                 if not is_integer(skiprows) and skiprows is not None:
                     # pyarrow expects skiprows to be passed as an integer
                     raise ValueError(
-                        "skiprows argument must be an integer when using engine='arrow'"
+                        "skiprows argument must be an integer when using "
+                        "engine='pyarrow'"
                     )
             else:
                 if is_integer(skiprows):
@@ -2164,7 +2174,7 @@ class CParserWrapper(ParserBase):
 
 class ArrowParserWrapper(ParserBase):
     """
-
+    Wrapper for the pyarrow engine for pd.read_csv()
     """
 
     def __init__(self, src, **kwds):
@@ -2174,11 +2184,12 @@ class ArrowParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        # #2442
-        kwds["allow_leading_cols"] = self.index_col is not False
+        encoding = kwds.get("encoding") if kwds.get("encoding") is not None else "utf-8"
 
-        # GH20529, validate usecol arg before TextReader
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
+
+        if isinstance(self.src, StringIO):
+            self.src = BytesIO(self.src.getvalue().encode(encoding))
 
     def read(self, nrows=None):
         pyarrow = import_optional_dependency(
@@ -2197,12 +2208,18 @@ class ArrowParserWrapper(ParserBase):
                 include_columns=self.usecols, column_types=self.kwds.get("dtype")
             ),
         )
-        if nrows:
-            table = table[:nrows]
+
         table_width = len(table.column_names)
         if self.names is None:
             if self.prefix:
                 self.names = [f"{self.prefix}{i}" for i in range(table_width)]
+            elif self.header is not None:
+                if self.header == "infer":
+                    header = 0
+                else:
+                    header = self.header
+                self.names = table[header]
+                del table[header]
         if self.names:
             table = table.rename_columns(self.names)
         return table.to_pandas()
