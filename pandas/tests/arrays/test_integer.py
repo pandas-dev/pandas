@@ -347,10 +347,10 @@ class TestArithmeticOps(BaseOpsUtil):
             # TODO(extension)
             # rpow with a datetimelike coerces the integer array incorrectly
             msg = (
-                r"(:?can only perform ops with numeric values)"
-                r"|(:?cannot perform .* with this index type: DatetimeArray)"
-                r"|(:?Addition/subtraction of integers and integer-arrays"
-                r" with DatetimeArray is no longer supported. *)"
+                "can only perform ops with numeric values|"
+                "cannot perform .* with this index type: DatetimeArray|"
+                "Addition/subtraction of integers and integer-arrays "
+                "with DatetimeArray is no longer supported. *"
             )
             with pytest.raises(TypeError, match=msg):
                 ops(pd.Series(pd.date_range("20180101", periods=len(s))))
