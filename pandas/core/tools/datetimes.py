@@ -296,7 +296,9 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
-            arg = arg.tz_convert(None).tz_localize(tz)
+            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
+            # no attribute "tz_convert"
+            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore
         return arg
 
     elif is_datetime64_ns_dtype(arg):
@@ -307,7 +309,9 @@ def _convert_listlike_datetimes(
                 pass
         elif tz:
             # DatetimeArray, DatetimeIndex
-            return arg.tz_localize(tz)
+            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
+            # no attribute "tz_localize"
+            return arg.tz_localize(tz)  # type: ignore
 
         return arg
 
