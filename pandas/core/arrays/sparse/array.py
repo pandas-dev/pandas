@@ -1503,7 +1503,6 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
     -------
     (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
-
     arr = com.values_from_object(arr)
 
     if arr.ndim > 1:

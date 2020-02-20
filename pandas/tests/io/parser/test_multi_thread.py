@@ -41,9 +41,7 @@ def test_multi_thread_string_io_read_csv(all_parsers):
     num_files = 100
 
     bytes_to_df = [
-        "\n".join(
-            ["{i:d},{i:d},{i:d}".format(i=i) for i in range(max_row_range)]
-        ).encode()
+        "\n".join([f"{i:d},{i:d},{i:d}" for i in range(max_row_range)]).encode()
         for _ in range(num_files)
     ]
     files = [BytesIO(b) for b in bytes_to_df]
