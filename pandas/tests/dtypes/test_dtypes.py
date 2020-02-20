@@ -180,7 +180,7 @@ class TestCategoricalDtype(Base):
         assert is_bool_dtype(cat.dtype) is expected
 
     def test_dtype_specific_categorical_dtype(self):
-        expected = 'datetime64[ns]'
+        expected = "datetime64[ns]"
         result = str(Categorical(DatetimeIndex([])).categories.dtype)
         assert result == expected
 
