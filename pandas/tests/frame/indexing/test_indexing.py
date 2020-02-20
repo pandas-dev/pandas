@@ -1470,11 +1470,13 @@ class TestDataFrameIndexing:
         # 1:   2.0
         # 2:   5.0
         # 3:   5.8
-        df = pd.DataFrame({
-            "a": [-1] * 7 + [0] * 7 + [1] * 7 ,
-            "b": list(range(7)) * 3,
-            "c": ["A", "B", "C", "D", "E", "F", "G"] * 3,
-        }).set_index(["a", "b"])
+        df = pd.DataFrame(
+            {
+                "a": [-1] * 7 + [0] * 7 + [1] * 7,
+                "b": list(range(7)) * 3,
+                "c": ["A", "B", "C", "D", "E", "F", "G"] * 3,
+            }
+        ).set_index(["a", "b"])
         new_index = [0.5, 2.0, 5.0, 5.8]
         new_multi_index = MultiIndex.from_product([[0], new_index], names=["a", "b"])
 
