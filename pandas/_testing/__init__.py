@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import wraps
 import os
 import string
-from typing import Any, Callable, List, Optional, Type
+from typing import Callable, List, Type
 import warnings
 
 import numpy as np
@@ -15,7 +15,6 @@ from pandas._config.localization import (  # noqa:F401
     set_locale,
 )
 
-from pandas._typing import FilePathOrBuffer, FrameOrSeries
 from pandas.compat import _get_lzma_file, _import_lzma
 
 from pandas.core.dtypes.common import (
@@ -48,6 +47,8 @@ from .asserters import (  # noqa:F401
     assert_attr_equal,
     assert_categorical_equal,
     assert_class_equal,
+    assert_contains_all,
+    assert_copy,
     assert_datetime_array_equal,
     assert_dict_equal,
     assert_equal,
@@ -55,6 +56,7 @@ from .asserters import (  # noqa:F401
     assert_frame_equal,
     assert_index_equal,
     assert_interval_array_equal,
+    assert_is_sorted,
     assert_numpy_array_equal,
     assert_period_array_equal,
     assert_series_equal,
@@ -72,6 +74,12 @@ from .contexts import (  # noqa:F401
     set_timezone,
     use_numexpr,
     with_csv_dialect,
+)
+from .makers import rands, rands_array, randu, randu_array  # noqa:F401
+from .roundtrips import (  # noqa:F401
+    round_trip_localpath,
+    round_trip_pathlib,
+    round_trip_pickle,
 )
 
 lzma = _import_lzma()
@@ -106,90 +114,6 @@ def reset_display_options():
     Reset the display options for printing and representing objects.
     """
     pd.reset_option("^display.", silent=True)
-
-
-def round_trip_pickle(
-    obj: Any, path: Optional[FilePathOrBuffer] = None
-) -> FrameOrSeries:
-    """
-    Pickle an object and then read it again.
-
-    Parameters
-    ----------
-    obj : any object
-        The object to pickle and then re-read.
-    path : str, path object or file-like object, default None
-        The path where the pickled object is written and then read.
-
-    Returns
-    -------
-    pandas object
-        The original object that was pickled and then re-read.
-    """
-    _path = path
-    if _path is None:
-        _path = f"__{rands(10)}__.pickle"
-    with ensure_clean(_path) as temp_path:
-        pd.to_pickle(obj, temp_path)
-        return pd.read_pickle(temp_path)
-
-
-def round_trip_pathlib(writer, reader, path: Optional[str] = None):
-    """
-    Write an object to file specified by a pathlib.Path and read it back
-
-    Parameters
-    ----------
-    writer : callable bound to pandas object
-        IO writing function (e.g. DataFrame.to_csv )
-    reader : callable
-        IO reading function (e.g. pd.read_csv )
-    path : str, default None
-        The path where the object is written and then read.
-
-    Returns
-    -------
-    pandas object
-        The original object that was serialized and then re-read.
-    """
-    import pytest
-
-    Path = pytest.importorskip("pathlib").Path
-    if path is None:
-        path = "___pathlib___"
-    with ensure_clean(path) as path:
-        writer(Path(path))
-        obj = reader(Path(path))
-    return obj
-
-
-def round_trip_localpath(writer, reader, path: Optional[str] = None):
-    """
-    Write an object to file specified by a py.path LocalPath and read it back.
-
-    Parameters
-    ----------
-    writer : callable bound to pandas object
-        IO writing function (e.g. DataFrame.to_csv )
-    reader : callable
-        IO reading function (e.g. pd.read_csv )
-    path : str, default None
-        The path where the object is written and then read.
-
-    Returns
-    -------
-    pandas object
-        The original object that was serialized and then re-read.
-    """
-    import pytest
-
-    LocalPath = pytest.importorskip("py.path").local
-    if path is None:
-        path = "___localpath___"
-    with ensure_clean(path) as path:
-        writer(LocalPath(path))
-        obj = reader(LocalPath(path))
-    return obj
 
 
 def write_to_compressed(compression, path, data, dest="test"):
@@ -245,63 +169,6 @@ def randbool(size=(), p: float = 0.5):
     return rand(*size) <= p
 
 
-RANDS_CHARS = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
-RANDU_CHARS = np.array(
-    list("".join(map(chr, range(1488, 1488 + 26))) + string.digits),
-    dtype=(np.unicode_, 1),
-)
-
-
-def rands_array(nchars, size, dtype="O"):
-    """
-    Generate an array of byte strings.
-    """
-    retval = (
-        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size))
-        .view((np.str_, nchars))
-        .reshape(size)
-    )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
-
-
-def randu_array(nchars, size, dtype="O"):
-    """
-    Generate an array of unicode strings.
-    """
-    retval = (
-        np.random.choice(RANDU_CHARS, size=nchars * np.prod(size))
-        .view((np.unicode_, nchars))
-        .reshape(size)
-    )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
-
-
-def rands(nchars):
-    """
-    Generate one random byte string.
-
-    See `rands_array` if you want to create an array of random strings.
-
-    """
-    return "".join(np.random.choice(RANDS_CHARS, nchars))
-
-
-def randu(nchars):
-    """
-    Generate one random unicode string.
-
-    See `randu_array` if you want to create an array of random unicode strings.
-
-    """
-    return "".join(np.random.choice(RANDU_CHARS, nchars))
-
-
 def close(fignum=None):
     from matplotlib.pyplot import get_fignums, close as _close
 
@@ -344,14 +211,6 @@ def assert_is_valid_plot_return_object(objs):
 
 def isiterable(obj):
     return hasattr(obj, "__iter__")
-
-
-def assert_is_sorted(seq):
-    """Assert that the sequence is sorted."""
-    if isinstance(seq, (Index, Series)):
-        seq = seq.values
-    # sorting does not change precisions
-    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
 
 
 def box_expected(expected, box_cls, transpose=True):
@@ -408,29 +267,6 @@ def to_array(obj):
 
 # -----------------------------------------------------------------------------
 # Others
-
-
-def assert_contains_all(iterable, dic):
-    for k in iterable:
-        assert k in dic, f"Did not contain item: {repr(k)}"
-
-
-def assert_copy(iter1, iter2, **eql_kwargs):
-    """
-    iter1, iter2: iterables that produce elements
-    comparable with assert_almost_equal
-
-    Checks that the elements are equal, but not
-    the same object. (Does not check that items
-    in sequences are also not the same object)
-    """
-    for elem1, elem2 in zip(iter1, iter2):
-        assert_almost_equal(elem1, elem2, **eql_kwargs)
-        msg = (
-            f"Expected object {repr(type(elem1))} and object {repr(type(elem2))} to be "
-            "different objects, but they were the same object."
-        )
-        assert elem1 is not elem2, msg
 
 
 def getCols(k):

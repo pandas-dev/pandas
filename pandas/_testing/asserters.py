@@ -1040,3 +1040,34 @@ def assert_equal(left, right, **kwargs):
         assert left == right
     else:
         raise NotImplementedError(type(left))
+
+
+def assert_contains_all(iterable, dic):
+    for k in iterable:
+        assert k in dic, f"Did not contain item: {repr(k)}"
+
+
+def assert_copy(iter1, iter2, **eql_kwargs):
+    """
+    iter1, iter2: iterables that produce elements
+    comparable with assert_almost_equal
+
+    Checks that the elements are equal, but not
+    the same object. (Does not check that items
+    in sequences are also not the same object)
+    """
+    for elem1, elem2 in zip(iter1, iter2):
+        assert_almost_equal(elem1, elem2, **eql_kwargs)
+        msg = (
+            f"Expected object {repr(type(elem1))} and object {repr(type(elem2))} to be "
+            "different objects, but they were the same object."
+        )
+        assert elem1 is not elem2, msg
+
+
+def assert_is_sorted(seq):
+    """Assert that the sequence is sorted."""
+    if isinstance(seq, (Index, Series)):
+        seq = seq.values
+    # sorting does not change precisions
+    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
