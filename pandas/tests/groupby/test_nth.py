@@ -533,17 +533,20 @@ def test_nth_nan_in_grouper(dropna):
 
 
 @pytest.mark.parametrize("method", ["first", "last"])
-def test_first_last_with_na_object(method):
+def test_first_last_with_na_object(method, nulls_fixture):
     # https://github.com/pandas-dev/pandas/issues/32123
-    groups = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, pd.NA]}).groupby("a")
+    groups = pd.DataFrame({"a": [1, 1, 2, 2], "b": [1, 2, 3, nulls_fixture]}).groupby(
+        "a"
+    )
     result = getattr(groups, method)()
 
     if method == "first":
-        values = {"b": [1, 3]}
+        values = [1, 3]
     else:
-        values = {"b": [2, 3]}
+        values = [2, 3]
 
+    values = np.array(values, dtype=result["b"].dtype)
     idx = pd.Index([1, 2], name="a")
-    expected = pd.DataFrame(values, index=idx)
+    expected = pd.DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
