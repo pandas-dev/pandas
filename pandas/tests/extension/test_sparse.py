@@ -185,8 +185,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
         # GH 21189
         result = pd.Series(data_missing).drop([0, 1]).isna()
-        index = pd.RangeIndex(0)
-        expected = pd.Series([], dtype=expected_dtype, index=index)
+        expected = pd.Series([], dtype=expected_dtype, index=pd.RangeIndex(0))
         self.assert_series_equal(result, expected)
 
     def test_fillna_limit_pad(self, data_missing):

@@ -743,17 +743,10 @@ class TestConcatAppendCommon:
         s2 = pd.Series([], dtype="object")
 
         # different dtype => not-category
-        result = pd.concat([s1, s2], ignore_index=True)
-        tm.assert_series_equal(result, s2)
-
-        result = s1.append(s2, ignore_index=True)
-        tm.assert_series_equal(result, s2)
-
-        result = pd.concat([s1, s2], ignore_index=True)
-        tm.assert_series_equal(result, s2)
-
-        result = s2.append(s1, ignore_index=True)
-        tm.assert_series_equal(result, s2)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
+        tm.assert_series_equal(s1.append(s2, ignore_index=True), s2)
+        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
+        tm.assert_series_equal(s2.append(s1, ignore_index=True), s2)
 
         s1 = pd.Series([], dtype="category")
         s2 = pd.Series([np.nan, np.nan])
@@ -2206,10 +2199,11 @@ bar2,12,13,14,15
             {
                 0: pd.Series([pd.NaT] * len(values), dtype="M8[ns]").dt.tz_localize(tz),
                 1: values,
-            }
+            },
+            index=pd.Index(list(range(len(values))), dtype="object"),
         )
         result = concat([first, second], axis=1)
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_default_index(self):
         # is_series and ignore_index

@@ -300,7 +300,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not is_list_like(data):
                     data = [data]
                 index = ibase.default_index(len(data))
-
             elif is_list_like(data):
 
                 # a scalar numpy array is list-like but doesn't
