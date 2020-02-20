@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
 - Fixed regression in :meth:`pandas.core.groupby.RollingGroupby.apply` where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
+- Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
 - Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
 -
 
@@ -38,7 +39,6 @@ Bug fixes
 
 - Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
 - Fixed bug in parquet roundtrip with nullable unsigned integer dtypes (:issue:`31896`).
-- Fixed bug where :meth:`pandas.io.pickleread_pickle` raised a ``UnicodeDecodeError` when reading a py27 pickle with MultiIndex column (:issue:`31988`).
 
 
 
