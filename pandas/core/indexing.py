@@ -48,7 +48,6 @@ class _IndexSlice:
 
     Examples
     --------
-
     >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
@@ -86,7 +85,8 @@ class IndexingError(Exception):
 
 
 class IndexingMixin:
-    """Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
+    """
+    Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
     """
 
     @property
@@ -124,7 +124,6 @@ class IndexingMixin:
 
         Examples
         --------
-
         >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
         ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
         ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
@@ -578,18 +577,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
         new_self.axis = axis
         return new_self
 
-    def _get_label(self, label, axis: int):
-        if self.ndim == 1:
-            # for perf reasons we want to try _xs first
-            # as its basically direct indexing
-            # but will fail when the index is not present
-            # see GH5667
-            return self.obj._xs(label, axis=axis)
-        elif isinstance(label, tuple) and isinstance(label[axis], slice):
-            raise IndexingError("no slices here, handle elsewhere")
-
-        return self.obj._xs(label, axis=axis)
-
     def _get_setitem_indexer(self, key):
         """
         Convert a potentially-label-based key into a positional indexer.
@@ -701,22 +688,24 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
-        # we have an axis0 multi-index, handle or raise
-        axis = self.axis or 0
-        try:
-            # fast path for series or for tup devoid of slices
-            return self._get_label(tup, axis=axis)
-        except TypeError:
-            # slices are unhashable
-            pass
-        except KeyError as ek:
-            # raise KeyError if number of indexers match
-            # else IndexingError will be raised
-            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
-                raise ek
+    def _getitem_tuple_same_dim(self, tup: Tuple):
+        """
+        Index with indexers that should return an object of the same dimension
+        as self.obj.
 
-        return None
+        This is only called after a failed call to _getitem_lowerdim.
+        """
+        retval = self.obj
+        for i, key in enumerate(tup):
+            if com.is_null_slice(key):
+                continue
+
+            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+            # We should never have retval.ndim < self.ndim, as that should
+            #  be handled by the _getitem_lowerdim call above.
+            assert retval.ndim == self.ndim
+
+        return retval
 
     def _getitem_lowerdim(self, tup: Tuple):
 
@@ -780,6 +769,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # multi-index dimension, try to see if we have something like
         # a tuple passed to a series with a multi-index
         if len(tup) > self.ndim:
+            if self.name != "loc":
+                # This should never be reached, but lets be explicit about it
+                raise ValueError("Too many indices")
             result = self._handle_lowerdim_multi_index_axis0(tup)
             if result is not None:
                 return result
@@ -1049,15 +1041,36 @@ class _LocIndexer(_LocationIndexer):
         if self._multi_take_opportunity(tup):
             return self._multi_take(tup)
 
-        # no shortcut needed
-        retval = self.obj
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                continue
+        return self._getitem_tuple_same_dim(tup)
 
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+    def _get_label(self, label, axis: int):
+        if self.ndim == 1:
+            # for perf reasons we want to try _xs first
+            # as its basically direct indexing
+            # but will fail when the index is not present
+            # see GH5667
+            return self.obj._xs(label, axis=axis)
+        elif isinstance(label, tuple) and isinstance(label[axis], slice):
+            raise IndexingError("no slices here, handle elsewhere")
 
-        return retval
+        return self.obj._xs(label, axis=axis)
+
+    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
+        # we have an axis0 multi-index, handle or raise
+        axis = self.axis or 0
+        try:
+            # fast path for series or for tup devoid of slices
+            return self._get_label(tup, axis=axis)
+        except TypeError:
+            # slices are unhashable
+            pass
+        except KeyError as ek:
+            # raise KeyError if number of indexers match
+            # else IndexingError will be raised
+            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
+                raise ek
+
+        return None
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1468,25 +1481,7 @@ class _iLocIndexer(_LocationIndexer):
         except IndexingError:
             pass
 
-        retval = self.obj
-        axis = 0
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                axis += 1
-                continue
-
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=axis)
-
-            # if the dim was reduced, then pass a lower-dim the next time
-            if retval.ndim < self.ndim:
-                # TODO: this is never reached in tests; can we confirm that
-                #  it is impossible?
-                axis -= 1
-
-            # try to get for the next axis
-            axis += 1
-
-        return retval
+        return self._getitem_tuple_same_dim(tup)
 
     def _get_list_axis(self, key, axis: int):
         """
@@ -1695,31 +1690,17 @@ class _iLocIndexer(_LocationIndexer):
 
                 plane_indexer = tuple([idx]) + indexer[info_axis + 1 :]
                 lplane_indexer = length_of_indexer(plane_indexer[0], index)
+                # lplane_indexer gives the expected length of obj[idx]
 
                 # require that we are setting the right number of values that
                 # we are indexing
-                if (
-                    is_list_like_indexer(value)
-                    and np.iterable(value)
-                    and lplane_indexer != len(value)
-                ):
+                if is_list_like_indexer(value) and lplane_indexer != len(value):
 
-                    if len(obj[idx]) != len(value):
-                        raise ValueError(
-                            "cannot set using a multi-index "
-                            "selection indexer with a different "
-                            "length than the value"
-                        )
-
-                    # make sure we have an ndarray
-                    value = getattr(value, "values", value).ravel()
-
-                    # we can directly set the series here
-                    obj._consolidate_inplace()
-                    obj = obj.copy()
-                    obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)
-                    self.obj[item] = obj
-                    return
+                    raise ValueError(
+                        "cannot set using a multi-index "
+                        "selection indexer with a different "
+                        "length than the value"
+                    )
 
             # non-mi
             else:

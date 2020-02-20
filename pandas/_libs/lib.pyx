@@ -571,6 +571,8 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             if PyArray_Check(x) and PyArray_Check(y):
                 if not array_equivalent_object(x, y):
                     return False
+            elif (x is C_NA) ^ (y is C_NA):
+                return False
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
