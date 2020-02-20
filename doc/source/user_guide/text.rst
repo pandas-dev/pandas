@@ -189,11 +189,10 @@ and replacing any remaining whitespaces with underscores:
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
 
+.. _text.split:
 
 Splitting and replacing strings
 -------------------------------
-
-.. _text.split:
 
 Methods like ``split`` return a Series of lists:
 
