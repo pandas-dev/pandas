@@ -7,6 +7,7 @@ import pytest
 
 from pandas._libs import lib
 
+import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas._testing as tm
 import pandas.core.strings as strings
@@ -206,6 +207,9 @@ class TestStringMethods:
         # one instance of parametrized fixture
         box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
+
+        if dtype == "category" and len(values) and values[1] is pd.NA:
+            pytest.xfail(reason="Categorical does not yet support pd.NA")
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
 
