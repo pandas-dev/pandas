@@ -34,7 +34,6 @@ from pandas import (
     Series,
     date_range,
 )
-
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
