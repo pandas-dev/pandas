@@ -3346,7 +3346,6 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
 
-    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_categorical_dtype(dtype):

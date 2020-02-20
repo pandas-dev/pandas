@@ -292,7 +292,6 @@ class ExtensionIndex(Index):
         except Exception:
             return self.astype(object).map(mapper)
 
-    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype) and copy is False:
             # Ensure that self.astype(self.dtype) is self

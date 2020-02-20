@@ -363,7 +363,6 @@ class Float64Index(NumericIndex):
         """
         return "floating"
 
-    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if needs_i8_conversion(dtype):

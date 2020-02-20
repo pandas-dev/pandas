@@ -5442,7 +5442,7 @@ class Index(IndexOpsMixin, PandasObject):
         Automatically inherit some docstrings, so we dont have to decorate
         every method with @Appender(Index.foo.__doc__)
         """
-        names = ["_shallow_copy", "dropna", "duplicated"]
+        names = ["_shallow_copy", "astype", "dropna", "duplicated"]
 
         for name in names:
             method = getattr(cls, name)

@@ -420,7 +420,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         return result
 
-    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True, how="start"):
         dtype = pandas_dtype(dtype)
 
