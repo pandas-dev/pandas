@@ -234,6 +234,7 @@ class CleanCommand(Command):
             pjoin(ujson_lib, "ultrajsonenc.c"),
             pjoin(ujson_lib, "ultrajsondec.c"),
             pjoin(util, "move.c"),
+            pjoin("pandas", "_libs", "ndframe_iter.c"),
         ]
 
         for root, dirs, files in os.walk("pandas"):
@@ -737,6 +738,7 @@ native_frame_ext = Extension(
     sources=["pandas/_libs/ndframe_iter.c"],
     include_dirs=["pandas/_libs"],
     define_macros=macros,
+    depends=["ndframe_iter.h"],
 )
 
 extensions.append(native_frame_ext)

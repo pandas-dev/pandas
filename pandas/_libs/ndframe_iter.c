@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "ndframe_iter.h"
 
 // returns -1 on error
@@ -79,19 +80,39 @@ static PyObject *getManagerLocationsAsList(PyObject *block) {
 }
 
 
-PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
+// Given a DataFrame, this will create a struct containing both
+// the length of ndarrays the frame uses along with an array of
+// PyArrayObjects, appearing in C-order along the requested axis.
+//
+// For example, if we had a DataFrame that looks as follows
+//    a     b   c
+// 0  1   2.0   3
+// 1  4   5.0   6
+//
+// This would deconstruct the blocks and provide a struct
+// with len 3; accessing
+// ndarrays[0] will yield ndarray([1, 4])
+// ndarrays[1] will yield ndarray([2., 5.])
+// ndarrays[2] will yield ndarray([3, 6])
+//
+// The goal of this is to provide a performant way in C to
+// maintain axis order and dtype information of the
+// supplied DataFrame.
+PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis) {
   PyObject *blocks, *block, *managerLocs, *blockValues, *ndarr, *key;
   PyObject **ndarrays;
   Py_ssize_t i, j, loc, ncols;
+  PdOrderedArrays *result;
 
-  printf("we are in!");
+  // 
+  assert(axis == 0);
+
   ncols = getDimLength(df, 1);
   blocks = getBlocksTuple(df);
   if (blocks == NULL) {
     return NULL;
   }
 
-  printf("down here\n");
   ndarrays = PyObject_Malloc(sizeof(PyObject *) * ncols);
   if (ndarrays == NULL) {
     Py_DECREF(blocks);
@@ -130,6 +151,7 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
         return NULL;
       }
 
+      // TODO: Need to support slicing more than axis = 0
       ndarr = PyObject_GetItem(blockValues, key);
       Py_DECREF(key);
       if (ndarr == NULL) {
@@ -148,5 +170,24 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
 
   Py_DECREF(blocks);
 
+  result = PyObject_Malloc(sizeof(PdOrderedArrays));
+  if (result == NULL) {
+    return NULL;
+  }
+
+  result->len = ncols;
+  result->ndarrays = ndarrays;
+
   return NULL;
+}
+
+void PdOrderedArrays_Destroy(PdOrderedArrays *orderedArrays) {
+  Py_ssize_t i;
+
+  for (i = 0; i < orderedArrays->len; i++) {
+    Py_DECREF(orderedArrays->ndarrays++);
+  }
+  
+  PyObject_Free(orderedArrays->ndarrays);
+  PyObject_Free(orderedArrays);
 }

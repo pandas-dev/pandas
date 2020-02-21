@@ -15,11 +15,12 @@
 typedef struct {
   Py_ssize_t len;
   PyObject **ndarrays;  // TODO: need some kind of destructor
-} PdBlocksIter;
+} PdOrderedArrays;
 
 // Provided a DataFrame and axis deconstructs the block
 // data to match the order represented by the BlockManager
 // Returns NULL on error
-PdBlocksIter *PdFrameIter_New(PyObject *df, int axis);
+PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis);
+void PdOrderedArrays_Destroy(PdOrderedArrays *orderedArrays);
 
 #endif
