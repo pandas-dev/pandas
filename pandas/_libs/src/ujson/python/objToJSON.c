@@ -1454,7 +1454,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                                  1000000000LL; // nanoseconds per second
                 } else {
                     // datetime.* objects don't follow above rules
-                    nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
+                  nanosecVal = PyDateTimeToEpoch((PyDateTime_Date *)item, NPY_FR_ns);
                 }
             }
         }

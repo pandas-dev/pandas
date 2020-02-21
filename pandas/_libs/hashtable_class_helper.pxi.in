@@ -192,7 +192,7 @@ cdef class StringVector:
 
         append_data_string(self.data, x)
 
-    cdef extend(self, ndarray[:] x):
+    cdef extend(self, ndarray[object] x):
         for i in range(len(x)):
             self.append(x[i])
 
@@ -237,7 +237,7 @@ cdef class ObjectVector:
         self.external_view_exists = True
         return self.ao
 
-    cdef extend(self, ndarray[:] x):
+    cdef extend(self, ndarray[object] x):
         for i in range(len(x)):
             self.append(x[i])
 
