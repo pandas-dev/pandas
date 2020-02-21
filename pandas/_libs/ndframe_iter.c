@@ -80,11 +80,9 @@ static PyObject *getManagerLocationsAsList(PyObject *block) {
 
 
 PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
-  PyObject *blocks, *block, *managerLocs, *blockValues;
-  char ***data;  // individual ndarrays; C-order should match column order
+  PyObject *blocks, *block, *managerLocs, *blockValues, *ndarr, *key;
+  PyObject **ndarrays;
   Py_ssize_t i, j, loc, ncols;
-  NpyIter *iter;
-  NpyIter_IterNextFunc *iternext;
 
   printf("we are in!");
   ncols = getDimLength(df, 1);
@@ -93,9 +91,9 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
     return NULL;
   }
 
-  printf("down here\n"); 
-  data = PyObject_Malloc(sizeof(char **) * ncols);
-  if (data == NULL) {
+  printf("down here\n");
+  ndarrays = PyObject_Malloc(sizeof(PyObject *) * ncols);
+  if (ndarrays == NULL) {
     Py_DECREF(blocks);
     return NULL;
   }
@@ -106,7 +104,7 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
     blockValues = PyObject_CallMethod(block, "get_block_values", NULL);
     if (blockValues == NULL) {
       Py_DECREF(blocks);
-      PyObject_Free(data);
+      PyObject_Free(ndarrays);
       return NULL;
     }
 
@@ -114,13 +112,36 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
     if (managerLocs == NULL) {
       Py_DECREF(blockValues);
       Py_DECREF(blocks);
-      PyObject_Free(data);
+      PyObject_Free(ndarrays);
       return NULL;
     }
 
-    // TODO: we have the array data and we know the indices
-    // of where they are located in the dataframe, so figure out how we
-    // should iterate and store that knowledge
+    // Use the PyObject_GETItem interface to slice all of the
+    // arrays, construct a new object from them and store for
+    // later use. There is definitely a more efficient way to do this...
+    for (j = 0; j < PyList_GET_SIZE(managerLocs); j++) {
+      loc = PyLong_AsLongLong(PyList_GET_ITEM(managerLocs, j));
+      key = PyLong_FromLongLong(j);
+      if (key == NULL) {
+        Py_DECREF(managerLocs);
+        Py_DECREF(blockValues);
+        Py_DECREF(blocks);
+        PyObject_Free(ndarrays);
+        return NULL;
+      }
+
+      ndarr = PyObject_GetItem(blockValues, key);
+      Py_DECREF(key);
+      if (ndarr == NULL) {
+        Py_DECREF(managerLocs);
+        Py_DECREF(blockValues);
+        Py_DECREF(blocks);
+        PyObject_Free(ndarrays);
+        return NULL;
+      }
+
+      ndarrays[loc] = ndarr;
+    }
     Py_DECREF(managerLocs);
     Py_DECREF(blockValues);
   }

@@ -14,7 +14,7 @@
 // order specified by the BlockManager
 typedef struct {
   Py_ssize_t len;
-  char ***data;  // each of these points to an array containing numpy data
+  PyObject **ndarrays;  // TODO: need some kind of destructor
 } PdBlocksIter;
 
 // Provided a DataFrame and axis deconstructs the block
