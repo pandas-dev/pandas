@@ -475,10 +475,15 @@ if linetrace:
 # in numpy>=1.16.0, silence build warnings about deprecated API usage
 #  we can't do anything about these warnings because they stem from
 #  cython+numpy version mismatches.
-if np.__version__ > LooseVersion("1.16.0"):
-    macros.append(("NPY_NO_DEPRECATED_API", "0"))
-elif "-Werror" in extra_compile_args:
-    extra_compile_args.remove("-Werror")
+macros.append(("NPY_NO_DEPRECATED_API", "0"))
+if "-Werror" in extra_compile_args:
+    try:
+        import numpy as np
+    except ImportError:
+        pass
+    else:
+        if np.__version__ > LooseVersion("1.16.0"):
+            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------
