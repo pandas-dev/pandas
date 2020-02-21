@@ -271,18 +271,3 @@ class TestComparison:
         result = op(index, other)
         expected = expected_type(self.elementwise_comparison(op, index, other))
         assert_func(result, expected)
-
-
-@pytest.mark.parametrize("method", ["__add__", "__sub__"])
-def test_timestamp_interval_add_subtract_timedelta(method):
-    # https://github.com/pandas-dev/pandas/issues/32023
-    interval = Interval(
-        Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
-    )
-    delta = Timedelta(days=7)
-    result = getattr(interval, method)(delta)
-    left = getattr(interval.left, method)(delta)
-    right = getattr(interval.right, method)(delta)
-    expected = Interval(left, right)
-
-    assert result == expected
