@@ -1830,7 +1830,6 @@ class IndexCol:
 
     Parameters
     ----------
-
     axis   : axis which I reference
     values : the ndarray like converted values
     kind   : a string description of this type
@@ -2142,7 +2141,6 @@ class DataCol(IndexCol):
 
     Parameters
     ----------
-
     data   : the actual data
     cname  : the column name in the table to hold the data (typically
                 values)
@@ -3226,7 +3224,8 @@ class Table(Fixed):
         return isinstance(self.levels, list)
 
     def validate_multiindex(self, obj):
-        """validate that we can store the multi-index; reset and return the
+        """
+        validate that we can store the multi-index; reset and return the
         new object
         """
         levels = [
@@ -3377,7 +3376,8 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemsize doesn't contain items that are not in the
+        """
+        validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3589,7 +3589,8 @@ class Table(Fixed):
         return obj
 
     def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
-        """take the input data_columns and min_itemize and create a data
+        """
+        take the input data_columns and min_itemize and create a data
         columns spec
         """
         if not len(non_index_axes):
@@ -4001,7 +4002,8 @@ class Table(Fixed):
     def read_coordinates(
         self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
     ):
-        """select coordinates (row numbers) from a table; return the
+        """
+        select coordinates (row numbers) from a table; return the
         coordinates object
         """
         # validate the version
@@ -4030,7 +4032,8 @@ class Table(Fixed):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """return a single column from the table, generally only indexables
+        """
+        return a single column from the table, generally only indexables
         are interesting
         """
         # validate the version

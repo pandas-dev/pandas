@@ -364,8 +364,8 @@ class TestLreshape:
         df = DataFrame(data)
 
         spec = {
-            "visitdt": ["visitdt{i:d}".format(i=i) for i in range(1, 4)],
-            "wt": ["wt{i:d}".format(i=i) for i in range(1, 4)],
+            "visitdt": [f"visitdt{i:d}" for i in range(1, 4)],
+            "wt": [f"wt{i:d}" for i in range(1, 4)],
         }
         result = lreshape(df, spec)
 
@@ -557,8 +557,8 @@ class TestLreshape:
             result = lreshape(df, spec, dropna=False, label="foo")
 
         spec = {
-            "visitdt": ["visitdt{i:d}".format(i=i) for i in range(1, 3)],
-            "wt": ["wt{i:d}".format(i=i) for i in range(1, 4)],
+            "visitdt": [f"visitdt{i:d}" for i in range(1, 3)],
+            "wt": [f"wt{i:d}" for i in range(1, 4)],
         }
         msg = "All column lists must be same length"
         with pytest.raises(ValueError, match=msg):
