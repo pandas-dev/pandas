@@ -1623,6 +1623,14 @@ class TestDataFrameIndexing:
         actual = df.reindex(idx[:3], method="nearest")
         tm.assert_frame_equal(expected, actual)
 
+    def test_reindex_nearest_tz_empty_frame(self):
+        # https://github.com/pandas-dev/pandas/issues/31964
+        dti = pd.DatetimeIndex(["2016-06-26 14:27:26+00:00"])
+        df = pd.DataFrame(index=pd.DatetimeIndex(["2016-07-04 14:00:59+00:00"]))
+        expected = pd.DataFrame(index=dti)
+        result = df.reindex(dti, method="nearest")
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex_frame_add_nat(self):
         rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
         df = DataFrame({"A": np.random.randn(len(rng)), "B": rng})
