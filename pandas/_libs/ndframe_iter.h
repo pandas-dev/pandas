@@ -2,6 +2,13 @@
 // showing that this is really "deconstructed" block data
 // in native form
 
+#ifndef PANDAS__NDFRAME_ITER
+#define PANDAS__NDFRAME_ITER
+
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+
+
 // Struct containing a pointer to len # of NDArrays
 // The order of each item in data should match the
 // order specified by the BlockManager
@@ -15,3 +22,4 @@ typedef struct {
 // Returns NULL on error
 PdBlocksIter *PdFrameIter_New(PyObject *df, int axis);
 
+#endif

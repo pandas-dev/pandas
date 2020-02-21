@@ -1,8 +1,12 @@
+#include "ndframe_iter.h"
+
 // returns -1 on error
 // performs no bounds checking, so will likely segfault if you pass
 // and inappropriate dim for the object
 static Py_ssize_t getDimLength(PyObject *df, Py_ssize_t dim) {
   PyObject *shape;
+  Py_ssize_t ncols;
+  
   shape = PyObject_GetAttrString(df, "shape");
   if (shape == NULL) {
     return -1;
@@ -13,7 +17,7 @@ static Py_ssize_t getDimLength(PyObject *df, Py_ssize_t dim) {
     return -1;
   }
 
-  ncols = PyTuple_GET_ITEM(shape, dim);
+  ncols = PyLong_AsLongLong(PyTuple_GET_ITEM(shape, dim));
   Py_DECREF(shape);
 
   return ncols;
@@ -24,12 +28,12 @@ static Py_ssize_t getDimLength(PyObject *df, Py_ssize_t dim) {
 static PyObject *getBlocksTuple(PyObject *df) {
   PyObject *blockManager, *blocks;
 
-  *blockManager = PyObject_GetAttrString(df, "_data");
+  blockManager = PyObject_GetAttrString(df, "_data");
   if (blockManager == NULL) {
     return NULL;
   }
 
-  *blocks = PyObject_GetAttrString(blockManager, "blocks");
+  blocks = PyObject_GetAttrString(blockManager, "blocks");
   Py_DECREF(blockManager);
   if (blocks == NULL) {
     return NULL;
@@ -49,7 +53,7 @@ static PyObject *getBlocksTuple(PyObject *df) {
 static PyObject *getManagerLocationsAsList(PyObject *block) {
   PyObject *managerLocs, *ndarray, *list;
 
-  managerLocs = PyObject_GetAttrString(block "mgr_locs");
+  managerLocs = PyObject_GetAttrString(block, "mgr_locs");
   if (managerLocs == NULL) {
     return NULL;
   }
@@ -81,14 +85,15 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
   Py_ssize_t i, j, loc, ncols;
   NpyIter *iter;
   NpyIter_IterNextFunc *iternext;
-  char **dataptr;
 
+  printf("we are in!");
   ncols = getDimLength(df, 1);
   blocks = getBlocksTuple(df);
   if (blocks == NULL) {
     return NULL;
   }
-  
+
+  printf("down here\n"); 
   data = PyObject_Malloc(sizeof(char **) * ncols);
   if (data == NULL) {
     Py_DECREF(blocks);
@@ -105,35 +110,8 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
       return NULL;
     }
 
-    if (!PyArray_Check(blockValues)) {
-      Py_DECREF(blockValues);
-      Py_DECREF(blocks);
-      PyObject_Free(data);
-      return NULL;
-    }
-
-    managerLocs = getManagerLocations(block);
+    managerLocs = getManagerLocationsAsList(block);
     if (managerLocs == NULL) {
-      Py_DECREF(blockValues);
-      Py_DECREF(blocks);
-      PyObject_Free(data);
-      return NULL;
-    }
-
-    // Use F-ORDER to stride down the columns of the block
-    iter = NpyIter_New(blockValues, NPY_ITER_READONLY|
-                       NPY_ITER_EXTERNAL_LOOP,
-                       NPY_FORTRANORDER, NPY_NO_CASTING, NULL);
-    if (iter == NULL) {
-      Py_DECREF(blockValues);
-      Py_DECREF(blocks);
-      PyObject_Free(data);
-      return NULL;
-    }
-    
-    iternext = NpyIter_GetIterNext(iter, NULL);
-    if (iternext == NULL) {
-      Py_DECREF(iter);
       Py_DECREF(blockValues);
       Py_DECREF(blocks);
       PyObject_Free(data);
@@ -143,4 +121,11 @@ PdBlocksIter *PdFrameIter_New(PyObject *df, int axis) {
     // TODO: we have the array data and we know the indices
     // of where they are located in the dataframe, so figure out how we
     // should iterate and store that knowledge
+    Py_DECREF(managerLocs);
+    Py_DECREF(blockValues);
+  }
+
+  Py_DECREF(blocks);
+
+  return NULL;
 }
