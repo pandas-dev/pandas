@@ -482,7 +482,7 @@ if "-Werror" in extra_compile_args:
     except ImportError:
         pass
     else:
-        if np.__version__ > LooseVersion("1.16.0"):
+        if np.__version__ < LooseVersion("1.16.0"):
             extra_compile_args.remove("-Werror")
 
 
