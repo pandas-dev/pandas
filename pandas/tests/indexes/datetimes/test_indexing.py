@@ -343,6 +343,19 @@ class TestTake:
             idx.take(np.array([1, -5]))
 
 
+class TestGetLoc:
+    def test_get_loc_tz_aware(self):
+        # https://github.com/pandas-dev/pandas/issues/32140
+        dti = pd.date_range(
+            pd.Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
+            pd.Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
+            freq="5s",
+        )
+        key = pd.Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
+        result = dti.get_loc(key, method="nearest")
+        assert result == 7433
+
+
 class TestDatetimeIndex:
     @pytest.mark.parametrize(
         "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
