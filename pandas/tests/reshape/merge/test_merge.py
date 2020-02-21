@@ -2169,14 +2169,14 @@ def test_merge_datetime_upcast_dtype():
 def test_categorical_non_unique_monotonic(n_categories):
     # GH 28189
     left_index = CategoricalIndex([0] + list(range(n_categories)))
-    df = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
+    df1 = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
     df2 = DataFrame(
         [[6]],
         columns=["value"],
         index=CategoricalIndex([0], categories=np.arange(n_categories)),
     )
 
-    result = merge(df, df2, how="left", left_index=True, right_index=True)
+    result = merge(df1, df2, how="left", left_index=True, right_index=True)
     expected = DataFrame(
         [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],
         columns=["value_x", "value_y"],

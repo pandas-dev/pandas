@@ -1062,11 +1062,6 @@ def convert_dtypes(
         if convert_integer:
             target_int_dtype = "Int64"
 
-            if isinstance(inferred_dtype, str) and (
-                inferred_dtype == "mixed-integer"
-                or inferred_dtype == "mixed-integer-float"
-            ):
-                inferred_dtype = target_int_dtype
             if is_integer_dtype(input_array.dtype) and not is_extension_array_dtype(
                 input_array.dtype
             ):
