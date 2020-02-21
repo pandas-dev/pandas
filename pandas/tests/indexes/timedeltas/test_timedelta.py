@@ -91,6 +91,18 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
+    def test_join_preserves_freq(self):
+        # GH#32157
+        tdi = timedelta_range("1 day", periods=10)
+        result = tdi[:5].join(tdi[5:], how="outer")
+        assert result.freq == tdi.freq
+        tm.assert_index_equal(result, tdi)
+
+        result = tdi[:5].join(tdi[6:], how="outer")
+        assert result.freq is None
+        expected = tdi.delete(5)
+        tm.assert_index_equal(result, expected)
+
     def test_join_self(self, join_type):
         index = timedelta_range("1 day", periods=10)
         joined = index.join(index, how=join_type)
