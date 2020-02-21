@@ -21,6 +21,7 @@ Fixed regressions
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
 - Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
 - Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
+- Fixed regression in :meth:`GroupBy.agg` calling a user-provided function an extra time on an empty input (:issue:`31760`)
 -
 
 .. ---------------------------------------------------------------------------

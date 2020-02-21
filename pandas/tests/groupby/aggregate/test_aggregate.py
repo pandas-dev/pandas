@@ -13,6 +13,18 @@ from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 
 
+def test_groupby_agg_no_extra_calls():
+    # GH#31760
+    df = pd.DataFrame({"key": ["a", "b", "c", "c"], "value": [1, 2, 3, 4]})
+    gb = df.groupby("key")["value"]
+
+    def dummy_func(x):
+        assert len(x) != 0
+        return x.sum()
+
+    gb.agg(dummy_func)
+
+
 def test_agg_regression1(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.agg(np.mean)

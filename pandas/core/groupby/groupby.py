@@ -923,17 +923,10 @@ b  2""",
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                func(obj[:0])
+                result, counts = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
-            except AssertionError:
-                raise
-            except Exception:
-                # Our function depends on having a non-empty argument
-                #  See test_groupby_agg_err_catching
-                pass
 
-            result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
             output[key] = self._try_cast(result, obj, numeric_only=True)
