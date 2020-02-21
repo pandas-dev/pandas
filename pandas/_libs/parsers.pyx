@@ -701,7 +701,7 @@ cdef class TextReader:
             char *word
             object name, old_name
             int status
-            uint64_t hr, data_line
+            uint64_t hr, data_line = 0
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
 
@@ -805,7 +805,6 @@ cdef class TextReader:
                 self._tokenize_rows(1)
 
             header = [ self.names ]
-            data_line = 0
 
             if self.parser.lines < 1:
                 field_count = len(header[0])

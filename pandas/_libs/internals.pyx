@@ -371,8 +371,8 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
         Py_ssize_t i, start, stop, n, diff
 
         object blkno
-        list group_order
-        dict group_dict
+        list group_order = []
+        dict group_dict = {}
         int64_t[:] res_view
 
     n = blknos.shape[0]
@@ -393,9 +393,6 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         yield cur_blkno, slice(start, n)
     else:
-        group_order = []
-        group_dict = {}
-
         for i in range(1, n):
             if blknos[i] != cur_blkno:
                 if cur_blkno not in group_dict:
