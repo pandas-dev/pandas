@@ -806,10 +806,6 @@ def assert_is_valid_plot_return_object(objs):
         assert isinstance(objs, (plt.Artist, tuple, dict)), msg
 
 
-def isiterable(obj):
-    return hasattr(obj, "__iter__")
-
-
 def assert_is_sorted(seq):
     """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
