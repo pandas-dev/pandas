@@ -25,12 +25,14 @@ def test_timestamp_interval_add_subtract_timedelta(method, delta):
     assert result == expected
 
 
-def test_timedelta_add_timestamp_interval():
+@pytest.mark.parametrize(
+    "delta", [Timedelta(days=7), timedelta(7), timedelta64(7, "D")]
+)
+def test_timedelta_add_timestamp_interval(delta):
     # https://github.com/pandas-dev/pandas/issues/32023
     interval = Interval(
         Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
     )
-    delta = Timedelta(days=7)
 
     result = delta + interval
 
