@@ -31,7 +31,7 @@ def write_csv_rows(list data, ndarray data_index,
     """
     # In crude testing, N>100 yields little marginal improvement
     cdef:
-        Py_ssize_t i, j, k = len(data_index), N = 100, ncols = len(cols)
+        Py_ssize_t i, j = 0, k = len(data_index), N = 100, ncols = len(cols)
         list rows
 
     # pre-allocate rows
