@@ -2191,7 +2191,7 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
             )
         result = result.astype(bool)._values
     elif is_object_dtype(key):
-        # key might be sparse / object-dtype bool, check_array_indexer needs bool array
+        # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
         result = check_array_indexer(index, result)
     else:
