@@ -1452,7 +1452,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx = pd.Index(list('abc'))
         >>> idx
         Index(['a', 'b', 'c'], dtype='object')
@@ -2501,7 +2500,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         Union matching dtypes
 
         >>> idx1 = pd.Index([1, 2, 3, 4])
@@ -2632,7 +2630,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.intersection(idx2)
@@ -2713,7 +2710,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx1 = pd.Index([2, 1, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.difference(idx2)
@@ -5143,9 +5139,30 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index with passed location(-s) deleted.
 
+        Parameters
+        ----------
+        loc : int or list of int
+            Location of item(-s) which will be deleted.
+            Use a list of locations to delete more than one value at the same time.
+
         Returns
         -------
-        new_index : Index
+        Index
+            New Index with passed location(-s) deleted.
+
+        See Also
+        --------
+        numpy.delete : Delete any rows and column from NumPy array (ndarray).
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.delete(1)
+        Index(['a', 'c'], dtype='object')
+
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.delete([0, 2])
+        Index(['b'], dtype='object')
         """
         return self._shallow_copy(np.delete(self._data, loc))
 

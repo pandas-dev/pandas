@@ -54,7 +54,7 @@ class TestDataFrameTimeSeriesMethods:
         ns_dtype = np.dtype("M8[ns]")
 
         for unit in units:
-            dtype = np.dtype("M8[{unit}]".format(unit=unit))
+            dtype = np.dtype(f"M8[{unit}]")
             vals = np.arange(n, dtype=np.int64).view(dtype)
 
             df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
@@ -70,7 +70,7 @@ class TestDataFrameTimeSeriesMethods:
         df["dates"] = np.arange(n, dtype=np.int64).view(ns_dtype)
 
         for unit in units:
-            dtype = np.dtype("M8[{unit}]".format(unit=unit))
+            dtype = np.dtype(f"M8[{unit}]")
             vals = np.arange(n, dtype=np.int64).view(dtype)
 
             tmp = df.copy()
