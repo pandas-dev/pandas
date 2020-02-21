@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
 - Fixed regression in :meth:`pandas.core.groupby.RollingGroupby.apply` where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
+- Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
 - Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
 -
 
@@ -45,6 +46,7 @@ Bug fixes
 
 - Fix bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the ``"string"`` dtype (:issue:`31731`).
 - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
+- Fix bug in :meth:`Series.convert_dtypes` for series with mix of integers and strings (:issue:`32117`)
 
 .. ---------------------------------------------------------------------------
 
