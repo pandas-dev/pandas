@@ -18,7 +18,10 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes import concat as _concat
-from pandas.core.dtypes.cast import maybe_cast_to_integer_array
+from pandas.core.dtypes.cast import (
+    maybe_cast_to_integer_array,
+    validate_numeric_casting,
+)
 from pandas.core.dtypes.common import (
     ensure_categorical,
     ensure_int64,
@@ -68,7 +71,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
-from pandas.core.indexers import deprecate_ndim_indexing, maybe_convert_indices
+from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
@@ -820,20 +823,22 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Copying Methods
 
-    def copy(self, name=None, deep=False, dtype=None, **kwargs):
+    def copy(self, name=None, deep=False, dtype=None, names=None):
         """
         Make a copy of this object.  Name and dtype sets those attributes on
         the new object.
 
         Parameters
         ----------
-        name : str, optional
+        name : Label
         deep : bool, default False
-        dtype : numpy dtype or pandas type
+        dtype : numpy dtype or pandas type, optional
+        names : list-like, optional
+            Kept for compatibility with MultiIndex. Should not be used.
 
         Returns
         -------
-        copy : Index
+        Index
 
         Notes
         -----
@@ -845,7 +850,6 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             new_index = self._shallow_copy()
 
-        names = kwargs.get("names")
         names = self._validate_names(name=name, names=names, deep=deep)
         new_index = new_index.set_names(names)
 
@@ -908,7 +912,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string.
         """
-
         # do we want to justify (only do so for non-objects)
         is_justify = True
 
@@ -999,7 +1002,6 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray
             Formatted values.
         """
-
         values = self
         if slicer is not None:
             values = values[slicer]
@@ -1088,7 +1090,6 @@ class Index(IndexOpsMixin, PandasObject):
         Series
             The dtype will be based on the type of the Index values.
         """
-
         from pandas import Series
 
         if index is None:
@@ -1149,7 +1150,6 @@ class Index(IndexOpsMixin, PandasObject):
         1  Bear
         2   Cow
         """
-
         from pandas import DataFrame
 
         if name is None:
@@ -1290,7 +1290,6 @@ class Index(IndexOpsMixin, PandasObject):
                     ( 'cobra', 2019)],
                    names=['species', 'year'])
         """
-
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
 
@@ -1453,7 +1452,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx = pd.Index(list('abc'))
         >>> idx
         Index(['a', 'b', 'c'], dtype='object')
@@ -2502,7 +2500,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         Union matching dtypes
 
         >>> idx1 = pd.Index([1, 2, 3, 4])
@@ -2544,7 +2541,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
-
         if not len(other) or self.equals(other):
             return self._get_reconciled_name_object(other)
 
@@ -2634,7 +2630,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx1 = pd.Index([1, 2, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.intersection(idx2)
@@ -2715,7 +2710,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-
         >>> idx1 = pd.Index([2, 1, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.difference(idx2)
@@ -2888,10 +2882,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "tolerance argument only valid if using pad, "
                     "backfill or nearest lookups"
                 )
+            casted_key = self._maybe_cast_indexer(key)
             try:
-                return self._engine.get_loc(key)
+                return self._engine.get_loc(casted_key)
             except KeyError:
-                return self._engine.get_loc(self._maybe_cast_indexer(key))
+                raise KeyError(key)
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
@@ -3096,20 +3091,16 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
 
-    def _convert_scalar_indexer(self, key, kind=None):
+    def _convert_scalar_indexer(self, key, kind: str_t):
         """
         Convert a scalar indexer.
 
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        if kind == "iloc":
-            self._validate_indexer("positional", key, "iloc")
-            return key
+        assert kind in ["loc", "getitem"]
 
         if len(self) and not isinstance(self, ABCMultiIndex):
 
@@ -3142,7 +3133,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         return key
 
-    def _convert_slice_indexer(self, key: slice, kind=None):
+    def _validate_positional_slice(self, key: slice):
+        """
+        For positional indexing, a slice must have either int or None
+        for each of start, stop, and step.
+        """
+        self._validate_indexer("positional", key.start, "iloc")
+        self._validate_indexer("positional", key.stop, "iloc")
+        self._validate_indexer("positional", key.step, "iloc")
+
+    def _convert_slice_indexer(self, key: slice, kind: str_t):
         """
         Convert a slice indexer.
 
@@ -3152,16 +3152,9 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label of the slice bound
-        kind : {'loc', 'getitem', 'iloc'} or None
+        kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        # validate iloc
-        if kind == "iloc":
-            self._validate_indexer("slice", key.start, "iloc")
-            self._validate_indexer("slice", key.stop, "iloc")
-            self._validate_indexer("slice", key.step, "iloc")
-            return key
+        assert kind in ["loc", "getitem"], kind
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
@@ -3190,17 +3183,16 @@ class Index(IndexOpsMixin, PandasObject):
         # convert the slice to an indexer here
 
         # if we are mixed and have integers
-        try:
-            if is_positional and self.is_mixed():
+        if is_positional and self.is_mixed():
+            try:
                 # Validate start & stop
                 if start is not None:
                     self.get_loc(start)
                 if stop is not None:
                     self.get_loc(stop)
                 is_positional = False
-        except KeyError:
-            if self.inferred_type in ["mixed-integer-float", "integer-na"]:
-                raise
+            except KeyError:
+                pass
 
         if is_null_slicer:
             indexer = key
@@ -3211,7 +3203,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return indexer
 
-    def _convert_listlike_indexer(self, keyarr, kind=None):
+    def _convert_listlike_indexer(self, keyarr):
         """
         Parameters
         ----------
@@ -3230,7 +3222,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
-        indexer = self._convert_list_indexer(keyarr, kind=kind)
+        indexer = self._convert_list_indexer(keyarr)
         return indexer, keyarr
 
     def _convert_arr_indexer(self, keyarr):
@@ -3264,7 +3256,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return keyarr
 
-    def _convert_list_indexer(self, keyarr, kind=None):
+    def _convert_list_indexer(self, keyarr):
         """
         Convert a list-like indexer to the appropriate dtype.
 
@@ -3278,29 +3270,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         positional indexer or None
         """
-        if (
-            kind in [None, "iloc"]
-            and is_integer_dtype(keyarr)
-            and not self.is_floating()
-        ):
-
-            if self.inferred_type == "mixed-integer":
-                indexer = self.get_indexer(keyarr)
-                if (indexer >= 0).all():
-                    return indexer
-                # missing values are flagged as -1 by get_indexer and negative
-                # indices are already converted to positive indices in the
-                # above if-statement, so the negative flags are changed to
-                # values outside the range of indices so as to trigger an
-                # IndexError in maybe_convert_indices
-                indexer[indexer < 0] = len(self)
-
-                return maybe_convert_indices(indexer, len(self))
-
-            elif not self.inferred_type == "integer":
-                keyarr = np.where(keyarr < 0, len(self) + keyarr, keyarr)
-                return keyarr
-
         return None
 
     def _invalid_indexer(self, form: str_t, key):
@@ -3308,8 +3277,8 @@ class Index(IndexOpsMixin, PandasObject):
         Consistent invalid indexer message.
         """
         raise TypeError(
-            f"cannot do {form} indexing on {type(self)} with these "
-            f"indexers [{key}] of {type(key)}"
+            f"cannot do {form} indexing on {type(self).__name__} with these "
+            f"indexers [{key}] of type {type(key).__name__}"
         )
 
     # --------------------------------------------------------------------
@@ -3327,7 +3296,6 @@ class Index(IndexOpsMixin, PandasObject):
         ------
         ValueError if its a duplicate axis
         """
-
         # trying to reindex on an axis with duplicates
         if not self.is_unique and len(indexer):
             raise ValueError("cannot reindex from a duplicate axis")
@@ -3412,7 +3380,6 @@ class Index(IndexOpsMixin, PandasObject):
             Indices of output values in original index.
 
         """
-
         target = ensure_index(target)
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
@@ -4107,6 +4074,11 @@ class Index(IndexOpsMixin, PandasObject):
         bool
             Whether the key search is in the index.
 
+        Raises
+        ------
+        TypeError
+            If the key is not hashable.
+
         See Also
         --------
         Index.isin : Returns an ndarray of boolean dtype indicating whether the
@@ -4198,7 +4170,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         appended : Index
         """
-
         to_concat = [self]
 
         if isinstance(other, (list, tuple)):
@@ -4604,9 +4575,9 @@ class Index(IndexOpsMixin, PandasObject):
             # If that fails, raise a KeyError if an integer
             # index, otherwise, see if key is an integer, and
             # try that
-            loc = self._engine.get_loc(key)
+            loc = self.get_loc(key)
         except KeyError:
-            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+            if not self._should_fallback_to_positional():
                 raise
             elif is_integer(key):
                 # If the Index cannot hold integer, then this is unambiguously
@@ -4615,14 +4586,24 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 raise
 
-        return self._get_values_for_loc(series, loc)
+        return self._get_values_for_loc(series, loc, key)
 
-    def _get_values_for_loc(self, series: "Series", loc):
+    def _should_fallback_to_positional(self) -> bool:
+        """
+        If an integer key is not found, should we fall back to positional indexing?
+        """
+        if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
+            return False
+        return True
+
+    def _get_values_for_loc(self, series: "Series", loc, key):
         """
         Do a positional lookup on the given Series, returning either a scalar
         or a Series.
 
         Assumes that `series.index is self`
+
+        key is included for MultiIndex compat.
         """
         if is_integer(loc):
             return series._values[loc]
@@ -4648,7 +4629,7 @@ class Index(IndexOpsMixin, PandasObject):
             stacklevel=2,
         )
         loc = self._engine.get_loc(key)
-        libindex.validate_numeric_casting(arr.dtype, value)
+        validate_numeric_casting(arr.dtype, value)
         arr[loc] = value
 
     _index_shared_docs[
@@ -4731,7 +4712,6 @@ class Index(IndexOpsMixin, PandasObject):
         dict
             {group name -> group labels}
         """
-
         # TODO: if we are a MultiIndex, we can do better
         # that converting to tuples
         if isinstance(values, ABCMultiIndex):
@@ -4763,7 +4743,6 @@ class Index(IndexOpsMixin, PandasObject):
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-
         from pandas.core.indexes.multi import MultiIndex
 
         new_values = super()._map_values(mapper, na_action=na_action)
@@ -4929,7 +4908,6 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
-
         if not self.is_floating():
             return com.cast_scalar_indexer(key)
         return key
@@ -5157,9 +5135,30 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index with passed location(-s) deleted.
 
+        Parameters
+        ----------
+        loc : int or list of int
+            Location of item(-s) which will be deleted.
+            Use a list of locations to delete more than one value at the same time.
+
         Returns
         -------
-        new_index : Index
+        Index
+            New Index with passed location(-s) deleted.
+
+        See Also
+        --------
+        numpy.delete : Delete any rows and column from NumPy array (ndarray).
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.delete(1)
+        Index(['a', 'c'], dtype='object')
+
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.delete([0, 2])
+        Index(['b'], dtype='object')
         """
         return self._shallow_copy(np.delete(self._data, loc))
 
@@ -5746,7 +5745,6 @@ def _try_convert_to_int_array(
     ------
     ValueError if the conversion was not successful.
     """
-
     if not is_unsigned_integer_dtype(dtype):
         # skip int64 conversion attempt if uint-like dtype is passed, as
         # this could return Int64Index when UInt64Index is what's desired

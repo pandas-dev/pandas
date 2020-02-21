@@ -29,7 +29,7 @@ def test_numeric_compat(idx):
 
 @pytest.mark.parametrize("method", ["all", "any"])
 def test_logical_compat(idx, method):
-    msg = "cannot perform {method}".format(method=method)
+    msg = f"cannot perform {method}"
 
     with pytest.raises(TypeError, match=msg):
         getattr(idx, method)()
@@ -112,8 +112,8 @@ def test_ndarray_compat_properties(idx, compat_props):
     idx.values.nbytes
 
 
-def test_pickle_compat_construction(holder):
+def test_pickle_compat_construction():
     # this is testing for pickle compat
     # need an object to create with
     with pytest.raises(TypeError, match="Must pass both levels and codes"):
-        holder()
+        MultiIndex()
