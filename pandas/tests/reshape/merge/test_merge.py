@@ -2165,15 +2165,21 @@ def test_merge_datetime_upcast_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-def test_categorical_non_unique_monotonic():
+@pytest.mark.parametrize("n_categories", [5, 128])
+def test_categorical_non_unique_monotonic(n_categories):
     # GH 28189
-    df = DataFrame(range(4), columns=["value"], index=CategoricalIndex(["1"] * 4))
-    df2 = DataFrame([[6]], columns=["value"], index=CategoricalIndex(["1"]))
+    left_index = CategoricalIndex([0] + list(range(n_categories)))
+    df = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
+    df2 = DataFrame(
+        [[6]],
+        columns=["value"],
+        index=CategoricalIndex([0], categories=np.arange(n_categories)),
+    )
 
     result = merge(df, df2, how="left", left_index=True, right_index=True)
     expected = DataFrame(
-        [[0, 6], [1, 6], [2, 6], [3, 6]],
+        [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],
         columns=["value_x", "value_y"],
-        index=CategoricalIndex(["1"] * 4),
+        index=left_index,
     )
     tm.assert_frame_equal(expected, result)
