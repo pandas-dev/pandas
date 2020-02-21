@@ -144,26 +144,26 @@ PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis) {
       loc = PyLong_AsLongLong(PyList_GET_ITEM(managerLocs, j));
       key = PyLong_FromLongLong(j);
       if (key == NULL) {
-        Py_DECREF(managerLocs);
-        Py_DECREF(blockValues);
-        Py_DECREF(blocks);
-        PyObject_Free(ndarrays);
-        return NULL;
+        goto LOOP_ERROR;
       }
 
       // TODO: Need to support slicing more than axis = 0
       ndarr = PyObject_GetItem(blockValues, key);
       Py_DECREF(key);
       if (ndarr == NULL) {
-        Py_DECREF(managerLocs);
-        Py_DECREF(blockValues);
-        Py_DECREF(blocks);
-        PyObject_Free(ndarrays);
-        return NULL;
+        goto LOOP_ERROR;
       }
 
       ndarrays[loc] = ndarr;
+      continue;
+    LOOP_ERROR:
+      Py_DECREF(managerLocs);
+      Py_DECREF(blockValues);
+      Py_DECREF(blocks);
+      PyObject_Free(ndarrays);
+      return NULL;      
     }
+    
     Py_DECREF(managerLocs);
     Py_DECREF(blockValues);
   }
@@ -178,7 +178,7 @@ PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis) {
   result->len = ncols;
   result->ndarrays = ndarrays;
 
-  return NULL;
+  return result;
 }
 
 void PdOrderedArrays_Destroy(PdOrderedArrays *orderedArrays) {
