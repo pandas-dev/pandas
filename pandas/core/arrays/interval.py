@@ -1127,8 +1127,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
         except TypeError:
             raise TypeError(
-                "Conversion to arrow with subtype '{}' "
-                "is not supported".format(self.dtype.subtype)
+                f"Conversion to arrow with subtype '{self.dtype.subtype}' "
+                "is not supported"
             )
         interval_type = ArrowIntervalType(subtype, self.closed)
         storage_array = pyarrow.StructArray.from_arrays(
@@ -1157,14 +1157,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if not type.equals(interval_type):
                     raise TypeError(
                         "Not supported to convert IntervalArray to type with "
-                        "different 'subtype' ({0} vs {1}) and 'closed' ({2} vs {3}) "
-                        "attributes".format(
-                            self.dtype.subtype, type.subtype, self.closed, type.closed
-                        )
+                        f"different 'subtype' ({self.dtype.subtype} vs {type.subtype}) "
+                        f"and 'closed' ({self.closed} vs {type.closed}) attributes"
                     )
             else:
                 raise TypeError(
-                    "Not supported to convert IntervalArray to '{0}' type".format(type)
+                    f"Not supported to convert IntervalArray to '{type}' type"
                 )
 
         return pyarrow.ExtensionArray.from_storage(interval_type, storage_array)
