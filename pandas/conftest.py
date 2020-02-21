@@ -441,7 +441,7 @@ def other_closed(request):
     return request.param
 
 
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN")])
+@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA])
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
