@@ -919,17 +919,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return True
         return False
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined: np.ndarray, other):
+        # Expected dtypes for joined:
+        #   DTI -> datetime64[ns]
+        #   TDI -> timedelta64[ns]
+        #   PI -> int64
+        assert other.dtype == self.dtype, (other.dtype, self.dtype)
         name = get_op_result_name(self, other)
-        if self._can_fast_union(other):
-            joined = self._shallow_copy(joined)
-            joined.name = name
-            return joined
-        else:
-            kwargs = {}
-            if hasattr(self, "tz"):
-                kwargs["tz"] = getattr(other, "tz", None)
-            return type(self)._simple_new(joined, name, **kwargs)
+
+        freq = self.freq if self._can_fast_union(other) else None
+        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
+
+        return type(self)._simple_new(new_data, name=name)
 
     # --------------------------------------------------------------------
     # List-Like Methods
