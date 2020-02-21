@@ -827,7 +827,7 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
         s = s.dropna()
 
     if op in ("sum", "prod"):
-        assert isinstance(getattr(s, op)(), np.int64)
+        assert isinstance(getattr(s, op)(), np.intp)
     elif op in ("min", "max"):
         assert isinstance(getattr(s, op)(), np.bool_)
     else:
