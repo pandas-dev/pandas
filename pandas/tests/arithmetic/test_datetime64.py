@@ -1065,12 +1065,18 @@ class TestDatetime64Arithmetic:
         obj2 = tm.box_expected(obj2, box_with_array)
 
         msg = (
-            "unsupported operand type\(s\) for -: "
+            r"unsupported operand type\(s\) for -: "
             "'(Timestamp|DatetimeArray)' and 'datetime.time'"
         )
 
         with pytest.raises(TypeError, match=msg):
+            # sub
             obj1 - obj2
+            obj2 - obj1
+
+            # add
+            obj1 + obj2
+            obj2 + obj1
 
 
 class TestDatetime64DateOffsetArithmetic:
