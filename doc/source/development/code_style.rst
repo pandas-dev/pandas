@@ -41,6 +41,38 @@ For example:
     foo.__class__
 
 
+Error message capturing (in tests)
+----------------------------------
+
+There are times when writing a test case, a statement/function/method can raise
+multiple error messages, we should join the diffrent error messages
+instead of having one giant string.
+
+For example:
+
+**Good:**
+
+.. code-block:: python
+
+    msg = "|".join(
+        [
+            "foo",
+            "bar",
+            "baz"
+        ]
+    )
+
+**Bad:**
+
+.. code-block:: python
+
+    msg = (
+        "foo|"
+        "bar|"
+        "baz"
+    )
+
+
 String formatting
 =================
 
