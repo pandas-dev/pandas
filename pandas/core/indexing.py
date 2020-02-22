@@ -737,13 +737,10 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 #  caught by the _is_nested_tuple_indexer check above.
                 section = self._getitem_axis(key, axis=i)
 
-                if not hasattr(section, "ndim"):
-                    # We should never get here, because _getitem_lowerdim
-                    #  is only called after a check for is_scalar_access,
-                    #  which this would be.
-                    return section
-
-                elif section.ndim == self.ndim:
+                # We should never have a scalar section here, because
+                #  _getitem_lowerdim is only called after a check for
+                #  is_scalar_access, which that would be.
+                if section.ndim == self.ndim:
                     # we're in the middle of slicing through a MultiIndex
                     # revise the key wrt to `section` by inserting an _NS
                     new_key = tup[:i] + (_NS,) + tup[i + 1 :]
