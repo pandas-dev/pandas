@@ -2,9 +2,11 @@ from datetime import timezone
 
 # dateutil compat
 from dateutil.tz import (
-    tzutc as _dateutil_tzutc,
+    tzfile as _dateutil_tzfile,
     tzlocal as _dateutil_tzlocal,
-    tzfile as _dateutil_tzfile)
+    tzutc as _dateutil_tzutc,
+)
+
 
 from dateutil.tz import gettz as dateutil_gettz
 
@@ -103,7 +105,9 @@ cpdef inline object maybe_get_tz(object tz):
 
 
 def _p_tz_cache_key(tz):
-    """ Python interface for cache function to facilitate testing."""
+    """
+    Python interface for cache function to facilitate testing.
+    """
     return tz_cache_key(tz)
 
 
@@ -120,7 +124,7 @@ cdef inline object tz_cache_key(object tz):
     dateutil timezones.
 
     Notes
-    =====
+    -----
     This cannot just be the hash of a timezone object. Unfortunately, the
     hashes of two dateutil tz objects which represent the same timezone are
     not equal (even though the tz objects will compare equal and represent
@@ -313,7 +317,7 @@ cpdef bint tz_compare(object start, object end):
 
     Returns:
     -------
-    compare : bint
+    bool
 
     """
     # GH 18523
