@@ -762,7 +762,9 @@ NaT = c_NaT        # Python-visible
 # ----------------------------------------------------------------------
 
 cdef inline bint checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
+    """
+    Utility to check if a value is a nat or not.
+    """
     return val is None or util.is_nan(val) or val is c_NaT
 
 
