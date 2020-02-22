@@ -84,12 +84,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     Parameters
     ----------
     arr : ndarray
-    copy : boolean, default True
+    copy : bool, default True
 
     Returns
     -------
-    result : ndarray with dtype datetime64[ns]
-
+    ndarray with dtype datetime64[ns]
     """
     cdef:
         Py_ssize_t i, n = arr.size
