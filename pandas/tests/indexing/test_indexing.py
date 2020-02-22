@@ -1136,33 +1136,3 @@ def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
     result = ser
     expected = pd.Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
     tm.assert_series_equal(result, expected)
-
-
-def test_loc_slice_disallows_positional():
-    # GH#16121, GH#24612, GH#31810
-    dti = pd.date_range("2016-01-01", periods=3)
-    df = pd.DataFrame(np.random.random((3, 2)), index=dti)
-
-    ser = df[0]
-
-    msg1 = (
-        "cannot do slice indexing on DatetimeIndex with these "
-        r"indexers \[slice\(1, 3, None\)\] of type slice"
-    )
-    msg2 = (
-        "cannot do slice indexing on DatetimeIndex with these "
-        r"indexers \[1\] of type int"
-    )
-
-    for obj in [df, ser]:
-        with pytest.raises(TypeError, match=msg2):
-            obj.loc[1:3]
-
-        with pytest.raises(TypeError, match=msg1):
-            obj.loc[1:3] = 1
-
-    with pytest.raises(TypeError, match=msg2):
-        df.loc[1:3, 1]
-
-    with pytest.raises(TypeError, match=msg1):
-        df.loc[1:3, 1] = 2

@@ -3183,7 +3183,13 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_positional:
             if kind == "loc":
                 # GH#16121, GH#24612, GH#31810
-                self._invalid_indexer("slice", key)
+                warnings.warn(
+                    "Slicing .loc with a positional slice is not supported, "
+                    "and will raise TypeError in a future version.  "
+                    "Use .iloc instead.",
+                    FutureWarning,
+                    stacklevel=5,
+                )
             indexer = key
         else:
             indexer = self.slice_indexer(start, stop, step, kind=kind)
