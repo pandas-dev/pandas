@@ -923,17 +923,10 @@ b  2""",
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                func(obj[:0])
+                result, counts = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
-            except AssertionError:
-                raise
-            except Exception:
-                # Our function depends on having a non-empty argument
-                #  See test_groupby_agg_err_catching
-                pass
 
-            result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
             output[key] = self._try_cast(result, obj, numeric_only=True)
@@ -1447,7 +1440,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def ohlc(self) -> DataFrame:
         """
-        Compute sum of values, excluding missing values.
+        Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
 
@@ -1995,7 +1988,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({"A": list("aaabba")})
         >>> df
            A
@@ -2062,7 +2054,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
         ...                   columns=['A'])
         >>> df
@@ -2331,7 +2322,7 @@ class GroupBy(_GroupBy):
         periods : int, default 1
             Number of periods to shift.
         freq : str, optional
-            Frequency string
+            Frequency string.
         axis : axis to shift, default 0
         fill_value : optional
 

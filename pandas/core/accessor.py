@@ -233,7 +233,6 @@ def _register_accessor(name, cls):
 
     Examples
     --------
-
     In your library code::
 
         import pandas as pd

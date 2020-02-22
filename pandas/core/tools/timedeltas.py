@@ -53,7 +53,6 @@ def to_timedelta(arg, unit="ns", errors="raise"):
 
     Examples
     --------
-
     Parsing a single string to a Timedelta:
 
     >>> pd.to_timedelta('1 days 06:05:01.00003')

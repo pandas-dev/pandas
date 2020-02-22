@@ -259,8 +259,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/frame.py \
-        -k" -itertuples -join -reindex -reindex_axis -round"
+    pytest -q --doctest-modules pandas/core/frame.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
@@ -294,8 +293,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     MSG='Doctests interval classes' ; echo $MSG
     pytest -q --doctest-modules \
         pandas/core/indexes/interval.py \
-        pandas/core/arrays/interval.py \
-        -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
+        pandas/core/arrays/interval.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests arrays'; echo $MSG
