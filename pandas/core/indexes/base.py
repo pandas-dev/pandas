@@ -5742,7 +5742,7 @@ def _try_convert_to_int_array(
 
 def _maybe_asobject(dtype, klass, data, copy: bool, name: Label, **kwargs):
     """
-    If and object dtype was specified, create the non-object Index
+    If an object dtype was specified, create the non-object Index
     and then convert it to object.
 
     Parameters
