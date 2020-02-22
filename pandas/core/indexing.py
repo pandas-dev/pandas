@@ -1414,10 +1414,6 @@ class _iLocIndexer(_LocationIndexer):
             if not is_integer(k):
                 return False
 
-            ax = self.obj.axes[i]
-            if not ax.is_unique:
-                return False
-
         return True
 
     def _validate_integer(self, key: int, axis: int) -> None:

@@ -47,6 +47,17 @@ class TestiLoc(Base):
 
 class TestiLoc2:
     # TODO: better name, just separating out things that dont rely on base class
+
+    def test_is_scalar_access(self):
+        # GH#32085 index with duplicates doesnt matter for _is_scalar_access
+        index = pd.Index([1, 2, 1])
+        ser = pd.Series(range(3), index=index)
+
+        assert ser.iloc._is_scalar_access((1,))
+
+        df = ser.to_frame()
+        assert df.iloc._is_scalar_access((1, 0,))
+
     def test_iloc_exceeds_bounds(self):
 
         # GH6296
