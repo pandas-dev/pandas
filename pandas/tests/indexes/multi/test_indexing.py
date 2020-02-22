@@ -384,6 +384,10 @@ def test_get_loc_nan(level, nulls_fixture):
     key = ["b", "d"]
     levels[level] = np.array([0, nulls_fixture], dtype=type(nulls_fixture))
     key[level] = nulls_fixture
+
+    if nulls_fixture is pd.NA:
+        pytest.xfail("MultiIndex from pd.NA in np.array broken; see GH 31883")
+
     idx = MultiIndex.from_product(levels)
     assert idx.get_loc(tuple(key)) == 3
 
@@ -392,7 +396,7 @@ def test_get_loc_missing_nan():
     # GH 8569
     idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
     assert isinstance(idx.get_loc(1), slice)
-    with pytest.raises(KeyError, match=r"^3\.0$"):
+    with pytest.raises(KeyError, match=r"^3$"):
         idx.get_loc(3)
     with pytest.raises(KeyError, match=r"^nan$"):
         idx.get_loc(np.nan)

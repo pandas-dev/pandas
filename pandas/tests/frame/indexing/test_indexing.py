@@ -94,6 +94,14 @@ class TestDataFrameIndexing:
         expected = float_frame.loc[:, ["A", "B", "C"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_timedelta_0seconds(self):
+        # GH#10583
+        df = pd.DataFrame(np.random.normal(size=(10, 4)))
+        df.index = pd.timedelta_range(start="0s", periods=10, freq="s")
+        expected = df.loc[pd.Timedelta("0s") :, :]
+        result = df.loc["0s":, :]
+        tm.assert_frame_equal(expected, result)
+
     @pytest.mark.parametrize(
         "idx_type",
         [
@@ -204,7 +212,7 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_mulit_index(self):
+    def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
         it = ["jim", "joe", "jolie"], ["first", "last"], ["left", "center", "right"]
@@ -473,7 +481,8 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
@@ -857,7 +866,8 @@ class TestDataFrameIndexing:
         # setting it triggers setting with copy
         sliced = float_frame.iloc[:, -3:]
 
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             sliced["C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
@@ -984,7 +994,7 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError):
+        with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
@@ -1050,9 +1060,8 @@ class TestDataFrameIndexing:
 
         # positional slicing only via iloc!
         msg = (
-            "cannot do slice indexing on "
-            r"<class 'pandas\.core\.indexes\.numeric\.Float64Index'> with "
-            r"these indexers \[1.0\] of <class 'float'>"
+            "cannot do positional indexing on Float64Index with "
+            r"these indexers \[1.0\] of type float"
         )
         with pytest.raises(TypeError, match=msg):
             df.iloc[1.0:5]
@@ -1064,10 +1073,10 @@ class TestDataFrameIndexing:
 
         cp = df.copy()
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             cp.iloc[1.0:5] = 0
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             result = cp.iloc[1.0:5] == 0  # noqa
 
         assert result.values.all()
@@ -1370,28 +1379,28 @@ class TestDataFrameIndexing:
     def test_set_value_resize(self, float_frame):
 
         res = float_frame._set_value("foobar", "B", 0)
-        assert res is float_frame
-        assert res.index[-1] == "foobar"
-        assert res._get_value("foobar", "B") == 0
+        assert res is None
+        assert float_frame.index[-1] == "foobar"
+        assert float_frame._get_value("foobar", "B") == 0
 
         float_frame.loc["foobar", "qux"] = 0
         assert float_frame._get_value("foobar", "qux") == 0
 
         res = float_frame.copy()
-        res3 = res._set_value("foobar", "baz", "sam")
-        assert res3["baz"].dtype == np.object_
+        res._set_value("foobar", "baz", "sam")
+        assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
-        res3 = res._set_value("foobar", "baz", True)
-        assert res3["baz"].dtype == np.object_
+        res._set_value("foobar", "baz", True)
+        assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
-        res3 = res._set_value("foobar", "baz", 5)
-        assert is_float_dtype(res3["baz"])
-        assert isna(res3["baz"].drop(["foobar"])).all()
+        res._set_value("foobar", "baz", 5)
+        assert is_float_dtype(res["baz"])
+        assert isna(res["baz"].drop(["foobar"])).all()
         msg = "could not convert string to float: 'sam'"
         with pytest.raises(ValueError, match=msg):
-            res3._set_value("foobar", "baz", "sam")
+            res._set_value("foobar", "baz", "sam")
 
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
@@ -1463,7 +1472,8 @@ class TestDataFrameIndexing:
 
         # verify slice is view
         # setting it makes it raise/warn
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             result[2] = 0.0
 
         exp_col = df[2].copy()
@@ -1494,7 +1504,8 @@ class TestDataFrameIndexing:
 
         # verify slice is view
         # and that we are setting a copy
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             result[8] = 0.0
 
         assert (df[8] == 0).all()
@@ -1611,6 +1622,14 @@ class TestDataFrameIndexing:
         expected = df.head(3)
         actual = df.reindex(idx[:3], method="nearest")
         tm.assert_frame_equal(expected, actual)
+
+    def test_reindex_nearest_tz_empty_frame(self):
+        # https://github.com/pandas-dev/pandas/issues/31964
+        dti = pd.DatetimeIndex(["2016-06-26 14:27:26+00:00"])
+        df = pd.DataFrame(index=pd.DatetimeIndex(["2016-07-04 14:00:59+00:00"]))
+        expected = pd.DataFrame(index=dti)
+        result = df.reindex(dti, method="nearest")
+        tm.assert_frame_equal(result, expected)
 
     def test_reindex_frame_add_nat(self):
         rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
@@ -2165,3 +2184,41 @@ class TestDataFrameIndexingUInt64:
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
+
+
+def test_object_casting_indexing_wraps_datetimelike():
+    # GH#31649, check the indexing methods all the way down the stack
+    df = pd.DataFrame(
+        {
+            "A": [1, 2],
+            "B": pd.date_range("2000", periods=2),
+            "C": pd.timedelta_range("1 Day", periods=2),
+        }
+    )
+
+    ser = df.loc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.iloc[0]
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    ser = df.xs(0, axis=0)
+    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[2], pd.Timedelta)
+
+    mgr = df._data
+    arr = mgr.fast_xs(0)
+    assert isinstance(arr[1], pd.Timestamp)
+    assert isinstance(arr[2], pd.Timedelta)
+
+    blk = mgr.blocks[mgr._blknos[1]]
+    assert blk.dtype == "M8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timestamp)
+
+    blk = mgr.blocks[mgr._blknos[2]]
+    assert blk.dtype == "m8[ns]"  # we got the right block
+    val = blk.iget((0, 0))
+    assert isinstance(val, pd.Timedelta)

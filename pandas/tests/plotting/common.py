@@ -92,7 +92,6 @@ class TestPlotBase:
             expected legend visibility. labels are checked only when visible is
             True
         """
-
         if visible and (labels is None):
             raise ValueError("labels must be specified when visible is True")
         axes = self._flatten_visible(axes)
@@ -190,7 +189,6 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
-
         from matplotlib.lines import Line2D
         from matplotlib.collections import Collection, PolyCollection, LineCollection
 
