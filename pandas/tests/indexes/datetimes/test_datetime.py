@@ -100,15 +100,12 @@ class TestDatetimeIndex:
         df = DataFrame(np.arange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
-    def test_append_join_nondatetimeindex(self):
+    def test_append_nondatetimeindex(self):
         rng = date_range("1/1/2000", periods=10)
         idx = Index(["a", "b", "c", "d"])
 
         result = rng.append(idx)
         assert isinstance(result[0], Timestamp)
-
-        # it works
-        rng.join(idx, how="outer")
 
     def test_map(self):
         rng = date_range("1/1/2000", periods=10)
@@ -246,25 +243,6 @@ class TestDatetimeIndex:
             index.isin([index[2], 5]), np.array([False, False, True, False])
         )
 
-    def test_does_not_convert_mixed_integer(self):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args, **kwargs: randn(),
-            r_idx_type="i",
-            c_idx_type="dt",
-        )
-        cols = df.columns.join(df.index, how="outer")
-        joined = cols.join(df.columns)
-        assert cols.dtype == np.dtype("O")
-        assert cols.dtype == joined.dtype
-        tm.assert_numpy_array_equal(cols.values, joined.values)
-
-    def test_join_self(self, join_type):
-        index = date_range("1/1/2000", periods=10)
-        joined = index.join(index, how=join_type)
-        assert index is joined
-
     def assert_index_parameters(self, index):
         assert index.freq == "40960N"
         assert index.inferred_freq == "40960N"
@@ -281,20 +259,6 @@ class TestDatetimeIndex:
 
         new_index = pd.date_range(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
-
-    def test_join_with_period_index(self, join_type):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args: np.random.randint(2),
-            c_idx_type="p",
-            r_idx_type="dt",
-        )
-        s = df.iloc[:5, 0]
-
-        expected = df.columns.astype("O").join(s.index, how=join_type)
-        result = df.columns.join(s.index, how=join_type)
-        tm.assert_index_equal(expected, result)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(
