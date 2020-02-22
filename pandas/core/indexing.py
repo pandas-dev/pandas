@@ -1302,12 +1302,12 @@ class _LocIndexer(_LocationIndexer):
                 not_found = list(set(key) - set(ax))
                 raise KeyError(f"{not_found} not in index")
 
-            # we skip the warning on Categorical/Interval
+            # we skip the warning on Categorical
             # as this check is actually done (check for
             # non-missing values), but a bit later in the
             # code, so we want to avoid warning & then
             # just raising
-            if not (ax.is_categorical() or ax.is_interval()):
+            if not ax.is_categorical():
                 raise KeyError(
                     "Passing list-likes to .loc or [] with any missing labels "
                     "is no longer supported, see "
