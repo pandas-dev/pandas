@@ -920,10 +920,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         return False
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
-        # Expected dtypes for joined:
-        #   DTI -> datetime64[ns]
-        #   TDI -> timedelta64[ns]
-        #   PI -> int64
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
         name = get_op_result_name(self, other)
 
