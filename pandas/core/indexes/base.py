@@ -3111,7 +3111,7 @@ class Index(IndexOpsMixin, PandasObject):
                     self._invalid_indexer("label", key)
 
             elif kind == "loc" and is_integer(key):
-                if not self.holds_integer():
+                if not (is_integer_dtype(self.dtype) or is_object_dtype(self.dtype)):
                     self._invalid_indexer("label", key)
 
         return key

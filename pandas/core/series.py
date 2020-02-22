@@ -969,9 +969,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if takeable:
             return self._values[label]
 
+        # Similar to Index.get_value, but we do not fall back to positional
+        loc = self.index.get_loc(label)
         # We assume that _convert_scalar_indexer has already been called,
         #  with kind="loc", if necessary, by the time we get here
-        return self.index.get_value(self, label)
+        return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
