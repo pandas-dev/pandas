@@ -597,8 +597,7 @@ class SeriesGroupBy(GroupBy):
             _isna = lambda a: a == -1
             return val, sorter, _isna
 
-        if isna(val).any() and val.dtype == object:
-            # Deal with pandas.NaT
+        if isna(val).any():
             val, sorter, _isna = _object_sorter(val, ids)
         else:
             try:
