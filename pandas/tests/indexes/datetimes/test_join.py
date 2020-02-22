@@ -1,14 +1,55 @@
 from datetime import datetime
 
+import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, Index, date_range, to_datetime
+from pandas import DatetimeIndex, Index, Timestamp, date_range, to_datetime
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BMonthEnd
+from pandas.tseries.offsets import BDay, BMonthEnd
 
 
 class TestJoin:
+    def test_does_not_convert_mixed_integer(self):
+        df = tm.makeCustomDataframe(
+            10,
+            10,
+            data_gen_f=lambda *args, **kwargs: np.random.randn(),
+            r_idx_type="i",
+            c_idx_type="dt",
+        )
+        cols = df.columns.join(df.index, how="outer")
+        joined = cols.join(df.columns)
+        assert cols.dtype == np.dtype("O")
+        assert cols.dtype == joined.dtype
+        tm.assert_numpy_array_equal(cols.values, joined.values)
+
+    def test_join_self(self, join_type):
+        index = date_range("1/1/2000", periods=10)
+        joined = index.join(index, how=join_type)
+        assert index is joined
+
+    def test_join_with_period_index(self, join_type):
+        df = tm.makeCustomDataframe(
+            10,
+            10,
+            data_gen_f=lambda *args: np.random.randint(2),
+            c_idx_type="p",
+            r_idx_type="dt",
+        )
+        s = df.iloc[:5, 0]
+
+        expected = df.columns.astype("O").join(s.index, how=join_type)
+        result = df.columns.join(s.index, how=join_type)
+        tm.assert_index_equal(expected, result)
+
+    def test_join_object_index(self):
+        rng = date_range("1/1/2000", periods=10)
+        idx = Index(["a", "b", "c", "d"])
+
+        result = rng.join(idx, how="outer")
+        assert isinstance(result[0], Timestamp)
+
     def test_join_utc_convert(self, join_type):
         rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
 
@@ -71,8 +112,20 @@ class TestJoin:
         assert isinstance(the_join, DatetimeIndex)
 
         # overlapping, but different offset
-        rng = date_range(start, end, freq=BMonthEnd())
+        other = date_range(start, end, freq=BMonthEnd())
 
-        the_join = rng.join(rng, how="outer")
+        the_join = rng.join(other, how="outer")
         assert isinstance(the_join, DatetimeIndex)
         assert the_join.freq is None
+
+    def test_naive_aware_conflicts(self):
+        start, end = datetime(2009, 1, 1), datetime(2010, 1, 1)
+        naive = date_range(start, end, freq=BDay(), tz=None)
+        aware = date_range(start, end, freq=BDay(), tz="Asia/Hong_Kong")
+
+        msg = "tz-naive.*tz-aware"
+        with pytest.raises(TypeError, match=msg):
+            naive.join(aware)
+
+        with pytest.raises(TypeError, match=msg):
+            aware.join(naive)
