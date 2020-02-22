@@ -812,7 +812,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             new_values, index=new_index, fastpath=True
         ).__finalize__(self)
 
-    def _take_with_is_copy(self, indices, axis=0, **kwargs):
+    def _take_with_is_copy(self, indices, axis=0):
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -821,7 +821,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        return self.take(indices=indices, axis=axis, **kwargs)
+        return self.take(indices=indices, axis=axis)
 
     def _ixs(self, i: int, axis: int = 0):
         """
