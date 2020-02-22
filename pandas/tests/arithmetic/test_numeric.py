@@ -1329,8 +1329,12 @@ class TestNumericArraylikeArithmeticWithBool:
             "truediv",
         ]:
             pytest.xfail("Arithmetic operation is not supported")
+
+        bool_box = [True]
         expected = [op(num, num)]
+
+        bool_box = tm.box_expected(bool_box, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
-        bool_box = tm.box_expected([True], box_with_array)
+
         tm.assert_equal(expected, op(bool_box, num))
         tm.assert_equal(expected, op(num, bool_box))
