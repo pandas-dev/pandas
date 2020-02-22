@@ -1255,7 +1255,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             PerformanceWarning,
         )
 
-        # TODO: could there be cases where self.shape isn't the right outshape?
+        # Note: we are assuming here that shapes match.
         res_values = op(self.astype("O"), np.array(other))
         result = array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
