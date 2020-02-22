@@ -7,14 +7,11 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.errors import AbstractMethodError
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
 import pandas._testing as tm
-from pandas.core.generic import NDFrame
 from pandas.core.indexers import validate_indices
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
@@ -1092,29 +1089,6 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "idxr, error, error_message",
-    [
-        (lambda x: x, AbstractMethodError, None),
-        (
-            lambda x: x.loc,
-            AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_NAMES'",
-        ),
-        (
-            lambda x: x.iloc,
-            AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_NAMES'",
-        ),
-    ],
-)
-def test_ndframe_indexing_raises(idxr, error, error_message):
-    # GH 25567
-    frame = NDFrame(np.random.randint(5, size=(2, 2, 2)))
-    with pytest.raises(error, match=error_message):
-        idxr(frame)[0]
 
 
 def test_readonly_indices():

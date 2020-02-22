@@ -514,7 +514,7 @@ class DataFrame(NDFrame):
             else:
                 raise ValueError("DataFrame constructor not properly called!")
 
-        NDFrame.__init__(self, mgr, fastpath=True)
+        NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
 
