@@ -262,18 +262,6 @@ class SortIndex:
         self.s[:10000]
 
 
-class IrregularOps:
-    def setup(self):
-        N = 10 ** 5
-        idx = date_range(start="1/1/2000", periods=N, freq="s")
-        s = Series(np.random.randn(N), index=idx)
-        self.left = s.sample(frac=1)
-        self.right = s.sample(frac=1)
-
-    def time_add(self):
-        self.left + self.right
-
-
 class Lookup:
     def setup(self):
         N = 1500000

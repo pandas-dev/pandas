@@ -63,32 +63,6 @@ class Datetime:
         self.dr._is_dates_only
 
 
-class Ops:
-
-    params = ["float", "int"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        N = 10 ** 6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
-        self.index = getattr(tm, indexes[dtype])(N)
-
-    def time_add(self, dtype):
-        self.index + 2
-
-    def time_subtract(self, dtype):
-        self.index - 2
-
-    def time_multiply(self, dtype):
-        self.index * 2
-
-    def time_divide(self, dtype):
-        self.index / 2
-
-    def time_modulo(self, dtype):
-        self.index % 2
-
-
 class Range:
     def setup(self):
         self.idx_inc = RangeIndex(start=0, stop=10 ** 7, step=3)
