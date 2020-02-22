@@ -196,7 +196,7 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
     arr = np.empty(sz, dtype='i8')
 
     for i in range(sz):
-        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000000
+        arr[i] = int(transinfo[i][0].total_seconds()) * 1_000_000_000
 
     return arr
 
@@ -217,7 +217,7 @@ cdef object get_dst_info(object tz):
     if cache_key is None:
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
         # psycopg2.tz.FixedOffsetTimezone
-        num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
+        num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
                 None)

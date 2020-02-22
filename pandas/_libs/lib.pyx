@@ -15,18 +15,33 @@ from cpython.iterator cimport PyIter_Check
 from cpython.sequence cimport PySequence_Check
 from cpython.number cimport PyNumber_Check
 
-from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
-                               PyTime_Check, PyDelta_Check,
-                               PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDate_Check,
+    PyTime_Check,
+    PyDelta_Check,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_Check, PyArray_GETITEM,
-                    PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
-                    flatiter, NPY_OBJECT,
-                    int64_t, float32_t, float64_t,
-                    uint8_t, uint64_t, complex128_t)
+from numpy cimport (
+    NPY_OBJECT,
+    PyArray_Check,
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+    complex128_t,
+    flatiter,
+    float32_t,
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint64_t,
+)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -60,7 +75,12 @@ from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
 from pandas._libs.missing cimport (
-    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period, C_NA
+    checknull,
+    isnaobj,
+    is_null_datetime64,
+    is_null_timedelta64,
+    is_null_period,
+    C_NA,
 )
 
 
@@ -246,7 +266,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool=True):
+def fast_unique_multiple(list arrays, sort: bool = True):
     """
     Generate a list of unique values from a list of arrays.
 
@@ -277,6 +297,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
+
     if sort is None:
         try:
             uniques.sort()
@@ -289,7 +310,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
+def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)
