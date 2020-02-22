@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     is_sequence,
 )
@@ -2189,9 +2190,11 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "the indexed object do not match)."
             )
         result = result.astype(bool)._values
-    else:
-        # key might be sparse / object-dtype bool, check_array_indexer needs bool array
+    elif is_object_dtype(key):
+        # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
+        result = check_array_indexer(index, result)
+    else:
         result = check_array_indexer(index, result)
 
     return result
