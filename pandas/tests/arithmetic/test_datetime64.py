@@ -1,7 +1,7 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
-from datetime import datetime, timedelta, time
+from datetime import datetime, time, timedelta
 from itertools import product, starmap
 import operator
 import warnings
@@ -1019,7 +1019,7 @@ class TestDatetime64Arithmetic:
             np.array([2.0, 3.0]),
             # GH#13078 datetime +/- Period is invalid
             pd.Period("2011-01-01", freq="D"),
-            time(1, 2, 3)
+            time(1, 2, 3),
         ],
     )
     @pytest.mark.parametrize("dti_freq", [None, "D"])
