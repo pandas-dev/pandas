@@ -3625,8 +3625,6 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(self, other, how="left", return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
 
-        assert other.dtype == self.dtype, (other.dtype, self.dtype)
-
         left_idx, right_idx = _get_join_indexers(
             [self._ndarray_values], [other._ndarray_values], how=how, sort=True
         )
@@ -3787,7 +3785,6 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _join_monotonic(self, other, how="left", return_indexers=False):
-        assert other.dtype == self.dtype, (other.dtype, self.dtype)
         if self.equals(other):
             ret_index = other if how == "right" else self
             if return_indexers:
