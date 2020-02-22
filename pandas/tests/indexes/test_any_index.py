@@ -7,7 +7,8 @@ import pytest
 
 
 def test_sort(indices):
-    with pytest.raises(TypeError):
+    msg = "cannot sort an Index object in-place, use sort_values instead"
+    with pytest.raises(TypeError, match=msg):
         indices.sort()
 
 
