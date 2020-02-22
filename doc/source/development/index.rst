@@ -14,10 +14,12 @@ Development
 
     contributing
     code_style
+    testing
     maintaining
     internals
     extending
     developer
     policies
     roadmap
+    pandas_development_faq
     meeting
