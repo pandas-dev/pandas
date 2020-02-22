@@ -1071,13 +1071,18 @@ class TestDatetime64Arithmetic:
         )
 
         with pytest.raises(TypeError, match=msg):
-            # sub
-            obj1 - obj2
-            obj2 - obj1
+            with warnings.catch_warnings(record=True):
+                # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
+                # applied to Series or DatetimeIndex
+                # we aren't testing that here, so ignore.
+                warnings.simplefilter("ignore", PerformanceWarning)
+                # sub
+                obj1 - obj2
+                obj2 - obj1
 
-            # add
-            obj1 + obj2
-            obj2 + obj1
+                # add
+                obj1 + obj2
+                obj2 + obj1
 
 
 class TestDatetime64DateOffsetArithmetic:
