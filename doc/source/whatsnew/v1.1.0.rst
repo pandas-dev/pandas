@@ -159,6 +159,7 @@ Indexing
 - Bug in :meth:`PeriodIndex.is_monotonic` incorrectly returning ``True`` when containing leading ``NaT`` entries (:issue:`31437`)
 - Bug in :meth:`DatetimeIndex.get_loc` raising ``KeyError`` with converted-integer key instead of the user-passed key (:issue:`31425`)
 - Bug in :meth:`Series.xs` incorrectly returning ``Timestamp`` instead of ``datetime64`` in some object-dtype cases (:issue:`31630`)
+- Bug in :meth:`DataFrame.iat` incorrectly returning ``Timestamp`` instead of ``datetime`` in some object-dtype cases (:issue:`32809`)
 
 Missing
 ^^^^^^^
