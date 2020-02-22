@@ -138,16 +138,12 @@ class TestScalar2:
         result = ser.loc["a"]
         assert result == 1
 
-        msg = (
-            "cannot do label indexing on Index "
-            r"with these indexers \[0\] of type int"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^0$"):
             ser.at[0]
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^0$"):
             ser.loc[0]
 
-    def test_frame_raises_type_error(self):
+    def test_frame_raises_key_error(self):
         # GH#31724 .at should match .loc
         df = DataFrame({"A": [1, 2, 3]}, index=list("abc"))
         result = df.at["a", "A"]
@@ -155,13 +151,9 @@ class TestScalar2:
         result = df.loc["a", "A"]
         assert result == 1
 
-        msg = (
-            "cannot do label indexing on Index "
-            r"with these indexers \[0\] of type int"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^0$"):
             df.at["a", 0]
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^0$"):
             df.loc["a", 0]
 
     def test_series_at_raises_key_error(self):
