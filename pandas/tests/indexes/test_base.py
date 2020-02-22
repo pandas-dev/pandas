@@ -2056,7 +2056,9 @@ class TestIndex(Base):
         assert index.name == index[1:].name
 
     @pytest.mark.parametrize(
-        "index", ["unicode", "string", "datetime", "int", "float"], indirect=True
+        "index",
+        ["unicode", "string", "datetime", "int", "uint", "float"],
+        indirect=True,
     )
     def test_join_self(self, index, join_type):
         joined = index.join(index, how=join_type)
