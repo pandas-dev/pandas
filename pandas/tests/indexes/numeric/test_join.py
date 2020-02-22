@@ -5,7 +5,7 @@ from pandas import Index, Int64Index, UInt64Index
 import pandas._testing as tm
 
 
-class TestJoin:
+class TestJoinInt64Index:
     def test_join_non_unique(self):
         left = Index([4, 4, 3, 3])
 
@@ -20,16 +20,6 @@ class TestJoin:
         exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(ridx, exp_ridx)
 
-    @pytest.mark.parametrize(
-        "index",
-        [Int64Index(range(0, 20, 2)), UInt64Index(np.arange(5, dtype="uint64"))],
-    )
-    def test_join_self(self, index, join_type):
-        joined = index.join(index, how=join_type)
-        assert index is joined
-
-
-class TestJoinInt64Index:
     def test_join_inner(self):
         index = Int64Index(range(0, 20, 2))
         other = Int64Index([7, 12, 25, 1, 2, 5])
