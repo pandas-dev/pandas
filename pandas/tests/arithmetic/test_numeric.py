@@ -1309,7 +1309,7 @@ def test_dataframe_div_silenced():
 
 
 class TestNumericArraylikeArithmeticWithBool:
-    @pytest.mark.parametrize("num", [1, 1.0])
+    @pytest.mark.parametrize("num", [complex(1), np.int64(1), 1, 1.0])
     def test_array_like_bool_and_num_op_coerce(
         self, num, all_arithmetic_functions, box_with_array
     ):
