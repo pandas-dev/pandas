@@ -140,7 +140,8 @@ class TestIndexOps(Ops):
     def test_none_comparison(self, f8series_any_simple_index):
         o = f8series_any_simple_index
         if isinstance(o.index, IntervalIndex):
-            pytest.skip("IntervalIndex is immutable")
+            # IntervalIndex breaks on "o[0] = np.nan" below
+            pytest.skip("IntervalIndex doesn't support assignment")
         if len(o) < 1:
             pytest.skip("Test doesn't make sense on empty data")
 
