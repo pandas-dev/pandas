@@ -213,7 +213,19 @@ def arithmetic_op(
     return res_values
 
 
-def _broadcast_comparison_op(lvalues, rvalues, op):
+def _broadcast_comparison_op(lvalues, rvalues, op) -> np.ndarray:
+    """
+    Broadcast a comparison operation between two 2D arrays.
+
+    Parameters
+    ----------
+    lvalues : np.ndarray or ExtensionArray
+    rvalues : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    np.ndarray[bool]
+    """
     if isinstance(rvalues, np.ndarray):
         rvalues = np.broadcast_to(rvalues, lvalues.shape)
         result = comparison_op(lvalues, rvalues, op)
@@ -225,6 +237,18 @@ def _broadcast_comparison_op(lvalues, rvalues, op):
 
 
 def _can_broadcast(lvalues, rvalues) -> bool:
+    """
+    Check if we can broadcast rvalues to match the shape of lvalues.
+
+    Parameters
+    ----------
+    lvalues : np.ndarray or ExtensionArray
+    rvalues : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    bool
+    """
     # We assume that lengths dont match
     if lvalues.ndim == rvalues.ndim == 2:
         # See if we can broadcast unambiguously
