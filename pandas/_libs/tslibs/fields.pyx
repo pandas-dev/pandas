@@ -64,7 +64,6 @@ def build_field_sarray(const int64_t[:] dtindex):
         ("u", "i4"),  # microsecond
     ]
 
-
     out = np.empty(count, dtype=sa_dtype)
 
     years = out['Y']
