@@ -957,6 +957,16 @@ class TestDatetime64Arithmetic:
     # -------------------------------------------------------------
     # Subtraction of datetime-like array-like
 
+    def test_dt64arr_sub_dt64object_array(self, box_with_array, tz_naive_fixture):
+        dti = pd.date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
+        expected = dti - dti
+
+        obj = tm.box_expected(dti, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = obj - obj.astype(object)
+        tm.assert_equal(result, expected)
+
     def test_dt64arr_naive_sub_dt64ndarray(self, box_with_array):
         dti = pd.date_range("2016-01-01", periods=3, tz=None)
         dt64vals = dti.values
@@ -2398,7 +2408,7 @@ def test_shift_months(years, months):
     tm.assert_index_equal(actual, expected)
 
 
-def test_datetimelike_array_addsub_object_dtype_2d():
+def test_dt64arr_addsub_object_dtype_2d():
     # block-wise DataFrame operations will require operating on 2D
     #  DatetimeArray/TimedeltaArray, so check that specifically.
     dti = pd.date_range("1994-02-13", freq="2W", periods=4)
