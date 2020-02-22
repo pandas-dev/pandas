@@ -388,7 +388,7 @@ class TestIndex(Base):
         assert index.dtype == object
 
     def test_constructor_categorical_to_object(self):
-        # Categorical data and dtype=object should return object-dtype
+        # GH#32167 Categorical data and dtype=object should return object-dtype
         ci = CategoricalIndex(range(5))
         result = Index(ci, dtype=object)
         assert not isinstance(result, CategoricalIndex)
