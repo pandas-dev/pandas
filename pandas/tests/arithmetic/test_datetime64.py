@@ -1056,7 +1056,7 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
-    def test_timestamp_and_time_dtype_raises(self, box_with_array):
+    def test_timestamp_addsub_time_dtype_raises(self, box_with_array):
         # https://github.com/pandas-dev/pandas/issues/10329
         obj1 = pd.date_range("2012-01-01", periods=3)
         obj2 = [time(i, i, i) for i in range(3)]
