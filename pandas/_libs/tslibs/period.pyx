@@ -300,7 +300,7 @@ cdef int64_t DtoB(npy_datetimestruct *dts, int roll_back,
 
 
 cdef inline int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
-    if (af_info.is_end):
+    if af_info.is_end:
         return (ordinal + 1) * af_info.intraday_conversion_factor - 1
     else:
         return ordinal * af_info.intraday_conversion_factor
