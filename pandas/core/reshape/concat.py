@@ -605,21 +605,26 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     keys_levs = Index([i for chunk in keys_chunks for i in chunk], tupleize_cols=True)
 
     empty_names = [None] * keys_levs.nlevels + list(orig.names)
-    tot_df = concat(
-        [
-            keys_levs.to_frame().reset_index(drop=True),
-            orig.to_frame().reset_index(drop=True),
-        ],
-        axis=1,
-    )
 
-    result = MultiIndex.from_frame(tot_df, names=empty_names)
+    # reconstruct levels and codes to form the MI
+    keys_levs_codes = [
+        i for i, ele in enumerate(set(keys_levs)) for e in keys_levs if e == ele
+    ]
+    orig_codes = np.array(orig)
+    for i, ele in enumerate(set(orig_codes)):
+        orig_codes[orig_codes == ele] = i
+
+    result = MultiIndex(
+        levels=[keys_levs.unique(), orig.unique()],
+        codes=[keys_levs_codes, orig_codes],
+        names=empty_names,
+    )
 
     # Assign names to multi-index if names are assigned
     if names is not None:
         if len(names) == keys_levs.nlevels:
             # Received only names for keys level(s)
-            result.names = list(names) + list(result.names)[len(names):]
+            result.names = list(names) + list(result.names)[len(names) :]
         else:
             result.names = names
 
@@ -640,15 +645,4 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             cur_val = result.get_level_values(i)
             result = result.set_levels(new_lev, level=i)
             result = result.set_codes(new_lev.get_indexer_for(cur_val), level=i)
-    else:
-        # when both keys_levs and orig are Index, the result will have the levels and
-        # codes are lexicographically sorted, so need to reorder it
-        if not (isinstance(keys_levs, MultiIndex) or isinstance(orig, MultiIndex)):
-            for i, new_lev in zip(range(result.nlevels), [keys_levs, orig]):
-                cur_val = result.get_level_values(i)
-                unique_new_lev = new_lev.unique()
-                result = result.set_levels(unique_new_lev, level=i)
-                result = result.set_codes(
-                    unique_new_lev.get_indexer_for(cur_val), level=i
-                )
     return result
