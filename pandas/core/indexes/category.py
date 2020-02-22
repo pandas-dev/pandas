@@ -264,10 +264,14 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, dtype=None, **kwargs):
-        if dtype is None:
-            dtype = self.dtype
-        return super()._shallow_copy(values=values, dtype=dtype, **kwargs)
+    def _shallow_copy(self, values=None, **kwargs):
+        if values is None:
+            values = self.values
+
+        cat = Categorical(values, dtype=self.dtype)
+
+        name = kwargs.get("name", self.name)
+        return type(self)._simple_new(cat, name=name)
 
     def _is_dtype_compat(self, other) -> bool:
         """
@@ -422,9 +426,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         if level is not None:
             self._validate_index_level(level)
         result = self.values.unique()
-        # CategoricalIndex._shallow_copy keeps original dtype
-        # if not otherwise specified
-        return self._shallow_copy(result, dtype=result.dtype)
+        # Use _simple_new instead of _shallow_copy to ensure we keep dtype
+        #  of result, not self.
+        return type(self)._simple_new(result, name=self.name)
 
     @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep="first"):
@@ -450,7 +454,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
         cat = Categorical(values, dtype=self.dtype)
-        return self._shallow_copy(cat, **self._get_attributes_dict())
+        return self._shallow_copy(cat)
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """

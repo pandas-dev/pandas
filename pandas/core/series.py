@@ -72,7 +72,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers import maybe_convert_indices, unpack_1tuple
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.api import (
     Float64Index,
@@ -324,7 +324,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 data = SingleBlockManager(data, index, fastpath=True)
 
-        generic.NDFrame.__init__(self, data, fastpath=True)
+        generic.NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -851,6 +851,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         key_is_scalar = is_scalar(key)
         if key_is_scalar:
             key = self.index._convert_scalar_indexer(key, kind="getitem")
+        elif isinstance(key, (list, tuple)):
+            key = unpack_1tuple(key)
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
             # Otherwise index.get_value will raise InvalidIndexError
@@ -893,16 +895,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "supported, use the appropriate DataFrame column"
             )
         elif isinstance(key, tuple):
-            try:
-                return self._get_values_tuple(key)
-            except ValueError:
-                # if we don't have a MultiIndex, we may still be able to handle
-                #  a 1-tuple.  see test_1tuple_without_multiindex
-                if len(key) == 1:
-                    key = key[0]
-                    if isinstance(key, slice):
-                        return self._get_values(key)
-                raise
+            return self._get_values_tuple(key)
 
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
@@ -924,26 +917,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self.iloc[key]
 
-        if isinstance(key, (list, tuple)):
-            # TODO: de-dup with tuple case handled above?
+        if isinstance(key, list):
             # handle the dup indexing case GH#4246
-            if len(key) == 1 and isinstance(key[0], slice):
-                # [slice(0, 5, None)] will break if you convert to ndarray,
-                # e.g. as requested by np.median
-                # FIXME: hack
-                if isinstance(key, list):
-                    # GH#31299
-                    warnings.warn(
-                        "Indexing with a single-item list containing a "
-                        "slice is deprecated and will raise in a future "
-                        "version.  Pass a tuple instead.",
-                        FutureWarning,
-                        stacklevel=3,
-                    )
-                    # TODO: use a message more like numpy's?
-                    key = tuple(key)
-                return self._get_values(key)
-
             return self.loc[key]
 
         return self.reindex(key)
@@ -994,9 +969,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if takeable:
             return self._values[label]
 
+        # Similar to Index.get_value, but we do not fall back to positional
+        loc = self.index.get_loc(label)
         # We assume that _convert_scalar_indexer has already been called,
         #  with kind="loc", if necessary, by the time we get here
-        return self.index.get_value(self, label)
+        return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
@@ -2975,11 +2952,11 @@ Name: Max Speed, dtype: float64
         self,
         axis=0,
         level=None,
-        ascending=True,
-        inplace=False,
-        kind="quicksort",
-        na_position="last",
-        sort_remaining=True,
+        ascending: bool = True,
+        inplace: bool = False,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        sort_remaining: bool = True,
         ignore_index: bool = False,
     ):
         """
@@ -2994,8 +2971,9 @@ Name: Max Speed, dtype: float64
             Axis to direct sorting. This can only be 0 for Series.
         level : int, optional
             If not None, sort on values in specified index level(s).
-        ascending : bool, default true
-            Sort ascending vs. descending.
+        ascending : bool or list of bools, default True
+            Sort ascending vs. descending. When the index is a MultiIndex the
+            sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
