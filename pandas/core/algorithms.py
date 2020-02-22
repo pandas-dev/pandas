@@ -639,7 +639,10 @@ def factorize(
 
     code_is_na = codes == na_sentinel
     if not dropna and code_is_na.any():
-        uniques = np.append(uniques, [None])
+        # na_value is set based on the dtype of uniques, and compat set to False is
+        # because we do not want na_value to be 0 for integers
+        na_value = na_value_for_dtype(uniques.dtype, compat=False)
+        uniques = np.append(uniques, [na_value])
         codes = np.where(code_is_na, len(uniques) - 1, codes)
 
     uniques = _reconstruct_data(uniques, dtype, original)

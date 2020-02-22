@@ -37,7 +37,7 @@ For example:
    ser.loc["May 2015"]
 
 
-.. _whatsnew_1000.groupby_key:
+.. _whatsnew_110.groupby_key:
 
 Allow NA in groupby key
 ^^^^^^^^^^^^^^^^^^^^^^^^

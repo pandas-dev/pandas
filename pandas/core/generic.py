@@ -7355,7 +7355,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             with row/column will be dropped.
             If False, NA values will also be treated as the key in groups
 
-            .. versionadded:: 1.0.0
+            .. versionadded:: 1.1.0
 
         Returns
         -------
