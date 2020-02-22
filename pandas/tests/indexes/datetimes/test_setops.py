@@ -367,7 +367,7 @@ class TestDatetimeIndexSetOps:
         rs = idx1.join(idx2, how="outer")
         assert rs.is_monotonic
 
-    @pytest.mark.parametrize("tz", [None, "UTC"])
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_join_preserves_freq(self, tz):
         # GH#32157
         dti = pd.date_range("2016-01-01", periods=10, tz=tz)
