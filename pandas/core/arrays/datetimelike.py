@@ -1257,9 +1257,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         res_values = op(self.astype("O"), np.array(other))
         result = array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
-        if result.dtype.kind in ["m", "M"] and result.ndim == 1:
-            # i.e. DatetimeArray or TimedeltaArray
-            result.freq = result.inferred_freq
         return result
 
     def _time_shift(self, periods, freq=None):
