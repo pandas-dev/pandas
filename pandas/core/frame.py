@@ -2622,8 +2622,8 @@ class DataFrame(NDFrame):
         scalar
         """
         if takeable:
-            series = self._iget_item_cache(col)
-            return com.maybe_box_datetimelike(series._values[index])
+            series = self._ixs(col, axis=1)
+            return series._values[index]
 
         series = self._get_item_cache(col)
         engine = self.index._engine
