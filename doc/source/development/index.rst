@@ -14,7 +14,6 @@ Development
 
     contributing
     code_style
-    testing
     maintaining
     internals
     extending
