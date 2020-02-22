@@ -134,7 +134,8 @@ class AttributesMixin:
 
     @property
     def _scalar_type(self) -> Type[DatetimeLikeScalar]:
-        """The scalar associated with this datelike
+        """
+        The scalar associated with this datelike
 
         * PeriodArray : Period
         * DatetimeArray : Timestamp
@@ -519,7 +520,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if com.is_bool_indexer(key):
             # first convert to boolean, because check_array_indexer doesn't
             # allow object dtype
-            key = np.asarray(key, dtype=bool)
+            if is_object_dtype(key):
+                key = np.asarray(key, dtype=bool)
+
             key = check_array_indexer(self, key)
             if key.all():
                 key = slice(0, None, None)
