@@ -1004,12 +1004,12 @@ _series = {
 }
 
 
-@pytest.fixture(params=_series.keys())
-def series_with_differing_index(request):
+@pytest.fixture
+def f8series_any_simple_index(indices):
     """
     Fixture for tests on series with different types of indices.
     """
-    return _series[request.param].copy()
+    return _create_series(indices)
 
 
 _narrow_dtypes = [

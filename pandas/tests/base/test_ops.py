@@ -137,8 +137,8 @@ class TestIndexOps(Ops):
         self.is_valid_objs = self.objs
         self.not_valid_objs = []
 
-    def test_none_comparison(self, series_with_differing_index):
-        o = series_with_differing_index
+    def test_none_comparison(self, f8series_any_simple_index):
+        o = f8series_any_simple_index
         if isinstance(o.index, IntervalIndex):
             pytest.skip("IntervalIndex is immutable")
         if len(o) < 1:
@@ -211,7 +211,11 @@ class TestIndexOps(Ops):
         values = o._values
 
         if orig.duplicated().any():
-            pytest.skip("test implementation breaks with duplicated values")
+            pytest.xfail(
+                "The test implementation isn't flexible enough to deal"
+                " with duplicated values. This isn't a bug in the"
+                " application code, but in the test code."
+            )
 
         # create repeated values, 'n'th element is repeated by n+1 times
         if isinstance(o, Index):
