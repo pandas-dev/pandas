@@ -957,7 +957,7 @@ def test_nonexistent_path(all_parsers):
     # gh-14086: raise more helpful FileNotFoundError
     # GH#29233 "File foo" instead of "File b'foo'"
     parser = all_parsers
-    path = "{}.csv".format(tm.rands(10))
+    path = f"{tm.rands(10)}.csv"
 
     msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
@@ -1872,7 +1872,7 @@ def test_internal_eof_byte_to_file(all_parsers):
     parser = all_parsers
     data = b'c1,c2\r\n"test \x1a    test", test\r\n'
     expected = DataFrame([["test \x1a    test", " test"]], columns=["c1", "c2"])
-    path = "__{}__.csv".format(tm.rands(10))
+    path = f"__{tm.rands(10)}__.csv"
 
     with tm.ensure_clean(path) as path:
         with open(path, "wb") as f:

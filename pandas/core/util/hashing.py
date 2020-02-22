@@ -269,7 +269,6 @@ def hash_array(
     -------
     1d uint64 numpy array of hash values, same length as the vals
     """
-
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
     dtype = vals.dtype
@@ -295,7 +294,7 @@ def hash_array(
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
     elif issubclass(dtype.type, np.number) and dtype.itemsize <= 8:
-        vals = vals.view("u{}".format(vals.dtype.itemsize)).astype("u8")
+        vals = vals.view(f"u{vals.dtype.itemsize}").astype("u8")
     else:
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization
@@ -340,7 +339,6 @@ def _hash_scalar(
     -------
     1d uint64 numpy array of hash value, of length 1
     """
-
     if isna(val):
         # this is to be consistent with the _hash_categorical implementation
         return np.array([np.iinfo(np.uint64).max], dtype="u8")
