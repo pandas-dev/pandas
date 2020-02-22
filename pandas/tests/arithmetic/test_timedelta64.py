@@ -26,13 +26,16 @@ from pandas.tests.arithmetic.common import (
 )
 
 
-def _get_dtype(obj):
+def assert_dtype(obj, expected_dtype):
     """
-    Helper to get the dtype for a Series, Index, or single-column DataFrame.
+    Helper to check the dtype for a Series, Index, or single-column DataFrame.
     """
     if isinstance(obj, DataFrame):
-        return obj.dtypes.iat[0]
-    return obj.dtype
+        dtype = obj.dtypes.iat[0]
+    else:
+        dtype = obj.dtype
+
+    assert dtype == expected_dtype
 
 
 # ------------------------------------------------------------------
@@ -1197,11 +1200,11 @@ class TestTimedeltaArraylikeAddSubOps:
 
         result = tdi + ser
         tm.assert_equal(result, expected)
-        assert _get_dtype(result) == "timedelta64[ns]"
+        assert_dtype(result, "timedelta64[ns]")
 
         result = ser + tdi
         tm.assert_equal(result, expected)
-        assert _get_dtype(result) == "timedelta64[ns]"
+        assert_dtype(result, "timedelta64[ns]")
 
         expected = Series(
             [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=names[2]
@@ -1210,11 +1213,11 @@ class TestTimedeltaArraylikeAddSubOps:
 
         result = tdi - ser
         tm.assert_equal(result, expected)
-        assert _get_dtype(result) == "timedelta64[ns]"
+        assert_dtype(result, "timedelta64[ns]")
 
         result = ser - tdi
         tm.assert_equal(result, -expected)
-        assert _get_dtype(result) == "timedelta64[ns]"
+        assert_dtype(result, "timedelta64[ns]")
 
     def test_td64arr_add_sub_td64_nat(self, box_with_array):
         # GH#23320 special handling for timedelta64("NaT")
