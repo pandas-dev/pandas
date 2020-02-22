@@ -12,11 +12,8 @@ Pandas Development FAQ
 Purpose
 =======
 
-Based on https://github.com/pydata/pandas/pull/4404#issuecomment-22864665 this
-wiki page gathers oft-asked questions/comments from contributors to make the
-contribution process a bit less painful.
-
-The aim is to make it easier for
+The aim is to gather oft-asked questions/comments from contributors to make the
+contribution process easier for
 
 * Core developers to give advice & accept new code contributions.
 * New contributors to find an easier way in for quick and efficient bug-fixes
@@ -62,11 +59,6 @@ from the ``pandas`` directory.
 Travis
 ------
 
-**Q:** Where do I need to change the settings in my GitHub configuration and/or
-Travis configuration for the Travis to start builds from my fork?
-
-**A:** To be filled out.
-
 **Q:** Why do I need a Travis file in my repo if it's already in the head
 repository?
 
@@ -76,14 +68,6 @@ really no such thing as a "head" repository in the eyes of ``git``, those are
 concepts that we impose on it to make collaboration more effective and easier.
 This is one of the nice aspects of
 `distributed version control <http://en.wikipedia.org/wiki/Distributed_revision_control>`_.
-
-Documentation
--------------
-
-**Q:** Does Travis build documentation?
-
-**A:** Currently, no. There are some issues surrounding Sphinx error reporting.
-We are investigating ways to solve this problem.
 
 Workflow
 --------
@@ -95,7 +79,7 @@ Workflow
 
 **Q:** Who will be responsible for evaluating my PR?
 
-**A:** Technically, anyone with push rights to the ``pydata/pandas`` can
+**A:** Technically, anyone with push rights to the ``pandas-dev`` can
 evaluate it. In practice, there are a handful of people who are constantly
 watching the ``pandas`` repo for new PRs, so most likely it'll be one of them
 that evaluates it. I'm not going to list names, but it's not that hard to figure
