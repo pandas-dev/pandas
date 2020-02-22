@@ -62,18 +62,29 @@ def test_series_mask_boolean(values, dtype, mask, box_mask, frame):
 
 
 @pytest.mark.parametrize("frame", [True, False])
-def test_indexing_with_na_raises(frame):
+def test_na_treated_as_false(frame):
+    # https://github.com/pandas-dev/pandas/issues/31503
     s = pd.Series([1, 2, 3], name="name")
 
     if frame:
         s = s.to_frame()
+
     mask = pd.array([True, False, None], dtype="boolean")
-    match = "cannot mask with array containing NA / NaN values"
-    with pytest.raises(ValueError, match=match):
-        s[mask]
 
-    with pytest.raises(ValueError, match=match):
-        s.loc[mask]
+    result = s[mask]
+    expected = s[mask.fillna(False)]
 
-    with pytest.raises(ValueError, match=match):
-        s.iloc[mask]
+    result_loc = s.loc[mask]
+    expected_loc = s.loc[mask.fillna(False)]
+
+    result_iloc = s.iloc[mask]
+    expected_iloc = s.iloc[mask.fillna(False)]
+
+    if frame:
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result_loc, expected_loc)
+        tm.assert_frame_equal(result_iloc, expected_iloc)
+    else:
+        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result_loc, expected_loc)
+        tm.assert_series_equal(result_iloc, expected_iloc)

@@ -59,7 +59,7 @@ of multi-axis indexing.
       slices, **both** the start and the stop are included, when present in the
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
-    * A boolean array
+    * A boolean array (any ``NA`` values will be treated as ``False``).
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
 
@@ -75,7 +75,7 @@ of multi-axis indexing.
     * An integer e.g. ``5``.
     * A list or array of integers ``[4, 3, 0]``.
     * A slice object with ints ``1:7``.
-    * A boolean array.
+    * A boolean array (any ``NA`` values will be treated as ``False``).
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
 
@@ -373,6 +373,14 @@ For getting values with a boolean array:
 
    df1.loc['a'] > 0
    df1.loc[:, df1.loc['a'] > 0]
+
+NA values in a boolean array propogate as ``False``:
+
+.. versionchanged:: 1.0.2
+
+   mask = pd.array([True, False, True, False, pd.NA, False], dtype="boolean")
+   mask
+   df1[mask]
 
 For getting a value explicitly:
 

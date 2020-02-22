@@ -10,6 +10,7 @@ from pandas._typing import Any, AnyArrayLike
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
 )
@@ -366,14 +367,11 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     ...
     IndexError: Boolean index has wrong length: 3 instead of 2.
 
-    A ValueError is raised when the mask cannot be converted to
-    a bool-dtype ndarray.
+    NA values in a boolean array are treated as False.
 
     >>> mask = pd.array([True, pd.NA])
     >>> pd.api.indexers.check_array_indexer(arr, mask)
-    Traceback (most recent call last):
-    ...
-    ValueError: Cannot mask with a boolean indexer containing NA values
+    array([ True, False])
 
     A numpy boolean mask will get passed through (if the length is correct):
 
@@ -425,10 +423,10 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
 
     dtype = indexer.dtype
     if is_bool_dtype(dtype):
-        try:
+        if is_extension_array_dtype(dtype):
+            indexer = indexer.to_numpy(dtype=bool, na_value=False)
+        else:
             indexer = np.asarray(indexer, dtype=bool)
-        except ValueError:
-            raise ValueError("Cannot mask with a boolean indexer containing NA values")
 
         # GH26658
         if len(indexer) != len(array):
