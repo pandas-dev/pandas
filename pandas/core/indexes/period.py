@@ -85,7 +85,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     copy : bool
         Make a copy of input ndarray.
     freq : str or period object, optional
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
     year : int, array, or Series, default None
     month : int, array, or Series, default None
     quarter : int, array, or Series, default None

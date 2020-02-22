@@ -171,7 +171,8 @@ def _trim_excel_header(row):
 
 
 def _fill_mi_header(row, control_row):
-    """Forward fill blank entries in row but only inside the same parent index.
+    """
+    Forward fill blank entries in row but only inside the same parent index.
 
     Used for creating headers in Multiindex.
 
