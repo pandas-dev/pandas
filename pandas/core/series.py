@@ -905,8 +905,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             key_type = lib.infer_dtype(key, skipna=False)
 
-        # Note: The key_type == "boolean" case should be caught by the
+        # The key_type == "boolean" case should be caught by the
         #  com.is_bool_indexer check in __getitem__
+        assert key_type != "boolean"
+
         if key_type == "integer":
             # We need to decide whether to treat this as a positional indexer
             #  (i.e. self.iloc) or label-based (i.e. self.loc)
