@@ -650,7 +650,7 @@ class TestPeriodMethods:
 
 
 class TestPeriodProperties:
-    "Test properties such as year, month, weekday, etc...."
+    """Test properties such as year, month, weekday, etc...."""
 
     @pytest.mark.parametrize("freq", ["A", "M", "D", "H"])
     def test_is_leap_year(self, freq):
@@ -1565,3 +1565,21 @@ def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1
     assert per1.day == 7
+
+
+def test_negone_ordinals():
+    freqs = ["A", "M", "Q", "D", "H", "T", "S"]
+
+    period = Period(ordinal=-1, freq="D")
+    for freq in freqs:
+        repr(period.asfreq(freq))
+
+    for freq in freqs:
+        period = Period(ordinal=-1, freq=freq)
+        repr(period)
+        assert period.year == 1969
+
+    period = Period(ordinal=-1, freq="B")
+    repr(period)
+    period = Period(ordinal=-1, freq="W")
+    repr(period)

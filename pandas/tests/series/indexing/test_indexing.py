@@ -375,15 +375,15 @@ def test_setitem_dtypes():
 def test_set_value(datetime_series, string_series):
     idx = datetime_series.index[10]
     res = datetime_series._set_value(idx, 0)
-    assert res is datetime_series
+    assert res is None
     assert datetime_series[idx] == 0
 
     # equiv
     s = string_series.copy()
     res = s._set_value("foobar", 0)
-    assert res is s
-    assert res.index[-1] == "foobar"
-    assert res["foobar"] == 0
+    assert res is None
+    assert s.index[-1] == "foobar"
+    assert s["foobar"] == 0
 
     s = string_series.copy()
     s.loc["foobar"] = 0
@@ -424,7 +424,9 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
-    result = datetime_series[[slice(None, 5)]]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31299
+        result = datetime_series[[slice(None, 5)]]
     expected = datetime_series[:5]
     tm.assert_series_equal(result, expected)
 

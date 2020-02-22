@@ -1,12 +1,12 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+from datetime import datetime
 from typing import Any, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
-from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import timezones
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -80,16 +80,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    [
-        "__iter__",
-        "mean",
-        "freq",
-        "freqstr",
-        "_ndarray_values",
-        "asi8",
-        "_box_values",
-        "_box_func",
-    ],
+    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -395,7 +386,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         key : label of the slice bound
         kind : {'loc', 'getitem'}
         """
-
         assert kind in ["loc", "getitem"]
 
         if not is_scalar(key):
@@ -411,6 +401,57 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             self._invalid_indexer("label", key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
+
+    def _validate_partial_date_slice(self, reso: str):
+        raise NotImplementedError
+
+    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+        raise NotImplementedError
+
+    def _partial_date_slice(
+        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+    ):
+        """
+        Parameters
+        ----------
+        reso : str
+        parsed : datetime
+        use_lhs : bool, default True
+        use_rhs : bool, default True
+
+        Returns
+        -------
+        slice or ndarray[intp]
+        """
+        self._validate_partial_date_slice(reso)
+
+        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
+        i8vals = self.asi8
+        unbox = self._data._unbox_scalar
+
+        if self.is_monotonic:
+
+            if len(self) and (
+                (use_lhs and t1 < self[0] and t2 < self[0])
+                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+            ):
+                # we are out of range
+                raise KeyError
+
+            # TODO: does this depend on being monotonic _increasing_?
+
+            # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
+            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
+            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            return slice(left, right)
+
+        else:
+            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
+            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+
+            # try to find the dates
+            return (lhs_mask & rhs_mask).nonzero()[0]
 
     # --------------------------------------------------------------------
 
@@ -514,21 +555,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         """
         Concatenate to_concat which has the same class.
         """
-
-        # do not pass tz to set because tzlocal cannot be hashed
-        if len({str(x.dtype) for x in to_concat}) != 1:
-            raise ValueError("to_concat must have the same tz")
-
         new_data = type(self._data)._concat_same_type(to_concat)
 
-        if not is_period_dtype(self.dtype):
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            is_diff_evenly_spaced = len(unique_deltas(new_data.asi8)) == 1
-            if is_diff_evenly_spaced:
-                new_data._freq = self.freq
-
-        return type(self)._simple_new(new_data, name=name)
+        return self._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -908,12 +937,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location
+
         Parameters
         ----------
         loc : int
         item : object
             if not either a Python datetime or a numpy integer-like, returned
             Index dtype will be object rather than datetime.
+
         Returns
         -------
         new_index : Index

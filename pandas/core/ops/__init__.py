@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -60,6 +60,9 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame  # noqa:F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -254,7 +257,6 @@ def _get_opstr(op):
     -------
     op_str : string or None
     """
-
     return {
         operator.add: "+",
         radd: "+",
@@ -430,7 +432,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
 def _align_method_SERIES(left, right, align_asobject=False):
     """ align lhs and rhs Series """
-
     # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
@@ -716,6 +717,58 @@ def _align_method_FRAME(
     return left, right
 
 
+def _should_reindex_frame_op(
+    left: "DataFrame", right, axis, default_axis: int, fill_value, level
+) -> bool:
+    """
+    Check if this is an operation between DataFrames that will need to reindex.
+    """
+    assert isinstance(left, ABCDataFrame)
+
+    if not isinstance(right, ABCDataFrame):
+        return False
+
+    if fill_value is None and level is None and axis is default_axis:
+        # TODO: any other cases we should handle here?
+        cols = left.columns.intersection(right.columns)
+        if not (cols.equals(left.columns) and cols.equals(right.columns)):
+            return True
+
+    return False
+
+
+def _frame_arith_method_with_reindex(
+    left: "DataFrame", right: "DataFrame", op
+) -> "DataFrame":
+    """
+    For DataFrame-with-DataFrame operations that require reindexing,
+    operate only on shared columns, then reindex.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    op : binary operator
+
+    Returns
+    -------
+    DataFrame
+    """
+    # GH#31623, only operate on shared columns
+    cols = left.columns.intersection(right.columns)
+
+    new_left = left[cols]
+    new_right = right[cols]
+    result = op(new_left, new_right)
+
+    # Do the join on the columns instead of using _align_method_FRAME
+    #  to avoid constructing two potentially large/sparse DataFrames
+    join_columns, _, _ = left.columns.join(
+        right.columns, how="outer", level=None, return_indexers=True
+    )
+    return result.reindex(join_columns, axis=1)
+
+
 def _arith_method_FRAME(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
@@ -732,6 +785,9 @@ def _arith_method_FRAME(cls, op, special):
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
+
+        if _should_reindex_frame_op(self, other, axis, default_axis, fill_value, level):
+            return _frame_arith_method_with_reindex(self, other, op)
 
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 

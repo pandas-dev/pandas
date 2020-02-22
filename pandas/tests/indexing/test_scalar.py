@@ -1,4 +1,5 @@
 """ test scalar indexing, including at and iat """
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -9,61 +10,59 @@ from pandas.tests.indexing.common import Base
 
 
 class TestScalar(Base):
-    def test_at_and_iat_get(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_at_and_iat_get(self, kind):
         def _check(f, func, values=False):
 
             if f is not None:
-                indicies = self.generate_indices(f, values)
-                for i in indicies:
+                indices = self.generate_indices(f, values)
+                for i in indices:
                     result = getattr(f, func)[i]
                     expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(result, expected)
 
-        for kind in self._kinds:
+        d = getattr(self, kind)
 
-            d = getattr(self, kind)
+        # iat
+        for f in [d["ints"], d["uints"]]:
+            _check(f, "iat", values=True)
 
-            # iat
-            for f in [d["ints"], d["uints"]]:
-                _check(f, "iat", values=True)
+        for f in [d["labels"], d["ts"], d["floats"]]:
+            if f is not None:
+                msg = "iAt based indexing can only have integer indexers"
+                with pytest.raises(ValueError, match=msg):
+                    self.check_values(f, "iat")
 
-            for f in [d["labels"], d["ts"], d["floats"]]:
-                if f is not None:
-                    msg = "iAt based indexing can only have integer indexers"
-                    with pytest.raises(ValueError, match=msg):
-                        self.check_values(f, "iat")
+        # at
+        for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
+            _check(f, "at")
 
-            # at
-            for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
-                _check(f, "at")
-
-    def test_at_and_iat_set(self):
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    def test_at_and_iat_set(self, kind):
         def _check(f, func, values=False):
 
             if f is not None:
-                indicies = self.generate_indices(f, values)
-                for i in indicies:
+                indices = self.generate_indices(f, values)
+                for i in indices:
                     getattr(f, func)[i] = 1
                     expected = self.get_value(func, f, i, values)
                     tm.assert_almost_equal(expected, 1)
 
-        for kind in self._kinds:
+        d = getattr(self, kind)
 
-            d = getattr(self, kind)
+        # iat
+        for f in [d["ints"], d["uints"]]:
+            _check(f, "iat", values=True)
 
-            # iat
-            for f in [d["ints"], d["uints"]]:
-                _check(f, "iat", values=True)
+        for f in [d["labels"], d["ts"], d["floats"]]:
+            if f is not None:
+                msg = "iAt based indexing can only have integer indexers"
+                with pytest.raises(ValueError, match=msg):
+                    _check(f, "iat")
 
-            for f in [d["labels"], d["ts"], d["floats"]]:
-                if f is not None:
-                    msg = "iAt based indexing can only have integer indexers"
-                    with pytest.raises(ValueError, match=msg):
-                        _check(f, "iat")
-
-            # at
-            for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
-                _check(f, "at")
+        # at
+        for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
+            _check(f, "at")
 
 
 class TestScalar2:
@@ -290,3 +289,24 @@ class TestScalar2:
         s = Series([1, 2])
         result = s[np.array(0)]
         assert result == 1
+
+
+def test_iat_dont_wrap_object_datetimelike():
+    # GH#32809 .iat calls go through DataFrame._get_value, should not
+    #  call maybe_box_datetimelike
+    dti = date_range("2016-01-01", periods=3)
+    tdi = dti - dti
+    ser = Series(dti.to_pydatetime(), dtype=object)
+    ser2 = Series(tdi.to_pytimedelta(), dtype=object)
+    df = DataFrame({"A": ser, "B": ser2})
+    assert (df.dtypes == object).all()
+
+    for result in [df.at[0, "A"], df.iat[0, 0], df.loc[0, "A"], df.iloc[0, 0]]:
+        assert result is ser[0]
+        assert isinstance(result, datetime)
+        assert not isinstance(result, Timestamp)
+
+    for result in [df.at[1, "B"], df.iat[1, 1], df.loc[1, "B"], df.iloc[1, 1]]:
+        assert result is ser2[1]
+        assert isinstance(result, timedelta)
+        assert not isinstance(result, Timedelta)

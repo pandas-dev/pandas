@@ -596,7 +596,8 @@ class TestReaders:
             # fails on some systems
             import platform
 
-            pytest.skip("failing on {}".format(" ".join(platform.uname()).strip()))
+            platform_info = " ".join(platform.uname()).strip()
+            pytest.skip(f"failing on {platform_info}")
 
         tm.assert_frame_equal(url_table, local_table)
 
@@ -957,7 +958,7 @@ class TestExcelFileRead:
     def test_unexpected_kwargs_raises(self, read_ext, arg):
         # gh-17964
         kwarg = {arg: "Sheet1"}
-        msg = r"unexpected keyword argument `{}`".format(arg)
+        msg = fr"unexpected keyword argument `{arg}`"
 
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(TypeError, match=msg):
