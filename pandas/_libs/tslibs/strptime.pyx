@@ -78,8 +78,7 @@ def array_strptime(object[:] values, object fmt, bint exact=True, errors='raise'
         if '%W' in fmt or '%U' in fmt:
             if '%Y' not in fmt and '%y' not in fmt:
                 raise ValueError("Cannot use '%W' or '%U' without day and year")
-            if ('%A' not in fmt and '%a' not in fmt and '%w' not
-                    in fmt):
+            if '%A' not in fmt and '%a' not in fmt and '%w' not in fmt:
                 raise ValueError("Cannot use '%W' or '%U' without day and year")
         elif '%Z' in fmt and '%z' in fmt:
             raise ValueError("Cannot parse both %Z and %z")
