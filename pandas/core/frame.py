@@ -7901,7 +7901,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmin : : Return index *label* of the first occurrence
+        Series.idxmin : Return index *label* of the first occurrence
             of minimum of values.
 
         Notes
