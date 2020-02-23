@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     is_sequence,
 )
@@ -965,38 +966,6 @@ class _LocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _get_partial_string_timestamp_match_key(self, key, labels):
-        """
-        Translate any partial string timestamp matches in key, returning the
-        new key.
-
-        (GH 10331)
-        """
-        if isinstance(labels, ABCMultiIndex):
-            if (
-                isinstance(key, str)
-                and labels.levels[0]._supports_partial_string_indexing
-            ):
-                # Convert key '2016-01-01' to
-                # ('2016-01-01'[, slice(None, None, None)]+)
-                key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
-
-            if isinstance(key, tuple):
-                # Convert (..., '2016-01-01', ...) in tuple to
-                # (..., slice('2016-01-01', '2016-01-01', None), ...)
-                new_key = []
-                for i, component in enumerate(key):
-                    if (
-                        isinstance(component, str)
-                        and labels.levels[i]._supports_partial_string_indexing
-                    ):
-                        new_key.append(slice(component, component, None))
-                    else:
-                        new_key.append(component)
-                key = tuple(new_key)
-
-        return key
-
     def _getitem_iterable(self, key, axis: int):
         """
         Index current object with an an iterable collection of keys.
@@ -1078,7 +1047,7 @@ class _LocIndexer(_LocationIndexer):
             key = list(key)
 
         labels = self.obj._get_axis(axis)
-        key = self._get_partial_string_timestamp_match_key(key, labels)
+        key = labels._get_partial_string_timestamp_match_key(key)
 
         if isinstance(key, slice):
             self._validate_key(key, axis)
@@ -1333,12 +1302,12 @@ class _LocIndexer(_LocationIndexer):
                 not_found = list(set(key) - set(ax))
                 raise KeyError(f"{not_found} not in index")
 
-            # we skip the warning on Categorical/Interval
+            # we skip the warning on Categorical
             # as this check is actually done (check for
             # non-missing values), but a bit later in the
             # code, so we want to avoid warning & then
             # just raising
-            if not (ax.is_categorical() or ax.is_interval()):
+            if not ax.is_categorical():
                 raise KeyError(
                     "Passing list-likes to .loc or [] with any missing labels "
                     "is no longer supported, see "
@@ -1443,10 +1412,6 @@ class _iLocIndexer(_LocationIndexer):
 
         for i, k in enumerate(key):
             if not is_integer(k):
-                return False
-
-            ax = self.obj.axes[i]
-            if not ax.is_unique:
                 return False
 
         return True
@@ -1564,6 +1529,17 @@ class _iLocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
 
     def _setitem_with_indexer(self, indexer, value):
+        """
+        _setitem_with_indexer is for setting values on a Series/DataFrame
+        using positional indexers.
+
+        If the relevant keys are not present, the Series/DataFrame may be
+        expanded.
+
+        This method is currently broken when dealing with non-unique Indexes,
+        since it goes from positional indexers back to labels when calling
+        BlockManager methods, see GH#12991, GH#22046, GH#15686.
+        """
 
         # also has the side effect of consolidating in-place
         from pandas import Series
@@ -1678,24 +1654,19 @@ class _iLocIndexer(_LocationIndexer):
                 info_idx = [info_idx]
             labels = item_labels[info_idx]
 
-            # if we have a partial multiindex, then need to adjust the plane
-            # indexer here
-            if len(labels) == 1 and isinstance(
-                self.obj[labels[0]].axes[0], ABCMultiIndex
-            ):
+            if len(labels) == 1:
+                # We can operate on a single column
                 item = labels[0]
-                obj = self.obj[item]
-                index = obj.index
-                idx = indexer[:info_axis][0]
+                idx = indexer[0]
 
-                plane_indexer = tuple([idx]) + indexer[info_axis + 1 :]
-                lplane_indexer = length_of_indexer(plane_indexer[0], index)
+                plane_indexer = tuple([idx])
+                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
                 # lplane_indexer gives the expected length of obj[idx]
 
                 # require that we are setting the right number of values that
                 # we are indexing
-                if is_list_like_indexer(value) and lplane_indexer != len(value):
-
+                if is_list_like_indexer(value) and 0 != lplane_indexer != len(value):
+                    # Exclude zero-len for e.g. boolean masking that is all-false
                     raise ValueError(
                         "cannot set using a multi-index "
                         "selection indexer with a different "
@@ -1704,12 +1675,11 @@ class _iLocIndexer(_LocationIndexer):
 
             # non-mi
             else:
-                plane_indexer = indexer[:info_axis] + indexer[info_axis + 1 :]
-                plane_axis = self.obj.axes[:info_axis][0]
-                lplane_indexer = length_of_indexer(plane_indexer[0], plane_axis)
+                plane_indexer = indexer[:1]
+                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
 
             def setter(item, v):
-                s = self.obj[item]
+                ser = self.obj[item]
                 pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
                 # perform the equivalent of a setitem on the info axis
@@ -1721,16 +1691,16 @@ class _iLocIndexer(_LocationIndexer):
                     com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
                     for idx in pi
                 ):
-                    s = v
+                    ser = v
                 else:
                     # set the item, possibly having a dtype change
-                    s._consolidate_inplace()
-                    s = s.copy()
-                    s._data = s._data.setitem(indexer=pi, value=v)
-                    s._maybe_update_cacher(clear=True)
+                    ser._consolidate_inplace()
+                    ser = ser.copy()
+                    ser._data = ser._data.setitem(indexer=pi, value=v)
+                    ser._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
-                self.obj[item] = s
+                self.obj[item] = ser
 
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
@@ -2184,9 +2154,11 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "the indexed object do not match)."
             )
         result = result.astype(bool)._values
-    else:
-        # key might be sparse / object-dtype bool, check_array_indexer needs bool array
+    elif is_object_dtype(key):
+        # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
+        result = check_array_indexer(index, result)
+    else:
         result = check_array_indexer(index, result)
 
     return result
