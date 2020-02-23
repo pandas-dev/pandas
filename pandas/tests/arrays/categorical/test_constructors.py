@@ -533,24 +533,15 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="codes need to be array-like integers"):
             Categorical.from_codes(codes, dtype=dtype)
 
-    def test_from_codes_with_float(self):
+    @pytest.mark.parametrize("codes", [[1.0, 2.0, 0], [1.1, 2.0, 0]])
+    def test_from_codes_with_float(self, codes):
         # GH21767
-        codes = [1.0, 2.0, 0]  # integer, but in float dtype
         dtype = CategoricalDtype(categories=["a", "b", "c"])
 
-        # empty codes should not raise for floats
-        Categorical.from_codes([], dtype.categories)
-
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+        msg = "codes need to be array-like integers"
+        with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(codes, dtype.categories)
-
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
-            Categorical.from_codes(codes, dtype=dtype)
-
-        codes = [1.1, 2.0, 0]  # non-integer
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
-            Categorical.from_codes(codes, dtype.categories)
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+        with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(codes, dtype=dtype)
 
     def test_from_codes_with_dtype_raises(self):
