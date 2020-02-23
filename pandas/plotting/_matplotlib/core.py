@@ -267,7 +267,7 @@ class MPLPlot:
         elif self.by is None:
             return self.data.shape[1]
         else:
-            return len(set(self.data.columns.get_level_values(0)))
+            return len(self.data.columns.levels[0])
 
     def draw(self):
         self.plt.draw_if_interactive()
