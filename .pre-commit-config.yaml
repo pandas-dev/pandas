@@ -10,6 +10,20 @@ repos:
     -   id: flake8
         language: python_venv
         additional_dependencies: [flake8-comprehensions>=3.1.0]
+    -   id: flake8
+        name: flake8-pyx
+        language: python_venv
+        files: \.(pyx|pxd)$
+        types:
+          - file
+        args: [--append-config=flake8/cython.cfg]
+    -   id: flake8
+        name: flake8-pxd
+        language: python_venv
+        files: \.pxi\.in$
+        types:
+          - file
+        args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v4.3.21
     hooks:
@@ -20,11 +34,11 @@ repos:
     rev: v0.730
     hooks:
      -  id: mypy
-        # We run mypy over all files because of:
-        #  * changes in type definitions may affect non-touched files.
-        #  * Running it with `mypy pandas` and the filenames will lead to
-        #    spurious duplicate module errors,
-        #    see also https://github.com/pre-commit/mirrors-mypy/issues/5
-        pass_filenames: false
         args:
-        - pandas
+          # As long as a some files are excluded from check-untyped-defs
+          # we have to exclude it from the pre-commit hook as the configuration
+          # is based on modules but the hook runs on files.
+          - --no-check-untyped-defs
+          - --follow-imports
+          - skip
+        files: pandas/

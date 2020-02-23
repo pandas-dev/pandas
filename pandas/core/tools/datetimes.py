@@ -2,7 +2,7 @@ from collections import abc
 from datetime import datetime, time
 from functools import partial
 from itertools import islice
-from typing import Optional, TypeVar, Union
+from typing import List, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -12,7 +12,6 @@ from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     _format_is_iso,
     _guess_datetime_format,
-    parse_time_string,
 )
 from pandas._libs.tslibs.strptime import array_strptime
 from pandas._typing import ArrayLike
@@ -38,9 +37,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
-from pandas.arrays import IntegerArray
+from pandas.arrays import DatetimeArray, IntegerArray
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimes import tz_to_dtype
 
 # ---------------------------------------------------------------------
 # types used in annotations
@@ -283,7 +283,6 @@ def _convert_listlike_datetimes(
     Index-like of parsed dates
     """
     from pandas import DatetimeIndex
-    from pandas.core.arrays import DatetimeArray
     from pandas.core.arrays.datetimes import (
         maybe_convert_dtype,
         objects_to_datetime64ns,
@@ -297,7 +296,9 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
-            arg = arg.tz_convert(None).tz_localize(tz)
+            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
+            # no attribute "tz_convert"
+            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore
         return arg
 
     elif is_datetime64_ns_dtype(arg):
@@ -308,7 +309,9 @@ def _convert_listlike_datetimes(
                 pass
         elif tz:
             # DatetimeArray, DatetimeIndex
-            return arg.tz_localize(tz)
+            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
+            # no attribute "tz_localize"
+            return arg.tz_localize(tz)  # type: ignore
 
         return arg
 
@@ -428,7 +431,8 @@ def _convert_listlike_datetimes(
             #  datetime objects are found without passing `utc=True`
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
-                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+                dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
+                return DatetimeIndex._simple_new(dta, name=name)
             except (ValueError, TypeError):
                 raise e
 
@@ -448,7 +452,8 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)
+        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        return DatetimeIndex._simple_new(dta, name=name)
 
     utc = tz == "utc"
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -601,7 +606,9 @@ def to_datetime(
     cache : bool, default True
         If True, use a cache of unique, converted dates to apply the datetime
         conversion. May produce significant speed-up when parsing duplicate
-        date strings, especially ones with timezone offsets.
+        date strings, especially ones with timezone offsets. The cache is only
+        used when there are at least 50 values. The presence of out-of-bounds
+        values will render the cache unusable and may slow down parsing.
 
         .. versionadded:: 0.23.0
 
@@ -627,6 +634,7 @@ def to_datetime(
     --------
     DataFrame.astype : Cast argument to a specified dtype.
     to_timedelta : Convert argument to timedelta.
+    convert_dtypes : Convert dtypes.
 
     Examples
     --------
@@ -732,7 +740,17 @@ dtype='datetime64[ns]', freq=None)
             convert_listlike = partial(convert_listlike, name=arg.name)
             result = convert_listlike(arg, format)
     elif is_list_like(arg):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        try:
+            cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        except tslibs.OutOfBoundsDatetime:
+            # caching attempts to create a DatetimeIndex, which may raise
+            # an OOB. If that's the desired behavior, then just reraise...
+            if errors == "raise":
+                raise
+            # ... otherwise, continue without the cache.
+            from pandas import Series
+
+            cache_array = Series([], dtype=object)  # just an empty array
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array)
         else:
@@ -812,18 +830,18 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     required = ["year", "month", "day"]
     req = sorted(set(required) - set(unit_rev.keys()))
     if len(req):
-        required = ",".join(req)
+        _required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            f"[year, month, day] be specified: [{required}] is missing"
+            f"[year, month, day] be specified: [{_required}] is missing"
         )
 
     # keys we don't recognize
     excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
     if len(excess):
-        excess = ",".join(excess)
+        _excess = ",".join(excess)
         raise ValueError(
-            f"extra keys have been passed to the datetime assemblage: [{excess}]"
+            f"extra keys have been passed to the datetime assemblage: [{_excess}]"
         )
 
     def coerce(values):
@@ -978,7 +996,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         if infer_time_format and format is None:
             format = _guess_time_format_for_array(arg)
 
-        times = []
+        times: List[Optional[time]] = []
         if format is not None:
             for element in arg:
                 try:

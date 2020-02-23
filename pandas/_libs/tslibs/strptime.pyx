@@ -45,8 +45,7 @@ cdef dict _parse_code_table = {'y': 0,
                                'u': 22}
 
 
-def array_strptime(object[:] values, object fmt,
-                   bint exact=True, errors='raise'):
+def array_strptime(object[:] values, object fmt, bint exact=True, errors='raise'):
     """
     Calculates the datetime structs represented by the passed array of strings
 
@@ -78,12 +77,9 @@ def array_strptime(object[:] values, object fmt,
     if fmt is not None:
         if '%W' in fmt or '%U' in fmt:
             if '%Y' not in fmt and '%y' not in fmt:
-                raise ValueError("Cannot use '%W' or '%U' without "
-                                 "day and year")
-            if ('%A' not in fmt and '%a' not in fmt and '%w' not
-                    in fmt):
-                raise ValueError("Cannot use '%W' or '%U' without "
-                                 "day and year")
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
+            if '%A' not in fmt and '%a' not in fmt and '%w' not in fmt:
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
         elif '%Z' in fmt and '%z' in fmt:
             raise ValueError("Cannot parse both %Z and %z")
 
@@ -749,6 +745,6 @@ cdef parse_timezone_directive(str z):
     microseconds = int(gmtoff_remainder + gmtoff_remainder_padding)
 
     total_minutes = ((hours * 60) + minutes + (seconds // 60) +
-                     (microseconds // 60000000))
+                     (microseconds // 60_000_000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
     return pytz.FixedOffset(total_minutes)

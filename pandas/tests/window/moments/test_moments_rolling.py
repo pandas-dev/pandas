@@ -777,8 +777,8 @@ class TestMoments(Base):
                 series_result = get_result(series, window=win, min_periods=minp)
                 frame_result = get_result(frame, window=win, min_periods=minp)
             else:
-                series_result = get_result(series, window=win)
-                frame_result = get_result(frame, window=win)
+                series_result = get_result(series, window=win, min_periods=0)
+                frame_result = get_result(frame, window=win, min_periods=0)
 
             last_date = series_result.index[-1]
             prev_date = last_date - 24 * offsets.BDay()
@@ -835,8 +835,8 @@ class TestMoments(Base):
                 nan_mask = ~nan_mask
                 tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
         else:
-            result = get_result(self.series, len(self.series) + 1)
-            expected = get_result(self.series, len(self.series))
+            result = get_result(self.series, len(self.series) + 1, min_periods=0)
+            expected = get_result(self.series, len(self.series), min_periods=0)
             nan_mask = isna(result)
             tm.assert_series_equal(nan_mask, isna(expected))
 
@@ -851,15 +851,16 @@ class TestMoments(Base):
                     pd.concat([obj, Series([np.NaN] * 9)]), 20, min_periods=15
                 )[9:].reset_index(drop=True)
             else:
-                result = get_result(obj, 20, center=True)
-                expected = get_result(pd.concat([obj, Series([np.NaN] * 9)]), 20)[
-                    9:
-                ].reset_index(drop=True)
+                result = get_result(obj, 20, min_periods=0, center=True)
+                print(result)
+                expected = get_result(
+                    pd.concat([obj, Series([np.NaN] * 9)]), 20, min_periods=0
+                )[9:].reset_index(drop=True)
 
             tm.assert_series_equal(result, expected)
 
             # shifter index
-            s = ["x{x:d}".format(x=x) for x in range(12)]
+            s = [f"x{x:d}" for x in range(12)]
 
             if has_min_periods:
                 minp = 10
@@ -893,21 +894,27 @@ class TestMoments(Base):
             else:
                 series_xp = (
                     get_result(
-                        self.series.reindex(list(self.series.index) + s), window=25
+                        self.series.reindex(list(self.series.index) + s),
+                        window=25,
+                        min_periods=0,
                     )
                     .shift(-12)
                     .reindex(self.series.index)
                 )
                 frame_xp = (
                     get_result(
-                        self.frame.reindex(list(self.frame.index) + s), window=25
+                        self.frame.reindex(list(self.frame.index) + s),
+                        window=25,
+                        min_periods=0,
                     )
                     .shift(-12)
                     .reindex(self.frame.index)
                 )
 
-                series_rs = get_result(self.series, window=25, center=True)
-                frame_rs = get_result(self.frame, window=25, center=True)
+                series_rs = get_result(
+                    self.series, window=25, min_periods=0, center=True
+                )
+                frame_rs = get_result(self.frame, window=25, min_periods=0, center=True)
 
             if fill_value is not None:
                 series_xp = series_xp.fillna(fill_value)
@@ -964,7 +971,11 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
             self._test_moments_consistency_is_constant(
                 min_periods=min_periods,
-                count=lambda x: (x.rolling(window=window, center=center).count()),
+                count=lambda x: (
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).count()
+                ),
                 mean=lambda x: (
                     x.rolling(
                         window=window, min_periods=min_periods, center=center
@@ -989,19 +1000,26 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                     ).var(ddof=0)
                 ),
                 var_debiasing_factors=lambda x: (
-                    x.rolling(window=window, center=center)
+                    x.rolling(window=window, min_periods=min_periods, center=center)
                     .count()
                     .divide(
-                        (x.rolling(window=window, center=center).count() - 1.0).replace(
-                            0.0, np.nan
-                        )
+                        (
+                            x.rolling(
+                                window=window, min_periods=min_periods, center=center
+                            ).count()
+                            - 1.0
+                        ).replace(0.0, np.nan)
                     )
                 ),
             )
 
             self._test_moments_consistency(
                 min_periods=min_periods,
-                count=lambda x: (x.rolling(window=window, center=center).count()),
+                count=lambda x: (
+                    x.rolling(
+                        window=window, min_periods=min_periods, center=center
+                    ).count()
+                ),
                 mean=lambda x: (
                     x.rolling(
                         window=window, min_periods=min_periods, center=center
@@ -1071,7 +1089,7 @@ class TestRollingMomentsConsistency(ConsistencyBase):
                     if name == "count":
                         rolling_f_result = rolling_f()
                         rolling_apply_f_result = x.rolling(
-                            window=window, min_periods=0, center=center
+                            window=window, min_periods=min_periods, center=center
                         ).apply(func=f, raw=True)
                     else:
                         if name in ["cov", "corr"]:
@@ -1317,7 +1335,6 @@ class TestRollingMomentsConsistency(ConsistencyBase):
 
     def test_rolling_max_gh6297(self):
         """Replicate result expected in GH #6297"""
-
         indices = [datetime(1975, 1, i) for i in range(1, 6)]
         # So that we can have 2 datapoints on one of the days
         indices.append(datetime(1975, 1, 3, 6, 0))
@@ -1420,13 +1437,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
     def test_rolling_min_max_numeric_types(self):
 
         # GH12373
-        types_test = [np.dtype("f{}".format(width)) for width in [4, 8]]
+        types_test = [np.dtype(f"f{width}") for width in [4, 8]]
         types_test.extend(
-            [
-                np.dtype("{}{}".format(sign, width))
-                for width in [1, 2, 4, 8]
-                for sign in "ui"
-            ]
+            [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"]
         )
         for data_type in types_test:
             # Just testing that these don't throw exceptions and that

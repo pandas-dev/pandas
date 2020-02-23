@@ -15,8 +15,8 @@ isort
 mypy==0.730
 pycodestyle
 gitpython
+gitdb2==2.0.6
 sphinx
-numpydoc>=0.9.0
 nbconvert>=5.4.1
 nbsphinx
 pandoc
@@ -71,3 +71,4 @@ xarray
 pyreadstat
 tabulate>=0.8.3
 git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+git+https://github.com/numpy/numpydoc

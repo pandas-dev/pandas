@@ -19,7 +19,7 @@ def import_module(name):
     try:
         return importlib.import_module(name)
     except ModuleNotFoundError:  # noqa
-        pytest.skip("skipping as {} not available".format(name))
+        pytest.skip(f"skipping as {name} not available")
 
 
 @pytest.fixture
@@ -107,6 +107,7 @@ def test_pandas_datareader():
 
 # importing from pandas, Cython import warning
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
+@pytest.mark.skip(reason="Anaconda installation issue - GH32144")
 def test_geopandas():
 
     geopandas = import_module("geopandas")  # noqa
@@ -136,7 +137,12 @@ def test_missing_required_dependency():
     # https://github.com/MacPython/pandas-wheels/pull/50
     call = ["python", "-sSE", "-c", "import pandas"]
 
-    with pytest.raises(subprocess.CalledProcessError) as exc:
+    msg = (
+        r"Command '\['python', '-sSE', '-c', 'import pandas'\]' "
+        "returned non-zero exit status 1."
+    )
+
+    with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
         subprocess.check_output(call, stderr=subprocess.STDOUT)
 
     output = exc.value.stdout.decode()

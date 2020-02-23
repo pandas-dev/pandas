@@ -10,6 +10,12 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltaIndex:
+    @pytest.mark.parametrize("unit", ["Y", "y", "M"])
+    def test_unit_m_y_raises(self, unit):
+        msg = "Units 'M' and 'Y' are no longer supported"
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex([1, 3, 7], unit)
+
     def test_int64_nocopy(self):
         # GH#23539 check that a copy isn't made when we pass int64 data
         #  and copy=False
@@ -46,6 +52,12 @@ class TestTimedeltaIndex:
         with pytest.raises(ValueError, match=msg):
             # GH#23789
             TimedeltaArray(tdi, freq="D")
+
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(tdi._data, freq="D")
+
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray(tdi._data, freq="D")
 
     def test_dt64_data_invalid(self):
         # GH#23539
@@ -143,7 +155,7 @@ class TestTimedeltaIndex:
     def test_constructor_iso(self):
         # GH #21877
         expected = timedelta_range("1s", periods=9, freq="s")
-        durations = ["P0DT0H0M{}S".format(i) for i in range(1, 10)]
+        durations = [f"P0DT0H0M{i}S" for i in range(1, 10)]
         result = to_timedelta(durations)
         tm.assert_index_equal(result, expected)
 

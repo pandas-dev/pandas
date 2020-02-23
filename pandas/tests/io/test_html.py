@@ -14,7 +14,7 @@ from pandas.compat import is_platform_windows
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas._testing as tm
 
 from pandas.io.common import file_path_to_url
@@ -40,8 +40,8 @@ def html_encoding_file(request, datapath):
 def assert_framelist_equal(list1, list2, *args, **kwargs):
     assert len(list1) == len(list2), (
         "lists are not of equal size "
-        "len(list1) == {0}, "
-        "len(list2) == {1}".format(len(list1), len(list2))
+        f"len(list1) == {len(list1)}, "
+        f"len(list2) == {len(list2)}"
     )
     msg = "not all list elements are DataFrames"
     both_frames = all(
@@ -373,32 +373,6 @@ class TestReadHtml:
         zz = [df.iloc[0, 0][0:4] for df in dfs]
         assert sorted(zz) == sorted(["Repo", "What"])
 
-    @pytest.mark.slow
-    def test_thousands_macau_stats(self, datapath):
-        all_non_nan_table_index = -2
-        macau_data = datapath("io", "data", "html", "macau.html")
-        dfs = self.read_html(macau_data, index_col=0, attrs={"class": "style1"})
-        df = dfs[all_non_nan_table_index]
-
-        assert not any(s.isna().any() for _, s in df.items())
-
-    @pytest.mark.slow
-    def test_thousands_macau_index_col(self, datapath, request):
-        # https://github.com/pandas-dev/pandas/issues/29622
-        # This tests fails for bs4 >= 4.8.0 - so handle xfail accordingly
-        if self.read_html.keywords.get("flavor") == "bs4" and td.safe_import(
-            "bs4", "4.8.0"
-        ):
-            reason = "fails for bs4 version >= 4.8.0"
-            request.node.add_marker(pytest.mark.xfail(reason=reason))
-
-        all_non_nan_table_index = -2
-        macau_data = datapath("io", "data", "html", "macau.html")
-        dfs = self.read_html(macau_data, index_col=0, header=0)
-        df = dfs[all_non_nan_table_index]
-
-        assert not any(s.isna().any() for _, s in df.items())
-
     def test_empty_tables(self):
         """
         Make sure that read_html ignores empty tables.
@@ -570,23 +544,6 @@ class TestReadHtml:
         expected = DataFrame([["text", 1944]], columns=("S", "I"))
 
         tm.assert_frame_equal(result, expected)
-
-    def test_nyse_wsj_commas_table(self, datapath):
-        data = datapath("io", "data", "html", "nyse_wsj.html")
-        df = self.read_html(data, index_col=0, header=0, attrs={"class": "mdcTable"})[0]
-
-        expected = Index(
-            [
-                "Issue(Roll over for charts and headlines)",
-                "Volume",
-                "Price",
-                "Chg",
-                "% Chg",
-            ]
-        )
-        nrows = 100
-        assert df.shape[0] == nrows
-        tm.assert_index_equal(df.columns, expected)
 
     @pytest.mark.slow
     def test_banklist_header(self, datapath):
@@ -894,24 +851,23 @@ class TestReadHtml:
         newdf = DataFrame({"datetime": raw_dates})
         tm.assert_frame_equal(newdf, res[0])
 
-    def test_computer_sales_page(self, datapath):
-        data = datapath("io", "data", "html", "computer_sales_page.html")
-        msg = (
-            r"Passed header=\[0,1\] are too many "
-            r"rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            self.read_html(data, header=[0, 1])
-
-        data = datapath("io", "data", "html", "computer_sales_page.html")
-        assert self.read_html(data, header=[1, 2])
-
     def test_wikipedia_states_table(self, datapath):
         data = datapath("io", "data", "html", "wikipedia_states.html")
         assert os.path.isfile(data), f"{repr(data)} is not a file"
         assert os.path.getsize(data), f"{repr(data)} is an empty file"
         result = self.read_html(data, "Arizona", header=1)[0]
+        assert result.shape == (60, 12)
+        assert "Unnamed" in result.columns[-1]
         assert result["sq mi"].dtype == np.dtype("float64")
+        assert np.allclose(result.loc[0, "sq mi"], 665384.04)
+
+    def test_wikipedia_states_multiindex(self, datapath):
+        data = datapath("io", "data", "html", "wikipedia_states.html")
+        result = self.read_html(data, "Arizona", index_col=0)[0]
+        assert result.shape == (60, 11)
+        assert "Unnamed" in result.columns[-1][1]
+        assert result.columns.nlevels == 2
+        assert np.allclose(result.loc["Alaska", ("Total area[2]", "sq mi")], 665384.04)
 
     def test_parser_error_on_empty_header_row(self):
         msg = (
@@ -1158,9 +1114,9 @@ class TestReadHtml:
             assert len(dfs) == 1  # Should not parse hidden table
 
     def test_encode(self, html_encoding_file):
-        _, encoding = os.path.splitext(os.path.basename(html_encoding_file))[0].split(
-            "_"
-        )
+        base_path = os.path.basename(html_encoding_file)
+        root = os.path.splitext(base_path)[0]
+        _, encoding = root.split("_")
 
         try:
             with open(html_encoding_file, "rb") as fobj:
@@ -1183,7 +1139,7 @@ class TestReadHtml:
             if is_platform_windows():
                 if "16" in encoding or "32" in encoding:
                     pytest.skip()
-                raise
+            raise
 
     def test_parse_failure_unseekable(self):
         # Issue #17975
