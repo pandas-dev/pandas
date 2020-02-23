@@ -249,6 +249,8 @@ Other
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 - Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
+- Bug in :class:`DataFrame` when initiating a frame with lists and assign ``columns`` with nested list for ``MultiIndex`` (:issue:`32173`)
+-
 -
 
 .. ---------------------------------------------------------------------------
