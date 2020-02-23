@@ -1,4 +1,5 @@
-"""An interface for extending pandas with custom arrays.
+"""
+An interface for extending pandas with custom arrays.
 
 .. warning::
 
@@ -176,6 +177,9 @@ class ExtensionArray:
        types present.
 
     See :ref:`extending.extension.ufunc` for more.
+
+    By default, ExtensionArrays are not hashable.  Immutable subclasses may
+    override this behavior.
     """
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
@@ -210,7 +214,8 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        """Construct a new ExtensionArray from a sequence of strings.
+        """
+        Construct a new ExtensionArray from a sequence of strings.
 
         .. versionadded:: 0.24.0
 
@@ -958,7 +963,8 @@ class ExtensionArray:
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
-        """Formatting function for scalar values.
+        """
+        Formatting function for scalar values.
 
         This is used in the default '__repr__'. The returned formatting
         function receives instances of your scalar type.
@@ -1072,6 +1078,9 @@ class ExtensionArray:
         TypeError : subclass does not define reductions
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
+
+    def __hash__(self):
+        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
 
 class ExtensionOpsMixin:

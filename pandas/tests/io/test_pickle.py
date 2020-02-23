@@ -11,6 +11,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
 import bz2
+import datetime
 import glob
 import gzip
 import os
@@ -59,9 +60,7 @@ def compare_element(result, expected, typ, version=None):
             assert result == expected
             assert result.freq == expected.freq
     else:
-        comparator = getattr(
-            tm, "assert_{typ}_equal".format(typ=typ), tm.assert_almost_equal
-        )
+        comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
 
 
@@ -76,7 +75,7 @@ def compare(data, vf, version):
 
             # use a specific comparator
             # if available
-            comparator = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+            comparator = f"compare_{typ}_{dt}"
 
             comparator = m.get(comparator, m["compare_element"])
             comparator(result, expected, typ, version)
@@ -197,6 +196,7 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
+@pytest.mark.xfail(reason="GitHub issue #31310", strict=False)
 def test_legacy_sparse_warning(datapath):
     """
 
@@ -232,7 +232,7 @@ def test_legacy_sparse_warning(datapath):
 
 @pytest.fixture
 def get_random_path():
-    return "__{}__.pickle".format(tm.rands(10))
+    return f"__{tm.rands(10)}__.pickle"
 
 
 class TestCompression:
@@ -260,7 +260,7 @@ class TestCompression:
         elif compression == "xz":
             f = _get_lzma_file(lzma)(dest_path, "w")
         else:
-            msg = "Unrecognized compression type: {}".format(compression)
+            msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
 
         if compression != "zip":
@@ -382,14 +382,23 @@ class TestProtocol:
             tm.assert_frame_equal(df, df2)
 
 
-def test_unicode_decode_error(datapath):
+@pytest.mark.parametrize(
+    ["pickle_file", "excols"],
+    [
+        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        (
+            "test_mi_py27.pkl",
+            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
+        ),
+    ],
+)
+def test_unicode_decode_error(datapath, pickle_file, excols):
     # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645
-    path = datapath("io", "data", "pickle", "test_py27.pkl")
+    #  UnicodeDecodeError, see GH#28645 and GH#31988
+    path = datapath("io", "data", "pickle", pickle_file)
     df = pd.read_pickle(path)
 
     # just test the columns are correct since the values are random
-    excols = pd.Index(["a", "b", "c"])
     tm.assert_index_equal(df.columns, excols)
 
 
@@ -487,3 +496,17 @@ def test_pickle_s3url_roundtrip(monkeypatch, mockurl):
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)
         tm.assert_frame_equal(df, result)
+
+
+class MyTz(datetime.tzinfo):
+    def __init__(self):
+        pass
+
+
+def test_read_pickle_with_subclass():
+    # GH 12163
+    expected = pd.Series(dtype=object), MyTz()
+    result = tm.round_trip_pickle(expected)
+
+    tm.assert_series_equal(result[0], expected[0])
+    assert isinstance(result[1], MyTz)

@@ -1,4 +1,5 @@
-"""Base test suite for extension arrays.
+"""
+Base test suite for extension arrays.
 
 These tests are intended for third-party libraries to subclass to validate
 that their extension arrays and dtypes satisfy the interface. Moving or
@@ -49,7 +50,12 @@ from .interface import BaseInterfaceTests  # noqa
 from .io import BaseParsingTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .missing import BaseMissingTests  # noqa
-from .ops import BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil  # noqa
+from .ops import (  # noqa
+    BaseArithmeticOpsTests,
+    BaseComparisonOpsTests,
+    BaseOpsUtil,
+    BaseUnaryOpsTests,
+)
 from .printing import BasePrintingTests  # noqa
 from .reduce import (  # noqa
     BaseBooleanReduceTests,

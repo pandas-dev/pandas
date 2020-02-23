@@ -308,7 +308,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_quarterly(self, month):
         # bugs in scikits.timeseries
-        freq = "Q-{month}".format(month=month)
+        freq = f"Q-{month}"
         exp = Period("1989Q3", freq=freq)
         assert "1989Q3" in str(exp)
         stamp = exp.to_timestamp("D", how="end")
@@ -322,7 +322,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_annual(self, month):
         # bugs in scikits.timeseries
-        freq = "A-{month}".format(month=month)
+        freq = f"A-{month}"
         exp = Period("1989", freq=freq)
         stamp = exp.to_timestamp("D", how="end") + timedelta(days=30)
         p = Period(stamp, freq=freq)
@@ -333,8 +333,8 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("day", DAYS)
     @pytest.mark.parametrize("num", range(10, 17))
     def test_period_cons_weekly(self, num, day):
-        daystr = "2011-02-{num}".format(num=num)
-        freq = "W-{day}".format(day=day)
+        daystr = f"2011-02-{num}"
+        freq = f"W-{day}"
 
         result = Period(daystr, freq=freq)
         expected = Period(daystr, freq="D").asfreq(freq)
@@ -650,7 +650,7 @@ class TestPeriodMethods:
 
 
 class TestPeriodProperties:
-    "Test properties such as year, month, weekday, etc...."
+    """Test properties such as year, month, weekday, etc...."""
 
     @pytest.mark.parametrize("freq", ["A", "M", "D", "H"])
     def test_is_leap_year(self, freq):
@@ -925,7 +925,7 @@ class TestPeriodProperties:
 
 class TestPeriodField:
     def test_get_period_field_array_raises_on_out_of_range(self):
-        msg = "Buffer dtype mismatch, expected 'int64_t' but got 'double'"
+        msg = "Buffer dtype mismatch, expected 'const int64_t' but got 'double'"
         with pytest.raises(ValueError, match=msg):
             libperiod.get_period_field_arr(-1, np.empty(1), 0)
 
@@ -1565,3 +1565,21 @@ def test_small_year_parsing():
     per1 = Period("0001-01-07", "D")
     assert per1.year == 1
     assert per1.day == 7
+
+
+def test_negone_ordinals():
+    freqs = ["A", "M", "Q", "D", "H", "T", "S"]
+
+    period = Period(ordinal=-1, freq="D")
+    for freq in freqs:
+        repr(period.asfreq(freq))
+
+    for freq in freqs:
+        period = Period(ordinal=-1, freq=freq)
+        repr(period)
+        assert period.year == 1969
+
+    period = Period(ordinal=-1, freq="B")
+    repr(period)
+    period = Period(ordinal=-1, freq="W")
+    repr(period)

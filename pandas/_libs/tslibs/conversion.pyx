@@ -84,12 +84,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     Parameters
     ----------
     arr : ndarray
-    copy : boolean, default True
+    copy : bool, default True
 
     Returns
     -------
-    result : ndarray with dtype datetime64[ns]
-
+    ndarray with dtype datetime64[ns]
     """
     cdef:
         Py_ssize_t i, n = arr.size
@@ -152,7 +151,7 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(object[:] values):
+def datetime_to_datetime64(ndarray[object] values):
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -207,31 +206,6 @@ def datetime_to_datetime64(object[:] values):
     return result, inferred_tz
 
 
-cdef inline maybe_datetimelike_to_i8(object val):
-    """
-    Try to convert to a nanosecond timestamp.  Fall back to returning the
-    input value.
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    val : int64 timestamp or original input
-    """
-    cdef:
-        npy_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            return convert_datetime_to_tsobject(val, None).value
-        return val
-
-
 # ----------------------------------------------------------------------
 # _TSObject Conversion
 
@@ -246,27 +220,6 @@ cdef class _TSObject:
     def value(self):
         # This is needed in order for `value` to be accessible in lib.pyx
         return self.value
-
-
-cpdef int64_t pydt_to_i8(object pydt) except? -1:
-    """
-    Convert to int64 representation compatible with numpy datetime64; converts
-    to UTC
-
-    Parameters
-    ----------
-    pydt : object
-
-    Returns
-    -------
-    i8value : np.int64
-    """
-    cdef:
-        _TSObject ts
-
-    ts = convert_to_tsobject(pydt, None, None, 0, 0)
-
-    return ts.value
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,

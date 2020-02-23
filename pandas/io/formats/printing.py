@@ -6,12 +6,14 @@ import sys
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Mapping,
     Optional,
     Sequence,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -20,6 +22,8 @@ from pandas._config import get_option
 from pandas.core.dtypes.inference import is_sequence
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
+_KT = TypeVar("_KT")
+_VT = TypeVar("_VT")
 
 
 def adjoin(space: int, *lists: List[str], **kwargs) -> str:
@@ -74,7 +78,7 @@ def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str
 #
 # pprinting utility functions for generating Unicode text or
 # bytes(3.x)/str(2.x) representations of objects.
-# Try to use these as much as possible rather then rolling your own.
+# Try to use these as much as possible rather than rolling your own.
 #
 # When to use
 # -----------
@@ -98,7 +102,7 @@ def _pprint_seq(
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
-    rather then calling this directly.
+    rather than calling this directly.
 
     bounds length of printed sequence, depending on options
     """
@@ -133,7 +137,7 @@ def _pprint_dict(
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
-    rather then calling this directly.
+    rather than calling this directly.
     """
     fmt = "{{{things}}}"
     pairs = []
@@ -225,7 +229,7 @@ def pprint_thing(
             max_seq_items=max_seq_items,
         )
     elif isinstance(thing, str) and quote_strings:
-        result = "'{thing}'".format(thing=as_escaped_string(thing))
+        result = f"'{as_escaped_string(thing)}'"
     else:
         result = as_escaped_string(thing)
 
@@ -528,3 +532,10 @@ def format_object_attrs(
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))
     return attrs
+
+
+class PrettyDict(Dict[_KT, _VT]):
+    """Dict extension to support abbreviated __repr__"""
+
+    def __repr__(self) -> str:
+        return pprint_thing(self)

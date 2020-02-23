@@ -1,10 +1,11 @@
 import numbers
-from typing import TYPE_CHECKING, Any, Tuple, Type
+from typing import TYPE_CHECKING, List, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
@@ -26,11 +27,12 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops, ops
+from pandas.core.indexers import check_array_indexer
 
 from .masked import BaseMaskedArray
 
 if TYPE_CHECKING:
-    from pandas._typing import Scalar
+    import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
@@ -62,7 +64,7 @@ class BooleanDtype(ExtensionDtype):
     name = "boolean"
 
     @property
-    def na_value(self) -> "Scalar":
+    def na_value(self) -> libmissing.NAType:
         """
         BooleanDtype uses :attr:`pandas.NA` as the missing NA value.
 
@@ -73,7 +75,7 @@ class BooleanDtype(ExtensionDtype):
         return libmissing.NA
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[np.bool_]:
         return np.bool_
 
     @property
@@ -81,7 +83,14 @@ class BooleanDtype(ExtensionDtype):
         return "b"
 
     @classmethod
-    def construct_array_type(cls) -> "Type[BooleanArray]":
+    def construct_array_type(cls) -> Type["BooleanArray"]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return BooleanArray
 
     def __repr__(self) -> str:
@@ -91,9 +100,13 @@ class BooleanDtype(ExtensionDtype):
     def _is_boolean(self) -> bool:
         return True
 
-    def __from_arrow__(self, array):
-        """Construct BooleanArray from passed pyarrow Array/ChunkedArray"""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "BooleanArray":
+        """
+        Construct BooleanArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -110,7 +123,9 @@ class BooleanDtype(ExtensionDtype):
         return BooleanArray._concat_same_type(results)
 
 
-def coerce_to_array(values, mask=None, copy: bool = False):
+def coerce_to_array(
+    values, mask=None, copy: bool = False
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -267,37 +282,49 @@ class BooleanArray(BaseMaskedArray):
         if not mask.ndim == 1:
             raise ValueError("mask must be a 1D array")
 
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
-
-        self._data = values
-        self._mask = mask
         self._dtype = BooleanDtype()
+        super().__init__(values, mask, copy=copy)
 
     @property
-    def dtype(self):
+    def dtype(self) -> BooleanDtype:
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
         return BooleanArray(values, mask)
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    @classmethod
+    def _from_sequence_of_strings(
+        cls, strings: List[str], dtype=None, copy: bool = False
+    ) -> "BooleanArray":
+        def map_string(s):
+            if isna(s):
+                return s
+            elif s in ["True", "TRUE", "true"]:
+                return True
+            elif s in ["False", "FALSE", "false"]:
+                return False
+            else:
+                raise ValueError(f"{s} cannot be cast to bool")
+
+        scalars = [map_string(x) for x in strings]
+        return cls._from_sequence(scalars, dtype, copy)
+
+    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         data = self._data.astype("int8")
         data[self._mask] = -1
         return data, -1
 
     @classmethod
-    def _from_factorized(cls, values, original: "BooleanArray"):
+    def _from_factorized(cls, values, original: "BooleanArray") -> "BooleanArray":
         return cls._from_sequence(values, dtype=original.dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -342,7 +369,7 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         _is_scalar = is_scalar(value)
         if _is_scalar:
             value = [value]
@@ -352,10 +379,11 @@ class BooleanArray(BaseMaskedArray):
             value = value[0]
             mask = mask[0]
 
+        key = check_array_indexer(self, key)
         self._data[key] = value
         self._mask[key] = mask
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -370,8 +398,8 @@ class BooleanArray(BaseMaskedArray):
 
         Returns
         -------
-        array : ndarray or ExtensionArray
-            NumPy ndarray, BooleanArray or IntergerArray with 'dtype' for its dtype.
+        ndarray or ExtensionArray
+            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
 
         Raises
         ------
@@ -460,7 +488,6 @@ class BooleanArray(BaseMaskedArray):
 
         Examples
         --------
-
         The result indicates whether any element is True (and by default
         skips NAs):
 
@@ -529,7 +556,6 @@ class BooleanArray(BaseMaskedArray):
 
         Examples
         --------
-
         The result indicates whether any element is True (and by default
         skips NAs):
 
@@ -661,7 +687,7 @@ class BooleanArray(BaseMaskedArray):
         name = f"__{op.__name__}"
         return set_function_name(cmp_method, name, cls)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
@@ -670,12 +696,14 @@ class BooleanArray(BaseMaskedArray):
         mask = self._mask
 
         # coerce to a nan-aware float if needed
-        if mask.any():
-            data = self._data.astype("float64")
-            data[mask] = np.nan
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
 
         # if we have numeric op that would result in an int, coerce to int if possible
         if name in ["sum", "prod"] and notna(result):
@@ -688,7 +716,7 @@ class BooleanArray(BaseMaskedArray):
 
         return result
 
-    def _maybe_mask_result(self, result, mask, other, op_name):
+    def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters
         ----------

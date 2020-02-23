@@ -44,10 +44,6 @@ from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
 
 
-def _is_convertible_to_td(key):
-    return isinstance(key, (Tick, timedelta, np.timedelta64, str))
-
-
 def _field_accessor(name, alias, docstring=None):
     def f(self):
         values = self.asi8
@@ -199,9 +195,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
         assert dtype == _TD_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
+        if values.dtype != _TD_DTYPE:
+            assert values.dtype == "i8"
+            values = values.view(_TD_DTYPE)
 
         result = object.__new__(cls)
-        result._data = values.view(_TD_DTYPE)
+        result._data = values
         result._freq = to_offset(freq)
         result._dtype = _TD_DTYPE
         return result
