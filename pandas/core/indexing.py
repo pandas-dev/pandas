@@ -732,14 +732,15 @@ class _LocationIndexer(_NDFrameIndexerBase):
             raise IndexingError("Too many indexers. handle elsewhere")
 
         for i, key in enumerate(tup):
-            if is_label_like(key) or isinstance(key, tuple):
+            if is_label_like(key):
+                # We don't need to check for tuples here because those are
+                #  caught by the _is_nested_tuple_indexer check above.
                 section = self._getitem_axis(key, axis=i)
 
-                # we have yielded a scalar ?
-                if not is_list_like_indexer(section):
-                    return section
-
-                elif section.ndim == self.ndim:
+                # We should never have a scalar section here, because
+                #  _getitem_lowerdim is only called after a check for
+                #  is_scalar_access, which that would be.
+                if section.ndim == self.ndim:
                     # we're in the middle of slicing through a MultiIndex
                     # revise the key wrt to `section` by inserting an _NS
                     new_key = tup[:i] + (_NS,) + tup[i + 1 :]
@@ -757,7 +758,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 # slice returns a new object.
                 if com.is_null_slice(new_key):
                     return section
-                # This is an elided recursive call to iloc/loc/etc'
+                # This is an elided recursive call to iloc/loc
                 return getattr(section, self.name)[new_key]
 
         raise IndexingError("not applicable")
@@ -1013,15 +1014,7 @@ class _LocIndexer(_LocationIndexer):
         return self._getitem_tuple_same_dim(tup)
 
     def _get_label(self, label, axis: int):
-        if self.ndim == 1:
-            # for perf reasons we want to try _xs first
-            # as its basically direct indexing
-            # but will fail when the index is not present
-            # see GH5667
-            return self.obj._xs(label, axis=axis)
-        elif isinstance(label, tuple) and isinstance(label[axis], slice):
-            raise IndexingError("no slices here, handle elsewhere")
-
+        # GH#5667 this will fail if the label is not present in the axis.
         return self.obj._xs(label, axis=axis)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
@@ -1298,7 +1291,7 @@ class _LocIndexer(_LocationIndexer):
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
-            if not (self.name == "loc" and not raise_missing):
+            if raise_missing:
                 not_found = list(set(key) - set(ax))
                 raise KeyError(f"{not_found} not in index")
 
@@ -1363,10 +1356,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
             raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
-    def _has_valid_setitem_indexer(self, indexer):
-        self._has_valid_positional_setitem_indexer(indexer)
-
-    def _has_valid_positional_setitem_indexer(self, indexer) -> bool:
+    def _has_valid_setitem_indexer(self, indexer) -> bool:
         """
         Validate that a positional indexer cannot enlarge its target
         will raise if needed, does not modify the indexer externally.
@@ -1376,7 +1366,7 @@ class _iLocIndexer(_LocationIndexer):
         bool
         """
         if isinstance(indexer, dict):
-            raise IndexError(f"{self.name} cannot enlarge its target object")
+            raise IndexError("iloc cannot enlarge its target object")
         else:
             if not isinstance(indexer, tuple):
                 indexer = _tuplify(self.ndim, indexer)
@@ -1389,11 +1379,9 @@ class _iLocIndexer(_LocationIndexer):
                     pass
                 elif is_integer(i):
                     if i >= len(ax):
-                        raise IndexError(
-                            f"{self.name} cannot enlarge its target object"
-                        )
+                        raise IndexError("iloc cannot enlarge its target object")
                 elif isinstance(i, dict):
-                    raise IndexError(f"{self.name} cannot enlarge its target object")
+                    raise IndexError("iloc cannot enlarge its target object")
 
         return True
 
@@ -1520,8 +1508,8 @@ class _iLocIndexer(_LocationIndexer):
             return key
 
         elif is_float(key):
+            # _validate_indexer call will always raise
             labels._validate_indexer("positional", key, "iloc")
-            return key
 
         self._validate_key(key, axis)
         return key
@@ -1582,7 +1570,7 @@ class _iLocIndexer(_LocationIndexer):
                     # this correctly sets the dtype and avoids cache issues
                     # essentially this separates out the block that is needed
                     # to possibly be modified
-                    if self.ndim > 1 and i == self.obj._info_axis_number:
+                    if self.ndim > 1 and i == info_axis:
 
                         # add the new item, and set the value
                         # must have all defined axes if we have a scalar
