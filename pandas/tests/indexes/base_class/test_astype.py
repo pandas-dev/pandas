@@ -5,7 +5,7 @@ import pytest
 def test_astype_preserves_name(indices, dtype):
     try:
         result = indices.astype(dtype)
-    except:
+    except (ValueError, TypeError, NotImplementedError):
         return
 
     assert result.name == indices.name
@@ -15,7 +15,7 @@ def test_astype_preserves_name(indices, dtype):
 def test_astype_with_copy_preserves_name(indices, dtype):
     try:
         result = indices.copy(dtype=dtype)
-    except:
+    except (ValueError, TypeError, NotImplementedError):
         return
 
     assert result.name == indices.name
