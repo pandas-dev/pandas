@@ -1,23 +1,21 @@
 import pytest
 
-from pandas import Index
+
+@pytest.mark.parametrize("dtype", ["int64", "uint64", "float64", "category"])
+def test_astype_preserves_name(indices, dtype):
+    try:
+        result = indices.astype(dtype)
+    except:
+        return
+
+    assert result.name == indices.name
 
 
-@pytest.mark.parametrize(
-    "from_type", ["int64", "uint64", "float64", "category"],
-)
-@pytest.mark.parametrize("to_type", ["int64", "uint64", "float64", "category"])
-def test_astype_preserves_name(from_type, to_type):
-    idx = Index([], name="idx", dtype=from_type).astype(to_type)
+@pytest.mark.parametrize("dtype", ["int64", "uint64", "float64", "category"])
+def test_astype_with_copy_preserves_name(indices, dtype):
+    try:
+        result = indices.copy(dtype=dtype)
+    except:
+        return
 
-    assert idx.name == "idx"
-
-
-@pytest.mark.parametrize(
-    "from_type", ["int64", "uint64", "float64", "category"],
-)
-@pytest.mark.parametrize("to_type", ["int64", "uint64", "float64", "category"])
-def test_copy_with_astype_preserves_name(from_type, to_type):
-    idx = Index([], name="idx", dtype=from_type).copy(dtype=to_type)
-
-    assert idx.name == "idx"
+    assert result.name == indices.name
