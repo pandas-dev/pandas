@@ -29,14 +29,15 @@ class TestWindow(Base):
         c(win_type="boxcar", window=2, min_periods=1, center=False)
 
         # not valid
+        msg = "|".join(["min_periods must be an integer", "center must be a boolean"])
         for w in [2.0, "foo", np.array([2])]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 c(win_type="boxcar", window=2, min_periods=w)
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match=msg):
                 c(win_type="boxcar", window=2, min_periods=1, center=w)
 
         for wt in ["foobar", 1]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="Invalid win_type"):
                 c(win_type=wt, window=2)
 
     @td.skip_if_no_scipy
