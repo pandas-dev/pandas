@@ -248,6 +248,7 @@ class MPLPlot:
 
         iter_data = data
         if self.by is not None:
+            # select sub-columns based on the value of first level of MI
             cols = data.columns.levels[0]
             iter_data = {
                 col: data.loc[:, data.columns.get_level_values(0) == col]
