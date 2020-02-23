@@ -1,13 +1,13 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
+from pandas._typing import Label
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas._typing import Label
 
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
