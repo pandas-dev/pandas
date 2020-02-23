@@ -1178,7 +1178,7 @@ class PlotAccessor(PandasObject):
         by : str or sequence, optional
             Column in the DataFrame to group by.
 
-        .. versionadded:: 1.1.0
+            .. versionadded:: 1.1.0
 
         bins : int, default 10
             Number of histogram bins to be used.
