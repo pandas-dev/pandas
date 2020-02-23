@@ -964,7 +964,9 @@ class TestDatetime64Arithmetic:
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        result = obj - obj.astype(object)
+        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
+            result = obj - obj.astype(object)
         tm.assert_equal(result, expected)
 
     def test_dt64arr_naive_sub_dt64ndarray(self, box_with_array):
