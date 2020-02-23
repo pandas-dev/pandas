@@ -1005,9 +1005,9 @@ _series = {
 
 
 @pytest.fixture
-def f8series_any_simple_index(indices):
+def series_with_simple_index(indices):
     """
-    Fixture for tests on series with different types of indices.
+    Fixture for tests on series with changing types of indices.
     """
     return _create_series(indices)
 
