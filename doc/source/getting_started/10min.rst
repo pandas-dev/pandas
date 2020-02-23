@@ -520,7 +520,7 @@ See the :ref:`Grouping section <groupby>`.
                       'D': np.random.randn(8)})
    df
 
-Grouping and then applying the :meth:`~DataFrame.sum` function to the resulting
+Grouping and then applying the :meth:`pandas.core.groupby.GroupBy.sum` function to the resulting
 groups.
 
 .. ipython:: python
@@ -528,7 +528,7 @@ groups.
    df.groupby('A').sum()
 
 Grouping by multiple columns forms a hierarchical index, and again we can
-apply the :meth:`~DataFrame.sum` function.
+apply the :meth:`pandas.core.groupby.GroupBy.sum` function.
 
 .. ipython:: python
 
