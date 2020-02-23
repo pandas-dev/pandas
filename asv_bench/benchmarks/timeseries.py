@@ -91,20 +91,6 @@ class ResetIndex:
         self.df.reset_index()
 
 
-class Factorize:
-
-    params = [None, "Asia/Tokyo"]
-    param_names = "tz"
-
-    def setup(self, tz):
-        N = 100000
-        self.dti = date_range("2011-01-01", freq="H", periods=N, tz=tz)
-        self.dti = self.dti.repeat(5)
-
-    def time_factorize(self, tz):
-        self.dti.factorize()
-
-
 class InferFreq:
 
     params = [None, "D", "B"]

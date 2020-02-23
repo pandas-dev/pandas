@@ -29,85 +29,37 @@ class MaybeConvertObjects:
         lib.maybe_convert_objects(self.data)
 
 
-class Factorize:
+class IndexAlgos:
 
-    params = [[True, False], ["int", "uint", "float", "string"]]
-    param_names = ["sort", "dtype"]
+    params = [
+        [True, False],
+        [True, False],
+        ["int", "uint", "float", "string", "datetime64[ns]", "datetime64[ns, tz]"],
+    ]
+    param_names = ["unique", "sort", "dtype"]
 
-    def setup(self, sort, dtype):
-        N = 10 ** 5
-        data = {
-            "int": pd.Int64Index(np.arange(N).repeat(5)),
-            "uint": pd.UInt64Index(np.arange(N).repeat(5)),
-            "float": pd.Float64Index(np.random.randn(N).repeat(5)),
-            "string": tm.makeStringIndex(N).repeat(5),
-        }
-        self.idx = data[dtype]
-
-    def time_factorize(self, sort, dtype):
-        self.idx.factorize(sort=sort)
-
-
-class FactorizeUnique:
-
-    params = [[True, False], ["int", "uint", "float", "string"]]
-    param_names = ["sort", "dtype"]
-
-    def setup(self, sort, dtype):
-        N = 10 ** 5
-        data = {
-            "int": pd.Int64Index(np.arange(N)),
-            "uint": pd.UInt64Index(np.arange(N)),
-            "float": pd.Float64Index(np.arange(N)),
-            "string": tm.makeStringIndex(N),
-        }
-        self.idx = data[dtype]
-        assert self.idx.is_unique
-
-    def time_factorize(self, sort, dtype):
-        self.idx.factorize(sort=sort)
-
-
-class Duplicated:
-
-    params = [["first", "last", False], ["int", "uint", "float", "string"]]
-    param_names = ["keep", "dtype"]
-
-    def setup(self, keep, dtype):
-        N = 10 ** 5
-        data = {
-            "int": pd.Int64Index(np.arange(N).repeat(5)),
-            "uint": pd.UInt64Index(np.arange(N).repeat(5)),
-            "float": pd.Float64Index(np.random.randn(N).repeat(5)),
-            "string": tm.makeStringIndex(N).repeat(5),
-        }
-        self.idx = data[dtype]
-        # cache is_unique
-        self.idx.is_unique
-
-    def time_duplicated(self, keep, dtype):
-        self.idx.duplicated(keep=keep)
-
-
-class DuplicatedUniqueIndex:
-
-    params = ["int", "uint", "float", "string"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
+    def setup(self, unique, sort, dtype):
         N = 10 ** 5
         data = {
             "int": pd.Int64Index(np.arange(N)),
             "uint": pd.UInt64Index(np.arange(N)),
             "float": pd.Float64Index(np.random.randn(N)),
             "string": tm.makeStringIndex(N),
-        }
-        self.idx = data[dtype]
-        # cache is_unique
-        self.idx.is_unique
+            "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
+            "datetime64[ns, tz]": pd.date_range(
+                "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
+            ),
+        }[dtype]
+        if not unique:
+            data = data.repeat(5)
+        data.is_unique  # cache is_unique
+        self.idx = data
 
-    def time_duplicated_unique(self, dtype):
-        self.idx.duplicated()
+    def time_factorize(self, unique, sort, dtype):
+        self.idx.factorize(sort=sort)
+
+    def time_duplicated(self, unique, keep, dtype):
+        self.idx.duplicated(keep=keep)
 
 
 class Hashing:
@@ -166,10 +118,10 @@ class Quantile:
             "uint": np.arange(N).astype(np.uint64),
             "float": np.random.randn(N),
         }
-        self.idx = pd.Series(data[dtype].repeat(5))
+        self.ser = pd.Series(data[dtype].repeat(5))
 
     def time_quantile(self, quantile, interpolation, dtype):
-        self.idx.quantile(quantile, interpolation=interpolation)
+        self.ser.quantile(quantile, interpolation=interpolation)
 
 
 class SortIntegerArray:
