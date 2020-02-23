@@ -304,10 +304,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.category import CategoricalIndex
 
-            if is_dtype_equal(_o_dtype, dtype):
-                ci = CategoricalIndex(data, copy=False, name=name, **kwargs)
-                return ci.astype(object)
-            return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
+            return _maybe_asobject(dtype, CategoricalIndex, data, copy, name, **kwargs)
 
         # interval
         elif is_interval_dtype(data) or is_interval_dtype(dtype):
