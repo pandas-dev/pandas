@@ -574,12 +574,30 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = ibase.default_index(len(content))
     else:
-        if len(columns) != len(content):  # pragma: no cover
+        is_mi_list = isinstance(columns, list) and all(
+            isinstance(col, list) for col in columns
+        )
+
+        if not is_mi_list and len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
             raise AssertionError(
                 f"{len(columns)} columns passed, passed data had "
                 f"{len(content)} columns"
             )
+        elif is_mi_list:
+
+            # check if nested list column, length of each sub-list should be equal
+            if len(set([len(col) for col in columns])) > 1:
+                raise ValueError(
+                    "Length of columns passed for MultiIndex columns is different"
+                )
+
+            # if columns is not empty and then length of sub-list is not equal to content
+            elif columns and len(columns[0]) != len(content):
+                raise ValueError(
+                    f"{len(columns[0])} columns passed, passed data had "
+                    f"{len(content)} columns"
+                )
 
     # provide soft conversion of object dtypes
     def convert(arr):
