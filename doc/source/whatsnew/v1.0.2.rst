@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
 - Fixed regression in :meth:`pandas.core.groupby.RollingGroupby.apply` where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
+- Fixed regression in :meth:`DataFrameGroupBy.nunique` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
 - Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
 - Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
 - Fixed regression in :meth:`GroupBy.agg` calling a user-provided function an extra time on an empty input (:issue:`31760`)
