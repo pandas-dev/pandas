@@ -72,7 +72,7 @@ def test_getitem_boolean_object(string_series):
 
     # nans raise exception
     omask[5:10] = np.nan
-    msg = "cannot mask with array containing NA / NaN values"
+    msg = "Cannot mask with non-boolean array containing NA / NaN values"
     with pytest.raises(ValueError, match=msg):
         s[omask]
     with pytest.raises(ValueError, match=msg):
