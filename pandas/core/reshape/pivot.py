@@ -425,8 +425,8 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: "DataFrame",
-    index: Optional[Union[Label, List[Label]]] = None,
-    columns: Optional[Union[Label, List[Label]]] = None,
+    index: Optional[Union[Label, Collection[Label]]] = None,
+    columns: Union[Label, List[Label]] = None,
     values: Optional[Union[Label, List[Label]]] = None,
 ) -> "DataFrame":
     if columns is None:
@@ -446,16 +446,17 @@ def pivot(
         append = index is None
         indexed = data.set_index(cols, append=append)
     else:
+        idx_list: List[Series] = []
         if index is None:
-            index = [Series(data.index, name=data.index.name)]
+            idx_list = [Series(data.index, name=data.index.name)]
         elif is_list_like(index):
-            index = [data[idx] for idx in index]
+            idx_list = [data[idx] for idx in index]
         else:
-            index = [data[index]]
+            idx_list = [data[index]]
 
         data_columns = [data[col] for col in columns]
-        index.extend(data_columns)
-        index = MultiIndex.from_arrays(index)
+        idx_list.extend(data_columns)
+        index = MultiIndex.from_arrays(idx_list)
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
