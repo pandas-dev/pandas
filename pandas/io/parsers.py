@@ -3605,8 +3605,8 @@ class FixedWidthReader(abc.Iterator):
 
     def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = "".join(r"\{}".format(x) for x in self.delimiter)
-        pattern = re.compile("([^{}]+)".format(delimiters))
+        delimiters = "".join(fr"\{x}" for x in self.delimiter)
+        pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
