@@ -4220,7 +4220,7 @@ Series.memory_usage: Memory usage of Series.""",
             raise ValueError(
                 "Argument `max_cols` can only be passed "
                 "in DataFrame.info, not Series.info"
-                )
+            )
         return info(self, verbose, buf, None, memory_usage, null_counts)
 
     @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)

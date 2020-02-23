@@ -6,6 +6,7 @@ from pandas._config import get_option
 from pandas._typing import Dtype, FrameOrSeries
 
 from pandas.core.indexes.api import Index
+from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
@@ -79,57 +80,61 @@ def info(
     lines.append(str(type(data)))
     lines.append(data.index._summary())
 
-    if isinstance(data, ABCDataFrame):
-        cols = data.columns
-        dtypes = data.dtypes
-    else:
-        cols = Index([data.name])
-        dtypes = Index([data.dtypes])
-
-    col_count = len(cols)
-
-    if col_count == 0:
-        lines.append(f"Empty {type(data).__name__}")
-        fmt.buffer_put_lines(buf, lines)
-        return
-
-    # hack
-    if max_cols is None:
-        max_cols = get_option("display.max_info_columns", col_count + 1)
-
     max_rows = get_option("display.max_info_rows", len(data) + 1)
 
-    if null_counts is None:
-        show_counts = (col_count <= max_cols) and (len(data) < max_rows)
+    if isinstance(data, ABCDataFrame):
+        ids = data.columns
+        dtypes = data.dtypes
+        col_count = len(ids)
+
+        if col_count == 0:
+            lines.append(f"Empty {type(data).__name__}")
+            fmt.buffer_put_lines(buf, lines)
+            return
+
+        # hack
+        if max_cols is None:
+            max_cols = get_option("display.max_info_columns", col_count + 1)
+
+        if null_counts is None:
+            show_counts = (col_count <= max_cols) and (len(data) < max_rows)
+        else:
+            show_counts = null_counts
+        exceeds_info_cols = col_count > max_cols
+
     else:
-        show_counts = null_counts
-    exceeds_info_cols = col_count > max_cols
+        ids = Index([data.name])
+        dtypes = Index([data.dtypes])
+        exceeds_info_cols = False
+        show_counts = True
 
     def _verbose_repr():
+
+        id_head = " # "
+        id_space = 2
+        len_id = len(pprint_thing(id_head))
+
         if isinstance(data, ABCDataFrame):
+            column_head = "Column"
             lines.append(f"Data columns (total {col_count} columns):")
             counts = data.count()
+            max_id = len(pprint_thing(col_count))
+            max_col = max(len(pprint_thing(k)) for k in ids)
+            len_column = len(pprint_thing(column_head))
+            space = max(max_col, len_column) + id_space
+            space_num = max(max_id, len_id) + id_space
+            column_string = _put_str("-" * len_column, space)
         else:
             lines.append(f"Series name: {data.name}")
             counts = Index([data.count()])
-
-        id_head = " # "
-        column_head = "Column"
-        col_space = 2
-
-        max_col = max(len(pprint_thing(k)) for k in cols)
-        len_column = len(pprint_thing(column_head))
-        space = max(max_col, len_column) + col_space
-
-        max_id = len(pprint_thing(col_count))
-        len_id = len(pprint_thing(id_head))
-        space_num = max(max_id, len_id) + col_space
+            space_num = len_id + id_space
+            column_string = ""
 
         header = _put_str(id_head, space_num)
         if isinstance(data, ABCDataFrame):
             header += _put_str(column_head, space)
         if show_counts:
-            if len(cols) != len(counts):  # pragma: no cover
+            if len(ids) != len(counts):  # pragma: no cover
                 raise AssertionError(
                     f"Columns must equal counts ({col_count} != {len(counts)})"
                 )
@@ -137,7 +142,7 @@ def info(
             len_count = len(count_header)
             non_null = " non-null"
             max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
-            space_count = max(len_count, max_count) + col_space
+            space_count = max(len_count, max_count) + id_space
             count_temp = "{count}" + non_null
         else:
             count_header = ""
@@ -156,30 +161,35 @@ def info(
         lines.append(header)
         lines.append(
             _put_str("-" * len_id, space_num)
-            + _put_str("-" * len_column, space) * isinstance(data, ABCDataFrame)
+            + column_string
             + _put_str("-" * len_count, space_count)
             + _put_str("-" * len_dtype, space_dtype)
         )
 
-        for i, col in enumerate(cols):
+        for i, id_ in enumerate(ids):
             dtype = dtypes[i]
-            col = pprint_thing(col)
+            id_ = pprint_thing(id_)
 
             line_no = _put_str(f" {i}", space_num)
             count = ""
             if show_counts:
                 count = counts[i]
 
+            if isinstance(data, ABCDataFrame):
+                column_string = _put_str(id_, space)
+            else:
+                column_string = ""
+
             lines.append(
                 line_no
-                + _put_str(col, space) * isinstance(data, ABCDataFrame)
+                + column_string
                 + _put_str(count_temp.format(count=count), space_count)
                 + _put_str(dtype, space_dtype)
             )
 
     def _non_verbose_repr():
         if isinstance(data, ABCDataFrame):
-            lines.append(cols._summary(name="Columns"))
+            lines.append(ids._summary(name="Columns"))
 
     def _sizeof_fmt(num, size_qualifier):
         # returns size in human readable format
