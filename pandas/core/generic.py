@@ -33,7 +33,6 @@ from pandas._config import config
 from pandas._libs import Timestamp, iNaT, lib
 from pandas._typing import (
     Axis,
-    Dtype,
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
@@ -200,22 +199,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __init__(
         self,
         data: BlockManager,
-        axes: Optional[List[Index]] = None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
-        fastpath: bool = False,
     ):
-
-        if not fastpath:
-            if dtype is not None:
-                data = data.astype(dtype)
-            elif copy:
-                data = data.copy()
-
-            if axes is not None:
-                for i, ax in enumerate(axes):
-                    data = data.reindex_axis(ax, axis=i)
+        # copy kwarg is retained for mypy compat, is not used
 
         object.__setattr__(self, "_is_copy", None)
         object.__setattr__(self, "_data", data)
@@ -226,12 +213,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             attrs = dict(attrs)
         object.__setattr__(self, "_attrs", attrs)
 
-    def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
+    @classmethod
+    def _init_mgr(cls, mgr, axes=None, dtype=None, copy=False):
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
                 mgr = mgr.reindex_axis(
-                    axe, axis=self._get_block_manager_axis(a), copy=False
+                    axe, axis=cls._get_block_manager_axis(a), copy=False
                 )
 
         # make a copy if explicitly requested
@@ -262,7 +250,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
 
-    def _validate_dtype(self, dtype):
+    @classmethod
+    def _validate_dtype(cls, dtype):
         """ validate the passed dtype """
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -271,7 +260,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if dtype.kind == "V":
                 raise NotImplementedError(
                     "compound dtypes are not implemented "
-                    f"in the {type(self).__name__} constructor"
+                    f"in the {cls.__name__} constructor"
                 )
 
         return dtype
@@ -324,8 +313,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d.update(kwargs)
         return d
 
+    @classmethod
     def _construct_axes_from_arguments(
-        self, args, kwargs, require_all: bool = False, sentinel=None
+        cls, args, kwargs, require_all: bool = False, sentinel=None
     ):
         """
         Construct and returns axes if supplied in args/kwargs.
@@ -339,7 +329,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         # construct the args
         args = list(args)
-        for a in self._AXIS_ORDERS:
+        for a in cls._AXIS_ORDERS:
 
             # look for a argument by position
             if a not in kwargs:
@@ -349,7 +339,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     if require_all:
                         raise TypeError("not enough/duplicate arguments specified!")
 
-        axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
+        axes = {a: kwargs.pop(a, sentinel) for a in cls._AXIS_ORDERS}
         return axes, kwargs
 
     @classmethod
@@ -495,7 +485,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._data.ndim
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
         Return an int representing the number of elements in this object.
 
@@ -3272,9 +3262,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self)
 
-    def _take_with_is_copy(
-        self: FrameOrSeries, indices, axis=0, **kwargs
-    ) -> FrameOrSeries:
+    def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -3282,7 +3270,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        result = self.take(indices=indices, axis=axis, **kwargs)
+        result = self.take(indices=indices, axis=axis)
         # Maybe set copy if we didn't actually change the index.
         if not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)
@@ -3467,13 +3455,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             res._is_copy = self._is_copy
         return res
 
-    def _iget_item_cache(self, item):
+    def _iget_item_cache(self, item: int):
         """Return the cached item, item represents a positional indexer."""
         ax = self._info_axis
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self._take_with_is_copy(item, axis=self._info_axis_number)
+            return self._ixs(item, axis=1)
         return lower
 
     def _box_item_values(self, key, values):
@@ -3660,7 +3648,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return default
 
     @property
-    def _is_view(self):
+    def _is_view(self) -> bool_t:
         """Return boolean indicating if self is view of another array """
         return self._data.is_view
 
@@ -5176,12 +5164,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self._constructor(cons_data).__finalize__(self)
 
     @property
-    def _is_mixed_type(self):
+    def _is_mixed_type(self) -> bool_t:
         f = lambda: self._data.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
-    def _is_numeric_mixed_type(self):
+    def _is_numeric_mixed_type(self) -> bool_t:
         f = lambda: self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
