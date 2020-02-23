@@ -458,6 +458,18 @@ class TestCategoricalConstructors:
         result = Categorical(["a", "b"], categories=CategoricalIndex(["a", "b", "c"]))
         tm.assert_categorical_equal(result, expected)
 
+    @pytest.mark.parametrize("klass", [lambda x: np.array(x, dtype=object), list])
+    def test_construction_with_null(self, klass, nulls_fixture):
+        # https://github.com/pandas-dev/pandas/issues/31927
+        values = klass(["a", nulls_fixture, "b"])
+        result = Categorical(values)
+
+        dtype = CategoricalDtype(["a", "b"])
+        codes = [0, -1, 1]
+        expected = Categorical.from_codes(codes=codes, dtype=dtype)
+
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes(self):
 
         # too few categories

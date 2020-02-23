@@ -65,6 +65,7 @@ Bug fixes
 **Categorical**
 
 - Fixed bug where :meth:`Categorical.from_codes` improperly raised a ``ValueError`` when passed nullable integer codes. (:issue:`31779`)
+- Fixed bug where :meth:`Categorical` constructor would raise a ``TypeError`` when given a numpy array containing ``pd.NA``. (:issue:`31927`)
 - Bug in :class:`Categorical` that would ignore or crash when calling :meth:`Series.replace` with a list-like ``to_replace`` (:issue:`31720`)
 
 **I/O**
