@@ -6,7 +6,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
-from pandas import Index, Int64Index, MultiIndex, UInt64Index
+from pandas import CategoricalIndex, Index, Int64Index, MultiIndex, UInt64Index
 import pandas._testing as tm
 
 
@@ -47,3 +47,9 @@ class TestIndexConstructorInference:
 
         assert type(index) is Index
         assert index.dtype == object
+
+    def test_constructor_categorical_to_object(self):
+        # GH#32167 Categorical data and dtype=object should return object-dtype
+        ci = CategoricalIndex(range(5))
+        result = Index(ci, dtype=object)
+        assert not isinstance(result, CategoricalIndex)
