@@ -38,6 +38,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include "version.h"
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include "datetime.h"
 
 /* objToJSON */
 PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -71,8 +72,14 @@ static PyModuleDef moduledef = {
     .m_methods = ujsonMethods
 };
 
+void pydatetime_import(void)
+{
+    PyDateTime_IMPORT;
+    return;
+}
 
 PyMODINIT_FUNC PyInit_json(void) {
+  pydatetime_import();
   initObjToJSON();  // TODO: clean up, maybe via tp_free?
   return PyModuleDef_Init(&moduledef);
 
