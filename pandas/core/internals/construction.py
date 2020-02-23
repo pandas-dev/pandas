@@ -592,7 +592,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
                     "Length of columns passed for MultiIndex columns is different"
                 )
 
-            # if columns is not empty and then length of sub-list is not equal to content
+            # if columns is not empty and then length of sublist is not equal to content
             elif columns and len(columns[0]) != len(content):
                 raise ValueError(
                     f"{len(columns[0])} columns passed, passed data had "
