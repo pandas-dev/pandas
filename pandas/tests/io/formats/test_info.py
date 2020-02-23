@@ -196,6 +196,11 @@ def test_info_wide():
     assert rs == xp
     reset_option("display.max_info_columns")
 
+    s = Series(np.random.randn(101))
+    msg = ("Argument `max_cols` can only be passed "
+                "in DataFrame.info, not Series.info")
+    with pytest.raises(ValueError, match=msg):
+        s.info(max_cols=1)
 
 def test_info_duplicate_columns():
     io = StringIO()

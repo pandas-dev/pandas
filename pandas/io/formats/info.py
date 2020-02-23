@@ -79,7 +79,7 @@ def info(
     lines.append(str(type(data)))
     lines.append(data.index._summary())
 
-    if data._typ == "dataframe":
+    if isinstance(data, ABCDataFrame):
         cols = data.columns
         dtypes = data.dtypes
     else:
@@ -106,7 +106,7 @@ def info(
     exceeds_info_cols = col_count > max_cols
 
     def _verbose_repr():
-        if data._typ == "dataframe":
+        if isinstance(data, ABCDataFrame):
             lines.append(f"Data columns (total {col_count} columns):")
             counts = data.count()
         else:
@@ -126,7 +126,7 @@ def info(
         space_num = max(max_id, len_id) + col_space
 
         header = _put_str(id_head, space_num)
-        if data._typ == "dataframe":
+        if isinstance(data, ABCDataFrame):
             header += _put_str(column_head, space)
         if show_counts:
             if len(cols) != len(counts):  # pragma: no cover
@@ -156,7 +156,7 @@ def info(
         lines.append(header)
         lines.append(
             _put_str("-" * len_id, space_num)
-            + _put_str("-" * len_column, space) * (data._typ == "dataframe")
+            + _put_str("-" * len_column, space) * isinstance(data, ABCDataFrame)
             + _put_str("-" * len_count, space_count)
             + _put_str("-" * len_dtype, space_dtype)
         )
@@ -172,13 +172,13 @@ def info(
 
             lines.append(
                 line_no
-                + _put_str(col, space) * (data._typ == "dataframe")
+                + _put_str(col, space) * isinstance(data, ABCDataFrame)
                 + _put_str(count_temp.format(count=count), space_count)
                 + _put_str(dtype, space_dtype)
             )
 
     def _non_verbose_repr():
-        if data._typ == "dataframe":
+        if isinstance(data, ABCDataFrame):
             lines.append(cols._summary(name="Columns"))
 
     def _sizeof_fmt(num, size_qualifier):
@@ -217,7 +217,7 @@ def info(
             deep = False
             if "object" in counts or data.index._is_memory_usage_qualified():
                 size_qualifier = "+"
-        if data._typ == "dataframe":
+        if isinstance(data, ABCDataFrame):
             mem_usage = data.memory_usage(index=True, deep=deep).sum()
         else:
             mem_usage = data.memory_usage(index=True, deep=deep)

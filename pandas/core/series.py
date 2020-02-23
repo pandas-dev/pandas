@@ -4216,6 +4216,11 @@ Series.memory_usage: Memory usage of Series.""",
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
+        if max_cols is not None:
+            raise ValueError(
+                "Argument `max_cols` can only be passed "
+                "in DataFrame.info, not Series.info"
+                )
         return info(self, verbose, buf, None, memory_usage, null_counts)
 
     @Appender(generic._shared_docs["shift"] % _shared_doc_kwargs)
