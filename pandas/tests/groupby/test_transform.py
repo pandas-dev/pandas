@@ -1198,25 +1198,59 @@ def test_transform_lambda_indexing():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "input_df",
-    [
-        DataFrame(
-            {
-                "A": [121, 121, 121, 121, 231, 231, 676],
-                "B": [1, 2, np.nan, 3, 3, np.nan, 4],
-            }
-        ),
-        DataFrame(
-            {
-                "A": [121, 121, 121, 121, 231, 231, 676],
-                "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0],
-            }
-        ),
-    ],
-)
-def test_groupby_transform_fillna(input_df):
-    # GH 27905
-    result = input_df.groupby("A").transform(lambda x: x.fillna(x.mean()))
-    expected = pd.DataFrame({"B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0]})
-    tm.assert_frame_equal(result, expected)
+def test_transform_nan_tshift_corrwith(transformation_func):
+
+    df1 = DataFrame(
+        {
+            "A": [121, 121, 121, 121, 231, 231, 676],
+            "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0],
+        }
+    )
+    g1 = df1.groupby("A")
+
+    if transformation_func == "corrwith":
+        result = g1.corrwith(df1)
+        expected = pd.DataFrame(dict(B=[1, np.nan, np.nan], A=[np.nan] * 3))
+        expected.index = pd.Index([121, 231, 676], name="A")
+        tm.assert_frame_equal(result, expected)
+
+    if transformation_func == "fillna":
+        df3 = df1.copy()
+        df3["B"] = [1, np.nan, np.nan, 3, np.nan, 3, 4]
+        result = df3.groupby("A").transform(lambda x: x.fillna(x.mean()))
+        expected = pd.DataFrame({"B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0]})
+        tm.assert_frame_equal(result, expected)
+
+        result = df3.groupby("A").transform(transformation_func, value=1)
+        expected = pd.DataFrame({"B": [1.0, 1.0, 1.0, 3.0, 1.0, 3.0, 4.0]})
+        tm.assert_frame_equal(result, expected)
+
+    if transformation_func == "tshift":
+        df2 = df1.copy()
+        dt_periods = pd.date_range("2013-11-03", periods=7, freq="D")
+        df2["C"] = dt_periods
+        result = df2.set_index("C").groupby("A").tshift(2, "D")
+        df2["C"] = dt_periods + dt_periods.freq * 2
+        expected = df2
+        tm.assert_frame_equal(
+            result.reset_index().reindex(columns=["A", "B", "C"]), expected
+        )
+
+
+def test_check_original_and_transformed_index(transformation_func):
+    df = DataFrame({"A": [0, 0, 0, 1, 1, 1], "B": [0, 1, 2, 3, 4, 5]})
+    g = df.groupby("A")
+
+    if transformation_func in [
+        "cummax",
+        "cummin",
+        "cumprod",
+        "cumsum",
+        "diff",
+        "ffill",
+        "pct_change",
+        "rank",
+        "shift",
+    ]:
+        result = g.transform(transformation_func)
+        tm.assert_index_equal(result.index, df.index)
