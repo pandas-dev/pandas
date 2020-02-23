@@ -5,22 +5,17 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import TYPE_CHECKING, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Set, Tuple
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
-from pandas._typing import Level
+from pandas._typing import ArrayLike, Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCExtensionArray,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import extract_array
@@ -451,10 +446,7 @@ def _align_method_SERIES(left, right, align_asobject=False):
 
 
 def _construct_result(
-    left: ABCSeries,
-    result: Union[np.ndarray, ABCExtensionArray],
-    index: ABCIndexClass,
-    name,
+    left: ABCSeries, result: ArrayLike, index: ABCIndexClass, name,
 ):
     """
     Construct an appropriately-labelled Series from the result of an op.
