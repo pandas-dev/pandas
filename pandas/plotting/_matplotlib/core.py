@@ -246,19 +246,18 @@ class MPLPlot:
         if fillna is not None:
             data = data.fillna(fillna)
 
-        if self.by is None:
-            for col, val in data.items():
-                if not keep_index:
-                    val = val.values
-                yield col, val
-        else:
-            cols = data.columns.get_level_values(0).unique()
+        iter_data = data
+        if self.by is not None:
+            cols = data.columns.levels[0]
+            iter_data = {
+                col: data.loc[:, data.columns.get_level_values(0) == col]
+                for col in cols
+            }
 
-            for col in cols:
-                val = data.loc[:, data.columns.get_level_values(0) == col]
-                if not keep_index:
-                    val = val.values
-                yield col, val
+        for col, val in iter_data.items():
+            if not keep_index:
+                val = val.values
+            yield col, val
 
     @property
     def nseries(self):
