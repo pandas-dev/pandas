@@ -104,6 +104,7 @@ programming language.
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
     :maxdepth: 3
+    :titlesonly:
 
     {{ single_doc[:-4] }}
 {% elif single_doc %}
@@ -115,6 +116,7 @@ programming language.
 .. toctree::
     :maxdepth: 3
     :hidden:
+    :titlesonly:
 {% endif %}
 {% if not single_doc %}
     What's New in 1.1.0 <whatsnew/v1.1.0>

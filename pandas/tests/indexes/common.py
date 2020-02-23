@@ -605,7 +605,8 @@ class Base:
         assert not indices.equals(np.array(indices))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, RangeIndex):
+        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
+            # TODO: CategoricalIndex can be re-allowed following GH#32167
             same_values = Index(indices, dtype=object)
             assert indices.equals(same_values)
             assert same_values.equals(indices)
