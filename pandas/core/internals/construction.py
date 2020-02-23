@@ -587,7 +587,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
         elif is_mi_list:
 
             # check if nested list column, length of each sub-list should be equal
-            if len(set([len(col) for col in columns])) > 1:
+            if len(set(len(col) for col in columns)) > 1:
                 raise ValueError(
                     "Length of columns passed for MultiIndex columns is different"
                 )
