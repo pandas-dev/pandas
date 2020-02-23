@@ -1177,6 +1177,9 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence, optional
             Column in the DataFrame to group by.
+
+        .. versionadded:: 1.1.0
+
         bins : int, default 10
             Number of histogram bins to be used.
         **kwargs
@@ -1209,7 +1212,8 @@ class PlotAccessor(PandasObject):
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
 
-        If `by` is defined, a grouped hist plot is generated:
+        If `by` can be assigned by the DataFrame column names, or a list of column
+        names for which to group, and a grouped hist plot is generated:
 
         .. plot::
             :context: close-figs
@@ -1218,6 +1222,11 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame(np.random.randn(30, 2), columns=['A', 'B'])
             >>> df['C'] = np.random.choice(['a', 'b', 'c'], 30)
             >>> ax = df.plot.hist(column=['A', 'B'], by=['C'], figsize=(8, 10))
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.hist(column=['A', 'B'], by='C', figsize=(8, 10))
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 

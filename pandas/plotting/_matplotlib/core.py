@@ -267,7 +267,7 @@ class MPLPlot:
         elif self.by is None:
             return self.data.shape[1]
         else:
-            return len(self.data.columns.levels[0])
+            return self._grouped_data_size
 
     def draw(self):
         self.plt.draw_if_interactive()
@@ -398,6 +398,7 @@ class MPLPlot:
         if self.by is not None:
             self.subplots = True
             grouped = data.groupby(self.by)
+            self._grouped_data_size = len(grouped)
 
             data_list = []
             for key, group in grouped:
