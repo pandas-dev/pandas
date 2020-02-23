@@ -41,7 +41,7 @@ class EWM(_Rolling):
         :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{for} halflife > 0`.
+        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
