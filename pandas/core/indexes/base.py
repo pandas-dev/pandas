@@ -304,21 +304,14 @@ class Index(IndexOpsMixin, PandasObject):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.category import CategoricalIndex
 
-            return CategoricalIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
+            return _maybe_asobject(dtype, CategoricalIndex, data, copy, name, **kwargs)
 
         # interval
         elif is_interval_dtype(data) or is_interval_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas.core.indexes.interval import IntervalIndex
 
-            closed = kwargs.pop("closed", None)
-            if is_dtype_equal(_o_dtype, dtype):
-                return IntervalIndex(
-                    data, name=name, copy=copy, closed=closed, **kwargs
-                ).astype(object)
-            return IntervalIndex(
-                data, dtype=dtype, name=name, copy=copy, closed=closed, **kwargs
-            )
+            return _maybe_asobject(dtype, IntervalIndex, data, copy, name, **kwargs)
 
         elif (
             is_datetime64_any_dtype(data)
@@ -328,39 +321,19 @@ class Index(IndexOpsMixin, PandasObject):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import DatetimeIndex
 
-            if is_dtype_equal(_o_dtype, dtype):
-                # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
-                #  will raise in the where `data` is already tz-aware.  So
-                #  we leave it out of this step and cast to object-dtype after
-                #  the DatetimeIndex construction.
-                # Note we can pass copy=False because the .astype below
-                #  will always make a copy
-                return DatetimeIndex(data, copy=False, name=name, **kwargs).astype(
-                    object
-                )
-            else:
-                return DatetimeIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
+            return _maybe_asobject(dtype, DatetimeIndex, data, copy, name, **kwargs)
 
         elif is_timedelta64_dtype(data) or is_timedelta64_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import TimedeltaIndex
 
-            if is_dtype_equal(_o_dtype, dtype):
-                # Note we can pass copy=False because the .astype below
-                #  will always make a copy
-                return TimedeltaIndex(data, copy=False, name=name, **kwargs).astype(
-                    object
-                )
-            else:
-                return TimedeltaIndex(data, copy=copy, name=name, dtype=dtype, **kwargs)
+            return _maybe_asobject(dtype, TimedeltaIndex, data, copy, name, **kwargs)
 
         elif is_period_dtype(data) or is_period_dtype(dtype):
             # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
             from pandas import PeriodIndex
 
-            if is_dtype_equal(_o_dtype, dtype):
-                return PeriodIndex(data, copy=False, name=name, **kwargs).astype(object)
-            return PeriodIndex(data, dtype=dtype, copy=copy, name=name, **kwargs)
+            return _maybe_asobject(dtype, PeriodIndex, data, copy, name, **kwargs)
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
@@ -3091,6 +3064,16 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
 
+    def _get_partial_string_timestamp_match_key(self, key):
+        """
+        Translate any partial string timestamp matches in key, returning the
+        new key.
+
+        Only relevant for MultiIndex.
+        """
+        # GH#10331
+        return key
+
     def _convert_scalar_indexer(self, key, kind: str_t):
         """
         Convert a scalar indexer.
@@ -3128,7 +3111,7 @@ class Index(IndexOpsMixin, PandasObject):
                     self._invalid_indexer("label", key)
 
             elif kind == "loc" and is_integer(key):
-                if not self.holds_integer():
+                if not (is_integer_dtype(self.dtype) or is_object_dtype(self.dtype)):
                     self._invalid_indexer("label", key)
 
         return key
@@ -3163,8 +3146,7 @@ class Index(IndexOpsMixin, PandasObject):
         def is_int(v):
             return v is None or is_integer(v)
 
-        is_null_slicer = start is None and stop is None
-        is_index_slice = is_int(start) and is_int(stop)
+        is_index_slice = is_int(start) and is_int(stop) and is_int(step)
         is_positional = is_index_slice and not (
             self.is_integer() or self.is_categorical()
         )
@@ -3194,7 +3176,7 @@ class Index(IndexOpsMixin, PandasObject):
             except KeyError:
                 pass
 
-        if is_null_slicer:
+        if com.is_null_slice(key):
             indexer = key
         elif is_positional:
             indexer = key
@@ -5765,3 +5747,40 @@ def _try_convert_to_int_array(
         pass
 
     raise ValueError
+
+
+def _maybe_asobject(dtype, klass, data, copy: bool, name: Label, **kwargs):
+    """
+    If an object dtype was specified, create the non-object Index
+    and then convert it to object.
+
+    Parameters
+    ----------
+    dtype : np.dtype, ExtensionDtype, str
+    klass : Index subclass
+    data : list-like
+    copy : bool
+    name : hashable
+    **kwargs
+
+    Returns
+    -------
+    Index
+
+    Notes
+    -----
+    We assume that calling .astype(object) on this klass will make a copy.
+    """
+
+    # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
+    #  will raise in the where `data` is already tz-aware.  So
+    #  we leave it out of this step and cast to object-dtype after
+    #  the DatetimeIndex construction.
+
+    if is_dtype_equal(_o_dtype, dtype):
+        # Note we can pass copy=False because the .astype below
+        #  will always make a copy
+        index = klass(data, copy=False, name=name, **kwargs)
+        return index.astype(object)
+
+    return klass(data, dtype=dtype, copy=copy, name=name, **kwargs)
