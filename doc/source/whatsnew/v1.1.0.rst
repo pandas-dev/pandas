@@ -103,7 +103,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-
+- Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 -
 -
 
