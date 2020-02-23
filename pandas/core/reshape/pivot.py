@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union, Optional
 
 import numpy as np
 
@@ -7,6 +7,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas._typing import Label
 
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
@@ -422,13 +423,18 @@ def _convert_by(by):
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+def pivot(
+    data: "DataFrame",
+    index: Optional[Union[Label, List[Label]]] = None,
+    columns: Optional[Union[Label, List[Label]]] = None,
+    values: Optional[Union[Label, List[Label]]] = None,
+) -> "DataFrame":
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
     columns = columns if is_list_like(columns) else [columns]
 
     if values is None:
-        cols: List[str] = []
+        cols: List[Label] = []
         if index is None:
             pass
         elif is_list_like(index):
