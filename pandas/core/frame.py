@@ -4569,6 +4569,10 @@ class DataFrame(NDFrame):
         -------
         DataFrame
             DataFrame with duplicates removed or None if ``inplace=True``.
+
+        See Also
+        --------
+        DataFrame.value_counts: Count unique combinations of columns.
         """
         if self.empty:
             return self.copy()
