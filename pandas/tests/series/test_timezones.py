@@ -17,7 +17,7 @@ from pandas.core.indexes.datetimes import date_range
 
 # -----------------------------------------------------------------
 # Series.tz_localize
-def test_series_tz_localize(self):
+def test_series_tz_localize():
 
     rng = date_range("1/1/2011", periods=100, freq="H")
     ts = Series(1, index=rng)
@@ -33,7 +33,7 @@ def test_series_tz_localize(self):
         ts.tz_localize("US/Eastern")
 
 
-def test_series_tz_localize_ambiguous_bool(self):
+def test_series_tz_localize_ambiguous_bool():
     # make sure that we are correctly accepting bool values as ambiguous
 
     # GH#14402
@@ -71,7 +71,7 @@ def test_series_tz_localize_ambiguous_bool(self):
         ["foo", "invalid"],
     ],
 )
-def test_series_tz_localize_nonexistent(self, tz, method, exp):
+def test_series_tz_localize_nonexistent(tz, method, exp):
     # GH 8917
     n = 60
     dti = date_range(start="2015-03-29 02:00:00", periods=n, freq="min")
@@ -89,7 +89,7 @@ def test_series_tz_localize_nonexistent(self, tz, method, exp):
 
 
 @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
-def test_series_tz_localize_empty(self, tzstr):
+def test_series_tz_localize_empty(tzstr):
     # GH#2248
     ser = Series(dtype=object)
 
@@ -104,7 +104,7 @@ def test_series_tz_localize_empty(self, tzstr):
 # Series.tz_convert
 
 
-def test_series_tz_convert(self):
+def test_series_tz_convert():
     rng = date_range("1/1/2011", periods=200, freq="D", tz="US/Eastern")
     ts = Series(1, index=rng)
 
@@ -119,7 +119,7 @@ def test_series_tz_convert(self):
         ts.tz_convert("US/Eastern")
 
 
-def test_series_tz_convert_to_utc(self):
+def test_series_tz_convert_to_utc():
     base = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="UTC")
     idx1 = base.tz_convert("Asia/Tokyo")[:2]
     idx2 = base.tz_convert("US/Eastern")[1:]
@@ -132,7 +132,7 @@ def test_series_tz_convert_to_utc(self):
 # Series.append
 
 
-def test_series_append_aware(self):
+def test_series_append_aware():
     rng1 = date_range("1/1/2011 01:00", periods=1, freq="H", tz="US/Eastern")
     rng2 = date_range("1/1/2011 02:00", periods=1, freq="H", tz="US/Eastern")
     ser1 = Series([1], index=rng1)
@@ -173,7 +173,7 @@ def test_series_append_aware(self):
     tm.assert_series_equal(ts_result, exp)
 
 
-def test_series_append_aware_naive(self):
+def test_series_append_aware_naive():
     rng1 = date_range("1/1/2011 01:00", periods=1, freq="H")
     rng2 = date_range("1/1/2011 02:00", periods=1, freq="H", tz="US/Eastern")
     ser1 = Series(np.random.randn(len(rng1)), index=rng1)
@@ -194,7 +194,7 @@ def test_series_append_aware_naive(self):
     assert ts_result.index.equals(expected)
 
 
-def test_series_append_dst(self):
+def test_series_append_dst():
     rng1 = date_range("1/1/2016 01:00", periods=3, freq="H", tz="US/Eastern")
     rng2 = date_range("8/1/2016 01:00", periods=3, freq="H", tz="US/Eastern")
     ser1 = Series([1, 2, 3], index=rng1)
@@ -220,7 +220,7 @@ def test_series_append_dst(self):
 # -----------------------------------------------------------------
 
 
-def test_dateutil_tzoffset_support(self):
+def test_dateutil_tzoffset_support():
     values = [188.5, 328.25]
     tzinfo = tzoffset(None, 7200)
     index = [
@@ -236,7 +236,7 @@ def test_dateutil_tzoffset_support(self):
 
 
 @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
-def test_tz_aware_asfreq(self, tz):
+def test_tz_aware_asfreq(tz):
     dr = date_range("2011-12-01", "2012-07-20", freq="D", tz=tz)
 
     ser = Series(np.random.randn(len(dr)), index=dr)
@@ -246,7 +246,7 @@ def test_tz_aware_asfreq(self, tz):
 
 
 @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
-def test_string_index_alias_tz_aware(self, tz):
+def test_string_index_alias_tz_aware(tz):
     rng = date_range("1/1/2000", periods=10, tz=tz)
     ser = Series(np.random.randn(len(rng)), index=rng)
 
@@ -255,7 +255,7 @@ def test_string_index_alias_tz_aware(self, tz):
 
 
 # TODO: De-duplicate with test below
-def test_series_add_tz_mismatch_converts_to_utc_duplicate(self):
+def test_series_add_tz_mismatch_converts_to_utc_duplicate():
     rng = date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
     ser = Series(np.random.randn(len(rng)), index=rng)
 
@@ -268,7 +268,7 @@ def test_series_add_tz_mismatch_converts_to_utc_duplicate(self):
     assert result.index.tz is pytz.utc
 
 
-def test_series_add_tz_mismatch_converts_to_utc(self):
+def test_series_add_tz_mismatch_converts_to_utc():
     rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
 
     perm = np.random.permutation(100)[:90]
@@ -287,7 +287,7 @@ def test_series_add_tz_mismatch_converts_to_utc(self):
     tm.assert_series_equal(result, expected)
 
 
-def test_series_add_aware_naive_raises(self):
+def test_series_add_aware_naive_raises():
     rng = date_range("1/1/2011", periods=10, freq="H")
     ser = Series(np.random.randn(len(rng)), index=rng)
 
@@ -300,7 +300,7 @@ def test_series_add_aware_naive_raises(self):
         ser_utc + ser
 
 
-def test_series_align_aware(self):
+def test_series_align_aware():
     idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
     ser = Series(np.random.randn(len(idx1)), index=idx1)
     ser_central = ser.tz_convert("US/Central")
@@ -312,7 +312,7 @@ def test_series_align_aware(self):
 
 
 @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
-def test_localized_at_time_between_time(self, tzstr):
+def test_localized_at_time_between_time(tzstr):
     from datetime import time
 
     tz = timezones.maybe_get_tz(tzstr)
@@ -335,7 +335,7 @@ def test_localized_at_time_between_time(self, tzstr):
 
 
 @pytest.mark.parametrize("tzstr", ["Europe/Berlin", "dateutil/Europe/Berlin"])
-def test_getitem_pydatetime_tz(self, tzstr):
+def test_getitem_pydatetime_tz(tzstr):
     tz = timezones.maybe_get_tz(tzstr)
 
     index = date_range(
@@ -349,7 +349,7 @@ def test_getitem_pydatetime_tz(self, tzstr):
     assert ts[time_pandas] == ts[time_datetime]
 
 
-def test_series_truncate_datetimeindex_tz(self):
+def test_series_truncate_datetimeindex_tz():
     # GH 9243
     idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
     s = Series(range(len(idx)), index=idx)
@@ -362,7 +362,7 @@ def test_series_truncate_datetimeindex_tz(self):
 @pytest.mark.parametrize(
     "method, tz", [["tz_localize", None], ["tz_convert", "Europe/Berlin"]]
 )
-def test_tz_localize_convert_copy_inplace_mutate(self, copy, method, tz):
+def test_tz_localize_convert_copy_inplace_mutate(copy, method, tz):
     # GH 6326
     result = Series(
         np.arange(0, 5), index=date_range("20131027", periods=5, freq="1H", tz=tz)
@@ -374,7 +374,7 @@ def test_tz_localize_convert_copy_inplace_mutate(self, copy, method, tz):
     tm.assert_series_equal(result, expected)
 
 
-def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+def test_constructor_data_aware_dtype_naive(tz_aware_fixture):
     # GH 25843
     tz = tz_aware_fixture
     result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
