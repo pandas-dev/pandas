@@ -353,9 +353,9 @@ class TestCategoricalConstructors:
         result = Categorical(Series(idx))
         tm.assert_index_equal(result.categories, idx)
 
-    def test_constructor_invariant(self):
-        # GH 14190
-        vals = [
+    @pytest.mark.parametrize(
+        "values",
+        [
             np.array([1.0, 1.2, 1.8, np.nan]),
             np.array([1, 2, 3], dtype="int64"),
             ["a", "b", "c", np.nan],
@@ -366,11 +366,13 @@ class TestCategoricalConstructors:
                 Timestamp("2014-01-02", tz="US/Eastern"),
                 NaT,
             ],
-        ]
-        for val in vals:
-            c = Categorical(val)
-            c2 = Categorical(c)
-            tm.assert_categorical_equal(c, c2)
+        ],
+    )
+    def test_constructor_invariant(self, values):
+        # GH 14190
+        c = Categorical(values)
+        c2 = Categorical(c)
+        tm.assert_categorical_equal(c, c2)
 
     @pytest.mark.parametrize("ordered", [True, False])
     def test_constructor_with_dtype(self, ordered):
