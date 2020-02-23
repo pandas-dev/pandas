@@ -77,6 +77,7 @@ Bug fixes
 
 - Fix bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the ``"string"`` dtype (:issue:`31731`).
 - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
+- Fixed bug where :meth:`GroupBy.first` and :meth:`GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
 - Fix bug in :meth:`Series.convert_dtypes` for series with mix of integers and strings (:issue:`32117`)
 
 .. ---------------------------------------------------------------------------
