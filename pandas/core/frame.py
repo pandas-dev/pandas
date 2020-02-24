@@ -8350,4 +8350,4 @@ def _from_nested_dict(data):
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v
-    return dict(new_data)
+    return new_data
