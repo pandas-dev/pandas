@@ -425,9 +425,9 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: "DataFrame",
-    index: Optional[Union[Label, List[Label]]] = None,
-    columns: Union[Label, List[Label]] = None,
-    values: Optional[Union[Label, List[Label]]] = None,
+    index: Optional[Union[Label, List[Optional[Label]]]] = None,
+    columns: Optional[Union[Label, List[Optional[Label]]]] = None,
+    values: Optional[Union[Label, List[Optional[Label]]]] = None,
 ) -> "DataFrame":
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
