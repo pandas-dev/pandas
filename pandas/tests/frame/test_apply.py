@@ -339,7 +339,7 @@ class TestDataFrameApply:
         tm.assert_frame_equal(result, float_frame)
 
     def test_apply_reduce_Series(self, float_frame):
-        float_frame.loc[::2, "A"] = np.nan
+        float_frame["A"].iloc[::2] = np.nan
         expected = float_frame.mean(1)
         result = float_frame.apply(np.mean, axis=1)
         tm.assert_series_equal(result, expected)
