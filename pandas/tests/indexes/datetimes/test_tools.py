@@ -2315,3 +2315,7 @@ def test_nullable_integer_to_datetime():
     tm.assert_series_equal(res, expected)
     # Check that ser isn't mutated
     tm.assert_series_equal(ser, ser_copy)
+
+def test_na_to_datetime(nulls_fixture):
+    result = pd.to_datetime([nulls_fixture])
+    assert result[0] is pd.NaT
