@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Tuple, Union, Iterable
 
 import numpy as np
 
@@ -434,7 +434,7 @@ def pivot(
     columns = columns if is_list_like(columns) else [columns]
 
     if values is None:
-        cols: List[Label] = []
+        cols: Iterable[Label] = []
         if index is None:
             pass
         elif is_list_like(index):
@@ -446,6 +446,7 @@ def pivot(
         append = index is None
         indexed = data.set_index(cols, append=append)
     else:
+        idx_list: Iterable[Series]
         if index is None:
             idx_list = [Series(data.index, name=data.index.name)]
         elif is_list_like(index):
@@ -455,12 +456,12 @@ def pivot(
 
         data_columns = [data[col] for col in columns]
         idx_list.extend(data_columns)
-        index = MultiIndex.from_arrays(idx_list)
+        mi_index = MultiIndex.from_arrays(idx_list)
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
             indexed = data._constructor(
-                data[values].values, index=index, columns=values
+                data[values].values, index=mi_index, columns=values
             )
         else:
             indexed = data._constructor_sliced(data[values].values, index=index)
