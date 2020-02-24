@@ -57,7 +57,7 @@ class DatetimeIndex:
     def time_to_pydatetime(self, index_type):
         self.index.to_pydatetime()
 
-    def time_is_dates_only(self):
+    def time_is_dates_only(self, index_type):
         self.index._is_dates_only
 
 
