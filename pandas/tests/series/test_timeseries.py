@@ -21,8 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, BMonthEnd
-
 
 def _simple_ts(start, end, freq="D"):
     rng = date_range(start, end, freq=freq)
@@ -36,44 +34,6 @@ def assert_range_equal(left, right):
 
 
 class TestTimeSeries:
-    def test_asfreq(self):
-        ts = Series(
-            [0.0, 1.0, 2.0],
-            index=[
-                datetime(2009, 10, 30),
-                datetime(2009, 11, 30),
-                datetime(2009, 12, 31),
-            ],
-        )
-
-        daily_ts = ts.asfreq("B")
-        monthly_ts = daily_ts.asfreq("BM")
-        tm.assert_series_equal(monthly_ts, ts)
-
-        daily_ts = ts.asfreq("B", method="pad")
-        monthly_ts = daily_ts.asfreq("BM")
-        tm.assert_series_equal(monthly_ts, ts)
-
-        daily_ts = ts.asfreq(BDay())
-        monthly_ts = daily_ts.asfreq(BMonthEnd())
-        tm.assert_series_equal(monthly_ts, ts)
-
-        result = ts[:0].asfreq("M")
-        assert len(result) == 0
-        assert result is not ts
-
-        daily_ts = ts.asfreq("D", fill_value=-1)
-        result = daily_ts.value_counts().sort_index()
-        expected = Series([60, 1, 1, 1], index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
-        tm.assert_series_equal(result, expected)
-
-    def test_asfreq_datetimeindex_empty_series(self):
-        # GH 14320
-        index = pd.DatetimeIndex(["2016-09-29 11:00"])
-        expected = Series(index=index, dtype=object).asfreq("H")
-        result = Series([3], index=index.copy()).asfreq("H")
-        tm.assert_index_equal(expected.index, result.index)
-
     def test_autocorr(self, datetime_series):
         # Just run the function
         corr1 = datetime_series.autocorr()
@@ -266,15 +226,6 @@ class TestTimeSeries:
         )
         assert result == expected
 
-    def test_asfreq_keep_index_name(self):
-        # GH #9854
-        index_name = "bar"
-        index = pd.date_range("20130101", periods=20, name=index_name)
-        df = pd.DataFrame(list(range(20)), columns=["foo"], index=index)
-
-        assert index_name == df.index.name
-        assert index_name == df.asfreq("10D").index.name
-
     def test_promote_datetime_date(self):
         rng = date_range("1/1/2000", periods=20)
         ts = Series(np.random.randn(20), index=rng)
@@ -297,26 +248,6 @@ class TestTimeSeries:
         result = rng.get_indexer(ts2.index)
         expected = rng.get_indexer(ts_slice.index)
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_asfreq_normalize(self):
-        rng = date_range("1/1/2000 09:30", periods=20)
-        norm = date_range("1/1/2000", periods=20)
-        vals = np.random.randn(20)
-        ts = Series(vals, index=rng)
-
-        result = ts.asfreq("D", normalize=True)
-        norm = date_range("1/1/2000", periods=20)
-        expected = Series(vals, index=norm)
-
-        tm.assert_series_equal(result, expected)
-
-        vals = np.random.randn(20, 3)
-        ts = DataFrame(vals, index=rng)
-
-        result = ts.asfreq("D", normalize=True)
-        expected = DataFrame(vals, index=norm)
-
-        tm.assert_frame_equal(result, expected)
 
     def test_first_subset(self):
         ts = _simple_ts("1/1/2000", "1/1/2010", freq="12h")
