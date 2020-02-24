@@ -430,14 +430,6 @@ class TestTimeSeries:
         with pytest.raises(TypeError, match=msg):
             ser.at_time("00:00")
 
-    def test_between(self):
-        series = Series(date_range("1/1/2000", periods=10))
-        left, right = series[[2, 7]]
-
-        result = series.between(left, right)
-        expected = (series >= left) & (series <= right)
-        tm.assert_series_equal(result, expected)
-
     def test_between_time(self):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = Series(np.random.randn(len(rng)), index=rng)
