@@ -22,6 +22,8 @@ from pandas._libs.tslibs.util cimport (
     get_nat, is_integer_object, is_float_object, is_datetime64_object,
     is_timedelta64_object)
 
+from pandas._libs.missing cimport C_NA
+
 
 # ----------------------------------------------------------------------
 # Constants
@@ -763,7 +765,7 @@ NaT = c_NaT        # Python-visible
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or util.is_nan(val) or val is c_NaT
+    return val is None or util.is_nan(val) or val is c_NaT or val is C_NA
 
 
 cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):
