@@ -1,4 +1,14 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Sequence, Tuple, Union, Iterable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
