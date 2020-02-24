@@ -1239,7 +1239,7 @@ def test_groupby_transform_nan(transformation_func, df_for_transformation_func):
         tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_transform_tshift(transformation_func, df_for_transformation_func):
+def test_groupby_tshift(transformation_func, df_for_transformation_func):
 
     # GH 27905
     df = df_for_transformation_func.copy()
