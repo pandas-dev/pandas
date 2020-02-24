@@ -31,11 +31,7 @@ def test_show_versions(capsys):
     assert "INSTALLED VERSIONS" in result
 
     # check full commit hash
-    if not re.search(r"commit\s*:\s[0-9a-f]{40}\n", result):
-        # GH#32120  If test is being run in a branch that has uncommited
-        #  changes, then we will not see the full commit hash, but this
-        #  should show up in the pandas version number.
-        assert re.search(r"pandas\s*: .*\.dirty\n", result)
+    assert re.search(r"commit\s*:\s[0-9a-f]{40}\n", result)
 
     # check required dependency
     assert re.search(r"numpy\s*:\s([0-9\.\+a-f]|dev)+\n", result)
