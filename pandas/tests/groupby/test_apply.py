@@ -883,7 +883,7 @@ def test_apply_mean_with_nullable_integer(contains_na):
     result = groups.mean()
 
     idx = pd.Index([1, 2, 3], dtype=object, name="a")
-    values = np.array([1.5] * 3, dtype=float)
-    expected = pd.DataFrame({"b": values}, index=idx)
+    arr = np.array([1.5] * 3, dtype=float)
+    expected = pd.DataFrame({"b": arr}, index=idx)
 
     tm.assert_frame_equal(result, expected)
