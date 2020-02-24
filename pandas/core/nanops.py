@@ -1017,7 +1017,7 @@ def nanskew(
     m3 = _zero_out_fperr(m3)
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
+        result = ((count * (count - 1)) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
 
     dtype = values.dtype
     if is_float_dtype(dtype):
