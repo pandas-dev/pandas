@@ -113,10 +113,10 @@ def ints_to_pydatetime(
     freq : str/Offset, optional
         freq to convert
     box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
-        If datetime, convert to datetime.datetime
-        If date, convert to datetime.date
-        If time, convert to datetime.time
-        If Timestamp, convert to pandas.Timestamp
+        * If datetime, convert to datetime.datetime
+        * If date, convert to datetime.date
+        * If time, convert to datetime.time
+        * If Timestamp, convert to pandas.Timestamp
 
     Returns
     -------
