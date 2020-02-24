@@ -443,7 +443,7 @@ def pivot(
     columns = columns if is_list_like(columns) else [columns]
 
     if values is None:
-        cols: List[Axis] = []
+        cols: List[Axis, Sequence[Optional[Axis]]] = []
         if index is None:
             pass
         elif is_list_like(index):
@@ -472,7 +472,7 @@ def pivot(
                 data[values].values, index=mi_index, columns=values
             )
         else:
-            indexed = data._constructor_sliced(data[values].values, index=index)
+            indexed = data._constructor_sliced(data[values].values, index=mi_index)
     return indexed.unstack(columns)
 
 
