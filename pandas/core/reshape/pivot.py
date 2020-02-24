@@ -2,7 +2,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Dict,
-    Iterable,
     List,
     Optional,
     Sequence,
@@ -12,7 +11,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import Label
+from pandas._typing import Axis
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -435,16 +434,16 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: "DataFrame",
-    index: Optional[Union[Label, Sequence[Optional[Label]]]] = None,
-    columns: Optional[Union[Label, Sequence[Optional[Label]]]] = None,
-    values: Optional[Union[Label, Sequence[Optional[Label]]]] = None,
+    index: Optional[Union[Axis, Sequence[Optional[Axis]]]] = None,
+    columns: Optional[Union[Axis, Sequence[Optional[Axis]]]] = None,
+    values: Optional[Union[Axis, Sequence[Optional[Axis]]]] = None,
 ) -> "DataFrame":
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
     columns = columns if is_list_like(columns) else [columns]
 
     if values is None:
-        cols: Iterable[Label] = []
+        cols: List[Axis] = []
         if index is None:
             pass
         elif is_list_like(index):
@@ -456,7 +455,6 @@ def pivot(
         append = index is None
         indexed = data.set_index(cols, append=append)
     else:
-        idx_list: Iterable[Series]
         if index is None:
             idx_list = [Series(data.index, name=data.index.name)]
         elif is_list_like(index):
