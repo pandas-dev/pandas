@@ -224,7 +224,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return CategoricalIndex(cat, name=name)
 
     @classmethod
-    def _simple_new(cls, values: Categorical, name=None):
+    def _simple_new(cls, values: Categorical, name=None, dtype=None):
+        # GH#32204 dtype is included for compat with Index._simple_new
         assert isinstance(values, Categorical), type(values)
         result = object.__new__(cls)
 
