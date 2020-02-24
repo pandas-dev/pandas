@@ -868,17 +868,18 @@ def test_apply_function_returns_numpy_array():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("contains_na", [True, False])
-def test_apply_mean_with_nullable_integer(contains_na):
-    # https://github.com/pandas-dev/pandas/issues/32219
-    if contains_na:
-        values = {
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
             "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
             "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
-        }
-    else:
-        values = {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]}
-
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+def test_apply_mean_with_nullable_integer(values):
+    # https://github.com/pandas-dev/pandas/issues/32219
     groups = pd.DataFrame(values, dtype="Int64").groupby("a")
     result = groups.mean()
 
