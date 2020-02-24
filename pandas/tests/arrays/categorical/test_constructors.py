@@ -545,6 +545,7 @@ class TestCategoricalConstructors:
     @pytest.mark.parametrize("codes", [[1.0, 2.0, 0], [1.1, 2.0, 0]])
     def test_from_codes_with_float(self, codes):
         # GH21767
+        # float codes should raise even if values are equal to integers
         dtype = CategoricalDtype(categories=["a", "b", "c"])
 
         msg = "codes need to be array-like integers"
