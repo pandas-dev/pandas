@@ -120,15 +120,6 @@ class TestSeriesTimezones:
         repr(series.index[0])
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
-    def test_tz_aware_asfreq(self, tz):
-        dr = date_range("2011-12-01", "2012-07-20", freq="D", tz=tz)
-
-        ser = Series(np.random.randn(len(dr)), index=dr)
-
-        # it works!
-        ser.asfreq("T")
-
-    @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_string_index_alias_tz_aware(self, tz):
         rng = date_range("1/1/2000", periods=10, tz=tz)
         ser = Series(np.random.randn(len(rng)), index=rng)
@@ -228,14 +219,6 @@ class TestSeriesTimezones:
         dt = datetime(2012, 12, 24, 17, 0)
         time_datetime = conversion.localize_pydatetime(dt, tz)
         assert ts[time_pandas] == ts[time_datetime]
-
-    def test_series_truncate_datetimeindex_tz(self):
-        # GH 9243
-        idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
-        s = Series(range(len(idx)), index=idx)
-        result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
-        expected = Series([1, 2, 3], index=idx[1:4])
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize(

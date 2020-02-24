@@ -1,6 +1,7 @@
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, period_range
+from pandas import DataFrame, Series, date_range, period_range
 import pandas._testing as tm
 
 
@@ -21,3 +22,12 @@ class TestAsFreq:
         result = ts.asfreq("D", how="start")
         assert len(result) == len(ts)
         tm.assert_index_equal(result.index, index.asfreq("D", how="start"))
+
+    @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_tz_aware_asfreq(self, tz):
+        dr = date_range("2011-12-01", "2012-07-20", freq="D", tz=tz)
+
+        ser = Series(np.random.randn(len(dr)), index=dr)
+
+        # it works!
+        ser.asfreq("T")
