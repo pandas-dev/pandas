@@ -319,7 +319,15 @@ class TestGetIndexer:
         #  6: 3 6 8
         mult_idx_1 = pd.MultiIndex.from_product([[1, 3], [2, 4, 6], [5, 7]])
         mult_idx_2 = pd.MultiIndex.from_tuples(
-            [(1, 1, 8), (1, 5, 9), (1, 6, 7), (2, 1, 6), (2, 7, 7), (2, 7, 8), (3, 6, 8)]
+            [
+                (1, 1, 8),
+                (1, 5, 9),
+                (1, 6, 7),
+                (2, 1, 6),
+                (2, 7, 7),
+                (2, 7, 8),
+                (3, 6, 8),
+            ]
         )
         # sanity check
         assert mult_idx_1.is_monotonic
@@ -377,7 +385,9 @@ class TestGetIndexer:
         tm.assert_almost_equal(expected, backfill_indexer)
 
         pad_indexer = mult_idx_2.get_indexer(mult_idx_1, method="pad")
-        expected = np.array([0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5], dtype=pad_indexer.dtype)
+        expected = np.array(
+            [0, 0, 0, 0, 1, 2, 5, 5, 5, 5, 5, 5], dtype=pad_indexer.dtype
+        )
         tm.assert_almost_equal(expected, pad_indexer)
 
     def test_get_indexer_crossing_levels(self):
