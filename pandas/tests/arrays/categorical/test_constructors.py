@@ -472,6 +472,13 @@ class TestCategoricalConstructors:
 
         tm.assert_categorical_equal(result, expected)
 
+    def test_from_codes_empty(self):
+        cat = ["a", "b", "c"]
+        result = Categorical.from_codes([], categories=cat)
+        expected = Categorical([], categories=cat)
+
+        tm.assert_categorical_equal(result, expected)
+
     def test_from_codes_too_few_categories(self):
         dtype = CategoricalDtype(categories=[1, 2])
         msg = "codes need to be between "
