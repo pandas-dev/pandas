@@ -188,8 +188,7 @@ cdef class IntIndex(SparseIndex):
             return -1
 
     @cython.wraparound(False)
-    cpdef ndarray[int32_t] lookup_array(self, ndarray[
-            int32_t, ndim=1] indexer):
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
         """
         Vectorized lookup, returns ndarray[int32_t]
         """
@@ -424,12 +423,9 @@ cdef class BlockIndex(SparseIndex):
         """
         Intersect two BlockIndex objects
 
-        Parameters
-        ----------
-
         Returns
         -------
-        intersection : BlockIndex
+        BlockIndex
         """
         cdef:
             BlockIndex y
@@ -518,7 +514,7 @@ cdef class BlockIndex(SparseIndex):
 
         Returns
         -------
-        union : BlockIndex
+        BlockIndex
         """
         return BlockUnion(self, y.to_block_index()).result
 
@@ -548,8 +544,7 @@ cdef class BlockIndex(SparseIndex):
         return -1
 
     @cython.wraparound(False)
-    cpdef ndarray[int32_t] lookup_array(self, ndarray[
-            int32_t, ndim=1] indexer):
+    cpdef ndarray[int32_t] lookup_array(self, ndarray[int32_t, ndim=1] indexer):
         """
         Vectorized lookup, returns ndarray[int32_t]
         """
