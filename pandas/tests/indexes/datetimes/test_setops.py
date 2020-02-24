@@ -14,7 +14,6 @@ from pandas import (
     Series,
     bdate_range,
     date_range,
-    to_datetime,
 )
 import pandas._testing as tm
 
@@ -348,25 +347,6 @@ class TestDatetimeIndexSetOps:
         dti2 = date_range(freq="Q-JAN", start=datetime(1997, 12, 31), periods=98)
         assert len(dti1.difference(dti2, sort)) == 2
 
-    @pytest.mark.parametrize("sort", [None, False])
-    def test_datetimeindex_union_join_empty(self, sort):
-        dti = date_range(start="1/1/2001", end="2/1/2001", freq="D")
-        empty = Index([])
-
-        result = dti.union(empty, sort=sort)
-        expected = dti.astype("O")
-        tm.assert_index_equal(result, expected)
-
-        result = dti.join(empty)
-        assert isinstance(result, DatetimeIndex)
-        tm.assert_index_equal(result, dti)
-
-    def test_join_nonunique(self):
-        idx1 = to_datetime(["2012-11-06 16:00:11.477563", "2012-11-06 16:00:11.477563"])
-        idx2 = to_datetime(["2012-11-06 15:11:09.006507", "2012-11-06 15:11:09.006507"])
-        rs = idx1.join(idx2, how="outer")
-        assert rs.is_monotonic
-
 
 class TestBusinessDatetimeIndex:
     def setup_method(self, method):
@@ -407,38 +387,6 @@ class TestBusinessDatetimeIndex:
 
         the_union = self.rng.union(rng, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
-
-    def test_outer_join(self):
-        # should just behave as union
-
-        # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-
-        # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
-
-        the_join = left.join(right, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-        assert the_join.freq is None
-
-        # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-
-        # overlapping, but different offset
-        rng = date_range(START, END, freq=BMonthEnd())
-
-        the_join = self.rng.join(rng, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-        assert the_join.freq is None
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_union_not_cacheable(self, sort):
@@ -555,38 +503,6 @@ class TestCustomDatetimeIndex:
 
         the_union = self.rng.union(rng, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
-
-    def test_outer_join(self):
-        # should just behave as union
-
-        # overlapping
-        left = self.rng[:10]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-
-        # non-overlapping, gap in middle
-        left = self.rng[:5]
-        right = self.rng[10:]
-
-        the_join = left.join(right, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-        assert the_join.freq is None
-
-        # non-overlapping, no gap
-        left = self.rng[:5]
-        right = self.rng[5:10]
-
-        the_join = left.join(right, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-
-        # overlapping, but different offset
-        rng = date_range(START, END, freq=BMonthEnd())
-
-        the_join = self.rng.join(rng, how="outer")
-        assert isinstance(the_join, DatetimeIndex)
-        assert the_join.freq is None
 
     def test_intersection_bug(self):
         # GH #771

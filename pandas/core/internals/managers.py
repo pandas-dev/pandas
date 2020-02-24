@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
+from pandas._typing import DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -847,7 +848,7 @@ class BlockManager(PandasObject):
 
         return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
-    def fast_xs(self, loc):
+    def fast_xs(self, loc: int):
         """
         get a cross sectional for a given location in the
         items ; handle dups
@@ -883,12 +884,12 @@ class BlockManager(PandasObject):
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
 
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
         return result
 
-    def consolidate(self):
+    def consolidate(self) -> "BlockManager":
         """
         Join together blocks having same dtype
 
@@ -940,7 +941,7 @@ class BlockManager(PandasObject):
                 new_axis=self.items[indexer], indexer=indexer, axis=0, allow_dups=True
             )
 
-    def iget(self, i):
+    def iget(self, i: int) -> "SingleBlockManager":
         """
         Return the data as a SingleBlockManager.
         """
@@ -1377,7 +1378,7 @@ class BlockManager(PandasObject):
             block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
         )
 
-    def unstack(self, unstacker_func, fill_value):
+    def unstack(self, unstacker_func, fill_value) -> "BlockManager":
         """
         Return a BlockManager with all blocks unstacked..
 
@@ -1396,8 +1397,8 @@ class BlockManager(PandasObject):
         dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
         new_columns = dummy.get_new_columns()
         new_index = dummy.get_new_index()
-        new_blocks = []
-        columns_mask = []
+        new_blocks: List[Block] = []
+        columns_mask: List[np.ndarray] = []
 
         for blk in self.blocks:
             blocks, mask = blk._unstack(
@@ -1478,7 +1479,7 @@ class SingleBlockManager(BlockManager):
         pass
 
     @property
-    def _block(self):
+    def _block(self) -> Block:
         return self.blocks[0]
 
     @property
@@ -1495,14 +1496,14 @@ class SingleBlockManager(BlockManager):
         """ compat with BlockManager """
         return None
 
-    def get_slice(self, slobj, axis=0):
+    def get_slice(self, slobj: slice, axis: int = 0) -> "SingleBlockManager":
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True,)
+        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True)
 
     @property
-    def index(self):
+    def index(self) -> Index:
         return self.axes[0]
 
     @property
@@ -1516,7 +1517,7 @@ class SingleBlockManager(BlockManager):
     def get_dtype_counts(self):
         return {self.dtype.name: 1}
 
-    def get_dtypes(self):
+    def get_dtypes(self) -> np.ndarray:
         return np.array([self._block.dtype])
 
     def external_values(self):
@@ -1527,7 +1528,7 @@ class SingleBlockManager(BlockManager):
         """The array that Series._values returns"""
         return self._block.internal_values()
 
-    def get_values(self):
+    def get_values(self) -> np.ndarray:
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
 
@@ -1535,7 +1536,7 @@ class SingleBlockManager(BlockManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def is_consolidated(self):
+    def is_consolidated(self) -> bool:
         return True
 
     def _consolidate_check(self):
@@ -1813,9 +1814,7 @@ def _stack_arrays(tuples, dtype):
     return stacked, placement
 
 
-def _interleaved_dtype(
-    blocks: List[Block],
-) -> Optional[Union[np.dtype, ExtensionDtype]]:
+def _interleaved_dtype(blocks: Sequence[Block]) -> Optional[DtypeObj]:
     """
     Find the common dtype for `blocks`.
 
@@ -1825,7 +1824,7 @@ def _interleaved_dtype(
 
     Returns
     -------
-    dtype : Optional[Union[np.dtype, ExtensionDtype]]
+    dtype : np.dtype, ExtensionDtype, or None
         None is returned when `blocks` is empty.
     """
     if not len(blocks):
