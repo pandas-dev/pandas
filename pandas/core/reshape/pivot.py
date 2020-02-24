@@ -425,7 +425,7 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: "DataFrame",
-    index: Optional[Union[Label, Collection[Label]]] = None,
+    index: Optional[Union[Label, List[Label]]] = None,
     columns: Union[Label, List[Label]] = None,
     values: Optional[Union[Label, List[Label]]] = None,
 ) -> "DataFrame":
@@ -446,7 +446,6 @@ def pivot(
         append = index is None
         indexed = data.set_index(cols, append=append)
     else:
-        idx_list: List[Series] = []
         if index is None:
             idx_list = [Series(data.index, name=data.index.name)]
         elif is_list_like(index):
