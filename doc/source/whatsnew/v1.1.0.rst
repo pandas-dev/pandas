@@ -57,6 +57,7 @@ Other API changes
   will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
 - :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
+- Joining on :class:`DatetimeIndex` or :class:`TimedeltaIndex` will preserve ``freq`` in simple cases (:issue:`32166`)
 -
 
 Backwards incompatible API changes
