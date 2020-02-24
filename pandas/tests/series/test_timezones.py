@@ -185,7 +185,7 @@ class TestSeriesTimezones:
         assert new2.index.tz == pytz.UTC
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
-    def test_localized_at_time_between_time(self, tzstr):
+    def test_localized_between_time(self, tzstr):
         from datetime import time
 
         tz = timezones.maybe_get_tz(tzstr)
@@ -194,11 +194,6 @@ class TestSeriesTimezones:
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         ts_local = ts.tz_localize(tzstr)
-
-        result = ts_local.at_time(time(10, 0))
-        expected = ts.at_time(time(10, 0)).tz_localize(tzstr)
-        tm.assert_series_equal(result, expected)
-        assert timezones.tz_compare(result.index.tz, tz)
 
         t1, t2 = time(10, 0), time(11, 0)
         result = ts_local.between_time(t1, t2)
