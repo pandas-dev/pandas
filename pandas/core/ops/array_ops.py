@@ -154,8 +154,16 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
         result = expressions.evaluate(op, str_rep, left, right)
     except TypeError:
         if is_cmp:
+            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
+            #  In this case we do not fall back to the masked op, as that
+            #  will handle complex numbers incorrectly, see GH#32047
             raise
         result = masked_arith_op(left, right, op)
+
+    if is_cmp and (is_scalar(result) or result is NotImplemented):
+        # numpy returned a scalar instead of operating element-wise
+        # e.g. numeric array vs str
+        return invalid_comparison(left, right, op)
 
     return missing.dispatch_fill_zeros(op, left, right, result)
 
@@ -204,10 +212,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
 
 
 def comparison_op(
-    left: ArrayLike,
-    right: Any,
-    op,
-    str_rep: Optional[str] = None,
+    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
 ) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
@@ -253,19 +258,8 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = f"__{op.__name__}__"
-        method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
             res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
-            if is_scalar(res_values):
-                # numexpr choked
-                res_values = method(rvalues)
-
-        if res_values is NotImplemented:
-            res_values = invalid_comparison(lvalues, rvalues, op)
-        if is_scalar(res_values):
-            typ = type(rvalues)
-            raise TypeError(f"Could not compare {typ} type with Series")
 
     return res_values
 
