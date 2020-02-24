@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union, Sequence
 
 import numpy as np
 
@@ -425,9 +425,9 @@ def _convert_by(by):
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(
     data: "DataFrame",
-    index: Optional[Union[Label, List[Optional[Label]]]] = None,
-    columns: Optional[Union[Label, List[Optional[Label]]]] = None,
-    values: Optional[Union[Label, List[Optional[Label]]]] = None,
+    index: Optional[Union[Label, Sequence[Optional[Label]]]] = None,
+    columns: Optional[Union[Label, Sequence[Optional[Label]]]] = None,
+    values: Optional[Union[Label, Sequence[Optional[Label]]]] = None,
 ) -> "DataFrame":
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
