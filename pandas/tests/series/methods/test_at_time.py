@@ -11,9 +11,7 @@ import pandas._testing as tm
 
 class TestAtTime:
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
-    def test_localized_at_time_between_time(self, tzstr):
-        from datetime import time
-
+    def test_localized_at_time(self, tzstr):
         tz = timezones.maybe_get_tz(tzstr)
 
         rng = date_range("4/16/2012", "5/1/2012", freq="H")

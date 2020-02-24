@@ -184,23 +184,6 @@ class TestSeriesTimezones:
         assert new1.index.tz == pytz.UTC
         assert new2.index.tz == pytz.UTC
 
-    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
-    def test_localized_between_time(self, tzstr):
-        from datetime import time
-
-        tz = timezones.maybe_get_tz(tzstr)
-
-        rng = date_range("4/16/2012", "5/1/2012", freq="H")
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        ts_local = ts.tz_localize(tzstr)
-
-        t1, t2 = time(10, 0), time(11, 0)
-        result = ts_local.between_time(t1, t2)
-        expected = ts.between_time(t1, t2).tz_localize(tzstr)
-        tm.assert_series_equal(result, expected)
-        assert timezones.tz_compare(result.index.tz, tz)
-
     @pytest.mark.parametrize("tzstr", ["Europe/Berlin", "dateutil/Europe/Berlin"])
     def test_getitem_pydatetime_tz(self, tzstr):
         tz = timezones.maybe_get_tz(tzstr)
