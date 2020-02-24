@@ -735,13 +735,15 @@ using :meth:`Series.reset_index`.
 
    # The series has a multi-index with levels corresponding to columns in
    # the DataFrame we want to merge with
-   ser = pd.Series(['a', 'b', 'c', 'd', 'e', 'f'],
-                   index=pd.MultiIndex.from_arrays([["A", "B", "C"] * 2,
-                   [1, 2, 3, 4, 5, 6]], names=['Let', 'Num']))
+   ser = pd.Series(
+       ['a', 'b', 'c', 'd', 'e', 'f'],
+       index=pd.MultiIndex.from_arrays([["A", "B", "C"] * 2,
+       [1, 2, 3, 4, 5, 6]], names=['Let', 'Num'])
+       )
    ser
 
    # Convert the Series to a DataFrame and merge
-   pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
+   df2 = pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
    type(df2)
 
    # Now we merge the DataFrames
