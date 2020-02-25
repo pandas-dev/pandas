@@ -2309,8 +2309,8 @@ Due to daylight saving time, one wall clock time can occur twice when shifting
 from summer to winter time; fold describes whether the datetime-like corresponds
 to the first (0) or the second time (1) the wall clock hits the ambiguous time.
 Fold is supported only for constructing from naive ``datetime.datetime``
-(see `datetime documentation <https://docs.python.org/3/library/datetime.html>`__ for details) or :class:`Timestamp`
-or for constructing from components (see below) with ``dateutil`` timezones
+(see `datetime documentation <https://docs.python.org/3/library/datetime.html>`__ for details) or from :class:`Timestamp`
+or for constructing from components (see below). Only ``dateutil`` timezones are supported
 (see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
 for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
 timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
