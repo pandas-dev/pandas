@@ -514,12 +514,12 @@ class Base:
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort, indices):
-        if isinstance(indices, CategoricalIndex):
-            return
-
         first = indices[2:]
         second = indices[:4]
-        answer = indices[4:]
+        if isinstance(indices, CategoricalIndex) or indices.is_boolean():
+            answer = []
+        else:
+            answer = indices[4:]
         result = first.difference(second, sort)
         assert tm.equalContents(result, answer)
 
