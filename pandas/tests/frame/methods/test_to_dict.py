@@ -262,3 +262,10 @@ class TestDataFrameToDict:
                 "c": type(df_dict["c"]),
             }
             assert result == expected
+
+    def test_to_dict_no_rows_split(self):
+        # GH 25408
+        columns = ["A", "B"]
+        result = DataFrame(columns=columns).transpose().to_dict(orient="split")
+        expected = {'index': ['A', 'B'], 'columns': [], 'data': [[], []]}
+        assert result == expected

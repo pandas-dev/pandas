@@ -1411,7 +1411,6 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith("l"):
             return into_c((k, v.tolist()) for k, v in self.items())
         elif orient.lower().startswith("sp"):
-            breakpoint()
             return into_c(
                 (
                     ("index", self.index.tolist()),

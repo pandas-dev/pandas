@@ -285,6 +285,12 @@ class TestDataFrameMisc:
             assert hasattr(result_255_columns, "_fields")
         else:
             assert not hasattr(result_255_columns, "_fields")
+        
+        # GH 25408
+        df_0_columns = DataFrame(index=['A', 'B'])
+        result = list(df_0_columns.itertuples())
+        tm.assert_index_equal(result[0], pd.Index(['A', 'B']))
+        assert result[1:] == [(), ()]
 
     def test_sequence_like_with_categorical(self):
 
