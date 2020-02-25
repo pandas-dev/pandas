@@ -3,6 +3,9 @@ import pandas._testing as tm
 
 
 class TestTZLocalize:
+    # See also:
+    # test_tz_convert_and_localize in test_tz_convert
+
     def test_frame_tz_localize(self):
         rng = date_range("1/1/2011", periods=100, freq="H")
 

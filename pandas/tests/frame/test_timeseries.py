@@ -6,16 +6,7 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-    period_range,
-    to_datetime,
-)
+from pandas import DataFrame, DatetimeIndex, Series, date_range, to_datetime
 import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
@@ -455,95 +446,3 @@ class TestDataFrameTimeSeriesMethods:
             {0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]"
         )
         tm.assert_frame_equal(result, expected)
-
-    def test_frame_to_period(self):
-        K = 5
-
-        dr = date_range("1/1/2000", "1/1/2001")
-        pr = period_range("1/1/2000", "1/1/2001")
-        df = DataFrame(np.random.randn(len(dr), K), index=dr)
-        df["mix"] = "a"
-
-        pts = df.to_period()
-        exp = df.copy()
-        exp.index = pr
-        tm.assert_frame_equal(pts, exp)
-
-        pts = df.to_period("M")
-        tm.assert_index_equal(pts.index, exp.index.asfreq("M"))
-
-        df = df.T
-        pts = df.to_period(axis=1)
-        exp = df.copy()
-        exp.columns = pr
-        tm.assert_frame_equal(pts, exp)
-
-        pts = df.to_period("M", axis=1)
-        tm.assert_index_equal(pts.columns, exp.columns.asfreq("M"))
-
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
-        with pytest.raises(ValueError, match=msg):
-            df.to_period(axis=2)
-
-    @pytest.mark.parametrize("fn", ["tz_localize", "tz_convert"])
-    def test_tz_convert_and_localize(self, fn):
-        l0 = date_range("20140701", periods=5, freq="D")
-        l1 = date_range("20140701", periods=5, freq="D")
-
-        int_idx = Index(range(5))
-
-        if fn == "tz_convert":
-            l0 = l0.tz_localize("UTC")
-            l1 = l1.tz_localize("UTC")
-
-        for idx in [l0, l1]:
-
-            l0_expected = getattr(idx, fn)("US/Pacific")
-            l1_expected = getattr(idx, fn)("US/Pacific")
-
-            df1 = DataFrame(np.ones(5), index=l0)
-            df1 = getattr(df1, fn)("US/Pacific")
-            tm.assert_index_equal(df1.index, l0_expected)
-
-            # MultiIndex
-            # GH7846
-            df2 = DataFrame(np.ones(5), MultiIndex.from_arrays([l0, l1]))
-
-            df3 = getattr(df2, fn)("US/Pacific", level=0)
-            assert not df3.index.levels[0].equals(l0)
-            tm.assert_index_equal(df3.index.levels[0], l0_expected)
-            tm.assert_index_equal(df3.index.levels[1], l1)
-            assert not df3.index.levels[1].equals(l1_expected)
-
-            df3 = getattr(df2, fn)("US/Pacific", level=1)
-            tm.assert_index_equal(df3.index.levels[0], l0)
-            assert not df3.index.levels[0].equals(l0_expected)
-            tm.assert_index_equal(df3.index.levels[1], l1_expected)
-            assert not df3.index.levels[1].equals(l1)
-
-            df4 = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
-
-            # TODO: untested
-            df5 = getattr(df4, fn)("US/Pacific", level=1)  # noqa
-
-            tm.assert_index_equal(df3.index.levels[0], l0)
-            assert not df3.index.levels[0].equals(l0_expected)
-            tm.assert_index_equal(df3.index.levels[1], l1_expected)
-            assert not df3.index.levels[1].equals(l1)
-
-        # Bad Inputs
-
-        # Not DatetimeIndex / PeriodIndex
-        with pytest.raises(TypeError, match="DatetimeIndex"):
-            df = DataFrame(index=int_idx)
-            df = getattr(df, fn)("US/Pacific")
-
-        # Not DatetimeIndex / PeriodIndex
-        with pytest.raises(TypeError, match="DatetimeIndex"):
-            df = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
-            df = getattr(df, fn)("US/Pacific", level=0)
-
-        # Invalid level
-        with pytest.raises(ValueError, match="not valid"):
-            df = DataFrame(index=l0)
-            df = getattr(df, fn)("US/Pacific", level=1)
