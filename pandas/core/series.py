@@ -2579,10 +2579,12 @@ Name: Max Speed, dtype: float64
 Returns
 -------
 Series or DataFrame
-    If axis is 0 or 'index' the result will be a Series. 
-    The resulting index will be a MultiIndex with 'self' and 'other' stacked alternately at the inner level.
-    
-    If axis is 1 or 'columns' the result will be a DataFrame. 
+    If axis is 0 or 'index' the result will be a Series.
+
+    The resulting index will be a MultiIndex with 'self' and 'other'
+    stacked alternately at the inner level.
+
+    If axis is 1 or 'columns' the result will be a DataFrame.
     Its will have two columns namely 'self' and 'other'.
 
 See Also
