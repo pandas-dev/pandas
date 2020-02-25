@@ -277,6 +277,12 @@ class TestIndexOps(Ops):
             pytest.skip(f"values of {klass} cannot be changed")
         elif isinstance(orig, pd.MultiIndex):
             pytest.skip("MultiIndex doesn't support isna")
+        elif orig.duplicated().any():
+            pytest.xfail(
+                "The test implementation isn't flexible enough to deal"
+                " with duplicated values. This isn't a bug in the"
+                " application code, but in the test code."
+            )
 
         # special assign to the numpy array
         if is_datetime64tz_dtype(obj):
