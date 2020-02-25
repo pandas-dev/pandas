@@ -41,7 +41,7 @@ class EWM(_Rolling):
         :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(-ln(2) / halflife)`, for :math:`halflife > 0`.
+        :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for :math:`halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
@@ -71,7 +71,7 @@ class EWM(_Rolling):
 
     Notes
     -----
-    Exactly one center of mass paramter: ``com``, ``span``, ``halflife``, or ``alpha``
+    Exactly one paramter: ``com``, ``span``, ``halflife``, or ``alpha``
     must be provided.
     Allowed values and the relation between the parameters are specified in the
     parameter descriptions above (see the link at the end of this section for
@@ -85,18 +85,18 @@ class EWM(_Rolling):
     For example, the EW moving average of the series [:math:`x_0, x_1, ..., x_t`] would
     be:
 
-	.. math::
-		y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...
-		+ (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
+    .. math::
+        y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ...
+        + (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
 
     When ``adjust=False``, the exponentially weighted function is calculated
     recursively:
 
-	.. math::
-		\begin{split}
-			y_0 &= x_0\\
-			y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
-		\end{split}
+    .. math::
+        \begin{split}
+            y_0 &= x_0\\
+            y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+        \end{split}
 
     When ``ignore_na=False`` (default), weights are based on absolute positions.
     For example, the weights of :math:`x_0` and :math:`x_2` used in calculating the
@@ -161,7 +161,7 @@ class EWM(_Rolling):
         return EWM
 
     _agg_see_also_doc = dedent(
-    """
+        """
     See Also
     --------
     pandas.DataFrame.rolling.aggregate
@@ -169,7 +169,7 @@ class EWM(_Rolling):
     )
 
     _agg_examples_doc = dedent(
-    """
+        """
     Examples
     --------
 
