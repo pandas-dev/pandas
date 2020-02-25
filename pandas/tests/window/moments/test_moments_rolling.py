@@ -860,7 +860,7 @@ class TestMoments(Base):
             tm.assert_series_equal(result, expected)
 
             # shifter index
-            s = ["x{x:d}".format(x=x) for x in range(12)]
+            s = [f"x{x:d}" for x in range(12)]
 
             if has_min_periods:
                 minp = 10
@@ -1437,13 +1437,9 @@ class TestRollingMomentsConsistency(ConsistencyBase):
     def test_rolling_min_max_numeric_types(self):
 
         # GH12373
-        types_test = [np.dtype("f{}".format(width)) for width in [4, 8]]
+        types_test = [np.dtype(f"f{width}") for width in [4, 8]]
         types_test.extend(
-            [
-                np.dtype("{}{}".format(sign, width))
-                for width in [1, 2, 4, 8]
-                for sign in "ui"
-            ]
+            [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"]
         )
         for data_type in types_test:
             # Just testing that these don't throw exceptions and that

@@ -118,10 +118,10 @@ def show_versions(as_json=False):
         print("\nINSTALLED VERSIONS")
         print("------------------")
         for k, stat in sys_info:
-            print(f"{{k:<{maxlen}}}: {{stat}}")
+            print(f"{k:<{maxlen}}: {stat}")
         print("")
         for k, stat in deps_blob:
-            print(f"{{k:<{maxlen}}}: {{stat}}")
+            print(f"{k:<{maxlen}}: {stat}")
 
 
 def main() -> int:
