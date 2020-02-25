@@ -35,13 +35,13 @@ class EWM(_Rolling):
     ----------
     com : float, optional
         Specify decay in terms of center of mass,
-        :math:`\alpha = 1 / (1 + com),\text{ for } com \geq 0`.
+        :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
     span : float, optional
         Specify decay in terms of span,
-        :math:`\alpha = 2 / (span + 1),\text{ for } span \geq 1`.
+        :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
     halflife : float, optional
         Specify decay in terms of half-life,
-        :math:`\alpha = 1 - exp(log(0.5) / halflife),\text{ for } halflife > 0`.
+        :math:`\alpha = 1 - exp(-ln(2) / halflife)`, for :math:`halflife > 0`.
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly,
         :math:`0 < \alpha \leq 1`.
@@ -71,30 +71,48 @@ class EWM(_Rolling):
 
     Notes
     -----
-    Exactly one of center of mass, span, half-life, and alpha must be provided.
-    Allowed values and relationship between the parameters are specified in the
-    parameter descriptions above; see the link at the end of this section for
-    a detailed explanation.
+    Exactly one center of mass paramter: ``com``, ``span``, ``halflife``, or ``alpha`` 
+    must be provided.
+    Allowed values and the relation between the parameters are specified in the
+    parameter descriptions above (see the link at the end of this section for
+    a detailed explanation).
 
-    When adjust is True (default), weighted averages are calculated using
-    weights (1-alpha)**(n-1), (1-alpha)**(n-2), ..., 1-alpha, 1.
+    Available EW (exponentially weighted) methods: ``mean()``, ``var()``, ``std()``, 
+    ``corr()``, ``cov()``. 
 
-    When adjust is False, weighted averages are calculated recursively as:
-       weighted_average[0] = arg[0];
-       weighted_average[i] = (1-alpha)*weighted_average[i-1] + alpha*arg[i].
+    When ``adjust=True`` (default), the EW function is calculated using
+    weights :math:`w_i = (1 - \alpha)^i`. 
+    For example, the EW moving average of the series [:math:`x_0, x_1, ..., x_t`] would 
+    be:
 
-    When ignore_na is False (default), weights are based on absolute positions.
-    For example, the weights of x and y used in calculating the final weighted
-    average of [x, None, y] are (1-alpha)**2 and 1 (if adjust is True), and
-    (1-alpha)**2 and alpha (if adjust is False).
+	.. math::
+		y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... 
+		+ (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
 
-    When ignore_na is True (reproducing pre-0.15.0 behavior), weights are based
-    on relative positions. For example, the weights of x and y used in
-    calculating the final weighted average of [x, None, y] are 1-alpha and 1
-    (if adjust is True), and 1-alpha and alpha (if adjust is False).
+    When ``adjust=False``, the exponentially weighted function is calculated 
+    recursively:
 
-    More details can be found at
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows
+    .. math::
+    	\begin{split}
+    		y_0 &= x_0 \\ 
+    		y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
+    	\end{split}
+    
+    When ``ignore_na=False`` (default), weights are based on absolute positions.
+    For example, the weights of :math:`x_0` and :math:`x_2` used in calculating the 
+    final weighted average of [:math:`x_0`, None, :math:`x_2`] are :math:`(1-\alpha)^2` 
+    and :math:`1` if ``adjust=True``, and :math:`(1-\alpha)^2` and 
+    :math:`\alpha` if ``adjust=False``.
+
+    When ``ignore_na=True`` (reproducing pre-0.15.0 behavior), weights are based on 
+    relative positions. For example, the weights of :math:`x_0` and :math:`x_2` used in
+    calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`] are 
+    :math:`1-\alpha` and :math:`1` if ``adjust=True``, and :math:`1-\alpha` and 
+    :math:`\alpha` if ``adjust=False``.
+
+    More details can be found at: 
+    `Exponentially weighted windows 
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows>`_.
 
     Examples
     --------
