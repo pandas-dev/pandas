@@ -1,18 +1,27 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Series
 
 
 class TestSeriesCombine:
+    @pytest.mark.parametrize(
+        "dtype", ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"]
+    )
+    def test_concat_empty_series_dtypes_match_roundtrips(self, dtype):
+        dtype = np.dtype(dtype)
+
+        result = pd.concat([Series(dtype=dtype)])
+        assert result.dtype == dtype
+
+        result = pd.concat([Series(dtype=dtype), Series(dtype=dtype)])
+        assert result.dtype == dtype
+
     def test_concat_empty_series_dtypes_roundtrips(self):
 
         # round-tripping with self & like self
         dtypes = map(np.dtype, ["float64", "int8", "uint8", "bool", "m8[ns]", "M8[ns]"])
-
-        for dtype in dtypes:
-            assert pd.concat([Series(dtype=dtype)]).dtype == dtype
-            assert pd.concat([Series(dtype=dtype), Series(dtype=dtype)]).dtype == dtype
 
         def int_result_type(dtype, dtype2):
             typs = {dtype.kind, dtype2.kind}
@@ -52,35 +61,28 @@ class TestSeriesCombine:
                 result = pd.concat([Series(dtype=dtype), Series(dtype=dtype2)]).dtype
                 assert result.kind == expected
 
-    def test_concat_empty_series_dtypes(self):
+    @pytest.mark.parametrize(
+        "left,right,expected",
+        [
+            # booleans
+            (np.bool_, np.int32, np.int32),
+            (np.bool_, np.float32, np.object_),
+            # datetime-like
+            ("m8[ns]", np.bool, np.object_),
+            ("m8[ns]", np.int64, np.object_),
+            ("M8[ns]", np.bool, np.object_),
+            ("M8[ns]", np.int64, np.object_),
+            # categorical
+            ("category", "category", "category"),
+            ("category", "object", "object"),
+        ],
+    )
+    def test_concat_empty_series_dtypes(self, left, right, expected):
+        result = pd.concat([Series(dtype=left), Series(dtype=right)])
+        assert result.dtype == expected
 
-        # booleans
-        assert (
-            pd.concat([Series(dtype=np.bool_), Series(dtype=np.int32)]).dtype
-            == np.int32
-        )
-        assert (
-            pd.concat([Series(dtype=np.bool_), Series(dtype=np.float32)]).dtype
-            == np.object_
-        )
+    def test_concat_empty_series_dtypes_triple(self):
 
-        # datetime-like
-        assert (
-            pd.concat([Series(dtype="m8[ns]"), Series(dtype=np.bool)]).dtype
-            == np.object_
-        )
-        assert (
-            pd.concat([Series(dtype="m8[ns]"), Series(dtype=np.int64)]).dtype
-            == np.object_
-        )
-        assert (
-            pd.concat([Series(dtype="M8[ns]"), Series(dtype=np.bool)]).dtype
-            == np.object_
-        )
-        assert (
-            pd.concat([Series(dtype="M8[ns]"), Series(dtype=np.int64)]).dtype
-            == np.object_
-        )
         assert (
             pd.concat(
                 [Series(dtype="M8[ns]"), Series(dtype=np.bool_), Series(dtype=np.int64)]
@@ -88,11 +90,7 @@ class TestSeriesCombine:
             == np.object_
         )
 
-        # categorical
-        assert (
-            pd.concat([Series(dtype="category"), Series(dtype="category")]).dtype
-            == "category"
-        )
+    def test_concat_empty_series_dtype_category_with_array(self):
         # GH 18515
         assert (
             pd.concat(
@@ -100,13 +98,8 @@ class TestSeriesCombine:
             ).dtype
             == "float64"
         )
-        assert (
-            pd.concat([Series(dtype="category"), Series(dtype="object")]).dtype
-            == "object"
-        )
 
-        # sparse
-        # TODO: move?
+    def test_concat_empty_series_dtypes_sparse(self):
         result = pd.concat(
             [
                 Series(dtype="float64").astype("Sparse"),
