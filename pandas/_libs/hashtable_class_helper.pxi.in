@@ -10,6 +10,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # ----------------------------------------------------------------------
 
 from pandas._libs.tslibs.util cimport get_c_string
+from pandas._libs.missing cimport C_NA
 
 {{py:
 
@@ -670,7 +671,9 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                v = get_c_string(val)
+                # GH#31499 if we have a np.str_ get_c_string wont recognize
+                #  it as a str, even though isinstance does.
+                v = get_c_string(<str>val)
             else:
                 v = get_c_string(self.na_string_sentinel)
             vecs[i] = v
@@ -703,7 +706,9 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                v = get_c_string(val)
+                # GH#31499 if we have a np.str_ get_c_string wont recognize
+                #  it as a str, even though isinstance does.
+                v = get_c_string(<str>val)
             else:
                 v = get_c_string(self.na_string_sentinel)
             vecs[i] = v
@@ -1028,8 +1033,12 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if ignore_na and ((val != val or val is None)
-                              or (use_na_value and val == na_value)):
+            if ignore_na and (
+                (val is C_NA)
+                or (val != val)
+                or (val is None)
+                or (use_na_value and val == na_value)
+            ):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), skip the hashtable entry for them, and
                 # replace the corresponding label with na_sentinel

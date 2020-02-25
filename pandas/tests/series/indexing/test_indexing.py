@@ -241,6 +241,16 @@ def test_series_box_timestamp():
     assert isinstance(ser.iat[5], pd.Timestamp)
 
 
+def test_series_box_timedelta():
+    rng = pd.timedelta_range("1 day 1 s", periods=5, freq="h")
+    ser = pd.Series(rng)
+    assert isinstance(ser[0], Timedelta)
+    assert isinstance(ser.at[1], Timedelta)
+    assert isinstance(ser.iat[2], Timedelta)
+    assert isinstance(ser.loc[3], Timedelta)
+    assert isinstance(ser.iloc[4], Timedelta)
+
+
 def test_getitem_ambiguous_keyerror():
     s = Series(range(10), index=list(range(0, 20, 2)))
     with pytest.raises(KeyError, match=r"^1$"):
@@ -365,15 +375,15 @@ def test_setitem_dtypes():
 def test_set_value(datetime_series, string_series):
     idx = datetime_series.index[10]
     res = datetime_series._set_value(idx, 0)
-    assert res is datetime_series
+    assert res is None
     assert datetime_series[idx] == 0
 
     # equiv
     s = string_series.copy()
     res = s._set_value("foobar", 0)
-    assert res is s
-    assert res.index[-1] == "foobar"
-    assert res["foobar"] == 0
+    assert res is None
+    assert s.index[-1] == "foobar"
+    assert s["foobar"] == 0
 
     s = string_series.copy()
     s.loc["foobar"] = 0
@@ -414,7 +424,9 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices
-    result = datetime_series[[slice(None, 5)]]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31299
+        result = datetime_series[[slice(None, 5)]]
     expected = datetime_series[:5]
     tm.assert_series_equal(result, expected)
 
@@ -429,7 +441,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
 @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
 def test_setitem_with_tz(tz):
     orig = pd.Series(pd.date_range("2016-01-01", freq="H", periods=3, tz=tz))
-    assert orig.dtype == "datetime64[ns, {0}]".format(tz)
+    assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
     s = orig.copy()
@@ -456,7 +468,7 @@ def test_setitem_with_tz(tz):
         [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
-    assert vals.dtype == "datetime64[ns, {0}]".format(tz)
+    assert vals.dtype == f"datetime64[ns, {tz}]"
 
     s[[1, 2]] = vals
     exp = pd.Series(
@@ -481,7 +493,7 @@ def test_setitem_with_tz_dst():
     # GH XXX
     tz = "US/Eastern"
     orig = pd.Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
-    assert orig.dtype == "datetime64[ns, {0}]".format(tz)
+    assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
     s = orig.copy()
@@ -508,7 +520,7 @@ def test_setitem_with_tz_dst():
         [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
-    assert vals.dtype == "datetime64[ns, {0}]".format(tz)
+    assert vals.dtype == f"datetime64[ns, {tz}]"
 
     s[[1, 2]] = vals
     exp = pd.Series(
@@ -562,6 +574,18 @@ def test_categorical_assigning_ops():
     exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
     s[1] = np.nan
     tm.assert_series_equal(s, exp)
+
+
+def test_getitem_categorical_str():
+    # GH#31765
+    ser = pd.Series(range(5), index=pd.Categorical(["a", "b", "c", "a", "b"]))
+    result = ser["a"]
+    expected = ser.iloc[[0, 3]]
+    tm.assert_series_equal(result, expected)
+
+    # Check the intermediate steps work as expected
+    result = ser.index.get_value(ser, "a")
+    tm.assert_series_equal(result, expected)
 
 
 def test_slice(string_series, object_series):

@@ -4,11 +4,12 @@ ExtensionArrays.
 """
 from functools import partial
 import operator
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -43,9 +44,9 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
 
-    # TODO: Should the checks below be ABCIndexClass?
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # TODO: should this be ABCIndexClass??
+        # Note: these checks can be for ABCIndex and not ABCIndexClass
+        #  because that is the only object-dtype class.
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
@@ -155,9 +156,7 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op, str_rep: str
-):
+def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -175,7 +174,6 @@ def arithmetic_op(
     ndarrray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
-
     from pandas.core.ops import maybe_upcast_for_op
 
     # NB: We assume that extract_array has already been called
@@ -201,9 +199,7 @@ def arithmetic_op(
     return res_values
 
 
-def comparison_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
-) -> Union[np.ndarray, ABCExtensionArray]:
+def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -216,9 +212,8 @@ def comparison_op(
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
     """
-
     # NB: We assume extract_array has already been called on left and right
     lvalues = left
     rvalues = right
@@ -304,9 +299,7 @@ def na_logical_op(x: np.ndarray, y, op):
     return result.reshape(x.shape)
 
 
-def logical_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
-) -> Union[np.ndarray, ABCExtensionArray]:
+def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a logical operation `|`, `&`, or `^`.
 
@@ -322,7 +315,6 @@ def logical_op(
     -------
     ndarrray or ExtensionArray
     """
-
     fill_int = lambda x: x
 
     def fill_bool(x, left=None):

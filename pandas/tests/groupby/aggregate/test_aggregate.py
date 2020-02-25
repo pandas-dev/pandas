@@ -13,6 +13,18 @@ from pandas.core.base import SpecificationError
 from pandas.core.groupby.grouper import Grouping
 
 
+def test_groupby_agg_no_extra_calls():
+    # GH#31760
+    df = pd.DataFrame({"key": ["a", "b", "c", "c"], "value": [1, 2, 3, 4]})
+    gb = df.groupby("key")["value"]
+
+    def dummy_func(x):
+        assert len(x) != 0
+        return x.sum()
+
+    gb.agg(dummy_func)
+
+
 def test_agg_regression1(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.agg(np.mean)
@@ -377,6 +389,65 @@ def test_agg_index_has_complex_internals(index):
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_split_block():
+    # https://github.com/pandas-dev/pandas/issues/31522
+    df = pd.DataFrame(
+        {
+            "key1": ["a", "a", "b", "b", "a"],
+            "key2": ["one", "two", "one", "two", "one"],
+            "key3": ["three", "three", "three", "six", "six"],
+        }
+    )
+    result = df.groupby("key1").min()
+    expected = pd.DataFrame(
+        {"key2": ["one", "one"], "key3": ["six", "six"]},
+        index=pd.Index(["a", "b"], name="key1"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_split_object_part_datetime():
+    # https://github.com/pandas-dev/pandas/pull/31616
+    df = pd.DataFrame(
+        {
+            "A": pd.date_range("2000", periods=4),
+            "B": ["a", "b", "c", "d"],
+            "C": [1, 2, 3, 4],
+            "D": ["b", "c", "d", "e"],
+            "E": pd.date_range("2000", periods=4),
+            "F": [1, 2, 3, 4],
+        }
+    ).astype(object)
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame(
+        {
+            "A": [pd.Timestamp("2000")],
+            "B": ["a"],
+            "C": [1],
+            "D": ["b"],
+            "E": [pd.Timestamp("2000")],
+            "F": [1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_cython_category_not_implemented_fallback():
+    # https://github.com/pandas-dev/pandas/issues/31450
+    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
+    df["col_cat"] = df["col_num"].astype("category")
+
+    result = df.groupby("col_num").col_cat.first()
+    expected = pd.Series(
+        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("col_num").agg({"col_cat": "first"})
+    expected = expected.to_frame()
+    tm.assert_frame_equal(result, expected)
+
+
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
         df = pd.Series([1, 2, 3, 4])
@@ -681,6 +752,34 @@ def test_aggregate_udf_na_extension_type():
     df = pd.DataFrame({"A": pd.array([1, 2, 3])})
     result = df.groupby([1, 1, 2]).agg(aggfunc)
     expected = pd.DataFrame({"A": pd.array([1, pd.NA], dtype="Int64")}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_groupby_aggregate_period_column(func):
+    # GH 31471
+    groups = [1, 2]
+    periods = pd.period_range("2020", periods=2, freq="Y")
+    df = pd.DataFrame({"a": groups, "b": periods})
+
+    result = getattr(df.groupby("a")["b"], func)()
+    idx = pd.Int64Index([1, 2], name="a")
+    expected = pd.Series(periods, index=idx, name="b")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_groupby_aggregate_period_frame(func):
+    # GH 31471
+    groups = [1, 2]
+    periods = pd.period_range("2020", periods=2, freq="Y")
+    df = pd.DataFrame({"a": groups, "b": periods})
+
+    result = getattr(df.groupby("a"), func)()
+    idx = pd.Int64Index([1, 2], name="a")
+    expected = pd.DataFrame({"b": periods}, index=idx)
+
     tm.assert_frame_equal(result, expected)
 
 

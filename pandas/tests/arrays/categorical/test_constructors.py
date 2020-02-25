@@ -408,6 +408,11 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
 
+    def test_constructor_np_strs(self):
+        # GH#31499 Hastable.map_locations needs to work on np.str_ objects
+        cat = pd.Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
+        assert all(isinstance(x, np.str_) for x in cat.categories)
+
     def test_constructor_from_categorical_with_dtype(self):
         dtype = CategoricalDtype(["a", "b", "c"], ordered=True)
         values = Categorical(["a", "b", "d"])
@@ -451,6 +456,18 @@ class TestCategoricalConstructors:
         tm.assert_categorical_equal(result, expected)
 
         result = Categorical(["a", "b"], categories=CategoricalIndex(["a", "b", "c"]))
+        tm.assert_categorical_equal(result, expected)
+
+    @pytest.mark.parametrize("klass", [lambda x: np.array(x, dtype=object), list])
+    def test_construction_with_null(self, klass, nulls_fixture):
+        # https://github.com/pandas-dev/pandas/issues/31927
+        values = klass(["a", nulls_fixture, "b"])
+        result = Categorical(values)
+
+        dtype = CategoricalDtype(["a", "b"])
+        codes = [0, -1, 1]
+        expected = Categorical.from_codes(codes=codes, dtype=dtype)
+
         tm.assert_categorical_equal(result, expected)
 
     def test_from_codes(self):
@@ -554,6 +571,23 @@ class TestCategoricalConstructors:
         msg = "Both were None"
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes([0, 1])
+
+    def test_from_codes_with_nullable_int(self):
+        codes = pd.array([0, 1], dtype="Int64")
+        categories = ["a", "b"]
+
+        result = Categorical.from_codes(codes, categories=categories)
+        expected = Categorical.from_codes(codes.to_numpy(int), categories=categories)
+
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_codes_with_nullable_int_na_raises(self):
+        codes = pd.array([0, None], dtype="Int64")
+        categories = ["a", "b"]
+
+        msg = "codes cannot contain NA values"
+        with pytest.raises(ValueError, match=msg):
+            Categorical.from_codes(codes, categories=categories)
 
     @pytest.mark.parametrize("dtype", [None, "category"])
     def test_from_inferred_categories(self, dtype):

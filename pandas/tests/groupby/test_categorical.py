@@ -20,7 +20,8 @@ import pandas._testing as tm
 
 def cartesian_product_for_groupers(result, args, names):
     """ Reindex to a cartesian production for the groupers,
-    preserving the nature (Categorical) of each grouper """
+    preserving the nature (Categorical) of each grouper
+    """
 
     def f(a):
         if isinstance(a, (CategoricalIndex, Categorical)):
