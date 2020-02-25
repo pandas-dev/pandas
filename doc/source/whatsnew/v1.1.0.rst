@@ -56,7 +56,7 @@ For example:
                       tz="dateutil/Europe/London", fold=1)
     ts
 
-For more, see :ref:`Timezone section <timeseries.timezone>` in the user guide on working with timezones.
+For more on working with fold, see :ref:`Fold subsection <timeseries.fold>` in the user guide.
 
 .. _whatsnew_110.enhancements.other:
 
