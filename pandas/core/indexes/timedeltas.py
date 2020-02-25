@@ -349,9 +349,6 @@ def timedelta_range(
                 '5 days 00:00:00'],
                dtype='timedelta64[ns]', freq=None)
     """
-    if start is not None and end is not None and freq is not None:
-        raise ValueError("ambiguous")
-
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
