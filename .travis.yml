@@ -1,5 +1,6 @@
 language: python
 python: 3.7
+dist: bionic
 
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
@@ -23,36 +24,28 @@ git:
   # for cloning
   depth: false
 
+arch:
+  - amd64
+  - ppc64le
+  - s390x
+  - arm64
+
+services:
+  - mysql
+  - postgresql
+
+env:
+  - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
+  - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
+  - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
+  # Enabling Deprecations when running tests
+  # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
+  # See pandas/_testing.py for more details.
+  - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
+  - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
+
 matrix:
   fast_finish: true
-
-  include:
-    - env:
-        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
-
-    - env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
-
-    - env:
-        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
-      services:
-        - mysql
-        - postgresql
-
-    - env:
-        # Enabling Deprecations when running tests
-        # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
-        # See pandas/_testing.py for more details.
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
-      services:
-        - mysql
-        - postgresql
-
-    - env:
-        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
-      services:
-        - mysql
-        - postgresql
 
 before_install:
   - echo "before_install"
