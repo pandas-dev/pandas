@@ -1255,7 +1255,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             PerformanceWarning,
         )
 
-        # Note: we are assuming here that shapes match.
+        # Caller is responsible for broadcasting if necessary
+        assert self.shape == other.shape, (self.shape, other.shape)
+
         res_values = op(self.astype("O"), np.array(other))
         result = array(res_values.ravel())
         result = extract_array(result, extract_numpy=True).reshape(self.shape)
