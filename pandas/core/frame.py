@@ -1027,7 +1027,11 @@ class DataFrame(NDFrame):
             fields.insert(0, "Index")
 
         # use integer indexing because of possible duplicate column names
-        arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
+        if len(self.columns) > 0:
+            arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
+        else:
+            arrays.extend([() for _ in range(len(self))])
+            return iter(arrays)
 
         # Python versions before 3.7 support at most 255 arguments to constructors
         can_return_named_tuples = PY37 or len(self.columns) + index < 255
@@ -1407,6 +1411,7 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith("l"):
             return into_c((k, v.tolist()) for k, v in self.items())
         elif orient.lower().startswith("sp"):
+            breakpoint()
             return into_c(
                 (
                     ("index", self.index.tolist()),
