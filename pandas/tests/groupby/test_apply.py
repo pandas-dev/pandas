@@ -878,36 +878,15 @@ def test_apply_function_returns_numpy_array():
         {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
     ],
 )
-@pytest.mark.parametrize("function", ["mean", "median"])
-def test_apply_mean_median_with_nullable_integer(values, function):
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
     # https://github.com/pandas-dev/pandas/issues/32219
     groups = pd.DataFrame(values, dtype="Int64").groupby("a")
     result = getattr(groups, function)()
 
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
     idx = pd.Index([1, 2, 3], dtype=object, name="a")
-    arr = np.array([1.5] * 3, dtype=float)
-    expected = pd.DataFrame({"b": arr}, index=idx)
-
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "values",
-    [
-        {
-            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
-            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
-        },
-        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
-    ],
-)
-def test_apply_var_with_nullable_integer(values):
-    # https://github.com/pandas-dev/pandas/issues/32219
-    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
-    result = groups.var()
-
-    idx = pd.Index([1, 2, 3], dtype=object, name="a")
-    arr = np.array([0.5] * 3, dtype=float)
     expected = pd.DataFrame({"b": arr}, index=idx)
 
     tm.assert_frame_equal(result, expected)
