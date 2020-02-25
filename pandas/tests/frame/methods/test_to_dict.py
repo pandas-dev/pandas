@@ -267,5 +267,5 @@ class TestDataFrameToDict:
         # GH 25408
         columns = ["A", "B"]
         result = DataFrame(columns=columns).transpose().to_dict(orient="split")
-        expected = {'index': ['A', 'B'], 'columns': [], 'data': [[], []]}
+        expected = {"index": ["A", "B"], "columns": [], "data": [[], []]}
         assert result == expected
