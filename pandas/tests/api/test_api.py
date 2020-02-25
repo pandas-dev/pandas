@@ -198,6 +198,7 @@ class TestPDApi(Base):
         "_np_version_under1p16",
         "_np_version_under1p17",
         "_np_version_under1p18",
+        "_is_numpy_dev",
         "_testing",
         "_tslib",
         "_typing",

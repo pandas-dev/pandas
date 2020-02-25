@@ -159,11 +159,10 @@ def _json_normalize(
 
     Examples
     --------
-    >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'}},
     ...         {'id': 2, 'name': 'Faye Raker'}]
-    >>> json_normalize(data)
+    >>> pandas.json_normalize(data)
         id        name name.family name.first name.given name.last
     0  1.0         NaN         NaN     Coleen        NaN      Volk
     1  NaN         NaN      Regner        NaN       Mose       NaN

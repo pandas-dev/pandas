@@ -17,7 +17,8 @@ def _check_is_partition(parts, whole):
 
 
 def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
-    """ For arbitrary (MultiIndexed) sparse Series return
+    """
+    For arbitrary (MultiIndexed) sparse Series return
     (v, i, j, ilabels, jlabels) where (v, (i, j)) is suitable for
     passing to scipy.sparse.coo constructor.
     """
@@ -44,7 +45,8 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
         # labels_to_i[:] = np.arange(labels_to_i.shape[0])
 
         def _get_label_to_i_dict(labels, sort_labels=False):
-            """ Return dict of unique labels to number.
+            """
+            Return dict of unique labels to number.
             Optionally sort by label.
             """
             labels = Index(map(tuple, labels)).unique().tolist()  # squish
