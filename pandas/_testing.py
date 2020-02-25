@@ -69,8 +69,8 @@ from pandas.io.formats.printing import pprint_thing
 
 lzma = _import_lzma()
 
-N = 30
-K = 4
+_N = 30
+_K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
 # set testing_mode
@@ -743,7 +743,8 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
 
 
 def assert_attr_equal(attr, left, right, obj="Attributes"):
-    """checks attributes are equal. Both objects must have attribute.
+    """
+    checks attributes are equal. Both objects must have attribute.
 
     Parameters
     ----------
@@ -805,10 +806,6 @@ def assert_is_valid_plot_return_object(objs):
         assert isinstance(objs, (plt.Artist, tuple, dict)), msg
 
 
-def isiterable(obj):
-    return hasattr(obj, "__iter__")
-
-
 def assert_is_sorted(seq):
     """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
@@ -820,7 +817,8 @@ def assert_is_sorted(seq):
 def assert_categorical_equal(
     left, right, check_dtype=True, check_category_order=True, obj="Categorical"
 ):
-    """Test that Categoricals are equivalent.
+    """
+    Test that Categoricals are equivalent.
 
     Parameters
     ----------
@@ -860,7 +858,8 @@ def assert_categorical_equal(
 
 
 def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray"):
-    """Test that two IntervalArrays are equivalent.
+    """
+    Test that two IntervalArrays are equivalent.
 
     Parameters
     ----------
@@ -1009,12 +1008,13 @@ def assert_numpy_array_equal(
 def assert_extension_array_equal(
     left, right, check_dtype=True, check_less_precise=False, check_exact=False
 ):
-    """Check that left and right ExtensionArrays are equal.
+    """
+    Check that left and right ExtensionArrays are equal.
 
     Parameters
     ----------
     left, right : ExtensionArray
-        The two arrays to compare
+        The two arrays to compare.
     check_dtype : bool, default True
         Whether to check if the ExtensionArray dtypes are identical.
     check_less_precise : bool or int, default False
@@ -1070,6 +1070,7 @@ def assert_series_equal(
     check_exact=False,
     check_datetimelike_compat=False,
     check_categorical=True,
+    check_category_order=True,
     obj="Series",
 ):
     """
@@ -1104,6 +1105,10 @@ def assert_series_equal(
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_category_order : bool, default True
+        Whether to compare category order of internal Categoricals
+
+        .. versionadded:: 1.0.2
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1206,7 +1211,12 @@ def assert_series_equal(
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
-            assert_categorical_equal(left.values, right.values, obj=f"{obj} category")
+            assert_categorical_equal(
+                left.values,
+                right.values,
+                obj=f"{obj} category",
+                check_category_order=check_category_order,
+            )
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1489,7 +1499,8 @@ def assert_sp_array_equal(
     check_fill_value=True,
     consolidate_block_indices=False,
 ):
-    """Check that the left and right SparseArray are equal.
+    """
+    Check that the left and right SparseArray are equal.
 
     Parameters
     ----------
@@ -1724,7 +1735,8 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
 
 
 def all_index_generator(k=10):
-    """Generator which can be iterated over to get instances of all the various
+    """
+    Generator which can be iterated over to get instances of all the various
     index classes.
 
     Parameters
@@ -1763,7 +1775,8 @@ def index_subclass_makers_generator():
 
 
 def all_timeseries_index_generator(k=10):
-    """Generator which can be iterated over to get instances of all the classes
+    """
+    Generator which can be iterated over to get instances of all the classes
     which represent time-series.
 
     Parameters
@@ -1777,45 +1790,45 @@ def all_timeseries_index_generator(k=10):
 
 # make series
 def makeFloatSeries(name=None):
-    index = makeStringIndex(N)
-    return Series(randn(N), index=index, name=name)
+    index = makeStringIndex(_N)
+    return Series(randn(_N), index=index, name=name)
 
 
 def makeStringSeries(name=None):
-    index = makeStringIndex(N)
-    return Series(randn(N), index=index, name=name)
+    index = makeStringIndex(_N)
+    return Series(randn(_N), index=index, name=name)
 
 
 def makeObjectSeries(name=None):
-    data = makeStringIndex(N)
+    data = makeStringIndex(_N)
     data = Index(data, dtype=object)
-    index = makeStringIndex(N)
+    index = makeStringIndex(_N)
     return Series(data, index=index, name=name)
 
 
 def getSeriesData():
-    index = makeStringIndex(N)
-    return {c: Series(randn(N), index=index) for c in getCols(K)}
+    index = makeStringIndex(_N)
+    return {c: Series(randn(_N), index=index) for c in getCols(_K)}
 
 
 def makeTimeSeries(nper=None, freq="B", name=None):
     if nper is None:
-        nper = N
+        nper = _N
     return Series(randn(nper), index=makeDateIndex(nper, freq=freq), name=name)
 
 
 def makePeriodSeries(nper=None, name=None):
     if nper is None:
-        nper = N
+        nper = _N
     return Series(randn(nper), index=makePeriodIndex(nper), name=name)
 
 
 def getTimeSeriesData(nper=None, freq="B"):
-    return {c: makeTimeSeries(nper, freq) for c in getCols(K)}
+    return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
 
 
 def getPeriodData(nper=None):
-    return {c: makePeriodSeries(nper) for c in getCols(K)}
+    return {c: makePeriodSeries(nper) for c in getCols(_K)}
 
 
 # make frame
@@ -1854,7 +1867,8 @@ def makePeriodFrame(nper=None):
 def makeCustomIndex(
     nentries, nlevels, prefix="#", names=False, ndupe_l=None, idx_type=None
 ):
-    """Create an index/multindex with given dimensions, levels, names, etc'
+    """
+    Create an index/multindex with given dimensions, levels, names, etc'
 
     nentries - number of entries in index
     nlevels - number of levels (> 1 produces multindex)
@@ -2144,7 +2158,8 @@ def makeMissingDataframe(density=0.9, random_state=None):
 
 
 def optional_args(decorator):
-    """allows a decorator to take optional positional and keyword arguments.
+    """
+    allows a decorator to take optional positional and keyword arguments.
     Assumes that taking a single, callable, positional argument means that
     it is decorating a function, i.e. something like this::
 
@@ -2216,7 +2231,8 @@ def _get_default_network_errors():
 
 
 def can_connect(url, error_classes=None):
-    """Try to connect to the given url. True if succeeds, False if IOError
+    """
+    Try to connect to the given url. True if succeeds, False if IOError
     raised
 
     Parameters
@@ -2584,7 +2600,8 @@ def use_numexpr(use, min_elements=None):
 
 
 def test_parallel(num_threads=2, kwargs_list=None):
-    """Decorator to run the same function multiple times in parallel.
+    """
+    Decorator to run the same function multiple times in parallel.
 
     Parameters
     ----------
