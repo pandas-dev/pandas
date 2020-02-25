@@ -5,22 +5,17 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import TYPE_CHECKING, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Set, Tuple
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
-from pandas._typing import Level
+from pandas._typing import ArrayLike, Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCExtensionArray,
-    ABCIndexClass,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import extract_array
@@ -451,10 +446,7 @@ def _align_method_SERIES(left, right, align_asobject=False):
 
 
 def _construct_result(
-    left: ABCSeries,
-    result: Union[np.ndarray, ABCExtensionArray],
-    index: ABCIndexClass,
-    name,
+    left: ABCSeries, result: ArrayLike, index: ABCIndexClass, name,
 ):
     """
     Construct an appropriately-labelled Series from the result of an op.
@@ -836,7 +828,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             return _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -860,13 +852,15 @@ def _comp_method_FRAME(cls, op, special):
             new_data = dispatch_to_series(self, other, op, str_rep)
 
         elif isinstance(other, ABCSeries):
-            new_data = dispatch_to_series(self, other, op, axis="columns")
+            new_data = dispatch_to_series(
+                self, other, op, str_rep=str_rep, axis="columns"
+            )
 
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
 
         return self._construct_result(new_data)
 
