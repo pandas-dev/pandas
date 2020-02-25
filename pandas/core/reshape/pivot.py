@@ -434,7 +434,7 @@ def pivot(
     columns = columns if is_list_like(columns) else [columns]
 
     if values is None:
-        cols: List[Axis, Sequence[Optional[Axis]]] = []
+        cols: List[Axes, Sequence[Optional[Axes]]] = []
         if index is None:
             pass
         elif is_list_like(index):
