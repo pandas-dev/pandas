@@ -1033,6 +1033,7 @@ def series_with_simple_index(indices):
 
 
 _narrow_dtypes = [
+    np.float16,
     np.float32,
     np.int8,
     np.int16,
