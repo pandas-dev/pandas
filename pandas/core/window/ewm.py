@@ -71,22 +71,26 @@ class EWM(_Rolling):
 
     Notes
     -----
-    Exactly one center of mass paramter: ``com``, ``span``, ``halflife``, or ``alpha`` must be provided.
+    Exactly one center of mass paramter: ``com``, ``span``, ``halflife``, or ``alpha`` 
+    must be provided.
     Allowed values and the relation between the parameters are specified in the
     parameter descriptions above (see the link at the end of this section for
     a detailed explanation).
 
-    Available EW (exponentially weighted) methods: ``mean()``, ``var()``, ``std()``, ``corr()``, ``cov()``. 
+    Available EW (exponentially weighted) methods: ``mean()``, ``var()``, ``std()``, 
+    ``corr()``, ``cov()``. 
 
     When ``adjust=True`` (default), the EW function is calculated using
     weights :math:`w_i = (1 - \alpha)^i`. 
-    For example, the EW moving average of the series [:math:`x_0, x_1, ..., x_t`] would be:
+    For example, the EW moving average of the series [:math:`x_0, x_1, ..., x_t`] would 
+    be:
 
 	.. math::
-		y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... +(1 - \alpha)^t x_{0}}{1 + 
-			(1 - \alpha) + (1 - \alpha)^2	+ ... + (1 - \alpha)^t}
+		y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... 
+		+ (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
 
-    When ``adjust=False``, the exponentially weighted function is calculated recursively:
+    When ``adjust=False``, the exponentially weighted function is calculated 
+    recursively:
 
     .. math::
     	\begin{split}
@@ -95,14 +99,16 @@ class EWM(_Rolling):
     	\end{split}
     
     When ``ignore_na=False`` (default), weights are based on absolute positions.
-    For example, the weights of :math:`x_0` and :math:`x_2` used in calculating the final weighted
-    average of [:math:`x_0`, None, :math:`x_2`] are :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
-    :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
+    For example, the weights of :math:`x_0` and :math:`x_2` used in calculating the 
+    final weighted average of [:math:`x_0`, None, :math:`x_2`] are :math:`(1-\alpha)^2` 
+    and :math:`1` if ``adjust=True``, and :math:`(1-\alpha)^2` and 
+    :math:`\alpha` if ``adjust=False``.
 
-    When ``ignore_na=True`` (reproducing pre-0.15.0 behavior), weights are based
-    on relative positions. For example, the weights of :math:`x_0` and :math:`x_2` used in
-    calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1`
-    if ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
+    When ``ignore_na=True`` (reproducing pre-0.15.0 behavior), weights are based on 
+    relative positions. For example, the weights of :math:`x_0` and :math:`x_2` used in
+    calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`] are 
+    :math:`1-\alpha` and :math:`1` if ``adjust=True``, and :math:`1-\alpha` and 
+    :math:`\alpha` if ``adjust=False``.
 
     More details can be found at: 
     `Exponentially weighted windows 
