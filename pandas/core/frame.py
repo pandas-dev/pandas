@@ -5150,11 +5150,16 @@ class DataFrame(NDFrame):
 Returns
 -------
 DataFrame
-    DataFrame that shows the differences stacked side by side.
+    DataFrame that shows the differences stacked side by side. 
+    The resulting index will be a MultiIndex with 'self' and 'other' stacked alternately at the inner level. 
 
 See Also
 --------
 Series.differences: Show differences.
+
+Notes
+-----
+NaNs are considered equal to other NaNs.
 
 Examples
 --------
@@ -5227,10 +5232,10 @@ Keep all original indices and data
     )
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
-        self, other: "DataFrame", axis=1, keep_indices=False, keep_values=False
+        self, other: "DataFrame", axis=1, keep_shape=False, keep_equal=False
     ) -> "DataFrame":
         return super().differences(
-            other=other, axis=axis, keep_indices=keep_indices, keep_values=keep_values
+            other=other, axis=axis, keep_shape=keep_shape, keep_equal=keep_equal
         )
 
     def combine(

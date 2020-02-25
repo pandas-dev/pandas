@@ -2579,12 +2579,19 @@ Name: Max Speed, dtype: float64
 Returns
 -------
 Series or DataFrame
-    If axis is 0 or 'index' the result will be a Series.
-    If axis is 1 or 'columns' the result will be a DataFrame.
+    If axis is 0 or 'index' the result will be a Series. 
+    The resulting index will be a MultiIndex with 'self' and 'other' stacked alternately at the inner level.
+    
+    If axis is 1 or 'columns' the result will be a DataFrame. 
+    Its will have two columns namely 'self' and 'other'.
 
 See Also
 --------
 DataFrame.differences: Show differences.
+
+Notes
+-----
+NaNs are considered equal to other NaNs.
 
 Examples
 --------
@@ -2630,10 +2637,10 @@ Keep all original indices and data
     )
     @Appender(generic._shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
-        self, other: "Series", axis=1, keep_indices=False, keep_values=False
+        self, other: "Series", axis=1, keep_shape=False, keep_equal=False
     ) -> FrameOrSeries:
         return super().differences(
-            other=other, axis=axis, keep_indices=keep_indices, keep_values=keep_values
+            other=other, axis=axis, keep_shape=keep_shape, keep_equal=keep_equal
         )
 
     def combine(self, other, func, fill_value=None) -> "Series":

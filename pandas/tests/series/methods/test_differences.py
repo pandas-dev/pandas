@@ -26,7 +26,7 @@ def test_differences_axis(axis):
 
 
 @pytest.mark.parametrize(
-    "keep_indices, keep_values",
+    "keep_shape, keep_equal",
     [
         (True, False),
         (False, True),
@@ -34,16 +34,16 @@ def test_differences_axis(axis):
         # False, False case is already covered in test_differences_axis
     ],
 )
-def test_differences_various_formats(keep_indices, keep_values):
+def test_differences_various_formats(keep_shape, keep_equal):
     s1 = pd.Series(["a", "b", "c"])
     s2 = pd.Series(["x", "b", "z"])
 
-    result = s1.differences(s2, keep_indices=keep_indices, keep_values=keep_values)
+    result = s1.differences(s2, keep_shape=keep_shape, keep_equal=keep_equal)
 
-    if keep_indices:
+    if keep_shape:
         indices = pd.Index([0, 1, 2])
         columns = pd.Index(["self", "other"])
-        if keep_values:
+        if keep_equal:
             expected = pd.DataFrame(
                 [["a", "x"], ["b", "b"], ["c", "z"]], index=indices, columns=columns
             )

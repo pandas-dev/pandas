@@ -8153,11 +8153,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ] = """
         Compare to another %(klass)s and show the differences.
 
-        The axis on which to stack results and how much information to
-        preserve can be customized.
-
-        Note that NaNs are considered not different from other NaNs.
-
         Parameters
         ----------
         other : %(klass)s
@@ -8165,28 +8160,30 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         axis : {0 or 'index', 1 or 'columns'}, default 1
             Determine how the differences are stacked.
-            * 0, or 'index' : Stack differences on neighbouring rows.
-            * 1, or 'columns' : Stack differences on neighbouring columns.
+            * 0, or 'index' : Resulting differences are stacked vertically 
+                with rows drawn alternately from self and other.
+            * 1, or 'columns' : Resulting differences are stacked horizontally 
+                with columns drawn alternately from self and other.
 
-        keep_indices : bool, default False
-            Whether to keep the rows and columns that are equal, or drop them.
+        keep_shape : bool, default False
+            If true, all rows and columns are kept. Otherwise only the different ones are kept.
 
-        keep_values : bool, default False
-            Whether to keep the values that are equal, or show as NaNs.
+        keep_equal : bool, default False
+            If true, the result keeps values that are equal. Otherwise they are shown as NaNs.
         """
 
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
-    def differences(self, other, axis=1, keep_indices=False, keep_values=False):
+    def differences(self, other, axis=1, keep_shape=False, keep_equal=False):
         from pandas.core.reshape.concat import concat
 
         mask = ~((self == other) | (self.isna() & other.isna()))
         keys = ["self", "other"]
 
-        if not keep_values:
+        if not keep_equal:
             self = self.where(mask)
             other = other.where(mask)
 
-        if not keep_indices:
+        if not keep_shape:
             if isinstance(self, ABCDataFrame):
                 cmask = mask.any()
                 rmask = mask.any(axis=1)
