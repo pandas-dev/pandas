@@ -777,8 +777,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if isinstance(value, str):
             try:
                 value = self._scalar_from_string(value)
-            except ValueError:
-                raise TypeError("searchsorted requires compatible dtype or scalar")
+            except ValueError as e:
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar"
+                ) from e
 
         elif is_valid_nat_for_dtype(value, self.dtype):
             value = NaT
@@ -1041,7 +1043,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             raise ValueError(
                 f"Inferred frequency {inferred} from passed values "
                 f"does not conform to passed frequency {freq.freqstr}"
-            )
+            ) from e
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
