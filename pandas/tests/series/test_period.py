@@ -52,12 +52,6 @@ class TestSeriesPeriod:
         s = Series([pd.Period("2011-01", freq="M"), pd.Period("NaT", freq="M")])
         tm.assert_series_equal(s.dropna(), Series([pd.Period("2011-01", freq="M")]))
 
-    def test_between(self):
-        left, right = self.series[[2, 7]]
-        result = self.series.between(left, right)
-        expected = (self.series >= left) & (self.series <= right)
-        tm.assert_series_equal(result, expected)
-
     # ---------------------------------------------------------------------
     # NaT support
 
