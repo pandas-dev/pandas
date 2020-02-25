@@ -262,8 +262,9 @@ class TestJoin:
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({"a": [1, 1]})
-        msg = "Can only merge Series or DataFrame objects, a {} was passed".format(
-            str(type(wrong_type))
+        msg = (
+            "Can only merge Series or DataFrame objects, "
+            f"a {type(wrong_type)} was passed"
         )
         with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on="a", right_on="a")
@@ -812,9 +813,7 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
         except KeyError:
             if how in ("left", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
+                    f"key {group_key} should not have been in the join"
                 )
 
             _assert_all_na(l_joined, left.columns, join_col)
@@ -826,9 +825,7 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
         except KeyError:
             if how in ("right", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
+                    f"key {group_key} should not have been in the join"
                 )
 
             _assert_all_na(r_joined, right.columns, join_col)
