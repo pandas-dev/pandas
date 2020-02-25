@@ -259,17 +259,18 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/frame.py
+    pytest -q --doctest-modules pandas/core/frame.py \
+        -k"-differences"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/series.py \
-        -k"-nonzero -reindex -searchsorted -to_dict"
+        -k"-differences -nonzero -reindex -searchsorted -to_dict"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
+        -k"-_set_axis_name -_xs -describe -differences -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_clipboard -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests groupby.py' ; echo $MSG
