@@ -9,6 +9,7 @@ from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
+from pandas._typing import Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -249,7 +250,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
-    def _shallow_copy(self, values=None, name=no_default):
+    def _shallow_copy(self, values=None, name: Label = no_default):
         # TODO: simplify, figure out type of values
         name = name if name is not no_default else self.name
 

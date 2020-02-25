@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype
+from pandas._typing import Dtype, Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -103,7 +103,7 @@ class NumericIndex(Index):
         return self._maybe_cast_indexer(label)
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, name=lib.no_default):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = name if name is not lib.no_default else self.name
 
         if values is not None and not self._can_hold_na and values.dtype.kind == "f":

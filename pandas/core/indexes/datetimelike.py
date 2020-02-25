@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import timezones
+from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -649,7 +650,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         self._data._freq = freq
 
-    def _shallow_copy(self, values=None, name=lib.no_default):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
 
         if values is None:

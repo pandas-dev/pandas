@@ -485,7 +485,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    def _shallow_copy(self, values=None, name=no_default):
+    def _shallow_copy(self, values=None, name: Label = no_default):
         """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -496,7 +496,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         values : the values to create the new Index, optional
-        kwargs : updates the default attributes for this Index
+        name : Label, defaults to self.name
         """
         name = self.name if name is no_default else name
 
