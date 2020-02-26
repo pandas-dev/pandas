@@ -32,7 +32,19 @@ class TestFloatIndexers:
 
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("index_func", tm.all_index_generator(5))
+    @pytest.mark.parametrize(
+        "index_func",
+        [
+            tm.makeStringIndex,
+            tm.makeUnicodeIndex,
+            tm.makeCategoricalIndex,
+            tm.makeDateIndex,
+            tm.makeTimedeltaIndex,
+            tm.makePeriodIndex,
+            tm.makeIntIndex,
+            tm.makeRangeIndex,
+        ],
+    )
     def test_scalar_error(self, index_func):
 
         # GH 4892
@@ -42,7 +54,7 @@ class TestFloatIndexers:
         # but is specifically testing for the error
         # message
 
-        i = index_func
+        i = index_func(5)
 
         s = Series(np.arange(len(i)), index=i)
 
