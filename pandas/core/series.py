@@ -2587,7 +2587,7 @@ Series or DataFrame
 
 See Also
 --------
-DataFrame.differences: Show differences.
+DataFrame.differences : Show differences.
 
 Notes
 -----
