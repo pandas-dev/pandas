@@ -1,13 +1,11 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from io import StringIO
-from itertools import product
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -23,8 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, BMonthEnd
-
 
 def _simple_ts(start, end, freq="D"):
     rng = date_range(start, end, freq=freq)
@@ -38,44 +34,6 @@ def assert_range_equal(left, right):
 
 
 class TestTimeSeries:
-    def test_asfreq(self):
-        ts = Series(
-            [0.0, 1.0, 2.0],
-            index=[
-                datetime(2009, 10, 30),
-                datetime(2009, 11, 30),
-                datetime(2009, 12, 31),
-            ],
-        )
-
-        daily_ts = ts.asfreq("B")
-        monthly_ts = daily_ts.asfreq("BM")
-        tm.assert_series_equal(monthly_ts, ts)
-
-        daily_ts = ts.asfreq("B", method="pad")
-        monthly_ts = daily_ts.asfreq("BM")
-        tm.assert_series_equal(monthly_ts, ts)
-
-        daily_ts = ts.asfreq(BDay())
-        monthly_ts = daily_ts.asfreq(BMonthEnd())
-        tm.assert_series_equal(monthly_ts, ts)
-
-        result = ts[:0].asfreq("M")
-        assert len(result) == 0
-        assert result is not ts
-
-        daily_ts = ts.asfreq("D", fill_value=-1)
-        result = daily_ts.value_counts().sort_index()
-        expected = Series([60, 1, 1, 1], index=[-1.0, 2.0, 1.0, 0.0]).sort_index()
-        tm.assert_series_equal(result, expected)
-
-    def test_asfreq_datetimeindex_empty_series(self):
-        # GH 14320
-        index = pd.DatetimeIndex(["2016-09-29 11:00"])
-        expected = Series(index=index, dtype=object).asfreq("H")
-        result = Series([3], index=index.copy()).asfreq("H")
-        tm.assert_index_equal(expected.index, result.index)
-
     def test_autocorr(self, datetime_series):
         # Just run the function
         corr1 = datetime_series.autocorr()
@@ -268,15 +226,6 @@ class TestTimeSeries:
         )
         assert result == expected
 
-    def test_asfreq_keep_index_name(self):
-        # GH #9854
-        index_name = "bar"
-        index = pd.date_range("20130101", periods=20, name=index_name)
-        df = pd.DataFrame(list(range(20)), columns=["foo"], index=index)
-
-        assert index_name == df.index.name
-        assert index_name == df.asfreq("10D").index.name
-
     def test_promote_datetime_date(self):
         rng = date_range("1/1/2000", periods=20)
         ts = Series(np.random.randn(20), index=rng)
@@ -299,26 +248,6 @@ class TestTimeSeries:
         result = rng.get_indexer(ts2.index)
         expected = rng.get_indexer(ts_slice.index)
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_asfreq_normalize(self):
-        rng = date_range("1/1/2000 09:30", periods=20)
-        norm = date_range("1/1/2000", periods=20)
-        vals = np.random.randn(20)
-        ts = Series(vals, index=rng)
-
-        result = ts.asfreq("D", normalize=True)
-        norm = date_range("1/1/2000", periods=20)
-        expected = Series(vals, index=norm)
-
-        tm.assert_series_equal(result, expected)
-
-        vals = np.random.randn(20, 3)
-        ts = DataFrame(vals, index=rng)
-
-        result = ts.asfreq("D", normalize=True)
-        expected = DataFrame(vals, index=norm)
-
-        tm.assert_frame_equal(result, expected)
 
     def test_first_subset(self):
         ts = _simple_ts("1/1/2000", "1/1/2010", freq="12h")
@@ -379,180 +308,6 @@ class TestTimeSeries:
         rng.format()
         ts = Series(1, index=rng)
         repr(ts)
-
-    def test_at_time(self):
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = Series(np.random.randn(len(rng)), index=rng)
-        rs = ts.at_time(rng[1])
-        assert (rs.index.hour == rng[1].hour).all()
-        assert (rs.index.minute == rng[1].minute).all()
-        assert (rs.index.second == rng[1].second).all()
-
-        result = ts.at_time("9:30")
-        expected = ts.at_time(time(9, 30))
-        tm.assert_series_equal(result, expected)
-
-        df = DataFrame(np.random.randn(len(rng), 3), index=rng)
-
-        result = ts[time(9, 30)]
-        result_df = df.loc[time(9, 30)]
-        expected = ts[(rng.hour == 9) & (rng.minute == 30)]
-        exp_df = df[(rng.hour == 9) & (rng.minute == 30)]
-
-        # FIXME: dont leave commented-out
-        # expected.index = date_range('1/1/2000', '1/4/2000')
-
-        tm.assert_series_equal(result, expected)
-        tm.assert_frame_equal(result_df, exp_df)
-
-        chunk = df.loc["1/4/2000":]
-        result = chunk.loc[time(9, 30)]
-        expected = result_df[-1:]
-        tm.assert_frame_equal(result, expected)
-
-        # midnight, everything
-        rng = date_range("1/1/2000", "1/31/2000")
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        result = ts.at_time(time(0, 0))
-        tm.assert_series_equal(result, ts)
-
-        # time doesn't exist
-        rng = date_range("1/1/2012", freq="23Min", periods=384)
-        ts = Series(np.random.randn(len(rng)), rng)
-        rs = ts.at_time("16:00")
-        assert len(rs) == 0
-
-    def test_at_time_raises(self):
-        # GH20725
-        ser = pd.Series("a b c".split())
-        msg = "Index must be DatetimeIndex"
-        with pytest.raises(TypeError, match=msg):
-            ser.at_time("00:00")
-
-    def test_between(self):
-        series = Series(date_range("1/1/2000", periods=10))
-        left, right = series[[2, 7]]
-
-        result = series.between(left, right)
-        expected = (series >= left) & (series <= right)
-        tm.assert_series_equal(result, expected)
-
-    def test_between_time(self):
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = Series(np.random.randn(len(rng)), index=rng)
-        stime = time(0, 0)
-        etime = time(1, 0)
-
-        close_open = product([True, False], [True, False])
-        for inc_start, inc_end in close_open:
-            filtered = ts.between_time(stime, etime, inc_start, inc_end)
-            exp_len = 13 * 4 + 1
-            if not inc_start:
-                exp_len -= 5
-            if not inc_end:
-                exp_len -= 4
-
-            assert len(filtered) == exp_len
-            for rs in filtered.index:
-                t = rs.time()
-                if inc_start:
-                    assert t >= stime
-                else:
-                    assert t > stime
-
-                if inc_end:
-                    assert t <= etime
-                else:
-                    assert t < etime
-
-        result = ts.between_time("00:00", "01:00")
-        expected = ts.between_time(stime, etime)
-        tm.assert_series_equal(result, expected)
-
-        # across midnight
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = Series(np.random.randn(len(rng)), index=rng)
-        stime = time(22, 0)
-        etime = time(9, 0)
-
-        close_open = product([True, False], [True, False])
-        for inc_start, inc_end in close_open:
-            filtered = ts.between_time(stime, etime, inc_start, inc_end)
-            exp_len = (12 * 11 + 1) * 4 + 1
-            if not inc_start:
-                exp_len -= 4
-            if not inc_end:
-                exp_len -= 4
-
-            assert len(filtered) == exp_len
-            for rs in filtered.index:
-                t = rs.time()
-                if inc_start:
-                    assert (t >= stime) or (t <= etime)
-                else:
-                    assert (t > stime) or (t <= etime)
-
-                if inc_end:
-                    assert (t <= etime) or (t >= stime)
-                else:
-                    assert (t < etime) or (t >= stime)
-
-    def test_between_time_raises(self):
-        # GH20725
-        ser = pd.Series("a b c".split())
-        msg = "Index must be DatetimeIndex"
-        with pytest.raises(TypeError, match=msg):
-            ser.between_time(start_time="00:00", end_time="12:00")
-
-    def test_between_time_types(self):
-        # GH11818
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
-        with pytest.raises(ValueError, match=msg):
-            rng.indexer_between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
-
-        frame = DataFrame({"A": 0}, index=rng)
-        with pytest.raises(ValueError, match=msg):
-            frame.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
-
-        series = Series(0, index=rng)
-        with pytest.raises(ValueError, match=msg):
-            series.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
-
-    @td.skip_if_has_locale
-    def test_between_time_formats(self):
-        # GH11818
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-
-        strings = [
-            ("2:00", "2:30"),
-            ("0200", "0230"),
-            ("2:00am", "2:30am"),
-            ("0200am", "0230am"),
-            ("2:00:00", "2:30:00"),
-            ("020000", "023000"),
-            ("2:00:00am", "2:30:00am"),
-            ("020000am", "023000am"),
-        ]
-        expected_length = 28
-
-        for time_string in strings:
-            assert len(ts.between_time(*time_string)) == expected_length
-
-    def test_between_time_axis(self):
-        # issue 8839
-        rng = date_range("1/1/2000", periods=100, freq="10min")
-        ts = Series(np.random.randn(len(rng)), index=rng)
-        stime, etime = ("08:00:00", "09:00:00")
-        expected_length = 7
-
-        assert len(ts.between_time(stime, etime)) == expected_length
-        assert len(ts.between_time(stime, etime, axis=0)) == expected_length
-        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
-        with pytest.raises(ValueError, match=msg):
-            ts.between_time(stime, etime, axis=1)
 
     def test_to_period(self):
         from pandas.core.indexes.period import period_range
