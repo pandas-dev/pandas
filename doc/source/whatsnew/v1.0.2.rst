@@ -63,6 +63,7 @@ Bug fixes
 **Datetimelike**
 
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with a tz-aware index (:issue:`26683`)
+- Bug where :func:`to_datetime` would raise when passed ``pd.NA`` (:issue:`32213`)
 
 **Categorical**
 
