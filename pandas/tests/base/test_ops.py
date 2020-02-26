@@ -251,10 +251,14 @@ class TestIndexOps(Ops):
         result = obj.value_counts()
 
         counter = collections.Counter(obj)
-        expected = pd.Series(dict(counter.most_common()), dtype=int)
+        expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
         expected.index = expected.index.astype(obj.dtype)
         if isinstance(obj, pd.MultiIndex):
             expected.index = pd.Index(expected.index)
+
+        # sort_index to avoid switched order when values share the same count
+        result = result.sort_index()
+        expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
