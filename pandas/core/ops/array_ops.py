@@ -126,7 +126,7 @@ def define_na_arithmetic_op(op, str_rep: str):
     return na_op
 
 
-def na_arithmetic_op(left, right, op, str_rep: str):
+def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -137,6 +137,8 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     left : np.ndarray
     right : np.ndarray or scalar
     str_rep : str or None
+    is_cmp : bool, default False
+        If this a comparison operation.
 
     Returns
     -------
@@ -151,7 +153,17 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     try:
         result = expressions.evaluate(op, str_rep, left, right)
     except TypeError:
+        if is_cmp:
+            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
+            #  In this case we do not fall back to the masked op, as that
+            #  will handle complex numbers incorrectly, see GH#32047
+            raise
         result = masked_arith_op(left, right, op)
+
+    if is_cmp and (is_scalar(result) or result is NotImplemented):
+        # numpy returned a scalar instead of operating element-wise
+        # e.g. numeric array vs str
+        return invalid_comparison(left, right, op)
 
     return missing.dispatch_fill_zeros(op, left, right, result)
 
@@ -199,7 +211,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     return res_values
 
 
-def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
+def comparison_op(
+    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
+) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -244,16 +258,8 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = f"__{op.__name__}__"
-        method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
-            res_values = method(rvalues)
-
-        if res_values is NotImplemented:
-            res_values = invalid_comparison(lvalues, rvalues, op)
-        if is_scalar(res_values):
-            typ = type(rvalues)
-            raise TypeError(f"Could not compare {typ} type with Series")
+            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
 
     return res_values
 
@@ -380,7 +386,7 @@ def get_array_op(op, str_rep: Optional[str] = None):
     """
     op_name = op.__name__.strip("_")
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op)
+        return partial(comparison_op, op=op, str_rep=str_rep)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
     else:
