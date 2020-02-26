@@ -572,7 +572,8 @@ class TestInference:
         # GH32146
         arr = pd.Index([True, False, np.nan], dtype=object)
         exp = np.array([True, False, np.nan], dtype=object)
-        tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr.values, safe=1), exp)
+        out = lib.maybe_convert_objects(arr.values, safe=1)
+        tm.assert_numpy_array_equal(out, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956

@@ -98,7 +98,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 
-- Fixed bug where :func:`pandas._libs.lib.maybe_convert_objects` improperly handled arrays with bools and NaNs. (:issue:`32146`)
+- Fixed bug, where the Series representation of an object Index with bools and NaNs was wrong. (:issue:`32146`)
 
 Categorical
 ^^^^^^^^^^^
