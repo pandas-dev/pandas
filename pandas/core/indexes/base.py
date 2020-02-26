@@ -796,20 +796,24 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(self, name=None, deep=False, dtype=None, names=None):
         """
-        Make a copy of this object.  Name and dtype sets those attributes on
-        the new object.
+        Make a copy of this object.
+
+        Name and dtype sets those attributes on the new object.
 
         Parameters
         ----------
-        name : Label
+        name : Label, optional
+            Set name for new object.
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
+            Set dtype for new object.
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
         Returns
         -------
         Index
+            Index refer to new object which is a copy of this object.
 
         Notes
         -----
@@ -3933,18 +3937,35 @@ class Index(IndexOpsMixin, PandasObject):
 
     def where(self, cond, other=None):
         """
-        Return an Index of same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from
-        other.
+        Replace values where the condition is False.
+
+        The replacement is taken from other.
 
         Parameters
         ----------
         cond : bool array-like with the same length as self
-        other : scalar, or array-like
+            Condition to select the values on.
+        other : scalar, or array-like, default None
+            Replacement if the condition is False.
 
         Returns
         -------
-        Index
+        pandas.Index
+            A copy of self with values replaced from other
+            where the condition is False.
+
+        See Also
+        --------
+        Series.where : Same method for Series.
+        DataFrame.where : Same method for DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['car', 'bike', 'train', 'tractor'])
+        >>> idx
+        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        >>> idx.where(idx.isin(['car', 'train']), 'other')
+        Index(['car', 'other', 'train', 'other'], dtype='object')
         """
         if other is None:
             other = self._na_value
