@@ -267,9 +267,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
 
-    def __array__(self, dtype=None) -> np.ndarray:
-        return np.asarray(self._data, dtype=dtype)
-
     @cache_readonly
     def _is_dates_only(self) -> bool:
         """

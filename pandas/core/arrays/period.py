@@ -282,8 +282,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return self.dtype.freq
 
     def __array__(self, dtype=None) -> np.ndarray:
-        # overriding DatetimelikeArray
-        return np.array(list(self), dtype=object)
+        if dtype is None or dtype == object:
+            return np.array(list(self), dtype=object)
+        elif dtype == "i8":
+            return self.asi8
+        raise NotImplementedError(dtype)
 
     def __arrow_array__(self, type=None):
         """
