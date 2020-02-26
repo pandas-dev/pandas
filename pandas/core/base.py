@@ -927,22 +927,50 @@ class IndexOpsMixin:
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return an ndarray of the maximum argument indexer.
+        Return int position of the largest value in the Series.
+
+        If the maximum is achieved in multiple locations,
+        the first row position is returned.
 
         Parameters
         ----------
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
-        numpy.ndarray
-            Indices of the maximum values.
+        int
+            Row position of the maximum values.
 
         See Also
         --------
-        numpy.ndarray.argmax
+        numpy.ndarray.argmax : Equivalent method for numpy arrays.
+        Series.argmin : Similar method, but returning the minimum.
+        Series.idxmax : Return index label of the maximum values.
+        Series.idxmin : Return index label of the minimum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
+        >>> s
+        Corn Flakes              100.0
+        Almond Delight           110.0
+        Cinnamon Toast Crunch    120.0
+        Cocoa Puff               110.0
+        dtype: float64
+
+        >>> s.argmax()
+        2
+
+        The maximum cereal calories is in the third element,
+        since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
