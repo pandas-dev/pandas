@@ -129,3 +129,16 @@ class TestJoin:
 
         with pytest.raises(TypeError, match=msg):
             aware.join(naive)
+
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
+    def test_join_preserves_freq(self, tz):
+        # GH#32157
+        dti = date_range("2016-01-01", periods=10, tz=tz)
+        result = dti[:5].join(dti[5:], how="outer")
+        assert result.freq == dti.freq
+        tm.assert_index_equal(result, dti)
+
+        result = dti[:5].join(dti[6:], how="outer")
+        assert result.freq is None
+        expected = dti.delete(5)
+        tm.assert_index_equal(result, expected)
