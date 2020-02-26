@@ -796,20 +796,24 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(self, name=None, deep=False, dtype=None, names=None):
         """
-        Make a copy of this object.  Name and dtype sets those attributes on
-        the new object.
+        Make a copy of this object.
+
+        Name and dtype sets those attributes on the new object.
 
         Parameters
         ----------
-        name : Label
+        name : Label, optional
+            Set name for new object.
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
+            Set dtype for new object.
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
         Returns
         -------
         Index
+            Index refer to new object which is a copy of this object.
 
         Notes
         -----
