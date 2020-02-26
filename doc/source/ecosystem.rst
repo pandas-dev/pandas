@@ -56,6 +56,11 @@ joining paths, replacing file extensions, and checking if files exist are also a
 Statistics and machine learning
 -------------------------------
 
+`pandas-tfrecords <https://pypi.org/project/pandas-tfrecords/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
+
 `Statsmodels <https://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
