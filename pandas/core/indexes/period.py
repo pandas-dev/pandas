@@ -5,9 +5,11 @@ import weakref
 import numpy as np
 
 from pandas._libs import index as libindex
+from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
+from pandas._typing import Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -248,8 +250,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = no_default):
         # TODO: simplify, figure out type of values
+        name = name if name is not no_default else self.name
+
         if values is None:
             values = self._data
 
@@ -263,18 +267,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # GH#30713 this should never be reached
                 raise TypeError(type(values), getattr(values, "dtype", None))
 
-        # We don't allow changing `freq` in _shallow_copy.
-        validate_dtype_freq(self.dtype, kwargs.get("freq"))
-        attributes = self._get_attributes_dict()
-
-        attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-        return self._simple_new(values, **attributes)
-
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
-        """ we always want to return a PeriodIndex """
-        return self._shallow_copy(values=values, **kwargs)
+        return self._simple_new(values, name=name)
 
     def _maybe_convert_timedelta(self, other):
         """

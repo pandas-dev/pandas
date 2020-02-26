@@ -7,6 +7,8 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
+from pandas._libs.lib import no_default
+from pandas._typing import Label
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
@@ -385,13 +387,13 @@ class RangeIndex(Int64Index):
         return list(self._range)
 
     @Appender(Int64Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = no_default):
+        name = self.name if name is no_default else name
+
         if values is None:
-            name = kwargs.get("name", self.name)
             return self._simple_new(self._range, name=name)
         else:
-            kwargs.setdefault("name", self.name)
-            return self._int64index._shallow_copy(values, **kwargs)
+            return Int64Index._simple_new(values, name=name)
 
     @Appender(Int64Index.copy.__doc__)
     def copy(self, name=None, deep=False, dtype=None, **kwargs):
