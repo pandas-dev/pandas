@@ -247,33 +247,19 @@ class TestIndexOps(Ops):
 
     def test_value_counts(self, index_or_series_obj):
         orig = index_or_series_obj
-        obj = orig.copy()
-        klass = type(obj)
-        values = obj._values
+        obj = multiply_values(orig.copy())
 
         if orig.duplicated().any():
+            # FIXME: duplicated values should work.
             pytest.xfail(
                 "The test implementation isn't flexible enough to deal"
                 " with duplicated values. This isn't a bug in the"
                 " application code, but in the test code."
             )
 
-        # create repeated values, 'n'th element is repeated by n+1 times
-        if isinstance(obj, Index):
-            expected_index = Index(obj[::-1])
-            expected_index.name = None
-            obj = obj.repeat(range(1, len(obj) + 1))
-        else:
-            expected_index = Index(values[::-1])
-            idx = obj.index.repeat(range(1, len(obj) + 1))
-            # take-based repeat
-            indices = np.repeat(np.arange(len(obj)), range(1, len(obj) + 1))
-            rep = values.take(indices)
-            obj = klass(rep, index=idx)
-
-        # check values has the same dtype as the original
-        assert obj.dtype == orig.dtype
-
+        expected_index = Index(orig.values[::-1], dtype=orig.dtype)
+        if is_datetime64tz_dtype(obj):
+            expected_index = expected_index.normalize()
         expected_s = Series(
             range(len(orig), 0, -1), index=expected_index, dtype="int64"
         )
