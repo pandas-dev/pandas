@@ -1502,11 +1502,7 @@ class _iLocIndexer(_LocationIndexer):
         return key
 
     def _get_setitem_indexer(self, key):
-        if isinstance(key, tuple):
-            if len(key) > self.ndim:
-                # TODO: we could let this fall through if we are OK
-                #  with having numpy raise IndexError("too many indices for array")
-                raise IndexingError("Too many indexers")
+        # GH#32257 Fall through to let numnpy do validation
         return key
 
     # -------------------------------------------------------------------

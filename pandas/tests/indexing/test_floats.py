@@ -7,7 +7,7 @@ from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Serie
 import pandas._testing as tm
 
 # We pass through the error message from numpy
-iloc_msg = re.escape(
+_slice_iloc_msg = re.escape(
     "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
     "and integer or boolean arrays are valid indices"
 )
@@ -70,7 +70,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        with pytest.raises(IndexError, match=iloc_msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
@@ -137,7 +137,7 @@ class TestFloatIndexers:
         assert 3.0 not in s
 
         # setting with a float fails with iloc
-        with pytest.raises(IndexError, match=iloc_msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
         # setting with an indexer
@@ -326,7 +326,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        with pytest.raises(IndexError, match=iloc_msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s2.iloc[3.0] = 0
 
     @pytest.mark.parametrize(

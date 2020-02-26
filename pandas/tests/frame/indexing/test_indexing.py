@@ -997,7 +997,8 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError, match="Too many indexers"):
+        with pytest.raises(IndexError, match="too many indices for array"):
+            # GH#32257 we let numpy do validation, get their exception
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
