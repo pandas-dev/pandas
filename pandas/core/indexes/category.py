@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import accessor
@@ -195,7 +194,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                     raise cls._scalar_data_error(data)
                 data = []
 
-        data = cls._create_categorical(data, dtype=dtype)
+        assert isinstance(dtype, CategoricalDtype), dtype
+        if not isinstance(data, Categorical) or data.dtype != dtype:
+            data = Categorical(data, dtype=dtype)
 
         data = data.copy() if copy else data
 
@@ -225,37 +226,11 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return CategoricalIndex(cat, name=name)
 
     @classmethod
-    def _create_categorical(cls, data, dtype=None):
-        """
-        *this is an internal non-public method*
-
-        create the correct categorical from data and the properties
-
-        Parameters
-        ----------
-        data : data for new Categorical
-        dtype : CategoricalDtype, defaults to existing
-
-        Returns
-        -------
-        Categorical
-        """
-        if isinstance(data, (cls, ABCSeries)) and is_categorical_dtype(data):
-            data = data.values
-
-        if not isinstance(data, ABCCategorical):
-            return Categorical(data, dtype=dtype)
-
-        if isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
-            # we want to silently ignore dtype='category'
-            data = data._set_dtype(dtype)
-        return data
-
-    @classmethod
-    def _simple_new(cls, values, name=None, dtype=None):
+    def _simple_new(cls, values: Categorical, name=None, dtype=None):
+        # GH#32204 dtype is included for compat with Index._simple_new
+        assert isinstance(values, Categorical), type(values)
         result = object.__new__(cls)
 
-        values = cls._create_categorical(values, dtype=dtype)
         result._data = values
         result.name = name
 
@@ -298,7 +273,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             values = other
             if not is_list_like(values):
                 values = [values]
-            other = CategoricalIndex(self._create_categorical(other, dtype=self.dtype))
+            cat = Categorical(other, dtype=self.dtype)
+            other = CategoricalIndex(cat)
             if not other.isin(values).all():
                 raise TypeError(
                     "cannot append a non-category item to a CategoricalIndex"
