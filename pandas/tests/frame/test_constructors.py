@@ -316,7 +316,8 @@ class TestDataFrameConstructors:
 
         # mix dict and array, wrong size - no spec for which error should raise
         # first
-        with pytest.raises(ValueError):
+        msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
+        with pytest.raises(ValueError, match=msg):
             DataFrame({"A": {"a": "a", "b": "b"}, "B": ["a", "b", "c"]})
 
         # Length-one dict micro-optimization

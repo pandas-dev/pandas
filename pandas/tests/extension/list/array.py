@@ -86,13 +86,13 @@ class ListArray(ExtensionArray):
                 output = [
                     self.data[loc] if loc != -1 else fill_value for loc in indexer
                 ]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
         else:
             try:
                 output = [self.data[loc] for loc in indexer]
-            except IndexError:
-                raise IndexError(msg)
+            except IndexError as err:
+                raise IndexError(msg) from err
 
         return self._from_sequence(output)
 

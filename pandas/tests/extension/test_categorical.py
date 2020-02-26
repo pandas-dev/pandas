@@ -278,7 +278,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
             assert (result == expected).all()
 
         else:
-            with pytest.raises(TypeError):
+            msg = "Unordered Categoricals can only compare equality or not"
+            with pytest.raises(TypeError, match=msg):
                 op(data, other)
 
 
