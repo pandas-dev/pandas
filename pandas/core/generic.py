@@ -8167,11 +8167,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         keep_shape : bool, default False
             If true, all rows and columns are kept.
-                Otherwise, only the different ones are kept.
+            Otherwise, only the different ones are kept.
 
         keep_equal : bool, default False
             If true, the result keeps values that are equal.
-                Otherwise, equal values are shown as NaNs.
+            Otherwise, equal values are shown as NaNs.
         """
 
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
