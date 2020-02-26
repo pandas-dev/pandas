@@ -141,7 +141,7 @@ class BlockManager(PandasObject):
         if do_integrity_check:
             self._verify_integrity()
 
-        self._consolidate_check()
+        self._known_consolidated = False
 
         self._rebuild_blknos_and_blklocs()
 
@@ -726,7 +726,6 @@ class BlockManager(PandasObject):
         new_axes[axis] = new_axes[axis][slobj]
 
         bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
-        bm._consolidate_inplace()
         return bm
 
     def __contains__(self, item) -> bool:
