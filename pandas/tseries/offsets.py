@@ -1892,7 +1892,9 @@ class QuarterOffset(DateOffset):
         #  are we passing incorrect freq?
         if hasattr(dtindex._data, "_data"):
             # DTA
-            arr = type(dtindex._data)._simple_new(shifted, dtype=dtindex.dtype, freq=dtindex.freq)
+            arr = type(dtindex._data)._simple_new(
+                shifted, dtype=dtindex.dtype, freq=dtindex.freq
+            )
             return type(dtindex)._simple_new(arr)  # TODO: retain name?
 
         return type(dtindex)._simple_new(
@@ -1983,7 +1985,9 @@ class YearOffset(DateOffset):
         #  are we passing incorrect freq?
         if hasattr(dtindex._data, "_data"):
             # DTA
-            arr = type(dtindex._data)._simple_new(shifted, dtype=dtindex.dtype, freq=dtindex.freq)
+            arr = type(dtindex._data)._simple_new(
+                shifted, dtype=dtindex.dtype, freq=dtindex.freq
+            )
             return type(dtindex)._simple_new(arr)  # TODO: retain name?
         return type(dtindex)._simple_new(
             shifted, freq=dtindex.freq, dtype=dtindex.dtype
