@@ -687,10 +687,10 @@ class TestPeriodArray(SharedTests):
         result = np.asarray(arr, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-        # to other dtypes
-        with pytest.raises(TypeError):
-            np.asarray(arr, dtype="int64")
+        result = np.asarray(arr, dtype="int64")
+        tm.assert_numpy_array_equal(result, arr.asi8)
 
+        # to other dtypes
         with pytest.raises(TypeError):
             np.asarray(arr, dtype="float64")
 

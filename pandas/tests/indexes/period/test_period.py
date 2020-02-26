@@ -701,7 +701,8 @@ def test_dunder_array(array):
         tm.assert_numpy_array_equal(result, expected)
 
     for dtype in ["float64", "int32", "uint64"]:
-        with pytest.raises(NotImplementedError, match=dtype):
+        msg = "argument must be"
+        with pytest.raises(TypeError, match=msg):
             np.array(obj, dtype=dtype)
-        with pytest.raises(NotImplementedError, match=dtype):
+        with pytest.raises(TypeError, match=msg):
             np.array(obj, dtype=getattr(np, dtype))
