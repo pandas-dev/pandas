@@ -4,7 +4,7 @@ import weakref
 
 import numpy as np
 
-from pandas._libs import NaT, index as libindex
+from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
@@ -334,40 +334,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     @cache_readonly
     def _int64index(self) -> Int64Index:
         return Int64Index._simple_new(self.asi8, name=self.name)
-
-    # ------------------------------------------------------------------------
-    # NDarray-Like Methods
-
-    def putmask(self, mask, value):
-        """
-        Return a new Index of the values set with the mask.
-
-        Returns
-        -------
-        Index
-
-        See Also
-        --------
-        numpy.putmask
-        """
-        if isinstance(value, Period):
-            if value.freq != self.freq:
-                return self.astype(object).putmask(mask, value)
-            i8val = value.ordinal
-        elif value is NaT:
-            i8val = value.value
-        elif isinstance(value, (PeriodArray, PeriodIndex)):
-            if value.freq != self.freq:
-                return self.astype(object).putmask(mask, value)
-            i8val = value.asi8
-        else:
-            return self.astype(object).putmask(mask, value)
-
-        i8values = self._data.copy()._data
-
-        np.putmask(i8values, mask, i8val)
-        parr = PeriodArray(i8values, dtype=self.dtype)
-        return type(self)._simple_new(parr, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Methods

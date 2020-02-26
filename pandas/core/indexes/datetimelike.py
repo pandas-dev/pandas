@@ -522,7 +522,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         result = np.where(cond, values, other).astype("i8")
         arr = type(self._data)._simple_new(result, dtype=self.dtype)
         return type(self)._simple_new(arr, name=self.name)
-        # TODO: were we returning incorrect freq by using shallow_copy?
 
     def _summary(self, name=None) -> str:
         """
