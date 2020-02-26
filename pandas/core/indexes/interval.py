@@ -9,7 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp, lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas._typing import AnyArrayLike
+from pandas._typing import AnyArrayLike, Label
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
@@ -191,7 +191,7 @@ class SetopCheck:
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
-    _attributes = ["name", "closed"]
+    _attributes = ["name"]
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -227,17 +227,15 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return cls._simple_new(array, name)
 
     @classmethod
-    def _simple_new(cls, array, name, closed=None):
+    def _simple_new(cls, array: IntervalArray, name: Label = None):
         """
         Construct from an IntervalArray
 
         Parameters
         ----------
         array : IntervalArray
-        name : str
+        name : Label, default None
             Attached as result.name
-        closed : Any
-            Ignored.
         """
         assert isinstance(array, IntervalArray), type(array)
 
