@@ -607,9 +607,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
-        item_arr = type(self._data)._from_sequence([item])
-        to_concat = [self[:loc]._data, item_arr, self[loc:]._data]
-        arr = type(self._data)._concat_same_type(to_concat)
+        i8result = np.concatenate(
+            (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
+        )
+        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
         return type(self)._simple_new(arr, name=self.name)
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
