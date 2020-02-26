@@ -950,6 +950,8 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.argmax : Equivalent method for numpy arrays.
         Series.argmin : Similar method, but returning the minimum.
+        Series.idxmax : Return index label of the maximum values.
+        Series.idxmin : Return index label of the minimum values.
 
         Examples
         --------
