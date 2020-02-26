@@ -454,7 +454,8 @@ class Timestamp(_Timestamp):
                 "hour": hour or 0,
                 "minute": minute or 0,
                 "second": second or 0,
-                "microsecond": microsecond or 0
+                "microsecond": microsecond or 0,
+                "fold": fold or 0
             }
             if year is not None:
                 datetime_kwargs["year"] = year
