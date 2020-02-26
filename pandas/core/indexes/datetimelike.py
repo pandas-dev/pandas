@@ -648,25 +648,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if values is None:
             values = self._data
 
-        if isinstance(values, type(self)):
-            values = values._data
         if isinstance(values, np.ndarray):
             # TODO: We would rather not get here
             values = type(self._data)(values, dtype=self.dtype)
 
-        attributes = self._get_attributes_dict()
-
-        if self.freq is not None:
-            if isinstance(values, (DatetimeArray, TimedeltaArray)):
-                if values.freq is None:
-                    del attributes["freq"]
-        if "tz" in attributes:
-            # FIXME: kludge
-            tz = attributes.pop("tz")
-            assert tz == values.tz, (tz, values.tz)
-
-        attributes["name"] = name
-        return type(self)._simple_new(values, **attributes)
+        return type(self)._simple_new(values, name=name)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
