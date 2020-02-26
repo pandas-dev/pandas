@@ -124,22 +124,16 @@ class TestPeriodIndex(DatetimeLike):
 
         tm.assert_index_equal(result, expected)
 
-    def test_shallow_copy_i8(self):
+    def test_shallow_copy_disallow_i8(self):
         # GH-24391
         pi = period_range("2018-01-01", periods=3, freq="2D")
-        result = pi._shallow_copy(pi.asi8, freq=pi.freq)
-        tm.assert_index_equal(result, pi)
+        with pytest.raises(AssertionError, match="ndarray"):
+            pi._shallow_copy(pi.asi8)
 
     def test_shallow_copy_requires_disallow_period_index(self):
         pi = period_range("2018-01-01", periods=3, freq="2D")
-        with pytest.raises(TypeError, match="PeriodIndex"):
+        with pytest.raises(AssertionError, match="PeriodIndex"):
             pi._shallow_copy(pi)
-
-    def test_shallow_copy_changing_freq_raises(self):
-        pi = period_range("2018-01-01", periods=3, freq="2D")
-        msg = "specified freq and dtype are different"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            pi._shallow_copy(pi._data, freq="H")
 
     def test_view_asi8(self):
         idx = PeriodIndex([], freq="M")
