@@ -353,9 +353,9 @@ class TestCategoricalConstructors:
         result = Categorical(Series(idx))
         tm.assert_index_equal(result.categories, idx)
 
-    def test_constructor_invariant(self):
-        # GH 14190
-        vals = [
+    @pytest.mark.parametrize(
+        "values",
+        [
             np.array([1.0, 1.2, 1.8, np.nan]),
             np.array([1, 2, 3], dtype="int64"),
             ["a", "b", "c", np.nan],
@@ -366,11 +366,13 @@ class TestCategoricalConstructors:
                 Timestamp("2014-01-02", tz="US/Eastern"),
                 NaT,
             ],
-        ]
-        for val in vals:
-            c = Categorical(val)
-            c2 = Categorical(c)
-            tm.assert_categorical_equal(c, c2)
+        ],
+    )
+    def test_constructor_invariant(self, values):
+        # GH 14190
+        c = Categorical(values)
+        c2 = Categorical(c)
+        tm.assert_categorical_equal(c, c2)
 
     @pytest.mark.parametrize("ordered", [True, False])
     def test_constructor_with_dtype(self, ordered):
@@ -470,9 +472,14 @@ class TestCategoricalConstructors:
 
         tm.assert_categorical_equal(result, expected)
 
-    def test_from_codes(self):
+    def test_from_codes_empty(self):
+        cat = ["a", "b", "c"]
+        result = Categorical.from_codes([], categories=cat)
+        expected = Categorical([], categories=cat)
 
-        # too few categories
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_codes_too_few_categories(self):
         dtype = CategoricalDtype(categories=[1, 2])
         msg = "codes need to be between "
         with pytest.raises(ValueError, match=msg):
@@ -480,22 +487,23 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes([1, 2], dtype=dtype)
 
-        # no int codes
+    def test_from_codes_non_int_codes(self):
+        dtype = CategoricalDtype(categories=[1, 2])
         msg = "codes need to be array-like integers"
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(["a"], categories=dtype.categories)
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(["a"], dtype=dtype)
 
-        # no unique categories
+    def test_from_codes_non_unique_categories(self):
         with pytest.raises(ValueError, match="Categorical categories must be unique"):
             Categorical.from_codes([0, 1, 2], categories=["a", "a", "b"])
 
-        # NaN categories included
+    def test_from_codes_nan_cat_included(self):
         with pytest.raises(ValueError, match="Categorial categories cannot be null"):
             Categorical.from_codes([0, 1, 2], categories=["a", "b", np.nan])
 
-        # too negative
+    def test_from_codes_too_negative(self):
         dtype = CategoricalDtype(categories=["a", "b", "c"])
         msg = r"codes need to be between -1 and len\(categories\)-1"
         with pytest.raises(ValueError, match=msg):
@@ -503,6 +511,8 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes([-2, 1, 2], dtype=dtype)
 
+    def test_from_codes(self):
+        dtype = CategoricalDtype(categories=["a", "b", "c"])
         exp = Categorical(["a", "b", "c"], ordered=False)
         res = Categorical.from_codes([0, 1, 2], categories=dtype.categories)
         tm.assert_categorical_equal(exp, res)
@@ -510,21 +520,18 @@ class TestCategoricalConstructors:
         res = Categorical.from_codes([0, 1, 2], dtype=dtype)
         tm.assert_categorical_equal(exp, res)
 
-    def test_from_codes_with_categorical_categories(self):
+    @pytest.mark.parametrize("klass", [Categorical, CategoricalIndex])
+    def test_from_codes_with_categorical_categories(self, klass):
         # GH17884
         expected = Categorical(["a", "b"], categories=["a", "b", "c"])
 
-        result = Categorical.from_codes([0, 1], categories=Categorical(["a", "b", "c"]))
+        result = Categorical.from_codes([0, 1], categories=klass(["a", "b", "c"]))
         tm.assert_categorical_equal(result, expected)
 
-        result = Categorical.from_codes(
-            [0, 1], categories=CategoricalIndex(["a", "b", "c"])
-        )
-        tm.assert_categorical_equal(result, expected)
-
-        # non-unique Categorical still raises
+    @pytest.mark.parametrize("klass", [Categorical, CategoricalIndex])
+    def test_from_codes_with_non_unique_categorical_categories(self, klass):
         with pytest.raises(ValueError, match="Categorical categories must be unique"):
-            Categorical.from_codes([0, 1], Categorical(["a", "b", "a"]))
+            Categorical.from_codes([0, 1], klass(["a", "b", "a"]))
 
     def test_from_codes_with_nan_code(self):
         # GH21767
@@ -535,24 +542,16 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="codes need to be array-like integers"):
             Categorical.from_codes(codes, dtype=dtype)
 
-    def test_from_codes_with_float(self):
+    @pytest.mark.parametrize("codes", [[1.0, 2.0, 0], [1.1, 2.0, 0]])
+    def test_from_codes_with_float(self, codes):
         # GH21767
-        codes = [1.0, 2.0, 0]  # integer, but in float dtype
+        # float codes should raise even if values are equal to integers
         dtype = CategoricalDtype(categories=["a", "b", "c"])
 
-        # empty codes should not raise for floats
-        Categorical.from_codes([], dtype.categories)
-
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+        msg = "codes need to be array-like integers"
+        with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(codes, dtype.categories)
-
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
-            Categorical.from_codes(codes, dtype=dtype)
-
-        codes = [1.1, 2.0, 0]  # non-integer
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
-            Categorical.from_codes(codes, dtype.categories)
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+        with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(codes, dtype=dtype)
 
     def test_from_codes_with_dtype_raises(self):
