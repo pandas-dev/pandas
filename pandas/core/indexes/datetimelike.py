@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import timezones
+from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -551,14 +552,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         result = result.replace("'", "")
         return result
 
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        Concatenate to_concat which has the same class.
-        """
-        new_data = type(self._data)._concat_same_type(to_concat)
-
-        return type(self)._simple_new(new_data, name=name)
-
     def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
@@ -649,7 +642,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         self._data._freq = freq
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+
         if values is None:
             values = self._data
 
@@ -657,18 +652,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             values = values._data
         if isinstance(values, np.ndarray):
             # TODO: We would rather not get here
-            if kwargs.get("freq") is not None:
-                raise ValueError(kwargs)
-            values = type(self._data)._simple_new(values, dtype=self.dtype)
-
-        if kwargs.get("freq") is not None and values.freq != kwargs["freq"]:
-            # Try setting the new freq; the setter does validation
-            values = type(values)._simple_new(values._data)
-            values.freq = kwargs["freq"]
+            values = type(self._data)(values, dtype=self.dtype)
 
         attributes = self._get_attributes_dict()
 
-        if "freq" not in kwargs and self.freq is not None:
+        if self.freq is not None:
             if isinstance(values, (DatetimeArray, TimedeltaArray)):
                 if values.freq is None:
                     del attributes["freq"]
@@ -677,7 +665,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             tz = attributes.pop("tz")
             assert tz == values.tz, (tz, values.tz)
 
-        attributes.update(kwargs)
+        attributes["name"] = name
         return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
@@ -747,9 +735,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # this point, depending on the values.
 
             result._set_freq(None)
-            result = self._shallow_copy(
-                result._data, name=result.name, dtype=result.dtype, freq=None
-            )
+            result = self._shallow_copy(result._data, name=result.name)
             if result.freq is None:
                 result._set_freq("infer")
             return result
