@@ -7,17 +7,13 @@ import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import fields, parsing, timezones
+from pandas._typing import Label
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
-from pandas.core.arrays.datetimes import (
-    DatetimeArray,
-    tz_to_dtype,
-    validate_tz_from_dtype,
-)
+from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
@@ -42,6 +38,9 @@ def _new_DatetimeIndex(cls, d):
             dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=freq)
         else:
             dta = data
+            for key in ["tz", "freq"]:
+                if key in d:
+                    assert d.pop(key) == getattr(dta, key)
         result = cls._simple_new(dta, **d)
     else:
         with warnings.catch_warnings():
@@ -241,24 +240,19 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return subarr
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
+    def _simple_new(cls, values: DatetimeArray, name: Label = None):
         """
         We require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
         assert isinstance(values, DatetimeArray), type(values)
-        assert tz is None or tz == values.tz, (tz, values.tz)
-        assert dtype is None or dtype == values.dtype, (dtype, values.dtype)
-        assert freq is None or freq == values.freq, (freq, values.freq)
-
-        dtarr = values
 
         result = object.__new__(cls)
-        result._data = dtarr
+        result._data = values
         result.name = name
         result._no_setting_name = False
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = dtarr._data
+        result._index_data = values._data
         result._reset_identity()
         return result
 

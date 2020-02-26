@@ -1,6 +1,7 @@
 """ implement the TimedeltaIndex """
 
 from pandas._libs import NaT, Timedelta, index as libindex
+from pandas._typing import Label
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -154,7 +155,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         if isinstance(data, TimedeltaArray) and freq is None:
             if copy:
                 data = data.copy()
-            return cls._simple_new(data, name=name, freq=freq)
+            return cls._simple_new(data, name=name)
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
@@ -170,12 +171,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         return cls._simple_new(tdarr, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
-        # `dtype` is passed by _shallow_copy in corner cases, should always
-        #  be timedelta64[ns] if present
-        assert dtype == _TD_DTYPE, dtype
+    def _simple_new(cls, values: TimedeltaArray, name: Label = None):
         assert isinstance(values, TimedeltaArray)
-        assert freq is None or values.freq == freq
 
         result = object.__new__(cls)
         result._data = values
