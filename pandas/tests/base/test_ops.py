@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime, timedelta
 from io import StringIO
 import sys
@@ -246,27 +247,15 @@ class TestIndexOps(Ops):
         assert result == len(obj.unique())
 
     def test_value_counts(self, index_or_series_obj):
-        orig = index_or_series_obj
-        obj = multiply_values(orig.copy())
-
-        if orig.duplicated().any():
-            # FIXME: duplicated values should work.
-            pytest.xfail(
-                "The test implementation isn't flexible enough to deal"
-                " with duplicated values. This isn't a bug in the"
-                " application code, but in the test code."
-            )
-
-        expected_index = Index(orig.values[::-1], dtype=orig.dtype)
-        if is_datetime64tz_dtype(obj):
-            expected_index = expected_index.normalize()
-        expected_s = Series(
-            range(len(orig), 0, -1), index=expected_index, dtype="int64"
-        )
-
+        obj = multiply_values(index_or_series_obj)
         result = obj.value_counts()
-        tm.assert_series_equal(result, expected_s)
-        assert result.index.name is None
+
+        counter = collections.Counter(obj)
+        expected = pd.Series(dict(counter.most_common()), dtype=int)
+        expected.index = expected.index.astype(obj.dtype)
+        if isinstance(obj, pd.MultiIndex):
+            expected.index = pd.Index(expected.index)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
     def test_value_counts_unique_nunique_null(self, null_obj, index_or_series_obj):
