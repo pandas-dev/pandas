@@ -7,6 +7,8 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
+from pandas._libs.lib import no_default
+from pandas._typing import Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -264,13 +266,14 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = no_default):
+        name = self.name if name is no_default else name
+
         if values is None:
             values = self.values
 
         cat = Categorical(values, dtype=self.dtype)
 
-        name = kwargs.get("name", self.name)
         return type(self)._simple_new(cat, name=name)
 
     def _is_dtype_compat(self, other) -> bool:

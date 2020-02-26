@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import timezones
+from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -649,7 +650,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         self._data._freq = freq
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+
         if values is None:
             values = self._data
 
@@ -657,18 +660,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             values = values._data
         if isinstance(values, np.ndarray):
             # TODO: We would rather not get here
-            if kwargs.get("freq") is not None:
-                raise ValueError(kwargs)
             values = type(self._data)(values, dtype=self.dtype)
 
         attributes = self._get_attributes_dict()
 
-        if "freq" not in kwargs and self.freq is not None:
+        if self.freq is not None:
             if isinstance(values, (DatetimeArray, TimedeltaArray)):
                 if values.freq is None:
                     del attributes["freq"]
 
-        attributes.update(kwargs)
+        attributes["name"] = name
         return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
@@ -738,9 +739,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # this point, depending on the values.
 
             result._set_freq(None)
-            result = self._shallow_copy(
-                result._data, name=result.name, dtype=result.dtype, freq=None
-            )
+            result = self._shallow_copy(result._data, name=result.name)
             if result.freq is None:
                 result._set_freq("infer")
             return result
