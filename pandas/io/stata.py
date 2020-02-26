@@ -1161,8 +1161,8 @@ class StataReader(StataParser, abc.Iterator):
                 return typ
             try:
                 return self.TYPE_MAP_XML[typ]
-            except KeyError:
-                raise ValueError(f"cannot convert stata types [{typ}]")
+            except KeyError as err:
+                raise ValueError(f"cannot convert stata types [{typ}]") from err
 
         typlist = [f(x) for x in raw_typlist]
 
@@ -1171,8 +1171,8 @@ class StataReader(StataParser, abc.Iterator):
                 return str(typ)
             try:
                 return self.DTYPE_MAP_XML[typ]
-            except KeyError:
-                raise ValueError(f"cannot convert stata dtype [{typ}]")
+            except KeyError as err:
+                raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
         dtyplist = [g(x) for x in raw_typlist]
 
@@ -1296,14 +1296,14 @@ class StataReader(StataParser, abc.Iterator):
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        except ValueError:
+        except ValueError as err:
             invalid_types = ",".join(str(x) for x in typlist)
-            raise ValueError(f"cannot convert stata types [{invalid_types}]")
+            raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        except ValueError:
+        except ValueError as err:
             invalid_dtypes = ",".join(str(x) for x in typlist)
-            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]")
+            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
 
         if self.format_version > 108:
             self.varlist = [
@@ -1761,7 +1761,7 @@ the string values returned are correct."""
                         categories.append(category)  # Partially labeled
                 try:
                     cat_data.categories = categories
-                except ValueError:
+                except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
                     repeats = "-" * 80 + "\n" + "\n".join(repeated_cats)
@@ -1777,7 +1777,7 @@ value_labels.
 The repeated labels are:
 {repeats}
 """
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
                 # TODO: is the next line needed above in the data(...) method?
                 cat_series = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_series))
@@ -3143,11 +3143,11 @@ class StataWriter117(StataWriter):
                     raise ValueError("Variable labels must be 80 characters or fewer")
                 try:
                     encoded = label.encode(self._encoding)
-                except UnicodeEncodeError:
+                except UnicodeEncodeError as err:
                     raise ValueError(
                         "Variable labels must contain only characters that "
                         f"can be encoded in {self._encoding}"
-                    )
+                    ) from err
 
                 bio.write(_pad_bytes_new(encoded, vl_len + 1))
             else:

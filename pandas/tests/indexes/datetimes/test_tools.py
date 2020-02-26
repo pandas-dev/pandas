@@ -1110,8 +1110,8 @@ class TestToDatetimeUnit:
         for val in ["foo", Timestamp("20130101")]:
             try:
                 to_datetime(val, errors="raise", unit="s", cache=cache)
-            except tslib.OutOfBoundsDatetime:
-                raise AssertionError("incorrect exception raised")
+            except tslib.OutOfBoundsDatetime as err:
+                raise AssertionError("incorrect exception raised") from err
             except ValueError:
                 pass
 

@@ -810,11 +810,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             lgroup = left_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("left", "inner"):
                 raise AssertionError(
                     f"key {group_key} should not have been in the join"
-                )
+                ) from err
 
             _assert_all_na(l_joined, left.columns, join_col)
         else:
@@ -822,11 +822,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             rgroup = right_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("right", "inner"):
                 raise AssertionError(
                     f"key {group_key} should not have been in the join"
-                )
+                ) from err
 
             _assert_all_na(r_joined, right.columns, join_col)
         else:
