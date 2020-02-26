@@ -598,6 +598,7 @@ def _combine_series_frame(left, right, func, axis: int):
 
     Returns
     -------
+    new_data : DataFrame or Dict[int, Series]
     result : DataFrame
     """
     # We assume that self.align(other, ...) has already been called
@@ -606,7 +607,7 @@ def _combine_series_frame(left, right, func, axis: int):
     else:
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
-    return left._construct_result(new_data)
+    return new_data
 
 
 def _align_method_FRAME(
@@ -778,7 +779,6 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = pass_op if not is_logical else op
 
             new_data = self._combine_frame(other, pass_op, fill_value)
-            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
@@ -790,14 +790,15 @@ def _arith_method_FRAME(cls, op, special):
                 raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, pass_op, axis=axis)
+            new_data = _combine_series_frame(self, other, pass_op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
+
+        return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -821,15 +822,15 @@ def _flex_comp_method_FRAME(cls, op, special):
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, op, axis=axis)
+            new_data = _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             new_data = dispatch_to_series(self, other, op, str_rep)
-            return self._construct_result(new_data)
+
+        return self._construct_result(new_data)
 
     f.__name__ = op_name
 
@@ -847,21 +848,10 @@ def _comp_method_FRAME(cls, op, special):
             self, other, axis=None, level=None, flex=False
         )
 
-        if isinstance(other, ABCDataFrame):
-            # Another DataFrame
-            new_data = dispatch_to_series(self, other, op, str_rep)
-
-        elif isinstance(other, ABCSeries):
-            new_data = dispatch_to_series(
-                self, other, op, str_rep=str_rep, axis="columns"
-            )
-
-        else:
-
-            # straight boolean comparisons we want to allow all columns
-            # (regardless of dtype to pass thru) See #4537 for discussion.
-            new_data = dispatch_to_series(self, other, op, str_rep)
-
+        # straight boolean comparisons we want to allow all columns
+        # (regardless of dtype to pass thru) See #4537 for discussion.
+        axis = "columns" if isinstance(other, ABCSeries) else None
+        new_data = dispatch_to_series(self, other, op, str_rep=str_rep, axis=axis)
         return self._construct_result(new_data)
 
     f.__name__ = op_name
