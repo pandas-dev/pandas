@@ -28,7 +28,6 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
-    Timestamp,
 )
 import pandas._testing as tm
 
@@ -37,6 +36,23 @@ def allow_na_ops(obj: Any) -> bool:
     """Whether to skip test cases including NaN"""
     is_bool_index = isinstance(obj, Index) and obj.is_boolean()
     return not is_bool_index and obj._can_hold_na
+
+
+def multiply_values(obj):
+    """
+    Repeat values so that the previous values are ordered (increasing)
+    by number of occurrences
+    """
+    klass = type(obj)
+
+    if isinstance(obj, pd.Index):
+        return obj.repeat(range(1, len(obj) + 1))
+    elif isinstance(obj, pd.Series):
+        indices = np.repeat(np.arange(len(obj)), range(1, len(obj) + 1))
+        rep = obj.values.take(indices)
+        idx = obj.index.repeat(range(1, len(obj) + 1))
+        return klass(rep, index=idx)
+    raise TypeError(f"Unexpected type: {klass}")
 
 
 class Ops:
@@ -205,7 +221,31 @@ class TestIndexOps(Ops):
         assert Index([1]).item() == 1
         assert Series([1]).item() == 1
 
-    def test_value_counts_unique_nunique(self, index_or_series_obj):
+    def test_unique(self, index_or_series_obj):
+        obj = multiply_values(index_or_series_obj)
+        result = obj.unique()
+
+        # dict.fromkeys preserves the order
+        unique_values = list(dict.fromkeys(obj.values))
+        if isinstance(obj, pd.MultiIndex):
+            expected = pd.MultiIndex.from_tuples(unique_values)
+            expected.names = obj.names
+            tm.assert_index_equal(result, expected)
+        elif isinstance(obj, pd.Index):
+            expected = pd.Index(unique_values, dtype=obj.dtype)
+            if is_datetime64tz_dtype(obj):
+                expected = expected.normalize()
+            tm.assert_index_equal(result, expected)
+        else:
+            expected = np.array(unique_values)
+            tm.assert_numpy_array_equal(result, expected)
+
+    def test_nunique(self, index_or_series_obj):
+        obj = multiply_values(index_or_series_obj)
+        result = obj.nunique(dropna=False)
+        assert result == len(obj.unique())
+
+    def test_value_counts(self, index_or_series_obj):
         orig = index_or_series_obj
         obj = orig.copy()
         klass = type(obj)
@@ -241,27 +281,6 @@ class TestIndexOps(Ops):
         result = obj.value_counts()
         tm.assert_series_equal(result, expected_s)
         assert result.index.name is None
-
-        result = obj.unique()
-        if isinstance(obj, Index):
-            assert isinstance(result, type(obj))
-            tm.assert_index_equal(result, orig)
-            assert result.dtype == orig.dtype
-        elif is_datetime64tz_dtype(obj):
-            # datetimetz Series returns array of Timestamp
-            assert result[0] == orig[0]
-            for r in result:
-                assert isinstance(r, Timestamp)
-
-            tm.assert_numpy_array_equal(
-                result.astype(object), orig._values.astype(object)
-            )
-        else:
-            tm.assert_numpy_array_equal(result, orig.values)
-            assert result.dtype == orig.dtype
-
-        # dropna=True would break for MultiIndex
-        assert obj.nunique(dropna=False) == len(np.unique(obj.values))
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
     def test_value_counts_unique_nunique_null(self, null_obj, index_or_series_obj):
