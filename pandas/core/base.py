@@ -927,10 +927,10 @@ class IndexOpsMixin:
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return an ndarray of the maximum argument indexer.
+        Return int position of the largest value in the Series".
 
-        If multiple values equal the maximum, the first row label with that
-        value is returned.
+        If the maximum is achieved in multiple locations,
+        the first row position is returned.
 
         Parameters
         ----------
@@ -943,8 +943,8 @@ class IndexOpsMixin:
 
         Returns
         -------
-        numpy.ndarray
-            Indices of the maximum values.
+        int
+            Row position of the maximum values.
 
         See Also
         --------
@@ -956,7 +956,7 @@ class IndexOpsMixin:
         Consider dataset containing cereal calories
 
         >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...               'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
         >>> s
         Corn Flakes              100.0
         Almond Delight           110.0
