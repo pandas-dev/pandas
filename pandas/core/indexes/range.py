@@ -95,7 +95,7 @@ class RangeIndex(Int64Index):
         # RangeIndex
         if isinstance(start, RangeIndex):
             start = start._range
-            return cls._simple_new(start, dtype=dtype, name=name)
+            return cls._simple_new(start, name=name)
 
         # validate the arguments
         if com.all_none(start, stop, step):
@@ -113,7 +113,7 @@ class RangeIndex(Int64Index):
             raise ValueError("Step must not be zero")
 
         rng = range(start, stop, step)
-        return cls._simple_new(rng, dtype=dtype, name=name)
+        return cls._simple_new(rng, name=name)
 
     @classmethod
     def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
@@ -131,10 +131,10 @@ class RangeIndex(Int64Index):
             )
 
         cls._validate_dtype(dtype)
-        return cls._simple_new(data, dtype=dtype, name=name)
+        return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: range, name=None, dtype=None) -> "RangeIndex":
+    def _simple_new(cls, values: range, name: Label = None) -> "RangeIndex":
         result = object.__new__(cls)
 
         assert isinstance(values, range)
