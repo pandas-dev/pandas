@@ -927,7 +927,7 @@ class IndexOpsMixin:
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return int position of the largest value in the Series".
+        Return int position of the largest value in the Series.
 
         If the maximum is achieved in multiple locations,
         the first row position is returned.
