@@ -5251,9 +5251,8 @@ Returns
 -------
 DataFrame
     DataFrame that shows the differences stacked side by side.
-    
-    The resulting index will be a MultiIndex with 'self' and 'other'
-    stacked alternately at the inner level.
+        The resulting index will be a MultiIndex with 'self' and 'other'
+        stacked alternately at the inner level.
 
 See Also
 --------
