@@ -226,8 +226,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return CategoricalIndex(cat, name=name)
 
     @classmethod
-    def _simple_new(cls, values: Categorical, name=None, dtype=None):
-        # GH#32204 dtype is included for compat with Index._simple_new
+    def _simple_new(cls, values: Categorical, name: Label = None):
         assert isinstance(values, Categorical), type(values)
         result = object.__new__(cls)
 
@@ -433,7 +432,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
         cat = Categorical(values, dtype=self.dtype)
-        return self._shallow_copy(cat)
+        return type(self)._simple_new(cat, name=self.name)
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """

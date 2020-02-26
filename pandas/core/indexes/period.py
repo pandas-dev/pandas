@@ -217,7 +217,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
+    def _simple_new(cls, values: PeriodArray, name: Label = None):
         """
         Create a new PeriodIndex.
 
@@ -228,7 +228,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             or coercion.
         """
         assert isinstance(values, PeriodArray), type(values)
-        assert freq is None or freq == values.freq, (freq, values.freq)
 
         result = object.__new__(cls)
         result._data = values
