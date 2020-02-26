@@ -10,6 +10,11 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
+
+def _permute(obj):
+    return obj.take(np.random.permutation(len(obj)))
+
+
 # -------------------------------------------------------------------
 # Comparisons
 
@@ -791,3 +796,15 @@ class TestFrameArithmeticUnsorted:
 
         result = df_moscow + df
         assert result.index.tz is pytz.utc
+
+    def test_align_frame(self):
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
+        ts = pd.DataFrame(np.random.randn(len(rng), 3), index=rng)
+
+        result = ts + ts[::2]
+        expected = ts + ts
+        expected.values[1::2] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+        result = ts + _permute(ts[::2])
+        tm.assert_frame_equal(result, expected)
