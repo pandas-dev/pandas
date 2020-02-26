@@ -39,7 +39,7 @@ def allow_na_ops(obj: Any) -> bool:
     return not is_bool_index and obj._can_hold_na
 
 
-def multiply_values(obj):
+def repeat_values(obj):
     """
     Repeat values so that the previous values are ordered (increasing)
     by number of occurrences
@@ -223,7 +223,7 @@ class TestIndexOps(Ops):
         assert Series([1]).item() == 1
 
     def test_unique(self, index_or_series_obj):
-        obj = multiply_values(index_or_series_obj)
+        obj = repeat_values(index_or_series_obj)
         result = obj.unique()
 
         # dict.fromkeys preserves the order
@@ -242,12 +242,12 @@ class TestIndexOps(Ops):
             tm.assert_numpy_array_equal(result, expected)
 
     def test_nunique(self, index_or_series_obj):
-        obj = multiply_values(index_or_series_obj)
+        obj = repeat_values(index_or_series_obj)
         result = obj.nunique(dropna=False)
         assert result == len(obj.unique())
 
     def test_value_counts(self, index_or_series_obj):
-        obj = multiply_values(index_or_series_obj)
+        obj = repeat_values(index_or_series_obj)
         result = obj.value_counts()
 
         counter = collections.Counter(obj)
