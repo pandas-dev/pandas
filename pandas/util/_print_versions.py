@@ -4,11 +4,21 @@ import locale
 import os
 import platform
 import struct
-import subprocess
 import sys
 from typing import List, Optional, Tuple, Union
 
 from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
+
+
+def _get_commit_hash() -> Optional[str]:
+    """
+    Use vendored versioneer code to get git hash, which handles
+    git worktree correctly.
+    """
+    from pandas._version import get_versions
+
+    versions = get_versions()
+    return versions["full-revisionid"]
 
 
 def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
@@ -18,20 +28,7 @@ def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
     blob: List[Tuple[str, Optional[Union[str, int]]]] = []
 
     # get full commit hash
-    commit = None
-    if os.path.isdir(".git") and os.path.isdir("pandas"):
-        try:
-            pipe = subprocess.Popen(
-                'git log --format="%H" -n 1'.split(" "),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            so, serr = pipe.communicate()
-        except (OSError, ValueError):
-            pass
-        else:
-            if pipe.returncode == 0:
-                commit = so.decode("utf-8").strip().strip('"')
+    commit = _get_commit_hash()
 
     blob.append(("commit", commit))
 
