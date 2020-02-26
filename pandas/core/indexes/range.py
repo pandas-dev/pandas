@@ -349,8 +349,8 @@ class RangeIndex(Int64Index):
                 new_key = int(key)
                 try:
                     return self._range.index(new_key)
-                except ValueError:
-                    raise KeyError(key)
+                except ValueError as err:
+                    raise KeyError(key) from err
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
@@ -695,10 +695,10 @@ class RangeIndex(Int64Index):
             new_key = int(key)
             try:
                 return self._range[new_key]
-            except IndexError:
+            except IndexError as err:
                 raise IndexError(
                     f"index {key} is out of bounds for axis 0 with size {len(self)}"
-                )
+                ) from err
         elif is_scalar(key):
             raise IndexError(
                 "only integers, slices (`:`), "
