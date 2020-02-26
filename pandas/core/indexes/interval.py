@@ -227,7 +227,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return cls._simple_new(array, name)
 
     @classmethod
-    def _simple_new(cls, array, name: Label = None):
+    def _simple_new(cls, array: IntervalArray, name: Label = None):
         """
         Construct from an IntervalArray
 
