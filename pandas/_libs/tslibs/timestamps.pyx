@@ -411,10 +411,25 @@ class Timestamp(_Timestamp):
                 )
 
         elif ts_input is _no_input:
-            # User passed keyword arguments.
-            ts_input = datetime(year, month, day, hour or 0,
-                                minute or 0, second or 0,
-                                microsecond or 0)
+            # GH 31200
+            # When year, month or day is not given, we call the datetime
+            # constructor to make sure we get the same error message
+            # since Timestamp inherits datetime
+            datetime_kwargs = {
+                "hour": hour or 0,
+                "minute": minute or 0,
+                "second": second or 0,
+                "microsecond": microsecond or 0
+            }
+            if year is not None:
+                datetime_kwargs["year"] = year
+            if month is not None:
+                datetime_kwargs["month"] = month
+            if day is not None:
+                datetime_kwargs["day"] = day
+
+            ts_input = datetime(**datetime_kwargs)
+
         elif is_integer_object(freq):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,

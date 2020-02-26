@@ -52,12 +52,6 @@ class TestSeriesPeriod:
         s = Series([pd.Period("2011-01", freq="M"), pd.Period("NaT", freq="M")])
         tm.assert_series_equal(s.dropna(), Series([pd.Period("2011-01", freq="M")]))
 
-    def test_between(self):
-        left, right = self.series[[2, 7]]
-        result = self.series.between(left, right)
-        expected = (self.series >= left) & (self.series <= right)
-        tm.assert_series_equal(result, expected)
-
     # ---------------------------------------------------------------------
     # NaT support
 
@@ -109,28 +103,6 @@ class TestSeriesPeriod:
         ts = Series(np.random.randn(len(rng)), index=rng)
 
         ts.align(ts[::2], join=join_type)
-
-    def test_truncate(self):
-        # GH 17717
-        idx1 = pd.PeriodIndex(
-            [pd.Period("2017-09-02"), pd.Period("2017-09-02"), pd.Period("2017-09-03")]
-        )
-        series1 = pd.Series([1, 2, 3], index=idx1)
-        result1 = series1.truncate(after="2017-09-02")
-
-        expected_idx1 = pd.PeriodIndex(
-            [pd.Period("2017-09-02"), pd.Period("2017-09-02")]
-        )
-        tm.assert_series_equal(result1, pd.Series([1, 2], index=expected_idx1))
-
-        idx2 = pd.PeriodIndex(
-            [pd.Period("2017-09-03"), pd.Period("2017-09-02"), pd.Period("2017-09-03")]
-        )
-        series2 = pd.Series([1, 2, 3], index=idx2)
-        result2 = series2.sort_index().truncate(after="2017-09-02")
-
-        expected_idx2 = pd.PeriodIndex([pd.Period("2017-09-02")])
-        tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
 
     @pytest.mark.parametrize(
         "input_vals",
