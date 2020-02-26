@@ -5256,7 +5256,7 @@ DataFrame
 
 See Also
 --------
-Series.differences: Show differences.
+Series.differences : Show differences.
 
 Notes
 -----
