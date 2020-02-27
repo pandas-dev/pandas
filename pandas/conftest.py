@@ -1015,7 +1015,7 @@ def _create_series(index):
     """ Helper for the _series dict """
     size = len(index)
     data = np.random.randn(size)
-    return pd.Series(data, index=index, name="a")
+    return pd.Series(data, index=index)
 
 
 _series = {
@@ -1043,7 +1043,7 @@ _narrow_dtypes = [
     np.uint32,
 ]
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
+    f"{dtype.__name__}-series": tm.makeFloatSeries().astype(dtype)
     for dtype in _narrow_dtypes
 }
 
