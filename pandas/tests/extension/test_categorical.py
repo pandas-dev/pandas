@@ -292,5 +292,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
         assert result.all()
 
+
 class TestParsing(base.BaseParsingTests):
     pass
