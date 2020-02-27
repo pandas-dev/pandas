@@ -1,7 +1,6 @@
 from io import StringIO
 
 import numpy as np
-import pytest
 
 from pandas._libs.tslib import iNaT
 
@@ -233,41 +232,6 @@ class TestTimeSeries:
         idx = date_range("1750-1-1", "2050-1-1", freq="7D")
         idx_p = tm.round_trip_pickle(idx)
         tm.assert_index_equal(idx, idx_p)
-
-    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Eastern"])
-    def test_setops_preserve_freq(self, tz):
-        rng = date_range("1/1/2000", "1/1/2002", name="idx", tz=tz)
-
-        result = rng[:50].union(rng[50:100])
-        assert result.name == rng.name
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
-
-        result = rng[:50].union(rng[30:100])
-        assert result.name == rng.name
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
-
-        result = rng[:50].union(rng[60:100])
-        assert result.name == rng.name
-        assert result.freq is None
-        assert result.tz == rng.tz
-
-        result = rng[:50].intersection(rng[25:75])
-        assert result.name == rng.name
-        assert result.freqstr == "D"
-        assert result.tz == rng.tz
-
-        nofreq = DatetimeIndex(list(rng[25:75]), name="other")
-        result = rng[:50].union(nofreq)
-        assert result.name is None
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
-
-        result = rng[:50].intersection(nofreq)
-        assert result.name is None
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
 
     def test_view_tz(self):
         # GH#24024
