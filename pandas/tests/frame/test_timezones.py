@@ -80,17 +80,6 @@ class TestDataFrameTimezones:
         tm.assert_index_equal(result.index, ex_index)
         assert result.index.tz.zone == "US/Central"
 
-    def test_frame_add_tz_mismatch_converts_to_utc(self):
-        rng = date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
-        df = DataFrame(np.random.randn(len(rng)), index=rng, columns=["a"])
-
-        df_moscow = df.tz_convert("Europe/Moscow")
-        result = df + df_moscow
-        assert result.index.tz is pytz.utc
-
-        result = df_moscow + df
-        assert result.index.tz is pytz.utc
-
     def test_frame_align_aware(self):
         idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
         idx2 = date_range("2001", periods=5, freq="2H", tz="US/Eastern")
