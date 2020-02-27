@@ -2190,7 +2190,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> result = df.to_json(orient="split")
         >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        >>> json.dumps(parsed, indent=4)   # doctest: +SKIP
         {
             "columns": [
                 "col 1",
@@ -2217,7 +2217,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> result = df.to_json(orient="records")
         >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
         [
             {
                 "col 1": "a",
@@ -2233,7 +2233,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> result = df.to_json(orient="index")
         >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
         {
             "row 1": {
                 "col 1": "a",
@@ -2249,7 +2249,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> result = df.to_json(orient="columns")
         >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
         {
             "col 1": {
                 "row 1": "a",
@@ -2265,7 +2265,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> result = df.to_json(orient="values")
         >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
         [
             [
                 "a",
@@ -2281,7 +2281,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> result = df.to_json(orient="table")
         >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4) # doctest: +SKIP
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
         {
             "schema": {
                 "fields": [
@@ -2743,7 +2743,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
 
-        >>> df.to_clipboard(sep=',') # doctest: +SKIP
+        >>> df.to_clipboard(sep=',')  # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # ,A,B,C
         ... # 0,1,2,3
@@ -2752,7 +2752,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         We can omit the index by passing the keyword `index` and setting
         it to false.
 
-        >>> df.to_clipboard(sep=',', index=False) # doctest: +SKIP
+        >>> df.to_clipboard(sep=',', index=False)  # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # A,B,C
         ... # 1,2,3
@@ -4987,14 +4987,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Use ``.pipe`` when chaining together functions that expect
         Series, DataFrames or GroupBy objects. Instead of writing
 
-        >>> func(g(h(df), arg1=a), arg2=b, arg3=c) # doctest: +SKIP
+        >>> func(g(h(df), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
 
         You can write
 
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
         ...    .pipe(func, arg2=b, arg3=c)
-        ... ) # doctest: +SKIP
+        ... )  # doctest: +SKIP
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
@@ -5003,7 +5003,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
         ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
-        ...  ) # doctest: +SKIP
+        ...  )  # doctest: +SKIP
     """
 
     @Appender(_shared_docs["pipe"] % _shared_doc_kwargs)
@@ -9636,7 +9636,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Describing all columns of a ``DataFrame`` regardless of data type.
 
-        >>> df.describe(include='all') # doctest: +SKIP
+        >>> df.describe(include='all')  # doctest: +SKIP
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
@@ -9679,7 +9679,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Including only string columns in a ``DataFrame`` description.
 
-        >>> df.describe(include=[np.object]) # doctest: +SKIP
+        >>> df.describe(include=[np.object])  # doctest: +SKIP
                object
         count       3
         unique      3
@@ -9697,7 +9697,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Excluding numeric columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.number]) # doctest: +SKIP
+        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
                categorical object
         count            3      3
         unique           3      3
@@ -9706,7 +9706,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Excluding object columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.object]) # doctest: +SKIP
+        >>> df.describe(exclude=[np.object])  # doctest: +SKIP
                categorical  numeric
         count            3      3.0
         unique           3      NaN

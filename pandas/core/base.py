@@ -1522,7 +1522,7 @@ class IndexOpsMixin:
         2    3
         dtype: int64
 
-        >>> ser.searchsorted(1) # doctest: +SKIP
+        >>> ser.searchsorted(1)  # doctest: +SKIP
         0  # wrong result, correct would be 1
         """
 
