@@ -2059,12 +2059,9 @@ class TestSorted(Base):
         result = self.frame.sort_index()
         assert result.index.names == self.frame.index.names
 
-    def test_sorting_repr_8017(self):
-
-        np.random.seed(0)
-        data = np.random.randn(3, 4)
-
-        for gen, extra in [
+    @pytest.mark.parametrize(
+        "gen,extra",
+        [
             ([1.0, 3.0, 2.0, 5.0], 4.0),
             ([1, 3, 2, 5], 4),
             (
@@ -2077,44 +2074,50 @@ class TestSorted(Base):
                 Timestamp("20130104"),
             ),
             (["1one", "3one", "2one", "5one"], "4one"),
-        ]:
-            columns = MultiIndex.from_tuples([("red", i) for i in gen])
-            df = DataFrame(data, index=list("def"), columns=columns)
-            df2 = pd.concat(
-                [
-                    df,
-                    DataFrame(
-                        "world",
-                        index=list("def"),
-                        columns=MultiIndex.from_tuples([("red", extra)]),
-                    ),
-                ],
-                axis=1,
-            )
+        ],
+    )
+    def test_sorting_repr_8017(self, gen, extra):
 
-            # check that the repr is good
-            # make sure that we have a correct sparsified repr
-            # e.g. only 1 header of read
-            assert str(df2).splitlines()[0].split() == ["red"]
+        np.random.seed(0)
+        data = np.random.randn(3, 4)
 
-            # GH 8017
-            # sorting fails after columns added
+        columns = MultiIndex.from_tuples([("red", i) for i in gen])
+        df = DataFrame(data, index=list("def"), columns=columns)
+        df2 = pd.concat(
+            [
+                df,
+                DataFrame(
+                    "world",
+                    index=list("def"),
+                    columns=MultiIndex.from_tuples([("red", extra)]),
+                ),
+            ],
+            axis=1,
+        )
 
-            # construct single-dtype then sort
-            result = df.copy().sort_index(axis=1)
-            expected = df.iloc[:, [0, 2, 1, 3]]
-            tm.assert_frame_equal(result, expected)
+        # check that the repr is good
+        # make sure that we have a correct sparsified repr
+        # e.g. only 1 header of read
+        assert str(df2).splitlines()[0].split() == ["red"]
 
-            result = df2.sort_index(axis=1)
-            expected = df2.iloc[:, [0, 2, 1, 4, 3]]
-            tm.assert_frame_equal(result, expected)
+        # GH 8017
+        # sorting fails after columns added
 
-            # setitem then sort
-            result = df.copy()
-            result[("red", extra)] = "world"
+        # construct single-dtype then sort
+        result = df.copy().sort_index(axis=1)
+        expected = df.iloc[:, [0, 2, 1, 3]]
+        tm.assert_frame_equal(result, expected)
 
-            result = result.sort_index(axis=1)
-            tm.assert_frame_equal(result, expected)
+        result = df2.sort_index(axis=1)
+        expected = df2.iloc[:, [0, 2, 1, 4, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # setitem then sort
+        result = df.copy()
+        result[("red", extra)] = "world"
+
+        result = result.sort_index(axis=1)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_level(self):
         df = self.frame.copy()
@@ -2209,72 +2212,6 @@ class TestSorted(Base):
             ),
         )
         tm.assert_frame_equal(result, expected)
-
-    def test_is_lexsorted(self):
-        levels = [[0, 1], [0, 1, 2]]
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
-        )
-        assert index.is_lexsorted()
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]]
-        )
-        assert not index.is_lexsorted()
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]]
-        )
-        assert not index.is_lexsorted()
-        assert index.lexsort_depth == 0
-
-    def test_raise_invalid_sortorder(self):
-        # Test that the MultiIndex constructor raise when a incorrect sortorder is given
-        # Issue #28518
-
-        levels = [[0, 1], [0, 1, 2]]
-
-        # Correct sortorder
-        MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
-        )
-
-        with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
-            MultiIndex(
-                levels=levels,
-                codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]],
-                sortorder=2,
-            )
-
-        with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
-            MultiIndex(
-                levels=levels,
-                codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]],
-                sortorder=1,
-            )
-
-    def test_lexsort_depth(self):
-        # Test that lexsort_depth return the  correct sortorder
-        # when it was given to the MultiIndex const.
-        # Issue #28518
-
-        levels = [[0, 1], [0, 1, 2]]
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
-        )
-        assert index.lexsort_depth == 2
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=1
-        )
-        assert index.lexsort_depth == 1
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=0
-        )
-        assert index.lexsort_depth == 0
 
     def test_sort_index_and_reconstruction(self):
 
