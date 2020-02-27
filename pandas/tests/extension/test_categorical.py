@@ -282,7 +282,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
 
-    def test_not_equal_with_na():
+    def test_not_equal_with_na(self):
         # https://github.com/pandas-dev/pandas/issues/32276
         categories = ["a", "b"]
         c1 = Categorical([None, "a"], categories=categories)
