@@ -820,22 +820,26 @@ class TestIndexOps(Ops):
             diff = res_deep - sys.getsizeof(o)
             assert abs(diff) < 100
 
-    def test_searchsorted(self):
+    def test_searchsorted(self, index_or_series_obj):
         # See gh-12238
-        for o in self.objs:
-            index = np.searchsorted(o, max(o))
-            assert 0 <= index <= len(o)
+        obj = index_or_series_obj
 
-            index = np.searchsorted(o, max(o), sorter=range(len(o)))
-            assert 0 <= index <= len(o)
+        if isinstance(obj, pd.MultiIndex):
+            pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
 
-    def test_validate_bool_args(self):
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        max_obj = max(obj, default=0)
+        index = np.searchsorted(obj, max_obj)
+        assert 0 <= index <= len(obj)
 
-        for value in invalid_values:
-            msg = "expected type bool"
-            with pytest.raises(ValueError, match=msg):
-                self.int_series.drop_duplicates(inplace=value)
+        index = np.searchsorted(obj, max_obj, sorter=range(len(obj)))
+        assert 0 <= index <= len(obj)
+
+    @pytest.mark.parametrize("invalid_value", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_bool_args(self, invalid_value, series_with_simple_index):
+        series = series_with_simple_index
+        msg = "expected type bool"
+        with pytest.raises(ValueError, match=msg):
+            series.drop_duplicates(inplace=invalid_value)
 
     def test_getitem(self):
         for i in self.indexes:
