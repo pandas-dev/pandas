@@ -1241,6 +1241,7 @@ class AreaPlot(LinePlot):
         **kwds,
     ):
 
+        kwds.setdefault("lw", 0)
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds["label"])
