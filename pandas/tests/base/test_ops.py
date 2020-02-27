@@ -572,10 +572,7 @@ class TestIndexOps(Ops):
 
         expected_uniques_list = list(expected_uniques)
         expected_codes = [expected_uniques_list.index(val) for val in obj]
-
-        # CI: on linux 32bit the dtype is int32, otherwise int64
-        assert result_codes.dtype in [np.int32, np.int64]
-        expected_codes = np.asarray(expected_codes, dtype=result_codes.dtype)
+        expected_codes = np.asarray(expected_codes, dtype=np.intp)
 
         tm.assert_numpy_array_equal(result_codes, expected_codes)
         tm.assert_index_equal(result_uniques, expected_uniques)
