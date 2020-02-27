@@ -1,8 +1,6 @@
 """
 Tests for DataFrame timezone-related methods
 """
-from datetime import datetime
-
 import numpy as np
 import pytest
 import pytz
@@ -52,12 +50,6 @@ class TestDataFrameTimezones:
         expected = np.concatenate([expected, new], axis=1)
         result = df.values
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
-
-        # it works
-        DataFrame.from_records([rec], index="begin_time")
 
     def test_frame_join_tzaware(self):
         test1 = DataFrame(
