@@ -1414,19 +1414,6 @@ class TestDataFrameConstructors:
         result = DataFrame.from_dict(a, orient="index")
         tm.assert_frame_equal(result, expected)
 
-    def test_from_dict_empty_series_multiindex(self):
-        s1 = Series(
-            [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2), (2, 4)])
-        )
-        s2 = Series(
-            [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
-        )
-        s3 = Series(dtype=object)
-
-        # it works!
-        DataFrame({"foo": s1, "bar": s2, "baz": s3})
-        DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
-
     def test_from_dict_columns_parameter(self):
         # GH 18529
         # Test new columns parameter for from_dict that was added to make

@@ -1265,6 +1265,43 @@ Thur,Lunch,Yes,51.51,17"""
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
+    def test_pyint_engine(self):
+        # GH 18519 : when combinations of codes cannot be represented in 64
+        # bits, the index underlying the MultiIndex engine works with Python
+        # integers, rather than uint64.
+        N = 5
+        keys = [
+            tuple(l)
+            for l in [
+                [0] * 10 * N,
+                [1] * 10 * N,
+                [2] * 10 * N,
+                [np.nan] * N + [2] * 9 * N,
+                [0] * N + [2] * 9 * N,
+                [np.nan] * N + [2] * 8 * N + [0] * N,
+            ]
+        ]
+        # Each level contains 4 elements (including NaN), so it is represented
+        # in 2 bits, for a total of 2*N*10 = 100 > 64 bits. If we were using a
+        # 64 bit engine and truncating the first levels, the fourth and fifth
+        # keys would collide; if truncating the last levels, the fifth and
+        # sixth; if rotating bits rather than shifting, the third and fifth.
+
+        for idx in range(len(keys)):
+            index = MultiIndex.from_tuples(keys)
+            assert index.get_loc(keys[idx]) == idx
+
+            expected = np.arange(idx + 1, dtype=np.intp)
+            result = index.get_indexer([keys[i] for i in expected])
+            tm.assert_numpy_array_equal(result, expected)
+
+        # With missing key:
+        idces = range(len(keys))
+        expected = np.array([-1] + list(idces), dtype=np.intp)
+        missing = tuple([0, 1] * 5 * N)
+        result = index.get_indexer([missing] + [keys[i] for i in idces])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_to_html(self):
         self.ymd.columns.name = "foo"
         self.ymd.to_html()
@@ -1508,6 +1545,16 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
 
+    def test_unicode_repr_issues(self):
+        levels = [Index(["a/\u03c3", "b/\u03c3", "c/\u03c3"]), Index([0, 1])]
+        codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
+        index = MultiIndex(levels=levels, codes=codes)
+
+        repr(index.levels)
+
+        # NumPy bug
+        # repr(index.get_level_values(1))
+
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
@@ -1525,6 +1572,19 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         for how in ["left", "right", "outer"]:
             df1.join(df2, how=how)
+
+    def test_frame_dict_constructor_empty_series(self):
+        s1 = Series(
+            [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2), (2, 4)])
+        )
+        s2 = Series(
+            [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
+        )
+        s3 = Series(dtype=object)
+
+        # it works!
+        DataFrame({"foo": s1, "bar": s2, "baz": s3})
+        DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
     @pytest.mark.parametrize("d", [4, "d"])
     def test_empty_frame_groupby_dtypes_consistency(self, d):
@@ -1653,6 +1713,53 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         df.set_index(index)
 
+    def test_datetimeindex(self):
+        idx1 = pd.DatetimeIndex(
+            ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2,
+            tz="Asia/Tokyo",
+        )
+        idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
+        idx = MultiIndex.from_arrays([idx1, idx2])
+
+        expected1 = pd.DatetimeIndex(
+            ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"], tz="Asia/Tokyo"
+        )
+
+        tm.assert_index_equal(idx.levels[0], expected1)
+        tm.assert_index_equal(idx.levels[1], idx2)
+
+        # from datetime combos
+        # GH 7888
+        date1 = datetime.date.today()
+        date2 = datetime.datetime.today()
+        date3 = Timestamp.today()
+
+        for d1, d2 in itertools.product([date1, date2, date3], [date1, date2, date3]):
+            index = MultiIndex.from_product([[d1], [d2]])
+            assert isinstance(index.levels[0], pd.DatetimeIndex)
+            assert isinstance(index.levels[1], pd.DatetimeIndex)
+
+    def test_constructor_with_tz(self):
+
+        index = pd.DatetimeIndex(
+            ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
+        )
+        columns = pd.DatetimeIndex(
+            ["2014/01/01 09:00", "2014/01/02 09:00"], name="dt2", tz="Asia/Tokyo"
+        )
+
+        result = MultiIndex.from_arrays([index, columns])
+
+        assert result.names == ["dt1", "dt2"]
+        tm.assert_index_equal(result.levels[0], index)
+        tm.assert_index_equal(result.levels[1], columns)
+
+        result = MultiIndex.from_arrays([Series(index), Series(columns)])
+
+        assert result.names == ["dt1", "dt2"]
+        tm.assert_index_equal(result.levels[0], index)
+        tm.assert_index_equal(result.levels[1], columns)
+
     def test_set_index_datetime(self):
         # GH 3950
         df = DataFrame(
@@ -1734,98 +1841,98 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_index_equal(df.index.get_level_values(1), idx2)
         tm.assert_index_equal(df.index.get_level_values(2), idx3)
 
-    @pytest.mark.parametrize("tz", ["UTC", "Asia/Tokyo", "US/Eastern"])
-    def test_reset_index_datetime(self, tz):
+    def test_reset_index_datetime(self):
         # GH 3950
-        idx1 = pd.date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
-        idx2 = Index(range(5), name="idx2", dtype="int64")
-        idx = MultiIndex.from_arrays([idx1, idx2])
-        df = DataFrame(
-            {"a": np.arange(5, dtype="int64"), "b": ["A", "B", "C", "D", "E"]},
-            index=idx,
-        )
+        for tz in ["UTC", "Asia/Tokyo", "US/Eastern"]:
+            idx1 = pd.date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
+            idx2 = Index(range(5), name="idx2", dtype="int64")
+            idx = MultiIndex.from_arrays([idx1, idx2])
+            df = DataFrame(
+                {"a": np.arange(5, dtype="int64"), "b": ["A", "B", "C", "D", "E"]},
+                index=idx,
+            )
 
-        expected = DataFrame(
-            {
-                "idx1": [
-                    datetime.datetime(2011, 1, 1),
-                    datetime.datetime(2011, 1, 2),
-                    datetime.datetime(2011, 1, 3),
-                    datetime.datetime(2011, 1, 4),
-                    datetime.datetime(2011, 1, 5),
-                ],
-                "idx2": np.arange(5, dtype="int64"),
-                "a": np.arange(5, dtype="int64"),
-                "b": ["A", "B", "C", "D", "E"],
-            },
-            columns=["idx1", "idx2", "a", "b"],
-        )
-        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
+            expected = DataFrame(
+                {
+                    "idx1": [
+                        datetime.datetime(2011, 1, 1),
+                        datetime.datetime(2011, 1, 2),
+                        datetime.datetime(2011, 1, 3),
+                        datetime.datetime(2011, 1, 4),
+                        datetime.datetime(2011, 1, 5),
+                    ],
+                    "idx2": np.arange(5, dtype="int64"),
+                    "a": np.arange(5, dtype="int64"),
+                    "b": ["A", "B", "C", "D", "E"],
+                },
+                columns=["idx1", "idx2", "a", "b"],
+            )
+            expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
 
-        tm.assert_frame_equal(df.reset_index(), expected)
+            tm.assert_frame_equal(df.reset_index(), expected)
 
-        idx3 = pd.date_range(
-            "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
-        )
-        idx = MultiIndex.from_arrays([idx1, idx2, idx3])
-        df = DataFrame(
-            {"a": np.arange(5, dtype="int64"), "b": ["A", "B", "C", "D", "E"]},
-            index=idx,
-        )
+            idx3 = pd.date_range(
+                "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
+            )
+            idx = MultiIndex.from_arrays([idx1, idx2, idx3])
+            df = DataFrame(
+                {"a": np.arange(5, dtype="int64"), "b": ["A", "B", "C", "D", "E"]},
+                index=idx,
+            )
 
-        expected = DataFrame(
-            {
-                "idx1": [
-                    datetime.datetime(2011, 1, 1),
-                    datetime.datetime(2011, 1, 2),
-                    datetime.datetime(2011, 1, 3),
-                    datetime.datetime(2011, 1, 4),
-                    datetime.datetime(2011, 1, 5),
-                ],
-                "idx2": np.arange(5, dtype="int64"),
-                "idx3": [
-                    datetime.datetime(2012, 1, 1),
-                    datetime.datetime(2012, 2, 1),
-                    datetime.datetime(2012, 3, 1),
-                    datetime.datetime(2012, 4, 1),
-                    datetime.datetime(2012, 5, 1),
-                ],
-                "a": np.arange(5, dtype="int64"),
-                "b": ["A", "B", "C", "D", "E"],
-            },
-            columns=["idx1", "idx2", "idx3", "a", "b"],
-        )
-        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
-        expected["idx3"] = expected["idx3"].apply(
-            lambda d: Timestamp(d, tz="Europe/Paris")
-        )
-        tm.assert_frame_equal(df.reset_index(), expected)
+            expected = DataFrame(
+                {
+                    "idx1": [
+                        datetime.datetime(2011, 1, 1),
+                        datetime.datetime(2011, 1, 2),
+                        datetime.datetime(2011, 1, 3),
+                        datetime.datetime(2011, 1, 4),
+                        datetime.datetime(2011, 1, 5),
+                    ],
+                    "idx2": np.arange(5, dtype="int64"),
+                    "idx3": [
+                        datetime.datetime(2012, 1, 1),
+                        datetime.datetime(2012, 2, 1),
+                        datetime.datetime(2012, 3, 1),
+                        datetime.datetime(2012, 4, 1),
+                        datetime.datetime(2012, 5, 1),
+                    ],
+                    "a": np.arange(5, dtype="int64"),
+                    "b": ["A", "B", "C", "D", "E"],
+                },
+                columns=["idx1", "idx2", "idx3", "a", "b"],
+            )
+            expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
+            expected["idx3"] = expected["idx3"].apply(
+                lambda d: Timestamp(d, tz="Europe/Paris")
+            )
+            tm.assert_frame_equal(df.reset_index(), expected)
 
-        # GH 7793
-        idx = MultiIndex.from_product(
-            [["a", "b"], pd.date_range("20130101", periods=3, tz=tz)]
-        )
-        df = DataFrame(
-            np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
-        )
+            # GH 7793
+            idx = MultiIndex.from_product(
+                [["a", "b"], pd.date_range("20130101", periods=3, tz=tz)]
+            )
+            df = DataFrame(
+                np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
+            )
 
-        expected = DataFrame(
-            {
-                "level_0": "a a a b b b".split(),
-                "level_1": [
-                    datetime.datetime(2013, 1, 1),
-                    datetime.datetime(2013, 1, 2),
-                    datetime.datetime(2013, 1, 3),
-                ]
-                * 2,
-                "a": np.arange(6, dtype="int64"),
-            },
-            columns=["level_0", "level_1", "a"],
-        )
-        expected["level_1"] = expected["level_1"].apply(
-            lambda d: Timestamp(d, freq="D", tz=tz)
-        )
-        tm.assert_frame_equal(df.reset_index(), expected)
+            expected = DataFrame(
+                {
+                    "level_0": "a a a b b b".split(),
+                    "level_1": [
+                        datetime.datetime(2013, 1, 1),
+                        datetime.datetime(2013, 1, 2),
+                        datetime.datetime(2013, 1, 3),
+                    ]
+                    * 2,
+                    "a": np.arange(6, dtype="int64"),
+                },
+                columns=["level_0", "level_1", "a"],
+            )
+            expected["level_1"] = expected["level_1"].apply(
+                lambda d: Timestamp(d, freq="D", tz=tz)
+            )
+            tm.assert_frame_equal(df.reset_index(), expected)
 
     def test_reset_index_period(self):
         # GH 7746
@@ -1952,9 +2059,12 @@ class TestSorted(Base):
         result = self.frame.sort_index()
         assert result.index.names == self.frame.index.names
 
-    @pytest.mark.parametrize(
-        "gen,extra",
-        [
+    def test_sorting_repr_8017(self):
+
+        np.random.seed(0)
+        data = np.random.randn(3, 4)
+
+        for gen, extra in [
             ([1.0, 3.0, 2.0, 5.0], 4.0),
             ([1, 3, 2, 5], 4),
             (
@@ -1967,50 +2077,44 @@ class TestSorted(Base):
                 Timestamp("20130104"),
             ),
             (["1one", "3one", "2one", "5one"], "4one"),
-        ],
-    )
-    def test_sorting_repr_8017(self, gen, extra):
+        ]:
+            columns = MultiIndex.from_tuples([("red", i) for i in gen])
+            df = DataFrame(data, index=list("def"), columns=columns)
+            df2 = pd.concat(
+                [
+                    df,
+                    DataFrame(
+                        "world",
+                        index=list("def"),
+                        columns=MultiIndex.from_tuples([("red", extra)]),
+                    ),
+                ],
+                axis=1,
+            )
 
-        np.random.seed(0)
-        data = np.random.randn(3, 4)
+            # check that the repr is good
+            # make sure that we have a correct sparsified repr
+            # e.g. only 1 header of read
+            assert str(df2).splitlines()[0].split() == ["red"]
 
-        columns = MultiIndex.from_tuples([("red", i) for i in gen])
-        df = DataFrame(data, index=list("def"), columns=columns)
-        df2 = pd.concat(
-            [
-                df,
-                DataFrame(
-                    "world",
-                    index=list("def"),
-                    columns=MultiIndex.from_tuples([("red", extra)]),
-                ),
-            ],
-            axis=1,
-        )
+            # GH 8017
+            # sorting fails after columns added
 
-        # check that the repr is good
-        # make sure that we have a correct sparsified repr
-        # e.g. only 1 header of read
-        assert str(df2).splitlines()[0].split() == ["red"]
+            # construct single-dtype then sort
+            result = df.copy().sort_index(axis=1)
+            expected = df.iloc[:, [0, 2, 1, 3]]
+            tm.assert_frame_equal(result, expected)
 
-        # GH 8017
-        # sorting fails after columns added
+            result = df2.sort_index(axis=1)
+            expected = df2.iloc[:, [0, 2, 1, 4, 3]]
+            tm.assert_frame_equal(result, expected)
 
-        # construct single-dtype then sort
-        result = df.copy().sort_index(axis=1)
-        expected = df.iloc[:, [0, 2, 1, 3]]
-        tm.assert_frame_equal(result, expected)
+            # setitem then sort
+            result = df.copy()
+            result[("red", extra)] = "world"
 
-        result = df2.sort_index(axis=1)
-        expected = df2.iloc[:, [0, 2, 1, 4, 3]]
-        tm.assert_frame_equal(result, expected)
-
-        # setitem then sort
-        result = df.copy()
-        result[("red", extra)] = "world"
-
-        result = result.sort_index(axis=1)
-        tm.assert_frame_equal(result, expected)
+            result = result.sort_index(axis=1)
+            tm.assert_frame_equal(result, expected)
 
     def test_sort_index_level(self):
         df = self.frame.copy()
@@ -2105,6 +2209,72 @@ class TestSorted(Base):
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_is_lexsorted(self):
+        levels = [[0, 1], [0, 1, 2]]
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+        )
+        assert index.is_lexsorted()
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]]
+        )
+        assert not index.is_lexsorted()
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]]
+        )
+        assert not index.is_lexsorted()
+        assert index.lexsort_depth == 0
+
+    def test_raise_invalid_sortorder(self):
+        # Test that the MultiIndex constructor raise when a incorrect sortorder is given
+        # Issue #28518
+
+        levels = [[0, 1], [0, 1, 2]]
+
+        # Correct sortorder
+        MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+        )
+
+        with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]],
+                sortorder=2,
+            )
+
+        with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
+            MultiIndex(
+                levels=levels,
+                codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]],
+                sortorder=1,
+            )
+
+    def test_lexsort_depth(self):
+        # Test that lexsort_depth return the  correct sortorder
+        # when it was given to the MultiIndex const.
+        # Issue #28518
+
+        levels = [[0, 1], [0, 1, 2]]
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+        )
+        assert index.lexsort_depth == 2
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=1
+        )
+        assert index.lexsort_depth == 1
+
+        index = MultiIndex(
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=0
+        )
+        assert index.lexsort_depth == 0
 
     def test_sort_index_and_reconstruction(self):
 
