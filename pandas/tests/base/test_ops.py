@@ -233,7 +233,7 @@ class TestIndexOps(Ops):
         elif len(obj) < 1:
             pytest.skip("Test doesn't make sense on empty data")
         elif isinstance(obj, pd.MultiIndex):
-            pytest.skip("MultiIndex doesn't support isna")
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
         values = obj.values
         if needs_i8_conversion(obj):
@@ -279,7 +279,7 @@ class TestIndexOps(Ops):
         if not allow_na_ops(obj):
             pytest.skip("type doesn't allow for NA operations")
         elif isinstance(obj, pd.MultiIndex):
-            pytest.skip("MultiIndex doesn't support isna")
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
         values = obj.values
         if needs_i8_conversion(obj):
@@ -325,7 +325,7 @@ class TestIndexOps(Ops):
         elif len(obj) < 1:
             pytest.skip("Test doesn't make sense on empty data")
         elif isinstance(orig, pd.MultiIndex):
-            pytest.skip("MultiIndex doesn't support isna")
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
         values = obj.values
         if needs_i8_conversion(obj):
