@@ -188,5 +188,5 @@ jobs:
       run: |
         cd pandas_web
         git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
-        git push -f origin master
+        git push -f origin master || true
       if: github.event_name == 'push'
