@@ -1265,43 +1265,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
-    def test_pyint_engine(self):
-        # GH 18519 : when combinations of codes cannot be represented in 64
-        # bits, the index underlying the MultiIndex engine works with Python
-        # integers, rather than uint64.
-        N = 5
-        keys = [
-            tuple(l)
-            for l in [
-                [0] * 10 * N,
-                [1] * 10 * N,
-                [2] * 10 * N,
-                [np.nan] * N + [2] * 9 * N,
-                [0] * N + [2] * 9 * N,
-                [np.nan] * N + [2] * 8 * N + [0] * N,
-            ]
-        ]
-        # Each level contains 4 elements (including NaN), so it is represented
-        # in 2 bits, for a total of 2*N*10 = 100 > 64 bits. If we were using a
-        # 64 bit engine and truncating the first levels, the fourth and fifth
-        # keys would collide; if truncating the last levels, the fifth and
-        # sixth; if rotating bits rather than shifting, the third and fifth.
-
-        for idx in range(len(keys)):
-            index = MultiIndex.from_tuples(keys)
-            assert index.get_loc(keys[idx]) == idx
-
-            expected = np.arange(idx + 1, dtype=np.intp)
-            result = index.get_indexer([keys[i] for i in expected])
-            tm.assert_numpy_array_equal(result, expected)
-
-        # With missing key:
-        idces = range(len(keys))
-        expected = np.array([-1] + list(idces), dtype=np.intp)
-        missing = tuple([0, 1] * 5 * N)
-        result = index.get_indexer([missing] + [keys[i] for i in idces])
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_to_html(self):
         self.ymd.columns.name = "foo"
         self.ymd.to_html()
@@ -1545,16 +1508,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
 
-    def test_unicode_repr_issues(self):
-        levels = [Index(["a/\u03c3", "b/\u03c3", "c/\u03c3"]), Index([0, 1])]
-        codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
-        index = MultiIndex(levels=levels, codes=codes)
-
-        repr(index.levels)
-
-        # NumPy bug
-        # repr(index.get_level_values(1))
-
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
@@ -1572,19 +1525,6 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         for how in ["left", "right", "outer"]:
             df1.join(df2, how=how)
-
-    def test_frame_dict_constructor_empty_series(self):
-        s1 = Series(
-            [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2), (2, 4)])
-        )
-        s2 = Series(
-            [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
-        )
-        s3 = Series(dtype=object)
-
-        # it works!
-        DataFrame({"foo": s1, "bar": s2, "baz": s3})
-        DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
     @pytest.mark.parametrize("d", [4, "d"])
     def test_empty_frame_groupby_dtypes_consistency(self, d):
