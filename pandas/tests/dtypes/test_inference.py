@@ -589,9 +589,9 @@ class TestInference:
                 pd.Series([2, 1], index=[True, False]),
             ),
             (
-                    pd.Series(range(3), index=[True, False, np.nan]).index,
-                    False,
-                    pd.Series([1, 1, 1], index=[True, False, pd.NA]),
+                pd.Series(range(3), index=[True, False, np.nan]).index,
+                False,
+                pd.Series([1, 1, 1], index=[True, False, pd.NA]),
             ),
         ],
     )
