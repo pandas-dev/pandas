@@ -267,6 +267,12 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-nonzero -reindex -searchsorted -to_dict"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+
+    MSG='Doctests generic.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/generic.py \
+        -k"-_set_axis_name -_xs -describe -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Doctests groupby.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
