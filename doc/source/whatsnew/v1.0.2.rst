@@ -24,7 +24,7 @@ Fixed regressions
 - Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
 - Fixed regression in :meth:`GroupBy.agg` calling a user-provided function an extra time on an empty input (:issue:`31760`)
 - Joining on :class:`DatetimeIndex` or :class:`TimedeltaIndex` will preserve ``freq`` in simple cases (:issue:`32166`)
-- Fixed bug, where the ``Series`` representation of an object ``Index`` with bools and ``NaN``s was wrong (:issue:`32146`)
+- Fixed bug, where the ``Series`` representation of an object ``Index`` with bools and ``NaN`` values was wrong (:issue:`32146`)
 -
 
 .. ---------------------------------------------------------------------------
