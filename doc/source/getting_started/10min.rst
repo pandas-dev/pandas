@@ -39,7 +39,7 @@ and labeled columns:
    df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
    df
 
-Creating a ``DataFrame`` by passing a dict of objects that can be converted to series-like.
+Creating a :class:`DataFrame` by passing a dict of objects that can be converted to series-like.
 
 .. ipython:: python
 
@@ -51,7 +51,7 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
                        'F': 'foo'})
    df2
 
-The columns of the resulting ``DataFrame`` have different
+The columns of the resulting :class:`DataFrame` have different
 :ref:`dtypes <basics.dtypes>`.
 
 .. ipython:: python
@@ -169,7 +169,7 @@ See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and
 Getting
 ~~~~~~~
 
-Selecting a single column, which yields a ``Series``,
+Selecting a single column, which yields a :class:`Series`,
 equivalent to ``df.A``:
 
 .. ipython:: python
@@ -469,10 +469,10 @@ Concatenating pandas objects together with :func:`concat`:
    pd.concat(pieces)
 
 .. note::
-   Adding a column to a ``DataFrame`` is relatively fast. However, adding
+   Adding a column to a :class:`DataFrame` is relatively fast. However, adding
    a row requires a copy, and may be expensive. We recommend passing a
-   pre-built list of records to the ``DataFrame`` constructor instead
-   of building a ``DataFrame`` by iteratively appending records to it.
+   pre-built list of records to the :class:`DataFrame` constructor instead
+   of building a :class:`DataFrame` by iteratively appending records to it.
    See :ref:`Appending to dataframe <merging.concatenation>` for more.
 
 Join
@@ -520,7 +520,7 @@ See the :ref:`Grouping section <groupby>`.
                       'D': np.random.randn(8)})
    df
 
-Grouping and then applying the :meth:`~DataFrame.sum` function to the resulting
+Grouping and then applying the :meth:`~pandas.core.groupby.GroupBy.sum` function to the resulting
 groups.
 
 .. ipython:: python
@@ -528,7 +528,7 @@ groups.
    df.groupby('A').sum()
 
 Grouping by multiple columns forms a hierarchical index, and again we can
-apply the ``sum`` function.
+apply the :meth:`~pandas.core.groupby.GroupBy.sum` function.
 
 .. ipython:: python
 
@@ -648,7 +648,7 @@ the quarter end:
 Categoricals
 ------------
 
-pandas can include categorical data in a ``DataFrame``. For full docs, see the
+pandas can include categorical data in a :class:`DataFrame`. For full docs, see the
 :ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.arrays.categorical>`.
 
 .. ipython:: python
@@ -664,14 +664,13 @@ Convert the raw grades to a categorical data type.
     df["grade"]
 
 Rename the categories to more meaningful names (assigning to
-``Series.cat.categories`` is inplace!).
+:meth:`Series.cat.categories` is inplace!).
 
 .. ipython:: python
 
     df["grade"].cat.categories = ["very good", "good", "very bad"]
 
-Reorder the categories and simultaneously add the missing categories (methods under ``Series
-.cat`` return a new ``Series`` by default).
+Reorder the categories and simultaneously add the missing categories (methods under :meth:`Series.cat` return a new :class:`Series` by default).
 
 .. ipython:: python
 
