@@ -98,6 +98,8 @@ reduction_kernels = frozenset(
     [
         "all",
         "any",
+        # `corrwith` is a reduction as long as `other` is a Series
+        # or has only 1 column with the same name
         "corrwith",
         "count",
         "first",
