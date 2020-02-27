@@ -11,6 +11,7 @@ from pandas.compat import PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_object_dtype,
@@ -797,28 +798,36 @@ class TestIndexOps(Ops):
                 assert o is not result
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
-    def test_memory_usage(self):
-        for o in self.objs:
-            res = o.memory_usage()
-            res_deep = o.memory_usage(deep=True)
+    def test_memory_usage(self, index_or_series_obj):
+        obj = index_or_series_obj
+        res = obj.memory_usage()
+        res_deep = obj.memory_usage(deep=True)
 
-            if is_object_dtype(o) or (
-                isinstance(o, Series) and is_object_dtype(o.index)
-            ):
-                # if there are objects, only deep will pick them up
-                assert res_deep > res
-            else:
-                assert res == res_deep
+        is_object = is_object_dtype(obj) or (
+            isinstance(obj, Series) and is_object_dtype(obj.index)
+        )
+        is_categorical = is_categorical_dtype(obj) or (
+            isinstance(obj, Series) and is_categorical_dtype(obj.index)
+        )
 
-            if isinstance(o, Series):
-                assert (
-                    o.memory_usage(index=False) + o.index.memory_usage()
-                ) == o.memory_usage(index=True)
+        if len(obj) == 0:
+            assert res_deep == res == 0
+        elif is_object or is_categorical:
+            # only deep will pick them up
+            assert res_deep > res
+        else:
+            assert res == res_deep
 
-            # sys.getsizeof will call the .memory_usage with
-            # deep=True, and add on some GC overhead
-            diff = res_deep - sys.getsizeof(o)
-            assert abs(diff) < 100
+        if isinstance(obj, Series):
+            total_usage = obj.memory_usage(index=True)
+            non_index_usage = obj.memory_usage(index=False)
+            index_usage = obj.index.memory_usage()
+            assert total_usage == non_index_usage + index_usage
+
+        # sys.getsizeof will call the .memory_usage with
+        # deep=True, and add on some GC overhead
+        diff = res_deep - sys.getsizeof(obj)
+        assert abs(diff) < 100
 
     def test_searchsorted(self, index_or_series_obj):
         # See gh-12238
