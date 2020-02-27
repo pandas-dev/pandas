@@ -6174,9 +6174,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               ``None``.
 
         TypeError
-            * If `to_replace` is not any of the expected types
-              (``str``, `regex`, ``list``, ``dict``, ``Series``, ``int``,
-              ``float`` or ``None``)
+            * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
@@ -6388,8 +6386,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             or is_list_like(to_replace)
         ):
             raise TypeError(
-                "Expecting 'to_replace' to be str, regex, list, dict, Series, "
-                "int, float or None, got invalid type "
+                "Expecting 'to_replace' to be either a scalar, array-like, "
+                "dict or None, got invalid type "
                 f"{repr(type(to_replace).__name__)}"
             )
 

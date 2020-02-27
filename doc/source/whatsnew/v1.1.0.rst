@@ -57,7 +57,6 @@ Other API changes
   will now be ``min`` and ``max`` to match with numeric dtypes in :meth:`DataFrame.describe` (:issue:`30164`)
 - Added :meth:`DataFrame.value_counts` (:issue:`5377`)
 - :meth:`Groupby.groups` now returns an abbreviated representation when called on large dataframes (:issue:`1135`)
-- :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 - ``loc`` lookups with an object-dtype :class:`Index` and an integer key will now raise ``KeyError`` instead of ``TypeError`` when key is missing (:issue:`31905`)
 -
 
@@ -231,6 +230,7 @@ Reshaping
 - Bug in :func:`crosstab` when inputs are two Series and have tuple names, the output will keep dummy MultiIndex as columns. (:issue:`18321`)
 - :meth:`DataFrame.pivot` can now take lists for ``index`` and ``columns`` arguments (:issue:`21425`)
 - Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
+- :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 
 
 Sparse
