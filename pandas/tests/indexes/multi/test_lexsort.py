@@ -24,7 +24,7 @@ class TestIsLexsorted:
 
 class TestLexsortDepth:
     def test_lexsort_depth(self):
-        # Test that lexsort_depth return the  correct sortorder
+        # Test that lexsort_depth return the correct sortorder
         # when it was given to the MultiIndex const.
         # GH#28518
 
