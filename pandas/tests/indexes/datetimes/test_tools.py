@@ -2,7 +2,7 @@
 
 import calendar
 from collections import deque
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import locale
 
 from dateutil.parser import parse
@@ -1374,6 +1374,86 @@ class TestToDatetimeUnit:
         # GH 23758
         result = pd.to_datetime([1], unit="s", utc=True, errors="ignore")
         expected = DatetimeIndex(["1970-01-01 00:00:01"], tz="UTC")
+        tm.assert_index_equal(result, expected)
+
+    # TODO: this is moved from tests.series.test_timeseries, may be redundant
+    def test_to_datetime_unit(self):
+
+        epoch = 1370745748
+        s = Series([epoch + t for t in range(20)])
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series([epoch + t for t in range(20)]).astype(float)
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series([epoch + t for t in range(20)] + [iNaT])
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series([epoch + t for t in range(20)] + [iNaT]).astype(float)
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # GH13834
+        s = Series([epoch + t for t in np.arange(0, 2, 0.25)] + [iNaT]).astype(float)
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [
+                Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t)
+                for t in np.arange(0, 2, 0.25)
+            ]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = pd.concat(
+            [Series([epoch + t for t in range(20)]).astype(float), Series([np.nan])],
+            ignore_index=True,
+        )
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = to_datetime([1, 2, "NaT", pd.NaT, np.nan], unit="D")
+        expected = DatetimeIndex(
+            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 3
+        )
+        tm.assert_index_equal(result, expected)
+
+        msg = "non convertible value foo with the unit 'D'"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime([1, 2, "foo"], unit="D")
+        msg = "cannot convert input 111111111 with the unit 'D'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime([1, 2, 111111111], unit="D")
+
+        # coerce we can process
+        expected = DatetimeIndex(
+            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 1
+        )
+        result = to_datetime([1, 2, "foo"], unit="D", errors="coerce")
+        tm.assert_index_equal(result, expected)
+
+        result = to_datetime([1, 2, 111111111], unit="D", errors="coerce")
         tm.assert_index_equal(result, expected)
 
 
