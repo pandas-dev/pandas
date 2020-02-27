@@ -1644,7 +1644,14 @@ class MultiIndex(Index):
         -------
         int
         """
-        int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
+        if all(x.is_monotonic for x in self.levels):
+            # If each level is sorted, we can operate on the codes directly. GH27495
+            int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
+        else:
+            int64_codes = [
+                ensure_int64(algos.factorize(self.get_level_values(i), sort=True)[0])
+                for i in range(self.nlevels)
+            ]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_codes[:k]):
                 return k

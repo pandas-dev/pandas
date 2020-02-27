@@ -2015,6 +2015,29 @@ def test_dup_labels_output_shape(groupby_func, idx):
     tm.assert_index_equal(result.columns, idx)
 
 
+def test_multiindex_lexsorted():
+    d = pd.to_datetime(
+        [
+            "2020-11-02",
+            "2019-01-02",
+            "2020-01-02",
+            "2020-02-04",
+            "2020-11-03",
+            "2019-11-03",
+            "2019-11-13",
+            "2019-11-13",
+        ]
+    )
+    a = np.arange(len(d))
+    b = np.random.rand(len(d))
+    df = pd.DataFrame({"d": d, "a": a, "b": b})
+    t = df.groupby(["d", "a"], sort=False).mean()
+    assert not t.index.is_lexsorted()
+
+    t = df.groupby(["d", "a"], sort=True).mean()
+    assert t.index.is_lexsorted()
+
+
 def test_groupby_crash_on_nunique(axis):
     # Fix following 30253
     df = pd.DataFrame({("A", "B"): [1, 2], ("A", "C"): [1, 3], ("D", "B"): [0, 0]})
