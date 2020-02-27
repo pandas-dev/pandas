@@ -9,6 +9,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 
 from pandas.compat import is_platform_little_endian
+from pandas.compat.numpy import _is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -144,6 +145,7 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets list of frame as 3D")
     def test_constructor_list_frames(self):
         # see gh-3243
         result = DataFrame([DataFrame()])
@@ -503,6 +505,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets embedded frame as 3D")
     def test_constructor_with_embedded_frames(self):
 
         # embedded data frames
