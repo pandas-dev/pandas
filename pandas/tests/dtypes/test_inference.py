@@ -575,6 +575,36 @@ class TestInference:
         out = lib.maybe_convert_objects(arr.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
 
+    @pytest.mark.parametrize(
+        "arr, dropna, exp",
+        [
+            (
+                pd.Series([False, True, True, pd.NA]),
+                False,
+                pd.Series([2, 1, 1], index=[True, False, pd.NA]),
+            ),
+            (
+                pd.Series([False, True, True, pd.NA]),
+                True,
+                pd.Series([2, 1], index=[True, False]),
+            ),
+            (
+                    pd.Series(range(3), index=[True, False, np.nan]).index,
+                    False,
+                    pd.Series([1, 1, 1], index=[True, False, pd.NA]),
+            ),
+        ],
+    )
+    def test_maybe_convert_objects_value_counts(self, arr, dropna, exp):
+        out = arr.value_counts(dropna=dropna)
+        tm.assert_series_equal(out, exp)
+
+    def test_maybe_convert_objects_index_representation(self):
+        arr = pd.Index([True, False, np.nan], dtype=object)
+        exp = arr.format()
+        out = ["True", "False", "NaN"]
+        assert out == exp
+
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
         array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
