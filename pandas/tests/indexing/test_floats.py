@@ -1,8 +1,16 @@
+import re
+
 import numpy as np
 import pytest
 
 from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas._testing as tm
+
+# We pass through the error message from numpy
+_slice_iloc_msg = re.escape(
+    "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+    "and integer or boolean arrays are valid indices"
+)
 
 
 def gen_obj(klass, index):
@@ -62,11 +70,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        msg = (
-            f"cannot do positional indexing on {type(i).__name__} with these "
-            r"indexers \[3\.0\] of type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
@@ -133,12 +137,7 @@ class TestFloatIndexers:
         assert 3.0 not in s
 
         # setting with a float fails with iloc
-        msg = (
-            r"cannot do (label|positional) indexing "
-            fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
         # setting with an indexer
@@ -162,10 +161,9 @@ class TestFloatIndexers:
             s2.loc[3.0] = 10
             assert s2.index.is_object()
 
-            for idxr in [lambda x: x]:
-                s2 = s.copy()
-                idxr(s2)[3.0] = 0
-                assert s2.index.is_object()
+            s2 = s.copy()
+            s2[3.0] = 0
+            assert s2.index.is_object()
 
     @pytest.mark.parametrize(
         "index_func",
@@ -250,12 +248,7 @@ class TestFloatIndexers:
 
         # integer index
         i = index_func(5)
-
-        if klass is Series:
-            # TODO: Should we be passing index=i here?
-            obj = Series(np.arange(len(i)))
-        else:
-            obj = DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
+        obj = gen_obj(klass, i)
 
         # coerce to equal int
         for idxr, getitem in [(lambda x: x.loc, False), (lambda x: x, True)]:
@@ -313,7 +306,7 @@ class TestFloatIndexers:
             result = idxr(s2)[indexer]
             self.check(result, s, 3, getitem)
 
-            # random integer is a KeyError
+            # random float is a KeyError
             with pytest.raises(KeyError, match=r"^3\.5$"):
                 idxr(s)[3.5]
 
@@ -333,12 +326,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        msg = (
-            "cannot do positional indexing "
-            fr"on {Float64Index.__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s2.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
@@ -382,11 +370,7 @@ class TestFloatIndexers:
                 idxr(s)[l]
 
         # setitem
-        msg = (
-            "cannot do positional indexing "
-            fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
-            "type float"
-        )
+        msg = "slice indices must be integers or None or have an __index__ method"
         with pytest.raises(TypeError, match=msg):
             s.iloc[l] = 0
 
@@ -396,7 +380,7 @@ class TestFloatIndexers:
             r"\[(3|4)(\.0)?\] "
             r"of type (float|int)"
         )
-        for idxr in [lambda x: x.loc, lambda x: x.iloc, lambda x: x]:
+        for idxr in [lambda x: x.loc, lambda x: x]:
             with pytest.raises(TypeError, match=msg):
                 idxr(s)[l] = 0
 
@@ -428,15 +412,6 @@ class TestFloatIndexers:
                 else:
                     indexer = slice(3, 5)
                 self.check(result, s, indexer, False)
-
-                # positional indexing
-                msg = (
-                    "cannot do slice indexing "
-                    fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
-                    "type float"
-                )
-                with pytest.raises(TypeError, match=msg):
-                    s[l]
 
             # getitem out-of-bounds
             for l in [slice(-6, 6), slice(-6.0, 6.0)]:
@@ -484,23 +459,6 @@ class TestFloatIndexers:
                 )
                 with pytest.raises(TypeError, match=msg):
                     s[l]
-
-            # setitem
-            for l in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
-
-                sc = s.copy()
-                sc.loc[l] = 0
-                result = sc.loc[l].values.ravel()
-                assert (result == 0).all()
-
-                # positional indexing
-                msg = (
-                    "cannot do slice indexing "
-                    fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
-                    "type float"
-                )
-                with pytest.raises(TypeError, match=msg):
-                    s[l] = 0
 
     @pytest.mark.parametrize("l", [slice(2, 4.0), slice(2.0, 4), slice(2.0, 4.0)])
     def test_integer_positional_indexing(self, l):
@@ -584,22 +542,34 @@ class TestFloatIndexers:
             with pytest.raises(TypeError, match=msg):
                 s[l]
 
+    @pytest.mark.parametrize("l", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
+    @pytest.mark.parametrize(
+        "index_func", [tm.makeIntIndex, tm.makeRangeIndex],
+    )
+    def test_float_slice_getitem_with_integer_index_raises(self, l, index_func):
+
+        # similar to above, but on the getitem dim (of a DataFrame)
+        index = index_func(5)
+
+        s = DataFrame(np.random.randn(5, 2), index=index)
+
         # setitem
-        for l in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
+        sc = s.copy()
+        sc.loc[l] = 0
+        result = sc.loc[l].values.ravel()
+        assert (result == 0).all()
 
-            sc = s.copy()
-            sc.loc[l] = 0
-            result = sc.loc[l].values.ravel()
-            assert (result == 0).all()
+        # positional indexing
+        msg = (
+            "cannot do slice indexing "
+            fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
+            "type float"
+        )
+        with pytest.raises(TypeError, match=msg):
+            s[l] = 0
 
-            # positional indexing
-            msg = (
-                "cannot do slice indexing "
-                fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
-                "type float"
-            )
-            with pytest.raises(TypeError, match=msg):
-                s[l] = 0
+        with pytest.raises(TypeError, match=msg):
+            s[l]
 
     @pytest.mark.parametrize("l", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
     @pytest.mark.parametrize("klass", [Series, DataFrame])
@@ -614,10 +584,9 @@ class TestFloatIndexers:
 
             # getitem
             result = idxr(s)[l]
-            if isinstance(s, Series):
-                tm.assert_series_equal(result, expected)
-            else:
-                tm.assert_frame_equal(result, expected)
+            assert isinstance(result, type(s))
+            tm.assert_equal(result, expected)
+
             # setitem
             s2 = s.copy()
             idxr(s2)[l] = 0
