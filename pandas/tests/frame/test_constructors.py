@@ -1414,7 +1414,7 @@ class TestDataFrameConstructors:
         result = DataFrame.from_dict(a, orient="index")
         tm.assert_frame_equal(result, expected)
 
-    def test_from_dict_empty_series_multiIndex(self):
+    def test_from_dict_empty_series_multiindex(self):
         s1 = Series(
             [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2), (2, 4)])
         )
