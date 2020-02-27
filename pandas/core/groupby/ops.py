@@ -299,13 +299,14 @@ class BaseGrouper:
     def result_index(self) -> Index:
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
-        codes = self.reconstructed_codes
-        levels = [
-            ping.result_index
-            if ping.result_index.is_monotonic
-            else algorithms.factorize(ping.result_index, sort=True)[0]
-            for ping in self.groupings
-        ]
+        codes = []
+        levels = []
+        for code, ping in zip(self.reconstructed_codes, self.groupings):
+            levels.append(ping.result_index)
+            if ping.result_index.is_monotonic:
+                codes.append(code)
+            else:
+                codes.append(algorithms.factorize(ping.grouper, sort=True)[0])
         result = MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )
