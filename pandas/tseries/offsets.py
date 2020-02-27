@@ -1155,12 +1155,12 @@ class MonthOffset(SingleConstructorOffset):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
-        if hasattr(i._data, "_data"):
+        dta = i
+        if not isinstance(i._data, np.ndarray):
             # DTA
-            arr = type(i._data)._simple_new(shifted, dtype=i.dtype, freq=i.freq)
-            return type(i)._simple_new(arr)  # TODO: retain name?
+            dta = i._data
 
-        return type(i)._simple_new(shifted, freq=i.freq, dtype=i.dtype)
+        return type(dta)._simple_new(shifted, freq=dta.freq, dtype=dta.dtype)
 
 
 class MonthEnd(MonthOffset):
@@ -1890,16 +1890,12 @@ class QuarterOffset(DateOffset):
         )
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
-        if hasattr(dtindex._data, "_data"):
+        dta = dtindex
+        if not isinstance(dtindex._data, np.ndarray):
             # DTA
-            arr = type(dtindex._data)._simple_new(
-                shifted, dtype=dtindex.dtype, freq=dtindex.freq
-            )
-            return type(dtindex)._simple_new(arr)  # TODO: retain name?
+            dta = dtindex._data
 
-        return type(dtindex)._simple_new(
-            shifted, freq=dtindex.freq, dtype=dtindex.dtype
-        )
+        return type(dta)._simple_new(shifted, freq=dta.freq, dtype=dta.dtype)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1983,15 +1979,11 @@ class YearOffset(DateOffset):
         )
         # TODO: going through __new__ raises on call to _validate_frequency;
         #  are we passing incorrect freq?
-        if hasattr(dtindex._data, "_data"):
+        dta = dtindex
+        if not isinstance(dtindex._data, np.ndarray):
             # DTA
-            arr = type(dtindex._data)._simple_new(
-                shifted, dtype=dtindex.dtype, freq=dtindex.freq
-            )
-            return type(dtindex)._simple_new(arr)  # TODO: retain name?
-        return type(dtindex)._simple_new(
-            shifted, freq=dtindex.freq, dtype=dtindex.dtype
-        )
+            dta = dtindex._data
+        return type(dta)._simple_new(shifted, freq=dta.freq, dtype=dta.dtype)
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
