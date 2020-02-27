@@ -1649,7 +1649,7 @@ class MultiIndex(Index):
             int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
         else:
             int64_codes = [
-                ensure_int64(algos.factorize(i, sort=True)[0]) for i in self.levels
+                ensure_int64(algos.factorize(self.get_level_values(i), sort=True)[0]) for i in range(self.nlevels)
             ]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_codes[:k]):

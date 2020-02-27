@@ -1100,6 +1100,7 @@ Thur,Lunch,Yes,51.51,17"""
             return getattr(x, op)(skipna=skipna, axis=axis)
 
         leftside = grouped.agg(aggf)
+        breakpoint()
         rightside = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
         if sort:
             rightside = rightside.sort_index(level=level, axis=axis)
@@ -1107,7 +1108,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # for good measure, groupby detail
         level_index = frame._get_axis(axis).levels[level].rename(level_name)
-
+        breakpoint()
         tm.assert_index_equal(leftside._get_axis(axis), level_index)
         tm.assert_index_equal(rightside._get_axis(axis), level_index)
 
@@ -2414,6 +2415,7 @@ class TestSorted(Base):
         )
 
         df = DataFrame({"col": range(len(idx))}, index=idx, dtype="int64")
+        breakpoint()
         assert df.index.is_lexsorted() is False
         assert df.index.is_monotonic is False
 
