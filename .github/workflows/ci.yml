@@ -154,6 +154,39 @@ jobs:
         echo "region = BHS" >> $RCLONE_CONFIG_PATH
       if: github.event_name == 'push'
 
-    - name: Sync web
+    - name: Sync web with OVH
       run: rclone sync pandas_web ovh_cloud_pandas_web:dev
+      if: github.event_name == 'push'
+
+    - name: Create git repo to upload the built docs to GitHub pages
+      run: |
+        cd pandas_web
+        git init
+        touch .nojekyll
+        echo "dev.pandas.io" > CNAME
+        printf "User-agent: *\nDisallow: /" > robots.txt
+        git add --all .
+        git config user.email "pandas-dev@python.org"
+        git config user.name "pandas-bot"
+        git commit -m "pandas web and documentation in master"
+      if: github.event_name == 'push'
+
+    # For this task to work, next steps are required:
+    # 1. Generate a pair of private/public keys (i.e. `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`)
+    # 2. Go to https://github.com/pandas-dev/pandas/settings/secrets
+    # 3. Click on "Add a new secret"
+    # 4. Name: "github_pagas_ssh_key", Value: <Content of the private ssh key>
+    # 5. The public key needs to be upladed to https://github.com/pandas-dev/pandas-dev.github.io/settings/keys
+    - name: Install GitHub pages ssh deployment key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.github_pages_ssh_key }}
+        known_hosts: 'github.com,192.30.252.128 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=='
+      if: github.event_name == 'push'
+
+    - name: Publish web and docs to GitHub pages
+      run: |
+        cd pandas_web
+        git remote add origin git@github.com:pandas-dev/pandas-dev.github.io.git
+        git push -f origin master
       if: github.event_name == 'push'

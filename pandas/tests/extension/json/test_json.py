@@ -136,10 +136,11 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         self.assert_frame_equal(a.to_frame(), a.to_frame())
 
         b = pd.Series(data.take([0, 0, 1]))
-        with pytest.raises(AssertionError):
+        msg = r"ExtensionArray are different"
+        with pytest.raises(AssertionError, match=msg):
             self.assert_series_equal(a, b)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError, match=msg):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
 

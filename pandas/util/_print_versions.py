@@ -4,7 +4,6 @@ import locale
 import os
 import platform
 import struct
-import subprocess
 import sys
 from typing import Dict, Optional, Union
 
@@ -12,21 +11,15 @@ from pandas._typing import JSONSerializable
 from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
 
 
-def _get_full_commit_hash() -> Optional[str]:
-    if os.path.isdir(".git") and os.path.isdir("pandas"):
-        try:
-            pipe = subprocess.Popen(
-                'git log --format="%H" -n 1'.split(" "),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            so, serr = pipe.communicate()
-        except (OSError, ValueError):
-            pass
-        else:
-            if pipe.returncode == 0:
-                return so.decode("utf-8").strip().strip('"')
-    return None
+def _get_commit_hash() -> Optional[str]:
+    """
+    Use vendored versioneer code to get git hash, which handles
+    git worktree correctly.
+    """
+    from pandas._version import get_versions
+
+    versions = get_versions()
+    return versions["full-revisionid"]
 
 
 def _get_sys_info() -> Dict[str, JSONSerializable]:
@@ -36,7 +29,7 @@ def _get_sys_info() -> Dict[str, JSONSerializable]:
     uname_result = platform.uname()
     language_code, encoding = locale.getlocale()
     return {
-        "commit": _get_full_commit_hash(),
+        "commit": _get_commit_hash(),
         "python": ".".join(str(i) for i in sys.version_info),
         "python-bits": struct.calcsize("P") * 8,
         "OS": uname_result.system,
