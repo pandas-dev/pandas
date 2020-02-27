@@ -241,10 +241,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @classmethod
     def _simple_new(cls, values: DatetimeArray, name: Label = None):
-        """
-        We require the we have a dtype compat for the values
-        if we are passed a non-dtype compat, then coerce using the constructor
-        """
         assert isinstance(values, DatetimeArray), type(values)
 
         result = object.__new__(cls)
