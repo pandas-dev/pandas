@@ -630,8 +630,7 @@ cdef class BaseMultiIndexCodesEngine:
         lab_ints = self._extract_level_codes(target)
         return self._base.get_indexer(self, lab_ints)
 
-    @staticmethod
-    def get_indexer_and_fill(object values, object target,
+    def get_indexer_and_fill(self, object values, object target,
                              object method, object limit = None) -> np.ndarray:
         """
         Gets an indexer, i.e. a set of indexes into `values`, for the values in
@@ -662,11 +661,7 @@ cdef class BaseMultiIndexCodesEngine:
         np.ndarray[int64_t, ndim=1] of the indexer of `target` into `values`,
         filled with the `method` (and optionally `limit`) specified
         """
-        if method not in ("backfill", "pad"):
-            raise ValueError(
-                f"{method} is not a valid method value; only 'backfill' and "
-                 "'pad' filling methods are supported")
-
+        assert method in ("backfill", "pad")
         cdef:
             int64_t i, j, next_code
             int64_t num_values, num_target_values
@@ -678,9 +673,10 @@ cdef class BaseMultiIndexCodesEngine:
         target_order = np.argsort(target.values).astype('int64')
         target_values = target.values[target_order]
         num_values, num_target_values = len(values), len(target_values)
-        new_codes, new_target_codes = \
-            np.empty((num_values,)).astype('int64'), \
-            np.empty((num_target_values,)).astype('int64')
+        new_codes, new_target_codes = (
+            np.empty((num_values,)).astype('int64'),
+            np.empty((num_target_values,)).astype('int64'),
+        )
 
         # `values` and `target_values` are both sorted, so we walk through them
         # and memoize the (ordered) set of indices in the (implicit) merged-and
@@ -699,6 +695,7 @@ cdef class BaseMultiIndexCodesEngine:
                 new_target_codes[j] = next_code
                 j += 1
             next_code += 1
+
         # at this point, at least one should have reached the end
         # the remaining values of the other should be added to the end
         assert i == num_values or j == num_target_values
@@ -712,10 +709,9 @@ cdef class BaseMultiIndexCodesEngine:
             next_code += 1
 
         # get the indexer, and undo the sorting of `target.values`
-        sorted_indexer = \
-            (algos.backfill if method == "backfill" else algos.pad)(
-                new_codes, new_target_codes, limit=limit
-            ).astype('int64')
+        sorted_indexer = (
+            algos.backfill if method == "backfill" else algos.pad
+        )(new_codes, new_target_codes, limit=limit).astype('int64')
         return sorted_indexer[np.argsort(target_order)]
 
     def get_loc(self, object key):
