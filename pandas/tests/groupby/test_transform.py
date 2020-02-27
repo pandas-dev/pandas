@@ -356,54 +356,49 @@ def test_transform_transformation_func(transformation_func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_corrwith(transformation_func, df_for_transformation_func):
+def test_groupby_corrwith(df_for_transformation_func):
 
     # GH 27905
-    df = df_for_transformation_func.copy()
+    df = df_for_transformation_func
     g = df.groupby("A")
 
-    if transformation_func == "corrwith":
-        op = lambda x: getattr(x, transformation_func)(df)
-        result = op(g)
-        expected = pd.DataFrame(dict(B=[1, np.nan, np.nan], A=[np.nan] * 3))
-        expected.index = pd.Index([121, 231, 676], name="A")
-        tm.assert_frame_equal(result, expected)
+    op = lambda x: getattr(x, "corrwith")(df)
+    result = op(g)
+    expected = pd.DataFrame(dict(B=[1, np.nan, np.nan], A=[np.nan] * 3))
+    expected.index = pd.Index([121, 231, 676], name="A")
+    tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_transform_nan(transformation_func, df_for_transformation_func):
+def test_groupby_transform_nan(df_for_transformation_func):
 
     # GH 27905
-    df = df_for_transformation_func.copy()
+    df = df_for_transformation_func
     g = df.groupby("A")
 
-    if transformation_func == "fillna":
-
-        df["B"] = [1, np.nan, np.nan, 3, np.nan, 3, 4]
-        result = g.transform(transformation_func, value=1)
-        expected = pd.DataFrame({"B": [1.0, 1.0, 1.0, 3.0, 1.0, 3.0, 4.0]})
-        tm.assert_frame_equal(result, expected)
-        op = lambda x: getattr(x, transformation_func)(1)
-        result = op(g)
-        tm.assert_frame_equal(result, expected)
+    df["B"] = [1, np.nan, np.nan, 3, np.nan, 3, 4]
+    result = g.transform("fillna", value=1)
+    expected = pd.DataFrame({"B": [1.0, 1.0, 1.0, 3.0, 1.0, 3.0, 4.0]})
+    tm.assert_frame_equal(result, expected)
+    op = lambda x: getattr(x, "fillna")(1)
+    result = op(g)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_tshift(transformation_func, df_for_transformation_func):
+def test_groupby_tshift(df_for_transformation_func):
 
     # GH 27905
-    df = df_for_transformation_func.copy()
+    df = df_for_transformation_func
     dt_periods = pd.date_range("2013-11-03", periods=7, freq="D")
     df["C"] = dt_periods
     g = df.set_index("C").groupby("A")
 
-    if transformation_func == "tshift":
-
-        op = lambda x: getattr(x, transformation_func)(2, "D")
-        result = op(g)
-        df["C"] = dt_periods + dt_periods.freq * 2
-        expected = df
-        tm.assert_frame_equal(
-            result.reset_index().reindex(columns=["A", "B", "C"]), expected
-        )
+    op = lambda x: getattr(x, "tshift")(2, "D")
+    result = op(g)
+    df["C"] = dt_periods + dt_periods.freq * 2
+    expected = df
+    tm.assert_frame_equal(
+        result.reset_index().reindex(columns=["A", "B", "C"]), expected
+    )
 
 
 def test_check_original_and_transformed_index(transformation_func):
