@@ -1403,7 +1403,7 @@ class MultiIndex(Index):
         return if the index is monotonic increasing (only equal or
         increasing) values.
         """
-        if all(self.get_level_values(i).is_monotonic for i in range(self.nlevels)):
+        if all(x.is_monotonic for x in self.levels):
             # If each level is sorted, we can operate on the codes directly. GH27495
             return libalgos.is_lexsorted(
                 [x.astype("int64", copy=False) for x in self.codes]
