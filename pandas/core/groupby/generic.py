@@ -88,25 +88,25 @@ if TYPE_CHECKING:
     from pandas.core.internals import Block
 
 _agg_template = """
-Compute %(f)s of group values.
+Compute {fname} of group values.
 
 Parameters
 ----------
-numeric_only : bool, default %(no)s
+numeric_only : bool, default {no}
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data.
-min_count : int, default %(mc)s
+min_count : int, default {mc}
     The required number of valid values to perform the operation. If fewer
     than ``min_count`` non-NA values are present the result will be NA.
 
 Returns
 -------
-%(return_type)s
-    Computed %(f)s of values within each group.
+{return_type}
+    Computed {fname} of values within each group.
 
 See Also
 --------
-%(return_type)s.groupby
+{return_type}.groupby
 """
 
 
@@ -835,34 +835,28 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(result, fill_value=0)
 
-    @Substitution(f="sum", no=True, mc=0, return_type="Series")
-    @Appender(_agg_template)
-    def sum(self, numeric_only=True, min_count=0) -> Series:
+    @doc(_agg_template, fname="sum", no=True, mc=0, return_type="Series")
+    def sum(self, numeric_only: bool = True, min_count: int = 0) -> Series:
         return super().sum(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="prod", no=True, mc=0, return_type="Series")
-    @Appender(_agg_template)
-    def prod(self, numeric_only=True, min_count=0) -> Series:
+    @doc(_agg_template, fname="prod", no=True, mc=0, return_type="Series")
+    def prod(self, numeric_only: bool = True, min_count: int = 0) -> Series:
         return super().prod(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="min", no=False, mc=-1, return_type="Series")
-    @Appender(_agg_template)
-    def min(self, numeric_only=False, min_count=-1) -> Series:
+    @doc(_agg_template, fname="min", no=False, mc=-1, return_type="Series")
+    def min(self, numeric_only: bool = False, min_count: int = -1) -> Series:
         return super().min(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="max", no=False, mc=-1, return_type="Series")
-    @Appender(_agg_template)
-    def max(self, numeric_only=False, min_count=-1) -> Series:
+    @doc(_agg_template, fname="max", no=False, mc=-1, return_type="Series")
+    def max(self, numeric_only: bool = False, min_count: int = -1) -> Series:
         return super().max(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="first", no=False, mc=-1, return_type="Series")
-    @Appender(_agg_template)
-    def first(self, numeric_only=False, min_count=-1) -> Series:
+    @doc(_agg_template, fname="first", no=False, mc=-1, return_type="Series")
+    def first(self, numeric_only: bool = False, min_count: int = -1) -> Series:
         return super().first(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="last", no=False, mc=-1, return_type="Series")
-    @Appender(_agg_template)
-    def last(self, numeric_only=False, min_count=-1) -> Series:
+    @doc(_agg_template, fname="last", no=False, mc=-1, return_type="Series")
+    def last(self, numeric_only: bool = False, min_count: int = -1) -> Series:
         return super().last(numeric_only=numeric_only, min_count=min_count)
 
     def _apply_to_column_groupbys(self, func):
@@ -1952,34 +1946,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             results.index = ibase.default_index(len(results))
         return results
 
-    @Substitution(f="sum", no=True, mc=0, return_type="DataFrame")
-    @Appender(_agg_template)
-    def sum(self, numeric_only=True, min_count=0) -> DataFrame:
+    @doc(_agg_template, fname="sum", no=True, mc=0, return_type="DataFrame")
+    def sum(self, numeric_only: bool = True, min_count: int = 0) -> DataFrame:
         return super().sum(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="prod", no=True, mc=0, return_type="DataFrame")
-    @Appender(_agg_template)
-    def prod(self, numeric_only=True, min_count=0) -> DataFrame:
+    @doc(_agg_template, fname="prod", no=True, mc=0, return_type="DataFrame")
+    def prod(self, numeric_only: bool = True, min_count: int = 0) -> DataFrame:
         return super().prod(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="min", no=False, mc=-1, return_type="DataFrame")
-    @Appender(_agg_template)
-    def min(self, numeric_only=False, min_count=-1) -> DataFrame:
+    @doc(_agg_template, fname="min", no=False, mc=-1, return_type="DataFrame")
+    def min(self, numeric_only: bool = False, min_count: int = -1) -> DataFrame:
         return super().min(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="max", no=False, mc=-1, return_type="DataFrame")
-    @Appender(_agg_template)
-    def max(self, numeric_only=False, min_count=-1) -> DataFrame:
+    @doc(_agg_template, fname="max", no=False, mc=-1, return_type="DataFrame")
+    def max(self, numeric_only: bool = False, min_count: int = -1) -> DataFrame:
         return super().max(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="first", no=False, mc=-1, return_type="DataFrame")
-    @Appender(_agg_template)
-    def first(self, numeric_only=False, min_count=-1) -> DataFrame:
+    @doc(_agg_template, fname="first", no=False, mc=-1, return_type="DataFrame")
+    def first(self, numeric_only: bool = False, min_count: int = -1) -> DataFrame:
         return super().first(numeric_only=numeric_only, min_count=min_count)
 
-    @Substitution(f="last", no=False, mc=-1, return_type="DataFrame")
-    @Appender(_agg_template)
-    def last(self, numeric_only=False, min_count=-1) -> DataFrame:
+    @doc(_agg_template, fname="last", no=False, mc=-1, return_type="DataFrame")
+    def last(self, numeric_only: bool = False, min_count: int = -1) -> DataFrame:
         return super().last(numeric_only=numeric_only, min_count=min_count)
 
     boxplot = boxplot_frame_groupby

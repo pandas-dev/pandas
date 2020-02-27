@@ -329,7 +329,7 @@ def rewrite_axis_style_signature(
     return decorate
 
 
-def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
+def doc(*args: Union[str, Callable], **kwargs: Any) -> Callable[[F], F]:
     """
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
@@ -345,8 +345,8 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     *args : str or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under function.
-    **kwargs : str
-        The string which would be used to format docstring template.
+    **kwargs : Any
+        The objects which would be used to format docstring template.
     """
 
     def decorator(func: F) -> F:
