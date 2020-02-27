@@ -36,6 +36,28 @@ For example:
    ser["2014"]
    ser.loc["May 2015"]
 
+.. _whatsnew_110.timestamp_fold_support:
+
+Fold argument support in Timestamp constructor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`Timestamp:` now supports the keyword-only fold argument according to `PEP 495 <https://www.python.org/dev/peps/pep-0495/#the-fold-attribute>`_ similar to parent ``datetime.datetime`` class. It supports both accepting fold as an initialization argument and inferring fold from other constructor arguments (:issue:`25057`, :issue:`31338`). Support is limited to ``dateutil`` timezones as ``pytz`` doesn't support fold.
+
+For example:
+
+.. ipython:: python
+
+    ts = pd.Timestamp("2019-10-27 01:30:00+00:00")
+    ts.fold
+
+.. ipython:: python
+
+    ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30,
+                      tz="dateutil/Europe/London", fold=1)
+    ts
+
+For more on working with fold, see :ref:`Fold subsection <timeseries.fold>` in the user guide.
+
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements
