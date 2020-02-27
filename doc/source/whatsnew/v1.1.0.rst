@@ -90,7 +90,76 @@ Backwards incompatible API changes
   now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
   Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median``) (:issue:`31485`)
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
--
+
+.. _whatsnew_110.api_breaking.indexing_raises_key_errors:
+
+Failed Label-Based Lookups Always Raise KeyError
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Label lookups ``series[key]``, ``series.loc[key]`` and ``frame.loc[key]``
+used to raises either ``KeyError`` or ``TypeError`` depending on the type of
+key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:issue:`31867`)
+
+.. ipython:: python
+
+    ser1 = pd.Series(range(3), index=[0, 1, 2])
+    ser2 = pd.Series(range(3), index=pd.date_range("2020-02-01", periods=3))
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: ser1[1.5]
+    ...
+    TypeError: cannot do label indexing on Int64Index with these indexers [1.5] of type float
+
+    In [4] ser1["foo"]
+    ...
+    KeyError: 'foo'
+
+    In [5]: ser1.loc[1.5]
+    ...
+    TypeError: cannot do label indexing on Int64Index with these indexers [1.5] of type float
+
+    In [6]: ser1.loc["foo"]
+    ...
+    KeyError: 'foo'
+
+    In [7]: ser2.loc[1]
+    ...
+    TypeError: cannot do label indexing on DatetimeIndex with these indexers [1] of type int
+
+    In [8]: ser2.loc[pd.Timestamp(0)]
+    ...
+    KeyError: Timestamp('1970-01-01 00:00:00')
+
+*New behavior*:
+
+.. code-block:: ipython
+
+    In [3]: ser1[1.5]
+    ...
+    KeyError: 1.5
+
+    In [4] ser1["foo"]
+    ...
+    KeyError: 'foo'
+
+    In [5]: ser1.loc[1.5]
+    ...
+    KeyError: 1.5
+
+    In [6]: ser1.loc["foo"]
+    ...
+    KeyError: 'foo'
+
+    In [7]: ser2.loc[1]
+    ...
+    KeyError: 1
+
+    In [8]: ser2.loc[pd.Timestamp(0)]
+    ...
+    KeyError: Timestamp('1970-01-01 00:00:00')
 
 .. ---------------------------------------------------------------------------
 
