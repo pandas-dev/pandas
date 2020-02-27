@@ -541,7 +541,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 msg = f"'value' should be an interval type, got {type(value)} instead."
                 raise TypeError(msg)
 
+        if needs_float_conversion:
+            raise ValueError("Cannot set float values for integer-backed IntervalArray")
+
         key = check_array_indexer(self, key)
+
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)

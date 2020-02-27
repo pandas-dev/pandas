@@ -86,6 +86,13 @@ class TestSetitem:
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes
         result = IntervalArray.from_arrays(left, right)
+
+        if result.dtype.subtype.kind in ["i", "u"]:
+            msg = "Cannot set float values for integer-backed IntervalArray"
+            with pytest.raises(ValueError, match=msg):
+                result[0] = np.NaN
+            return
+
         result[0] = np.nan
 
         expected_left = Index([left._na_value] + list(left[1:]))

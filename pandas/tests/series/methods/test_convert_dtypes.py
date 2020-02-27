@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_interval_dtype
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -242,7 +244,12 @@ class TestSeriesConvertDtypes:
 
         # Test that it is a copy
         copy = series.copy(deep=True)
-        ns[ns.notna()] = np.nan
+        if is_interval_dtype(ns.dtype) and ns.dtype.subtype.kind in ["i", "u"]:
+            msg = "Cannot set float values for integer-backed IntervalArray"
+            with pytest.raises(ValueError, match=msg):
+                ns[ns.notna()] = np.nan
+        else:
+            ns[ns.notna()] = np.nan
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)
