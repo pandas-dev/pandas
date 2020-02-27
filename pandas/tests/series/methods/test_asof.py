@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import IncompatibleFrequency
+
 from pandas import Series, Timestamp, date_range, isna, notna, offsets
 import pandas._testing as tm
 
@@ -131,6 +133,11 @@ class TestSeriesAsof:
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()
         assert isna(ts.asof(d))
+
+        # Mismatched freq
+        msg = "Input has different freq"
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            ts.asof(rng.asfreq("D"))
 
     def test_errors(self):
 
