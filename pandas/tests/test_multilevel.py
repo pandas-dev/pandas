@@ -1677,31 +1677,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
 
-    def test_duplicated_drop_duplicates(self):
-        # GH 4060
-        idx = MultiIndex.from_arrays(([1, 2, 3, 1, 2, 3], [1, 1, 1, 1, 2, 2]))
-
-        expected = np.array([False, False, False, True, False, False], dtype=bool)
-        duplicated = idx.duplicated()
-        tm.assert_numpy_array_equal(duplicated, expected)
-        assert duplicated.dtype == bool
-        expected = MultiIndex.from_arrays(([1, 2, 3, 2, 3], [1, 1, 1, 2, 2]))
-        tm.assert_index_equal(idx.drop_duplicates(), expected)
-
-        expected = np.array([True, False, False, False, False, False])
-        duplicated = idx.duplicated(keep="last")
-        tm.assert_numpy_array_equal(duplicated, expected)
-        assert duplicated.dtype == bool
-        expected = MultiIndex.from_arrays(([2, 3, 1, 2, 3], [1, 1, 1, 2, 2]))
-        tm.assert_index_equal(idx.drop_duplicates(keep="last"), expected)
-
-        expected = np.array([True, False, False, True, False, False])
-        duplicated = idx.duplicated(keep=False)
-        tm.assert_numpy_array_equal(duplicated, expected)
-        assert duplicated.dtype == bool
-        expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
-        tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
-
     def test_multiindex_set_index(self):
         # segfault in #3308
         d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
