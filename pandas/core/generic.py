@@ -8160,6 +8160,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         axis : {0 or 'index', 1 or 'columns'}, default 1
             Determine how the differences are stacked.
+            
             * 0, or 'index' : Resulting differences are stacked vertically
                 with rows drawn alternately from self and other.
             * 1, or 'columns' : Resulting differences are stacked horizontally
