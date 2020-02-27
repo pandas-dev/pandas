@@ -632,15 +632,6 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(s.dt.date, expected)
         tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
 
-    def test_datetime_understood(self):
-        # Ensures it doesn't fail to create the right series
-        # reported in issue#16726
-        series = pd.Series(pd.date_range("2012-01-01", periods=3))
-        offset = pd.offsets.DateOffset(days=6)
-        result = series - offset
-        expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
-        tm.assert_series_equal(result, expected)
-
     def test_dt_timetz_accessor(self, tz_naive_fixture):
         # GH21358
         tz = maybe_get_tz(tz_naive_fixture)
