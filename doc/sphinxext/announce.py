@@ -57,6 +57,16 @@ def get_authors(revision_range):
     pat = "^.*\\t(.*)$"
     lst_release, cur_release = [r.strip() for r in revision_range.split("..")]
 
+    if "|" in cur_release:
+        # e.g. v1.0.1|HEAD
+        maybe_tag, head = cur_release.split("|")
+        assert head == "HEAD"
+        if maybe_tag in this_repo.tags:
+            cur_release = maybe_tag
+        else:
+            cur_release = head
+        revision_range = f"{lst_release}..{cur_release}"
+
     # authors, in current release and previous to current release.
     cur = set(re.findall(pat, this_repo.git.shortlog("-s", revision_range), re.M))
     pre = set(re.findall(pat, this_repo.git.shortlog("-s", lst_release), re.M))

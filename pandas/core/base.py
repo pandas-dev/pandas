@@ -13,7 +13,7 @@ from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -927,22 +927,50 @@ class IndexOpsMixin:
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return an ndarray of the maximum argument indexer.
+        Return int position of the largest value in the Series.
+
+        If the maximum is achieved in multiple locations,
+        the first row position is returned.
 
         Parameters
         ----------
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
-        numpy.ndarray
-            Indices of the maximum values.
+        int
+            Row position of the maximum values.
 
         See Also
         --------
-        numpy.ndarray.argmax
+        numpy.ndarray.argmax : Equivalent method for numpy arrays.
+        Series.argmin : Similar method, but returning the minimum.
+        Series.idxmax : Return index label of the maximum values.
+        Series.idxmin : Return index label of the minimum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
+        >>> s
+        Corn Flakes              100.0
+        Almond Delight           110.0
+        Cinnamon Toast Crunch    120.0
+        Cocoa Puff               110.0
+        dtype: float64
+
+        >>> s.argmax()
+        2
+
+        The maximum cereal calories is in the third element,
+        since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
@@ -1027,12 +1055,10 @@ class IndexOpsMixin:
         --------
         numpy.ndarray.tolist
         """
-        if self.dtype.kind in ["m", "M"]:
-            return [com.maybe_box_datetimelike(x) for x in self._values]
-        elif is_extension_array_dtype(self._values):
+        if not isinstance(self._values, np.ndarray):
+            # check for ndarray instead of dtype to catch DTA/TDA
             return list(self._values)
-        else:
-            return self._values.tolist()
+        return self._values.tolist()
 
     to_list = tolist
 
@@ -1049,9 +1075,8 @@ class IndexOpsMixin:
         iterator
         """
         # We are explicitly making element iterators.
-        if self.dtype.kind in ["m", "M"]:
-            return map(com.maybe_box_datetimelike, self._values)
-        elif is_extension_array_dtype(self._values):
+        if not isinstance(self._values, np.ndarray):
+            # Check type instead of dtype to catch DTA/TDA
             return iter(self._values)
         else:
             return map(self._values.item, range(self._values.size))
@@ -1199,6 +1224,7 @@ class IndexOpsMixin:
         --------
         Series.count: Number of non-NA elements in a Series.
         DataFrame.count: Number of non-NA elements in a DataFrame.
+        DataFrame.value_counts: Equivalent method on DataFrames.
 
         Examples
         --------
@@ -1389,7 +1415,8 @@ class IndexOpsMixin:
             v += lib.memory_usage_of_objects(self.array)
         return v
 
-    @Substitution(
+    @doc(
+        algorithms.factorize,
         values="",
         order="",
         size_hint="",
@@ -1401,7 +1428,6 @@ class IndexOpsMixin:
             """
         ),
     )
-    @Appender(algorithms._shared_docs["factorize"])
     def factorize(self, sort=False, na_sentinel=-1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 

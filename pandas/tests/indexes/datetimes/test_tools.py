@@ -199,7 +199,7 @@ class TestTimeConversionFormats:
         # these are locale dependent
         lang, _ = locale.getlocale()
         month_abbr = calendar.month_abbr[4]
-        val = "01-{}-2011 00:00:01.978".format(month_abbr)
+        val = f"01-{month_abbr}-2011 00:00:01.978"
 
         format = "%d-%b-%Y %H:%M:%S.%f"
         result = to_datetime(val, format=format, cache=cache)
@@ -551,7 +551,7 @@ class TestToDatetime:
     )
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = "Out of bounds nanosecond timestamp: {}".format(dt)
+        msg = f"Out of bounds nanosecond timestamp: {dt}"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(dt, errors="raise")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
@@ -1110,8 +1110,8 @@ class TestToDatetimeUnit:
         for val in ["foo", Timestamp("20130101")]:
             try:
                 to_datetime(val, errors="raise", unit="s", cache=cache)
-            except tslib.OutOfBoundsDatetime:
-                raise AssertionError("incorrect exception raised")
+            except tslib.OutOfBoundsDatetime as err:
+                raise AssertionError("incorrect exception raised") from err
             except ValueError:
                 pass
 
@@ -2315,3 +2315,10 @@ def test_nullable_integer_to_datetime():
     tm.assert_series_equal(res, expected)
     # Check that ser isn't mutated
     tm.assert_series_equal(ser, ser_copy)
+
+
+@pytest.mark.parametrize("klass", [np.array, list])
+def test_na_to_datetime(nulls_fixture, klass):
+    result = pd.to_datetime(klass([nulls_fixture]))
+
+    assert result[0] is pd.NaT

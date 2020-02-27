@@ -278,7 +278,7 @@ class TestDataFrameConstructors:
         nitems = 100
         nums = list(range(nitems))
         random.shuffle(nums)
-        expected = ["A{i:d}".format(i=i) for i in nums]
+        expected = [f"A{i:d}" for i in nums]
         df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
         assert expected == list(df.columns)
 
@@ -316,7 +316,8 @@ class TestDataFrameConstructors:
 
         # mix dict and array, wrong size - no spec for which error should raise
         # first
-        with pytest.raises(ValueError):
+        msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
+        with pytest.raises(ValueError, match=msg):
             DataFrame({"A": {"a": "a", "b": "b"}, "B": ["a", "b", "c"]})
 
         # Length-one dict micro-optimization
@@ -1860,9 +1861,8 @@ class TestDataFrameConstructors:
             # No NaN found -> error
             if len(indexer) == 0:
                 msg = (
-                    "cannot do label indexing on "
-                    r"<class 'pandas\.core\.indexes\.range\.RangeIndex'> "
-                    r"with these indexers \[nan\] of <class 'float'>"
+                    "cannot do label indexing on RangeIndex "
+                    r"with these indexers \[nan\] of type float"
                 )
                 with pytest.raises(TypeError, match=msg):
                     df.loc[:, np.nan]

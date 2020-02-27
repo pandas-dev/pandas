@@ -1,9 +1,9 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype
+from pandas._typing import Dtype, Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -32,11 +32,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
+from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.ops import get_op_result_name
-
-if TYPE_CHECKING:
-    from pandas import Series
 
 _num_index_shared_docs = dict()
 
@@ -106,11 +103,16 @@ class NumericIndex(Index):
         return self._maybe_cast_indexer(label)
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is not None and not self._can_hold_na:
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = name if name is not lib.no_default else self.name
+
+        if values is not None and not self._can_hold_na and values.dtype.kind == "f":
             # Ensure we are not returning an Int64Index with float data:
-            return self._shallow_copy_with_infer(values=values, **kwargs)
-        return super()._shallow_copy(values=values, **kwargs)
+            return Float64Index._simple_new(values, name=name)
+
+        if values is None:
+            values = self.values
+        return type(self)._simple_new(values, name=name)
 
     def _convert_for_op(self, value):
         """
@@ -253,12 +255,11 @@ class IntegerIndex(NumericIndex):
         return self.values.view(self._default_dtype)
 
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["loc", "getitem", "iloc", None]
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["loc", "getitem"]
 
-        # don't coerce ilocs to integers
-        if kind != "iloc":
-            key = self._maybe_cast_indexer(key)
+        # never iloc, which we don't coerce to integers
+        key = self._maybe_cast_indexer(key)
         return super()._convert_scalar_indexer(key, kind=kind)
 
 
@@ -383,23 +384,28 @@ class Float64Index(NumericIndex):
             return Int64Index(arr)
         return super().astype(dtype, copy=copy)
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
+    @Appender(Index._should_fallback_to_positional.__doc__)
+    def _should_fallback_to_positional(self):
+        return False
+
     @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind=None):
-        assert kind in ["loc", "getitem", "iloc", None]
-
-        if kind == "iloc":
-            self._validate_indexer("positional", key, "iloc")
-
+    def _convert_scalar_indexer(self, key, kind: str):
+        assert kind in ["loc", "getitem"]
+        # no-op for non-iloc
         return key
 
     @Appender(Index._convert_slice_indexer.__doc__)
-    def _convert_slice_indexer(self, key: slice, kind=None):
+    def _convert_slice_indexer(self, key: slice, kind: str):
+        assert kind in ["loc", "getitem"]
 
-        if kind == "iloc":
-            return super()._convert_slice_indexer(key, kind=kind)
-
+        # We always treat __getitem__ slicing as label-based
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
+
+    # ----------------------------------------------------------------
 
     def _format_native_types(
         self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
@@ -415,16 +421,6 @@ class Float64Index(NumericIndex):
             fixed_width=False,
         )
         return formatter.get_result_as_array()
-
-    def get_value(self, series: "Series", key):
-        """
-        We always want to get an index value, never a value.
-        """
-        if not is_scalar(key):
-            raise InvalidIndexError
-
-        loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
 
     def equals(self, other) -> bool:
         """
