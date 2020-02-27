@@ -104,7 +104,7 @@ def _cat_compare_op(op):
             if mask.any():
                 # In other series, the leads to False, so do that here too
                 if opname == "__ne__":
-                    ret[mask & (self._codes == other_codes)] = True
+                    ret[(self._codes == -1) & (other_codes == -1)] = True
                 else:
                     ret[mask] = False
             return ret
