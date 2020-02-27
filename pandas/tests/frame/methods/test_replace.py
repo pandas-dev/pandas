@@ -1369,8 +1369,8 @@ class TestDataFrameReplace:
         # API: replace() should raise an exception if invalid argument is given
         df = pd.DataFrame({"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]})
         msg = (
-            r"Expecting 'to_replace' to be str, regex, list, dict, Series, "
-            r"int, float or None, got invalid type.*"
+            r"Expecting 'to_replace' to be either a scalar, array-like, "
+            r"dict or None, got invalid type.*"
         )
         with pytest.raises(TypeError, match=msg):
             df.replace(lambda x: x.strip())
