@@ -1625,6 +1625,19 @@ class MultiIndex(Index):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'b', 'c']]).is_lexsorted()
+        True
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ['a', 'c', 'b']]).is_lexsorted()
+        False
+        >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
+        ...                            ['aa', 'bb', 'aa', 'bb']]).is_lexsorted()
+        True
+        >>> pd.MultiIndex.from_arrays([['a', 'a', 'b', 'b'],
+        ...                            ['bb', 'aa', 'aa', 'bb']]).is_lexsorted()
+        False
         """
         return self.lexsort_depth == self.nlevels
 
