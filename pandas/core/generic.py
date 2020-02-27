@@ -2190,7 +2190,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> result = df.to_json(orient="split")
         >>> parsed = json.loads(result)
-        >>> json.dumps(parsed, indent=4)   # doctest: +SKIP
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
         {
             "columns": [
                 "col 1",
