@@ -29,10 +29,9 @@ _bias_template = """
 
 class EWM(_Rolling):
     r"""
-    Provide exponential weighted functions.
+    Provide exponential weighted (EW) functions.
 
-    Available exponentially weighted functions: ``mean()``, ``var()``, ``std()``,
-    ``corr()``, ``cov()``.
+    Available EW functions: ``mean()``, ``var()``, ``std()``, ``corr()``, ``cov()``.
 
     Exactly one parameter: ``com``, ``span``, ``halflife``, or ``alpha`` must be 
     provided.
@@ -79,7 +78,7 @@ class EWM(_Rolling):
     ignore_na : bool, default False
         Ignore missing values when calculating weights; specify ``True`` to reproduce
         pre-0.15.0 behavior.
-        
+
         When ``ignore_na=False`` (default), weights are based on absolute positions.
         For example, the weights of :math:`x_0` and :math:`x_2` used in calculating the
         final weighted average of [:math:`x_0`, None, :math:`x_2`] are
