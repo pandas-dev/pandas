@@ -1096,7 +1096,7 @@ def test_transform_agg_by_name(reduction_func, obj):
     if func == "corrwith" and isinstance(obj, Series):  # GH#32293
         pytest.xfail("TODO: implement SeriesGroupBy.corrwith")
 
-    args = {"nth": [0], "quantile": [0.5], 'corrwith': [obj]}.get(func, [])
+    args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
 
     result = g.transform(func, *args)
 
