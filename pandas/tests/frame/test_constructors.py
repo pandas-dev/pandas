@@ -7,6 +7,7 @@ import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
+import pytz
 
 from pandas.compat import is_platform_little_endian
 from pandas.compat.numpy import _is_numpy_dev
@@ -2388,6 +2389,12 @@ class TestDataFrameConstructors:
         data = Series([[{"a": 1, "b": 2}], [{"a": 3, "b": 4}]])
         result = DataFrame.from_records(data)
         tm.assert_frame_equal(result, expected)
+
+    def test_frame_from_records_utc(self):
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
+
+        # it works
+        DataFrame.from_records([rec], index="begin_time")
 
     def test_to_frame_with_falsey_names(self):
         # GH 16114
