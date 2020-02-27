@@ -6,12 +6,11 @@ from itertools import product
 import numpy as np
 from numpy.random import randn
 import pytest
-import pytz
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
 import pandas._testing as tm
 
 AGG_FUNCTIONS = [
@@ -79,52 +78,6 @@ class TestMultiLevel(Base):
 
         result = a["A"].append(b["A"])
         tm.assert_series_equal(result, self.frame["A"])
-
-    def test_append_index(self):
-        idx1 = Index([1.1, 1.2, 1.3])
-        idx2 = pd.date_range("2011-01-01", freq="D", periods=3, tz="Asia/Tokyo")
-        idx3 = Index(["A", "B", "C"])
-
-        midx_lv2 = MultiIndex.from_arrays([idx1, idx2])
-        midx_lv3 = MultiIndex.from_arrays([idx1, idx2, idx3])
-
-        result = idx1.append(midx_lv2)
-
-        # see gh-7112
-        tz = pytz.timezone("Asia/Tokyo")
-        expected_tuples = [
-            (1.1, tz.localize(datetime.datetime(2011, 1, 1))),
-            (1.2, tz.localize(datetime.datetime(2011, 1, 2))),
-            (1.3, tz.localize(datetime.datetime(2011, 1, 3))),
-        ]
-        expected = Index([1.1, 1.2, 1.3] + expected_tuples)
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv2.append(idx1)
-        expected = Index(expected_tuples + [1.1, 1.2, 1.3])
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv2.append(midx_lv2)
-        expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv2.append(midx_lv3)
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv3.append(midx_lv2)
-        expected = Index._simple_new(
-            np.array(
-                [
-                    (1.1, tz.localize(datetime.datetime(2011, 1, 1)), "A"),
-                    (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
-                    (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
-                ]
-                + expected_tuples,
-                dtype=object,
-            ),
-            None,
-        )
-        tm.assert_index_equal(result, expected)
 
     def test_dataframe_constructor(self):
         multi = DataFrame(
@@ -1583,15 +1536,6 @@ Thur,Lunch,Yes,51.51,17"""
         index[0] = ["faz", "boo"]
         df.index = index
         repr(df)
-
-    def test_tuples_have_na(self):
-        index = MultiIndex(
-            levels=[[1, 0], [0, 1, 2, 3]],
-            codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
-        )
-
-        assert isna(index[4][0])
-        assert isna(index.values[4][0])
 
     def test_duplicate_groupby_issues(self):
         idx_tp = [
