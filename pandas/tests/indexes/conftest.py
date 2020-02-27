@@ -4,13 +4,15 @@ import pytest
 @pytest.fixture(params=[None, False])
 def sort(request):
     """
-    Valid values for 'sort' parameter used in a variety Index methods.
+    Valid values for the 'sort' parameter used in the Index
+    setops methods (intersection, union, etc.)
 
     Caution:
-        There are also "sort" fixtures with params [True, False] or [None, True, False].
-        For instance these might be used for DataFrame.groupby.
+        Don't confuse this one with the "sort" fixture used
+        for DataFrame.append or concat. That one has
+        parameters [True, False].
 
-        We can't extend the params here either as sort=True is not permitted in
-        many Index methods.
+        We can't combine them as sort=True is not permitted
+        in in the Index setops methods.
     """
     return request.param
