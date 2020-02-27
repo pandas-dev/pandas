@@ -291,7 +291,7 @@ class DecimalArray2(DecimalArray):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if isinstance(scalars, (pd.Series, pd.Index)):
-            raise TypeError
+            raise TypeError("scalars should not be of type pd.Series or pd.Index")
 
         return super()._from_sequence(scalars, dtype=dtype, copy=copy)
 
@@ -301,7 +301,9 @@ def test_array_unboxes(index_or_series):
 
     data = box([decimal.Decimal("1"), decimal.Decimal("2")])
     # make sure it works
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError, match="scalars should not be of type pd.Series or pd.Index"
+    ):
         DecimalArray2._from_sequence(data)
 
     result = pd.array(data, dtype="decimal2")
