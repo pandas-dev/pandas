@@ -1196,3 +1196,16 @@ def test_transform_lambda_indexing():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_unique_whitelisted():
+    # GH 31849
+    df = pd.DataFrame(
+        {"title": ["a", "b", "c", "c", "a"], "asset_id": ["a1", "b1", "c1", "c2", "c1"]}
+    )
+    result = df.groupby("title").asset_id.transform("unique")
+    expected = pd.Series(
+        [["a1", "c1"], ["b1"], ["c1", "c2"], ["c1", "c2"], ["a1", "c1"]],
+        name="asset_id",
+    )
+    tm.assert_series_equal(result, expected)
