@@ -38,16 +38,6 @@ def allow_na_ops(obj: Any) -> bool:
     return not is_bool_index and obj._can_hold_na
 
 
-def repeat_values(obj):
-    """
-    Repeat values so that the previous values are ordered (increasing)
-    by number of occurrences
-    """
-    if isinstance(obj, (pd.Index, pd.Series)):
-        return obj.repeat(range(1, len(obj) + 1))
-    return np.repeat(obj, range(1, len(obj) + 1))
-
-
 class Ops:
     def setup_method(self, method):
         self.bool_index = tm.makeBoolIndex(10, name="a")
@@ -215,7 +205,8 @@ class TestIndexOps(Ops):
         assert Series([1]).item() == 1
 
     def test_unique(self, index_or_series_obj):
-        obj = repeat_values(index_or_series_obj)
+        obj = index_or_series_obj
+        obj = np.repeat(obj, range(1, len(obj) + 1))
         result = obj.unique()
 
         # dict.fromkeys preserves the order
@@ -251,7 +242,8 @@ class TestIndexOps(Ops):
             values[0:2] = null_obj
 
         klass = type(obj)
-        obj = klass(repeat_values(values), dtype=obj.dtype)
+        repeated_values = np.repeat(values, range(1, len(values) + 1))
+        obj = klass(repeated_values, dtype=obj.dtype)
         result = obj.unique()
 
         unique_values_raw = dict.fromkeys(obj.values)
@@ -275,7 +267,8 @@ class TestIndexOps(Ops):
             tm.assert_numpy_array_equal(result, expected)
 
     def test_nunique(self, index_or_series_obj):
-        obj = repeat_values(index_or_series_obj)
+        obj = index_or_series_obj
+        obj = np.repeat(obj, range(1, len(obj) + 1))
         expected = len(obj.unique())
         assert obj.nunique(dropna=False) == expected
 
@@ -295,7 +288,8 @@ class TestIndexOps(Ops):
             values[0:2] = null_obj
 
         klass = type(obj)
-        obj = klass(repeat_values(values), dtype=obj.dtype)
+        repeated_values = np.repeat(values, range(1, len(values) + 1))
+        obj = klass(repeated_values, dtype=obj.dtype)
 
         if isinstance(obj, pd.CategoricalIndex):
             assert obj.nunique() == len(obj.categories)
@@ -306,7 +300,8 @@ class TestIndexOps(Ops):
             assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
     def test_value_counts(self, index_or_series_obj):
-        obj = repeat_values(index_or_series_obj)
+        obj = index_or_series_obj
+        obj = np.repeat(obj, range(1, len(obj) + 1))
         result = obj.value_counts()
 
         counter = collections.Counter(obj)
@@ -339,7 +334,8 @@ class TestIndexOps(Ops):
             values[0:2] = null_obj
 
         klass = type(obj)
-        obj = klass(repeat_values(values), dtype=obj.dtype)
+        repeated_values = np.repeat(values, range(1, len(values) + 1))
+        obj = klass(repeated_values, dtype=obj.dtype)
 
         # because np.nan == np.nan is False, but None == None is True
         # np.nan would be duplicated, whereas None wouldn't
