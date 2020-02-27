@@ -1,8 +1,16 @@
+import re
+
 import numpy as np
 import pytest
 
 from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas._testing as tm
+
+# We pass through the error message from numpy
+_slice_iloc_msg = re.escape(
+    "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+    "and integer or boolean arrays are valid indices"
+)
 
 
 def gen_obj(klass, index):
@@ -62,11 +70,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        msg = (
-            f"cannot do positional indexing on {type(i).__name__} with these "
-            r"indexers \[3\.0\] of type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
@@ -133,12 +137,7 @@ class TestFloatIndexers:
         assert 3.0 not in s
 
         # setting with a float fails with iloc
-        msg = (
-            r"cannot do (label|positional) indexing "
-            fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s.iloc[3.0] = 0
 
         # setting with an indexer
@@ -327,12 +326,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
-        msg = (
-            "cannot do positional indexing "
-            fr"on {Float64Index.__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
             s2.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
@@ -376,11 +370,7 @@ class TestFloatIndexers:
                 idxr(s)[l]
 
         # setitem
-        msg = (
-            "cannot do positional indexing "
-            fr"on {type(index).__name__} with these indexers \[(3|4)\.0\] of "
-            "type float"
-        )
+        msg = "slice indices must be integers or None or have an __index__ method"
         with pytest.raises(TypeError, match=msg):
             s.iloc[l] = 0
 
@@ -390,7 +380,7 @@ class TestFloatIndexers:
             r"\[(3|4)(\.0)?\] "
             r"of type (float|int)"
         )
-        for idxr in [lambda x: x.loc, lambda x: x.iloc, lambda x: x]:
+        for idxr in [lambda x: x.loc, lambda x: x]:
             with pytest.raises(TypeError, match=msg):
                 idxr(s)[l] = 0
 
