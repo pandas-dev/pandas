@@ -126,8 +126,9 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+
+- Bug where :func:`merge` was unable to join on non-unique categorical indices (:issue:`28189`)
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
--
 -
 
 Datetimelike
