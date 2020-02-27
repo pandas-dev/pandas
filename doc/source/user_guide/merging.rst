@@ -724,6 +724,27 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
+You can merge a mult-indexed Series and a DataFrame, if the names of
+the MultiIndex correspond to the columns from the DataFrame. Transform
+the Series to a DataFrame using :meth:`Series.reset_index` before merging,
+as shown in the following example.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"Let": ["A", "B", "C"], "Num": [1, 2, 3]})
+   df
+
+   ser = pd.Series(
+       ["a", "b", "c", "d", "e", "f"],
+       index=pd.MultiIndex.from_arrays(
+           [["A", "B", "C"] * 2, [1, 2, 3, 4, 5, 6]], names=["Let", "Num"]
+       ),
+   )
+   ser
+
+   result = pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
+
+
 Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
