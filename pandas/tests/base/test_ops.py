@@ -850,22 +850,28 @@ class TestIndexOps(Ops):
         with pytest.raises(ValueError, match=msg):
             series.drop_duplicates(inplace=invalid_value)
 
-    def test_getitem(self):
-        for i in self.indexes:
-            s = pd.Series(i)
+    def test_getitem(self, indices):
+        index = indices
 
-            assert i[0] == s.iloc[0]
-            assert i[5] == s.iloc[5]
-            assert i[-1] == s.iloc[-1]
+        if len(index) == 0:
+            pytest.skip("Test doesn't make sense on empty data")
+        elif isinstance(index, pd.MultiIndex):
+            pytest.skip("Can't instantiate Series from MultiIndex")
 
-            assert i[-1] == i[9]
+        series = pd.Series(index)
+        assert index[0] == series.iloc[0]
+        assert index[5] == series.iloc[5]
+        assert index[-1] == series.iloc[-1]
 
-            msg = "index 20 is out of bounds for axis 0 with size 10"
-            with pytest.raises(IndexError, match=msg):
-                i[20]
-            msg = "single positional indexer is out-of-bounds"
-            with pytest.raises(IndexError, match=msg):
-                s.iloc[20]
+        size = len(index)
+        assert index[-1] == index[size - 1]
+
+        msg = f"index {size} is out of bounds for axis 0 with size {size}"
+        with pytest.raises(IndexError, match=msg):
+            index[size]
+        msg = "single positional indexer is out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
+            series.iloc[size]
 
     @pytest.mark.parametrize("indexer_klass", [list, pd.Index])
     @pytest.mark.parametrize(
