@@ -33,7 +33,7 @@ class EWM(_Rolling):
 
     Available EW functions: ``mean()``, ``var()``, ``std()``, ``corr()``, ``cov()``.
 
-    Exactly one parameter: ``com``, ``span``, ``halflife``, or ``alpha`` must be 
+    Exactly one parameter: ``com``, ``span``, ``halflife``, or ``alpha`` must be
     provided.
 
     Parameters
