@@ -8,7 +8,6 @@ import pandas._testing as tm
 
 
 class TestRangeIndexSetOps:
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, sort):
         # intersect with Int64Index
         index = RangeIndex(start=0, stop=20, step=2)

@@ -146,6 +146,14 @@ def ordered_fixture(request):
     return request.param
 
 
+@pytest.fixture(params=[None, False])
+def sort(request):
+    """
+    Valid values for 'sort' parameter used in a variety of methods
+    """
+    return request.param
+
+
 _all_arithmetic_operators = [
     "__add__",
     "__radd__",
