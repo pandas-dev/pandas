@@ -128,14 +128,8 @@ class TestPeriodIndex(DatetimeLike):
     def test_shallow_copy_i8(self):
         # GH-24391
         pi = period_range("2018-01-01", periods=3, freq="2D")
-        result = pi._shallow_copy(pi.asi8, freq=pi.freq)
+        result = pi._shallow_copy(pi.asi8)
         tm.assert_index_equal(result, pi)
-
-    def test_shallow_copy_changing_freq_raises(self):
-        pi = period_range("2018-01-01", periods=3, freq="2D")
-        msg = "specified freq and dtype are different"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            pi._shallow_copy(pi, freq="H")
 
     def test_view_asi8(self):
         idx = PeriodIndex([], freq="M")
@@ -585,11 +579,6 @@ class TestPeriodIndex(DatetimeLike):
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
-
-    def test_join_self(self, join_type):
-        index = period_range("1/1/2000", periods=10)
-        joined = index.join(index, how=join_type)
-        assert index is joined
 
     def test_insert(self):
         # GH 18295 (test missing)

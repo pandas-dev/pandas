@@ -341,10 +341,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values = _convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
-                if len(values) == 0:
-                    sanitize_dtype = "object"
-                else:
-                    sanitize_dtype = None
+                sanitize_dtype = "object" if len(values) == 0 else None
                 null_mask = isna(values)
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
@@ -1496,7 +1493,7 @@ class Categorical(ExtensionArray, PandasObject):
     def _values_for_argsort(self):
         return self._codes.copy()
 
-    def argsort(self, ascending=True, kind="quicksort", *args, **kwargs):
+    def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
         Return the indices that would sort the Categorical.
 
@@ -1511,7 +1508,7 @@ class Categorical(ExtensionArray, PandasObject):
             or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
-        *args, **kwargs:
+        **kwargs:
             passed through to :func:`numpy.argsort`.
 
         Returns
@@ -1547,7 +1544,7 @@ class Categorical(ExtensionArray, PandasObject):
         >>> cat.argsort()
         array([2, 0, 1])
         """
-        return super().argsort(ascending=ascending, kind=kind, *args, **kwargs)
+        return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position="last"):
         """

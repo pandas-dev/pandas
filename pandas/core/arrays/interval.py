@@ -725,45 +725,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = np.concatenate([interval.right for interval in to_concat])
         return cls._simple_new(left, right, closed=closed, copy=False)
 
-    def _shallow_copy(self, left=None, right=None, closed=None):
+    def _shallow_copy(self, left, right):
         """
         Return a new IntervalArray with the replacement attributes
 
         Parameters
         ----------
-        left : array-like
+        left : Index
             Values to be used for the left-side of the intervals.
-            If None, the existing left and right values will be used.
-
-        right : array-like
+        right : Index
             Values to be used for the right-side of the intervals.
-            If None and left is IntervalArray-like, the left and right
-            of the IntervalArray-like will be used.
-
-        closed : {'left', 'right', 'both', 'neither'}, optional
-            Whether the intervals are closed on the left-side, right-side, both
-            or neither.  If None, the existing closed will be used.
         """
-        if left is None:
-
-            # no values passed
-            left, right = self.left, self.right
-
-        elif right is None:
-
-            # only single value passed, could be an IntervalArray
-            # or array of Intervals
-            if not isinstance(left, (type(self), ABCIntervalIndex)):
-                left = type(self)(left)
-
-            left, right = left.left, left.right
-        else:
-
-            # both left and right are values
-            pass
-
-        closed = closed or self.closed
-        return self._simple_new(left, right, closed=closed, verify_integrity=False)
+        return self._simple_new(left, right, closed=self.closed, verify_integrity=False)
 
     def copy(self):
         """
@@ -1035,7 +1008,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
 
-        return self._shallow_copy(closed=closed)
+        return type(self)._simple_new(
+            left=self.left, right=self.right, closed=closed, verify_integrity=False
+        )
 
     @property
     def length(self):
@@ -1127,8 +1102,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
         except TypeError:
             raise TypeError(
-                "Conversion to arrow with subtype '{}' "
-                "is not supported".format(self.dtype.subtype)
+                f"Conversion to arrow with subtype '{self.dtype.subtype}' "
+                "is not supported"
             )
         interval_type = ArrowIntervalType(subtype, self.closed)
         storage_array = pyarrow.StructArray.from_arrays(
@@ -1157,14 +1132,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if not type.equals(interval_type):
                     raise TypeError(
                         "Not supported to convert IntervalArray to type with "
-                        "different 'subtype' ({0} vs {1}) and 'closed' ({2} vs {3}) "
-                        "attributes".format(
-                            self.dtype.subtype, type.subtype, self.closed, type.closed
-                        )
+                        f"different 'subtype' ({self.dtype.subtype} vs {type.subtype}) "
+                        f"and 'closed' ({self.closed} vs {type.closed}) attributes"
                     )
             else:
                 raise TypeError(
-                    "Not supported to convert IntervalArray to '{0}' type".format(type)
+                    f"Not supported to convert IntervalArray to '{type}' type"
                 )
 
         return pyarrow.ExtensionArray.from_storage(interval_type, storage_array)

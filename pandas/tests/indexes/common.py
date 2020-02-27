@@ -514,12 +514,12 @@ class Base:
 
     @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort, indices):
-        if isinstance(indices, CategoricalIndex):
-            return
-
         first = indices[2:]
         second = indices[:4]
-        answer = indices[4:]
+        if isinstance(indices, CategoricalIndex) or indices.is_boolean():
+            answer = []
+        else:
+            answer = indices[4:]
         result = first.difference(second, sort)
         assert tm.equalContents(result, answer)
 
@@ -605,7 +605,8 @@ class Base:
         assert not indices.equals(np.array(indices))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, RangeIndex):
+        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
+            # TODO: CategoricalIndex can be re-allowed following GH#32167
             same_values = Index(indices, dtype=object)
             assert indices.equals(same_values)
             assert same_values.equals(indices)
