@@ -1,4 +1,3 @@
-from datetime import datetime
 from io import StringIO
 
 import numpy as np
@@ -7,15 +6,7 @@ import pytest
 from pandas._libs.tslib import iNaT
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    timedelta_range,
-)
+from pandas import DataFrame, DatetimeIndex, NaT, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
@@ -277,18 +268,6 @@ class TestTimeSeries:
         assert result.name is None
         assert result.freq == rng.freq
         assert result.tz == rng.tz
-
-    def test_from_M8_structured(self):
-        dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
-        arr = np.array(dates, dtype=[("Date", "M8[us]"), ("Forecasting", "M8[us]")])
-        df = DataFrame(arr)
-
-        assert df["Date"][0] == dates[0][0]
-        assert df["Forecasting"][0] == dates[0][1]
-
-        s = Series(arr["Date"])
-        assert isinstance(s[0], Timestamp)
-        assert s[0] == dates[0][0]
 
     def test_view_tz(self):
         # GH#24024

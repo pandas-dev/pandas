@@ -2460,6 +2460,18 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_from_M8_structured(self):
+        dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
+        arr = np.array(dates, dtype=[("Date", "M8[us]"), ("Forecasting", "M8[us]")])
+        df = DataFrame(arr)
+
+        assert df["Date"][0] == dates[0][0]
+        assert df["Forecasting"][0] == dates[0][1]
+
+        s = Series(arr["Date"])
+        assert isinstance(s[0], Timestamp)
+        assert s[0] == dates[0][0]
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     def test_from_dict(self):
