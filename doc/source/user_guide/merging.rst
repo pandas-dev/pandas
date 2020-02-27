@@ -724,7 +724,7 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-You can merge a MultiIndex Series and a DataFrame, if the levels of
+You can merge a mult-indexed Series and a DataFrame, if the names of
 the MultiIndex correspond to the columns from the DataFrame. Transform
 the Series to a DataFrame using :meth:`Series.reset_index` before merging,
 as shown in the following example.
