@@ -1713,53 +1713,6 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         df.set_index(index)
 
-    def test_datetimeindex(self):
-        idx1 = pd.DatetimeIndex(
-            ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2,
-            tz="Asia/Tokyo",
-        )
-        idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
-        idx = MultiIndex.from_arrays([idx1, idx2])
-
-        expected1 = pd.DatetimeIndex(
-            ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"], tz="Asia/Tokyo"
-        )
-
-        tm.assert_index_equal(idx.levels[0], expected1)
-        tm.assert_index_equal(idx.levels[1], idx2)
-
-        # from datetime combos
-        # GH 7888
-        date1 = datetime.date.today()
-        date2 = datetime.datetime.today()
-        date3 = Timestamp.today()
-
-        for d1, d2 in itertools.product([date1, date2, date3], [date1, date2, date3]):
-            index = MultiIndex.from_product([[d1], [d2]])
-            assert isinstance(index.levels[0], pd.DatetimeIndex)
-            assert isinstance(index.levels[1], pd.DatetimeIndex)
-
-    def test_constructor_with_tz(self):
-
-        index = pd.DatetimeIndex(
-            ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
-        )
-        columns = pd.DatetimeIndex(
-            ["2014/01/01 09:00", "2014/01/02 09:00"], name="dt2", tz="Asia/Tokyo"
-        )
-
-        result = MultiIndex.from_arrays([index, columns])
-
-        assert result.names == ["dt1", "dt2"]
-        tm.assert_index_equal(result.levels[0], index)
-        tm.assert_index_equal(result.levels[1], columns)
-
-        result = MultiIndex.from_arrays([Series(index), Series(columns)])
-
-        assert result.names == ["dt1", "dt2"]
-        tm.assert_index_equal(result.levels[0], index)
-        tm.assert_index_equal(result.levels[1], columns)
-
     def test_set_index_datetime(self):
         # GH 3950
         df = DataFrame(
