@@ -832,7 +832,6 @@ class DataFrame(NDFrame):
         Returns a Styler object.
 
         Contains methods for building a styled HTML representation of the DataFrame.
-        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
