@@ -2015,7 +2015,8 @@ def test_dup_labels_output_shape(groupby_func, idx):
     tm.assert_index_equal(result.columns, idx)
 
 
-def test_multiindex_lexsorted():
+def test_sort_false_multiindex_lexsorted():
+    # GH 32259
     d = pd.to_datetime(
         [
             "2020-11-02",
