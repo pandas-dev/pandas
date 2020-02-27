@@ -78,7 +78,6 @@ class TestRangeIndexSetOps:
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [False, None])
     def test_union_noncomparable(self, sort):
         # corner case, non-Int64Index
         index = RangeIndex(start=0, stop=20, step=2)
