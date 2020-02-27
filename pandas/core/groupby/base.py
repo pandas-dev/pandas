@@ -98,6 +98,7 @@ reduction_kernels = frozenset(
     [
         "all",
         "any",
+        "corrwith",
         "count",
         "first",
         "idxmax",
@@ -132,7 +133,6 @@ transformation_kernels = frozenset(
     [
         "backfill",
         "bfill",
-        "corrwith",
         "cumcount",
         "cummax",
         "cummin",
