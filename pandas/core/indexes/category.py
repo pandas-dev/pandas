@@ -581,7 +581,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             try:
                 return self.categories._convert_scalar_indexer(key, kind="loc")
             except TypeError:
-                self._invalid_indexer("label", key)
+                raise KeyError(key)
         return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
