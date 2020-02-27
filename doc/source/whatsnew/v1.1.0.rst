@@ -215,6 +215,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
+- Bug in :meth:`MultiIndex.is_lexsorted` was returning incorrect results when the levels of the multiindex weren't monotonic (:issue:`32259`)
 -
 
 I/O
