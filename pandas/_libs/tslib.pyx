@@ -118,7 +118,7 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
 
     Returns
     -------
-    array of dtype specified by box
+    ndarray of dtype specified by box
     """
     cdef:
         Py_ssize_t i, n = len(arr)
