@@ -2163,3 +2163,25 @@ def test_merge_datetime_upcast_dtype():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("n_categories", [5, 128])
+def test_categorical_non_unique_monotonic(n_categories):
+    # GH 28189
+    # With n_categories as 5, we test the int8 case is hit in libjoin,
+    # with n_categories as 128 we test the int16 case.
+    left_index = CategoricalIndex([0] + list(range(n_categories)))
+    df1 = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
+    df2 = DataFrame(
+        [[6]],
+        columns=["value"],
+        index=CategoricalIndex([0], categories=np.arange(n_categories)),
+    )
+
+    result = merge(df1, df2, how="left", left_index=True, right_index=True)
+    expected = DataFrame(
+        [[i, 6.0] if i < 2 else [i, np.nan] for i in range(n_categories + 1)],
+        columns=["value_x", "value_y"],
+        index=left_index,
+    )
+    tm.assert_frame_equal(expected, result)
