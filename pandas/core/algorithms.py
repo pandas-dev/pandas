@@ -313,7 +313,7 @@ def unique(values):
 
     See Also
     --------
-    Index.unique  : Return Index with unique values from an Index object.
+    Index.unique : Return unique values from an Index.
     Series.unique : Return unique values of Series object.
 
     Examples
