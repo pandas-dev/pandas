@@ -111,9 +111,9 @@ def test_append_index():
     # see gh-7112
     tz = pytz.timezone("Asia/Tokyo")
     expected_tuples = [
-        (1.1, tz.localize(datetime.datetime(2011, 1, 1))),
-        (1.2, tz.localize(datetime.datetime(2011, 1, 2))),
-        (1.3, tz.localize(datetime.datetime(2011, 1, 3))),
+        (1.1, tz.localize(datetime(2011, 1, 1))),
+        (1.2, tz.localize(datetime(2011, 1, 2))),
+        (1.3, tz.localize(datetime(2011, 1, 3))),
     ]
     expected = Index([1.1, 1.2, 1.3] + expected_tuples)
     tm.assert_index_equal(result, expected)
@@ -133,9 +133,9 @@ def test_append_index():
     expected = Index._simple_new(
         np.array(
             [
-                (1.1, tz.localize(datetime.datetime(2011, 1, 1)), "A"),
-                (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
-                (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
+                (1.1, tz.localize(datetime(2011, 1, 1)), "A"),
+                (1.2, tz.localize(datetime(2011, 1, 2)), "B"),
+                (1.3, tz.localize(datetime(2011, 1, 3)), "C"),
             ]
             + expected_tuples,
             dtype=object,
