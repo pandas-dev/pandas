@@ -190,16 +190,12 @@ class TestFloatIndexers:
         s2 = Series([1, 2, 3], index=["a", "b", "c"])
         s3 = Series([1, 2, 3], index=["a", "b", 1.5])
 
-        # lookup in a pure stringstr
-        # with an invalid indexer
-        msg = (
-            r"cannot do label indexing "
-            r"on Index with these indexers \[1\.0\] of "
-            r"type float|"
-            "Cannot index by location index with a non-integer key"
-        )
+        # lookup in a pure string index with an invalid indexer
+
         with pytest.raises(KeyError, match="^1.0$"):
             s2[1.0]
+
+        msg = "Cannot index by location index with a non-integer key"
         with pytest.raises(TypeError, match=msg):
             s2.iloc[1.0]
 
