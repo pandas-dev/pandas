@@ -509,7 +509,7 @@ def intervals_to_interval_bounds(ndarray intervals,
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
 
-    for i in range(len(intervals)):
+    for i in range(n):
         interval = intervals[i]
         if interval is None or util.is_nan(interval):
             left[i] = np.nan
