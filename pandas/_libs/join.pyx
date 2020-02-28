@@ -817,18 +817,22 @@ def asof_join_nearest_on_X_by_Y(asof_t[:] left_values,
     right_indexer = np.empty(left_size, dtype=np.int64)
 
     # search both forward and backward
-    bli, bri = asof_join_backward_on_X_by_Y(left_values,
-                                            right_values,
-                                            left_by_values,
-                                            right_by_values,
-                                            allow_exact_matches,
-                                            tolerance)
-    fli, fri = asof_join_forward_on_X_by_Y(left_values,
-                                           right_values,
-                                           left_by_values,
-                                           right_by_values,
-                                           allow_exact_matches,
-                                           tolerance)
+    bli, bri = asof_join_backward_on_X_by_Y(
+        left_values,
+        right_values,
+        left_by_values,
+        right_by_values,
+        allow_exact_matches,
+        tolerance,
+    )
+    fli, fri = asof_join_forward_on_X_by_Y(
+        left_values,
+        right_values,
+        left_by_values,
+        right_by_values,
+        allow_exact_matches,
+        tolerance,
+    )
 
     for i in range(len(bri)):
         # choose timestamp from right with smaller difference
