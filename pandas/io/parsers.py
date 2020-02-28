@@ -1420,11 +1420,11 @@ class ParserBase:
         # keep references to file handles opened by the parser itself
         self.handles = []
 
-    def _validate_parse_dates_presence(self, columns: List[str]):
+    def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
 
-        if user has provided names for parse_dates, check if those columns
+        If user has provided names for parse_dates, check if those columns
         are available.
 
         Parameters
