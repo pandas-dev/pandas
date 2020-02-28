@@ -5,9 +5,11 @@ import weakref
 import numpy as np
 
 from pandas._libs import index as libindex
+from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
+from pandas._typing import Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -85,7 +87,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     copy : bool
         Make a copy of input ndarray.
     freq : str or period object, optional
-        One of pandas period strings or corresponding objects
+        One of pandas period strings or corresponding objects.
     year : int, array, or Series, default None
     month : int, array, or Series, default None
     quarter : int, array, or Series, default None
@@ -215,7 +217,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
+    def _simple_new(cls, values: PeriodArray, name: Label = None):
         """
         Create a new PeriodIndex.
 
@@ -226,7 +228,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             or coercion.
         """
         assert isinstance(values, PeriodArray), type(values)
-        assert freq is None or freq == values.freq, (freq, values.freq)
 
         result = object.__new__(cls)
         result._data = values
@@ -248,8 +249,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = no_default):
         # TODO: simplify, figure out type of values
+        name = name if name is not no_default else self.name
+
         if values is None:
             values = self._data
 
@@ -263,18 +266,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # GH#30713 this should never be reached
                 raise TypeError(type(values), getattr(values, "dtype", None))
 
-        # We don't allow changing `freq` in _shallow_copy.
-        validate_dtype_freq(self.dtype, kwargs.get("freq"))
-        attributes = self._get_attributes_dict()
-
-        attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-        return self._simple_new(values, **attributes)
-
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
-        """ we always want to return a PeriodIndex """
-        return self._shallow_copy(values=values, **kwargs)
+        return self._simple_new(values, name=name)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -788,7 +780,6 @@ def period_range(
 
     Examples
     --------
-
     >>> pd.period_range(start='2017-01-01', end='2018-01-01', freq='M')
     PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05',
                  '2017-06', '2017-06', '2017-07', '2017-08', '2017-09',

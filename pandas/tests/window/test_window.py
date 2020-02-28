@@ -30,13 +30,13 @@ class TestWindow(Base):
 
         # not valid
         for w in [2.0, "foo", np.array([2])]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="min_periods must be an integer"):
                 c(win_type="boxcar", window=2, min_periods=w)
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="center must be a boolean"):
                 c(win_type="boxcar", window=2, min_periods=1, center=w)
 
         for wt in ["foobar", 1]:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="Invalid win_type"):
                 c(win_type=wt, window=2)
 
     @td.skip_if_no_scipy

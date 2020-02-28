@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import timezones
+from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -386,7 +387,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         key : label of the slice bound
         kind : {'loc', 'getitem'}
         """
-
         assert kind in ["loc", "getitem"]
 
         if not is_scalar(key):
@@ -397,9 +397,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         is_int = is_integer(key)
         is_flt = is_float(key)
         if kind == "loc" and (is_int or is_flt):
-            self._invalid_indexer("label", key)
+            raise KeyError(key)
         elif kind == "getitem" and is_flt:
-            self._invalid_indexer("label", key)
+            raise KeyError(key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
 
@@ -552,15 +552,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         result = result.replace("'", "")
         return result
 
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        Concatenate to_concat which has the same class.
-        """
-
-        new_data = type(self._data)._concat_same_type(to_concat)
-
-        return self._simple_new(new_data, name=name)
-
     def shift(self, periods=1, freq=None):
         """
         Shift index by desired number of time frequency increments.
@@ -651,7 +642,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         self._data._freq = freq
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+
         if values is None:
             values = self._data
 
@@ -659,18 +652,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             values = values._data
         if isinstance(values, np.ndarray):
             # TODO: We would rather not get here
-            if kwargs.get("freq") is not None:
-                raise ValueError(kwargs)
             values = type(self._data)(values, dtype=self.dtype)
 
         attributes = self._get_attributes_dict()
 
-        if "freq" not in kwargs and self.freq is not None:
+        if self.freq is not None:
             if isinstance(values, (DatetimeArray, TimedeltaArray)):
                 if values.freq is None:
                     del attributes["freq"]
 
-        attributes.update(kwargs)
+        attributes["name"] = name
         return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
@@ -740,9 +731,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # this point, depending on the values.
 
             result._set_freq(None)
-            result = self._shallow_copy(
-                result._data, name=result.name, dtype=result.dtype, freq=None
-            )
+            result = self._shallow_copy(result._data, name=result.name)
             if result.freq is None:
                 result._set_freq("infer")
             return result
@@ -921,17 +910,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return True
         return False
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined: np.ndarray, other):
+        assert other.dtype == self.dtype, (other.dtype, self.dtype)
         name = get_op_result_name(self, other)
-        if self._can_fast_union(other):
-            joined = self._shallow_copy(joined)
-            joined.name = name
-            return joined
-        else:
-            kwargs = {}
-            if hasattr(self, "tz"):
-                kwargs["tz"] = getattr(other, "tz", None)
-            return type(self)._simple_new(joined, name, **kwargs)
+
+        freq = self.freq if self._can_fast_union(other) else None
+        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
+
+        return type(self)._simple_new(new_data, name=name)
 
     # --------------------------------------------------------------------
     # List-Like Methods
@@ -939,12 +925,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location
+
         Parameters
         ----------
         loc : int
         item : object
             if not either a Python datetime or a numpy integer-like, returned
             Index dtype will be object rather than datetime.
+
         Returns
         -------
         new_index : Index

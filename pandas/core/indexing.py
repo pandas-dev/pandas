@@ -8,11 +8,11 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    is_float,
     is_integer,
     is_iterator,
     is_list_like,
     is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     is_sequence,
 )
@@ -48,7 +48,6 @@ class _IndexSlice:
 
     Examples
     --------
-
     >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
@@ -86,7 +85,8 @@ class IndexingError(Exception):
 
 
 class IndexingMixin:
-    """Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
+    """
+    Mixin for adding .loc/.iloc/.at/.iat to Datafames and Series.
     """
 
     @property
@@ -124,7 +124,6 @@ class IndexingMixin:
 
         Examples
         --------
-
         >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
         ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
         ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
@@ -578,18 +577,6 @@ class _LocationIndexer(_NDFrameIndexerBase):
         new_self.axis = axis
         return new_self
 
-    def _get_label(self, label, axis: int):
-        if self.ndim == 1:
-            # for perf reasons we want to try _xs first
-            # as its basically direct indexing
-            # but will fail when the index is not present
-            # see GH5667
-            return self.obj._xs(label, axis=axis)
-        elif isinstance(label, tuple) and isinstance(label[axis], slice):
-            raise IndexingError("no slices here, handle elsewhere")
-
-        return self.obj._xs(label, axis=axis)
-
     def _get_setitem_indexer(self, key):
         """
         Convert a potentially-label-based key into a positional indexer.
@@ -701,22 +688,24 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
-        # we have an axis0 multi-index, handle or raise
-        axis = self.axis or 0
-        try:
-            # fast path for series or for tup devoid of slices
-            return self._get_label(tup, axis=axis)
-        except TypeError:
-            # slices are unhashable
-            pass
-        except KeyError as ek:
-            # raise KeyError if number of indexers match
-            # else IndexingError will be raised
-            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
-                raise ek
+    def _getitem_tuple_same_dim(self, tup: Tuple):
+        """
+        Index with indexers that should return an object of the same dimension
+        as self.obj.
 
-        return None
+        This is only called after a failed call to _getitem_lowerdim.
+        """
+        retval = self.obj
+        for i, key in enumerate(tup):
+            if com.is_null_slice(key):
+                continue
+
+            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+            # We should never have retval.ndim < self.ndim, as that should
+            #  be handled by the _getitem_lowerdim call above.
+            assert retval.ndim == self.ndim
+
+        return retval
 
     def _getitem_lowerdim(self, tup: Tuple):
 
@@ -742,30 +731,24 @@ class _LocationIndexer(_NDFrameIndexerBase):
             raise IndexingError("Too many indexers. handle elsewhere")
 
         for i, key in enumerate(tup):
-            if is_label_like(key) or isinstance(key, tuple):
+            if is_label_like(key):
+                # We don't need to check for tuples here because those are
+                #  caught by the _is_nested_tuple_indexer check above.
                 section = self._getitem_axis(key, axis=i)
 
-                # we have yielded a scalar ?
-                if not is_list_like_indexer(section):
-                    return section
-
-                elif section.ndim == self.ndim:
+                # We should never have a scalar section here, because
+                #  _getitem_lowerdim is only called after a check for
+                #  is_scalar_access, which that would be.
+                if section.ndim == self.ndim:
                     # we're in the middle of slicing through a MultiIndex
                     # revise the key wrt to `section` by inserting an _NS
                     new_key = tup[:i] + (_NS,) + tup[i + 1 :]
 
                 else:
+                    # Note: the section.ndim == self.ndim check above
+                    #  rules out having DataFrame here, so we dont need to worry
+                    #  about transposing.
                     new_key = tup[:i] + tup[i + 1 :]
-
-                    # unfortunately need an odious kludge here because of
-                    # DataFrame transposing convention
-                    if (
-                        isinstance(section, ABCDataFrame)
-                        and i > 0
-                        and len(new_key) == 2
-                    ):
-                        a, b = new_key
-                        new_key = b, a
 
                     if len(new_key) == 1:
                         new_key = new_key[0]
@@ -774,7 +757,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 # slice returns a new object.
                 if com.is_null_slice(new_key):
                     return section
-                # This is an elided recursive call to iloc/loc/etc'
+                # This is an elided recursive call to iloc/loc
                 return getattr(section, self.name)[new_key]
 
         raise IndexingError("not applicable")
@@ -787,6 +770,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         # multi-index dimension, try to see if we have something like
         # a tuple passed to a series with a multi-index
         if len(tup) > self.ndim:
+            if self.name != "loc":
+                # This should never be reached, but lets be explicit about it
+                raise ValueError("Too many indices")
             result = self._handle_lowerdim_multi_index_axis0(tup)
             if result is not None:
                 return result
@@ -980,38 +966,6 @@ class _LocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _get_partial_string_timestamp_match_key(self, key, labels):
-        """
-        Translate any partial string timestamp matches in key, returning the
-        new key.
-
-        (GH 10331)
-        """
-        if isinstance(labels, ABCMultiIndex):
-            if (
-                isinstance(key, str)
-                and labels.levels[0]._supports_partial_string_indexing
-            ):
-                # Convert key '2016-01-01' to
-                # ('2016-01-01'[, slice(None, None, None)]+)
-                key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
-
-            if isinstance(key, tuple):
-                # Convert (..., '2016-01-01', ...) in tuple to
-                # (..., slice('2016-01-01', '2016-01-01', None), ...)
-                new_key = []
-                for i, component in enumerate(key):
-                    if (
-                        isinstance(component, str)
-                        and labels.levels[i]._supports_partial_string_indexing
-                    ):
-                        new_key.append(slice(component, component, None))
-                    else:
-                        new_key.append(component)
-                key = tuple(new_key)
-
-        return key
-
     def _getitem_iterable(self, key, axis: int):
         """
         Index current object with an an iterable collection of keys.
@@ -1056,15 +1010,28 @@ class _LocIndexer(_LocationIndexer):
         if self._multi_take_opportunity(tup):
             return self._multi_take(tup)
 
-        # no shortcut needed
-        retval = self.obj
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                continue
+        return self._getitem_tuple_same_dim(tup)
 
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
+    def _get_label(self, label, axis: int):
+        # GH#5667 this will fail if the label is not present in the axis.
+        return self.obj._xs(label, axis=axis)
 
-        return retval
+    def _handle_lowerdim_multi_index_axis0(self, tup: Tuple):
+        # we have an axis0 multi-index, handle or raise
+        axis = self.axis or 0
+        try:
+            # fast path for series or for tup devoid of slices
+            return self._get_label(tup, axis=axis)
+        except TypeError:
+            # slices are unhashable
+            pass
+        except KeyError as ek:
+            # raise KeyError if number of indexers match
+            # else IndexingError will be raised
+            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
+                raise ek
+
+        return None
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1072,7 +1039,7 @@ class _LocIndexer(_LocationIndexer):
             key = list(key)
 
         labels = self.obj._get_axis(axis)
-        key = self._get_partial_string_timestamp_match_key(key, labels)
+        key = labels._get_partial_string_timestamp_match_key(key)
 
         if isinstance(key, slice):
             self._validate_key(key, axis)
@@ -1176,7 +1143,7 @@ class _LocIndexer(_LocationIndexer):
             # try to find out correct indexer, if not type correct raise
             try:
                 key = labels._convert_scalar_indexer(key, kind="loc")
-            except TypeError:
+            except KeyError:
                 # but we will allow setting
                 if not is_setter:
                     raise
@@ -1323,16 +1290,16 @@ class _LocIndexer(_LocationIndexer):
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
-            if not (self.name == "loc" and not raise_missing):
+            if raise_missing:
                 not_found = list(set(key) - set(ax))
                 raise KeyError(f"{not_found} not in index")
 
-            # we skip the warning on Categorical/Interval
+            # we skip the warning on Categorical
             # as this check is actually done (check for
             # non-missing values), but a bit later in the
             # code, so we want to avoid warning & then
             # just raising
-            if not (ax.is_categorical() or ax.is_interval()):
+            if not ax.is_categorical():
                 raise KeyError(
                     "Passing list-likes to .loc or [] with any missing labels "
                     "is no longer supported, see "
@@ -1388,10 +1355,7 @@ class _iLocIndexer(_LocationIndexer):
         else:
             raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
-    def _has_valid_setitem_indexer(self, indexer):
-        self._has_valid_positional_setitem_indexer(indexer)
-
-    def _has_valid_positional_setitem_indexer(self, indexer) -> bool:
+    def _has_valid_setitem_indexer(self, indexer) -> bool:
         """
         Validate that a positional indexer cannot enlarge its target
         will raise if needed, does not modify the indexer externally.
@@ -1401,7 +1365,7 @@ class _iLocIndexer(_LocationIndexer):
         bool
         """
         if isinstance(indexer, dict):
-            raise IndexError(f"{self.name} cannot enlarge its target object")
+            raise IndexError("iloc cannot enlarge its target object")
         else:
             if not isinstance(indexer, tuple):
                 indexer = _tuplify(self.ndim, indexer)
@@ -1414,11 +1378,9 @@ class _iLocIndexer(_LocationIndexer):
                     pass
                 elif is_integer(i):
                     if i >= len(ax):
-                        raise IndexError(
-                            f"{self.name} cannot enlarge its target object"
-                        )
+                        raise IndexError("iloc cannot enlarge its target object")
                 elif isinstance(i, dict):
-                    raise IndexError(f"{self.name} cannot enlarge its target object")
+                    raise IndexError("iloc cannot enlarge its target object")
 
         return True
 
@@ -1437,10 +1399,6 @@ class _iLocIndexer(_LocationIndexer):
 
         for i, k in enumerate(key):
             if not is_integer(k):
-                return False
-
-            ax = self.obj.axes[i]
-            if not ax.is_unique:
                 return False
 
         return True
@@ -1475,25 +1433,7 @@ class _iLocIndexer(_LocationIndexer):
         except IndexingError:
             pass
 
-        retval = self.obj
-        axis = 0
-        for i, key in enumerate(tup):
-            if com.is_null_slice(key):
-                axis += 1
-                continue
-
-            retval = getattr(retval, self.name)._getitem_axis(key, axis=axis)
-
-            # if the dim was reduced, then pass a lower-dim the next time
-            if retval.ndim < self.ndim:
-                # TODO: this is never reached in tests; can we confirm that
-                #  it is impossible?
-                axis -= 1
-
-            # try to get for the next axis
-            axis += 1
-
-        return retval
+        return self._getitem_tuple_same_dim(tup)
 
     def _get_list_axis(self, key, axis: int):
         """
@@ -1559,23 +1499,26 @@ class _iLocIndexer(_LocationIndexer):
         """
         Much simpler as we only have to deal with our valid types.
         """
-        labels = self.obj._get_axis(axis)
+        return key
 
-        # make need to convert a float key
-        if isinstance(key, slice):
-            labels._validate_positional_slice(key)
-            return key
-
-        elif is_float(key):
-            labels._validate_indexer("positional", key, "iloc")
-            return key
-
-        self._validate_key(key, axis)
+    def _get_setitem_indexer(self, key):
+        # GH#32257 Fall through to let numnpy do validation
         return key
 
     # -------------------------------------------------------------------
 
     def _setitem_with_indexer(self, indexer, value):
+        """
+        _setitem_with_indexer is for setting values on a Series/DataFrame
+        using positional indexers.
+
+        If the relevant keys are not present, the Series/DataFrame may be
+        expanded.
+
+        This method is currently broken when dealing with non-unique Indexes,
+        since it goes from positional indexers back to labels when calling
+        BlockManager methods, see GH#12991, GH#22046, GH#15686.
+        """
 
         # also has the side effect of consolidating in-place
         from pandas import Series
@@ -1618,7 +1561,7 @@ class _iLocIndexer(_LocationIndexer):
                     # this correctly sets the dtype and avoids cache issues
                     # essentially this separates out the block that is needed
                     # to possibly be modified
-                    if self.ndim > 1 and i == self.obj._info_axis_number:
+                    if self.ndim > 1 and i == info_axis:
 
                         # add the new item, and set the value
                         # must have all defined axes if we have a scalar
@@ -1690,52 +1633,32 @@ class _iLocIndexer(_LocationIndexer):
                 info_idx = [info_idx]
             labels = item_labels[info_idx]
 
-            # if we have a partial multiindex, then need to adjust the plane
-            # indexer here
-            if len(labels) == 1 and isinstance(
-                self.obj[labels[0]].axes[0], ABCMultiIndex
-            ):
+            if len(labels) == 1:
+                # We can operate on a single column
                 item = labels[0]
-                obj = self.obj[item]
-                index = obj.index
-                idx = indexer[:info_axis][0]
+                idx = indexer[0]
 
-                plane_indexer = tuple([idx]) + indexer[info_axis + 1 :]
-                lplane_indexer = length_of_indexer(plane_indexer[0], index)
+                plane_indexer = tuple([idx])
+                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+                # lplane_indexer gives the expected length of obj[idx]
 
                 # require that we are setting the right number of values that
                 # we are indexing
-                if (
-                    is_list_like_indexer(value)
-                    and np.iterable(value)
-                    and lplane_indexer != len(value)
-                ):
-
-                    if len(obj[idx]) != len(value):
-                        raise ValueError(
-                            "cannot set using a multi-index "
-                            "selection indexer with a different "
-                            "length than the value"
-                        )
-
-                    # make sure we have an ndarray
-                    value = getattr(value, "values", value).ravel()
-
-                    # we can directly set the series here
-                    obj._consolidate_inplace()
-                    obj = obj.copy()
-                    obj._data = obj._data.setitem(indexer=tuple([idx]), value=value)
-                    self.obj[item] = obj
-                    return
+                if is_list_like_indexer(value) and 0 != lplane_indexer != len(value):
+                    # Exclude zero-len for e.g. boolean masking that is all-false
+                    raise ValueError(
+                        "cannot set using a multi-index "
+                        "selection indexer with a different "
+                        "length than the value"
+                    )
 
             # non-mi
             else:
-                plane_indexer = indexer[:info_axis] + indexer[info_axis + 1 :]
-                plane_axis = self.obj.axes[:info_axis][0]
-                lplane_indexer = length_of_indexer(plane_indexer[0], plane_axis)
+                plane_indexer = indexer[:1]
+                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
 
             def setter(item, v):
-                s = self.obj[item]
+                ser = self.obj[item]
                 pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
                 # perform the equivalent of a setitem on the info axis
@@ -1747,16 +1670,16 @@ class _iLocIndexer(_LocationIndexer):
                     com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
                     for idx in pi
                 ):
-                    s = v
+                    ser = v
                 else:
                     # set the item, possibly having a dtype change
-                    s._consolidate_inplace()
-                    s = s.copy()
-                    s._data = s._data.setitem(indexer=pi, value=v)
-                    s._maybe_update_cacher(clear=True)
+                    ser._consolidate_inplace()
+                    ser = ser.copy()
+                    ser._data = ser._data.setitem(indexer=pi, value=v)
+                    ser._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
-                self.obj[item] = s
+                self.obj[item] = ser
 
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
@@ -2210,9 +2133,11 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
                 "the indexed object do not match)."
             )
         result = result.astype(bool)._values
-    else:
-        # key might be sparse / object-dtype bool, check_array_indexer needs bool array
+    elif is_object_dtype(key):
+        # key might be object-dtype bool, check_array_indexer needs bool array
         result = np.asarray(result, dtype=bool)
+        result = check_array_indexer(index, result)
+    else:
         result = check_array_indexer(index, result)
 
     return result

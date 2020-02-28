@@ -314,7 +314,7 @@ class TestTimestampConstructors:
     def test_constructor_invalid_Z0_isostring(self, z):
         # GH 8910
         with pytest.raises(ValueError):
-            Timestamp("2014-11-02 01:00{}".format(z))
+            Timestamp(f"2014-11-02 01:00{z}")
 
     @pytest.mark.parametrize(
         "arg",
@@ -455,9 +455,7 @@ class TestTimestampConstructors:
     @pytest.mark.parametrize("offset", ["+0300", "+0200"])
     def test_construct_timestamp_near_dst(self, offset):
         # GH 20854
-        expected = Timestamp(
-            "2016-10-30 03:00:00{}".format(offset), tz="Europe/Helsinki"
-        )
+        expected = Timestamp(f"2016-10-30 03:00:00{offset}", tz="Europe/Helsinki")
         result = Timestamp(expected).tz_convert("Europe/Helsinki")
         assert result == expected
 
@@ -550,3 +548,16 @@ def test_timestamp_constructor_identity():
     expected = Timestamp("2017-01-01T12")
     result = Timestamp(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"year": 2020}, {"year": 2020, "month": 1}])
+def test_constructor_missing_keyword(kwargs):
+    # GH 31200
+
+    # The exact error message of datetime() depends on its version
+    msg1 = r"function missing required argument '(year|month|day)' \(pos [123]\)"
+    msg2 = r"Required argument '(year|month|day)' \(pos [123]\) not found"
+    msg = "|".join([msg1, msg2])
+
+    with pytest.raises(TypeError, match=msg):
+        Timestamp(**kwargs)

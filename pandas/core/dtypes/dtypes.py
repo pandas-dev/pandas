@@ -324,6 +324,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 raise ValueError(
                     "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
+            elif not isinstance(dtype, CategoricalDtype):
+                raise ValueError(f"Cannot not construct CategoricalDtype from {dtype}")
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
             # the "ordered" and "categories" arguments
@@ -831,7 +833,6 @@ class PeriodDtype(PandasExtensionDtype):
         ----------
         freq : frequency
         """
-
         if isinstance(freq, PeriodDtype):
             return freq
 
@@ -930,7 +931,6 @@ class PeriodDtype(PandasExtensionDtype):
         Return a boolean if we if the passed type is an actual dtype that we
         can match (via string or type)
         """
-
         if isinstance(dtype, str):
             # PeriodDtype can be instantiated from freq string like "U",
             # but doesn't regard freq str like "U" as dtype.
@@ -1139,7 +1139,6 @@ class IntervalDtype(PandasExtensionDtype):
         Return a boolean if we if the passed type is an actual dtype that we
         can match (via string or type)
         """
-
         if isinstance(dtype, str):
             if dtype.lower().startswith("interval"):
                 try:
