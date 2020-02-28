@@ -1143,7 +1143,7 @@ class _LocIndexer(_LocationIndexer):
             # try to find out correct indexer, if not type correct raise
             try:
                 key = labels._convert_scalar_indexer(key, kind="loc")
-            except TypeError:
+            except KeyError:
                 # but we will allow setting
                 if not is_setter:
                     raise

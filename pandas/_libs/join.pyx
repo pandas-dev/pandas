@@ -254,6 +254,8 @@ ctypedef fused join_t:
     float64_t
     float32_t
     object
+    int8_t
+    int16_t
     int32_t
     int64_t
     uint64_t
