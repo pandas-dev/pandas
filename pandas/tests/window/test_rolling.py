@@ -465,3 +465,13 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
     result = constructor(values).rolling(3).count()
     expected = constructor(expected_counts)
     tm.assert_equal(result, expected)
+
+
+def test_by_column_not_in_values():
+    # GH 32262
+    df = pd.DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
+
+    g = df.groupby("A")
+    r = g.rolling(4)
+    result = r.sum()
+    assert "A" not in result.columns

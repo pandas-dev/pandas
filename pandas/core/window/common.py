@@ -52,7 +52,8 @@ class WindowGroupByMixin(GroupByMixin):
         kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
-            groupby, obj = obj, obj.obj
+            groupby, obj = obj, obj._obj_with_exclusions
+            groupby.obj = obj
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
