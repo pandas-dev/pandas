@@ -7381,6 +7381,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Parameters
         ----------
         freq : DateOffset or str
+            frequency string
         method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
@@ -7398,7 +7399,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        converted : same type as caller
+        converted
+            same type as caller
 
         See Also
         --------
