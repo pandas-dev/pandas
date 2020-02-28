@@ -413,7 +413,13 @@ class MPLPlot:
         # np.ndarray before plot.
         numeric_data = numeric_data.copy()
         for col in numeric_data:
-            numeric_data[col] = np.asarray(numeric_data[col])
+
+            # GH32073: cast to float if values contain nulled integers
+            values = numeric_data[col]
+            if values.isna().any():
+                values = values.astype(float)
+
+            numeric_data[col] = np.asarray(values)
 
         self.data = numeric_data
 
