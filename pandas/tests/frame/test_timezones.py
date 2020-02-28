@@ -1,8 +1,6 @@
 """
 Tests for DataFrame timezone-related methods
 """
-from datetime import datetime
-
 import numpy as np
 import pytest
 import pytz
@@ -53,12 +51,6 @@ class TestDataFrameTimezones:
         result = df.values
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
-
-        # it works
-        DataFrame.from_records([rec], index="begin_time")
-
     def test_frame_join_tzaware(self):
         test1 = DataFrame(
             np.zeros((6, 3)),
@@ -79,17 +71,6 @@ class TestDataFrameTimezones:
 
         tm.assert_index_equal(result.index, ex_index)
         assert result.index.tz.zone == "US/Central"
-
-    def test_frame_add_tz_mismatch_converts_to_utc(self):
-        rng = date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
-        df = DataFrame(np.random.randn(len(rng)), index=rng, columns=["a"])
-
-        df_moscow = df.tz_convert("Europe/Moscow")
-        result = df + df_moscow
-        assert result.index.tz is pytz.utc
-
-        result = df_moscow + df
-        assert result.index.tz is pytz.utc
 
     def test_frame_align_aware(self):
         idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
