@@ -360,7 +360,7 @@ class DataFrame(NDFrame):
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_table : Read general delimited file into DataFrame.
-    read_clipboard : Read text from clipboard and pass to read_table.
+    read_clipboard : Read text from clipboard into DataFrame.
 
     Examples
     --------
@@ -7292,8 +7292,8 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corrwith : Compute pairwise correlation between rows or
-            columns of two DataFrame objects.
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
         Series.corr : Compute the correlation between two Series.
 
         Examples
