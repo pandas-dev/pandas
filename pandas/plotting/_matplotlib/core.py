@@ -416,7 +416,7 @@ class MPLPlot:
 
             # GH32073: cast to float if values contain nulled integers
             values = numeric_data[col]
-            if values.isna().any():
+            if (values.isna().any().all()):
                 values = values.astype(float)
 
             numeric_data[col] = np.asarray(values)
