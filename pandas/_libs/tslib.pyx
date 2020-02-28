@@ -67,56 +67,54 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 
 cdef inline object create_datetime_from_ts(
-    int64_t value, npy_datetimestruct dts, object tz, object freq
-):
-    """
-    Convenience routine to construct a datetime.datetime from its parts.
-    """
+        int64_t value, npy_datetimestruct dts,
+        object tz, object freq, bint fold):
+    """ convenience routine to construct a datetime.datetime from its parts """
     return datetime(dts.year, dts.month, dts.day, dts.hour,
-                    dts.min, dts.sec, dts.us, tz)
+                    dts.min, dts.sec, dts.us, tz, fold=fold)
 
 
 cdef inline object create_date_from_ts(
-    int64_t value, npy_datetimestruct dts, object tz, object freq
-):
-    """
-    Convenience routine to construct a datetime.date from its parts.
-    """
+        int64_t value, npy_datetimestruct dts,
+        object tz, object freq, bint fold):
+    """ convenience routine to construct a datetime.date from its parts """
+    # GH 25057 add fold argument to match other func_create signatures
     return date(dts.year, dts.month, dts.day)
 
 
 cdef inline object create_time_from_ts(
-    int64_t value, npy_datetimestruct dts, object tz, object freq
-):
-    """
-    Convenience routine to construct a datetime.time from its parts.
-    """
-    return time(dts.hour, dts.min, dts.sec, dts.us, tz)
+        int64_t value, npy_datetimestruct dts,
+        object tz, object freq, bint fold):
+    """ convenience routine to construct a datetime.time from its parts """
+    return time(dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ints_to_pydatetime(
-    const int64_t[:] arr,
-    object tz=None,
-    object freq=None,
-    str box="datetime"
-):
+def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
+                       bint fold=0, str box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
     Parameters
     ----------
-    arr : array of i8
-    tz : str, optional
-        convert to this timezone
-    freq : str/Offset, optional
-        freq to convert
-    box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
-        * If datetime, convert to datetime.datetime
-        * If date, convert to datetime.date
-        * If time, convert to datetime.time
-        * If Timestamp, convert to pandas.Timestamp
+    arr  : array of i8
+    tz   : str, default None
+         convert to this timezone
+    freq : str/Offset, default None
+         freq to convert
+    fold : bint, default is 0
+        Due to daylight saving time, one wall clock time can occur twice
+        when shifting from summer to winter time; fold describes whether the
+        datetime-like corresponds  to the first (0) or the second time (1)
+        the wall clock hits the ambiguous time
+
+        .. versionadded:: 1.1.0
+    box  : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
+         If datetime, convert to datetime.datetime
+         If date, convert to datetime.date
+         If time, convert to datetime.time
+         If Timestamp, convert to pandas.Timestamp
 
     Returns
     -------
@@ -132,7 +130,7 @@ def ints_to_pydatetime(
         str typ
         int64_t value, delta, local_value
         ndarray[object] result = np.empty(n, dtype=object)
-        object (*func_create)(int64_t, npy_datetimestruct, object, object)
+        object (*func_create)(int64_t, npy_datetimestruct, object, object, bint)
 
     if box == "date":
         assert (tz is None), "tz should be None when converting to date"
@@ -157,7 +155,7 @@ def ints_to_pydatetime(
                 result[i] = <object>NaT
             else:
                 dt64_to_dtstruct(value, &dts)
-                result[i] = func_create(value, dts, tz, freq)
+                result[i] = func_create(value, dts, tz, freq, fold)
     elif is_tzlocal(tz):
         for i in range(n):
             value = arr[i]
@@ -169,7 +167,7 @@ def ints_to_pydatetime(
                 # using the i8 representation.
                 local_value = tz_convert_utc_to_tzlocal(value, tz)
                 dt64_to_dtstruct(local_value, &dts)
-                result[i] = func_create(value, dts, tz, freq)
+                result[i] = func_create(value, dts, tz, freq, fold)
     else:
         trans, deltas, typ = get_dst_info(tz)
 
@@ -183,7 +181,7 @@ def ints_to_pydatetime(
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     dt64_to_dtstruct(value + delta, &dts)
-                    result[i] = func_create(value, dts, tz, freq)
+                    result[i] = func_create(value, dts, tz, freq, fold)
 
         elif typ == 'dateutil':
             # no zone-name change for dateutil tzs - dst etc
@@ -196,7 +194,7 @@ def ints_to_pydatetime(
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     pos = trans.searchsorted(value, side='right') - 1
                     dt64_to_dtstruct(value + deltas[pos], &dts)
-                    result[i] = func_create(value, dts, tz, freq)
+                    result[i] = func_create(value, dts, tz, freq, fold)
         else:
             # pytz
             for i in range(n):
@@ -210,7 +208,7 @@ def ints_to_pydatetime(
                     new_tz = tz._tzinfos[tz._transition_info[pos]]
 
                     dt64_to_dtstruct(value + deltas[pos], &dts)
-                    result[i] = func_create(value, dts, new_tz, freq)
+                    result[i] = func_create(value, dts, new_tz, freq, fold)
 
     return result
 
