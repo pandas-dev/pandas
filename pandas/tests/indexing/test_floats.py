@@ -95,43 +95,14 @@ class TestFloatIndexers:
         s = gen_obj(klass, i)
 
         # getting
-        for idxr, getitem in [(lambda x: x.iloc, False), (lambda x: x, True)]:
+        with pytest.raises(KeyError, match="^3.0$"):
+            s[3.0]
 
-            if getitem:
-                error = KeyError
-                msg = r"^3\.0?$"
-            else:
-                error = TypeError
-                msg = (
-                    r"cannot do (label|positional) indexing "
-                    fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-                    r"type float|"
-                    "Cannot index by location index with a "
-                    "non-integer key"
-                )
-            with pytest.raises(error, match=msg):
-                idxr(s)[3.0]
+        msg = "Cannot index by location index with a non-integer key"
+        with pytest.raises(TypeError, match=msg):
+            s.iloc[3.0]
 
-        # label based can be a TypeError or KeyError
-        if s.index.inferred_type in {
-            "categorical",
-            "string",
-            "unicode",
-            "mixed",
-            "period",
-            "timedelta64",
-            "datetime64",
-        }:
-            error = KeyError
-            msg = r"^3\.0$"
-        else:
-            error = TypeError
-            msg = (
-                r"cannot do (label|positional) indexing "
-                fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-                "type float"
-            )
-        with pytest.raises(error, match=msg):
+        with pytest.raises(KeyError, match="^3.0$"):
             s.loc[3.0]
 
         # contains
