@@ -141,3 +141,13 @@ def test_nan_stays_float():
     assert pd.isna(df0.index.get_level_values(1)).all()
     # the following failed in 0.14.1
     assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
+
+
+def test_tuples_have_na():
+    index = MultiIndex(
+        levels=[[1, 0], [0, 1, 2, 3]],
+        codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
+    )
+
+    assert pd.isna(index[4][0])
+    assert pd.isna(index.values[4][0])
