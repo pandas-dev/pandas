@@ -501,14 +501,14 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     """
     cdef:
         object closed = None, interval
-        int64_t n = len(intervals)
+        Py_ssize_t i, n = len(intervals)
         ndarray left, right
         bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
 
-    for i in range(len(intervals)):
+    for i in range(n):
         interval = intervals[i]
         if interval is None or util.is_nan(interval):
             left[i] = np.nan
