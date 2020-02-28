@@ -324,7 +324,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 data = SingleBlockManager(data, index, fastpath=True)
 
-        generic.NDFrame.__init__(self, data, fastpath=True)
+        generic.NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -812,7 +812,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             new_values, index=new_index, fastpath=True
         ).__finalize__(self)
 
-    def _take_with_is_copy(self, indices, axis=0, **kwargs):
+    def _take_with_is_copy(self, indices, axis=0):
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -821,7 +821,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        return self.take(indices=indices, axis=axis, **kwargs)
+        return self.take(indices=indices, axis=axis)
 
     def _ixs(self, i: int, axis: int = 0):
         """
@@ -967,7 +967,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if takeable:
             return self._values[label]
 
-        return self.index.get_value(self, label)
+        # Similar to Index.get_value, but we do not fall back to positional
+        loc = self.index.get_loc(label)
+        return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
@@ -2946,11 +2948,11 @@ Name: Max Speed, dtype: float64
         self,
         axis=0,
         level=None,
-        ascending=True,
-        inplace=False,
-        kind="quicksort",
-        na_position="last",
-        sort_remaining=True,
+        ascending: bool = True,
+        inplace: bool = False,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        sort_remaining: bool = True,
         ignore_index: bool = False,
     ):
         """
@@ -2965,8 +2967,9 @@ Name: Max Speed, dtype: float64
             Axis to direct sorting. This can only be 0 for Series.
         level : int, optional
             If not None, sort on values in specified index level(s).
-        ascending : bool, default true
-            Sort ascending vs. descending.
+        ascending : bool or list of bools, default True
+            Sort ascending vs. descending. When the index is a MultiIndex the
+            sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'

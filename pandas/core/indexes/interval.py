@@ -9,7 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import Timedelta, Timestamp, lib
 from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
-from pandas._typing import AnyArrayLike
+from pandas._typing import AnyArrayLike, Label
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._exceptions import rewrite_exception
 
@@ -191,7 +191,7 @@ class SetopCheck:
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
-    _attributes = ["name", "closed"]
+    _attributes = ["name"]
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -227,17 +227,15 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return cls._simple_new(array, name)
 
     @classmethod
-    def _simple_new(cls, array, name, closed=None):
+    def _simple_new(cls, array: IntervalArray, name: Label = None):
         """
         Construct from an IntervalArray
 
         Parameters
         ----------
         array : IntervalArray
-        name : str
+        name : Label, default None
             Attached as result.name
-        closed : Any
-            Ignored.
         """
         assert isinstance(array, IntervalArray), type(array)
 
@@ -333,11 +331,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, left=None, right=None, **kwargs):
-        result = self._data._shallow_copy(left=left, right=right)
+    def _shallow_copy(self, values=None, **kwargs):
+        if values is None:
+            values = self._data
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
-        return self._simple_new(result, **attributes)
+        return self._simple_new(values, **attributes)
 
     @cache_readonly
     def _isnan(self):
@@ -407,7 +406,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self.values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
-            return self._shallow_copy(new_values.left, new_values.right)
+            return self._shallow_copy(new_values)
         return Index.astype(self, dtype, copy=copy)
 
     @property
@@ -875,7 +874,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if other is None:
             other = self._na_value
         values = np.where(cond, self.values, other)
-        return self._shallow_copy(values)
+        result = IntervalArray(values)
+        return self._shallow_copy(result)
 
     def delete(self, loc):
         """
@@ -887,7 +887,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
-        return self._shallow_copy(new_left, new_right)
+        result = self._data._shallow_copy(new_left, new_right)
+        return self._shallow_copy(result)
 
     def insert(self, loc, item):
         """
@@ -921,7 +922,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
-        return self._shallow_copy(new_left, new_right)
+        result = self._data._shallow_copy(new_left, new_right)
+        return self._shallow_copy(result)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
