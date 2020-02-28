@@ -360,7 +360,7 @@ class DataFrame(NDFrame):
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_table : Read general delimited file into DataFrame.
-    read_clipboard : Read text from clipboard and pass to read_table.
+    read_clipboard : Read text from clipboard into DataFrame.
 
     Examples
     --------
