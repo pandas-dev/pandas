@@ -453,12 +453,6 @@ class TestFrameFlexArithmetic:
         result = float_frame[:0].add(float_frame)
         tm.assert_frame_equal(result, float_frame * np.nan)
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], fill_value=3)
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], axis="index", fill_value=3)
-
     def test_arith_flex_series(self, simple_frame):
         df = simple_frame
 
@@ -489,19 +483,6 @@ class TestFrameFlexArithmetic:
         expected = pd.DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
-
-    def test_arith_flex_zero_len_raises(self):
-        # GH 19522 passing fill_value to frame flex arith methods should
-        # raise even in the zero-length special cases
-        ser_len0 = pd.Series([], dtype=object)
-        df_len0 = pd.DataFrame(columns=["A", "B"])
-        df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df.add(ser_len0, fill_value="E")
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df_len0.sub(df["A"], axis=None, fill_value=3)
 
 
 class TestFrameArithmetic:
@@ -772,6 +753,63 @@ def test_frame_single_columns_object_sum_axis_1():
     result = df.sum(axis=1)
     expected = pd.Series(["A", 1.2, 0])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.fixture
+def simple_frame_with_na():
+    df = pd.DataFrame(
+        [[np.nan, 2.0, 3.0], [4.0, np.nan, 6.0], [7.0, 8.0, 9.0]],
+        index=["a", "b", "c"],
+        columns=np.arange(3),
+    )
+    return df
+
+
+@pytest.mark.parametrize(
+    "axis, series, expected",
+    [
+        (
+            0,
+            pd.Series([1.0, np.nan, 3.0, 4.0], index=["a", "b", "c", "d"]),
+            pd.DataFrame(
+                [
+                    [2.0, 3.0, 4.0],
+                    [5.0, np.nan, 7.0],
+                    [10.0, 11.0, 12.0],
+                    [5.0, 5.0, 5.0],
+                ],
+                columns=np.arange(3),
+                index=["a", "b", "c", "d"],
+            ),
+        ),
+        (
+            "columns",
+            pd.Series([np.nan, 2.0, np.nan, 4.0], index=np.arange(4)),
+            pd.DataFrame(
+                [[np.nan, 4.0, 4.0, 5.0], [5.0, 3.0, 7.0, 5.0], [8.0, 10.0, 10.0, 5.0]],
+                index=["a", "b", "c"],
+                columns=np.arange(4),
+            ),
+        ),
+    ],
+)
+def test_add_series_to_frame_with_fill(simple_frame_with_na, axis, series, expected):
+    # Check missing values correctly populated with fill-value when
+    # adding series to frame, GH#13488.
+    df = simple_frame_with_na
+    result = df.add(other=series, axis=axis, fill_value=1)
+    expected = expected
+    tm.assert_frame_equal(result, expected)
+
+
+def test_df_add_with_non_numeric_fill(simple_frame):
+    # Check non-numeric fill-value raises when adding series to frame, GH#13488.
+    # Test replaces non-numeric check in removed test_arith_flex_zero_len_raises.
+    df = simple_frame
+    ser = pd.Series([1.0, np.nan, 3.0], index=["a", "b", "c"])
+
+    with pytest.raises(TypeError, match="fill_value"):
+        df.add(ser, fill_value="E")
 
 
 # -------------------------------------------------------------------

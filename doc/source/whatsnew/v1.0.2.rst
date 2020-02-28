@@ -10,6 +10,16 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_102.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+- :meth:`DataFrame.add` now accepts a ``fill_value`` not equal to ``None`` when ``other`` parameter equals :class:`Series`.
+  Same enhancement also available with other binary operators: :meth:`~DataFrame.sub`, :meth:`~DataFrame.mul`, :meth:`~DataFrame.div`, :meth:`~DataFrame.truediv`, :meth:`~DataFrame.floordiv`, :meth:`~DataFrame.mod`, :meth:`~DataFrame.pow`. (:issue:`13488`)
+
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_102.regressions:
 
 Fixed regressions

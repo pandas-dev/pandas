@@ -14,7 +14,12 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:
 from pandas._typing import ArrayLike, Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_list_like,
+    is_number,
+    is_timedelta64_dtype,
+)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -341,7 +346,11 @@ def fill_binop(left, right, fill_value):
             left = left.copy()
             left[left_mask & mask] = fill_value
 
-        if right_mask.any():
+        if is_bool(right_mask):
+            if right_mask:
+                right = left._constructor(right, index=left.index)
+                right[right_mask & mask] = fill_value
+        elif right_mask.any():
             # Avoid making a copy if we can
             right = right.copy()
             right[right_mask & mask] = fill_value
@@ -585,7 +594,7 @@ def _flex_method_SERIES(cls, op, special):
 # DataFrame
 
 
-def _combine_series_frame(left, right, func, axis: int):
+def _combine_series_frame(left, right, func, axis: int, fill_value=None):
     """
     Apply binary operator `func` to self, other using alignment and fill
     conventions determined by the axis argument.
@@ -596,16 +605,29 @@ def _combine_series_frame(left, right, func, axis: int):
     right : Series
     func : binary operator
     axis : {0, 1}
+    fill_value : numeric, optional
 
     Returns
     -------
     result : DataFrame
     """
+    if fill_value is None:
+        _arith_op = func
+
+    else:
+
+        def _arith_op(left, right):
+            left, right = fill_binop(left, right, fill_value)
+            return func(left, right)
+
     # We assume that self.align(other, ...) has already been called
     if axis == 0:
-        new_data = left._combine_match_index(right, func)
+        if fill_value is not None:
+            new_data = dispatch_to_series(left, right, _arith_op, axis=0)
+        else:
+            new_data = left._combine_match_index(right, _arith_op)
     else:
-        new_data = dispatch_to_series(left, right, func, axis="columns")
+        new_data = dispatch_to_series(left, right, _arith_op, axis="columns")
 
     return left._construct_result(new_data)
 
@@ -771,6 +793,12 @@ def _arith_method_FRAME(cls, op, special):
         if _should_reindex_frame_op(self, other, axis, default_axis, fill_value, level):
             return _frame_arith_method_with_reindex(self, other, op)
 
+        if not is_number(fill_value) and fill_value is not None:
+            raise TypeError(
+                "fill_value must be numeric or None. "
+                f"Got {type(fill_value).__name__}"
+            )
+
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
@@ -787,11 +815,8 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = op if axis in [0, "columns", None] else na_op
             pass_op = pass_op if not is_logical else op
 
-            if fill_value is not None:
-                raise NotImplementedError(f"fill_value {fill_value} not supported.")
-
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, pass_op, axis=axis)
+            return _combine_series_frame(self, other, pass_op, axis, fill_value)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:

@@ -478,6 +478,36 @@ circle          1      361
 triangle        4      181
 rectangle       5      361
 
+Add Series by axis when values are missing
+
+>>> a = pd.Series([2, 4], index=['circle', 'triangle'])
+
+>>> df.add(a, axis=0)
+           angles  degrees
+circle        2.0    362.0
+rectangle     NaN      NaN
+triangle      7.0    184.0
+
+>>> df.add(a, axis=0, fill_value=1)
+           angles  degrees
+circle        2.0    362.0
+rectangle     5.0    361.0
+triangle      7.0    184.0
+
+>>> b = pd.Series([3, 6, 9], index=["angles", "degrees", "scale"])
+
+>>> df.add(b)
+           angles  degrees  scale
+circle          3      366    NaN
+triangle        6      186    NaN
+rectangle       7      366    NaN
+
+>>> df.add(b, fill_value=1)
+           angles  degrees  scale
+circle          3      366   10.0
+triangle        6      186   10.0
+rectangle       7      366   10.0
+
 Divide by constant with reverse version.
 
 >>> df.div(10)
