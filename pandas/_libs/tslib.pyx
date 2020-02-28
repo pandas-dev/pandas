@@ -67,41 +67,65 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 
 cdef inline object create_datetime_from_ts(
-        int64_t value, npy_datetimestruct dts,
-        object tz, object freq, bint fold):
-    """ convenience routine to construct a datetime.datetime from its parts """
-    return datetime(dts.year, dts.month, dts.day, dts.hour,
-                    dts.min, dts.sec, dts.us, tz, fold=fold)
+    int64_t value,
+    npy_datetimestruct dts,
+    object tz,
+    object freq,
+    bint fold
+):
+    """
+    Convenience routine to construct a datetime.datetime from its parts.
+    """
+    return datetime(
+        dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold
+    )
 
 
 cdef inline object create_date_from_ts(
-        int64_t value, npy_datetimestruct dts,
-        object tz, object freq, bint fold):
-    """ convenience routine to construct a datetime.date from its parts """
+    int64_t value,
+    npy_datetimestruct dts,
+    object tz,
+    object freq,
+    bint fold
+):
+    """
+    Convenience routine to construct a datetime.date from its parts.
+    """
     # GH 25057 add fold argument to match other func_create signatures
     return date(dts.year, dts.month, dts.day)
 
 
 cdef inline object create_time_from_ts(
-        int64_t value, npy_datetimestruct dts,
-        object tz, object freq, bint fold):
-    """ convenience routine to construct a datetime.time from its parts """
+    int64_t value,
+    npy_datetimestruct dts,
+    object tz,
+    object freq,
+    bint fold
+):
+    """
+    Convenience routine to construct a datetime.time from its parts.
+    """
     return time(dts.hour, dts.min, dts.sec, dts.us, tz, fold=fold)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
-                       bint fold=0, str box="datetime"):
+def ints_to_pydatetime(
+    const int64_t[:] arr,
+    object tz=None,
+    object freq=None,
+    bint fold=0,
+    str box="datetime"
+):
     """
-    Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
+    Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp.
 
     Parameters
     ----------
-    arr  : array of i8
-    tz   : str, default None
+    arr : array of i8
+    tz : str, optional
          convert to this timezone
-    freq : str/Offset, default None
+    freq : str/Offset, optional
          freq to convert
     fold : bint, default is 0
         Due to daylight saving time, one wall clock time can occur twice
@@ -110,11 +134,11 @@ def ints_to_pydatetime(const int64_t[:] arr, object tz=None, object freq=None,
         the wall clock hits the ambiguous time
 
         .. versionadded:: 1.1.0
-    box  : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
-         If datetime, convert to datetime.datetime
-         If date, convert to datetime.date
-         If time, convert to datetime.time
-         If Timestamp, convert to pandas.Timestamp
+    box : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
+        * If datetime, convert to datetime.datetime
+        * If date, convert to datetime.date
+        * If time, convert to datetime.time
+        * If Timestamp, convert to pandas.Timestamp
 
     Returns
     -------
