@@ -97,11 +97,9 @@ class TestFloatIndexers:
         # getting
         for idxr, getitem in [(lambda x: x.iloc, False), (lambda x: x, True)]:
 
-            # gettitem on a DataFrame is a KeyError as it is indexing
-            # via labels on the columns
-            if getitem and isinstance(s, DataFrame):
+            if getitem:
                 error = KeyError
-                msg = r"^3(\.0)?$"
+                msg = r"^3\.0?$"
             else:
                 error = TypeError
                 msg = (
@@ -120,6 +118,9 @@ class TestFloatIndexers:
             "string",
             "unicode",
             "mixed",
+            "period",
+            "timedelta64",
+            "datetime64",
         }:
             error = KeyError
             msg = r"^3\.0$"
@@ -181,12 +182,7 @@ class TestFloatIndexers:
         i = index_func(5)
         s = Series(np.arange(len(i)), index=i)
         s[3]
-        msg = (
-            r"cannot do (label|positional) indexing "
-            fr"on {type(i).__name__} with these indexers \[3\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
 
     def test_scalar_with_mixed(self):
@@ -197,12 +193,12 @@ class TestFloatIndexers:
         # lookup in a pure stringstr
         # with an invalid indexer
         msg = (
-            "cannot do label indexing "
-            fr"on {Index.__name__} with these indexers \[1\.0\] of "
+            r"cannot do label indexing "
+            r"on Index with these indexers \[1\.0\] of "
             r"type float|"
             "Cannot index by location index with a non-integer key"
         )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^1.0$"):
             s2[1.0]
         with pytest.raises(TypeError, match=msg):
             s2.iloc[1.0]
@@ -216,12 +212,7 @@ class TestFloatIndexers:
 
         # mixed index so we have label
         # indexing
-        msg = (
-            "cannot do label indexing "
-            fr"on {Index.__name__} with these indexers \[1\.0\] of "
-            "type float"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^1.0$"):
             s3[1.0]
 
         result = s3[1]
