@@ -1518,13 +1518,31 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
     assert result == expected
 
 
-@pytest.mark.parametrize("parse_dates", [["time"], {"date": ["time"]}])
-def test_missing_column(all_parsers, parse_dates):
+@pytest.mark.parametrize(
+    "names, usecols, parse_dates, missing_cols",
+    [
+        (None, ["val"], ["date", "time"], "date, time"),
+        (None, ["val"], [0, "time"], "time"),
+        (None, ["val"], [["date", "time"]], "date, time"),
+        (None, ["val"], [[0, "time"]], "time"),
+        (None, ["val"], {"date": [0, "time"]}, "time"),
+        (None, ["val"], {"date": ["date", "time"]}, "date, time"),
+        (None, ["val"], [["date", "time"], "date"], "date, time"),
+        (["date1", "time1", "temperature"], None, ["date", "time"], "date, time"),
+        (
+            ["date1", "time1", "temperature"],
+            ["date1", "temperature"],
+            ["date1", "time"],
+            "time",
+        ),
+    ],
+)
+def test_missing_column(all_parsers, names, usecols, parse_dates, missing_cols):
     """GH31251 column names provided in parse_dates could be missing."""
     parser = all_parsers
-    content = StringIO("time,val\n2020-01-31,32\n")
-    msg = "Missing column provided to 'parse_dates': 'time'"
+    content = StringIO("date,time,val\n2020-01-31,04:20:32,32\n")
+    msg = f"Missing column provided to 'parse_dates': '{missing_cols}'"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(
-            content, sep=",", usecols=["val"], parse_dates=parse_dates,
+            content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates,
         )
