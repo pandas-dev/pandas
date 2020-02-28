@@ -444,6 +444,51 @@ cdef int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz, bint to_utc):
     return converted
 
 
+cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
+                                                   bint to_utc,
+                                                   bint *fold=NULL):
+    """
+    Calculate offset in nanoseconds needed to convert the i8 representation of
+    a datetime from a tzlocal timezone to UTC, or vice-versa.
+
+    Parameters
+    ----------
+    val : int64_t
+    tz : tzinfo
+    to_utc : bint
+        True if converting tzlocal _to_ UTC, False if going the other direction
+    fold : bint*, default NULL
+        pointer to fold: whether datetime ends up in a fold or not
+        after adjustment
+
+    Returns
+    -------
+    delta : int64_t
+
+    Notes
+    -----
+    Sets fold by pointer
+    """
+    cdef:
+        npy_datetimestruct dts
+        datetime dt
+        int64_t delta
+
+    dt64_to_dtstruct(val, &dts)
+    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                  dts.min, dts.sec, dts.us)
+    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
+    # is _wall time_, so if val is a UTC timestamp convert to wall time
+    if not to_utc:
+        dt = dt.replace(tzinfo=tzutc())
+        dt = dt.astimezone(tz)
+
+    if fold is not NULL:
+        fold[0] = dt.fold
+
+    return int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+
+
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
@@ -462,24 +507,44 @@ cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True):
     -------
     result : int64_t
     """
-    cdef:
-        npy_datetimestruct dts
-        int64_t delta
-        datetime dt
+    cdef int64_t delta
 
-    dt64_to_dtstruct(val, &dts)
-    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                  dts.min, dts.sec, dts.us)
-    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
-    # is _wall time_, so if val is a UTC timestamp convert to wall time
-    if not to_utc:
-        dt = dt.replace(tzinfo=tzutc())
-        dt = dt.astimezone(tz)
-    delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    delta = _tzlocal_get_offset_components(val, tz, to_utc, NULL)
 
-    if not to_utc:
+    if to_utc:
+        return val - delta
+    else:
         return val + delta
-    return val - delta
+
+
+cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
+    """
+    Convert the i8 representation of a datetime from UTC to local timezone,
+    set fold by pointer
+
+    Private, not intended for use outside of tslibs.conversion
+
+    Parameters
+    ----------
+    val : int64_t
+    tz : tzinfo
+    fold : bint*
+        pointer to fold: whether datetime ends up in a fold or not
+        after adjustment
+
+    Returns
+    -------
+    result : int64_t
+
+    Notes
+    -----
+    Sets fold by pointer
+    """
+    cdef int64_t delta
+
+    delta = _tzlocal_get_offset_components(val, tz, False, fold)
+
+    return val + delta
 
 
 @cython.boundscheck(False)
