@@ -818,16 +818,24 @@ class TestIndexOps(Ops):
         else:
             assert res == res_deep
 
-        if isinstance(obj, Series):
-            total_usage = obj.memory_usage(index=True)
-            non_index_usage = obj.memory_usage(index=False)
-            index_usage = obj.index.memory_usage()
-            assert total_usage == non_index_usage + index_usage
-
         # sys.getsizeof will call the .memory_usage with
         # deep=True, and add on some GC overhead
         diff = res_deep - sys.getsizeof(obj)
         assert abs(diff) < 100
+
+    def test_memory_usage_components_series(self, series_with_simple_index):
+        series = series_with_simple_index
+        total_usage = series.memory_usage(index=True)
+        non_index_usage = series.memory_usage(index=False)
+        index_usage = series.index.memory_usage()
+        assert total_usage == non_index_usage + index_usage
+
+    def test_memory_usage_components_narrow_series(self, narrow_series):
+        series = narrow_series
+        total_usage = series.memory_usage(index=True)
+        non_index_usage = series.memory_usage(index=False)
+        index_usage = series.index.memory_usage()
+        assert total_usage == non_index_usage + index_usage
 
     def test_searchsorted(self, index_or_series_obj):
         # See gh-12238
