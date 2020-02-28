@@ -502,7 +502,7 @@ def intervals_to_interval_bounds(ndarray intervals,
     """
     cdef:
         object closed = None, interval
-        int64_t n = len(intervals)
+        Py_ssize_t i, n = len(intervals)
         ndarray left, right
         bint seen_closed = False
 
