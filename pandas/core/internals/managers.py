@@ -995,6 +995,20 @@ class BlockManager(PandasObject):
         self._shape = None
         self._rebuild_blknos_and_blklocs()
 
+    def iset(self, loc: int, value):
+        if loc >= len(self.items) or self.ndim != 2:
+            raise NotImplementedError
+
+        items = self.items
+        try:
+            # In order to re-use `set`, we temporarily patch our items
+            # TODO: This really should defer the other way around
+            self.axes[0] = Index(range(len(items)))
+
+            self.set(loc, value)
+        finally:
+            self.axes[0] = items
+
     def set(self, item, value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not

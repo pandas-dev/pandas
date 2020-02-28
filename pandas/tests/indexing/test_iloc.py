@@ -694,3 +694,22 @@ class TestiLoc2:
         s = Series([1, 2])
         result = s.iloc[np.array(0)]
         assert result == 1
+
+
+class TestILocSetItemDuplicateColumns:
+    def test_iloc_setitem_scalar_duplicate_columns(self):
+        # GH#15686, duplicate columns and mixed dtype
+        df1 = pd.DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
+        df2 = pd.DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
+        df = pd.concat([df1, df2], axis=1)
+        df.iloc[0, 0] = -1
+
+        assert df.iloc[0, 0] == -1
+        assert df.iloc[0, 2] == 3
+        assert df.dtypes.iloc[2] == np.int64
+
+    @pytest.mark.xfail(reason="only scalars fixed so far")
+    def test_iloc_setitem_series_duplicate_columns(self):
+        df = pd.DataFrame(np.arange(8).reshape(2, 4), columns=["A", "B", "A", "B"])
+        df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
+        assert df.dtypes.iloc[2] == np.int64  # Still broken

@@ -1633,14 +1633,12 @@ class _iLocIndexer(_LocationIndexer):
                 info_idx = [info_idx]
             labels = item_labels[info_idx]
 
+            plane_indexer = indexer[:1]
+            lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+            # lplane_indexer gives the expected length of obj[indexer[0]]
+
             if len(labels) == 1:
                 # We can operate on a single column
-                item = labels[0]
-                idx = indexer[0]
-
-                plane_indexer = tuple([idx])
-                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
-                # lplane_indexer gives the expected length of obj[idx]
 
                 # require that we are setting the right number of values that
                 # we are indexing
@@ -1652,14 +1650,33 @@ class _iLocIndexer(_LocationIndexer):
                         "length than the value"
                     )
 
-            # non-mi
-            else:
-                plane_indexer = indexer[:1]
-                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+            pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
+
+            def isetter(loc, v):
+                ser = self.obj._ixs(loc, axis=1)
+
+                # perform the equivalent of a setitem on the info axis
+                # as we have a null slice or a slice with full bounds
+                # which means essentially reassign to the columns of a
+                # multi-dim object
+                # GH6149 (null slice), GH10408 (full bounds)
+                if isinstance(pi, tuple) and all(
+                    com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
+                    for idx in pi
+                ):
+                    ser = v
+                else:
+                    # set the item, possibly having a dtype change
+                    ser._consolidate_inplace()
+                    ser = ser.copy()
+                    ser._data = ser._data.setitem(indexer=pi, value=v)
+                    ser._maybe_update_cacher(clear=True)
+
+                # reset the sliced object if unique
+                self.obj._iset_item(loc, ser)
 
             def setter(item, v):
                 ser = self.obj[item]
-                pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
                 # perform the equivalent of a setitem on the info axis
                 # as we have a null slice or a slice with full bounds
@@ -1740,13 +1757,16 @@ class _iLocIndexer(_LocationIndexer):
                         setter(item, v)
             else:
 
-                # scalar
-                for item in labels:
-                    setter(item, value)
+                # scalar value
+                if isinstance(info_idx, slice):
+                    # TODO: wrong place for this
+                    ri = Index(range(len(self.obj.columns)))
+                    info_idx = ri[info_idx]
+                for loc in info_idx:
+                    isetter(loc, value)
 
         else:
             if isinstance(indexer, tuple):
-                indexer = maybe_convert_ix(*indexer)
 
                 # if we are setting on the info axis ONLY
                 # set using those methods to avoid block-splitting
@@ -1763,6 +1783,8 @@ class _iLocIndexer(_LocationIndexer):
                 ):
                     self.obj[item_labels[indexer[info_axis]]] = value
                     return
+
+                indexer = maybe_convert_ix(*indexer)
 
             if isinstance(value, (ABCSeries, dict)):
                 # TODO(EA): ExtensionBlock.setitem this causes issues with
