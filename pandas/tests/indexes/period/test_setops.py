@@ -13,7 +13,6 @@ def _permute(obj):
 
 
 class TestPeriodIndex:
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union(self, sort):
         # union
         other1 = period_range("1/1/2000", freq="D", periods=5)
@@ -134,7 +133,6 @@ class TestPeriodIndex:
                 expected = expected.sort_values()
             tm.assert_index_equal(result_union, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_misc(self, sort):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
 
@@ -165,7 +163,6 @@ class TestPeriodIndex:
         exp = period_range("1/1/1980", "1/1/2012", freq="M")
         tm.assert_index_equal(df.index, exp)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, sort):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
 
@@ -190,7 +187,6 @@ class TestPeriodIndex:
         with pytest.raises(IncompatibleFrequency):
             index.intersection(index3, sort=sort)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_cases(self, sort):
         base = period_range("6/1/2000", "6/30/2000", freq="D", name="idx")
 
@@ -259,7 +255,6 @@ class TestPeriodIndex:
         result = rng.intersection(rng[0:0])
         assert len(result) == 0
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference(self, sort):
         # diff
         period_rng = ["1/3/2000", "1/2/2000", "1/1/2000", "1/5/2000", "1/4/2000"]
@@ -324,7 +319,6 @@ class TestPeriodIndex:
                 expected = expected.sort_values()
             tm.assert_index_equal(result_difference, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_freq(self, sort):
         # GH14323: difference of Period MUST preserve frequency
         # but the ability to union results must be preserved
