@@ -93,8 +93,7 @@ cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"
 cython_cast_blacklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
 # List of aggregation/reduction functions.
-# These map each group to a single numeric value or, in the case of `unique`,
-# a list of values
+# These map each group to a single numeric value
 reduction_kernels = frozenset(
     [
         "all",
@@ -122,7 +121,6 @@ reduction_kernels = frozenset(
         "skew",
         "std",
         "sum",
-        "unique",
         "var",
     ]
 )
@@ -188,3 +186,6 @@ groupby_other_methods = frozenset(
 # NOTE: do NOT edit this directly. New additions should be inserted
 # into the appropriate list above.
 transform_kernel_whitelist = reduction_kernels | transformation_kernels
+
+series_transform_whitelist = transform_kernel_whitelist | frozenset(["dtype", "unique"])
+dataframe_transform_whitelist = transform_kernel_whitelist | frozenset(["dtypes", "corrwith"])

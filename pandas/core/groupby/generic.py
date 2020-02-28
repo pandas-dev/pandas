@@ -467,7 +467,7 @@ class SeriesGroupBy(GroupBy):
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.series_transform_whitelist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
@@ -1417,7 +1417,7 @@ class DataFrameGroupBy(GroupBy):
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)
 
-        elif func not in base.transform_kernel_whitelist:
+        elif func not in base.dataframe_transform_whitelist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels:
