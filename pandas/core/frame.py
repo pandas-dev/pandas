@@ -7292,7 +7292,7 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corrwith : Compute pairwise correlation between rows or
+        DataFrame.corrwith : Compute pairwise correlation with another DataFrame or Series.
             columns of two DataFrame objects.
         Series.corr : Compute the correlation between two Series.
 
