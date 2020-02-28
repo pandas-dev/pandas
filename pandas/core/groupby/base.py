@@ -187,5 +187,5 @@ groupby_other_methods = frozenset(
 # into the appropriate list above.
 transform_kernel_whitelist = reduction_kernels | transformation_kernels
 
-series_transform_whitelist = transform_kernel_whitelist | frozenset(["dtype", "unique"])
-dataframe_transform_whitelist = transform_kernel_whitelist | frozenset(["dtypes", "corrwith"])
+series_transform_whitelist = transform_kernel_whitelist | frozenset(["unique"])
+dataframe_transform_whitelist = transform_kernel_whitelist
