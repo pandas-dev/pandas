@@ -10,7 +10,7 @@ from itertools import chain
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Set, List
+from typing import Any, Dict, List, Set
 import warnings
 
 import numpy as np
@@ -1442,7 +1442,8 @@ class ParserBase:
             # a column in parse_dates could be represented
             # ColReference = Union[int, str]
             # DateGroups = List[ColReference]
-            # ParseDates = Union[ DateGroups, List[DateGroups], Dict[ColReference, DateGroups]]
+            # ParseDates = Union[ DateGroups, List[DateGroups],
+            #     Dict[ColReference, DateGroups]]
             cols_needed = []
             for col in self.parse_dates:
                 if isinstance(col, list):
@@ -1457,13 +1458,11 @@ class ParserBase:
         # get only columns that are references using names (str), not by index
         missing_cols = ", ".join(
             sorted(
-                set(
-                    [
-                        col
-                        for col in cols_needed
-                        if isinstance(col, str) and col not in columns
-                    ]
-                )
+                {
+                    col
+                    for col in cols_needed
+                    if isinstance(col, str) and col not in columns
+                }
             )
         )
         if missing_cols:
