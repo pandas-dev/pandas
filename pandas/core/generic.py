@@ -602,6 +602,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             of levels.
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            Axis along which the level(s) is removed:
+
+            * 0 or 'index': remove level(s) in column.
+            * 1 or 'columns': remove level(s) in row.
 
         Returns
         -------
@@ -617,7 +621,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ... ]).set_index([0, 1]).rename_axis(['a', 'b'])
 
         >>> df.columns = pd.MultiIndex.from_tuples([
-        ...    ('c', 'e'), ('d', 'f')
+        ...     ('c', 'e'), ('d', 'f')
         ... ], names=['level_1', 'level_2'])
 
         >>> df
@@ -636,7 +640,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         6        7   8
         10      11  12
 
-        >>> df.droplevel('level2', axis=1)
+        >>> df.droplevel('level_2', axis=1)
         level_1   c   d
         a b
         1 2      3   4
@@ -3263,9 +3267,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self)
 
-    def _take_with_is_copy(
-        self: FrameOrSeries, indices, axis=0, **kwargs
-    ) -> FrameOrSeries:
+    def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -3273,7 +3275,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        result = self.take(indices=indices, axis=axis, **kwargs)
+        result = self.take(indices=indices, axis=axis)
         # Maybe set copy if we didn't actually change the index.
         if not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)

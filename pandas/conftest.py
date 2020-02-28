@@ -986,7 +986,7 @@ indices_dict = {
     "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
     "float": tm.makeFloatIndex(100),
-    "bool": tm.makeBoolIndex(2),
+    "bool": tm.makeBoolIndex(10),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
@@ -998,6 +998,15 @@ indices_dict = {
 
 @pytest.fixture(params=indices_dict.keys())
 def indices(request):
+    """
+    Fixture for many "simple" kinds of indices.
+
+    These indices are unlikely to cover corner cases, e.g.
+        - no names
+        - no NaTs/NaNs
+        - no values near implementation bounds
+        - ...
+    """
     # copy to avoid mutation, e.g. setting .name
     return indices_dict[request.param].copy()
 
@@ -1013,6 +1022,14 @@ _series = {
     f"series-with-{index_id}-index": _create_series(index)
     for index_id, index in indices_dict.items()
 }
+
+
+@pytest.fixture
+def series_with_simple_index(indices):
+    """
+    Fixture for tests on series with changing types of indices.
+    """
+    return _create_series(indices)
 
 
 _narrow_dtypes = [
