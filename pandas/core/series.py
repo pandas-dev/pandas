@@ -2131,7 +2131,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        core.window.Rolling.quantile : Calculate the %(name)s quantile.
+        core.window.Rolling.quantile : Calculate the rolling quantile.
         numpy.percentile : Returns the q-th percentile(s) of the array elements.
 
         Examples

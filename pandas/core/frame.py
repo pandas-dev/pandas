@@ -7901,8 +7901,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmin : Return index *label* of the first occurrence
-            of minimum of values.
+        Series.idxmin : Return index of the minimum element.
 
         Notes
         -----
@@ -7940,8 +7939,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmax : Return index *label* of the first occurrence
-            of maximum of values.
+        Series.idxmax : Return index of the maximun element.
 
         Notes
         -----
