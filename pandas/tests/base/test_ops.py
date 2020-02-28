@@ -213,9 +213,9 @@ class TestIndexOps(Ops):
 
         if orig.duplicated().any():
             pytest.xfail(
-                "The test implementation isn't flexible enough to deal"
-                " with duplicated values. This isn't a bug in the"
-                " application code, but in the test code."
+                "The test implementation isn't flexible enough to deal "
+                "with duplicated values. This isn't a bug in the "
+                "application code, but in the test code."
             )
 
         # create repeated values, 'n'th element is repeated by n+1 times
@@ -279,9 +279,9 @@ class TestIndexOps(Ops):
             pytest.skip("MultiIndex doesn't support isna")
         elif orig.duplicated().any():
             pytest.xfail(
-                "The test implementation isn't flexible enough to deal"
-                " with duplicated values. This isn't a bug in the"
-                " application code, but in the test code."
+                "The test implementation isn't flexible enough to deal "
+                "with duplicated values. This isn't a bug in the "
+                "application code, but in the test code."
             )
 
         # special assign to the numpy array
