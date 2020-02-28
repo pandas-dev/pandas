@@ -515,9 +515,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 asdt, reso = parse_time_string(key, self.freq)
-            except DateParseError:
+            except DateParseError as err:
                 # A string with invalid format
-                raise KeyError(f"Cannot interpret '{key}' as period")
+                raise KeyError(f"Cannot interpret '{key}' as period") from err
 
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
@@ -540,14 +540,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         try:
             key = Period(key, freq=self.freq)
-        except ValueError:
+        except ValueError as err:
             # we cannot construct the Period
-            raise KeyError(orig_key)
+            raise KeyError(orig_key) from err
 
         try:
             return Index.get_loc(self, key, method, tolerance)
-        except KeyError:
-            raise KeyError(orig_key)
+        except KeyError as err:
+            raise KeyError(orig_key) from err
 
     def _maybe_cast_slice_bound(self, label, side: str, kind: str):
         """
@@ -578,10 +578,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
-            except ValueError:
+            except ValueError as err:
                 # string cannot be parsed as datetime-like
                 # TODO: we need tests for this case
-                raise KeyError(label)
+                raise KeyError(label) from err
         elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
 
@@ -611,8 +611,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         try:
             return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
-        except KeyError:
-            raise KeyError(key)
+        except KeyError as err:
+            raise KeyError(key) from err
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
