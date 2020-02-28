@@ -4,7 +4,8 @@ from pandas import Index
 
 
 class TestIndexRepr:
-    # Tests for the Index representation, specifically for the case that includes bools and NANs
+    # Tests for the Index representation,
+    # specifically for the case that includes bools and NANs
 
     def test_index_repr_bool_nan(self):
         # GH32146
