@@ -115,8 +115,6 @@ cdef class IndexEngine:
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
-            ndarray[intp_t, ndim=1] found
-            int count
 
         indexer = self._get_index_values() == val
         return self._unpack_bool_indexer(indexer, val)
