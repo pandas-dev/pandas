@@ -458,7 +458,7 @@ class SelectionMixin:
                 # return a MI Series
                 try:
                     result = concat(result)
-                except TypeError:
+                except TypeError as err:
                     # we want to give a nice error here if
                     # we have non-same sized objects, so
                     # we don't automatically broadcast
@@ -467,7 +467,7 @@ class SelectionMixin:
                         "cannot perform both aggregation "
                         "and transformation operations "
                         "simultaneously"
-                    )
+                    ) from err
 
                 return result, True
 
@@ -553,7 +553,7 @@ class SelectionMixin:
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
-        except TypeError:
+        except TypeError as err:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -562,7 +562,9 @@ class SelectionMixin:
 
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
-                raise ValueError("cannot combine transform and aggregation operations")
+                raise ValueError(
+                    "cannot combine transform and aggregation operations"
+                ) from err
             return result
 
     def _get_cython_func(self, arg: str) -> Optional[str]:

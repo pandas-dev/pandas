@@ -552,8 +552,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
             try:
                 key = self._maybe_cast_for_get_loc(key)
-            except ValueError:
-                raise KeyError(key)
+            except ValueError as err:
+                raise KeyError(key) from err
 
         elif isinstance(key, timedelta):
             # GH#20464
@@ -574,8 +574,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         try:
             return Index.get_loc(self, key, method, tolerance)
-        except KeyError:
-            raise KeyError(orig_key)
+        except KeyError as err:
+            raise KeyError(orig_key) from err
 
     def _maybe_cast_for_get_loc(self, key) -> Timestamp:
         # needed to localize naive datetimes
@@ -1040,9 +1040,9 @@ def bdate_range(
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
-        except (KeyError, TypeError):
+        except (KeyError, TypeError) as err:
             msg = f"invalid custom frequency string: {freq}"
-            raise ValueError(msg)
+            raise ValueError(msg) from err
     elif holidays or weekmask:
         msg = (
             "a custom frequency string is required when holidays or "

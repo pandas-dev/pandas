@@ -134,8 +134,10 @@ def _coo_to_sparse_series(A, dense_index: bool = False):
 
     try:
         s = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
-    except AttributeError:
-        raise TypeError(f"Expected coo_matrix. Got {type(A).__name__} instead.")
+    except AttributeError as err:
+        raise TypeError(
+            f"Expected coo_matrix. Got {type(A).__name__} instead."
+        ) from err
     s = s.sort_index()
     s = s.astype(SparseDtype(s.dtype))
     if dense_index:

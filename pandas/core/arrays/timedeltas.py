@@ -451,10 +451,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
             return super()._addsub_object_array(other, op)
-        except AttributeError:
+        except AttributeError as err:
             raise TypeError(
                 f"Cannot add/subtract non-tick DateOffset to {type(self).__name__}"
-            )
+            ) from err
 
     def __mul__(self, other):
         other = lib.item_from_zerodim(other)

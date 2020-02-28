@@ -572,8 +572,8 @@ class SeriesGroupBy(GroupBy):
             indices = [
                 self._get_index(name) for name, group in self if true_and_notna(group)
             ]
-        except (ValueError, TypeError):
-            raise TypeError("the filter must return a boolean result")
+        except (ValueError, TypeError) as err:
+            raise TypeError("the filter must return a boolean result") from err
 
         filtered = self._apply_filter(indices, dropna)
         return filtered
@@ -1371,9 +1371,9 @@ class DataFrameGroupBy(GroupBy):
                     path, res = self._choose_path(fast_path, slow_path, group)
                 except TypeError:
                     return self._transform_item_by_item(obj, fast_path)
-                except ValueError:
+                except ValueError as err:
                     msg = "transform must return a scalar value for each group"
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
             else:
                 res = path(group)
 

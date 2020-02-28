@@ -265,8 +265,8 @@ def get_compression_method(
         compression_args = dict(compression)
         try:
             compression = compression_args.pop("method")
-        except KeyError:
-            raise ValueError("If mapping, compression must have key 'method'")
+        except KeyError as err:
+            raise ValueError("If mapping, compression must have key 'method'") from err
     else:
         compression_args = {}
     return compression, compression_args

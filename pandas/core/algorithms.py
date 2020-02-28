@@ -686,8 +686,8 @@ def value_counts(
         values = Series(values)
         try:
             ii = cut(values, bins, include_lowest=True)
-        except TypeError:
-            raise TypeError("bins argument only works with numeric data.")
+        except TypeError as err:
+            raise TypeError("bins argument only works with numeric data.") from err
 
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)

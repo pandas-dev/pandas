@@ -315,7 +315,7 @@ def _json_normalize(
                                 raise KeyError(
                                     "Try running with errors='ignore' as key "
                                     f"{e} is not always present"
-                                )
+                                ) from e
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
 

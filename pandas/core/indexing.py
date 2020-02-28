@@ -609,7 +609,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             # invalid indexer type vs 'other' indexing errors
             if "cannot do" in str(e):
                 raise
-            raise IndexingError(key)
+            raise IndexingError(key) from e
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -653,11 +653,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 raise IndexingError("Too many indexers")
             try:
                 self._validate_key(k, i)
-            except ValueError:
+            except ValueError as err:
                 raise ValueError(
                     "Location based indexing can only have "
                     f"[{self._valid_types}] types"
-                )
+                ) from err
 
     def _is_nested_tuple_indexer(self, tup: Tuple) -> bool:
         """
@@ -1454,9 +1454,9 @@ class _iLocIndexer(_LocationIndexer):
         """
         try:
             return self.obj._take_with_is_copy(key, axis=axis)
-        except IndexError:
+        except IndexError as err:
             # re-raise with different error message
-            raise IndexError("positional indexers are out-of-bounds")
+            raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
         if isinstance(key, slice):

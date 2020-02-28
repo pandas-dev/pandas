@@ -1040,8 +1040,8 @@ class IntervalDtype(PandasExtensionDtype):
 
             try:
                 subtype = pandas_dtype(subtype)
-            except TypeError:
-                raise TypeError("could not construct IntervalDtype")
+            except TypeError as err:
+                raise TypeError("could not construct IntervalDtype") from err
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016

@@ -670,8 +670,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         try:
             casted = self.values.astype(dtype, copy=copy)
-        except (TypeError, ValueError):
-            raise TypeError(f"Cannot cast {type(self).__name__} to dtype {dtype}")
+        except (TypeError, ValueError) as err:
+            raise TypeError(
+                f"Cannot cast {type(self).__name__} to dtype {dtype}"
+            ) from err
         return Index(casted, name=self.name, dtype=dtype)
 
     _index_shared_docs[
@@ -2860,8 +2862,8 @@ class Index(IndexOpsMixin, PandasObject):
             casted_key = self._maybe_cast_indexer(key)
             try:
                 return self._engine.get_loc(casted_key)
-            except KeyError:
-                raise KeyError(key)
+            except KeyError as err:
+                raise KeyError(key) from err
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))

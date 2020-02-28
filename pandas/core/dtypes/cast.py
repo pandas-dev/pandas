@@ -1573,11 +1573,11 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
             casted = np.array(arr, dtype=dtype, copy=copy)
         else:
             casted = arr.astype(dtype, copy=copy)
-    except OverflowError:
+    except OverflowError as err:
         raise OverflowError(
             "The elements provided in the data cannot all be "
             f"casted to the dtype {dtype}"
-        )
+        ) from err
 
     if np.array_equal(arr, casted):
         return casted

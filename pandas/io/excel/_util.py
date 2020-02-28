@@ -47,8 +47,8 @@ def _get_default_writer(ext):
 def get_writer(engine_name):
     try:
         return _writers[engine_name]
-    except KeyError:
-        raise ValueError(f"No Excel writer '{engine_name}'")
+    except KeyError as err:
+        raise ValueError(f"No Excel writer '{engine_name}'") from err
 
 
 def _excel2num(x):
