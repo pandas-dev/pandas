@@ -711,16 +711,16 @@ class BlockManager(PandasObject):
         return type(self)(new_blocks, axes, do_integrity_check=False)
 
     def get_slice(self, slobj: slice, axis: int = 0):
-        if axis >= self.ndim:
-            raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
-        else:
+        elif axis == 1:
             _slicer = [slice(None)] * (axis + 1)
             _slicer[axis] = slobj
             slicer = tuple(_slicer)
             new_blocks = [blk.getitem_block(slicer) for blk in self.blocks]
+        else:
+            raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
