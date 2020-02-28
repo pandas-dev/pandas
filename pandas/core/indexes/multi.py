@@ -2998,7 +2998,7 @@ class MultiIndex(Index):
                     indexer = _update_indexer(indexers, indexer=indexer)
                 else:
                     # no matches we are done
-                    return Int64Index([])._ndarray_values
+                    return np.array([], dtype=np.int64)
 
             elif com.is_null_slice(k):
                 # empty slice
@@ -3024,7 +3024,7 @@ class MultiIndex(Index):
 
         # empty indexer
         if indexer is None:
-            return Int64Index([])._ndarray_values
+            return np.array([], dtype=np.int64)
 
         indexer = self._reorder_indexer(seq, indexer)
 
