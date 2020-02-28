@@ -324,6 +324,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 raise ValueError(
                     "Cannot specify `categories` or `ordered` together with `dtype`."
                 )
+            elif not isinstance(dtype, CategoricalDtype):
+                raise ValueError(f"Cannot not construct CategoricalDtype from {dtype}")
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
             # the "ordered" and "categories" arguments
@@ -1038,8 +1040,8 @@ class IntervalDtype(PandasExtensionDtype):
 
             try:
                 subtype = pandas_dtype(subtype)
-            except TypeError:
-                raise TypeError("could not construct IntervalDtype")
+            except TypeError as err:
+                raise TypeError("could not construct IntervalDtype") from err
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016

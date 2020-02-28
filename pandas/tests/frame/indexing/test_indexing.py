@@ -27,6 +27,9 @@ from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
+# We pass through a TypeError raised by numpy
+_slice_msg = "slice indices must be integers or None or have an __index__ method"
+
 
 class TestGet:
     def test_get(self, float_frame):
@@ -994,7 +997,8 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError, match="Too many indexers"):
+        with pytest.raises(IndexError, match="too many indices for array"):
+            # GH#32257 we let numpy do validation, get their exception
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
@@ -1073,7 +1077,7 @@ class TestDataFrameIndexing:
 
         cp = df.copy()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=_slice_msg):
             cp.iloc[1.0:5] = 0
 
         with pytest.raises(TypeError, match=msg):
@@ -1622,6 +1626,14 @@ class TestDataFrameIndexing:
         expected = df.head(3)
         actual = df.reindex(idx[:3], method="nearest")
         tm.assert_frame_equal(expected, actual)
+
+    def test_reindex_nearest_tz_empty_frame(self):
+        # https://github.com/pandas-dev/pandas/issues/31964
+        dti = pd.DatetimeIndex(["2016-06-26 14:27:26+00:00"])
+        df = pd.DataFrame(index=pd.DatetimeIndex(["2016-07-04 14:00:59+00:00"]))
+        expected = pd.DataFrame(index=dti)
+        result = df.reindex(dti, method="nearest")
+        tm.assert_frame_equal(result, expected)
 
     def test_reindex_frame_add_nat(self):
         rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
