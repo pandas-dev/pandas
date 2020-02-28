@@ -598,7 +598,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return self.get_indexer(keyarr)
 
-    @Appender(Index._convert_arr_indexer.__doc__)
     def _convert_arr_indexer(self, keyarr):
         keyarr = com.asarray_tuplesafe(keyarr)
 

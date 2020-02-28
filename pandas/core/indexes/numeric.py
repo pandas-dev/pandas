@@ -306,7 +306,6 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
 
-    @Appender(Index._convert_arr_indexer.__doc__)
     def _convert_arr_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so that the values returned
         # from indexing are also uint64.

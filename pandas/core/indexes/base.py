@@ -5447,6 +5447,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         names = [
             "_shallow_copy",
+            "_convert_arr_indexer",
             "_convert_index_indexer",
             "astype",
             "dropna",
