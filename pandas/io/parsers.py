@@ -1448,9 +1448,9 @@ class ParserBase:
                 [col if isinstance(col, list) else [col] for col in self.parse_dates]
             )
         elif isinstance(self.parse_dates, dict):
-            cols_needed = list(chain(*self.parse_dates.values()))
+            cols_needed = chain(*self.parse_dates.values())
         else:
-            cols_needed = []
+            cols_needed = chain()
 
         # get only columns that are references using names (str), not by index
         missing_cols = ", ".join(
