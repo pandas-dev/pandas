@@ -213,7 +213,7 @@ which is much more readable.
 Parameters
 ----------
 func : callable or tuple of (callable, str)
-    Function to apply to this %(klass)s object or, alternatiy chvely,
+    Function to apply to this %(klass)s object or, alternatiy,
     a `(callable, data_keyword)` tuple where `data_keyword` is a
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
