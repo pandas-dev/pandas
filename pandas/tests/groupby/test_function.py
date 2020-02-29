@@ -1017,6 +1017,7 @@ def test_frame_describe_unstacked_format():
 @pytest.mark.parametrize("dropna", [False, True])
 def test_series_groupby_nunique(n, m, sort, dropna):
     def check_nunique(df, keys, as_index=True):
+        original_df = df.copy()
         gr = df.groupby(keys, as_index=as_index, sort=sort)
         left = gr["julie"].nunique(dropna=dropna)
 
@@ -1026,6 +1027,7 @@ def test_series_groupby_nunique(n, m, sort, dropna):
             right = right.reset_index(drop=True)
 
         tm.assert_series_equal(left, right, check_names=False)
+        tm.assert_frame_equal(df, original_df)
 
     days = date_range("2015-08-23", periods=10)
 
