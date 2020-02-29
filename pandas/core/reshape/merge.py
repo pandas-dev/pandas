@@ -320,10 +320,10 @@ def merge_asof(
     direction: str = "backward",
 ) -> "DataFrame":
     """
-    Perform an asof merge. This is similar to a left-join except that we
-    match on nearest key rather than equal keys.
+    Perform an asof merge.
 
-    Both DataFrames must be sorted by the key.
+    This is similar to a left-join except that we match on nearest
+    key rather than equal keys. Both DataFrames must be sorted by the key.
 
     For each row in the left DataFrame:
 
