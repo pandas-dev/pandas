@@ -545,11 +545,17 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         other : object
-            other object to compare against.
+            Other object to compare against.
 
         Returns
         -------
-        True if both have same underlying data, False otherwise : bool
+        bool
+            Boolean indicating if both object have same underlying data,
+            False otherwise.
+
+        See Also
+        --------
+        Index.identical : Works like Index.is_ but also check metadata.
         """
         # use something other than None to be clearer
         return self._id is getattr(other, "_id", Ellipsis) and self._id is not None
