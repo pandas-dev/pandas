@@ -1681,29 +1681,6 @@ class _iLocIndexer(_LocationIndexer):
                 # reset the sliced object if unique
                 self.obj._iset_item(loc, ser)
 
-            def setter(item, v):
-                ser = self.obj[item]
-
-                # perform the equivalent of a setitem on the info axis
-                # as we have a null slice or a slice with full bounds
-                # which means essentially reassign to the columns of a
-                # multi-dim object
-                # GH6149 (null slice), GH10408 (full bounds)
-                if isinstance(pi, tuple) and all(
-                    com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
-                    for idx in pi
-                ):
-                    ser = v
-                else:
-                    # set the item, possibly having a dtype change
-                    ser._consolidate_inplace()
-                    ser = ser.copy()
-                    ser._data = ser._data.setitem(indexer=pi, value=v)
-                    ser._maybe_update_cacher(clear=True)
-
-                # reset the sliced object if unique
-                self.obj[item] = ser
-
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
             if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
@@ -1712,8 +1689,10 @@ class _iLocIndexer(_LocationIndexer):
                 if isinstance(value, ABCDataFrame):
                     sub_indexer = list(indexer)
                     multiindex_indexer = isinstance(labels, ABCMultiIndex)
+                    # TODO: we are implicitly assuming value.columns is unique
 
-                    for item in labels:
+                    for loc in ilocs:
+                        item = item_labels[loc]
                         if item in value:
                             sub_indexer[info_axis] = item
                             v = self._align_series(
@@ -1722,7 +1701,7 @@ class _iLocIndexer(_LocationIndexer):
                         else:
                             v = np.nan
 
-                        setter(item, v)
+                        isetter(loc, v)
 
                 # we have an equal len ndarray/convertible to our labels
                 # hasattr first, to avoid coercing to ndarray without reason.
