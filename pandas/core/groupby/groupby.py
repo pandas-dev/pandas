@@ -190,14 +190,14 @@ _apply_docs = dict(
 )
 
 _pipe_template = """
-Apply a function `func` with arguments to this %(klass)s object and return
-the function's result.
+Apply a function `func` with arguments to this %(klass)s object and return the result.
 
 %(versionadded)s
 
 Use `.pipe` when you want to improve readability.
 You can do it by chaining together functions.
-Where the functions expect Series, DataFrames, GroupBy or Resampler objects instead of writing.
+Where the functions expect Series, DataFrames, GroupBy or Resampler objects.
+Instead of writing.
 
 >>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
 
@@ -225,7 +225,7 @@ func : callable or tuple of (callable, str)
 Returns
 -------
 object
-    the return type of `func`.
+    The return type of `func`.
 
 See Also
 --------
