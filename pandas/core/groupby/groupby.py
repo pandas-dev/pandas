@@ -2317,6 +2317,9 @@ class GroupBy(_GroupBy):
         """
         Shift each group by periods observations.
 
+        When freq is not passed, shift the index without realigning the data.
+        If freq is passed, the index will be increased using the periods and the freq.
+
         Parameters
         ----------
         periods : int, default 1
@@ -2324,7 +2327,13 @@ class GroupBy(_GroupBy):
         freq : str, optional
             Frequency string.
         axis : axis to shift, default 0
+            Shift direction.
         fill_value : optional
+            The scalar value to use for newly introduced missing values.
+            The default depends on the dtype of *self*.
+            For numeric data, `np.nan` is used.
+            For datetime, timedelta, or period data, etc. **NaT** is used.
+            For extension dtypes, `self.dtype.na_value` is used.
 
             .. versionadded:: 0.24.0
 
@@ -2332,6 +2341,14 @@ class GroupBy(_GroupBy):
         -------
         Series or DataFrame
             Object shifted within each group.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        DatetimeIndex.resample : Shift values of DatetimeIndex.
+        PeriodIndex.shift : Shift values of PeriodIndex.
+        tshift : Shift the time index, using the index’s frequency
+            if available.
         """
         if freq is not None or axis != 0 or not isna(fill_value):
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
