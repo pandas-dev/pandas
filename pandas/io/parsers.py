@@ -1444,12 +1444,7 @@ class ParserBase:
             # DateGroups = List[ColReference]
             # ParseDates = Union[ DateGroups, List[DateGroups],
             #     Dict[ColReference, DateGroups]]
-            cols_needed = []
-            for col in self.parse_dates:
-                if isinstance(col, list):
-                    cols_needed.extend(col)
-                else:
-                    cols_needed.append(col)
+            cols_needed = chain.from_iterable([col if isinstance(col, list) else [col] for col in self.parse_dates ])
         elif isinstance(self.parse_dates, dict):
             cols_needed = list(chain(*self.parse_dates.values()))
         else:

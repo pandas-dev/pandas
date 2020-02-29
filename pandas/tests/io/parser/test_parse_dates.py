@@ -1537,8 +1537,8 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
         ),
     ],
 )
-def test_missing_column(all_parsers, names, usecols, parse_dates, missing_cols):
-    """GH31251 column names provided in parse_dates could be missing."""
+def test_missing_parse_dates_column_raises(all_parsers, names, usecols, parse_dates, missing_cols):
+    # gh-31251 column names provided in parse_dates could be missing.
     parser = all_parsers
     content = StringIO("date,time,val\n2020-01-31,04:20:32,32\n")
     msg = f"Missing column provided to 'parse_dates': '{missing_cols}'"
