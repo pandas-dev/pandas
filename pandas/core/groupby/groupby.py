@@ -212,14 +212,14 @@ which is much more readable.
 
 Parameters
 ----------
-func : callable or tuple of (callable, string)
+func : callable or tuple of (callable, str)
     Function to apply to this %(klass)s object or, alternatively,
     a `(callable, data_keyword)` tuple where `data_keyword` is a
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
-args : iterable, optional
+*args : iterable, optional
        Positional arguments passed into `func`.
-kwargs : dict, optional
+**kwargs : dict, optional
          A dictionary of keyword arguments passed into `func`.
 
 Returns
