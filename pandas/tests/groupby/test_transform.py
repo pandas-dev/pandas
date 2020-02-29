@@ -387,7 +387,16 @@ def test_groupby_transform_tshift(df_for_transformation_func):
         result.reset_index().reindex(columns=["A", "B", "C"]), expected
     )
 
-    result = g.transform(lambda x: x.tshift(2, "D"))
+    op1 = g.transform(lambda x: x.tshift(2, "D"))
+    op2 = g.transform("tshift", *[2, "D"])
+
+    for result in [op1, op2]:
+        pytest.xfail(
+            "The output of groupby.transform with tshift is wrong, see GH 32344"
+        )
+        tm.assert_frame_equal(
+            result.reset_index().reindex(columns=["A", "B", "C"]), expected
+        )
 
 
 def test_transform_select_columns(df):
