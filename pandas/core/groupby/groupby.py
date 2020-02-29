@@ -1577,6 +1577,7 @@ class GroupBy(_GroupBy):
         """
         from pandas.core.window import RollingGroupby
 
+        self.obj = self._obj_with_exclusions
         return RollingGroupby(self, *args, **kwargs)
 
     @Substitution(name="groupby")
