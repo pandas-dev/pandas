@@ -1050,6 +1050,9 @@ class BlockManager(PandasObject):
             return
 
         if isinstance(loc, int):
+            # We have 6 tests where loc is _not_ an int.
+            # In this case, get_blkno_placements will yield only one tuple,
+            #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
             loc = [loc]
 
         blknos = self._blknos[loc]
@@ -1100,7 +1103,7 @@ class BlockManager(PandasObject):
                 # one item.
                 new_blocks.extend(
                     make_block(
-                        values=value.copy(),
+                        values=value,
                         ndim=self.ndim,
                         placement=slice(mgr_loc, mgr_loc + 1),
                     )
