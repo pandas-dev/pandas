@@ -1714,7 +1714,11 @@ class _iLocIndexer(_LocationIndexer):
                         # setting with a list, re-coerces
                         setter(item, value[:, i].tolist())
 
-                elif len(labels) == 1 and lplane_indexer == len(value):
+                elif (
+                    len(labels) == 1
+                    and lplane_indexer == len(value)
+                    and not is_scalar(plane_indexer[0])
+                ):
                     # we have an equal len list/ndarray
                     setter(labels[0], value)
 
