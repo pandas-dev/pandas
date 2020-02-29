@@ -251,7 +251,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     substitution on it.
 
     This decorator is robust even if func.__doc__ is None. This decorator will
-    add a variable "_docstr_template" to the wrapped function to save original
+    add a variable "_doc_args" to the wrapped function to save the original
     docstring template for potential usage.
 
     Parameters
@@ -268,18 +268,18 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
         def wrapper(*args, **kwargs) -> Callable:
             return func(*args, **kwargs)
 
-        templates = [func.__doc__ if func.__doc__ else ""]
+        wrapper._doc_args = [func.__doc__] if func.__doc__ else []  # type: ignore
         for arg in args:
-            if isinstance(arg, str):
-                templates.append(arg)
-            elif hasattr(arg, "_docstr_template"):
-                templates.append(arg._docstr_template)  # type: ignore
-            elif arg.__doc__:
-                doc_tmp = arg.__doc__.replace("{", "{{").replace("}", "}}")
-                templates.append(doc_tmp)
+            if hasattr(arg, "_doc_args"):
+                wrapper._doc_args.extend(arg._doc_args)  # type: ignore
+            elif isinstance(arg, str) or arg.__doc__:
+                wrapper._doc_args.append(arg)  # type: ignore
 
-        wrapper._docstr_template = "".join(dedent(t) for t in templates)  # type: ignore
-        wrapper.__doc__ = wrapper._docstr_template.format(**kwargs)  # type: ignore
+        docs = [
+            arg.format(**kwargs) if isinstance(arg, str) else arg.__doc__
+            for arg in wrapper._doc_args  # type: ignore
+        ]
+        wrapper.__doc__ = "".join([dedent(i) for i in docs])
 
         return cast(F, wrapper)
 
