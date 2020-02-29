@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
-from pandas._typing import DtypeObj
+from pandas._typing import DtypeObj, Label
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -995,7 +995,21 @@ class BlockManager(PandasObject):
         self._shape = None
         self._rebuild_blknos_and_blklocs()
 
-    def set(self, item, value):
+    def set(self, item: Label, value):
+        """
+        Set new item in-place. Does not consolidate. Adds new Block if not
+        contained in the current set of items
+        """
+        try:
+            loc = self.items.get_loc(item)
+        except KeyError:
+            # This item wasn't present, just insert at end
+            self.insert(len(self.items), item, value)
+            return
+
+        self.iset(loc, value)
+
+    def iset(self, loc: Union[int, slice, np.ndarray], value):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1027,13 +1041,6 @@ class BlockManager(PandasObject):
                 raise AssertionError(
                     "Shape of new values must be compatible with manager shape"
                 )
-
-        try:
-            loc = self.items.get_loc(item)
-        except KeyError:
-            # This item wasn't present, just insert at end
-            self.insert(len(self.items), item, value)
-            return
 
         if isinstance(loc, int):
             loc = [loc]
@@ -1138,6 +1145,9 @@ class BlockManager(PandasObject):
 
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
+
+        if value.ndim == self.ndim - 1 and not is_extension_array_dtype(value):
+            value = _safe_reshape(value, (1,) + value.shape)
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
