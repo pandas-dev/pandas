@@ -1,4 +1,5 @@
 """ test with the .transform """
+from datetime import timedelta
 from io import StringIO
 
 import numpy as np
@@ -29,6 +30,7 @@ def df_for_transformation_func():
         {
             "A": [121, 121, 121, 121, 231, 231, 676],
             "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0],
+            "C": pd.date_range("2013-11-03", periods=7, freq="D"),
         }
     )
 
@@ -328,7 +330,7 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
-def test_transform_transformation_func(transformation_func):
+def test_transform_transformation_func(transformation_func, df_for_transformation_func):
     # GH 30918
     df = DataFrame(
         {
@@ -356,77 +358,36 @@ def test_transform_transformation_func(transformation_func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_corrwith(df_for_transformation_func):
+def test_groupby_transform_corrwith(df_for_transformation_func):
 
     # GH 27905
     df = df_for_transformation_func
     g = df.groupby("A")
 
-    op = lambda x: getattr(x, "corrwith")(df)
-    result = op(g)
+    result = g.corrwith(df)
     expected = pd.DataFrame(dict(B=[1, np.nan, np.nan], A=[np.nan] * 3))
     expected.index = pd.Index([121, 231, 676], name="A")
     tm.assert_frame_equal(result, expected)
 
+    with pytest.raises(AttributeError) as m:
+        g.transform("corrwith", df)
 
-def test_groupby_transform_nan(df_for_transformation_func):
-
-    # GH 27905
-    df = df_for_transformation_func
-    g = df.groupby("A")
-
-    df["B"] = [1, np.nan, np.nan, 3, np.nan, 3, 4]
-    result = g.transform("fillna", value=1)
-    expected = pd.DataFrame({"B": [1.0, 1.0, 1.0, 3.0, 1.0, 3.0, 4.0]})
-    tm.assert_frame_equal(result, expected)
-    op = lambda x: getattr(x, "fillna")(1)
-    result = op(g)
-    tm.assert_frame_equal(result, expected)
+    m.match("'Series' object has no attribute 'corrwith'")
 
 
-def test_groupby_tshift(df_for_transformation_func):
+def test_groupby_transform_tshift(df_for_transformation_func):
 
     # GH 27905
     df = df_for_transformation_func
-    dt_periods = pd.date_range("2013-11-03", periods=7, freq="D")
-    df["C"] = dt_periods
     g = df.set_index("C").groupby("A")
-
-    op = lambda x: getattr(x, "tshift")(2, "D")
-    result = op(g)
-    df["C"] = dt_periods + dt_periods.freq * 2
+    result = g.tshift(2, "D")
+    df["C"] = df["C"] + timedelta(days=2)
     expected = df
     tm.assert_frame_equal(
         result.reset_index().reindex(columns=["A", "B", "C"]), expected
     )
 
-
-def test_check_original_and_transformed_index(transformation_func):
-
-    # GH 27905
-    df = DataFrame(
-        {
-            "A": [121, 121, 121, 121, 231, 231, 676],
-            "B": [1.0, 2.0, 2.0, 3.0, 3.0, 3.0, 4.0],
-        }
-    )
-
-    df = DataFrame({"A": [0, 0, 0, 1, 1, 1], "B": [0, 1, 2, 3, 4, 5]})
-    g = df.groupby("A")
-
-    if transformation_func in [
-        "cummax",
-        "cummin",
-        "cumprod",
-        "cumsum",
-        "diff",
-        "ffill",
-        "pct_change",
-        "rank",
-        "shift",
-    ]:
-        result = g.transform(transformation_func)
-        tm.assert_index_equal(result.index, df.index)
+    result = g.transform(lambda x: x.tshift(2, "D"))
 
 
 def test_transform_select_columns(df):
