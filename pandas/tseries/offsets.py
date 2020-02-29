@@ -1023,8 +1023,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
-    DateOffset subclass representing possibly n custom business days,
-    excluding holidays.
+    DateOffset subclass representing custom business days excluding holidays.
 
     Parameters
     ----------

@@ -77,7 +77,6 @@ class Grouper(Generic[FrameOrSeries]):
 
     Examples
     --------
-
     Syntactic sugar for ``df.groupby('A')``
 
     >>> df.groupby(Grouper(key='A'))

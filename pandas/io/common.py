@@ -74,8 +74,9 @@ def is_url(url) -> bool:
 def _expand_user(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Return the argument with an initial component of ~ or ~user
-       replaced by that user's home directory.
+    """
+    Return the argument with an initial component of ~ or ~user
+    replaced by that user's home directory.
 
     Parameters
     ----------
@@ -103,7 +104,8 @@ def validate_header_arg(header) -> None:
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Attempt to convert a path-like object to a string.
+    """
+    Attempt to convert a path-like object to a string.
 
     Parameters
     ----------

@@ -743,7 +743,8 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
 
 
 def assert_attr_equal(attr, left, right, obj="Attributes"):
-    """checks attributes are equal. Both objects must have attribute.
+    """
+    checks attributes are equal. Both objects must have attribute.
 
     Parameters
     ----------
@@ -820,7 +821,8 @@ def assert_is_sorted(seq):
 def assert_categorical_equal(
     left, right, check_dtype=True, check_category_order=True, obj="Categorical"
 ):
-    """Test that Categoricals are equivalent.
+    """
+    Test that Categoricals are equivalent.
 
     Parameters
     ----------
@@ -860,7 +862,8 @@ def assert_categorical_equal(
 
 
 def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray"):
-    """Test that two IntervalArrays are equivalent.
+    """
+    Test that two IntervalArrays are equivalent.
 
     Parameters
     ----------
@@ -1009,12 +1012,13 @@ def assert_numpy_array_equal(
 def assert_extension_array_equal(
     left, right, check_dtype=True, check_less_precise=False, check_exact=False
 ):
-    """Check that left and right ExtensionArrays are equal.
+    """
+    Check that left and right ExtensionArrays are equal.
 
     Parameters
     ----------
     left, right : ExtensionArray
-        The two arrays to compare
+        The two arrays to compare.
     check_dtype : bool, default True
         Whether to check if the ExtensionArray dtypes are identical.
     check_less_precise : bool or int, default False
@@ -1070,6 +1074,7 @@ def assert_series_equal(
     check_exact=False,
     check_datetimelike_compat=False,
     check_categorical=True,
+    check_category_order=True,
     obj="Series",
 ):
     """
@@ -1104,6 +1109,10 @@ def assert_series_equal(
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_category_order : bool, default True
+        Whether to compare category order of internal Categoricals
+
+        .. versionadded:: 1.0.2
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1206,7 +1215,12 @@ def assert_series_equal(
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
-            assert_categorical_equal(left.values, right.values, obj=f"{obj} category")
+            assert_categorical_equal(
+                left.values,
+                right.values,
+                obj=f"{obj} category",
+                check_category_order=check_category_order,
+            )
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1489,7 +1503,8 @@ def assert_sp_array_equal(
     check_fill_value=True,
     consolidate_block_indices=False,
 ):
-    """Check that the left and right SparseArray are equal.
+    """
+    Check that the left and right SparseArray are equal.
 
     Parameters
     ----------
@@ -1724,7 +1739,8 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
 
 
 def all_index_generator(k=10):
-    """Generator which can be iterated over to get instances of all the various
+    """
+    Generator which can be iterated over to get instances of all the various
     index classes.
 
     Parameters
@@ -1763,7 +1779,8 @@ def index_subclass_makers_generator():
 
 
 def all_timeseries_index_generator(k=10):
-    """Generator which can be iterated over to get instances of all the classes
+    """
+    Generator which can be iterated over to get instances of all the classes
     which represent time-series.
 
     Parameters
@@ -1854,7 +1871,8 @@ def makePeriodFrame(nper=None):
 def makeCustomIndex(
     nentries, nlevels, prefix="#", names=False, ndupe_l=None, idx_type=None
 ):
-    """Create an index/multindex with given dimensions, levels, names, etc'
+    """
+    Create an index/multindex with given dimensions, levels, names, etc'
 
     nentries - number of entries in index
     nlevels - number of levels (> 1 produces multindex)
@@ -1970,35 +1988,39 @@ def makeCustomDataframe(
     r_idx_type=None,
 ):
     """
-   nrows,  ncols - number of data rows/cols
-   c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
-        default names or uses the provided names for the levels of the
-        corresponding index. You can provide a single string when
-        c_idx_nlevels ==1.
-   c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
-   r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
-   data_gen_f - a function f(row,col) which return the data value
-        at that position, the default generator used yields values of the form
-        "RxCy" based on position.
-   c_ndupe_l, r_ndupe_l - list of integers, determines the number
-        of duplicates for each label at a given level of the corresponding
-        index. The default `None` value produces a multiplicity of 1 across
-        all levels, i.e. a unique index. Will accept a partial list of length
-        N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
-        nrows/ncol, the last label might have lower multiplicity.
-   dtype - passed to the DataFrame constructor as is, in case you wish to
-        have more control in conjunction with a custom `data_gen_f`
-   r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
-       If idx_type is not None, `idx_nlevels` must be 1.
-       "i"/"f" creates an integer/float index,
-       "s"/"u" creates a string/unicode index
-       "dt" create a datetime index.
-       "td" create a timedelta index.
+    Create a DataFrame using supplied parameters.
 
-        if unspecified, string labels will be generated.
+    Parameters
+    ----------
+    nrows,  ncols - number of data rows/cols
+    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
+            default names or uses the provided names for the levels of the
+            corresponding index. You can provide a single string when
+            c_idx_nlevels ==1.
+    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
+    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
+    data_gen_f - a function f(row,col) which return the data value
+            at that position, the default generator used yields values of the form
+            "RxCy" based on position.
+    c_ndupe_l, r_ndupe_l - list of integers, determines the number
+            of duplicates for each label at a given level of the corresponding
+            index. The default `None` value produces a multiplicity of 1 across
+            all levels, i.e. a unique index. Will accept a partial list of length
+            N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
+            nrows/ncol, the last label might have lower multiplicity.
+    dtype - passed to the DataFrame constructor as is, in case you wish to
+            have more control in conjunction with a custom `data_gen_f`
+    r_idx_type, c_idx_type -  "i"/"f"/"s"/"u"/"dt"/"td".
+        If idx_type is not None, `idx_nlevels` must be 1.
+        "i"/"f" creates an integer/float index,
+        "s"/"u" creates a string/unicode index
+        "dt" create a datetime index.
+        "td" create a timedelta index.
 
-    Examples:
+            if unspecified, string labels will be generated.
 
+    Examples
+    --------
     # 5 row, 3 columns, default names on both, single index on both axis
     >> makeCustomDataframe(5,3)
 
@@ -2140,7 +2162,8 @@ def makeMissingDataframe(density=0.9, random_state=None):
 
 
 def optional_args(decorator):
-    """allows a decorator to take optional positional and keyword arguments.
+    """
+    allows a decorator to take optional positional and keyword arguments.
     Assumes that taking a single, callable, positional argument means that
     it is decorating a function, i.e. something like this::
 
@@ -2212,7 +2235,8 @@ def _get_default_network_errors():
 
 
 def can_connect(url, error_classes=None):
-    """Try to connect to the given url. True if succeeds, False if IOError
+    """
+    Try to connect to the given url. True if succeeds, False if IOError
     raised
 
     Parameters
@@ -2514,7 +2538,6 @@ class RNGContext:
 
     Examples
     --------
-
     with RNGContext(42):
         np.random.randn()
     """
@@ -2581,7 +2604,8 @@ def use_numexpr(use, min_elements=None):
 
 
 def test_parallel(num_threads=2, kwargs_list=None):
-    """Decorator to run the same function multiple times in parallel.
+    """
+    Decorator to run the same function multiple times in parallel.
 
     Parameters
     ----------
@@ -2590,6 +2614,7 @@ def test_parallel(num_threads=2, kwargs_list=None):
     kwargs_list : list of dicts, optional
         The list of kwargs to update original
         function kwargs on different threads.
+
     Notes
     -----
     This decorator does not pass the return value of the decorated function.
@@ -2669,7 +2694,6 @@ def set_timezone(tz: str):
 
     Examples
     --------
-
     >>> from datetime import datetime
     >>> from dateutil.tz import tzlocal
     >>> tzlocal().tzname(datetime.now())

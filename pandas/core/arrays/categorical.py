@@ -1,6 +1,6 @@
 import operator
 from shutil import get_terminal_size
-from typing import Dict, Hashable, List, Optional, Type, Union, cast
+from typing import Dict, Hashable, List, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -341,11 +341,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values = _convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
-                sanitize_dtype: Optional[str]
-                if len(values) == 0:
-                    sanitize_dtype = "object"
-                else:
-                    sanitize_dtype = None
+                sanitize_dtype = "object" if len(values) == 0 else None
                 null_mask = isna(values)
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
@@ -1497,9 +1493,7 @@ class Categorical(ExtensionArray, PandasObject):
     def _values_for_argsort(self):
         return self._codes.copy()
 
-    def argsort(
-        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
-    ) -> np.ndarray:
+    def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
         Return the indices that would sort the Categorical.
 
@@ -1514,7 +1508,7 @@ class Categorical(ExtensionArray, PandasObject):
             or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
-        *args, **kwargs:
+        **kwargs:
             passed through to :func:`numpy.argsort`.
 
         Returns
@@ -1550,14 +1544,7 @@ class Categorical(ExtensionArray, PandasObject):
         >>> cat.argsort()
         array([2, 0, 1])
         """
-        # https://github.com/python/mypy/issues/2582
-        # error: "argsort" of "ExtensionArray" gets multiple values for keyword
-        #  argument "ascending"  [misc]
-        # error: "argsort" of "ExtensionArray" gets multiple values for keyword
-        #  argument "kind"  [misc]
-        return super().argsort(  # type: ignore
-            ascending=ascending, kind=kind, *args, **kwargs
-        )
+        return super().argsort(ascending=ascending, kind=kind, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position="last"):
         """
@@ -1901,7 +1888,8 @@ class Categorical(ExtensionArray, PandasObject):
         return contains(self, key, container=self._codes)
 
     def _tidy_repr(self, max_vals=10, footer=True) -> str:
-        """ a short repr displaying only max_vals and an optional (but default
+        """
+        a short repr displaying only max_vals and an optional (but default
         footer)
         """
         num = max_vals // 2
@@ -2398,7 +2386,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-
         >>> s = pd.Categorical(['lama', 'cow', 'lama', 'beetle', 'lama',
         ...                'hippo'])
         >>> s.isin(['cow', 'lama'])
@@ -2451,18 +2438,30 @@ class Categorical(ExtensionArray, PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
-        if to_replace in cat.categories:
-            if isna(value):
-                cat.remove_categories(to_replace, inplace=True)
-            else:
+
+        # build a dict of (to replace -> value) pairs
+        if is_list_like(to_replace):
+            # if to_replace is list-like and value is scalar
+            replace_dict = {replace_value: value for replace_value in to_replace}
+        else:
+            # if both to_replace and value are scalar
+            replace_dict = {to_replace: value}
+
+        # other cases, like if both to_replace and value are list-like or if
+        # to_replace is a dict, are handled separately in NDFrame
+        for replace_value, new_value in replace_dict.items():
+            if replace_value in cat.categories:
+                if isna(new_value):
+                    cat.remove_categories(replace_value, inplace=True)
+                    continue
                 categories = cat.categories.tolist()
-                index = categories.index(to_replace)
-                if value in cat.categories:
-                    value_index = categories.index(value)
+                index = categories.index(replace_value)
+                if new_value in cat.categories:
+                    value_index = categories.index(new_value)
                     cat._codes[cat._codes == index] = value_index
-                    cat.remove_categories(to_replace, inplace=True)
+                    cat.remove_categories(replace_value, inplace=True)
                 else:
-                    categories[index] = value
+                    categories[index] = new_value
                     cat.rename_categories(categories, inplace=True)
         if not inplace:
             return cat

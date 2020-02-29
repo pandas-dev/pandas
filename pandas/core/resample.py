@@ -553,7 +553,6 @@ class Resampler(_GroupBy, ShallowMixin):
 
         Examples
         --------
-
         Resampling a Series:
 
         >>> s = pd.Series([1, 2, 3],
