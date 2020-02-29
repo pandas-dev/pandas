@@ -633,8 +633,8 @@ def _normalize(table, normalize: Union[bool, Axis], margins: bool, margins_name=
         axis_subs = {0: "index", 1: "columns"}
         try:
             normalize = axis_subs[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
     if margins is False:
 
@@ -649,8 +649,8 @@ def _normalize(table, normalize: Union[bool, Axis], margins: bool, margins_name=
 
         try:
             f = normalizers[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
         table = f(table)
         table = table.fillna(0)

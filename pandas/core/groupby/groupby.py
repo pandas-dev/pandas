@@ -482,13 +482,13 @@ class _GroupBy(PandasObject, SelectionMixin):
                 try:
                     # If the original grouper was a tuple
                     return [self.indices[name] for name in names]
-                except KeyError:
+                except KeyError as err:
                     # turns out it wasn't a tuple
                     msg = (
                         "must supply a same-length tuple to get_group "
                         "with multiple grouping keys"
                     )
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
 
             converters = [get_converter(s) for s in index_sample]
             names = (tuple(f(n) for f, n in zip(converters, name)) for name in names)
@@ -923,17 +923,10 @@ b  2""",
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                func(obj[:0])
+                result, counts = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
-            except AssertionError:
-                raise
-            except Exception:
-                # Our function depends on having a non-empty argument
-                #  See test_groupby_agg_err_catching
-                pass
 
-            result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
             output[key] = self._try_cast(result, obj, numeric_only=True)

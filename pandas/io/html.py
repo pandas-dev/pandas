@@ -909,7 +909,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
                     "Since you passed a non-rewindable file "
                     "object, we can't rewind it to try "
                     "another parser. Try read_html() with a different flavor."
-                )
+                ) from caught
 
             retained = caught
         else:

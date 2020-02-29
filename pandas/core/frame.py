@@ -112,7 +112,7 @@ from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.multi import maybe_droplevels
+from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -517,7 +517,7 @@ class DataFrame(NDFrame):
             else:
                 raise ValueError("DataFrame constructor not properly called!")
 
-        NDFrame.__init__(self, mgr, fastpath=True)
+        NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
 
@@ -835,7 +835,6 @@ class DataFrame(NDFrame):
         Returns a Styler object.
 
         Contains methods for building a styled HTML representation of the DataFrame.
-        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
@@ -2631,8 +2630,8 @@ class DataFrame(NDFrame):
         scalar
         """
         if takeable:
-            series = self._iget_item_cache(col)
-            return com.maybe_box_datetimelike(series._values[index])
+            series = self._ixs(col, axis=1)
+            return series._values[index]
 
         series = self._get_item_cache(col)
         engine = self.index._engine
@@ -2780,11 +2779,11 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value) and len(value):
             try:
                 value = Series(value)
-            except (ValueError, NotImplementedError, TypeError):
+            except (ValueError, NotImplementedError, TypeError) as err:
                 raise ValueError(
                     "Cannot set a frame with no defined index "
                     "and a value that cannot be converted to a Series"
-                )
+                ) from err
 
             self._data = self._data.reindex_axis(
                 value.index.copy(), axis=1, fill_value=np.nan
@@ -3352,7 +3351,7 @@ class DataFrame(NDFrame):
                     # other
                     raise TypeError(
                         "incompatible index of inserted column with frame index"
-                    )
+                    ) from err
             return value
 
         if isinstance(value, Series):
@@ -4073,8 +4072,10 @@ class DataFrame(NDFrame):
                 # everything else gets tried as a key; see GH 24969
                 try:
                     found = col in self.columns
-                except TypeError:
-                    raise TypeError(f"{err_msg}. Received column of type {type(col)}")
+                except TypeError as err:
+                    raise TypeError(
+                        f"{err_msg}. Received column of type {type(col)}"
+                    ) from err
                 else:
                     if not found:
                         missing.append(col)
@@ -4585,6 +4586,10 @@ class DataFrame(NDFrame):
         -------
         DataFrame
             DataFrame with duplicates removed or None if ``inplace=True``.
+
+        See Also
+        --------
+        DataFrame.value_counts: Count unique combinations of columns.
         """
         if self.empty:
             return self.copy()
@@ -4829,6 +4834,102 @@ class DataFrame(NDFrame):
             return self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
+
+    def value_counts(
+        self,
+        subset: Optional[Sequence[Label]] = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+    ):
+        """
+        Return a Series containing counts of unique rows in the DataFrame.
+
+        .. versionadded:: 1.1.0
+
+        Parameters
+        ----------
+        subset : list-like, optional
+            Columns to use when counting unique combinations.
+        normalize : bool, default False
+            Return proportions rather than frequencies.
+        sort : bool, default True
+            Sort by frequencies.
+        ascending : bool, default False
+            Sort in ascending order.
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.value_counts: Equivalent method on Series.
+
+        Notes
+        -----
+        The returned Series will have a MultiIndex with one level per input
+        column. By default, rows that contain any NA values are omitted from
+        the result. By default, the resulting Series will be in descending
+        order so that the first element is the most frequently-occurring row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 4, 6],
+        ...                    'num_wings': [2, 0, 0, 0]},
+        ...                   index=['falcon', 'dog', 'cat', 'ant'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
+        cat            4          0
+        ant            6          0
+
+        >>> df.value_counts()
+        num_legs  num_wings
+        4         0            2
+        6         0            1
+        2         2            1
+        dtype: int64
+
+        >>> df.value_counts(sort=False)
+        num_legs  num_wings
+        2         2            1
+        4         0            2
+        6         0            1
+        dtype: int64
+
+        >>> df.value_counts(ascending=True)
+        num_legs  num_wings
+        2         2            1
+        6         0            1
+        4         0            2
+        dtype: int64
+
+        >>> df.value_counts(normalize=True)
+        num_legs  num_wings
+        4         0            0.50
+        6         0            0.25
+        2         2            0.25
+        dtype: float64
+        """
+        if subset is None:
+            subset = self.columns.tolist()
+
+        counts = self.groupby(subset).size()
+
+        if sort:
+            counts = counts.sort_values(ascending=ascending)
+        if normalize:
+            counts /= counts.sum()
+
+        # Force MultiIndex for single column
+        if len(subset) == 1:
+            counts.index = MultiIndex.from_arrays(
+                [counts.index], names=[counts.index.name]
+            )
+
+        return counts
 
     def nlargest(self, n, columns, keep="first") -> "DataFrame":
         """
@@ -8370,9 +8471,8 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data: Dict = {}
+    new_data: Dict = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data

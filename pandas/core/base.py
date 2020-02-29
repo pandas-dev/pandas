@@ -473,7 +473,7 @@ class SelectionMixin:
                 # return a MI Series
                 try:
                     result = concat(result)
-                except TypeError:
+                except TypeError as err:
                     # we want to give a nice error here if
                     # we have non-same sized objects, so
                     # we don't automatically broadcast
@@ -482,7 +482,7 @@ class SelectionMixin:
                         "cannot perform both aggregation "
                         "and transformation operations "
                         "simultaneously"
-                    )
+                    ) from err
 
                 return result, True
 
@@ -568,7 +568,7 @@ class SelectionMixin:
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
-        except TypeError:
+        except TypeError as err:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -577,7 +577,9 @@ class SelectionMixin:
 
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
-                raise ValueError("cannot combine transform and aggregation operations")
+                raise ValueError(
+                    "cannot combine transform and aggregation operations"
+                ) from err
             return result
 
     def _get_cython_func(self, arg: str) -> Optional[str]:
@@ -942,22 +944,50 @@ class IndexOpsMixin:
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return an ndarray of the maximum argument indexer.
+        Return int position of the largest value in the Series.
+
+        If the maximum is achieved in multiple locations,
+        the first row position is returned.
 
         Parameters
         ----------
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
-        numpy.ndarray
-            Indices of the maximum values.
+        int
+            Row position of the maximum values.
 
         See Also
         --------
-        numpy.ndarray.argmax
+        numpy.ndarray.argmax : Equivalent method for numpy arrays.
+        Series.argmin : Similar method, but returning the minimum.
+        Series.idxmax : Return index label of the maximum values.
+        Series.idxmin : Return index label of the minimum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
+        >>> s
+        Corn Flakes              100.0
+        Almond Delight           110.0
+        Cinnamon Toast Crunch    120.0
+        Cocoa Puff               110.0
+        dtype: float64
+
+        >>> s.argmax()
+        2
+
+        The maximum cereal calories is in the third element,
+        since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
@@ -1211,6 +1241,7 @@ class IndexOpsMixin:
         --------
         Series.count: Number of non-NA elements in a Series.
         DataFrame.count: Number of non-NA elements in a DataFrame.
+        DataFrame.value_counts: Equivalent method on DataFrames.
 
         Examples
         --------
