@@ -315,6 +315,7 @@ Groupby/resample/rolling
 
 - Bug in :meth:`GroupBy.apply` raises ``ValueError`` when the ``by`` axis is not sorted and has duplicates and the applied ``func`` does not mutate passed in objects (:issue:`30667`)
 - Bug in :meth:`DataFrameGroupby.transform` produces incorrect result with transformation functions (:issue:`30918`)
+- Bug in :meth:`pandas.core.groupby.RollingGroupby.apply` was including the grouped-by column in its values, rather than just in the index (:issue:`32262`)
 
 Reshaping
 ^^^^^^^^^

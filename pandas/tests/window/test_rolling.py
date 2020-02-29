@@ -475,3 +475,4 @@ def test_by_column_not_in_values():
     r = g.rolling(4)
     result = r.sum()
     assert "A" not in result.columns
+    assert "A" in g.obj.columns  # check for side-effects

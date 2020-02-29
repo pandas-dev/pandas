@@ -81,7 +81,8 @@ class WindowGroupByMixin(GroupByMixin):
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
-            x = self._shallow_copy(x)
+            x = self._shallow_copy(x, exclusions=self._groupby.exclusions)
+            x.obj = x._obj_with_exclusions
 
             if isinstance(name, str):
                 return getattr(x, name)(*args, **kwargs)
