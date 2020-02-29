@@ -1087,7 +1087,7 @@ class BlockManager(PandasObject):
             unfit_mgr_locs = np.concatenate(unfit_mgr_locs)
             unfit_count = len(unfit_mgr_locs)
 
-            new_blocks = []
+            new_blocks: List[Block] = []
             if value_is_extension_type:
                 # This code (ab-)uses the fact that sparse blocks contain only
                 # one item.
