@@ -472,7 +472,8 @@ def test_by_column_not_in_values():
     df = pd.DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     g = df.groupby("A")
+    original_obj = g.obj.copy(deep=True)
     r = g.rolling(4)
     result = r.sum()
     assert "A" not in result.columns
-    assert "A" in g.obj.columns  # check for side-effects
+    tm.assert_frame_equal(g.obj, original_obj)  # check for side-effects
