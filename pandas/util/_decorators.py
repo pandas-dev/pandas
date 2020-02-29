@@ -268,7 +268,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
         def wrapper(*args, **kwargs) -> Callable:
             return func(*args, **kwargs)
 
-        wrapper._doc_args = [func.__doc__] if func.__doc__ else []  # type: ignore
+        wrapper._doc_args = [dedent(func.__doc__)] if func.__doc__ else []  # type: ignore
         for arg in args:
             if hasattr(arg, "_doc_args"):
                 wrapper._doc_args.extend(arg._doc_args)  # type: ignore
@@ -276,10 +276,10 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
                 wrapper._doc_args.append(arg)  # type: ignore
 
         docs = [
-            arg.format(**kwargs) if isinstance(arg, str) else arg.__doc__
+            arg.format(**kwargs) if isinstance(arg, str) else dedent(arg.__doc__)
             for arg in wrapper._doc_args  # type: ignore
         ]
-        wrapper.__doc__ = "".join([dedent(i) for i in docs])
+        wrapper.__doc__ = "".join(docs)
 
         return cast(F, wrapper)
 
