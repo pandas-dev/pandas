@@ -119,6 +119,10 @@ PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis) {
     return NULL;
   }
 
+
+  // Iterate over all of the blocks, getting a slice from
+  // each block sequentially and storing it in the appropriate order
+  // in `arrays`
   for (i = 0; i < PyTuple_GET_SIZE(blocks); i++) {
     block = PyTuple_GET_ITEM(blocks, i);
     
@@ -137,9 +141,11 @@ PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis) {
       return NULL;
     }
 
-    // Use the PyObject_GETItem interface to slice all of the
-    // arrays, construct a new object from them and store for
-    // later use. There is definitely a more efficient way to do this...
+    // managerLocs tells use where each column of the block
+    // exists in the maintaining dataframe, so iterate
+    // managerLocs sequentially and assign, get the column of
+    // data and assign that reference to the appropriate position
+    // in `ndarrays`
     for (j = 0; j < PyList_GET_SIZE(managerLocs); j++) {
       loc = PyLong_AsLongLong(PyList_GET_ITEM(managerLocs, j));
       key = PyLong_FromLongLong(j);
@@ -147,8 +153,31 @@ PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis) {
         goto LOOP_ERROR;
       }
 
-      // TODO: Need to support slicing more than axis = 0
-      ndarr = PyObject_GetItem(blockValues, key);
+      // TODO: We should actually be grabbing an ndarray reference here
+      // and storing that in ndarrays; I haven't quite figured out
+      // with the Numpy C-API how to do that though
+      //
+      // For illustration, let's assume we have a DataFrame that looks like:
+      //     colA  colB  colC
+      //  0     0     X     1
+      //  1     2     Y     3
+      //
+      // If we are currently iterating over the int block, it would look
+      // something like this:
+      //
+      //  [[0, 1],
+      //   [2, 3]]
+      //
+      // and managerLocs would be [0, 2] (note position of int dtypes in dataframe)
+      //
+      // So in this loop we would ideally create a ndarray that references [0, 2]
+      // (i.e. the first column of the above block) and store a pointer to that
+      // at arrays[0]. We would then get an array that references [1, 3] and store
+      // that at arrays[2].
+      //
+      // Iteration over the string block should populate an ndarray at arrays[1]
+      // that holds a reference to ["X", "Y"]
+      ndarr = PyObject_GetItem(blockValues, key);  // TODO: no GetItem; construct ndarray somehow
       Py_DECREF(key);
       if (ndarr == NULL) {
         goto LOOP_ERROR;
@@ -161,7 +190,7 @@ PdOrderedArrays *PdOrderedArrays_New(PyObject *df, int axis) {
       Py_DECREF(blockValues);
       Py_DECREF(blocks);
       PyObject_Free(ndarrays);
-      return NULL;      
+      return NULL;
     }
     
     Py_DECREF(managerLocs);
