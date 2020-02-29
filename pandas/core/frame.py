@@ -8265,26 +8265,22 @@ Wild         185.0
         -------
         DataFrame with DatetimeIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
         axis = self._get_axis_number(axis)
         if axis == 0:
-            assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
+            assert isinstance(self.index, ABCPeriodIndex)
+            new_obj.index = self.index.to_timestamp(freq=freq, how=how)
         elif axis == 1:
-            assert isinstance(self.columns, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
+            assert isinstance(self.columns, ABCPeriodIndex)
+            new_obj.columns = self.columns.to_timestamp(freq=freq, how=how)
         else:  # pragma: no cover
             raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
 
-        return self._constructor(new_data)
+        return new_obj
 
     def to_period(self, freq=None, axis=0, copy=True) -> "DataFrame":
         """
-        Convert DataFrame from DatetimeIndex to PeriodIndex.
-
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
         frequency (inferred from index if not passed).
 
@@ -8299,23 +8295,21 @@ Wild         185.0
 
         Returns
         -------
-        TimeSeries with PeriodIndex
+        DataFrame with PeriodIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
         axis = self._get_axis_number(axis)
         if axis == 0:
             assert isinstance(self.index, ABCDatetimeIndex)
-            new_data.set_axis(1, self.index.to_period(freq=freq))
+            new_obj.index = self.index.to_period(freq=freq)
         elif axis == 1:
             assert isinstance(self.columns, ABCDatetimeIndex)
-            new_data.set_axis(0, self.columns.to_period(freq=freq))
+            new_obj.columns = self.columns.to_period(freq=freq)
         else:  # pragma: no cover
             raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
 
-        return self._constructor(new_data)
+        return new_obj
 
     def isin(self, values) -> "DataFrame":
         """
