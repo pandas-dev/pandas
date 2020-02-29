@@ -992,11 +992,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         except TypeError as e:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
-                raise ValueError("Can only tuple-index with a MultiIndex")
+                raise ValueError("Can only tuple-index with a MultiIndex") from e
 
             # python 3 type errors should be raised
             if _is_unorderable_exception(e):
-                raise IndexError(key)
+                raise IndexError(key) from e
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
