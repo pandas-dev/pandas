@@ -369,10 +369,10 @@ def test_groupby_transform_corrwith(df_for_transformation_func):
     expected.index = pd.Index([121, 231, 676], name="A")
     tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(AttributeError) as m:
-        g.transform("corrwith", df)
+    msg = "'Series' object has no attribute 'corrwith'"
 
-    m.match("'Series' object has no attribute 'corrwith'")
+    with pytest.raises(AttributeError, match=msg):
+        g.transform("corrwith", df)
 
 
 def test_groupby_transform_tshift(df_for_transformation_func):
