@@ -87,14 +87,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ----------
     data : array-like (1-dimensional), optional
         Optional datetime-like data to construct index with.
-    copy : bool
-        Make a copy of input ndarray.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
     tz : pytz.timezone or dateutil.tz.tzfile
         Timezone of the datetime.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    closed : {'left', 'right'}, optional
+        Make the interval closed with respect to the given frequency to
+        the 'left', 'right', or both sides (None, the default).
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
@@ -109,12 +112,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
-    name : object
-        Name to be stored in the index.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
+    dtype : numpy.dtype or DatetimeTZDtype
+        Note that the only NumPy dtype allowed is ‘datetime64[ns]’.
+    copy : bool
+        Make a copy of input ndarray.
+    name : object
+        Name to be stored in the index.
 
     Attributes
     ----------
