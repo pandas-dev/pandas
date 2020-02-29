@@ -2195,7 +2195,9 @@ class ArrowParserWrapper(ParserBase):
         table = pyarrow.read_csv(
             self.src,
             read_options=pyarrow.ReadOptions(
-                skip_rows=self.kwds.get("skiprows"), column_names=self.names
+                skip_rows=self.kwds.get("skiprows"),
+                column_names=self.names,
+                autogenerate_column_names=True if self.header != 0 else False,
             ),
             parse_options=pyarrow.ParseOptions(
                 delimiter=self.kwds.get("delimiter"),
@@ -2215,8 +2217,7 @@ class ArrowParserWrapper(ParserBase):
                 self.names = frame.iloc[header]
                 frame = frame.drop(header, axis=0)
 
-        if self.names:
-            frame = frame.rename(self.names, axis="columns")
+        frame = frame.rename(zip(frame.names, self.names), axis="columns")
         return frame
 
 
