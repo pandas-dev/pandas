@@ -702,23 +702,27 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_at_time(self, time, asof=False):
         """
-        Return index locations of index values at particular time of day
-        (e.g. 9:30AM).
+        Return the index location at certain times of the day (eg 9:30 am).
 
         Parameters
         ----------
         time : datetime.time or str
-            datetime.time or string in appropriate format ("%H:%M", "%H%M",
+            A datetime.time or string in appropriate format ("%H:%M", "%H%M",
             "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
             "%I%M%S%p").
+        asof : bool
 
         Returns
         -------
-        values_at_time : array of integers
+        array of integers
+            An array is a container object that holds a fixed number of 
+            values of a single type.
 
         See Also
         --------
-        indexer_between_time, DataFrame.at_time
+        indexer_between_time : Return index locations of values between 
+                               particular times of day (e.g., 9:00-9:30AM).
+        DataFrame.at_time : Select values at particular time of day (e.g. 9:30AM).
         """
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
