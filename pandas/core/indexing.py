@@ -8,7 +8,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
-    is_float,
     is_integer,
     is_iterator,
     is_list_like,
@@ -610,7 +609,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             # invalid indexer type vs 'other' indexing errors
             if "cannot do" in str(e):
                 raise
-            raise IndexingError(key)
+            raise IndexingError(key) from e
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -654,11 +653,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
                 raise IndexingError("Too many indexers")
             try:
                 self._validate_key(k, i)
-            except ValueError:
+            except ValueError as err:
                 raise ValueError(
                     "Location based indexing can only have "
                     f"[{self._valid_types}] types"
-                )
+                ) from err
 
     def _is_nested_tuple_indexer(self, tup: Tuple) -> bool:
         """
@@ -1144,7 +1143,7 @@ class _LocIndexer(_LocationIndexer):
             # try to find out correct indexer, if not type correct raise
             try:
                 key = labels._convert_scalar_indexer(key, kind="loc")
-            except TypeError:
+            except KeyError:
                 # but we will allow setting
                 if not is_setter:
                     raise
@@ -1455,9 +1454,9 @@ class _iLocIndexer(_LocationIndexer):
         """
         try:
             return self.obj._take_with_is_copy(key, axis=axis)
-        except IndexError:
+        except IndexError as err:
             # re-raise with different error message
-            raise IndexError("positional indexers are out-of-bounds")
+            raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
         if isinstance(key, slice):
@@ -1500,18 +1499,10 @@ class _iLocIndexer(_LocationIndexer):
         """
         Much simpler as we only have to deal with our valid types.
         """
-        labels = self.obj._get_axis(axis)
+        return key
 
-        # make need to convert a float key
-        if isinstance(key, slice):
-            labels._validate_positional_slice(key)
-            return key
-
-        elif is_float(key):
-            # _validate_indexer call will always raise
-            labels._validate_indexer("positional", key, "iloc")
-
-        self._validate_key(key, axis)
+    def _get_setitem_indexer(self, key):
+        # GH#32257 Fall through to let numnpy do validation
         return key
 
     # -------------------------------------------------------------------
