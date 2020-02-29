@@ -7400,7 +7400,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         converted
-            same type as caller
+            Same type as caller.
 
         See Also
         --------
