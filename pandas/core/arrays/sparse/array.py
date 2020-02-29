@@ -231,7 +231,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'integer', 'block'}, default 'integer'
+    kind : {'int', 'block'}, default 'int'
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -255,6 +255,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> from pandas.arrays import SparseArray
+    >>> arr = SparseArray([0, 0, 1, 2])
+    >>> arr
+    [0, 0, 1, 2]
+    Fill: 0
+    IntIndex
+    Indices: array([2, 3], dtype=int32)
     """
 
     _pandas_ftype = "sparse"
