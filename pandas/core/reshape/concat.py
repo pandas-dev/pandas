@@ -620,8 +620,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             for key, index in zip(hlevel, indexes):
                 try:
                     i = level.get_loc(key)
-                except KeyError:
-                    raise ValueError(f"Key {key} not in level {level}")
+                except KeyError as err:
+                    raise ValueError(f"Key {key} not in level {level}") from err
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))

@@ -1,8 +1,7 @@
 import numpy as np
-import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range, to_datetime
+from pandas import DataFrame, date_range, to_datetime
 import pandas._testing as tm
 
 
@@ -59,117 +58,6 @@ class TestDataFrameTimeSeriesMethods:
             ex_vals = to_datetime(vals.astype("O")).values
 
             assert (tmp["dates"].values == ex_vals).all()
-
-    @pytest.mark.parametrize(
-        "data,idx,expected_first,expected_last",
-        [
-            ({"A": [1, 2, 3]}, [1, 1, 2], 1, 2),
-            ({"A": [1, 2, 3]}, [1, 2, 2], 1, 2),
-            ({"A": [1, 2, 3, 4]}, ["d", "d", "d", "d"], "d", "d"),
-            ({"A": [1, np.nan, 3]}, [1, 1, 2], 1, 2),
-            ({"A": [np.nan, np.nan, 3]}, [1, 1, 2], 2, 2),
-            ({"A": [1, np.nan, 3]}, [1, 2, 2], 1, 2),
-        ],
-    )
-    def test_first_last_valid(
-        self, float_frame, data, idx, expected_first, expected_last
-    ):
-        N = len(float_frame.index)
-        mat = np.random.randn(N)
-        mat[:5] = np.nan
-        mat[-5:] = np.nan
-
-        frame = DataFrame({"foo": mat}, index=float_frame.index)
-        index = frame.first_valid_index()
-
-        assert index == frame.index[5]
-
-        index = frame.last_valid_index()
-        assert index == frame.index[-6]
-
-        # GH12800
-        empty = DataFrame()
-        assert empty.last_valid_index() is None
-        assert empty.first_valid_index() is None
-
-        # GH17400: no valid entries
-        frame[:] = np.nan
-        assert frame.last_valid_index() is None
-        assert frame.first_valid_index() is None
-
-        # GH20499: its preserves freq with holes
-        frame.index = date_range("20110101", periods=N, freq="B")
-        frame.iloc[1] = 1
-        frame.iloc[-2] = 1
-        assert frame.first_valid_index() == frame.index[1]
-        assert frame.last_valid_index() == frame.index[-2]
-        assert frame.first_valid_index().freq == frame.index.freq
-        assert frame.last_valid_index().freq == frame.index.freq
-
-        # GH 21441
-        df = DataFrame(data, index=idx)
-        assert expected_first == df.first_valid_index()
-        assert expected_last == df.last_valid_index()
-
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_first_valid_index_all_nan(self, klass):
-        # GH#9752 Series/DataFrame should both return None, not raise
-        obj = klass([np.nan])
-
-        assert obj.first_valid_index() is None
-        assert obj.iloc[:0].first_valid_index() is None
-
-    def test_first_subset(self):
-        ts = tm.makeTimeDataFrame(freq="12h")
-        result = ts.first("10d")
-        assert len(result) == 20
-
-        ts = tm.makeTimeDataFrame(freq="D")
-        result = ts.first("10d")
-        assert len(result) == 10
-
-        result = ts.first("3M")
-        expected = ts[:"3/31/2000"]
-        tm.assert_frame_equal(result, expected)
-
-        result = ts.first("21D")
-        expected = ts[:21]
-        tm.assert_frame_equal(result, expected)
-
-        result = ts[:0].first("3M")
-        tm.assert_frame_equal(result, ts[:0])
-
-    def test_first_raises(self):
-        # GH20725
-        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
-            df.first("1D")
-
-    def test_last_subset(self):
-        ts = tm.makeTimeDataFrame(freq="12h")
-        result = ts.last("10d")
-        assert len(result) == 20
-
-        ts = tm.makeTimeDataFrame(nper=30, freq="D")
-        result = ts.last("10d")
-        assert len(result) == 10
-
-        result = ts.last("21D")
-        expected = ts["2000-01-10":]
-        tm.assert_frame_equal(result, expected)
-
-        result = ts.last("21D")
-        expected = ts[-21:]
-        tm.assert_frame_equal(result, expected)
-
-        result = ts[:0].last("3M")
-        tm.assert_frame_equal(result, ts[:0])
-
-    def test_last_raises(self):
-        # GH20725
-        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
-            df.last("1D")
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.

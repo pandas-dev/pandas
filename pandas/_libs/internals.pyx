@@ -105,8 +105,7 @@ cdef class BlockPlacement:
             Py_ssize_t start, stop, end, _
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
-            self._as_array = np.arange(start, stop, step,
-                                       dtype=np.int64)
+            self._as_array = np.arange(start, stop, step, dtype=np.int64)
             self._has_array = True
         return self._as_array
 
@@ -283,8 +282,7 @@ cdef slice_getitem(slice slc, ind):
     s_start, s_stop, s_step, s_len = slice_get_indices_ex(slc)
 
     if isinstance(ind, slice):
-        ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind,
-                                                                      s_len)
+        ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind, s_len)
 
         if ind_step > 0 and ind_len == s_len:
             # short-cut for no-op slice

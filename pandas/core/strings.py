@@ -2425,12 +2425,12 @@ class StringMethods(NoNewAttributesMixin):
         try:
             # turn anything in "others" into lists of Series
             others = self._get_series_list(others)
-        except ValueError:  # do not catch TypeError raised by _get_series_list
+        except ValueError as err:  # do not catch TypeError raised by _get_series_list
             raise ValueError(
                 "If `others` contains arrays or lists (or other "
                 "list-likes without an index), these must all be "
                 "of the same length as the calling Series/Index."
-            )
+            ) from err
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):
