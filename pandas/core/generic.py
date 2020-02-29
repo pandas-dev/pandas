@@ -1,3 +1,4 @@
+import builtins
 import collections
 from datetime import timedelta
 import functools
@@ -152,9 +153,6 @@ def _single_replace(self, to_replace, method, inplace, limit):
         return
 
     return result
-
-
-bool_t = bool  # Need alias because NDFrame has def bool:
 
 
 class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
@@ -1438,7 +1436,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and not self._is_label_reference(key, axis=axis)
         )
 
-    def _is_label_reference(self, key, axis=0) -> bool_t:
+    def _is_label_reference(self, key, axis=0) -> builtins.bool:
         """
         Test whether a key is a label reference for a given axis.
 
@@ -1467,7 +1465,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and any(key in self.axes[ax] for ax in other_axes)
         )
 
-    def _is_label_or_level_reference(self, key: str, axis: int = 0) -> bool_t:
+    def _is_label_or_level_reference(self, key: str, axis: int = 0) -> builtins.bool:
         """
         Test whether a key is a label or level reference for a given axis.
 
@@ -1733,12 +1731,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """Returns length of info axis"""
         return len(self._info_axis)
 
-    def __contains__(self, key) -> bool_t:
+    def __contains__(self, key) -> builtins.bool:
         """True if the key is in the info axis"""
         return key in self._info_axis
 
     @property
-    def empty(self) -> bool_t:
+    def empty(self) -> builtins.bool:
         """
         Indicator whether DataFrame is empty.
 
@@ -2073,12 +2071,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         orient: Optional[str] = None,
         date_format: Optional[str] = None,
         double_precision: int = 10,
-        force_ascii: bool_t = True,
+        force_ascii: builtins.bool = True,
         date_unit: str = "ms",
         default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
-        lines: bool_t = False,
+        lines: builtins.bool = False,
         compression: Optional[str] = "infer",
-        index: bool_t = True,
+        index: builtins.bool = True,
         indent: Optional[int] = None,
     ) -> Optional[str]:
         """
@@ -2255,12 +2253,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         mode: str = "a",
         complevel: Optional[int] = None,
         complib: Optional[str] = None,
-        append: bool_t = False,
+        append: builtins.bool = False,
         format: Optional[str] = None,
-        index: bool_t = True,
+        index: builtins.bool = True,
         min_itemsize: Optional[Union[int, Dict[str, int]]] = None,
         nan_rep=None,
-        dropna: Optional[bool_t] = None,
+        dropna: Optional[builtins.bool] = None,
         data_columns: Optional[List[str]] = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
@@ -2395,7 +2393,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         con,
         schema=None,
         if_exists: str = "fail",
-        index: bool_t = True,
+        index: builtins.bool = True,
         index_label=None,
         chunksize=None,
         dtype=None,
@@ -2608,7 +2606,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         to_pickle(self, path, compression=compression, protocol=protocol)
 
     def to_clipboard(
-        self, excel: bool_t = True, sep: Optional[str] = None, **kwargs
+        self, excel: builtins.bool = True, sep: Optional[str] = None, **kwargs
     ) -> None:
         r"""
         Copy object to the system clipboard.
@@ -2929,9 +2927,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         na_rep: str = "",
         float_format: Optional[str] = None,
         columns: Optional[Sequence[Label]] = None,
-        header: Union[bool_t, List[str]] = True,
-        index: bool_t = True,
-        index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
+        header: Union[builtins.bool, List[str]] = True,
+        index: builtins.bool = True,
+        index_label: Optional[Union[builtins.bool, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: Optional[Union[str, Mapping[str, str]]] = "infer",
@@ -2940,7 +2938,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         line_terminator: Optional[str] = None,
         chunksize: Optional[int] = None,
         date_format: Optional[str] = None,
-        doublequote: bool_t = True,
+        doublequote: builtins.bool = True,
         escapechar: Optional[str] = None,
         decimal: Optional[str] = ".",
     ) -> Optional[str]:
@@ -3114,7 +3112,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._data.set(item, value)
 
     @property
-    def _is_cached(self) -> bool_t:
+    def _is_cached(self) -> builtins.bool:
         """Return boolean indicating if self is cached or not."""
         return getattr(self, "_cacher", None) is not None
 
@@ -3126,7 +3124,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return cacher
 
     def _maybe_update_cacher(
-        self, clear: bool_t = False, verify_is_copy: bool_t = True
+        self, clear: builtins.bool = False, verify_is_copy: builtins.bool = True
     ) -> None:
         """
         See if we need to update our parent cacher if clear, then clear our
@@ -3170,7 +3168,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Indexing Methods
 
     def take(
-        self: FrameOrSeries, indices, axis=0, is_copy: Optional[bool_t] = None, **kwargs
+        self: FrameOrSeries,
+        indices,
+        axis=0,
+        is_copy: Optional[builtins.bool] = None,
+        **kwargs,
     ) -> FrameOrSeries:
         """
         Return the elements in the given *positional* indices along an axis.
@@ -3282,7 +3284,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result._set_is_copy(self)
         return result
 
-    def xs(self, key, axis=0, level=None, drop_level: bool_t = True):
+    def xs(self, key, axis=0, level=None, drop_level: builtins.bool = True):
         """
         Return cross-section from the Series/DataFrame.
 
@@ -3494,14 +3496,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._data.set(key, value)
         self._clear_item_cache()
 
-    def _set_is_copy(self, ref, copy: bool_t = True) -> None:
+    def _set_is_copy(self, ref, copy: builtins.bool = True) -> None:
         if not copy:
             self._is_copy = None
         else:
             assert ref is not None
             self._is_copy = weakref.ref(ref)
 
-    def _check_is_chained_assignment_possible(self) -> bool_t:
+    def _check_is_chained_assignment_possible(self) -> builtins.bool:
         """
         Check if we are a view, have a cacher, and are of mixed type.
         If so, then force a setitem_copy check.
@@ -3654,7 +3656,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return default
 
     @property
-    def _is_view(self) -> bool_t:
+    def _is_view(self) -> builtins.bool:
         """Return boolean indicating if self is view of another array """
         return self._data.is_view
 
@@ -3662,7 +3664,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries,
         other,
         method: Optional[str] = None,
-        copy: bool_t = True,
+        copy: builtins.bool = True,
         limit=None,
         tolerance=None,
     ) -> FrameOrSeries:
@@ -3778,7 +3780,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index=None,
         columns=None,
         level=None,
-        inplace: bool_t = False,
+        inplace: builtins.bool = False,
         errors: str = "raise",
     ):
 
@@ -3862,7 +3864,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
-    def _update_inplace(self, result, verify_is_copy: bool_t = True) -> None:
+    def _update_inplace(self, result, verify_is_copy: builtins.bool = True) -> None:
         """
         Replace self internals with result.
 
@@ -4001,10 +4003,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         axis=0,
         ascending=True,
-        inplace: bool_t = False,
+        inplace: builtins.bool = False,
         kind: str = "quicksort",
         na_position: str = "last",
-        ignore_index: bool_t = False,
+        ignore_index: builtins.bool = False,
     ):
         """
         Sort by the values along either axis.
@@ -4371,7 +4373,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return obj
 
-    def _needs_reindex_multi(self, axes, method, level) -> bool_t:
+    def _needs_reindex_multi(self, axes, method, level) -> builtins.bool:
         """Check if we do need a multi reindex."""
         return (
             (com.count_not_none(*axes.values()) == self._AXIS_LEN)
@@ -4387,8 +4389,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries,
         reindexers,
         fill_value=None,
-        copy: bool_t = False,
-        allow_dups: bool_t = False,
+        copy: builtins.bool = False,
+        allow_dups: builtins.bool = False,
     ) -> FrameOrSeries:
         """allow_dups indicates an internal call here """
         # reindex doing multiple operations on different axes if indicated
@@ -5147,7 +5149,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self._protect_consolidate(f)
 
-    def _consolidate(self, inplace: bool_t = False):
+    def _consolidate(self, inplace: builtins.bool = False):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
         grouped together in a single ndarray).
@@ -5170,16 +5172,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self._constructor(cons_data).__finalize__(self)
 
     @property
-    def _is_mixed_type(self) -> bool_t:
+    def _is_mixed_type(self) -> builtins.bool:
         f = lambda: self._data.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
-    def _is_numeric_mixed_type(self) -> bool_t:
+    def _is_numeric_mixed_type(self) -> builtins.bool:
         f = lambda: self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
-    def _check_inplace_setting(self, value) -> bool_t:
+    def _check_inplace_setting(self, value) -> builtins.bool:
         """ check whether we allow in-place setting with this type of value """
         if self._is_mixed_type:
             if not self._is_numeric_mixed_type:
@@ -5338,7 +5340,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return Series(self._data.get_dtypes(), index=self._info_axis, dtype=np.object_)
 
-    def _to_dict_of_blocks(self, copy: bool_t = True):
+    def _to_dict_of_blocks(self, copy: builtins.bool = True):
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
@@ -5351,7 +5353,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         }
 
     def astype(
-        self: FrameOrSeries, dtype, copy: bool_t = True, errors: str = "raise"
+        self: FrameOrSeries, dtype, copy: builtins.bool = True, errors: str = "raise"
     ) -> FrameOrSeries:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5493,7 +5495,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result.columns = self.columns
         return result
 
-    def copy(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
+    def copy(self: FrameOrSeries, deep: builtins.bool = True) -> FrameOrSeries:
         """
         Make a copy of this object's indices and data.
 
@@ -5601,7 +5603,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
 
-    def __copy__(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
+    def __copy__(self: FrameOrSeries, deep: builtins.bool = True) -> FrameOrSeries:
         return self.copy(deep=deep)
 
     def __deepcopy__(self: FrameOrSeries, memo=None) -> FrameOrSeries:
@@ -5615,11 +5617,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def _convert(
         self: FrameOrSeries,
-        datetime: bool_t = False,
-        numeric: bool_t = False,
-        timedelta: bool_t = False,
-        coerce: bool_t = False,
-        copy: bool_t = True,
+        datetime: builtins.bool = False,
+        numeric: builtins.bool = False,
+        timedelta: builtins.bool = False,
+        coerce: builtins.bool = False,
+        copy: builtins.bool = True,
     ) -> FrameOrSeries:
         """
         Attempt to infer better dtype for object columns
@@ -5711,10 +5713,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def convert_dtypes(
         self: FrameOrSeries,
-        infer_objects: bool_t = True,
-        convert_string: bool_t = True,
-        convert_integer: bool_t = True,
-        convert_boolean: bool_t = True,
+        infer_objects: builtins.bool = True,
+        convert_string: builtins.bool = True,
+        convert_integer: builtins.bool = True,
+        convert_boolean: builtins.bool = True,
     ) -> FrameOrSeries:
         """
         Convert columns to best possible dtypes using dtypes supporting ``pd.NA``.
@@ -5853,7 +5855,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         value=None,
         method=None,
         axis=None,
-        inplace: bool_t = False,
+        inplace: builtins.bool = False,
         limit=None,
         downcast=None,
     ) -> Optional[FrameOrSeries]:
@@ -6040,7 +6042,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def ffill(
         self: FrameOrSeries,
         axis=None,
-        inplace: bool_t = False,
+        inplace: builtins.bool = False,
         limit=None,
         downcast=None,
     ) -> Optional[FrameOrSeries]:
@@ -6059,7 +6061,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def bfill(
         self: FrameOrSeries,
         axis=None,
-        inplace: bool_t = False,
+        inplace: builtins.bool = False,
         limit=None,
         downcast=None,
     ) -> Optional[FrameOrSeries]:
@@ -7129,7 +7131,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def notnull(self: FrameOrSeries) -> FrameOrSeries:
         return notna(self).__finalize__(self)
 
-    def _clip_with_scalar(self, lower, upper, inplace: bool_t = False):
+    def _clip_with_scalar(self, lower, upper, inplace: builtins.bool = False):
         if (lower is not None and np.any(isna(lower))) or (
             upper is not None and np.any(isna(upper))
         ):
@@ -7182,7 +7184,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         lower=None,
         upper=None,
         axis=None,
-        inplace: bool_t = False,
+        inplace: builtins.bool = False,
         *args,
         **kwargs,
     ) -> FrameOrSeries:
@@ -7366,7 +7368,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         freq,
         method=None,
         how: Optional[str] = None,
-        normalize: bool_t = False,
+        normalize: builtins.bool = False,
         fill_value=None,
     ) -> FrameOrSeries:
         """
@@ -7471,7 +7473,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
     def at_time(
-        self: FrameOrSeries, time, asof: bool_t = False, axis=None
+        self: FrameOrSeries, time, asof: builtins.bool = False, axis=None
     ) -> FrameOrSeries:
         """
         Select values at particular time of day (e.g., 9:30AM).
@@ -7532,8 +7534,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries,
         start_time,
         end_time,
-        include_start: bool_t = True,
-        include_end: bool_t = True,
+        include_start: builtins.bool = True,
+        include_end: builtins.bool = True,
         axis=None,
     ) -> FrameOrSeries:
         """
@@ -8031,10 +8033,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self: FrameOrSeries,
         axis=0,
         method: str = "average",
-        numeric_only: Optional[bool_t] = None,
+        numeric_only: Optional[builtins.bool] = None,
         na_option: str = "keep",
-        ascending: bool_t = True,
-        pct: bool_t = False,
+        ascending: builtins.bool = True,
+        pct: builtins.bool = False,
     ) -> FrameOrSeries:
         """
         Compute numerical data ranks (1 through n) along axis.
@@ -8286,7 +8288,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         join="outer",
         axis=None,
         level=None,
-        copy: bool_t = True,
+        copy: builtins.bool = True,
         fill_value=None,
         method=None,
         limit=None,
@@ -8348,7 +8350,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         join="outer",
         axis=None,
         level=None,
-        copy: bool_t = True,
+        copy: builtins.bool = True,
         fill_value=None,
         method=None,
         limit=None,
@@ -8938,7 +8940,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._constructor(new_data).__finalize__(self)
 
     def truncate(
-        self: FrameOrSeries, before=None, after=None, axis=None, copy: bool_t = True
+        self: FrameOrSeries,
+        before=None,
+        after=None,
+        axis=None,
+        copy: builtins.bool = True,
     ) -> FrameOrSeries:
         """
         Truncate a Series or DataFrame before and after some index value.
@@ -9092,7 +9098,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return result
 
     def tz_convert(
-        self: FrameOrSeries, tz, axis=0, level=None, copy: bool_t = True
+        self: FrameOrSeries, tz, axis=0, level=None, copy: builtins.bool = True
     ) -> FrameOrSeries:
         """
         Convert tz-aware axis to target time zone.
@@ -9153,7 +9159,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         tz,
         axis=0,
         level=None,
-        copy: bool_t = True,
+        copy: builtins.bool = True,
         ambiguous="raise",
         nonexistent: str = "raise",
     ) -> FrameOrSeries:
