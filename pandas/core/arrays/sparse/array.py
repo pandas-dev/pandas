@@ -255,6 +255,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> from pandas.arrays import SparseArray
+    >>> arr = SparseArray([0, 0, 1, 2])
+    >>> arr
+    [0, 0, 1, 2]
+    Fill: 0
+    IntIndex
+    Indices: array([2, 3], dtype=int32)
     """
 
     _pandas_ftype = "sparse"
