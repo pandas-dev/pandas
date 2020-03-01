@@ -614,9 +614,9 @@ cdef class BaseMultiIndexCodesEngine:
 
     def get_indexer(self, object target) -> np.ndarray:
         """
-        Gets an indexer, i.e. set of indexes into `self`'s values for the
-        values in `target`, where -1 represents a value in `target` not existing
-        in (the cross-product of) `self.levels`
+        Returns an array giving the positions of each value of `target` in
+        `self.values`, where -1 represents a value in `target` which does not
+        appear in `self.values`
 
         Parameters
         ----------
@@ -625,7 +625,8 @@ cdef class BaseMultiIndexCodesEngine:
 
         Returns
         -------
-        1-dimensional array of dtype int64 of the index
+        np.ndarray[int64_t, ndim=1] of the indexer of `target` into
+        `self.values`
         """
         lab_ints = self._extract_level_codes(target)
         return self._base.get_indexer(self, lab_ints)
@@ -633,21 +634,23 @@ cdef class BaseMultiIndexCodesEngine:
     def get_indexer_and_fill(self, object values, object target,
                              object method, object limit = None) -> np.ndarray:
         """
-        Gets an indexer, i.e. a set of indexes into `values`, for the values in
-        `target`, where the index value.
+        Returns an array giving the positions of each value of `target` in
+        `values`, where -1 represents a value in `target` which does not
+        appear in `values`
 
-        If method is "backfill" then the index for a value in `target` which
-        does not exist in `values` is the index of the next match, or -1 is the
-        value is larger than the largest value in `values`.
+        If `method` is "backfill" then the position for a value in `target`
+        which does not appear in `values` is that of the next greater value
+        in `values` (if one exists), and -1 if there is no such value.
 
-        Similarly, if the method if "pad" then the index for a value in `target`
-        which does not exist in `values` is the index of the previous match, or
-        -1 if the value is smaller then the largest value in `values`.
+        Similarly, if the method is "pad" then the position for a value in
+        `target` which does not appear in `values` is that of the next smaller
+        value in `values` (if one exists), and -1 if there is no such value.
 
         Parameters
         ----------
         values : list-like of tuples
-            must be sorted and all have the same length
+            must be sorted and all have the same length.  Should be the set of
+            the MultiIndex's values
         target: list-like of tuples
             need not be sorted, but all must have the same length, which must be
             the same as the length of all tuples in `values`
