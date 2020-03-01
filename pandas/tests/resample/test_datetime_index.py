@@ -857,6 +857,7 @@ def test_resample_segfault():
     ).set_index("timestamp")
     result = df.groupby("ID").resample("5min").sum()
     expected = df.groupby("ID").apply(lambda x: x.resample("5min").sum())
+    expected = expected.drop("ID", axis=1)  # GH 32332
     tm.assert_frame_equal(result, expected)
 
 
