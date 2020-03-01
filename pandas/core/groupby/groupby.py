@@ -2316,7 +2316,6 @@ class GroupBy(_GroupBy):
         """
         Shift each group by periods observations.
 
-        When freq is not passed, shift the index without realigning the data.
         If freq is passed, the index will be increased using the periods and the freq.
 
         Parameters
@@ -2329,10 +2328,6 @@ class GroupBy(_GroupBy):
             Shift direction.
         fill_value : optional
             The scalar value to use for newly introduced missing values.
-            The default depends on the dtype of *self*.
-            For numeric data, `np.nan` is used.
-            For datetime, timedelta, or period data, etc. **NaT** is used.
-            For extension dtypes, `self.dtype.na_value` is used.
 
             .. versionadded:: 0.24.0
 
@@ -2344,8 +2339,6 @@ class GroupBy(_GroupBy):
         See Also
         --------
         Index.shift : Shift values of Index.
-        DatetimeIndex.resample : Shift values of DatetimeIndex.
-        PeriodIndex.shift : Shift values of PeriodIndex.
         tshift : Shift the time index, using the index’s frequency
             if available.
         """
