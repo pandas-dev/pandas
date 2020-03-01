@@ -250,9 +250,10 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
-    This decorator is robust even if func.__doc__ is None. This decorator will
-    add a variable "_doc_args" to the wrapped function to save the original
-    docstring template for potential usage.
+    This decorator will add a variable "_doc_args" to the wrapped function to
+    keep track the original docstring template for potential usage. If it should
+    be consider as a template, it will be saved as a string. Otherwise, it will
+    be saved as callable, and later user __doc__ and dedent to get docstring.
 
     Parameters
     ----------
@@ -268,18 +269,26 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
         def wrapper(*args, **kwargs) -> Callable:
             return func(*args, **kwargs)
 
-        wrapper._doc_args = [dedent(func.__doc__)] if func.__doc__ else []  # type: ignore
+        # collecting and docstring templates
+        wrapper._doc_args: List[Union[str, Callable]] = []  # type: ignore
+        if func.__doc__:
+            wrapper._doc_args.append(dedent(func.__doc__))  # type: ignore
+
         for arg in args:
             if hasattr(arg, "_doc_args"):
                 wrapper._doc_args.extend(arg._doc_args)  # type: ignore
             elif isinstance(arg, str) or arg.__doc__:
                 wrapper._doc_args.append(arg)  # type: ignore
 
-        docs = [
-            arg.format(**kwargs) if isinstance(arg, str) else dedent(arg.__doc__)
-            for arg in wrapper._doc_args  # type: ignore
-        ]
-        wrapper.__doc__ = "".join(docs)
+        # formatting templates and concatenating docstring
+        wrapper.__doc__ = "".join(
+            [
+                arg.format(**kwargs)
+                if isinstance(arg, str)
+                else dedent(arg.__doc__)  # type: ignore
+                for arg in wrapper._doc_args  # type: ignore
+            ]
+        )
 
         return cast(F, wrapper)
 
