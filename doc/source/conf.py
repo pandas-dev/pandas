@@ -209,6 +209,7 @@ html_theme_options = {
     "external_links": [],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
+    "google_analytics_id": "UA-27880019-2",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -229,6 +230,11 @@ html_logo = "../../web/pandas/static/img/pandas.svg"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+html_css_files = [
+    "css/getting_started.css",
+    "css/pandas.css",
+]
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32

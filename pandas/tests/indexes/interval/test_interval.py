@@ -673,10 +673,7 @@ class TestIntervalIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "can only append two IntervalIndex objects that are closed "
-            "on the same side"
-        )
+        msg = "Intervals must all be closed on the same side"
         for other_closed in {"left", "right", "both", "neither"} - {closed}:
             index_other_closed = IntervalIndex.from_arrays(
                 [0, 1], [1, 2], closed=other_closed
@@ -848,7 +845,7 @@ class TestIntervalIndex:
     def test_set_closed_errors(self, bad_closed):
         # GH 21670
         index = interval_range(0, 5)
-        msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
+        msg = f"invalid option for 'closed': {bad_closed}"
         with pytest.raises(ValueError, match=msg):
             index.set_closed(bad_closed)
 

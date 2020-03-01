@@ -195,9 +195,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
         assert dtype == _TD_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
+        if values.dtype != _TD_DTYPE:
+            assert values.dtype == "i8"
+            values = values.view(_TD_DTYPE)
 
         result = object.__new__(cls)
-        result._data = values.view(_TD_DTYPE)
+        result._data = values
         result._freq = to_offset(freq)
         result._dtype = _TD_DTYPE
         return result
@@ -448,10 +451,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
             return super()._addsub_object_array(other, op)
-        except AttributeError:
+        except AttributeError as err:
             raise TypeError(
                 f"Cannot add/subtract non-tick DateOffset to {type(self).__name__}"
-            )
+            ) from err
 
     def __mul__(self, other):
         other = lib.item_from_zerodim(other)
