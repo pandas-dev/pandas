@@ -7731,7 +7731,6 @@ Wild         185.0
         Lewis     1
         Myla      1
         """
-        breakpoint()
         axis = self._get_axis_number(axis)
         if level is not None:
             return self._count_level(level, axis=axis, numeric_only=numeric_only)

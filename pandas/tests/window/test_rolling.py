@@ -477,13 +477,3 @@ def test_by_column_not_in_values():
     result = r.sum()
     assert "A" not in result.columns
     tm.assert_frame_equal(g.obj, original_obj)  # check for side-effects
-
-    # g = df.groupby("A")
-    # original_obj = g.obj.copy(deep=True)
-    # r = g.rolling(4)
-    # def cust(x):
-    #     breakpoint()
-    #     return getattr(x.rolling(4), 'sum')()
-    # result = r.apply(cust)
-    # assert "A" not in result.columns
-    # tm.assert_frame_equal(g.obj, original_obj)  # check for side-effects

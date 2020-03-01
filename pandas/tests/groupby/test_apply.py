@@ -405,6 +405,7 @@ def test_apply_typecast_fail():
 
     expected = df.copy()
     expected["v2"] = np.tile([0.0, 0.5, 1], 2)
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -826,7 +827,6 @@ def test_apply_index_has_complex_internals(index):
     # GH 31248
     df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
     result = df.groupby("group").apply(lambda x: x)
-    breakpoint()
     tm.assert_frame_equal(result, df)
 
 

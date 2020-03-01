@@ -6,7 +6,6 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 from contextlib import contextmanager
 import datetime
@@ -409,6 +408,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                 observed=observed,
                 mutated=self.mutated,
             )
+
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
@@ -508,8 +508,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
-        breakpoint()
-        if self.as_index:
+        if self.mutated:
             obj = self._obj_with_exclusions
         else:
             obj = self.obj
