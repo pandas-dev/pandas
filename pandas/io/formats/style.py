@@ -1013,7 +1013,7 @@ class Styler:
         Parameters
         ----------
         null_color : str, default 'red'
-        subset : IndexSlice, default None
+        subset : label or list of labels, default None
             A valid slice for ``data`` to limit the style application to.
 
             .. versionadded:: 1.1.0
