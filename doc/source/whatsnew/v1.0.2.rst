@@ -83,6 +83,10 @@ Bug fixes
 - Fixed bug where :meth:`GroupBy.first` and :meth:`GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
 - Fix bug in :meth:`Series.convert_dtypes` for series with mix of integers and strings (:issue:`32117`)
 
+**Rolling**
+
+- Fix bug in :meth:`calculate_variable_window_bounds` that couldn't work on decreasing index (:issue:`32385`).
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_102.contributors:
