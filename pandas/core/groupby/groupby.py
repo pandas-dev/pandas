@@ -704,7 +704,7 @@ b  2""",
         )
     )
     def apply(self, func, *args, **kwargs):
-
+        # breakpoint()
         func = self._is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could
@@ -732,6 +732,7 @@ b  2""",
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
+                # breakpoint()
                 result = self._python_apply_general(f)
             except TypeError:
                 # gh-20949
@@ -748,7 +749,11 @@ b  2""",
         return result
 
     def _python_apply_general(self, f):
-        keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
+        breakpoint()
+        if self.group_keys:
+            keys, values, mutated = self.grouper.apply(f, self._obj_with_exclusions, self.axis)
+        else:
+            keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=mutated or self.mutated
@@ -1576,7 +1581,7 @@ class GroupBy(_GroupBy):
         Return a rolling grouper, providing rolling functionality per group.
         """
         from pandas.core.window import RollingGroupby
-
+        kwargs['exclusions'] = self.exclusions
         return RollingGroupby(self, *args, **kwargs)
 
     @Substitution(name="groupby")

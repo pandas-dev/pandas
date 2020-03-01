@@ -30,6 +30,7 @@ class TestGrouperGrouping:
         expected = g_mutated.B.apply(lambda x: x.rolling(2).mean())
 
         result = g.rolling(2).mean().B
+        # breakpoint()
         tm.assert_series_equal(result, expected)
 
         result = g.rolling(2).B.mean()
@@ -61,7 +62,9 @@ class TestGrouperGrouping:
 
         for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
             result = getattr(r, f)()
+            # breakpoint()
             expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+            # breakpoint()
             tm.assert_frame_equal(result, expected)
 
         for f in ["std", "var"]:

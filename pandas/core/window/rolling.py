@@ -93,6 +93,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
         self._numba_func_cache: Dict[Optional[str], Callable] = dict()
+        self.exclusions = kwargs.get('exclusions', set())
 
     @property
     def _constructor(self):
@@ -1971,7 +1972,8 @@ class Rolling(_Rolling_and_Expanding):
         engine_kwargs=None,
         args=None,
         kwargs=None,
-    ):
+    ):  
+        # breakpoint()
         return super().apply(
             func,
             raw=raw,
