@@ -6,6 +6,7 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 (defined in pandas.core.groupby.generic)
 expose these user-facing objects to provide specific functionality.
 """
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 from contextlib import contextmanager
 import datetime
@@ -408,7 +409,6 @@ class _GroupBy(PandasObject, SelectionMixin):
                 observed=observed,
                 mutated=self.mutated,
             )
-
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
@@ -508,13 +508,17 @@ class _GroupBy(PandasObject, SelectionMixin):
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
-
-        if self._selection is None or isinstance(self.obj, Series):
-            if self._group_selection is not None:
-                return self.obj[self._group_selection]
-            return self.obj
+        breakpoint()
+        if self.as_index:
+            obj = self._obj_with_exclusions
         else:
-            return self.obj[self._selection]
+            obj = self.obj
+        if self._selection is None or isinstance(obj, Series):
+            if self._group_selection is not None:
+                return obj[self._group_selection]
+            return obj
+        else:
+            return obj[self._selection]
 
     def _reset_group_selection(self):
         """
@@ -704,7 +708,7 @@ b  2""",
         )
     )
     def apply(self, func, *args, **kwargs):
-        # breakpoint()
+
         func = self._is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could
@@ -732,7 +736,6 @@ b  2""",
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
-                # breakpoint()
                 result = self._python_apply_general(f)
             except TypeError:
                 # gh-20949
@@ -749,11 +752,7 @@ b  2""",
         return result
 
     def _python_apply_general(self, f):
-        breakpoint()
-        if self.group_keys:
-            keys, values, mutated = self.grouper.apply(f, self._obj_with_exclusions, self.axis)
-        else:
-            keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
+        keys, values, mutated = self.grouper.apply(f, self._selected_obj, self.axis)
 
         return self._wrap_applied_output(
             keys, values, not_indexed_same=mutated or self.mutated
@@ -1581,7 +1580,7 @@ class GroupBy(_GroupBy):
         Return a rolling grouper, providing rolling functionality per group.
         """
         from pandas.core.window import RollingGroupby
-        kwargs['exclusions'] = self.exclusions
+
         return RollingGroupby(self, *args, **kwargs)
 
     @Substitution(name="groupby")

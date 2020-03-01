@@ -93,7 +93,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
         self._numba_func_cache: Dict[Optional[str], Callable] = dict()
-        self.exclusions = kwargs.get('exclusions', set())
 
     @property
     def _constructor(self):
@@ -1174,7 +1173,6 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-
         blocks, obj = self._create_blocks()
         results = []
         for b in blocks:
@@ -1188,7 +1186,6 @@ class _Rolling_and_Expanding(_Rolling):
                 closed=self.closed,
             ).sum()
             results.append(result)
-
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs["apply"] = dedent(
@@ -1954,7 +1951,6 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name="rolling")
     @Appender(_shared_docs["count"])
     def count(self):
-
         # different impl for freq counting
         if self.is_freq_type:
             window_func = self._get_roll_func("roll_count")
@@ -1972,8 +1968,7 @@ class Rolling(_Rolling_and_Expanding):
         engine_kwargs=None,
         args=None,
         kwargs=None,
-    ):  
-        # breakpoint()
+    ):
         return super().apply(
             func,
             raw=raw,

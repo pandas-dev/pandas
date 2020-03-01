@@ -52,7 +52,7 @@ class WindowGroupByMixin(GroupByMixin):
         kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
-            groupby, obj = obj, obj._obj_with_exclusions
+            groupby, obj = obj, obj.obj
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -82,13 +82,12 @@ class WindowGroupByMixin(GroupByMixin):
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
-            # x.obj = x._obj_with_exclusions
 
             if isinstance(name, str):
                 return getattr(x, name)(*args, **kwargs)
 
             return x.apply(name, *args, **kwargs)
-        # breakpoint()
+
         return self._groupby.apply(f)
 
 
