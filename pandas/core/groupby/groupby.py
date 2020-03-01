@@ -1510,11 +1510,11 @@ class GroupBy(_GroupBy):
         the timestamps falling into a bin.
 
         >>> df.groupby('a').resample('3T').sum()
-                                 a  b
+                                 b
         a
-        0   2000-01-01 00:00:00  0  2
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:00:00  5  1
+        0   2000-01-01 00:00:00  2
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:00:00  1
 
         Upsample the series into 30 second bins.
 
