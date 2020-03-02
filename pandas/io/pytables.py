@@ -580,7 +580,7 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self, kind='pandas') -> List[str]:
+    def keys(self, kind="pandas") -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
@@ -600,13 +600,14 @@ class HDFStore:
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
         """
-        if kind == 'pandas':
+        if kind == "pandas":
             return [n._v_pathname for n in self.groups()]
 
-        if kind == 'tables':
+        if kind == "tables":
             self._check_if_open()
-            return [n._v_pathname
-                    for n in self._handle.walk_nodes('/', classname='Table')]
+            return [
+                n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
+            ]
         raise ValueError(f"kind should be either pandas' or 'table' but is {kind}")
 
     def __iter__(self):

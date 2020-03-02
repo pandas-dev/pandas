@@ -342,7 +342,6 @@ class TestHDFStore:
         assert checksum_0_tt_true != checksum_1_tt_true
 
     def test_non_pandas_keys(self, setup_path):
-
         class Table1(tables.IsDescription):
             value1 = tables.Float32Col()
 
