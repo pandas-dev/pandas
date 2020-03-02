@@ -295,12 +295,12 @@ def na_logical_op(x: np.ndarray, y, op):
                 AttributeError,
                 OverflowError,
                 NotImplementedError,
-            ):
+            ) as err:
                 typ = type(y).__name__
                 raise TypeError(
                     f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
                     f"and scalar of type [{typ}]"
-                )
+                ) from err
 
     return result.reshape(x.shape)
 
