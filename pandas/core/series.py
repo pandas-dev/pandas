@@ -849,7 +849,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         key_is_scalar = is_scalar(key)
-        if not key_is_scalar and isinstance(key, (list, tuple)):
+        if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
