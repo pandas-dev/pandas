@@ -2,7 +2,7 @@
 
 ## Citing pandas
 
-If you use *pandas* for a scientific publication, we would appreciate citations to the published software (1) and one of the following papers:
+If you use *pandas* for a scientific publication, we would appreciate citations to the published software and one of the two given papers:
 
 - *pandas* version 1.0.1 published on Zenodo (please find us on Zenodo and replace with the citation for the version you are using)
 ```
