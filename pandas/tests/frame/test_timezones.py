@@ -1,8 +1,6 @@
 """
 Tests for DataFrame timezone-related methods
 """
-from datetime import datetime
-
 import numpy as np
 import pytest
 import pytz
@@ -53,40 +51,6 @@ class TestDataFrameTimezones:
         result = df.values
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_frame_from_records_utc(self):
-        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
-
-        # it works
-        DataFrame.from_records([rec], index="begin_time")
-
-    def test_frame_tz_localize(self):
-        rng = date_range("1/1/2011", periods=100, freq="H")
-
-        df = DataFrame({"a": 1}, index=rng)
-        result = df.tz_localize("utc")
-        expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
-        assert result.index.tz.zone == "UTC"
-        tm.assert_frame_equal(result, expected)
-
-        df = df.T
-        result = df.tz_localize("utc", axis=1)
-        assert result.columns.tz.zone == "UTC"
-        tm.assert_frame_equal(result, expected.T)
-
-    def test_frame_tz_convert(self):
-        rng = date_range("1/1/2011", periods=200, freq="D", tz="US/Eastern")
-
-        df = DataFrame({"a": 1}, index=rng)
-        result = df.tz_convert("Europe/Berlin")
-        expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
-        assert result.index.tz.zone == "Europe/Berlin"
-        tm.assert_frame_equal(result, expected)
-
-        df = df.T
-        result = df.tz_convert("Europe/Berlin", axis=1)
-        assert result.columns.tz.zone == "Europe/Berlin"
-        tm.assert_frame_equal(result, expected.T)
-
     def test_frame_join_tzaware(self):
         test1 = DataFrame(
             np.zeros((6, 3)),
@@ -107,17 +71,6 @@ class TestDataFrameTimezones:
 
         tm.assert_index_equal(result.index, ex_index)
         assert result.index.tz.zone == "US/Central"
-
-    def test_frame_add_tz_mismatch_converts_to_utc(self):
-        rng = date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
-        df = DataFrame(np.random.randn(len(rng)), index=rng, columns=["a"])
-
-        df_moscow = df.tz_convert("Europe/Moscow")
-        result = df + df_moscow
-        assert result.index.tz is pytz.utc
-
-        result = df_moscow + df
-        assert result.index.tz is pytz.utc
 
     def test_frame_align_aware(self):
         idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
