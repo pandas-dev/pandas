@@ -48,14 +48,11 @@ class TestReorderLevels:
         result = obj.reorder_levels(["L0", "L0", "L0"])
         tm.assert_equal(result, expected)
 
-    def test_reorder_levels_swaplevel_equivalence(self):
+    def test_reorder_levels_swaplevel_equivalence(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
 
-        ymd = tm.makeTimeDataFrame(100)
-        mi = MultiIndex.from_arrays(
-            [ymd.index.year, ymd.index.month, ymd.index.day],
-            names=["year", "month", "day"],
-        )
-        ymd.index = mi
+        ymd = multiindex_year_month_day_dataframe_random_data
 
         result = ymd.reorder_levels(["month", "day", "year"])
         expected = ymd.swaplevel(0, 1).swaplevel(1, 2)
