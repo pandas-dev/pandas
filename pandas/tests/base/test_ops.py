@@ -838,10 +838,12 @@ class TestIndexOps(Ops):
         assert total_usage == non_index_usage + index_usage
 
     def test_searchsorted(self, index_or_series_obj):
+        # numpy.searchsorted calls obj.searchsorted under the hood.
         # See gh-12238
         obj = index_or_series_obj
 
         if isinstance(obj, pd.MultiIndex):
+            # See gh-14833
             pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
 
         max_obj = max(obj, default=0)
@@ -851,14 +853,7 @@ class TestIndexOps(Ops):
         index = np.searchsorted(obj, max_obj, sorter=range(len(obj)))
         assert 0 <= index <= len(obj)
 
-    @pytest.mark.parametrize("invalid_value", [1, "True", [1, 2, 3], 5.0])
-    def test_validate_bool_args(self, invalid_value, series_with_simple_index):
-        series = series_with_simple_index
-        msg = "expected type bool"
-        with pytest.raises(ValueError, match=msg):
-            series.drop_duplicates(inplace=invalid_value)
-
-    def test_getitem(self, indices):
+    def test_access_by_position(self, indices):
         index = indices
 
         if len(index) == 0:
