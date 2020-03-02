@@ -38,7 +38,7 @@ def get_time_micros(const int64_t[:] dtindex):
     cdef:
         ndarray[int64_t] micros
 
-    micros = np.mod(dtindex, DAY_SECONDS * 1000000000, dtype=np.int64)
+    micros = np.mod(dtindex, DAY_SECONDS * 1_000_000_000, dtype=np.int64)
     micros //= 1000
     return micros
 
@@ -54,13 +54,15 @@ def build_field_sarray(const int64_t[:] dtindex):
         npy_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
-    sa_dtype = [('Y', 'i4'),  # year
-                ('M', 'i4'),  # month
-                ('D', 'i4'),  # day
-                ('h', 'i4'),  # hour
-                ('m', 'i4'),  # min
-                ('s', 'i4'),  # second
-                ('u', 'i4')]  # microsecond
+    sa_dtype = [
+        ("Y", "i4"),  # year
+        ("M", "i4"),  # month
+        ("D", "i4"),  # day
+        ("h", "i4"),  # hour
+        ("m", "i4"),  # min
+        ("s", "i4"),  # second
+        ("u", "i4"),  # microsecond
+    ]
 
     out = np.empty(count, dtype=sa_dtype)
 
@@ -157,9 +159,12 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
         int mo_off, dom, doy, dow, ldom
 
     _month_offset = np.array(
-        [[0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
-         [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]],
-        dtype=np.int32)
+        [
+            [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
+            [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366],
+        ],
+        dtype=np.int32,
+    )
 
     out = np.zeros(count, dtype='int8')
 
