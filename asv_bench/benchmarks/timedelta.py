@@ -73,9 +73,6 @@ class TimedeltaIndexing:
     def time_get_loc(self):
         self.index.get_loc(self.timedelta)
 
-    def time_shape(self):
-        self.index.shape
-
     def time_shallow_copy(self):
         self.index._shallow_copy()
 

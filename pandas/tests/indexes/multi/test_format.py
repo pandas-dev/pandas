@@ -1,9 +1,10 @@
 import warnings
 
+import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex
+from pandas import Index, MultiIndex
 import pandas._testing as tm
 
 
@@ -76,6 +77,17 @@ def test_repr_max_seq_item_setting(idx):
 
 
 class TestRepr:
+    def test_unicode_repr_issues(self):
+        levels = [Index(["a/\u03c3", "b/\u03c3", "c/\u03c3"]), Index([0, 1])]
+        codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
+        index = MultiIndex(levels=levels, codes=codes)
+
+        repr(index.levels)
+
+        # FIXME: dont leave commented-out
+        # NumPy bug
+        # repr(index.get_level_values(1))
+
     def test_repr(self, idx):
         result = idx[:1].__repr__()
         expected = """\

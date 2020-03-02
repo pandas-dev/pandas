@@ -335,9 +335,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if a not in kwargs:
                 try:
                     kwargs[a] = args.pop(0)
-                except IndexError:
+                except IndexError as err:
                     if require_all:
-                        raise TypeError("not enough/duplicate arguments specified!")
+                        raise TypeError(
+                            "not enough/duplicate arguments specified!"
+                        ) from err
 
         axes = {a: kwargs.pop(a, sentinel) for a in cls._AXIS_ORDERS}
         return axes, kwargs
@@ -602,6 +604,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             of levels.
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            Axis along which the level(s) is removed:
+
+            * 0 or 'index': remove level(s) in column.
+            * 1 or 'columns': remove level(s) in row.
 
         Returns
         -------
@@ -617,7 +623,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ... ]).set_index([0, 1]).rename_axis(['a', 'b'])
 
         >>> df.columns = pd.MultiIndex.from_tuples([
-        ...    ('c', 'e'), ('d', 'f')
+        ...     ('c', 'e'), ('d', 'f')
         ... ], names=['level_1', 'level_2'])
 
         >>> df
@@ -636,7 +642,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         6        7   8
         10      11  12
 
-        >>> df.droplevel('level2', axis=1)
+        >>> df.droplevel('level_2', axis=1)
         level_1   c   d
         a b
         1 2      3   4
@@ -4788,10 +4794,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     if axis == 0:
                         try:
                             weights = self[weights]
-                        except KeyError:
+                        except KeyError as err:
                             raise KeyError(
                                 "String passed to weights not a valid column"
-                            )
+                            ) from err
                     else:
                         raise ValueError(
                             "Strings can only be passed to "
@@ -7517,8 +7523,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self._get_axis(axis)
         try:
             indexer = index.indexer_at_time(time, asof=asof)
-        except AttributeError:
-            raise TypeError("Index must be DatetimeIndex")
+        except AttributeError as err:
+            raise TypeError("Index must be DatetimeIndex") from err
 
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -7605,8 +7611,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 include_start=include_start,
                 include_end=include_end,
             )
-        except AttributeError:
-            raise TypeError("Index must be DatetimeIndex")
+        except AttributeError as err:
+            raise TypeError("Index must be DatetimeIndex") from err
 
         return self._take_with_is_copy(indexer, axis=axis)
 
