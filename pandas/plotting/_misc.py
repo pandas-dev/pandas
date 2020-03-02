@@ -382,7 +382,7 @@ def parallel_coordinates(
     )
 
 
-def lag_plot(series, lag=1, ax=None, **kwds):
+def lag_plot(series, lag=1, ax=None, figsize=None, **kwds):
     """
     Lag plot for time series.
 
@@ -399,10 +399,10 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     class:`matplotlib.axis.Axes`
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
+    return plot_backend.lag_plot(series=series, lag=lag, ax=ax, figsize=figsize, **kwds)
 
 
-def autocorrelation_plot(series, ax=None, **kwargs):
+def autocorrelation_plot(series, ax=None, figsize=None, **kwargs):
     """
     Autocorrelation plot for time series.
 
@@ -418,7 +418,10 @@ def autocorrelation_plot(series, ax=None, **kwargs):
     class:`matplotlib.axis.Axes`
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
+    return plot_backend.autocorrelation_plot(series=series,
+                                             ax=ax,
+                                             figsize=figsize,
+                                             **kwargs)
 
 
 class _Options(dict):

@@ -383,7 +383,7 @@ def parallel_coordinates(
     return ax
 
 
-def lag_plot(series, lag=1, ax=None, **kwds):
+def lag_plot(series, lag=1, ax=None, figsize=None, **kwds):
     # workaround because `c='b'` is hardcoded in matplotlibs scatter method
     import matplotlib.pyplot as plt
 
@@ -392,21 +392,27 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     data = series.values
     y1 = data[:-lag]
     y2 = data[lag:]
+
     if ax is None:
-        ax = plt.gca()
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
     ax.set_xlabel("y(t)")
     ax.set_ylabel(f"y(t + {lag})")
     ax.scatter(y1, y2, **kwds)
     return ax
 
 
-def autocorrelation_plot(series, ax=None, **kwds):
+def autocorrelation_plot(series, ax=None, figsize=None, **kwds):
     import matplotlib.pyplot as plt
 
     n = len(series)
     data = np.asarray(series)
+
     if ax is None:
-        ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    ax.set_xlim(1, n)
+    ax.set_ylim(-1.0, 1.0)
+
     mean = np.mean(data)
     c0 = np.sum((data - mean) ** 2) / float(n)
 
