@@ -309,9 +309,9 @@ class TestHDFStore:
         with ensure_clean_path(setup_path) as path:
             with tables.open_file(path, mode="w") as h5file:
                 group = h5file.create_group("/", "group")
-                table1 = h5file.create_table(group, "table1", Table1, "Table 1")
-                table2 = h5file.create_table(group, "table2", Table2, "Table 2")
-                table3 = h5file.create_table(group, "table3", Table3, "Table 3")
+                h5file.create_table(group, "table1", Table1, "Table 1")
+                h5file.create_table(group, "table2", Table2, "Table 2")
+                h5file.create_table(group, "table3", Table3, "Table 3")
             with HDFStore(path) as store:
                 assert len(store.keys(kind="tables")) == 3
                 expected = {"/group/table1", "/group/table2", "/group/table3"}
