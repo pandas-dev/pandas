@@ -605,7 +605,8 @@ class HDFStore:
 
         if kind == 'tables':
             self._check_if_open()
-            return [n._v_pathname for n in self._handle.walk_nodes('/', classname='Table')]
+            return [n._v_pathname
+                    for n in self._handle.walk_nodes('/', classname='Table')]
         raise ValueError(f"kind should be either pandas' or 'table' but is {kind}")
 
     def __iter__(self):
