@@ -8276,6 +8276,8 @@ Wild         185.0
 
     def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> "DataFrame":
         """
+        Convert DataFrame from DatetimeIndex to PeriodIndex.
+
         Convert DataFrame from DatetimeIndex to PeriodIndex with desired
         frequency (inferred from index if not passed).
 
