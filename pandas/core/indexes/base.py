@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos as libalgos, index as libindex, lib
+from pandas._libs import Timedelta, algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
@@ -32,6 +32,11 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
+<<<<<<< HEAD
+=======
+    is_datetime64tz_dtype,
+    is_dict_like,
+>>>>>>> initial coommit & test
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -1350,6 +1355,100 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError: Must pass list-like as `names`.
         """
         return self.set_names([name], inplace=inplace)
+
+    def replace(
+        self,
+        to_replace=None,
+        value=None,
+        inplace=False,
+        limit=None,
+        regex=False,
+        method="pad",
+    ):
+        if inplace:
+            raise NotImplementedError("Can't perform inplace operation on Index.")
+        if not is_bool(regex) and to_replace is not None:
+            raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
+
+        if value is None:
+            raise NotImplementedError()
+        else:
+            if is_dict_like(to_replace):
+                raise NotImplementedError()
+            elif is_list_like(to_replace):
+                if is_list_like(value):
+                    if len(to_replace) != len(value):
+                        # NOTE: Corresponding error message in core.generic.replace
+                        #       is not clear. Let's decide on one.
+                        raise ValueError(
+                            f"Length of `to_replace=` ({len(to_replace)}) should "
+                            f"match length of `value=` ({len(value)})."
+                        )
+                    if regex:
+                        raise NotImplementedError()
+
+                    # copied method from BlockManager(), temporarily here
+                    def replace_list(
+                        self, values, src_list, dest_list, inplace=False, regex=False
+                    ):
+                        from pandas.core.internals.managers import (
+                            _compare_or_regex_search,
+                        )
+                        from pandas.core.internals.managers import maybe_convert_objects
+
+                        if inplace:
+                            raise NotImplementedError(
+                                "Can't perform inplace operation on Index."
+                            )
+
+                        if regex:
+                            raise NotImplementedError("TODO.")
+
+                        def comp(s, regex=False):
+                            """
+                            Generate a bool array by perform an equality check,
+                            or perform an element-wise regular expression
+                            matching.
+                            """
+                            if isna(s):
+                                return isna(values)
+                            if (
+                                isinstance(s, (Timedelta, Timestamp))
+                                and getattr(s, "tz", None) is None
+                            ):
+
+                                return _compare_or_regex_search(
+                                    maybe_convert_objects(values), s.asm8, regex
+                                )
+                            return _compare_or_regex_search(values, s, regex)
+
+                        masks = [comp(s, regex) for s in src_list]
+
+                        new_index = self.copy()  # NOTE: no inplace, right?
+                        zipped = zip(src_list, dest_list)
+                        for i, (_, dest) in enumerate(zipped):
+                            m = masks[i]
+                            if m.any():
+                                new_index = new_index.putmask(mask=m, value=dest)
+
+                        return new_index
+
+                    new_index = replace_list(
+                        self=self,
+                        values=self.values,
+                        src_list=to_replace,
+                        dest_list=value,
+                        inplace=inplace,
+                        regex=regex,
+                    )
+
+                else:
+                    raise NotImplementedError()
+            elif to_replace is None:
+                raise NotImplementedError()
+
+        # import ipdb; ipdb.set_trace()
+        return new_index
 
     # --------------------------------------------------------------------
     # Level-Centric Methods
