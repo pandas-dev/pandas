@@ -1372,7 +1372,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         if value is None:
             if not is_dict_like(to_replace) and not is_dict_like(regex):
-                raise NotImplementedError()
+                raise NotImplementedError(
+                    "This is implemented in NDFrame.replace(). However,"
+                    "not clear if we should include this in the API."
+                    "See issue 5319 and PR 5600. But also note that this"
+                    "use is not mentioned in the docs."
+                )
 
             if isinstance(to_replace, (tuple, list)):
                 raise NotImplementedError()

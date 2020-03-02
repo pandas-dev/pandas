@@ -1,3 +1,6 @@
+import numpy as np
+import pytest
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -17,6 +20,12 @@ def test_index_replace_2():
 
     result = index.replace({1: "a", 3: "c"})
     tm.assert_equal(result, expected)
+
+
+def test_index_replace_3():
+    index = pd.Index([1, None, 2])
+    with pytest.raises(NotImplementedError):
+        index.replace(np.nan)
 
 
 if __name__ == "__main__":
