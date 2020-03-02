@@ -927,16 +927,25 @@ class IndexOpsMixin:
         nv.validate_max(args, kwargs)
         return nanops.nanmax(self._values, skipna=skipna)
 
+    @doc(
+        operation='maximum',
+        oppose_operation='minimum',
+        value='largest',
+        position='third',
+        klass='argmax',
+        oppose_klass='argmin',
+        example_values=2
+    )
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return int position of the largest value in the Series.
+        Return int position of the {value} value in the Series.
 
-        If the maximum is achieved in multiple locations,
+        If the {operation} is achieved in multiple locations,
         the first row position is returned.
 
         Parameters
         ----------
-        axis : {None}
+        axis : {{None}}
             Dummy argument for consistency with Series.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
@@ -946,12 +955,12 @@ class IndexOpsMixin:
         Returns
         -------
         int
-            Row position of the maximum values.
+            Row position of the {operation} values.
 
         See Also
         --------
-        numpy.ndarray.argmax : Equivalent method for numpy arrays.
-        Series.argmin : Similar method, but returning the minimum.
+        numpy.ndarray.{klass} : Equivalent method for numpy arrays.
+        Series.{oppose_klass} : Similar method, but returning the {oppose_operation}.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
 
@@ -959,8 +968,8 @@ class IndexOpsMixin:
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
+        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
         >>> s
         Corn Flakes              100.0
         Almond Delight           110.0
@@ -968,10 +977,10 @@ class IndexOpsMixin:
         Cocoa Puff               110.0
         dtype: float64
 
-        >>> s.argmax()
-        2
+        >>> s.{klass}()
+        {example_values}
 
-        The maximum cereal calories is in the third element,
+        The {operation} cereal calories is in the {position} element,
         since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
@@ -1019,53 +1028,17 @@ class IndexOpsMixin:
         nv.validate_min(args, kwargs)
         return nanops.nanmin(self._values, skipna=skipna)
 
+    @doc(
+        argmax,
+        operation='minimum',
+        oppose_operation='maximum',
+        value='smallest',
+        position='first',
+        klass='argmin',
+        oppose_klass='argmax',
+        example_values=0
+    )
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return int position of the smallest value in the Series.
-
-        If the minimum is achieved in multiple locations,
-        the first row position is returned.
-
-        Parameters
-        ----------
-        axis : {None}
-            Dummy argument for consistency with Series.
-        skipna : bool, default True
-            Exclude NA/null values when showing the result.
-        *args, **kwargs
-            Additional arguments and keywords for compatibility with NumPy.
-
-        Returns
-        -------
-        int
-            Row position of the minimum values.
-
-        See Also
-        --------
-        numpy.ndarray.argmin : Equivalent method for numpy arrays.
-        Series.argmax : Similar method, but returning the maximum.
-        Series.idxmin : Return index label of the minimum values.
-        Series.idxmax : Return index label of the maximum values.
-
-        Examples
-        --------
-        Consider dataset containing cereal calories
-
-        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
-        >>> s
-        Corn Flakes              100.0
-        Almond Delight           110.0
-        Cinnamon Toast Crunch    120.0
-        Cocoa Puff               110.0
-        dtype: float64
-
-        >>> s.argmin()
-        0
-
-        The minimum cereal calories is in the first element,
-        since series is zero-indexed.
-        """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
