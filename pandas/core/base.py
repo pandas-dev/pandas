@@ -928,13 +928,13 @@ class IndexOpsMixin:
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(
-        operation='maximum',
-        oppose_operation='minimum',
-        value='largest',
-        position='third',
-        klass='argmax',
-        oppose_klass='argmin',
-        example_values=2
+        operation="maximum",
+        oppose_operation="minimum",
+        value="largest",
+        position="third",
+        klass="argmax",
+        oppose_klass="argmin",
+        example_values="2",
     )
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -1030,13 +1030,13 @@ class IndexOpsMixin:
 
     @doc(
         argmax,
-        operation='minimum',
-        oppose_operation='maximum',
-        value='smallest',
-        position='first',
-        klass='argmin',
-        oppose_klass='argmax',
-        example_values=0
+        operation="minimum",
+        oppose_operation="maximum",
+        value="smallest",
+        position="first",
+        klass="argmin",
+        oppose_klass="argmax",
+        example_values="0",
     )
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
         nv.validate_minmax_axis(axis)
