@@ -418,10 +418,9 @@ def autocorrelation_plot(series, ax=None, figsize=None, **kwargs):
     class:`matplotlib.axis.Axes`
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.autocorrelation_plot(series=series,
-                                             ax=ax,
-                                             figsize=figsize,
-                                             **kwargs)
+    return plot_backend.autocorrelation_plot(
+        series=series, ax=ax, figsize=figsize, **kwargs
+    )
 
 
 class _Options(dict):
