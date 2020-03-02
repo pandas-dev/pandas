@@ -300,10 +300,13 @@ class TestHDFStore:
 
         class Table1(tables.IsDescription):
             value1 = tables.Float32Col()
+
         class Table2(tables.IsDescription):
             value2 = tables.Float32Col()
+
         class Table3(tables.IsDescription):
             value3 = tables.Float32Col()
+
         with ensure_clean_path(setup_path) as path:
             with tables.open_file(path, mode="w") as h5file:
                 group = h5file.create_group("/", "group")
