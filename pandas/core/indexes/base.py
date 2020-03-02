@@ -3183,7 +3183,7 @@ class Index(IndexOpsMixin, PandasObject):
             if kind == "loc":
                 # GH#16121, GH#24612, GH#31810
                 warnings.warn(
-                    "Slicing .loc with a positional slice is not supported, "
+                    "Slicing a positional slice with .loc is not supported, "
                     "and will raise TypeError in a future version.  "
                     "Use .iloc instead.",
                     FutureWarning,
