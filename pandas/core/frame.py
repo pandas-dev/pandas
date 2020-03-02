@@ -3599,7 +3599,7 @@ class DataFrame(NDFrame):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)

@@ -164,15 +164,15 @@ class BlockManager(PandasObject):
     __bool__ = __nonzero__
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return tuple(len(ax) for ax in self.axes)
 
     @property
     def ndim(self) -> int:
         return len(self.axes)
 
-    def set_axis(self, axis, new_labels):
-        new_labels = ensure_index(new_labels)
+    def set_axis(self, axis: int, new_labels: Index):
+        # Caller is responsible for ensuring we have an Index object.
         old_len = len(self.axes[axis])
         new_len = len(new_labels)
 
@@ -184,7 +184,9 @@ class BlockManager(PandasObject):
 
         self.axes[axis] = new_labels
 
-    def rename_axis(self, mapper, axis, copy: bool = True, level=None):
+    def rename_axis(
+        self, mapper, axis: int, copy: bool = True, level=None
+    ) -> "BlockManager":
         """
         Rename one of axes.
 
@@ -193,7 +195,7 @@ class BlockManager(PandasObject):
         mapper : unary callable
         axis : int
         copy : bool, default True
-        level : int, default None
+        level : int or None, default None
         """
         obj = self.copy(deep=copy)
         obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
@@ -233,7 +235,7 @@ class BlockManager(PandasObject):
         self._blklocs = new_blklocs
 
     @property
-    def items(self):
+    def items(self) -> Index:
         return self.axes[0]
 
     def _get_counts(self, f):
@@ -623,7 +625,7 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def is_consolidated(self):
+    def is_consolidated(self) -> bool:
         """
         Return True if more than one block with the same dtype
         """
@@ -688,7 +690,7 @@ class BlockManager(PandasObject):
         self._consolidate_inplace()
         return self.combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def combine(self, blocks, copy=True):
+    def combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -992,7 +994,6 @@ class BlockManager(PandasObject):
         self.blocks = tuple(
             b for blkno, b in enumerate(self.blocks) if not is_blk_deleted[blkno]
         )
-        self._shape = None
         self._rebuild_blknos_and_blklocs()
 
     def set(self, item, value):
@@ -1160,7 +1161,6 @@ class BlockManager(PandasObject):
 
         self.axes[0] = new_axis
         self.blocks += (block,)
-        self._shape = None
 
         self._known_consolidated = False
 

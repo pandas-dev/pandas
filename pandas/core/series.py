@@ -9,7 +9,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Iterable,
     List,
     Optional,
@@ -23,7 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._typing import Label
+from pandas._typing import Axis, DtypeObj, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -177,7 +176,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _typ = "series"
 
-    _name: Optional[Hashable]
+    _name: Label
     _metadata: List[str] = ["name"]
     _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
@@ -391,9 +390,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _index = None
 
-    def _set_axis(self, axis, labels, fastpath: bool = False) -> None:
+    def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
+
+        This is called from the cython code when we set the `index` attribute
+        directly, e.g. `series.index = [1, 2, 3]`.
         """
         if not fastpath:
             labels = ensure_index(labels)
@@ -413,6 +415,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         object.__setattr__(self, "_index", labels)
         if not fastpath:
+            # The ensure_index call aabove ensures we have an Index object
             self._data.set_axis(axis, labels)
 
     def _update_inplace(self, result, **kwargs):
@@ -421,25 +424,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ndarray compatibility
     @property
-    def dtype(self):
+    def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
         """
         return self._data.dtype
 
     @property
-    def dtypes(self):
+    def dtypes(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
         """
         return self._data.dtype
 
     @property
-    def name(self) -> Optional[Hashable]:
+    def name(self) -> Label:
         return self._name
 
     @name.setter
-    def name(self, value: Optional[Hashable]) -> None:
+    def name(self, value: Label) -> None:
         if not is_hashable(value):
             raise TypeError("Series.name must be a hashable type")
         object.__setattr__(self, "_name", value)
@@ -689,7 +692,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        name: Optional[Hashable]
+        name: Label
         if len(set(names)) == 1:
             name = names[0]
         else:
@@ -3983,7 +3986,7 @@ Name: Max Speed, dtype: float64
         see_also_sub="",
     )
     @Appender(generic.NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)

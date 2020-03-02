@@ -520,7 +520,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         """
         Assign desired index to given axis.
 
@@ -561,7 +561,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis, labels) -> None:
+    def _set_axis(self, axis: int, labels: Index) -> None:
+        labels = ensure_index(labels)
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
