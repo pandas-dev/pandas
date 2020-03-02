@@ -591,14 +591,14 @@ class HDFStore:
                 When kind equals 'table' return Tables
                 Otherwise fail with a ValueError
 
-        Raises
-        ------
-        raises ValueError if kind has an illegal value
-
         Returns
         -------
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
+
+        Raises
+        ------
+        raises ValueError if kind has an illegal value
         """
         if kind == "pandas":
             return [n._v_pathname for n in self.groups()]
