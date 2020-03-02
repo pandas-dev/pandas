@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
-from pandas._libs.lib import is_datetime_array
+from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
@@ -451,7 +451,7 @@ class Index(IndexOpsMixin, PandasObject):
         return None
 
     @classmethod
-    def _simple_new(cls, values, name=None, dtype=None):
+    def _simple_new(cls, values, name: Label = None):
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -485,7 +485,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = no_default):
         """
         Create a new Index with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
@@ -496,16 +496,14 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         values : the values to create the new Index, optional
-        kwargs : updates the default attributes for this Index
+        name : Label, defaults to self.name
         """
+        name = self.name if name is no_default else name
+
         if values is None:
             values = self.values
 
-        attributes = self._get_attributes_dict()
-
-        attributes.update(kwargs)
-
-        return self._simple_new(values, **attributes)
+        return self._simple_new(values, name=name)
 
     def _shallow_copy_with_infer(self, values, **kwargs):
         """
@@ -672,8 +670,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         try:
             casted = self.values.astype(dtype, copy=copy)
-        except (TypeError, ValueError):
-            raise TypeError(f"Cannot cast {type(self).__name__} to dtype {dtype}")
+        except (TypeError, ValueError) as err:
+            raise TypeError(
+                f"Cannot cast {type(self).__name__} to dtype {dtype}"
+            ) from err
         return Index(casted, name=self.name, dtype=dtype)
 
     _index_shared_docs[
@@ -798,20 +798,24 @@ class Index(IndexOpsMixin, PandasObject):
 
     def copy(self, name=None, deep=False, dtype=None, names=None):
         """
-        Make a copy of this object.  Name and dtype sets those attributes on
-        the new object.
+        Make a copy of this object.
+
+        Name and dtype sets those attributes on the new object.
 
         Parameters
         ----------
-        name : Label
+        name : Label, optional
+            Set name for new object.
         deep : bool, default False
         dtype : numpy dtype or pandas type, optional
+            Set dtype for new object.
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
         Returns
         -------
         Index
+            Index refer to new object which is a copy of this object.
 
         Notes
         -----
@@ -2858,8 +2862,8 @@ class Index(IndexOpsMixin, PandasObject):
             casted_key = self._maybe_cast_indexer(key)
             try:
                 return self._engine.get_loc(casted_key)
-            except KeyError:
-                raise KeyError(key)
+            except KeyError as err:
+                raise KeyError(key) from err
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
@@ -3094,7 +3098,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             if kind == "getitem" and is_float(key):
                 if not self.is_floating():
-                    self._invalid_indexer("label", key)
+                    raise KeyError(key)
 
             elif kind == "loc" and is_float(key):
 
@@ -3108,11 +3112,11 @@ class Index(IndexOpsMixin, PandasObject):
                     "string",
                     "mixed",
                 ]:
-                    self._invalid_indexer("label", key)
+                    raise KeyError(key)
 
             elif kind == "loc" and is_integer(key):
                 if not (is_integer_dtype(self.dtype) or is_object_dtype(self.dtype)):
-                    self._invalid_indexer("label", key)
+                    raise KeyError(key)
 
         return key
 
@@ -3312,7 +3316,7 @@ class Index(IndexOpsMixin, PandasObject):
                 values = range(0)
             else:
                 values = self._data[:0]  # appropriately-dtyped empty array
-            target = self._simple_new(values, dtype=self.dtype, **attrs)
+            target = self._simple_new(values, **attrs)
         else:
             target = ensure_index(target)
 
@@ -3935,18 +3939,35 @@ class Index(IndexOpsMixin, PandasObject):
 
     def where(self, cond, other=None):
         """
-        Return an Index of same shape as self and whose corresponding
-        entries are from self where cond is True and otherwise are from
-        other.
+        Replace values where the condition is False.
+
+        The replacement is taken from other.
 
         Parameters
         ----------
         cond : bool array-like with the same length as self
-        other : scalar, or array-like
+            Condition to select the values on.
+        other : scalar, or array-like, default None
+            Replacement if the condition is False.
 
         Returns
         -------
-        Index
+        pandas.Index
+            A copy of self with values replaced from other
+            where the condition is False.
+
+        See Also
+        --------
+        Series.where : Same method for Series.
+        DataFrame.where : Same method for DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['car', 'bike', 'train', 'tractor'])
+        >>> idx
+        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        >>> idx.where(idx.isin(['car', 'train']), 'other')
+        Index(['car', 'other', 'train', 'other'], dtype='object')
         """
         if other is None:
             other = self._na_value
