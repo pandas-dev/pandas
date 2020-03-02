@@ -74,6 +74,7 @@ Bug fixes
 **I/O**
 
 - Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
+- Fixed pickling of ``pandas.NA``. Previously a new object was returned, which broke computations relying on ``NA`` being a singleton (:issue:`31847`)
 - Fixed bug in parquet roundtrip with nullable unsigned integer dtypes (:issue:`31896`).
 
 **Experimental dtypes**
