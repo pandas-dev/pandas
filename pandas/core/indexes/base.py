@@ -1371,10 +1371,46 @@ class Index(IndexOpsMixin, PandasObject):
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
 
         if value is None:
-            raise NotImplementedError()
+            if not is_dict_like(to_replace) and not is_dict_like(regex):
+                raise NotImplementedError()
+
+            if isinstance(to_replace, (tuple, list)):
+                raise NotImplementedError()
+
+            if not is_dict_like(to_replace):
+                raise NotImplementedError()
+
+            items = list(to_replace.items())
+            keys, values = zip(*items) if items else ([], [])
+
+            are_mappings = [is_dict_like(v) for v in values]
+
+            if any(are_mappings):
+                raise NotImplementedError()
+            else:
+                to_replace, value = keys, values
+
+            return self.replace(
+                to_replace=to_replace,
+                value=value,
+                inplace=inplace,
+                limit=limit,
+                regex=regex,
+            )
+
         else:
             if is_dict_like(to_replace):
-                raise NotImplementedError()
+                if is_dict_like(value):
+                    raise NotImplementedError(
+                        "This won't happen for an Index, I think."
+                    )
+                elif not is_list_like(value):
+                    raise NotImplementedError(
+                        "This won't happen for an Index, I think."
+                    )
+                else:
+                    raise TypeError("value argument must be scalar, dict, or Series")
+
             elif is_list_like(to_replace):
                 if is_list_like(value):
                     if len(to_replace) != len(value):
