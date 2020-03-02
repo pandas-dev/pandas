@@ -3189,7 +3189,7 @@ class Index(IndexOpsMixin, PandasObject):
                 warnings.warn(
                     "Slicing a positional slice with .loc is not supported, "
                     "and will raise TypeError in a future version.  "
-                    "Use .iloc instead.",
+                    "Use .loc with labels or .iloc with positions instead.",
                     FutureWarning,
                     stacklevel=5,
                 )
