@@ -278,20 +278,17 @@ def test_pickle_roundtrip():
 
 
 def test_pickle_roundtrip_pandas():
-    with tm.ensure_clean("data.pkl") as f:
-        with open(f):
-            pd.to_pickle(pd.NA, f)
-        with open(f):
-            result = pd.read_pickle(f)
+    result = tm.round_trip_pickle(pd.NA)
     assert result is pd.NA
 
 
-def test_pickle_roundtrip_series():
-    s = pd.Series(pd.array([1, 2, pd.NA]))
-    with tm.ensure_clean("data.pkl") as f:
-        with open(f):
-            pd.to_pickle(s, f)
-        with open(f):
-            result = pd.read_pickle(f)
-
-    tm.assert_series_equal(result, s)
+@pytest.mark.parametrize(
+    "values, dtype", [([1, 2, pd.NA], "Int64"), (["A", "B", pd.NA], "string")]
+)
+@pytest.mark.parametrize("as_frame", [True, False])
+def test_pickle_roundtrip_containers(as_frame, values, dtype):
+    s = pd.Series(pd.array(values, dtype=dtype))
+    if as_frame:
+        s = s.to_frame(name="A")
+    result = tm.round_trip_pickle(s)
+    tm.assert_equal(result, s)
