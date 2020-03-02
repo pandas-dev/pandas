@@ -7,8 +7,10 @@ import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
+import pytz
 
 from pandas.compat import is_platform_little_endian
+from pandas.compat.numpy import _is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -144,6 +146,7 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets list of frame as 3D")
     def test_constructor_list_frames(self):
         # see gh-3243
         result = DataFrame([DataFrame()])
@@ -503,6 +506,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets embedded frame as 3D")
     def test_constructor_with_embedded_frames(self):
 
         # embedded data frames
@@ -1860,11 +1864,7 @@ class TestDataFrameConstructors:
 
             # No NaN found -> error
             if len(indexer) == 0:
-                msg = (
-                    "cannot do label indexing on RangeIndex "
-                    r"with these indexers \[nan\] of type float"
-                )
-                with pytest.raises(TypeError, match=msg):
+                with pytest.raises(KeyError, match="^nan$"):
                     df.loc[:, np.nan]
             # single nan should result in Series
             elif len(indexer) == 1:
@@ -2386,6 +2386,12 @@ class TestDataFrameConstructors:
         result = DataFrame.from_records(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_from_records_utc(self):
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
+
+        # it works
+        DataFrame.from_records([rec], index="begin_time")
+
     def test_to_frame_with_falsey_names(self):
         # GH 16114
         result = Series(name=0, dtype=object).to_frame().dtypes
@@ -2456,6 +2462,18 @@ class TestDataFrameConstructors:
             columns=["f", "female", "m", "male", "unknown"],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_from_M8_structured(self):
+        dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
+        arr = np.array(dates, dtype=[("Date", "M8[us]"), ("Forecasting", "M8[us]")])
+        df = DataFrame(arr)
+
+        assert df["Date"][0] == dates[0][0]
+        assert df["Forecasting"][0] == dates[0][1]
+
+        s = Series(arr["Date"])
+        assert isinstance(s[0], Timestamp)
+        assert s[0] == dates[0][0]
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

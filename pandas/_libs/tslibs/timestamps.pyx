@@ -1090,11 +1090,10 @@ default 'raise'
 
     def normalize(self):
         """
-        Normalize Timestamp to midnight, preserving
-        tz information.
+        Normalize Timestamp to midnight, preserving tz information.
         """
         if self.tz is None or is_utc(self.tz):
-            DAY_NS = DAY_SECONDS * 1000000000
+            DAY_NS = DAY_SECONDS * 1_000_000_000
             normalized_value = self.value - (self.value % DAY_NS)
             return Timestamp(normalized_value).tz_localize(self.tz)
         normalized_value = normalize_i8_timestamps(
@@ -1113,7 +1112,7 @@ cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution
 # use the smallest value with a 0 nanosecond unit (0s in last 3 digits)
-cdef int64_t _NS_LOWER_BOUND = -9223372036854775000
+cdef int64_t _NS_LOWER_BOUND = -9_223_372_036_854_775_000
 
 # Resolution is in nanoseconds
 Timestamp.min = Timestamp(_NS_LOWER_BOUND)

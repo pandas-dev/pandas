@@ -724,9 +724,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             op_right = le if self.closed_right else lt
             try:
                 mask = op_left(self.left, key) & op_right(key, self.right)
-            except TypeError:
+            except TypeError as err:
                 # scalar is not comparable to II subtype --> invalid label
-                raise KeyError(key)
+                raise KeyError(key) from err
 
         matches = mask.sum()
         if matches == 0:
@@ -805,9 +805,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                     loc = self.get_loc(key)
                 except KeyError:
                     loc = -1
-                except InvalidIndexError:
+                except InvalidIndexError as err:
                     # i.e. non-scalar key
-                    raise TypeError(key)
+                    raise TypeError(key) from err
                 indexer.append(loc)
 
         return ensure_platform_int(indexer)
@@ -1279,10 +1279,10 @@ def interval_range(
     if freq is not None and not is_number(freq):
         try:
             freq = to_offset(freq)
-        except ValueError:
+        except ValueError as err:
             raise ValueError(
                 f"freq must be numeric or convertible to DateOffset, got {freq}"
-            )
+            ) from err
 
     # verify type compatibility
     if not all(

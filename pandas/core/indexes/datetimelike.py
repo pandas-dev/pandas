@@ -397,9 +397,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         is_int = is_integer(key)
         is_flt = is_float(key)
         if kind == "loc" and (is_int or is_flt):
-            self._invalid_indexer("label", key)
+            raise KeyError(key)
         elif kind == "getitem" and is_flt:
-            self._invalid_indexer("label", key)
+            raise KeyError(key)
 
         return super()._convert_scalar_indexer(key, kind=kind)
 
@@ -967,11 +967,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             )
             arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
             return type(self)._simple_new(arr, name=self.name)
-        except (AttributeError, TypeError):
+        except (AttributeError, TypeError) as err:
 
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError(
                 f"cannot insert {type(self).__name__} with incompatible label"
-            )
+            ) from err
