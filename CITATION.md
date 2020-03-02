@@ -7,36 +7,7 @@ If you use *pandas* for a scientific publication, we would appreciate citations 
 - *pandas* version 1.0.1 published on Zenodo (please find us on Zenodo and replace with the citation for the version you are using)
 ```
 @software{reback2020pandas,
-  author       = {Jeff Reback and
-                  Wes McKinney and
-                  jbrockmendel and
-                  Joris Van den Bossche and
-                  Tom Augspurger and
-                  Phillip Cloud and
-                  gfyoung and
-                  Sinhrks and
-                  Adam Klein and
-                  Matthew Roeschke and
-                  Jeff Tratner and
-                  Chang She and
-                  Simon Hawkins and
-                  William Ayd and
-                  Terji Petersen and
-                  Jeremy Schendel and
-                  Andy Hayden and
-                  Marc Garcia and
-                  MomIsBestFriend and
-                  Vytautas Jancauskas and
-                  Pietro Battiston and
-                  Skipper Seabold and
-                  chris-b1 and
-                  h-vetinari and
-                  Stephan Hoyer and
-                  Wouter Overmeire and
-                  alimcmaster1 and
-                  Mortada Mehyar and
-                  Kaiqi Dong and
-                  Christopher Whelan},
+  author       = {The pandas development team},
   title        = {pandas-dev/pandas: Pandas 1.0.1},
   month        = feb,
   year         = 2020,
