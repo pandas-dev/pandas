@@ -191,6 +191,24 @@ _apply_docs = dict(
     """,
 )
 
+_groupby_agg_method_template = """
+Compute {fname} of group values.
+
+Parameters
+----------
+numeric_only : bool, default {no}
+    Include only float, int, boolean columns. If None, will attempt to use
+    everything, then use only numeric data.
+min_count : int, default {mc}
+    The required number of valid values to perform the operation. If fewer
+    than ``min_count`` non-NA values are present the result will be NA.
+
+Returns
+-------
+Series or DataFrame
+    Computed {fname} of values within each group.
+"""
+
 _pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
@@ -1468,21 +1486,25 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             result = self._obj_1d_constructor(result)
         return self._reindex_output(result, fill_value=0)
 
+    @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(self, numeric_only: bool = True, min_count: int = 0):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="add", npfunc=np.sum
         )
 
+    @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
     def prod(self, numeric_only: bool = True, min_count: int = 0):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
 
+    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
     def min(self, numeric_only: bool = False, min_count: int = -1):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="min", npfunc=np.min
         )
 
+    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
     def max(self, numeric_only: bool = False, min_count: int = -1):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="max", npfunc=np.max
@@ -1505,6 +1527,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         else:
             return get_loc_notna(x, loc=loc)
 
+    @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
     def first(self, numeric_only: bool = False, min_count: int = -1):
         first_compat = partial(self._get_loc, loc=0)
 
@@ -1515,6 +1538,7 @@ class GroupBy(_GroupBy[FrameOrSeries]):
             npfunc=first_compat,
         )
 
+    @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
     def last(self, numeric_only: bool = False, min_count: int = -1):
         last_compat = partial(self._get_loc, loc=-1)
 
@@ -2621,9 +2645,6 @@ class GroupBy(_GroupBy[FrameOrSeries]):
         output = output.reset_index(level=g_nums)
 
         return output.reset_index(drop=True)
-
-
-GroupBy._add_numeric_operations()
 
 
 @doc(GroupBy)
