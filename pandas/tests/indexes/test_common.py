@@ -338,7 +338,10 @@ class TestCommon:
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-    @pytest.mark.parametrize("dtype", ["int64", "uint64", "float64", "category"])
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int64", "uint64", "float64", "category", "datetime64[ns]", "timedelta64[ns]"],
+    )
     @pytest.mark.parametrize("copy", [True, False])
     def test_astype_preserves_name(self, indices, dtype, copy):
         # https://github.com/pandas-dev/pandas/issues/32013
