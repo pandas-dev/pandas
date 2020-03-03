@@ -57,7 +57,6 @@ def test_deferred_with_groupby():
         return x.set_index("date").resample("D").asfreq()
 
     expected = df.groupby("id").apply(f)
-    expected = expected.drop("id", axis=1)  # GH 32332
     result = df.set_index("date").groupby("id").resample("D").asfreq()
     tm.assert_frame_equal(result, expected)
 
@@ -73,7 +72,6 @@ def test_deferred_with_groupby():
         return x.resample("1D").ffill()
 
     expected = df.groupby("group").apply(f)
-    expected = expected.drop("group", axis=1)  # GH 32332
     result = df.groupby("group").resample("1D").ffill()
     tm.assert_frame_equal(result, expected)
 
@@ -262,7 +260,10 @@ def test_resample_groupby_with_label():
         ),
     ]
     mindex = pd.MultiIndex.from_arrays(mi, names=["col0", None])
-    expected = DataFrame(data={"col1": [1, 1, 2, 1]}, index=mindex)
+    expected = DataFrame(
+        data={"col0": [0, 0, 2, 2], "col1": [1, 1, 2, 1]}, index=mindex
+    )
+
     tm.assert_frame_equal(result, expected)
 
 

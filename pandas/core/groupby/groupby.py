@@ -508,13 +508,13 @@ class _GroupBy(PandasObject, SelectionMixin):
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
-        obj = self.obj
-        if self._selection is None or isinstance(obj, Series):
+
+        if self._selection is None or isinstance(self.obj, Series):
             if self._group_selection is not None:
-                return obj[self._group_selection]
-            return obj
+                return self.obj[self._group_selection]
+            return self.obj
         else:
-            return obj[self._selection]
+            return self.obj[self._selection]
 
     def _reset_group_selection(self):
         """
@@ -1507,63 +1507,63 @@ class GroupBy(_GroupBy):
         the timestamps falling into a bin.
 
         >>> df.groupby('a').resample('3T').sum()
-                                 b
+                                 a  b
         a
-        0   2000-01-01 00:00:00  2
-            2000-01-01 00:03:00  1
-        5   2000-01-01 00:00:00  1
+        0   2000-01-01 00:00:00  0  2
+            2000-01-01 00:03:00  0  1
+        5   2000-01-01 00:00:00  5  1
 
         Upsample the series into 30 second bins.
 
         >>> df.groupby('a').resample('30S').sum()
-                            b
+                            a  b
         a
-        0   2000-01-01 00:00:00  1
-            2000-01-01 00:00:30  0
-            2000-01-01 00:01:00  1
-            2000-01-01 00:01:30  0
-            2000-01-01 00:02:00  0
-            2000-01-01 00:02:30  0
-            2000-01-01 00:03:00  1
-        5   2000-01-01 00:02:00  1
+        0   2000-01-01 00:00:00  0  1
+            2000-01-01 00:00:30  0  0
+            2000-01-01 00:01:00  0  1
+            2000-01-01 00:01:30  0  0
+            2000-01-01 00:02:00  0  0
+            2000-01-01 00:02:30  0  0
+            2000-01-01 00:03:00  0  1
+        5   2000-01-01 00:02:00  5  1
 
         Resample by month. Values are assigned to the month of the period.
 
         >>> df.groupby('a').resample('M').sum()
-                    b
+                    a  b
         a
-        0   2000-01-31  3
-        5   2000-01-31  1
+        0   2000-01-31  0  3
+        5   2000-01-31  5  1
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
         >>> df.groupby('a').resample('3T', closed='right').sum()
-                                 b
+                                 a  b
         a
-        0   1999-12-31 23:57:00  1
-            2000-01-01 00:00:00  2
-        5   2000-01-01 00:00:00  1
+        0   1999-12-31 23:57:00  0  1
+            2000-01-01 00:00:00  0  2
+        5   2000-01-01 00:00:00  5  1
 
         Downsample the series into 3 minute bins and close the right side of
         the bin interval, but label each bin using the right edge instead of
         the left.
 
         >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
-                                 b
+                                 a  b
         a
-        0   2000-01-01 00:00:00  1
-            2000-01-01 00:03:00  2
-        5   2000-01-01 00:03:00  1
+        0   2000-01-01 00:00:00  0  1
+            2000-01-01 00:03:00  0  2
+        5   2000-01-01 00:03:00  5  1
 
         Add an offset of twenty seconds.
 
         >>> df.groupby('a').resample('3T', loffset='20s').sum()
-                               b
+                               a  b
         a
-        0   2000-01-01 00:00:20  2
-            2000-01-01 00:03:20  1
-        5   2000-01-01 00:00:20  1
+        0   2000-01-01 00:00:20  0  2
+            2000-01-01 00:03:20  0  1
+        5   2000-01-01 00:00:20  5  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
