@@ -682,7 +682,7 @@ class HDFStore:
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == "r" and "Unable to open/create file" in str(err):
-                raise IOError(str(err))
+                raise IOError(str(err)) from err
             raise
 
     def close(self):
@@ -1069,14 +1069,14 @@ class HDFStore:
         except AssertionError:
             # surface any assertion errors for e.g. debugging
             raise
-        except Exception:
+        except Exception as err:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
 
             if where is not None:
                 raise ValueError(
                     "trying to remove a node with a non-None where clause!"
-                )
+                ) from err
 
             # we are actually trying to remove a node (with children)
             node = self.get_node(key)
@@ -1521,8 +1521,8 @@ class HDFStore:
         # validate
         try:
             format = _FORMAT_MAP[format.lower()]
-        except KeyError:
-            raise TypeError(f"invalid HDFStore format specified [{format}]")
+        except KeyError as err:
+            raise TypeError(f"invalid HDFStore format specified [{format}]") from err
 
         return format
 
@@ -1579,8 +1579,8 @@ class HDFStore:
             _STORER_MAP = {"series": SeriesFixed, "frame": FrameFixed}
             try:
                 cls = _STORER_MAP[pt]
-            except KeyError:
-                raise error("_STORER_MAP")
+            except KeyError as err:
+                raise error("_STORER_MAP") from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1614,8 +1614,8 @@ class HDFStore:
         }
         try:
             cls = _TABLE_MAP[tt]
-        except KeyError:
-            raise error("_TABLE_MAP")
+        except KeyError as err:
+            raise error("_TABLE_MAP") from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 
@@ -1830,7 +1830,6 @@ class IndexCol:
 
     Parameters
     ----------
-
     axis   : axis which I reference
     values : the ndarray like converted values
     kind   : a string description of this type
@@ -2142,7 +2141,6 @@ class DataCol(IndexCol):
 
     Parameters
     ----------
-
     data   : the actual data
     cname  : the column name in the table to hold the data (typically
                 values)
@@ -3226,7 +3224,8 @@ class Table(Fixed):
         return isinstance(self.levels, list)
 
     def validate_multiindex(self, obj):
-        """validate that we can store the multi-index; reset and return the
+        """
+        validate that we can store the multi-index; reset and return the
         new object
         """
         levels = [
@@ -3234,10 +3233,10 @@ class Table(Fixed):
         ]
         try:
             return obj.reset_index(), levels
-        except ValueError:
+        except ValueError as err:
             raise ValueError(
                 "duplicate names/columns in the multi-index when storing as a table"
-            )
+            ) from err
 
     @property
     def nrows_expected(self) -> int:
@@ -3377,7 +3376,8 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemsize doesn't contain items that are not in the
+        """
+        validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3589,7 +3589,8 @@ class Table(Fixed):
         return obj
 
     def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
-        """take the input data_columns and min_itemize and create a data
+        """
+        take the input data_columns and min_itemize and create a data
         columns spec
         """
         if not len(non_index_axes):
@@ -3783,11 +3784,11 @@ class Table(Fixed):
             if table_exists and validate:
                 try:
                     existing_col = self.values_axes[i]
-                except (IndexError, KeyError):
+                except (IndexError, KeyError) as err:
                     raise ValueError(
                         f"Incompatible appended table [{blocks}]"
                         f"with existing table [{self.values_axes}]"
-                    )
+                    ) from err
             else:
                 existing_col = None
 
@@ -3898,12 +3899,12 @@ class Table(Fixed):
                     b, b_items = by_items.pop(items)
                     new_blocks.append(b)
                     new_blk_items.append(b_items)
-                except (IndexError, KeyError):
+                except (IndexError, KeyError) as err:
                     jitems = ",".join(pprint_thing(item) for item in items)
                     raise ValueError(
                         f"cannot match existing table structure for [{jitems}] "
                         "on appending data"
-                    )
+                    ) from err
             blocks = new_blocks
             blk_items = new_blk_items
 
@@ -4001,7 +4002,8 @@ class Table(Fixed):
     def read_coordinates(
         self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
     ):
-        """select coordinates (row numbers) from a table; return the
+        """
+        select coordinates (row numbers) from a table; return the
         coordinates object
         """
         # validate the version
@@ -4030,7 +4032,8 @@ class Table(Fixed):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """return a single column from the table, generally only indexables
+        """
+        return a single column from the table, generally only indexables
         are interesting
         """
         # validate the version
@@ -5058,7 +5061,7 @@ class Selection:
         q = self.table.queryables()
         try:
             return PyTablesExpr(where, queryables=q, encoding=self.table.encoding)
-        except NameError:
+        except NameError as err:
             # raise a nice message, suggesting that the user should use
             # data_columns
             qkeys = ",".join(q.keys())
@@ -5070,7 +5073,7 @@ class Selection:
                 "            an axis (e.g. 'index' or 'columns'), or a "
                 "data_column\n"
                 f"            The currently defined references are: {qkeys}\n"
-            )
+            ) from err
 
     def select(self):
         """

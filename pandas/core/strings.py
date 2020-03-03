@@ -36,7 +36,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -349,7 +348,6 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     Examples
     --------
-
     Returning a Series of booleans using only a literal pattern.
 
     >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
@@ -783,7 +781,7 @@ def str_repeat(arr, repeats):
                 return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
 
@@ -1274,7 +1272,6 @@ def str_findall(arr, pat, flags=0):
 
     Examples
     --------
-
     >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
 
     The search for the pattern 'Monkey' returns one match:
@@ -1743,7 +1740,6 @@ def str_wrap(arr, width, **kwargs):
 
     Examples
     --------
-
     >>> s = pd.Series(['line to be wrapped', 'another line to be wrapped'])
     >>> s.str.wrap(12)
     0             line to be\nwrapped
@@ -2428,12 +2424,12 @@ class StringMethods(NoNewAttributesMixin):
         try:
             # turn anything in "others" into lists of Series
             others = self._get_series_list(others)
-        except ValueError:  # do not catch TypeError raised by _get_series_list
+        except ValueError as err:  # do not catch TypeError raised by _get_series_list
             raise ValueError(
                 "If `others` contains arrays or lists (or other "
                 "list-likes without an index), these must all be "
                 "of the same length as the calling Series/Index."
-            )
+            ) from err
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):

@@ -198,8 +198,8 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     try:
         new_value = int(value)
         assert new_value == value
-    except (TypeError, ValueError, AssertionError):
-        raise TypeError(f"Wrong type {type(value)} for value {value}")
+    except (TypeError, ValueError, AssertionError) as err:
+        raise TypeError(f"Wrong type {type(value)} for value {value}") from err
     return new_value
 
 
@@ -1801,7 +1801,7 @@ def _validate_date_like_dtype(dtype) -> None:
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
-        raise TypeError(e)
+        raise TypeError(e) from e
     if typ != "generic" and typ != "ns":
         raise ValueError(
             f"{repr(dtype.name)} is too specific of a frequency, "
@@ -1840,9 +1840,9 @@ def pandas_dtype(dtype) -> DtypeObj:
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except SyntaxError:
+    except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError
-        raise TypeError(f"data type '{dtype}' not understood")
+        raise TypeError(f"data type '{dtype}' not understood") from err
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will

@@ -232,8 +232,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         elif isinstance(key, str):
             try:
                 key = Timedelta(key)
-            except ValueError:
-                raise KeyError(key)
+            except ValueError as err:
+                raise KeyError(key) from err
 
         elif isinstance(key, self._data._recognized_scalars) or key is NaT:
             key = Timedelta(key)
@@ -321,7 +321,6 @@ def timedelta_range(
 
     Examples
     --------
-
     >>> pd.timedelta_range(start='1 day', periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq='D')

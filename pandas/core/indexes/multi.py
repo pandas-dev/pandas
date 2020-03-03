@@ -58,7 +58,6 @@ from pandas.core.sorting import (
     indexer_from_factorized,
     lexsort_indexer,
 )
-from pandas.core.util.hashing import hash_tuple, hash_tuples
 
 from pandas.io.formats.printing import (
     format_object_attrs,
@@ -247,6 +246,7 @@ class MultiIndex(Index):
     rename = Index.set_names
 
     _tuples = None
+    sortorder: Optional[int]
 
     # --------------------------------------------------------------------
     # Constructors
@@ -1373,9 +1373,9 @@ class MultiIndex(Index):
             )
         try:
             level = self.names.index(level)
-        except ValueError:
+        except ValueError as err:
             if not is_integer(level):
-                raise KeyError(f"Level {level} not found")
+                raise KeyError(f"Level {level} not found") from err
             elif level < 0:
                 level += self.nlevels
                 if level < 0:
@@ -1383,13 +1383,13 @@ class MultiIndex(Index):
                     raise IndexError(
                         f"Too many levels: Index has only {self.nlevels} levels, "
                         f"{orig_level} is not a valid level number"
-                    )
+                    ) from err
             # Note: levels are zero-based
             elif level >= self.nlevels:
                 raise IndexError(
                     f"Too many levels: Index has only {self.nlevels} levels, "
                     f"not {level + 1}"
-                )
+                ) from err
         return level
 
     @property
@@ -1431,53 +1431,9 @@ class MultiIndex(Index):
         return self[::-1].is_monotonic_increasing
 
     @cache_readonly
-    def _have_mixed_levels(self):
-        """ return a boolean list indicated if we have mixed levels """
-        return ["mixed" in l for l in self._inferred_type_levels]
-
-    @cache_readonly
     def _inferred_type_levels(self):
         """ return a list of the inferred types, one for each level """
         return [i.inferred_type for i in self.levels]
-
-    @cache_readonly
-    def _hashed_values(self):
-        """ return a uint64 ndarray of my hashed values """
-        return hash_tuples(self)
-
-    def _hashed_indexing_key(self, key):
-        """
-        validate and return the hash for the provided key
-
-        *this is internal for use for the cython routines*
-
-        Parameters
-        ----------
-        key : string or tuple
-
-        Returns
-        -------
-        np.uint64
-
-        Notes
-        -----
-        we need to stringify if we have mixed levels
-        """
-        if not isinstance(key, tuple):
-            return hash_tuples(key)
-
-        if not len(key) == self.nlevels:
-            raise KeyError
-
-        def f(k, stringify):
-            if stringify and not isinstance(k, str):
-                k = str(k)
-            return k
-
-        key = tuple(
-            f(k, stringify) for k, stringify in zip(key, self._have_mixed_levels)
-        )
-        return hash_tuple(key)
 
     @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep="first"):
@@ -1549,7 +1505,6 @@ class MultiIndex(Index):
 
         Examples
         --------
-
         Create a MultiIndex:
 
         >>> mi = pd.MultiIndex.from_arrays((list('abc'), list('def')))
@@ -1686,7 +1641,7 @@ class MultiIndex(Index):
         MultiIndex that are sorted lexically
 
         Returns
-        ------
+        -------
         int
         """
         int64_codes = [ensure_int64(level_codes) for level_codes in self.codes]
@@ -1713,7 +1668,6 @@ class MultiIndex(Index):
 
         Examples
         --------
-
         >>> mi = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
         ...                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         >>> mi
@@ -1859,27 +1813,6 @@ class MultiIndex(Index):
             names=list(self.names),
         )
         return ibase._new_Index, (type(self), d), None
-
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-        if isinstance(state, dict):
-            levels = state.get("levels")
-            codes = state.get("codes")
-            sortorder = state.get("sortorder")
-            names = state.get("names")
-
-        elif isinstance(state, tuple):
-
-            nd_state, own_state = state
-            levels, codes, sortorder, names = own_state
-
-        self._set_levels([Index(x) for x in levels], validate=False)
-        self._set_codes(codes)
-        new_codes = self._verify_integrity()
-        self._set_codes(new_codes)
-        self._set_names(names)
-        self.sortorder = sortorder
-        self._reset_identity()
 
     # --------------------------------------------------------------------
 
@@ -2140,6 +2073,9 @@ class MultiIndex(Index):
 
         Parameters
         ----------
+        order : list of int or list of str
+            List representing new level order. Reference level by number
+            (position) or by key (label).
 
         Returns
         -------
@@ -2386,6 +2322,35 @@ class MultiIndex(Index):
                 raise KeyError(f"{keyarr[mask]} not in index")
 
         return indexer, keyarr
+
+    def _get_partial_string_timestamp_match_key(self, key):
+        """
+        Translate any partial string timestamp matches in key, returning the
+        new key.
+
+        Only relevant for MultiIndex.
+        """
+        # GH#10331
+        if isinstance(key, str) and self.levels[0]._supports_partial_string_indexing:
+            # Convert key '2016-01-01' to
+            # ('2016-01-01'[, slice(None, None, None)]+)
+            key = tuple([key] + [slice(None)] * (len(self.levels) - 1))
+
+        if isinstance(key, tuple):
+            # Convert (..., '2016-01-01', ...) in tuple to
+            # (..., slice('2016-01-01', '2016-01-01', None), ...)
+            new_key = []
+            for i, component in enumerate(key):
+                if (
+                    isinstance(component, str)
+                    and self.levels[i]._supports_partial_string_indexing
+                ):
+                    new_key.append(slice(component, component, None))
+                else:
+                    new_key.append(component)
+            key = tuple(new_key)
+
+        return key
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -3405,8 +3370,8 @@ class MultiIndex(Index):
                 msg = "other must be a MultiIndex or a list of tuples"
                 try:
                     other = MultiIndex.from_tuples(other)
-                except TypeError:
-                    raise TypeError(msg)
+                except TypeError as err:
+                    raise TypeError(msg) from err
         else:
             result_names = self.names if self.names == other.names else None
         return other, result_names

@@ -1,4 +1,5 @@
-"""Operator classes for eval.
+"""
+Operator classes for eval.
 """
 
 from datetime import datetime
@@ -248,7 +249,8 @@ class Op:
 
 
 def _in(x, y):
-    """Compute the vectorized membership of ``x in y`` if possible, otherwise
+    """
+    Compute the vectorized membership of ``x in y`` if possible, otherwise
     use Python.
     """
     try:
@@ -263,7 +265,8 @@ def _in(x, y):
 
 
 def _not_in(x, y):
-    """Compute the vectorized membership of ``x not in y`` if possible,
+    """
+    Compute the vectorized membership of ``x not in y`` if possible,
     otherwise use Python.
     """
     try:
@@ -369,12 +372,12 @@ class BinOp(Op):
 
         try:
             self.func = _binary_ops_dict[op]
-        except KeyError:
+        except KeyError as err:
             # has to be made a list for python3
             keys = list(_binary_ops_dict.keys())
             raise ValueError(
                 f"Invalid binary operator {repr(op)}, valid operators are {keys}"
-            )
+            ) from err
 
     def __call__(self, env):
         """
@@ -445,7 +448,8 @@ class BinOp(Op):
         return term_type(name, env=env)
 
     def convert_values(self):
-        """Convert datetimes to a comparable value in an expression.
+        """
+        Convert datetimes to a comparable value in an expression.
         """
 
         def stringify(value):
@@ -546,11 +550,11 @@ class UnaryOp(Op):
 
         try:
             self.func = _unary_ops_dict[op]
-        except KeyError:
+        except KeyError as err:
             raise ValueError(
                 f"Invalid unary operator {repr(op)}, "
                 f"valid operators are {_unary_ops_syms}"
-            )
+            ) from err
 
     def __call__(self, env):
         operand = self.operand(env)
