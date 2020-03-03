@@ -85,7 +85,7 @@ Bug fixes
 
 **Rolling**
 
-- Fix bug in :meth:`calculate_variable_window_bounds` that couldn't work on decreasing index (:issue:`32385`).
+- Fixed rolling operations with variable window (defined by time duration) on decreasing time index (:issue:`32385`).
 
 .. ---------------------------------------------------------------------------
 

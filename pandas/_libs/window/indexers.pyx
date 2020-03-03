@@ -44,7 +44,7 @@ def calculate_variable_window_bounds(
     cdef:
         bint left_closed = False
         bint right_closed = False
-        int index_growth_sign = +1
+        int index_growth_sign = 1
         ndarray[int64_t, ndim=1] start, end
         int64_t start_bound, end_bound
         Py_ssize_t i, j
@@ -59,7 +59,7 @@ def calculate_variable_window_bounds(
     if closed in ['left', 'both']:
         left_closed = True
 
-    if index[num_values-1] < index[0]:
+    if index[num_values - 1] < index[0]:
         index_growth_sign = -1
 
     start = np.empty(num_values, dtype='int64')
