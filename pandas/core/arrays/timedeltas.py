@@ -39,6 +39,7 @@ from pandas.core import nanops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick
@@ -141,8 +142,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Constructors
 
     def __init__(self, values, dtype=_TD_DTYPE, freq=None, copy=False):
-        if isinstance(values, (ABCSeries, ABCIndexClass)):
-            values = values._values
+        values = extract_array(values)
 
         inferred_freq = getattr(values, "_freq", None)
 
@@ -258,6 +258,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             index = _generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
+            if len(index) >= 2:
+                # Infer a frequency
+                td = Timedelta(index[1] - index[0])
+                freq = to_offset(td)
 
         if not left_closed:
             index = index[1:]
@@ -614,6 +618,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
                 freq = self.freq / other
+                if freq.nanos == 0 and self.freq.nanos != 0:
+                    # e.g. if self.freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    freq = None
             return type(self)(result.view("m8[ns]"), freq=freq)
 
         if not hasattr(other, "dtype"):

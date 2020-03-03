@@ -38,6 +38,7 @@ class TestTimedeltas:
         result = timedelta_range(start="0 days", end="4 days", periods=periods)
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
+        assert result.freq == freq
 
     def test_errors(self):
         # not enough params
