@@ -95,18 +95,18 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self._numba_func_cache: Dict[Optional[str], Callable] = dict()
         self.exclusions = kwargs.get("exclusions", set())
 
-    def _shallow_copy(self, obj: FrameOrSeries, **kwargs) -> FrameOrSeries:
+    def _shallow_copy(self, obj: FrameOrSeries, **kwargs) -> "_Window":
         if isinstance(obj, ABCDataFrame):
             try:
-                obj = super()._shallow_copy(
+                new_obj = super()._shallow_copy(
                     obj, exclusions=self.exclusions.intersection(obj.columns), **kwargs
                 )
-                obj.obj = obj._obj_with_exclusions
+                new_obj.obj = new_obj._obj_with_exclusions
             except TypeError:  # Some _shallow_copy don't take `exclusions` as argument
-                obj = super()._shallow_copy(obj, **kwargs)
+                new_obj = super()._shallow_copy(obj, **kwargs)
         else:
-            obj = super()._shallow_copy(obj, **kwargs)
-        return obj
+            new_obj = super()._shallow_copy(obj, **kwargs)
+        return new_obj
 
     @property
     def _constructor(self):
