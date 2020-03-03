@@ -305,7 +305,7 @@ class TestIndexOps(Ops):
         result = obj.value_counts()
 
         counter = collections.Counter(obj)
-        expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
+        expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
         expected.index = expected.index.astype(obj.dtype)
         if isinstance(obj, pd.MultiIndex):
             expected.index = pd.Index(expected.index)
