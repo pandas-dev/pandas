@@ -93,7 +93,7 @@ class PandasObject(DirNamesMixin):
 
         Used by type checkers.
         """
-        assert isinstance(obj, type(self)), type(obj)
+        assert issubclass(type(obj), type(self)), type(obj)
         return obj
 
 
