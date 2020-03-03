@@ -958,7 +958,7 @@ class IndexOpsMixin:
         See Also
         --------
         numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
-        Series.arg{oppose} : Similar method, but returning the {oppose}inimum.
+        Series.arg{oppose} : Similar method, but returning the {oppose}imum.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
 
