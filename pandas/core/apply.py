@@ -179,7 +179,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             return self.apply_empty_result()
 
         # raw
-        elif self.raw and not self.obj._is_mixed_type:
+        elif self.raw:
             return self.apply_raw()
 
         return self.apply_standard()

@@ -235,7 +235,7 @@ class TestDataFrameApply:
         with pytest.raises(ValueError):
             df.apply(lambda x: Series([1, 2]), axis=1, result_type="broadcast")
 
-    def test_apply_raw(self, float_frame):
+    def test_apply_raw(self, float_frame, mixed_type_frame):
         result0 = float_frame.apply(np.mean, raw=True)
         result1 = float_frame.apply(np.mean, axis=1, raw=True)
 
@@ -249,6 +249,13 @@ class TestDataFrameApply:
         result = float_frame.apply(lambda x: x * 2, raw=True)
         expected = float_frame * 2
         tm.assert_frame_equal(result, expected)
+
+        # Mixed dtype
+        def _assert_raw(x):
+            assert isinstance(x, np.ndarray)
+
+        mixed_type_frame.apply(_assert_raw, raw=True)
+        mixed_type_frame.apply(_assert_raw, axis=1, raw=True)
 
     def test_apply_axis1(self, float_frame):
         d = float_frame.index[0]
