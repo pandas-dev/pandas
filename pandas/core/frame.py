@@ -358,9 +358,9 @@ class DataFrame(NDFrame):
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    read_csv
-    read_table
-    read_clipboard
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_table : Read general delimited file into DataFrame.
+    read_clipboard : Read text from clipboard into DataFrame.
 
     Examples
     --------
@@ -7393,8 +7393,9 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corrwith
-        Series.corr
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
 
         Examples
         --------
@@ -7596,7 +7597,7 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corr
+        DataFrame.corr : Compute pairwise correlation of columns.
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
@@ -8001,7 +8002,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmin
+        Series.idxmin : Return index of the minimum element.
 
         Notes
         -----
@@ -8039,7 +8040,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmax
+        Series.idxmax : Return index of the maximum element.
 
         Notes
         -----
