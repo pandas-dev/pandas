@@ -78,10 +78,10 @@ def _new_DatetimeIndex(cls, d):
 )
 class DatetimeIndex(DatetimeTimedeltaMixin):
     """
-    Immutable ndarray of datetime64 data.
+    Immutable ndarray-like of datetime64 data.
 
     Represented internally as int64, and which can be boxed to Timestamp objects
-    that are subclasses of datetime and carry metadata such as frequency information.
+    that are subclasses of datetime and carry metadata.
 
     Parameters
     ----------
@@ -91,13 +91,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
-    tz : pytz.timezone or dateutil.tz.tzfile
-        Timezone of the datetime.
+    tz : pytz.timezone or dateutil.tz.tzfile or datetime.tzinfo or str
+        Set the Timezone of the data.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     closed : {'left', 'right'}, optional
-        Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None, the default).
+        Set whether to include `start` and `end` that are on the
+        boundary. The default includes boundary points on either end.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
@@ -116,11 +116,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
-    dtype : numpy.dtype or DatetimeTZDtype
+    dtype : numpy.dtype or DatetimeTZDtype or str, default None
         Note that the only NumPy dtype allowed is ‘datetime64[ns]’.
-    copy : bool
+    copy : bool, default False
         Make a copy of input ndarray.
-    name : object
+    name : label, default None
         Name to be stored in the index.
 
     Attributes
