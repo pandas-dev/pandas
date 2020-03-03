@@ -330,6 +330,7 @@ Reshaping
 - Bug in :meth:`SeriesGroupBy.aggregate` was resulting in aggregations being overwritten when they shared the same name (:issue:`30092`)
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 
+
 Sparse
 ^^^^^^
 
