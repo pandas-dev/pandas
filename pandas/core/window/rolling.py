@@ -98,7 +98,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def _shallow_copy(self, obj, **kwargs):
         if isinstance(obj, ABCDataFrame):
             obj = super()._shallow_copy(
-                obj, exclusions=exclusions.intersection(obj.columns), **kwargs
+                obj, exclusions=self.exclusions.intersection(obj.columns), **kwargs
             )
             obj.obj = obj._obj_with_exclusions
         else:
