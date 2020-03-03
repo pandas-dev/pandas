@@ -102,10 +102,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                     obj, exclusions=self.exclusions.intersection(obj.columns), **kwargs
                 )
                 new_obj.obj = new_obj._obj_with_exclusions
+                return new_obj
             except TypeError:  # Some _shallow_copy don't take `exclusions` as argument
-                new_obj = super()._shallow_copy(obj, **kwargs)
-        else:
-            new_obj = super()._shallow_copy(obj, **kwargs)
+                pass
+        new_obj = super()._shallow_copy(obj, **kwargs)
         return new_obj
 
     @property
