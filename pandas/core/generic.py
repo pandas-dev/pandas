@@ -6793,7 +6793,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method=method,
             axis=ax,
             index=index,
-            values=_maybe_transposed_self,
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
