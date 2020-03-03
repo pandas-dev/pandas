@@ -4236,6 +4236,9 @@ class Index(IndexOpsMixin, PandasObject):
         values = self.values.copy()
         try:
             np.putmask(values, mask, self._convert_for_op(value))
+            if is_period_dtype(self.dtype):
+                # .values cast to object, so we need to cast back
+                values = type(self)(values)._data
             return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
