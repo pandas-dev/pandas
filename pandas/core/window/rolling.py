@@ -95,7 +95,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self._numba_func_cache: Dict[Optional[str], Callable] = dict()
         self.exclusions = kwargs.get("exclusions", set())
 
-    def _shallow_copy(self, obj: FrameOrSeries, **kwargs) -> "_Window":
+    def _shallow_copy(self, obj: FrameOrSeries, **kwargs) -> FrameOrSeries:
         if isinstance(obj, ABCDataFrame):
             try:
                 obj = super()._shallow_copy(
