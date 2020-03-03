@@ -742,9 +742,9 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
             raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
-def assert_attr_equal(attr, left, right, obj="Attributes"):
+def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     """
-    checks attributes are equal. Both objects must have attribute.
+    Check attributes are equal. Both objects must have attribute.
 
     Parameters
     ----------
@@ -1106,7 +1106,7 @@ def assert_series_equal(
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
-        Whether to compare category order of internal Categoricals
+        Whether to compare category order of internal Categoricals.
 
         .. versionadded:: 1.0.2
     obj : str, default 'Series'

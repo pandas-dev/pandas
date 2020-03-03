@@ -458,7 +458,7 @@ class SelectionMixin:
                 # return a MI Series
                 try:
                     result = concat(result)
-                except TypeError:
+                except TypeError as err:
                     # we want to give a nice error here if
                     # we have non-same sized objects, so
                     # we don't automatically broadcast
@@ -467,7 +467,7 @@ class SelectionMixin:
                         "cannot perform both aggregation "
                         "and transformation operations "
                         "simultaneously"
-                    )
+                    ) from err
 
                 return result, True
 
@@ -553,7 +553,7 @@ class SelectionMixin:
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
-        except TypeError:
+        except TypeError as err:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -562,7 +562,9 @@ class SelectionMixin:
 
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
-                raise ValueError("cannot combine transform and aggregation operations")
+                raise ValueError(
+                    "cannot combine transform and aggregation operations"
+                ) from err
             return result
 
     def _get_cython_func(self, arg: str) -> Optional[str]:
@@ -1033,7 +1035,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.argmin
+        numpy.ndarray.argmin : Return indices of the minimum values along
+            the given axis.
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
@@ -1053,7 +1056,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.tolist
+        numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
+            nested list of Python scalars.
         """
         if not isinstance(self._values, np.ndarray):
             # check for ndarray instead of dtype to catch DTA/TDA
@@ -1400,7 +1404,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
 
         Notes
         -----
@@ -1471,8 +1476,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        sort_values
-        numpy.searchsorted
+        sort_values : Sort by the values along either axis.
+        numpy.searchsorted : Similar method from NumPy.
 
         Notes
         -----
