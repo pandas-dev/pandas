@@ -758,8 +758,8 @@ class DataFrame(NDFrame):
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[fmt.formatters_type] = None,
-        float_format: Optional[fmt.float_format_type] = None,
+        formatters: Optional[fmt.FormattersType] = None,
+        float_format: Optional[fmt.FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         justify: Optional[str] = None,
@@ -3611,7 +3611,7 @@ class DataFrame(NDFrame):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)

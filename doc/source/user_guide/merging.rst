@@ -742,7 +742,7 @@ as shown in the following example.
    )
    ser
 
-   result = pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
+   pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
 
 
 Here is another example with duplicate join keys in DataFrames:
