@@ -3316,6 +3316,21 @@ class TestDataFramePlots(TestPlotBase):
         self._check_legend_labels(ax, labels=["A", "B", "C"])
         self._check_legend_marker(ax, expected_markers=[".", ".", "."])
 
+    def test_nullable_int_plot(self):
+        # GH32073
+        dates = ["2008", "2009", None, "2011", "2012"]
+        df = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 5],
+                "B": [7, 5, np.nan, 3, 2],
+                "C": pd.to_datetime(dates, format="%Y"),
+            }
+        )
+
+        _check_plot_works(df.plot, x="A", y="B")
+        _check_plot_works(df[["A", "B"]].astype("Int64").plot, x="A", y="B")
+        _check_plot_works(df[["A", "C"]].plot, x="A", y="C")
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt
