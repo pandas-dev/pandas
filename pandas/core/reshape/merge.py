@@ -1312,7 +1312,12 @@ def _get_join_indexers(
     kwargs = copy.copy(kwargs)
     if how == "left":
         kwargs["sort"] = sort
-    join_func = _join_functions[how]
+    join_func = {
+        "inner": libjoin.inner_join,
+        "left": libjoin.left_outer_join,
+        "right": _right_outer_join,
+        "outer": libjoin.full_outer_join,
+    }[how]
 
     return join_func(lkey, rkey, count, **kwargs)
 
@@ -1840,14 +1845,6 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
 def _right_outer_join(x, y, max_groups):
     right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
     return left_indexer, right_indexer
-
-
-_join_functions = {
-    "inner": libjoin.inner_join,
-    "left": libjoin.left_outer_join,
-    "right": _right_outer_join,
-    "outer": libjoin.full_outer_join,
-}
 
 
 def _factorize_keys(lk, rk, sort=True):
