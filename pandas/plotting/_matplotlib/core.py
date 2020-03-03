@@ -10,10 +10,10 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     is_hashable,
     is_integer,
+    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_number,
-    is_integer_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
