@@ -335,9 +335,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if a not in kwargs:
                 try:
                     kwargs[a] = args.pop(0)
-                except IndexError:
+                except IndexError as err:
                     if require_all:
-                        raise TypeError("not enough/duplicate arguments specified!")
+                        raise TypeError(
+                            "not enough/duplicate arguments specified!"
+                        ) from err
 
         axes = {a: kwargs.pop(a, sentinel) for a in cls._AXIS_ORDERS}
         return axes, kwargs
@@ -518,7 +520,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         """
         Assign desired index to given axis.
 
@@ -559,7 +561,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis, labels) -> None:
+    def _set_axis(self, axis: int, labels: Index) -> None:
+        labels = ensure_index(labels)
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
@@ -4792,10 +4795,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     if axis == 0:
                         try:
                             weights = self[weights]
-                        except KeyError:
+                        except KeyError as err:
                             raise KeyError(
                                 "String passed to weights not a valid column"
-                            )
+                            ) from err
                     else:
                         raise ValueError(
                             "Strings can only be passed to "
@@ -7521,8 +7524,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self._get_axis(axis)
         try:
             indexer = index.indexer_at_time(time, asof=asof)
-        except AttributeError:
-            raise TypeError("Index must be DatetimeIndex")
+        except AttributeError as err:
+            raise TypeError("Index must be DatetimeIndex") from err
 
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -7609,8 +7612,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 include_start=include_start,
                 include_end=include_end,
             )
-        except AttributeError:
-            raise TypeError("Index must be DatetimeIndex")
+        except AttributeError as err:
+            raise TypeError("Index must be DatetimeIndex") from err
 
         return self._take_with_is_copy(indexer, axis=axis)
 

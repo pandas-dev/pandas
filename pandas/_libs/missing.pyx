@@ -364,6 +364,9 @@ class NAType(C_NAType):
         exponent = 31 if is_32bit else 61
         return 2 ** exponent - 1
 
+    def __reduce__(self):
+        return "NA"
+
     # Binary arithmetic and comparison ops -> propagate
 
     __add__ = _create_binary_propagating_op("__add__")
