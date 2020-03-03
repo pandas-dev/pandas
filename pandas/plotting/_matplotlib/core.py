@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_integer_dtype,
@@ -417,7 +418,9 @@ class MPLPlot:
 
             # GH32073: cast to float if values contain nulled integers
             values = numeric_data[col]
-            if is_integer_dtype(values.dtype) and is_extension_array_dtype(values.dtype):
+            if is_integer_dtype(values.dtype) and is_extension_array_dtype(
+                values.dtype
+            ):
                 values = values.to_numpy(dtype="float", na_value=np.nan)
 
             numeric_data[col] = np.asarray(values)
