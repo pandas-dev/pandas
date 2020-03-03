@@ -281,18 +281,6 @@ def test_is_string_dtype():
     assert com.is_string_dtype(pd.array(["a", "b"], dtype="string"))
 
 
-def test_is_period_arraylike():
-    assert not com.is_period_arraylike([1, 2, 3])
-    assert not com.is_period_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
-def test_is_datetime_arraylike():
-    assert not com.is_datetime_arraylike([1, 2, 3])
-    assert not com.is_datetime_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
-
-
 integer_dtypes: List = []
 
 
