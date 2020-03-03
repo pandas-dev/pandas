@@ -6169,7 +6169,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         AssertionError
             * If `regex` is not a ``bool`` and `to_replace` is not
               ``None``.
+
         TypeError
+            * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
@@ -6178,6 +6180,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * When replacing multiple ``bool`` or ``datetime64`` objects and
               the arguments to `to_replace` does not match the type of the
               value being replaced
+
         ValueError
             * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
               `value` but they are not the same length.
@@ -6373,6 +6376,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         regex=False,
         method="pad",
     ):
+        if not (
+            is_scalar(to_replace)
+            or isinstance(to_replace, pd.Series)
+            or is_re_compilable(to_replace)
+            or is_list_like(to_replace)
+        ):
+            raise TypeError(
+                "Expecting 'to_replace' to be either a scalar, array-like, "
+                "dict or None, got invalid type "
+                f"{repr(type(to_replace).__name__)}"
+            )
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
