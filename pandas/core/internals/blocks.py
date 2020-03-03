@@ -1107,7 +1107,6 @@ class Block(PandasObject):
         method="pad",
         axis=0,
         index=None,
-        values=None,
         inplace=False,
         limit=None,
         limit_direction="forward",
@@ -1157,7 +1156,6 @@ class Block(PandasObject):
         return self._interpolate(
             method=m,
             index=index,
-            values=values,
             axis=axis,
             limit=limit,
             limit_direction=limit_direction,
@@ -1211,7 +1209,6 @@ class Block(PandasObject):
         self,
         method=None,
         index=None,
-        values=None,
         fill_value=None,
         axis=0,
         limit=None,

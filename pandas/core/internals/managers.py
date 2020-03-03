@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
+from pandas._typing import DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -140,7 +141,7 @@ class BlockManager(PandasObject):
         if do_integrity_check:
             self._verify_integrity()
 
-        self._consolidate_check()
+        self._known_consolidated = False
 
         self._rebuild_blknos_and_blklocs()
 
@@ -163,15 +164,15 @@ class BlockManager(PandasObject):
     __bool__ = __nonzero__
 
     @property
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         return tuple(len(ax) for ax in self.axes)
 
     @property
     def ndim(self) -> int:
         return len(self.axes)
 
-    def set_axis(self, axis, new_labels):
-        new_labels = ensure_index(new_labels)
+    def set_axis(self, axis: int, new_labels: Index):
+        # Caller is responsible for ensuring we have an Index object.
         old_len = len(self.axes[axis])
         new_len = len(new_labels)
 
@@ -183,7 +184,9 @@ class BlockManager(PandasObject):
 
         self.axes[axis] = new_labels
 
-    def rename_axis(self, mapper, axis, copy: bool = True, level=None):
+    def rename_axis(
+        self, mapper, axis: int, copy: bool = True, level=None
+    ) -> "BlockManager":
         """
         Rename one of axes.
 
@@ -192,7 +195,7 @@ class BlockManager(PandasObject):
         mapper : unary callable
         axis : int
         copy : bool, default True
-        level : int, default None
+        level : int or None, default None
         """
         obj = self.copy(deep=copy)
         obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
@@ -232,7 +235,7 @@ class BlockManager(PandasObject):
         self._blklocs = new_blklocs
 
     @property
-    def items(self):
+    def items(self) -> Index:
         return self.axes[0]
 
     def _get_counts(self, f):
@@ -622,7 +625,7 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def is_consolidated(self):
+    def is_consolidated(self) -> bool:
         """
         Return True if more than one block with the same dtype
         """
@@ -687,7 +690,7 @@ class BlockManager(PandasObject):
         self._consolidate_inplace()
         return self.combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def combine(self, blocks, copy=True):
+    def combine(self, blocks: List[Block], copy: bool = True) -> "BlockManager":
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -710,22 +713,21 @@ class BlockManager(PandasObject):
         return type(self)(new_blocks, axes, do_integrity_check=False)
 
     def get_slice(self, slobj: slice, axis: int = 0):
-        if axis >= self.ndim:
-            raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
-        else:
+        elif axis == 1:
             _slicer = [slice(None)] * (axis + 1)
             _slicer[axis] = slobj
             slicer = tuple(_slicer)
             new_blocks = [blk.getitem_block(slicer) for blk in self.blocks]
+        else:
+            raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis][slobj]
 
         bm = type(self)(new_blocks, new_axes, do_integrity_check=False)
-        bm._consolidate_inplace()
         return bm
 
     def __contains__(self, item) -> bool:
@@ -847,7 +849,7 @@ class BlockManager(PandasObject):
 
         return {dtype: self.combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
-    def fast_xs(self, loc):
+    def fast_xs(self, loc: int):
         """
         get a cross sectional for a given location in the
         items ; handle dups
@@ -883,12 +885,12 @@ class BlockManager(PandasObject):
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
 
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
         return result
 
-    def consolidate(self):
+    def consolidate(self) -> "BlockManager":
         """
         Join together blocks having same dtype
 
@@ -940,7 +942,7 @@ class BlockManager(PandasObject):
                 new_axis=self.items[indexer], indexer=indexer, axis=0, allow_dups=True
             )
 
-    def iget(self, i):
+    def iget(self, i: int) -> "SingleBlockManager":
         """
         Return the data as a SingleBlockManager.
         """
@@ -992,7 +994,6 @@ class BlockManager(PandasObject):
         self.blocks = tuple(
             b for blkno, b in enumerate(self.blocks) if not is_blk_deleted[blkno]
         )
-        self._shape = None
         self._rebuild_blknos_and_blklocs()
 
     def set(self, item, value):
@@ -1160,7 +1161,6 @@ class BlockManager(PandasObject):
 
         self.axes[0] = new_axis
         self.blocks += (block,)
-        self._shape = None
 
         self._known_consolidated = False
 
@@ -1377,7 +1377,7 @@ class BlockManager(PandasObject):
             block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
         )
 
-    def unstack(self, unstacker_func, fill_value):
+    def unstack(self, unstacker_func, fill_value) -> "BlockManager":
         """
         Return a BlockManager with all blocks unstacked..
 
@@ -1396,8 +1396,8 @@ class BlockManager(PandasObject):
         dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
         new_columns = dummy.get_new_columns()
         new_index = dummy.get_new_index()
-        new_blocks = []
-        columns_mask = []
+        new_blocks: List[Block] = []
+        columns_mask: List[np.ndarray] = []
 
         for blk in self.blocks:
             blocks, mask = blk._unstack(
@@ -1478,7 +1478,7 @@ class SingleBlockManager(BlockManager):
         pass
 
     @property
-    def _block(self):
+    def _block(self) -> Block:
         return self.blocks[0]
 
     @property
@@ -1495,14 +1495,14 @@ class SingleBlockManager(BlockManager):
         """ compat with BlockManager """
         return None
 
-    def get_slice(self, slobj, axis=0):
+    def get_slice(self, slobj: slice, axis: int = 0) -> "SingleBlockManager":
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True,)
+        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True)
 
     @property
-    def index(self):
+    def index(self) -> Index:
         return self.axes[0]
 
     @property
@@ -1516,7 +1516,7 @@ class SingleBlockManager(BlockManager):
     def get_dtype_counts(self):
         return {self.dtype.name: 1}
 
-    def get_dtypes(self):
+    def get_dtypes(self) -> np.ndarray:
         return np.array([self._block.dtype])
 
     def external_values(self):
@@ -1527,7 +1527,7 @@ class SingleBlockManager(BlockManager):
         """The array that Series._values returns"""
         return self._block.internal_values()
 
-    def get_values(self):
+    def get_values(self) -> np.ndarray:
         """ return a dense type view """
         return np.array(self._block.to_dense(), copy=False)
 
@@ -1535,7 +1535,7 @@ class SingleBlockManager(BlockManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def is_consolidated(self):
+    def is_consolidated(self) -> bool:
         return True
 
     def _consolidate_check(self):
@@ -1813,9 +1813,7 @@ def _stack_arrays(tuples, dtype):
     return stacked, placement
 
 
-def _interleaved_dtype(
-    blocks: List[Block],
-) -> Optional[Union[np.dtype, ExtensionDtype]]:
+def _interleaved_dtype(blocks: Sequence[Block]) -> Optional[DtypeObj]:
     """
     Find the common dtype for `blocks`.
 
@@ -1825,7 +1823,7 @@ def _interleaved_dtype(
 
     Returns
     -------
-    dtype : Optional[Union[np.dtype, ExtensionDtype]]
+    dtype : np.dtype, ExtensionDtype, or None
         None is returned when `blocks` is empty.
     """
     if not len(blocks):
