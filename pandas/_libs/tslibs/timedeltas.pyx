@@ -1407,7 +1407,14 @@ class Timedelta(_Timedelta):
             # convert to Timedelta below
             pass
 
+        elif util.is_nan(other):
+            # i.e. np.nan or np.float64("NaN")
+            raise TypeError("Cannot divide float by Timedelta")
+
         elif hasattr(other, 'dtype'):
+            if other.dtype.kind == "O":
+                # GH#31869
+                return np.array([x / self for x in other])
             return other / self.to_timedelta64()
 
         elif not _validate_ops_compat(other):
@@ -1415,7 +1422,8 @@ class Timedelta(_Timedelta):
 
         other = Timedelta(other)
         if other is NaT:
-            return NaT
+            # In this context we treat NaT as timedelta-like
+            return np.nan
         return float(other.value) / self.value
 
     def __floordiv__(self, other):
