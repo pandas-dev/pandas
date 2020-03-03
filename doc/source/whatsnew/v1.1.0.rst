@@ -199,6 +199,7 @@ Categorical
 
 - Bug where :func:`merge` was unable to join on non-unique categorical indices (:issue:`28189`)
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
+- Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 -
 
 Datetimelike
