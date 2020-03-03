@@ -16,8 +16,6 @@ from pandas import Timedelta, offsets
         (1, 1),
         (np.int64(2), 2),
         (np.int32(3), 3),
-        (Timedelta(1e10), 1e10),
-        (Timedelta(nanoseconds=1e10), 1e10),
     ],
 )
 def test_delta_to_nanoseconds(obj, expected):
@@ -30,3 +28,8 @@ def test_delta_to_nanoseconds_error():
 
     with pytest.raises(TypeError, match="<class 'numpy.ndarray'>"):
         delta_to_nanoseconds(obj)
+
+
+def test_huge_nanoseconds_overflow():
+    assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
+    assert delta_to_nanoseconds(Timedelta(nanoseconds=1e10)) == 1e10
