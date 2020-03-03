@@ -10,10 +10,13 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.tslibs.np_datetime cimport (
-    get_timedelta64_value, get_datetime64_value)
+
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
+    c_NaT as NaT,
+    checknull_with_nat,
+    is_null_datetimelike,
+)
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
 from pandas.compat import is_platform_32bit
@@ -44,7 +47,7 @@ cpdef bint checknull(object val):
 
     Returns
     -------
-    result : bool
+    bool
 
     Notes
     -----
@@ -223,7 +226,7 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
 
     Returns
     -------
-    result : ndarray (dtype=np.bool_)
+    ndarray (dtype=np.bool_)
 
     Notes
     -----
@@ -248,17 +251,11 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
 
 
 def isposinf_scalar(val: object) -> bool:
-    if util.is_float_object(val) and val == INF:
-        return True
-    else:
-        return False
+    return util.is_float_object(val) and val == INF
 
 
 def isneginf_scalar(val: object) -> bool:
-    if util.is_float_object(val) and val == NEGINF:
-        return True
-    else:
-        return False
+    return util.is_float_object(val) and val == NEGINF
 
 
 cdef inline bint is_null_datetime64(v):
@@ -426,7 +423,6 @@ class NAType(C_NAType):
                 return NA
         elif isinstance(other, np.ndarray):
             return np.where(other == 1, other, NA)
-
         return NotImplemented
 
     # Logical ops using Kleene logic
@@ -436,8 +432,7 @@ class NAType(C_NAType):
             return False
         elif other is True or other is C_NA:
             return NA
-        else:
-            return NotImplemented
+        return NotImplemented
 
     __rand__ = __and__
 
@@ -446,8 +441,7 @@ class NAType(C_NAType):
             return True
         elif other is False or other is C_NA:
             return NA
-        else:
-            return NotImplemented
+        return NotImplemented
 
     __ror__ = __or__
 
