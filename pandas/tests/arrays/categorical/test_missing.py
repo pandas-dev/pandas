@@ -82,3 +82,16 @@ class TestCategoricalMissing:
         expected = Categorical([Point(0, 0), Point(0, 1), Point(0, 0)])
 
         tm.assert_categorical_equal(result, expected)
+
+    def test_fillna_array(self):
+        # accept Categorical or ndarray value if it holds appropriat values
+        cat = Categorical([1, 2, 3, None, None])
+
+        other = cat.fillna(2)
+        result = cat.fillna(other)
+        tm.assert_categorical_equal(result, other)
+
+        other = np.array([1, 2, 3, 2, 1])
+        result = cat.fillna(other)
+        expected = Categorical([1, 2, 3, 2, 1], dtype=cat.dtype)
+        tm.assert_categorical_equal(result, expected)
