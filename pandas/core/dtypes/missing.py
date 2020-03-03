@@ -581,7 +581,7 @@ def remove_na_arraylike(arr):
     if is_extension_array_dtype(arr):
         return arr[notna(arr)]
     else:
-        return arr[notna(lib.values_from_object(arr))]
+        return arr[notna(np.asarray(arr))]
 
 
 def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:

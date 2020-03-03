@@ -100,11 +100,9 @@ def values_from_object(obj: object):
     """
     func: object
 
-    if getattr(obj, '_typ', '') == 'dataframe':
-        return obj.values
-
     func = getattr(obj, '_internal_get_values', None)
     if func is not None:
+        # Includes DataFrame, for which we get frame.values
         obj = func()
 
     return obj

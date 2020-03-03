@@ -1923,9 +1923,6 @@ def _factorize_keys(lk, rk, sort=True):
 
 
 def _sort_labels(uniques: np.ndarray, left, right):
-    if not isinstance(uniques, np.ndarray):
-        # tuplesafe
-        uniques = Index(uniques).values
 
     llength = len(left)
     labels = np.concatenate([left, right])
