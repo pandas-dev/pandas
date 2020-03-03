@@ -2379,19 +2379,21 @@ class PythonParser(ParserBase):
 
             dia = MyDialect
 
-            sniff_sep = True
-
             if sep is not None:
-                sniff_sep = False
                 dia.delimiter = sep
-            # attempt to sniff the delimiter
-            if sniff_sep:
+            else:
+                # attempt to sniff the delimiter from the first valid line,
+                # i.e. no comment line and not in skiprows
                 line = f.readline()
-                while self.skipfunc(self.pos):
+                lines = self._check_comments([[line]])[0]
+                while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
                     line = f.readline()
+                    lines = self._check_comments([[line]])[0]
 
-                line = self._check_comments([line])[0]
+                # since `line` was a string, lines will be a list containing
+                # only a single string
+                line = lines[0]
 
                 self.pos += 1
                 self.line_pos += 1
