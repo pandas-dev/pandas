@@ -1028,12 +1028,10 @@ class IndexOpsMixin:
 
     @doc(
         argmax,
-        operation="minimum",
-        oppose_operation="maximum",
+        op="min",
+        oppose="max",
         value="smallest",
         position="first",
-        klass="argmin",
-        oppose_klass="argmax",
         example_values="0",
     )
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
