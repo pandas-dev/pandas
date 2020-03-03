@@ -998,8 +998,12 @@ class BlockManager(PandasObject):
 
     def set(self, item: Label, value):
         """
-        Set new item in-place. Does not consolidate. Adds new Block if not
-        contained in the current set of items
+        Set new item in-place.
+
+        Notes
+        -----
+        Does not consolidate.
+        Adds new Block if not contained in the current items Index.
         """
         try:
             loc = self.items.get_loc(item)
