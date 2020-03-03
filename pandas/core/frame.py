@@ -8040,7 +8040,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmax : Return index of the maximun element.
+        Series.idxmax : Return index of the maximum element.
 
         Notes
         -----
