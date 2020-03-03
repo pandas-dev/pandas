@@ -62,11 +62,15 @@ class TestGrouperGrouping:
         for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
             result = getattr(r, f)()
             expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+            expected = expected.drop("A", axis=1)  # groupby.apply returns
+            # grouped-by column
             tm.assert_frame_equal(result, expected)
 
         for f in ["std", "var"]:
             result = getattr(r, f)(ddof=1)
             expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+            expected = expected.drop("A", axis=1)  # groupby.apply returns
+            # grouped-by column
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -79,6 +83,9 @@ class TestGrouperGrouping:
         expected = g.apply(
             lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
         )
+        expected = expected.drop(
+            "A", axis=1
+        )  # groupby.apply returns the grouped-by column
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_corr_cov(self):
@@ -92,6 +99,7 @@ class TestGrouperGrouping:
                 return getattr(x.rolling(4), f)(self.frame)
 
             expected = g.apply(func)
+            expected = expected.drop("A", axis=1)
             tm.assert_frame_equal(result, expected)
 
             result = getattr(r.B, f)(pairwise=True)
@@ -109,6 +117,9 @@ class TestGrouperGrouping:
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        expected = expected.drop(
+            "A", axis=1
+        )  # rolling.apply returns the grouping column.
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_apply_mutability(self):

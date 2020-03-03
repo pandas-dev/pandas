@@ -93,6 +93,17 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
         self._numba_func_cache: Dict[Optional[str], Callable] = dict()
+        self.exclusions = kwargs.get("exclusions", set())
+
+    def _shallow_copy(self, obj, **kwargs):
+        if isinstance(obj, ABCDataFrame):
+            obj = super()._shallow_copy(
+                obj, exclusions=exclusions.intersection(obj.columns), **kwargs
+            )
+            obj.obj = obj._obj_with_exclusions
+        else:
+            obj = super()._shallow_copy(obj, **kwargs)
+        return obj
 
     @property
     def _constructor(self):
@@ -156,7 +167,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         blocks = obj._to_dict_of_blocks(copy=False).values()
-
         return blocks, obj
 
     def _gotitem(self, key, ndim, subset=None):
@@ -509,7 +519,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
                 result = self._center_window(result, window)
 
             results.append(result)
-
         return self._wrap_results(results, block_list, obj, exclude)
 
     def aggregate(self, func, *args, **kwargs):
@@ -1187,7 +1196,6 @@ class _Rolling_and_Expanding(_Rolling):
                 closed=self.closed,
             ).sum()
             results.append(result)
-
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs["apply"] = dedent(
@@ -1953,7 +1961,6 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name="rolling")
     @Appender(_shared_docs["count"])
     def count(self):
-
         # different impl for freq counting
         if self.is_freq_type:
             window_func = self._get_roll_func("roll_count")
