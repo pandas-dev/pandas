@@ -5,9 +5,11 @@ import weakref
 import numpy as np
 
 from pandas._libs import index as libindex
+from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
+from pandas._typing import Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -215,7 +217,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
+    def _simple_new(cls, values: PeriodArray, name: Label = None):
         """
         Create a new PeriodIndex.
 
@@ -226,7 +228,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             or coercion.
         """
         assert isinstance(values, PeriodArray), type(values)
-        assert freq is None or freq == values.freq, (freq, values.freq)
 
         result = object.__new__(cls)
         result._data = values
@@ -248,8 +249,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = no_default):
         # TODO: simplify, figure out type of values
+        name = name if name is not no_default else self.name
+
         if values is None:
             values = self._data
 
@@ -263,18 +266,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 # GH#30713 this should never be reached
                 raise TypeError(type(values), getattr(values, "dtype", None))
 
-        # We don't allow changing `freq` in _shallow_copy.
-        validate_dtype_freq(self.dtype, kwargs.get("freq"))
-        attributes = self._get_attributes_dict()
-
-        attributes.update(kwargs)
-        if not len(values) and "dtype" not in kwargs:
-            attributes["dtype"] = self.dtype
-        return self._simple_new(values, **attributes)
-
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
-        """ we always want to return a PeriodIndex """
-        return self._shallow_copy(values=values, **kwargs)
+        return self._simple_new(values, name=name)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -523,9 +515,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
             try:
                 asdt, reso = parse_time_string(key, self.freq)
-            except DateParseError:
+            except DateParseError as err:
                 # A string with invalid format
-                raise KeyError(f"Cannot interpret '{key}' as period")
+                raise KeyError(f"Cannot interpret '{key}' as period") from err
 
             grp = resolution.Resolution.get_freq_group(reso)
             freqn = resolution.get_freq_group(self.freq)
@@ -548,14 +540,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         try:
             key = Period(key, freq=self.freq)
-        except ValueError:
+        except ValueError as err:
             # we cannot construct the Period
-            raise KeyError(orig_key)
+            raise KeyError(orig_key) from err
 
         try:
             return Index.get_loc(self, key, method, tolerance)
-        except KeyError:
-            raise KeyError(orig_key)
+        except KeyError as err:
+            raise KeyError(orig_key) from err
 
     def _maybe_cast_slice_bound(self, label, side: str, kind: str):
         """
@@ -586,10 +578,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 parsed, reso = parse_time_string(label, self.freq)
                 bounds = self._parsed_string_to_bounds(reso, parsed)
                 return bounds[0 if side == "left" else 1]
-            except ValueError:
+            except ValueError as err:
                 # string cannot be parsed as datetime-like
                 # TODO: we need tests for this case
-                raise KeyError(label)
+                raise KeyError(label) from err
         elif is_integer(label) or is_float(label):
             self._invalid_indexer("slice", label)
 
@@ -619,8 +611,8 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         try:
             return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
-        except KeyError:
-            raise KeyError(key)
+        except KeyError as err:
+            raise KeyError(key) from err
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
