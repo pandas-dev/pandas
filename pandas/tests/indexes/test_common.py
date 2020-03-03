@@ -355,7 +355,7 @@ class TestCommon:
                 result = indices.copy(dtype=dtype)
             else:
                 result = indices.astype(dtype)
-        except (ValueError, TypeError, NotImplementedError, UnicodeEncodeError):
+        except (ValueError, TypeError, NotImplementedError, SystemError):
             return
 
         if isinstance(indices, MultiIndex):
