@@ -122,7 +122,7 @@ def is_bool_indexer(key: Any) -> bool:
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
-            key = np.asarray(values_from_object(key))
+            key = np.asarray(key)
 
             if not lib.is_bool_array(key):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"

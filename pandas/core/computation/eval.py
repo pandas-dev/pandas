@@ -266,8 +266,10 @@ def eval(
 
     See Also
     --------
-    DataFrame.query
-    DataFrame.eval
+    DataFrame.query : Evaluates a boolean expression to query the columns
+            of a frame.
+    DataFrame.eval : Evaluate a string describing operations on
+            DataFrame columns.
 
     Notes
     -----
