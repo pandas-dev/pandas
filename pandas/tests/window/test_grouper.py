@@ -62,15 +62,15 @@ class TestGrouperGrouping:
         for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
             result = getattr(r, f)()
             expected = g.apply(lambda x: getattr(x.rolling(4), f)())
-            expected = expected.drop("A", axis=1)  # groupby.apply returns
-            # grouped-by column
+            expected = expected.drop("A", axis=1)  # groupby.apply doesn't
+            # drop the grouped-by column
             tm.assert_frame_equal(result, expected)
 
         for f in ["std", "var"]:
             result = getattr(r, f)(ddof=1)
             expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
-            expected = expected.drop("A", axis=1)  # groupby.apply returns
-            # grouped-by column
+            expected = expected.drop("A", axis=1)  # groupby.apply doesn't
+            # drop the grouped-by column
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -99,7 +99,8 @@ class TestGrouperGrouping:
                 return getattr(x.rolling(4), f)(self.frame)
 
             expected = g.apply(func)
-            expected = expected.drop("A", axis=1)
+            expected = expected.drop("A", axis=1)  # groupby.apply doesn't
+            # drop the grouped-by column
             tm.assert_frame_equal(result, expected)
 
             result = getattr(r.B, f)(pairwise=True)

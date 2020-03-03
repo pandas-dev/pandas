@@ -85,6 +85,7 @@ class WindowGroupByMixin(GroupByMixin):
 
             if isinstance(name, str):
                 return getattr(x, name)(*args, **kwargs)
+
             return x.apply(name, *args, **kwargs)
 
         return self._groupby.apply(f)
