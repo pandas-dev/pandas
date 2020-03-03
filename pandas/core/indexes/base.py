@@ -4089,7 +4089,6 @@ class Index(IndexOpsMixin, PandasObject):
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
 
-        key = com.values_from_object(key)
         result = getitem(key)
         if not is_scalar(result):
             if np.ndim(result) > 1:
@@ -4224,9 +4223,11 @@ class Index(IndexOpsMixin, PandasObject):
                 if self.nlevels != other.nlevels:
                     return False
 
-        return array_equivalent(
-            com.values_from_object(self), com.values_from_object(other)
-        )
+        if is_extension_array_dtype(self.dtype):
+            # All extant EA-backed Indexes override equals; any future ones
+            #  will need to do so as well.
+            raise NotImplementedError
+        return array_equivalent(np.asarray(self), np.asarray(other))
 
     def identical(self, other) -> bool:
         """
