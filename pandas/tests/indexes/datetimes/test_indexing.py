@@ -121,6 +121,14 @@ class TestGetItem:
 
 
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        dti = date_range("20130101", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = DatetimeIndex([dti[0], dti[1], dti[0]], freq=None, name="idx")
+
+        result = dti.where(cond, dti[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_other(self):
         # other is ndarray or Index
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")

@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_object_dtype,
+    is_period_dtype,
     needs_i8_conversion,
 )
 
@@ -295,6 +296,10 @@ class TestIndexOps(Ops):
                 obj[0:2] = pd.NaT
                 values = obj._values
 
+        elif is_period_dtype(obj):
+            values[0:2] = iNaT
+            parr = type(obj._data)(values, dtype=obj.dtype)
+            values = obj._shallow_copy(parr)
         elif needs_i8_conversion(obj):
             values[0:2] = iNaT
             values = obj._shallow_copy(values)

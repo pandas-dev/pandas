@@ -520,7 +520,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             other = other.view("i8")
 
         result = np.where(cond, values, other).astype("i8")
-        return self._shallow_copy(result)
+        arr = type(self._data)._simple_new(result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
 
     def _summary(self, name=None) -> str:
         """

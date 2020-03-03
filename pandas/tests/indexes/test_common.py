@@ -10,7 +10,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
-from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex, RangeIndex
@@ -219,7 +219,10 @@ class TestCommon:
         if not indices._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        if needs_i8_conversion(indices):
+        if is_period_dtype(indices):
+            vals = indices[[0] * 5]._data
+            vals[0] = pd.NaT
+        elif needs_i8_conversion(indices):
             vals = indices.asi8[[0] * 5]
             vals[0] = iNaT
         else:
