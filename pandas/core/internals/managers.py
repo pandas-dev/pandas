@@ -1052,7 +1052,7 @@ class BlockManager(PandasObject):
                     "Shape of new values must be compatible with manager shape"
                 )
 
-        if isinstance(loc, int):
+        if lib.is_integer(loc):
             # We have 6 tests where loc is _not_ an int.
             # In this case, get_blkno_placements will yield only one tuple,
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
