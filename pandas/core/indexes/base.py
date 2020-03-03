@@ -3078,48 +3078,6 @@ class Index(IndexOpsMixin, PandasObject):
         # GH#10331
         return key
 
-    def _convert_scalar_indexer(self, key, kind: str_t):
-        """
-        Convert a scalar indexer.
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'loc', 'getitem'}
-        """
-        assert kind in ["loc", "getitem"]
-
-        if len(self) and not isinstance(self, ABCMultiIndex):
-
-            # we can raise here if we are definitive that this
-            # is positional indexing (eg. .loc on with a float)
-            # or label indexing if we are using a type able
-            # to be represented in the index
-
-            if kind == "getitem" and is_float(key):
-                if not self.is_floating():
-                    raise KeyError(key)
-
-            elif kind == "loc" and is_float(key):
-
-                # we want to raise KeyError on string/mixed here
-                # technically we *could* raise a TypeError
-                # on anything but mixed though
-                if self.inferred_type not in [
-                    "floating",
-                    "mixed-integer-float",
-                    "integer-na",
-                    "string",
-                    "mixed",
-                ]:
-                    raise KeyError(key)
-
-            elif kind == "loc" and is_integer(key):
-                if not (is_integer_dtype(self.dtype) or is_object_dtype(self.dtype)):
-                    raise KeyError(key)
-
-        return key
-
     def _validate_positional_slice(self, key: slice):
         """
         For positional indexing, a slice must have either int or None
