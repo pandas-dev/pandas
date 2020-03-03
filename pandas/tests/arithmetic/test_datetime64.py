@@ -27,6 +27,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays import DatetimeArray, TimedeltaArray
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -955,6 +956,18 @@ class TestDatetime64Arithmetic:
 
     # -------------------------------------------------------------
     # Subtraction of datetime-like array-like
+
+    def test_dt64arr_sub_dt64object_array(self, box_with_array, tz_naive_fixture):
+        dti = pd.date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
+        expected = dti - dti
+
+        obj = tm.box_expected(dti, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
+            result = obj - obj.astype(object)
+        tm.assert_equal(result, expected)
 
     def test_dt64arr_naive_sub_dt64ndarray(self, box_with_array):
         dti = pd.date_range("2016-01-01", periods=3, tz=None)
@@ -2395,3 +2408,31 @@ def test_shift_months(years, months):
     raw = [x + pd.offsets.DateOffset(years=years, months=months) for x in dti]
     expected = DatetimeIndex(raw)
     tm.assert_index_equal(actual, expected)
+
+
+def test_dt64arr_addsub_object_dtype_2d():
+    # block-wise DataFrame operations will require operating on 2D
+    #  DatetimeArray/TimedeltaArray, so check that specifically.
+    dti = pd.date_range("1994-02-13", freq="2W", periods=4)
+    dta = dti._data.reshape((4, 1))
+
+    other = np.array([[pd.offsets.Day(n)] for n in range(4)])
+    assert other.shape == dta.shape
+
+    with tm.assert_produces_warning(PerformanceWarning):
+        result = dta + other
+    with tm.assert_produces_warning(PerformanceWarning):
+        expected = (dta[:, 0] + other[:, 0]).reshape(-1, 1)
+
+    assert isinstance(result, DatetimeArray)
+    assert result.freq is None
+    tm.assert_numpy_array_equal(result._data, expected._data)
+
+    with tm.assert_produces_warning(PerformanceWarning):
+        # Case where we expect to get a TimedeltaArray back
+        result2 = dta - dta.astype(object)
+
+    assert isinstance(result2, TimedeltaArray)
+    assert result2.shape == (4, 1)
+    assert result2.freq is None
+    assert (result2.asi8 == 0).all()

@@ -42,6 +42,7 @@ from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
+from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
@@ -623,7 +624,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
-            return self._box_values(self.asi8)
+            return self._box_values(self.asi8.ravel()).reshape(self.shape)
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return self._format_native_types()
         elif is_integer_dtype(dtype):
@@ -1256,19 +1257,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             PerformanceWarning,
         )
 
-        # For EA self.astype('O') returns a numpy array, not an Index
-        left = self.astype("O")
+        # Caller is responsible for broadcasting if necessary
+        assert self.shape == other.shape, (self.shape, other.shape)
 
-        res_values = op(left, np.array(other))
-        kwargs = {}
-        if not is_period_dtype(self):
-            kwargs["freq"] = "infer"
-        try:
-            res = type(self)._from_sequence(res_values, **kwargs)
-        except ValueError:
-            # e.g. we've passed a Timestamp to TimedeltaArray
-            res = res_values
-        return res
+        res_values = op(self.astype("O"), np.array(other))
+        result = array(res_values.ravel())
+        result = extract_array(result, extract_numpy=True).reshape(self.shape)
+        return result
 
     def _time_shift(self, periods, freq=None):
         """
