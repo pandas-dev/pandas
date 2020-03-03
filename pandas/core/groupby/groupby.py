@@ -508,10 +508,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     @cache_readonly
     def _selected_obj(self):
         # Note: _selected_obj is always just `self.obj` for SeriesGroupBy
-        if getattr(self, "mutated", False):
-            obj = self._obj_with_exclusions
-        else:
-            obj = self.obj
+        obj = self.obj
         if self._selection is None or isinstance(obj, Series):
             if self._group_selection is not None:
                 return obj[self._group_selection]
