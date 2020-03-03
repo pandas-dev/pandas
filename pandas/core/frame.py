@@ -2741,7 +2741,7 @@ class DataFrame(NDFrame):
         """
         try:
             if takeable is True:
-                series = self._iget_item_cache(col)
+                series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
 
