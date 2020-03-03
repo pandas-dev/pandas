@@ -555,7 +555,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel : Return a flattened array.
         """
         return self._values.ravel(order=order)
 
@@ -852,9 +852,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         key_is_scalar = is_scalar(key)
-        if key_is_scalar:
-            key = self.index._convert_scalar_indexer(key, kind="getitem")
-        elif isinstance(key, (list, tuple)):
+        if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
@@ -974,8 +972,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
-        # We assume that _convert_scalar_indexer has already been called,
-        #  with kind="loc", if necessary, by the time we get here
         return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value):
@@ -2079,6 +2075,9 @@ Name: Max Speed, dtype: float64
         decimals : int, default 0
             Number of decimal places to round to. If decimals is negative,
             it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2133,8 +2132,8 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        core.window.Rolling.quantile
-        numpy.percentile
+        core.window.Rolling.quantile : Calculate the rolling quantile.
+        numpy.percentile : Returns the q-th percentile(s) of the array elements.
 
         Examples
         --------
@@ -3152,7 +3151,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort : Returns the indices that would sort this array.
         """
         values = self._values
         mask = isna(values)
