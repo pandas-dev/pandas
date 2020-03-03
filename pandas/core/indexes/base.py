@@ -118,12 +118,12 @@ def _make_comparison_op(op, cls):
         elif is_object_dtype(self) and isinstance(other, ExtensionArray):
             # e.g. PeriodArray
             with np.errstate(all="ignore"):
-                result = op(self.values, other)
+                result = op(self._values, other)
 
         elif is_object_dtype(self) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.values, other)
+                result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
         else:
             with np.errstate(all="ignore"):
@@ -1074,7 +1074,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = self.name
 
-        return Series(self.values.copy(), index=index, name=name)
+        return Series(self._values.copy(), index=index, name=name)
 
     def to_frame(self, index: bool = True, name=None):
         """
@@ -4233,7 +4233,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.putmask
         """
-        values = self.values.copy()
+        values = self._values.copy()
         try:
             np.putmask(values, mask, self._convert_for_op(value))
             return self._shallow_copy(values)
