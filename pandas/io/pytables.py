@@ -580,7 +580,7 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self, kind="pandas") -> List[str]:
+    def keys(self, kind: Optional[str] = "pandas") -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
@@ -588,7 +588,7 @@ class HDFStore:
         ----------
         kind : str, default 'pandas'
                 When kind equals 'pandas' return pandas objects
-                When kind equals 'table' return Tables
+                When kind equals 'table' return Table objects
                 Otherwise fail with a ValueError
 
         Returns
@@ -608,7 +608,7 @@ class HDFStore:
             return [
                 n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
             ]
-        raise ValueError(f"kind should be either pandas' or 'table' but is {kind}")
+        raise ValueError(f"`kind` should be either 'pandas' or 'table' but is [{kind}]")
 
     def __iter__(self):
         return iter(self.keys())
