@@ -555,7 +555,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel : Return a flattened array.
         """
         return self._values.ravel(order=order)
 
@@ -2079,6 +2079,9 @@ Name: Max Speed, dtype: float64
         decimals : int, default 0
             Number of decimal places to round to. If decimals is negative,
             it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2133,8 +2136,8 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        core.window.Rolling.quantile
-        numpy.percentile
+        core.window.Rolling.quantile : Calculate the rolling quantile.
+        numpy.percentile : Returns the q-th percentile(s) of the array elements.
 
         Examples
         --------
@@ -3152,7 +3155,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort : Returns the indices that would sort this array.
         """
         values = self._values
         mask = isna(values)

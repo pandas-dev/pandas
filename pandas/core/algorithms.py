@@ -313,8 +313,8 @@ def unique(values):
 
     See Also
     --------
-    Index.unique
-    Series.unique
+    Index.unique : Return unique values from an Index.
+    Series.unique : Return unique values of Series object.
 
     Examples
     --------
@@ -1515,7 +1515,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
     See Also
     --------
-    numpy.take
+    numpy.take : Take elements from an array along an axis.
 
     Examples
     --------
