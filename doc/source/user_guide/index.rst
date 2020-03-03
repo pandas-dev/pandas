@@ -23,6 +23,9 @@ Further information on any specific method can be obtained in the
 .. toctree::
     :maxdepth: 2
 
+    10min
+    dsintro
+    basics
     io
     indexing
     advanced
