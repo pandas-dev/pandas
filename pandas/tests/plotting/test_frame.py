@@ -167,6 +167,17 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x="x", y="y")
         _check_plot_works(df.plot.hexbin, x="x", y="y")
 
+    def test_nullable_int_plot(self):
+        # GH32073
+        dates = ["2008", "2009", None, "2011", "2012"]
+        df = pd.DataFrame({"A": [1, 2, 3, 4, 5],
+                           "B": [7, 5, np.nan, 3, 2],
+                           "C": pd.to_datetime(dates, format="%Y")})
+
+        _check_plot_works(df.plot, x="A", y="B")
+        _check_plot_works(df[["A", "B"]].astype("Int64").plot, x="A", y="B")
+        _check_plot_works(df[["A", "C"]].plot, x="A", y="C")
+
     def test_mpl2_color_cycle_str(self):
         # GH 15516
         colors = ["C" + str(x) for x in range(10)]
