@@ -2132,7 +2132,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        filled
+        Index
             Index.
 
         See Also
