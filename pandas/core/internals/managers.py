@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, internals as libinternals, lib
-from pandas._typing import DtypeObj, Label
+from pandas._typing import ArrayLike, DtypeObj, Label
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -154,6 +154,7 @@ class BlockManager(PandasObject):
         if self.ndim == 1:
             assert isinstance(self, SingleBlockManager)  # for mypy
             blocks = np.array([], dtype=self.array_dtype)
+            blocks = make_block(blocks, placement=slice(0, 0), ndim=1)
         else:
             blocks = []
         return type(self)(blocks, axes)
@@ -426,7 +427,11 @@ class BlockManager(PandasObject):
 
         if len(result_blocks) == 0:
             return self.make_empty(self.axes)
-        bm = type(self)(result_blocks, self.axes, do_integrity_check=False)
+        if self.ndim == 1:
+            assert len(result_blocks) == 1
+            bm = type(self)(result_blocks[0], self.axes)  # type: ignore
+        else:
+            bm = type(self)(result_blocks, self.axes, do_integrity_check=False)
         return bm
 
     def quantile(
@@ -626,8 +631,12 @@ class BlockManager(PandasObject):
                 rb = new_rb
             result_blocks.extend(rb)
 
-        bm = type(self)(result_blocks, self.axes)
-        bm._consolidate_inplace()
+        if self.ndim == 1:
+            assert len(result_blocks) == 1
+            bm = type(self)(result_blocks[0], self.axes)
+        else:
+            bm = type(self)(result_blocks, self.axes)
+            bm._consolidate_inplace()
         return bm
 
     def is_consolidated(self) -> bool:
@@ -715,6 +724,9 @@ class BlockManager(PandasObject):
         axes = list(self.axes)
         axes[0] = self.items.take(indexer)
 
+        if self.ndim == 1:
+            assert len(new_blocks) == 1
+            return type(self)(new_blocks[0], axes)  # type: ignore
         return type(self)(new_blocks, axes, do_integrity_check=False)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> "BlockManager":
@@ -1263,6 +1275,9 @@ class BlockManager(PandasObject):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
+        if self.ndim == 1:
+            assert len(new_blocks) == 1
+            return type(self)(new_blocks[0], new_axes)
         return type(self)(new_blocks, new_axes)
 
     def _slice_take_blocks_ax0(self, slice_or_indexer, fill_tuple=None):
@@ -1464,6 +1479,8 @@ class SingleBlockManager(BlockManager):
         do_integrity_check: bool = False,
         fastpath: bool = False,
     ):
+        assert isinstance(block, Block), type(block)
+
         if isinstance(axis, list):
             if len(axis) != 1:
                 raise ValueError(
@@ -1474,38 +1491,18 @@ class SingleBlockManager(BlockManager):
         # passed from constructor, single block, single axis
         if fastpath:
             self.axes = [axis]
-            if isinstance(block, list):
-
-                # empty block
-                if len(block) == 0:
-                    block = [np.array([])]
-                elif len(block) != 1:
-                    raise ValueError(
-                        "Cannot create SingleBlockManager with more than 1 block"
-                    )
-                block = block[0]
         else:
             self.axes = [ensure_index(axis)]
 
-            # create the block here
-            if isinstance(block, list):
-
-                # provide consolidation to the interleaved_dtype
-                if len(block) > 1:
-                    dtype = _interleaved_dtype(block)
-                    block = [b.astype(dtype) for b in block]
-                    block = _consolidate(block)
-
-                if len(block) != 1:
-                    raise ValueError(
-                        "Cannot create SingleBlockManager with more than 1 block"
-                    )
-                block = block[0]
-
-        if not isinstance(block, Block):
-            block = make_block(block, placement=slice(0, len(axis)), ndim=1)
-
         self.blocks = tuple([block])
+
+    @classmethod
+    def from_array(cls, array: ArrayLike, index: Index) -> "SingleBlockManager":
+        """
+        Constructor for if we have an array that is not yet a Block.
+        """
+        block = make_block(array, placement=slice(0, len(index)), ndim=1)
+        return cls(block, index, fastpath=True)
 
     def _post_setstate(self):
         pass
@@ -1532,7 +1529,10 @@ class SingleBlockManager(BlockManager):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
-        return type(self)(self._block._slice(slobj), self.index[slobj], fastpath=True)
+        blk = self._block
+        array = blk._slice(slobj)
+        block = blk.make_block_same_class(array, placement=range(len(array)))
+        return type(self)(block, self.index[slobj], fastpath=True)
 
     @property
     def index(self) -> Index:
@@ -1594,7 +1594,7 @@ class SingleBlockManager(BlockManager):
         """
         raise NotImplementedError("Use series._values[loc] instead")
 
-    def concat(self, to_concat, new_axis) -> "SingleBlockManager":
+    def concat(self, to_concat, new_axis: Index) -> "SingleBlockManager":
         """
         Concatenate a list of SingleBlockManagers into a single
         SingleBlockManager.
