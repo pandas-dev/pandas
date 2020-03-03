@@ -2741,7 +2741,7 @@ class DataFrame(NDFrame):
         """
         try:
             if takeable is True:
-                series = self._iget_item_cache(col)
+                series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
 
@@ -3599,7 +3599,7 @@ class DataFrame(NDFrame):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
