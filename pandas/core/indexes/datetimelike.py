@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
-    is_float,
     is_integer,
     is_list_like,
     is_period_dtype,
@@ -376,32 +375,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # --------------------------------------------------------------------
     # Indexing Methods
-
-    def _convert_scalar_indexer(self, key, kind: str):
-        """
-        We don't allow integer or float indexing on datetime-like when using
-        loc.
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'loc', 'getitem'}
-        """
-        assert kind in ["loc", "getitem"]
-
-        if not is_scalar(key):
-            raise TypeError(key)
-
-        # we don't allow integer/float indexing for loc
-        # we don't allow float indexing for getitem
-        is_int = is_integer(key)
-        is_flt = is_float(key)
-        if kind == "loc" and (is_int or is_flt):
-            raise KeyError(key)
-        elif kind == "getitem" and is_flt:
-            raise KeyError(key)
-
-        return super()._convert_scalar_indexer(key, kind=kind)
 
     def _validate_partial_date_slice(self, reso: str):
         raise NotImplementedError

@@ -5,8 +5,9 @@ import os
 import platform
 import struct
 import sys
-from typing import List, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 
+from pandas._typing import JSONSerializable
 from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
 
 
@@ -21,43 +22,32 @@ def _get_commit_hash() -> Optional[str]:
     return versions["full-revisionid"]
 
 
-def get_sys_info() -> List[Tuple[str, Optional[Union[str, int]]]]:
+def _get_sys_info() -> Dict[str, JSONSerializable]:
     """
-    Returns system information as a list
+    Returns system information as a JSON serializable dictionary.
     """
-    blob: List[Tuple[str, Optional[Union[str, int]]]] = []
-
-    # get full commit hash
-    commit = _get_commit_hash()
-
-    blob.append(("commit", commit))
-
-    try:
-        (sysname, nodename, release, version, machine, processor) = platform.uname()
-        blob.extend(
-            [
-                ("python", ".".join(map(str, sys.version_info))),
-                ("python-bits", struct.calcsize("P") * 8),
-                ("OS", f"{sysname}"),
-                ("OS-release", f"{release}"),
-                # FIXME: dont leave commented-out
-                # ("Version", f"{version}"),
-                ("machine", f"{machine}"),
-                ("processor", f"{processor}"),
-                ("byteorder", f"{sys.byteorder}"),
-                ("LC_ALL", f"{os.environ.get('LC_ALL', 'None')}"),
-                ("LANG", f"{os.environ.get('LANG', 'None')}"),
-                ("LOCALE", ".".join(map(str, locale.getlocale()))),
-            ]
-        )
-    except (KeyError, ValueError):
-        pass
-
-    return blob
+    uname_result = platform.uname()
+    language_code, encoding = locale.getlocale()
+    return {
+        "commit": _get_commit_hash(),
+        "python": ".".join(str(i) for i in sys.version_info),
+        "python-bits": struct.calcsize("P") * 8,
+        "OS": uname_result.system,
+        "OS-release": uname_result.release,
+        "Version": uname_result.version,
+        "machine": uname_result.machine,
+        "processor": uname_result.processor,
+        "byteorder": sys.byteorder,
+        "LC_ALL": os.environ.get("LC_ALL"),
+        "LANG": os.environ.get("LANG"),
+        "LOCALE": {"language-code": language_code, "encoding": encoding},
+    }
 
 
-def show_versions(as_json=False):
-    sys_info = get_sys_info()
+def _get_dependency_info() -> Dict[str, JSONSerializable]:
+    """
+    Returns dependency information as a JSON serializable dictionary.
+    """
     deps = [
         "pandas",
         # required
@@ -86,39 +76,45 @@ def show_versions(as_json=False):
         "IPython",
         "pandas_datareader",
     ]
-
     deps.extend(list(VERSIONS))
-    deps_blob = []
 
+    result: Dict[str, JSONSerializable] = {}
     for modname in deps:
         mod = import_optional_dependency(
             modname, raise_on_missing=False, on_version="ignore"
         )
-        ver: Optional[str]
-        if mod:
-            ver = _get_version(mod)
-        else:
-            ver = None
-        deps_blob.append((modname, ver))
+        result[modname] = _get_version(mod) if mod else None
+    return result
+
+
+def show_versions(as_json: Union[str, bool] = False) -> None:
+    sys_info = _get_sys_info()
+    deps = _get_dependency_info()
 
     if as_json:
-        j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
+        j = dict(system=sys_info, dependencies=deps)
 
         if as_json is True:
             print(j)
         else:
+            assert isinstance(as_json, str)  # needed for mypy
             with codecs.open(as_json, "wb", encoding="utf8") as f:
                 json.dump(j, f, indent=2)
 
     else:
+        assert isinstance(sys_info["LOCALE"], dict)  # needed for mypy
+        language_code = sys_info["LOCALE"]["language-code"]
+        encoding = sys_info["LOCALE"]["encoding"]
+        sys_info["LOCALE"] = f"{language_code}.{encoding}"
+
         maxlen = max(len(x) for x in deps)
         print("\nINSTALLED VERSIONS")
         print("------------------")
-        for k, stat in sys_info:
-            print(f"{k:<{maxlen}}: {stat}")
+        for k, v in sys_info.items():
+            print(f"{k:<{maxlen}}: {v}")
         print("")
-        for k, stat in deps_blob:
-            print(f"{k:<{maxlen}}: {stat}")
+        for k, v in deps.items():
+            print(f"{k:<{maxlen}}: {v}")
 
 
 def main() -> int:
