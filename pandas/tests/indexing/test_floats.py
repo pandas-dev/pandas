@@ -40,20 +40,7 @@ class TestFloatIndexers:
 
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "index_func",
-        [
-            tm.makeStringIndex,
-            tm.makeUnicodeIndex,
-            tm.makeCategoricalIndex,
-            tm.makeDateIndex,
-            tm.makeTimedeltaIndex,
-            tm.makePeriodIndex,
-            tm.makeIntIndex,
-            tm.makeRangeIndex,
-        ],
-    )
-    def test_scalar_error(self, index_func):
+    def test_scalar_error(self, series_with_simple_index):
 
         # GH 4892
         # float_indexers should raise exceptions
@@ -62,11 +49,9 @@ class TestFloatIndexers:
         # but is specifically testing for the error
         # message
 
-        i = index_func(5)
+        s = series_with_simple_index
 
-        s = Series(np.arange(len(i)), index=i)
-
-        msg = "Cannot index by location index"
+        msg = "Cannot index by location index with a non-integer key"
         with pytest.raises(TypeError, match=msg):
             s.iloc[3.0]
 
