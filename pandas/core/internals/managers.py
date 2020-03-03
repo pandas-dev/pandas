@@ -145,19 +145,20 @@ class BlockManager(PandasObject):
 
         self._rebuild_blknos_and_blklocs()
 
-    def make_empty(self, axes=None):
+    def make_empty(self, axes=None) -> "BlockManager":
         """ return an empty BlockManager with the items axis of len 0 """
         if axes is None:
-            axes = [ensure_index([])] + [ensure_index(a) for a in self.axes[1:]]
+            axes = [Index([])] + self.axes[1:]
 
         # preserve dtype if possible
         if self.ndim == 1:
+            assert isinstance(self, SingleBlockManager)  # for mypy
             blocks = np.array([], dtype=self.array_dtype)
         else:
             blocks = []
         return type(self)(blocks, axes)
 
-    def __nonzero__(self):
+    def __nonzero__(self) -> bool:
         return True
 
     # Python3 compat
@@ -171,7 +172,7 @@ class BlockManager(PandasObject):
     def ndim(self) -> int:
         return len(self.axes)
 
-    def set_axis(self, axis: int, new_labels: Index):
+    def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
         old_len = len(self.axes[axis])
         new_len = len(new_labels)
@@ -214,7 +215,7 @@ class BlockManager(PandasObject):
             0, len(self), 1
         )
 
-    def _rebuild_blknos_and_blklocs(self):
+    def _rebuild_blknos_and_blklocs(self) -> None:
         """
         Update mgr._blknos / mgr._blklocs.
         """
@@ -288,7 +289,7 @@ class BlockManager(PandasObject):
 
         self._post_setstate()
 
-    def _post_setstate(self):
+    def _post_setstate(self) -> None:
         self._is_consolidated = False
         self._known_consolidated = False
         self._rebuild_blknos_and_blklocs()
@@ -308,7 +309,7 @@ class BlockManager(PandasObject):
             output += f"\n{pprint_thing(block)}"
         return output
 
-    def _verify_integrity(self):
+    def _verify_integrity(self) -> None:
         mgr_shape = self.shape
         tot_items = sum(len(x.mgr_locs) for x in self.blocks)
         for block in self.blocks:
@@ -347,7 +348,7 @@ class BlockManager(PandasObject):
 
         return res
 
-    def apply(self, f, filter=None, **kwargs):
+    def apply(self, f, filter=None, **kwargs) -> "BlockManager":
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
@@ -430,13 +431,13 @@ class BlockManager(PandasObject):
 
     def quantile(
         self,
-        axis=0,
-        consolidate=True,
-        transposed=False,
+        axis: int = 0,
+        consolidate: bool = True,
+        transposed: bool = False,
         interpolation="linear",
         qs=None,
         numeric_only=None,
-    ):
+    ) -> "BlockManager":
         """
         Iterate over blocks applying quantile reduction.
         This routine is intended for reduction type operations and
@@ -455,7 +456,7 @@ class BlockManager(PandasObject):
 
         Returns
         -------
-        Block Manager (new object)
+        BlockManager
         """
         # Series dispatches to DataFrame for quantile, which allows us to
         #  simplify some of the code here and in the blocks
@@ -533,44 +534,48 @@ class BlockManager(PandasObject):
             fastpath=True,
         )
 
-    def isna(self, func):
+    def isna(self, func) -> "BlockManager":
         return self.apply("apply", func=func)
 
-    def where(self, **kwargs):
+    def where(self, **kwargs) -> "BlockManager":
         return self.apply("where", **kwargs)
 
-    def setitem(self, **kwargs):
+    def setitem(self, **kwargs) -> "BlockManager":
         return self.apply("setitem", **kwargs)
 
     def putmask(self, **kwargs):
         return self.apply("putmask", **kwargs)
 
-    def diff(self, **kwargs):
+    def diff(self, **kwargs) -> "BlockManager":
         return self.apply("diff", **kwargs)
 
-    def interpolate(self, **kwargs):
+    def interpolate(self, **kwargs) -> "BlockManager":
         return self.apply("interpolate", **kwargs)
 
-    def shift(self, **kwargs):
+    def shift(self, **kwargs) -> "BlockManager":
         return self.apply("shift", **kwargs)
 
-    def fillna(self, **kwargs):
+    def fillna(self, **kwargs) -> "BlockManager":
         return self.apply("fillna", **kwargs)
 
-    def downcast(self, **kwargs):
+    def downcast(self, **kwargs) -> "BlockManager":
         return self.apply("downcast", **kwargs)
 
-    def astype(self, dtype, copy: bool = False, errors: str = "raise"):
+    def astype(
+        self, dtype, copy: bool = False, errors: str = "raise"
+    ) -> "BlockManager":
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs) -> "BlockManager":
         return self.apply("convert", **kwargs)
 
-    def replace(self, value, **kwargs):
+    def replace(self, value, **kwargs) -> "BlockManager":
         assert np.ndim(value) == 0, value
         return self.apply("replace", value=value, **kwargs)
 
-    def replace_list(self, src_list, dest_list, inplace=False, regex=False):
+    def replace_list(
+        self, src_list, dest_list, inplace: bool = False, regex: bool = False
+    ) -> "BlockManager":
         """ do a list replace """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -602,7 +607,7 @@ class BlockManager(PandasObject):
             rb = [blk if inplace else blk.copy()]
             for i, (s, d) in enumerate(zip(src_list, dest_list)):
                 # TODO: assert/validate that `d` is always a scalar?
-                new_rb = []
+                new_rb: List[Block] = []
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
                     convert = i == src_len
@@ -633,7 +638,7 @@ class BlockManager(PandasObject):
             self._consolidate_check()
         return self._is_consolidated
 
-    def _consolidate_check(self):
+    def _consolidate_check(self) -> None:
         ftypes = [blk.ftype for blk in self.blocks]
         self._is_consolidated = len(ftypes) == len(set(ftypes))
         self._known_consolidated = True
@@ -670,7 +675,7 @@ class BlockManager(PandasObject):
 
         return False
 
-    def get_bool_data(self, copy: bool = False):
+    def get_bool_data(self, copy: bool = False) -> "BlockManager":
         """
         Parameters
         ----------
@@ -680,7 +685,7 @@ class BlockManager(PandasObject):
         self._consolidate_inplace()
         return self.combine([b for b in self.blocks if b.is_bool], copy)
 
-    def get_numeric_data(self, copy: bool = False):
+    def get_numeric_data(self, copy: bool = False) -> "BlockManager":
         """
         Parameters
         ----------
@@ -712,7 +717,7 @@ class BlockManager(PandasObject):
 
         return type(self)(new_blocks, axes, do_integrity_check=False)
 
-    def get_slice(self, slobj: slice, axis: int = 0):
+    def get_slice(self, slobj: slice, axis: int = 0) -> "BlockManager":
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
@@ -737,7 +742,7 @@ class BlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep=True):
+    def copy(self, deep=True) -> "BlockManager":
         """
         Make deep or shallow copy of BlockManager
 
@@ -797,7 +802,7 @@ class BlockManager(PandasObject):
 
         return arr.transpose() if transpose else arr
 
-    def _interleave(self):
+    def _interleave(self) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
@@ -807,7 +812,7 @@ class BlockManager(PandasObject):
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
         if is_sparse(dtype):
-            dtype = dtype.subtype
+            dtype = dtype.subtype  # type: ignore
         elif is_extension_array_dtype(dtype):
             dtype = "object"
 
@@ -906,7 +911,7 @@ class BlockManager(PandasObject):
         bm._consolidate_inplace()
         return bm
 
-    def _consolidate_inplace(self):
+    def _consolidate_inplace(self) -> None:
         if not self.is_consolidated():
             self.blocks = tuple(_consolidate(self.blocks))
             self._is_consolidated = True
@@ -1168,7 +1173,13 @@ class BlockManager(PandasObject):
             self._consolidate_inplace()
 
     def reindex_axis(
-        self, new_index, axis, method=None, limit=None, fill_value=None, copy=True
+        self,
+        new_index,
+        axis: int,
+        method=None,
+        limit=None,
+        fill_value=None,
+        copy: bool = True,
     ):
         """
         Conform block manager to new index.
@@ -1183,7 +1194,13 @@ class BlockManager(PandasObject):
         )
 
     def reindex_indexer(
-        self, new_axis, indexer, axis, fill_value=None, allow_dups=False, copy=True
+        self,
+        new_axis,
+        indexer,
+        axis: int,
+        fill_value=None,
+        allow_dups=False,
+        copy: bool = True,
     ):
         """
         Parameters
@@ -1191,8 +1208,10 @@ class BlockManager(PandasObject):
         new_axis : Index
         indexer : ndarray of int64 or None
         axis : int
-        fill_value : object
-        allow_dups : bool
+        fill_value : object, default None
+        allow_dups : bool, default False
+        copy : bool, default True
+
 
         pandas-indexer with -1's only.
         """
@@ -1329,7 +1348,7 @@ class BlockManager(PandasObject):
         block_values.fill(fill_value)
         return make_block(block_values, placement=placement)
 
-    def take(self, indexer, axis=1, verify=True, convert=True):
+    def take(self, indexer, axis: int = 1, verify: bool = True, convert: bool = True):
         """
         Take items along any axis.
         """
@@ -1506,11 +1525,11 @@ class SingleBlockManager(BlockManager):
         return self.axes[0]
 
     @property
-    def dtype(self):
+    def dtype(self) -> DtypeObj:
         return self._block.dtype
 
     @property
-    def array_dtype(self):
+    def array_dtype(self) -> DtypeObj:
         return self._block.array_dtype
 
     def get_dtype_counts(self):
