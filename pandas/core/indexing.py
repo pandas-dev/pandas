@@ -1633,14 +1633,12 @@ class _iLocIndexer(_LocationIndexer):
                 info_idx = [info_idx]
             labels = item_labels[info_idx]
 
+            plane_indexer = indexer[:1]
+            lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+            # lplane_indexer gives the expected length of obj[indexer[0]]
+
             if len(labels) == 1:
                 # We can operate on a single column
-                item = labels[0]
-                idx = indexer[0]
-
-                plane_indexer = tuple([idx])
-                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
-                # lplane_indexer gives the expected length of obj[idx]
 
                 # require that we are setting the right number of values that
                 # we are indexing
@@ -1651,11 +1649,6 @@ class _iLocIndexer(_LocationIndexer):
                         "selection indexer with a different "
                         "length than the value"
                     )
-
-            # non-mi
-            else:
-                plane_indexer = indexer[:1]
-                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
 
             def setter(item, v):
                 ser = self.obj[item]
@@ -1718,18 +1711,23 @@ class _iLocIndexer(_LocationIndexer):
 
                     for i, item in enumerate(labels):
 
-                        # setting with a list, recoerces
+                        # setting with a list, re-coerces
                         setter(item, value[:, i].tolist())
 
-                # we have an equal len list/ndarray
-                elif _can_do_equal_len(
-                    labels, value, plane_indexer, lplane_indexer, self.obj
+                elif (
+                    len(labels) == 1
+                    and lplane_indexer == len(value)
+                    and not is_scalar(plane_indexer[0])
                 ):
+                    # we have an equal len list/ndarray
                     setter(labels[0], value)
 
-                # per label values
-                else:
+                elif lplane_indexer == 0 and len(value) == len(self.obj.index):
+                    # We get here in one case via .loc with a all-False mask
+                    pass
 
+                else:
+                    # per-label values
                     if len(labels) != len(value):
                         raise ValueError(
                             "Must have equal len keys and value "
@@ -1746,7 +1744,6 @@ class _iLocIndexer(_LocationIndexer):
 
         else:
             if isinstance(indexer, tuple):
-                indexer = maybe_convert_ix(*indexer)
 
                 # if we are setting on the info axis ONLY
                 # set using those methods to avoid block-splitting
@@ -1763,6 +1760,8 @@ class _iLocIndexer(_LocationIndexer):
                 ):
                     self.obj[item_labels[indexer[info_axis]]] = value
                     return
+
+                indexer = maybe_convert_ix(*indexer)
 
             if isinstance(value, (ABCSeries, dict)):
                 # TODO(EA): ExtensionBlock.setitem this causes issues with
@@ -2277,26 +2276,3 @@ def _maybe_numeric_slice(df, slice_, include_bool=False):
             dtypes.append(bool)
         slice_ = IndexSlice[:, df.select_dtypes(include=dtypes).columns]
     return slice_
-
-
-def _can_do_equal_len(labels, value, plane_indexer, lplane_indexer, obj) -> bool:
-    """
-    Returns
-    -------
-    bool
-        True if we have an equal len settable.
-    """
-    if not len(labels) == 1 or not np.iterable(value) or is_scalar(plane_indexer[0]):
-        return False
-
-    item = labels[0]
-    index = obj[item].index
-
-    values_len = len(value)
-    # equal len list/ndarray
-    if len(index) == values_len:
-        return True
-    elif lplane_indexer == values_len:
-        return True
-
-    return False
