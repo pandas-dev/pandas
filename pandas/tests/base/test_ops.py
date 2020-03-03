@@ -11,6 +11,7 @@ from pandas.compat import PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_object_dtype,
@@ -802,62 +803,83 @@ class TestIndexOps(Ops):
                 assert o is not result
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
-    def test_memory_usage(self):
-        for o in self.objs:
-            res = o.memory_usage()
-            res_deep = o.memory_usage(deep=True)
+    def test_memory_usage(self, index_or_series_obj):
+        obj = index_or_series_obj
+        res = obj.memory_usage()
+        res_deep = obj.memory_usage(deep=True)
 
-            if is_object_dtype(o) or (
-                isinstance(o, Series) and is_object_dtype(o.index)
-            ):
-                # if there are objects, only deep will pick them up
-                assert res_deep > res
-            else:
-                assert res == res_deep
+        is_object = is_object_dtype(obj) or (
+            isinstance(obj, Series) and is_object_dtype(obj.index)
+        )
+        is_categorical = is_categorical_dtype(obj) or (
+            isinstance(obj, Series) and is_categorical_dtype(obj.index)
+        )
 
-            if isinstance(o, Series):
-                assert (
-                    o.memory_usage(index=False) + o.index.memory_usage()
-                ) == o.memory_usage(index=True)
+        if len(obj) == 0:
+            assert res_deep == res == 0
+        elif is_object or is_categorical:
+            # only deep will pick them up
+            assert res_deep > res
+        else:
+            assert res == res_deep
 
-            # sys.getsizeof will call the .memory_usage with
-            # deep=True, and add on some GC overhead
-            diff = res_deep - sys.getsizeof(o)
-            assert abs(diff) < 100
+        # sys.getsizeof will call the .memory_usage with
+        # deep=True, and add on some GC overhead
+        diff = res_deep - sys.getsizeof(obj)
+        assert abs(diff) < 100
 
-    def test_searchsorted(self):
+    def test_memory_usage_components_series(self, series_with_simple_index):
+        series = series_with_simple_index
+        total_usage = series.memory_usage(index=True)
+        non_index_usage = series.memory_usage(index=False)
+        index_usage = series.index.memory_usage()
+        assert total_usage == non_index_usage + index_usage
+
+    def test_memory_usage_components_narrow_series(self, narrow_series):
+        series = narrow_series
+        total_usage = series.memory_usage(index=True)
+        non_index_usage = series.memory_usage(index=False)
+        index_usage = series.index.memory_usage()
+        assert total_usage == non_index_usage + index_usage
+
+    def test_searchsorted(self, index_or_series_obj):
+        # numpy.searchsorted calls obj.searchsorted under the hood.
         # See gh-12238
-        for o in self.objs:
-            index = np.searchsorted(o, max(o))
-            assert 0 <= index <= len(o)
+        obj = index_or_series_obj
 
-            index = np.searchsorted(o, max(o), sorter=range(len(o)))
-            assert 0 <= index <= len(o)
+        if isinstance(obj, pd.MultiIndex):
+            # See gh-14833
+            pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
 
-    def test_validate_bool_args(self):
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        max_obj = max(obj, default=0)
+        index = np.searchsorted(obj, max_obj)
+        assert 0 <= index <= len(obj)
 
-        for value in invalid_values:
-            msg = "expected type bool"
-            with pytest.raises(ValueError, match=msg):
-                self.int_series.drop_duplicates(inplace=value)
+        index = np.searchsorted(obj, max_obj, sorter=range(len(obj)))
+        assert 0 <= index <= len(obj)
 
-    def test_getitem(self):
-        for i in self.indexes:
-            s = pd.Series(i)
+    def test_access_by_position(self, indices):
+        index = indices
 
-            assert i[0] == s.iloc[0]
-            assert i[5] == s.iloc[5]
-            assert i[-1] == s.iloc[-1]
+        if len(index) == 0:
+            pytest.skip("Test doesn't make sense on empty data")
+        elif isinstance(index, pd.MultiIndex):
+            pytest.skip("Can't instantiate Series from MultiIndex")
 
-            assert i[-1] == i[9]
+        series = pd.Series(index)
+        assert index[0] == series.iloc[0]
+        assert index[5] == series.iloc[5]
+        assert index[-1] == series.iloc[-1]
 
-            msg = "index 20 is out of bounds for axis 0 with size 10"
-            with pytest.raises(IndexError, match=msg):
-                i[20]
-            msg = "single positional indexer is out-of-bounds"
-            with pytest.raises(IndexError, match=msg):
-                s.iloc[20]
+        size = len(index)
+        assert index[-1] == index[size - 1]
+
+        msg = f"index {size} is out of bounds for axis 0 with size {size}"
+        with pytest.raises(IndexError, match=msg):
+            index[size]
+        msg = "single positional indexer is out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
+            series.iloc[size]
 
     @pytest.mark.parametrize("indexer_klass", [list, pd.Index])
     @pytest.mark.parametrize(

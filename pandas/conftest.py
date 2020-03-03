@@ -1047,6 +1047,16 @@ _narrow_series = {
     for dtype in _narrow_dtypes
 }
 
+
+@pytest.fixture(params=_narrow_series.keys())
+def narrow_series(request):
+    """
+    Fixture for Series with low precision data types
+    """
+    # copy to avoid mutation, e.g. setting .name
+    return _narrow_series[request.param].copy()
+
+
 _index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
 
 
