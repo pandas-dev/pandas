@@ -1753,8 +1753,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        Series.dropna
-        DataFrame.dropna
+        Series.dropna : Return series without null values.
+        DataFrame.dropna : Return DataFrame with labels on given axis omitted
+            where (all or any) data are missing.
 
         Notes
         -----
@@ -2173,7 +2174,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        read_json
+        read_json : Convert a JSON string to pandas object.
 
         Notes
         -----
@@ -3462,15 +3463,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             res._is_copy = self._is_copy
         return res
 
-    def _iget_item_cache(self, item: int):
-        """Return the cached item, item represents a positional indexer."""
-        ax = self._info_axis
-        if ax.is_unique:
-            lower = self._get_item_cache(ax[item])
-        else:
-            return self._ixs(item, axis=1)
-        return lower
-
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
 
@@ -4452,7 +4444,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.loc
+        DataFrame.loc : Access a group of rows and columns
+            by label(s) or a boolean array.
 
         Notes
         -----
@@ -4884,9 +4877,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.apply
-        DataFrame.applymap
-        Series.map
+        DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
+        Series.map : Apply a mapping correspondence on a
+            :class:`~pandas.Series`.
 
         Notes
         -----
