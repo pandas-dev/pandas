@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -2525,14 +2524,8 @@ class Index(IndexOpsMixin, PandasObject):
             return other._get_reconciled_name_object(self)
 
         # TODO(EA): setops-refactor, clean all this up
-        if is_datetime64tz_dtype(self):
-            lvals = self._ndarray_values
-        else:
-            lvals = self._values
-        if is_datetime64tz_dtype(other):
-            rvals = other._ndarray_values
-        else:
-            rvals = other._values
+        lvals = self._values
+        rvals = other._values
 
         if sort is None and self.is_monotonic and other.is_monotonic:
             try:
@@ -3076,48 +3069,6 @@ class Index(IndexOpsMixin, PandasObject):
         Only relevant for MultiIndex.
         """
         # GH#10331
-        return key
-
-    def _convert_scalar_indexer(self, key, kind: str_t):
-        """
-        Convert a scalar indexer.
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'loc', 'getitem'}
-        """
-        assert kind in ["loc", "getitem"]
-
-        if len(self) and not isinstance(self, ABCMultiIndex):
-
-            # we can raise here if we are definitive that this
-            # is positional indexing (eg. .loc on with a float)
-            # or label indexing if we are using a type able
-            # to be represented in the index
-
-            if kind == "getitem" and is_float(key):
-                if not self.is_floating():
-                    raise KeyError(key)
-
-            elif kind == "loc" and is_float(key):
-
-                # we want to raise KeyError on string/mixed here
-                # technically we *could* raise a TypeError
-                # on anything but mixed though
-                if self.inferred_type not in [
-                    "floating",
-                    "mixed-integer-float",
-                    "integer-na",
-                    "string",
-                    "mixed",
-                ]:
-                    raise KeyError(key)
-
-            elif kind == "loc" and is_integer(key):
-                if not (is_integer_dtype(self.dtype) or is_object_dtype(self.dtype)):
-                    raise KeyError(key)
-
         return key
 
     def _validate_positional_slice(self, key: slice):
@@ -4236,6 +4187,9 @@ class Index(IndexOpsMixin, PandasObject):
         values = self.values.copy()
         try:
             np.putmask(values, mask, self._convert_for_op(value))
+            if is_period_dtype(self.dtype):
+                # .values cast to object, so we need to cast back
+                values = type(self)(values)._data
             return self._shallow_copy(values)
         except (ValueError, TypeError) as err:
             if is_object_dtype(self):
@@ -4814,6 +4768,7 @@ class Index(IndexOpsMixin, PandasObject):
         Int64Index([1, 2, 3], dtype='int64')
 
         Check whether each index value in a list of values.
+
         >>> idx.isin([1, 4])
         array([ True, False, False])
 
