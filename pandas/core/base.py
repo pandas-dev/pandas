@@ -928,19 +928,17 @@ class IndexOpsMixin:
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(
-        operation="maximum",
-        oppose_operation="minimum",
+        op="max",
+        oppose="min",
         value="largest",
         position="third",
-        klass="argmax",
-        oppose_klass="argmin",
         example_values="2",
     )
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return int position of the {value} value in the Series.
 
-        If the {operation} is achieved in multiple locations,
+        If the {op}imum is achieved in multiple locations,
         the first row position is returned.
 
         Parameters
@@ -955,12 +953,12 @@ class IndexOpsMixin:
         Returns
         -------
         int
-            Row position of the {operation} values.
+            Row position of the {op}imum value.
 
         See Also
         --------
-        numpy.ndarray.{klass} : Equivalent method for numpy arrays.
-        Series.{oppose_klass} : Similar method, but returning the {oppose_operation}.
+        numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
+        Series.arg{oppose} : Similar method, but returning the {oppose}inimum.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
 
@@ -977,10 +975,10 @@ class IndexOpsMixin:
         Cocoa Puff               110.0
         dtype: float64
 
-        >>> s.{klass}()
+        >>> s.arg{op}()
         {example_values}
 
-        The {operation} cereal calories is in the {position} element,
+        The {op}imum cereal calories is the {position} element,
         since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
