@@ -411,15 +411,19 @@ class MPLPlot:
         if is_empty:
             raise TypeError("no numeric data to plot")
 
-        def convert_null_integers(data):
-            # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
-            # np.ndarray before plot.
+        def convert_to_ndarray(data):
             # GH32073: cast to float if values contain nulled integers
             if is_integer_dtype(data.dtype) and is_extension_array_dtype(data.dtype):
                 return data.to_numpy(dtype="float", na_value=np.nan)
-            return np.asarray(data)
 
-        self.data = numeric_data.apply(convert_null_integers)
+            # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
+            # np.ndarray before plot.
+            if len(data) > 0:
+                return np.asarray(data)
+
+            return data
+
+        self.data = numeric_data.apply(convert_to_ndarray)
 
     def _make_plot(self):
         raise AbstractMethodError(self)
