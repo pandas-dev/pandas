@@ -791,7 +791,6 @@ class TestDatetimeIndexTimezones:
         """ Test different DatetimeIndex constructions with timezone
         Follow-up of GH#4229
         """
-
         arr = ["11/10/2005 08:00:00", "11/10/2005 09:00:00"]
 
         idx1 = to_datetime(arr).tz_localize(tzstr)
@@ -804,20 +803,6 @@ class TestDatetimeIndexTimezones:
 
     # -------------------------------------------------------------
     # Unsorted
-
-    def test_join_utc_convert(self, join_type):
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
-
-        left = rng.tz_convert("US/Eastern")
-        right = rng.tz_convert("Europe/Berlin")
-
-        result = left.join(left[:-5], how=join_type)
-        assert isinstance(result, DatetimeIndex)
-        assert result.tz == left.tz
-
-        result = left.join(right[:-5], how=join_type)
-        assert isinstance(result, DatetimeIndex)
-        assert result.tz.zone == "UTC"
 
     @pytest.mark.parametrize(
         "dtype",

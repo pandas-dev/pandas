@@ -26,7 +26,14 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DatetimeIndex,
+    IntervalIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
@@ -127,6 +134,11 @@ class TestCategoricalDtype(Base):
         with pytest.raises(ValueError, match=msg):
             CategoricalDtype._from_values_or_dtype(values, categories, ordered, dtype)
 
+    def test_from_values_or_dtype_invalid_dtype(self):
+        msg = "Cannot not construct CategoricalDtype from <class 'object'>"
+        with pytest.raises(ValueError, match=msg):
+            CategoricalDtype._from_values_or_dtype(None, None, None, object)
+
     def test_is_dtype(self, dtype):
         assert CategoricalDtype.is_dtype(dtype)
         assert CategoricalDtype.is_dtype("category")
@@ -171,6 +183,11 @@ class TestCategoricalDtype(Base):
         assert cat.dtype._is_boolean is expected
         assert is_bool_dtype(cat) is expected
         assert is_bool_dtype(cat.dtype) is expected
+
+    def test_dtype_specific_categorical_dtype(self):
+        expected = "datetime64[ns]"
+        result = str(Categorical(DatetimeIndex([])).categories.dtype)
+        assert result == expected
 
 
 class TestDatetimeTZDtype(Base):
@@ -233,27 +250,27 @@ class TestDatetimeTZDtype(Base):
     def test_construction_from_string(self, dtype):
         result = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         assert is_dtype_equal(dtype, result)
-        msg = "Cannot construct a 'DatetimeTZDtype' from 'foo'"
-        with pytest.raises(TypeError, match=msg):
-            DatetimeTZDtype.construct_from_string("foo")
 
-    def test_construct_from_string_raises(self):
-        with pytest.raises(TypeError, match="notatz"):
-            DatetimeTZDtype.construct_from_string("datetime64[ns, notatz]")
-
-        msg = "'construct_from_string' expects a string, got <class 'list'>"
-        with pytest.raises(TypeError, match=re.escape(msg)):
-            # list instead of string
-            DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
-
-        msg = "^Cannot construct a 'DatetimeTZDtype'"
-        with pytest.raises(TypeError, match=msg):
+    @pytest.mark.parametrize(
+        "string",
+        [
+            "foo",
+            "datetime64[ns, notatz]",
             # non-nano unit
-            DatetimeTZDtype.construct_from_string("datetime64[ps, UTC]")
-
-        with pytest.raises(TypeError, match=msg):
+            "datetime64[ps, UTC]",
             # dateutil str that returns None from gettz
-            DatetimeTZDtype.construct_from_string("datetime64[ns, dateutil/invalid]")
+            "datetime64[ns, dateutil/invalid]",
+        ],
+    )
+    def test_construct_from_string_invalid_raises(self, string):
+        msg = f"Cannot construct a 'DatetimeTZDtype' from '{string}'"
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            DatetimeTZDtype.construct_from_string(string)
+
+    def test_construct_from_string_wrong_type_raises(self):
+        msg = "'construct_from_string' expects a string, got <class 'list'>"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeTZDtype.construct_from_string(["datetime64[ns, notatz]"])
 
     def test_is_dtype(self, dtype):
         assert not DatetimeTZDtype.is_dtype(None)

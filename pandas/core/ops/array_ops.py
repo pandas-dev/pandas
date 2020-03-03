@@ -4,11 +4,12 @@ ExtensionArrays.
 """
 from functools import partial
 import operator
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib, ops as libops
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -43,9 +44,9 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
 
-    # TODO: Should the checks below be ABCIndexClass?
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
-        # TODO: should this be ABCIndexClass??
+        # Note: these checks can be for ABCIndex and not ABCIndexClass
+        #  because that is the only object-dtype class.
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
@@ -125,7 +126,7 @@ def define_na_arithmetic_op(op, str_rep: str):
     return na_op
 
 
-def na_arithmetic_op(left, right, op, str_rep: str):
+def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -136,6 +137,8 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     left : np.ndarray
     right : np.ndarray or scalar
     str_rep : str or None
+    is_cmp : bool, default False
+        If this a comparison operation.
 
     Returns
     -------
@@ -150,14 +153,22 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     try:
         result = expressions.evaluate(op, str_rep, left, right)
     except TypeError:
+        if is_cmp:
+            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
+            #  In this case we do not fall back to the masked op, as that
+            #  will handle complex numbers incorrectly, see GH#32047
+            raise
         result = masked_arith_op(left, right, op)
+
+    if is_cmp and (is_scalar(result) or result is NotImplemented):
+        # numpy returned a scalar instead of operating element-wise
+        # e.g. numeric array vs str
+        return invalid_comparison(left, right, op)
 
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op, str_rep: str
-):
+def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -175,7 +186,6 @@ def arithmetic_op(
     ndarrray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
-
     from pandas.core.ops import maybe_upcast_for_op
 
     # NB: We assume that extract_array has already been called
@@ -202,8 +212,8 @@ def arithmetic_op(
 
 
 def comparison_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
-) -> Union[np.ndarray, ABCExtensionArray]:
+    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
+) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -216,9 +226,8 @@ def comparison_op(
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
     """
-
     # NB: We assume extract_array has already been called on left and right
     lvalues = left
     rvalues = right
@@ -249,16 +258,8 @@ def comparison_op(
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = f"__{op.__name__}__"
-        method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
-            res_values = method(rvalues)
-
-        if res_values is NotImplemented:
-            res_values = invalid_comparison(lvalues, rvalues, op)
-        if is_scalar(res_values):
-            typ = type(rvalues)
-            raise TypeError(f"Could not compare {typ} type with Series")
+            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
 
     return res_values
 
@@ -294,19 +295,17 @@ def na_logical_op(x: np.ndarray, y, op):
                 AttributeError,
                 OverflowError,
                 NotImplementedError,
-            ):
+            ) as err:
                 typ = type(y).__name__
                 raise TypeError(
                     f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
                     f"and scalar of type [{typ}]"
-                )
+                ) from err
 
     return result.reshape(x.shape)
 
 
-def logical_op(
-    left: Union[np.ndarray, ABCExtensionArray], right: Any, op
-) -> Union[np.ndarray, ABCExtensionArray]:
+def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a logical operation `|`, `&`, or `^`.
 
@@ -322,7 +321,6 @@ def logical_op(
     -------
     ndarrray or ExtensionArray
     """
-
     fill_int = lambda x: x
 
     def fill_bool(x, left=None):
@@ -388,7 +386,7 @@ def get_array_op(op, str_rep: Optional[str] = None):
     """
     op_name = op.__name__.strip("_")
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op)
+        return partial(comparison_op, op=op, str_rep=str_rep)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
     else:

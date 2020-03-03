@@ -1,4 +1,5 @@
-""":func:`~pandas.eval` source string parsing functions
+"""
+:func:`~pandas.eval` source string parsing functions
 """
 
 from io import StringIO
@@ -184,7 +185,7 @@ def tokenize_string(source: str) -> Iterator[Tuple[int, str]]:
                 yield tokenize_backtick_quoted_string(
                     token_generator, source, string_start=start[1] + 1
                 )
-            except Exception:
-                raise SyntaxError(f"Failed to parse backticks in '{source}'.")
+            except Exception as err:
+                raise SyntaxError(f"Failed to parse backticks in '{source}'.") from err
         else:
             yield toknum, tokval

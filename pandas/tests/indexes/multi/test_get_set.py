@@ -57,8 +57,6 @@ def test_get_value_duplicates():
     )
 
     assert index.get_loc("D") == slice(0, 3)
-    with pytest.raises(KeyError, match=r"^'D'$"):
-        index._engine.get_value(np.array([]), "D")
 
 
 def test_get_level_values_all_na():
@@ -159,7 +157,7 @@ def test_set_levels_codes_directly(idx):
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
-    msg = "can't set attribute"
+    msg = "[Cc]an't set attribute"
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
     with pytest.raises(AttributeError, match=msg):

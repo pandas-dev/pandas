@@ -1,10 +1,11 @@
 import numbers
-from typing import TYPE_CHECKING, Any, Dict, Tuple, Type, Union
+from typing import TYPE_CHECKING, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.util._decorators import cache_readonly
 
@@ -102,6 +103,10 @@ class _IntegerDtype(ExtensionDtype):
         import pyarrow  # noqa: F811
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
+        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
+        if not array.type.equals(pyarrow_type):
+            array = array.cast(pyarrow_type)
+
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
@@ -147,10 +152,9 @@ def safe_cast(values, dtype, copy: bool):
     ints.
 
     """
-
     try:
         return values.astype(dtype, casting="safe", copy=copy)
-    except TypeError:
+    except TypeError as err:
 
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
@@ -158,7 +162,7 @@ def safe_cast(values, dtype, copy: bool):
 
         raise TypeError(
             f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
-        )
+        ) from err
 
 
 def coerce_to_array(
@@ -195,8 +199,8 @@ def coerce_to_array(
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
-            except KeyError:
-                raise ValueError(f"invalid dtype specified {dtype}")
+            except KeyError as err:
+                raise ValueError(f"invalid dtype specified {dtype}") from err
 
     if isinstance(values, IntegerArray):
         values, mask = values._data, values._mask
@@ -347,13 +351,7 @@ class IntegerArray(BaseMaskedArray):
                 "mask should be boolean numpy array. Use "
                 "the 'integer_array' function instead"
             )
-
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
-
-        self._data = values
-        self._mask = mask
+        super().__init__(values, mask, copy=copy)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
@@ -417,7 +415,7 @@ class IntegerArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         _is_scalar = is_scalar(value)
         if _is_scalar:
             value = [value]
@@ -431,9 +429,9 @@ class IntegerArray(BaseMaskedArray):
         self._data[key] = value
         self._mask[key] = mask
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True) -> ArrayLike:
         """
-        Cast to a NumPy array or IntegerArray with 'dtype'.
+        Cast to a NumPy array or ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -446,8 +444,8 @@ class IntegerArray(BaseMaskedArray):
 
         Returns
         -------
-        array : ndarray or IntegerArray
-            NumPy ndarray or IntergerArray with 'dtype' for its dtype.
+        ndarray or ExtensionArray
+            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
 
         Raises
         ------
@@ -479,7 +477,8 @@ class IntegerArray(BaseMaskedArray):
 
     @property
     def _ndarray_values(self) -> np.ndarray:
-        """Internal pandas method for lossy conversion to a NumPy ndarray.
+        """
+        Internal pandas method for lossy conversion to a NumPy ndarray.
 
         This method is not part of the pandas interface.
 
@@ -488,13 +487,14 @@ class IntegerArray(BaseMaskedArray):
         """
         return self._data
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
+    def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
         # use masked algorithms, rather than object-dtype / np.nan.
         return self.to_numpy(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
-        """Return values for sorting.
+        """
+        Return values for sorting.
 
         Returns
         -------
@@ -565,7 +565,7 @@ class IntegerArray(BaseMaskedArray):
         name = f"__{op.__name__}__"
         return set_function_name(cmp_method, name, cls)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         data = self._data
         mask = self._mask
 
@@ -592,7 +592,7 @@ class IntegerArray(BaseMaskedArray):
 
         return result
 
-    def _maybe_mask_result(self, result, mask, other, op_name):
+    def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters
         ----------
@@ -601,7 +601,6 @@ class IntegerArray(BaseMaskedArray):
         other : scalar or array-like
         op_name : str
         """
-
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide
@@ -768,7 +767,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes: Dict[str, _IntegerDtype] = {
+_dtypes = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),

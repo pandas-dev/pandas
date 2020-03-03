@@ -15,6 +15,49 @@ from pandas.tests.indexing.common import Base
 
 
 class TestiLoc(Base):
+    def test_iloc_getitem_int(self):
+        # integer
+        self.check_result(
+            "iloc",
+            2,
+            typs=["labels", "mixed", "ts", "floats", "empty"],
+            fails=IndexError,
+        )
+
+    def test_iloc_getitem_neg_int(self):
+        # neg integer
+        self.check_result(
+            "iloc",
+            -1,
+            typs=["labels", "mixed", "ts", "floats", "empty"],
+            fails=IndexError,
+        )
+
+    def test_iloc_getitem_list_int(self):
+        self.check_result(
+            "iloc",
+            [0, 1, 2],
+            typs=["labels", "mixed", "ts", "floats", "empty"],
+            fails=IndexError,
+        )
+
+        # array of ints (GH5006), make sure that a single indexer is returning
+        # the correct type
+
+
+class TestiLoc2:
+    # TODO: better name, just separating out things that dont rely on base class
+
+    def test_is_scalar_access(self):
+        # GH#32085 index with duplicates doesnt matter for _is_scalar_access
+        index = pd.Index([1, 2, 1])
+        ser = pd.Series(range(3), index=index)
+
+        assert ser.iloc._is_scalar_access((1,))
+
+        df = ser.to_frame()
+        assert df.iloc._is_scalar_access((1, 0,))
+
     def test_iloc_exceeds_bounds(self):
 
         # GH6296
@@ -135,28 +178,6 @@ class TestiLoc(Base):
         with pytest.raises(IndexError, match=msg):
             df.iloc[index_vals, column_vals]
 
-    def test_iloc_getitem_int(self):
-        # integer
-        self.check_result(
-            "iloc",
-            2,
-            "iloc",
-            2,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-    def test_iloc_getitem_neg_int(self):
-        # neg integer
-        self.check_result(
-            "iloc",
-            -1,
-            "iloc",
-            -1,
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
     @pytest.mark.parametrize("dims", [1, 2])
     def test_iloc_getitem_invalid_scalar(self, dims):
         # GH 21982
@@ -182,19 +203,6 @@ class TestiLoc(Base):
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
         df.iloc[:, array_with_neg_numbers]
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
-
-    def test_iloc_getitem_list_int(self):
-        self.check_result(
-            "iloc",
-            [0, 1, 2],
-            "iloc",
-            [0, 1, 2],
-            typs=["labels", "mixed", "ts", "floats", "empty"],
-            fails=IndexError,
-        )
-
-        # array of ints (GH5006), make sure that a single indexer is returning
-        # the correct type
 
     def test_iloc_getitem_neg_int_can_reach_first_index(self):
         # GH10547 and GH10779
@@ -249,9 +257,7 @@ class TestiLoc(Base):
     def test_iloc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        msg = "Boolean index has wrong length: {} instead of {}".format(
-            len(index), len(s)
-        )
+        msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
         with pytest.raises(IndexError, match=msg):
             _ = s.iloc[index]
 
@@ -286,7 +292,9 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
     def test_iloc_setitem(self):
-        df = self.frame_ints
+        df = DataFrame(
+            np.random.randn(4, 4), index=np.arange(0, 8, 2), columns=np.arange(0, 12, 3)
+        )
 
         df.iloc[1, 1] = 1
         result = df.iloc[1, 1]
@@ -613,9 +621,7 @@ class TestiLoc(Base):
                     r = expected.get(key)
                     if r != ans:
                         raise AssertionError(
-                            "[{key}] does not match [{ans}], received [{r}]".format(
-                                key=key, ans=ans, r=r
-                            )
+                            f"[{key}] does not match [{ans}], received [{r}]"
                         )
 
     def test_iloc_non_unique_indexing(self):
