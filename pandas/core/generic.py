@@ -1327,7 +1327,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Unary Methods
 
     def __neg__(self):
-        values = com.values_from_object(self)
+        values = self._values
         if is_bool_dtype(values):
             arr = operator.inv(values)
         elif (
@@ -1341,7 +1341,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.__array_wrap__(arr)
 
     def __pos__(self):
-        values = com.values_from_object(self)
+        values = self._values
         if is_bool_dtype(values) or is_period_arraylike(values):
             arr = values
         elif (
@@ -1796,7 +1796,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     __array_priority__ = 1000
 
     def __array__(self, dtype=None) -> np.ndarray:
-        return com.values_from_object(self)
+        return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(self, result, context=None):
         result = lib.item_from_zerodim(result)
@@ -8521,7 +8521,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                         # try to not change dtype at first (if try_quick)
                         if try_quick:
-                            new_other = com.values_from_object(self)
+                            new_other = np.asarray(self)
                             new_other = new_other.copy()
                             new_other[icond] = other
                             other = new_other
