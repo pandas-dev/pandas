@@ -316,7 +316,7 @@ class TestHDFStore:
                 assert len(store.keys(kind="tables")) == 3
                 expected = {"/group/table1", "/group/table2", "/group/table3"}
                 assert set(store.keys(kind="tables")) == expected
-                assert set(store) == set()
+                assert set(store.keys(kind="pandas")) == set()
 
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
