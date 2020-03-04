@@ -2133,7 +2133,6 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
-            Index.
 
         See Also
         --------
