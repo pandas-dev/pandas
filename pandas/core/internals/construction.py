@@ -457,7 +457,8 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
                 return [[]] * len(columns), columns
         return [], []  # columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
-        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
+        columns = _validate_or_indexify_columns(data, columns)
+        return _list_to_arrays(data, coerce_float=coerce_float, dtype=dtype), columns
     elif isinstance(data[0], abc.Mapping):
         return _list_of_dict_to_arrays(
             data, columns, coerce_float=coerce_float, dtype=dtype
@@ -481,10 +482,11 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
     else:
         # last ditch effort
         data = [tuple(x) for x in data]
-        return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
+        columns = _validate_or_indexify_columns(data, columns)
+        return _list_to_arrays(data, coerce_float=coerce_float, dtype=dtype), columns
 
 
-def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_to_arrays(data, coerce_float=False, dtype=None):
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
@@ -493,7 +495,7 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     # gh-26429 do not raise user-facing AssertionError
     try:
         result = _convert_object_array(
-            content, columns, dtype=dtype, coerce_float=coerce_float
+            content, dtype=dtype, coerce_float=coerce_float
         )
     except AssertionError as e:
         raise ValueError(e) from e
