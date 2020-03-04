@@ -591,15 +591,12 @@ class HDFStore:
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
         """
-        #        if kind == "pandas":
         objects = [n._v_pathname for n in self.groups()]
         if objects:
             return objects
 
         self._check_if_open()
-        return [
-            n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
-        ]
+        return [n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")]
 
     def __iter__(self):
         return iter(self.keys())
