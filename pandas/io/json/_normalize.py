@@ -3,11 +3,12 @@
 
 from collections import defaultdict
 import copy
-from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
+from typing import DefaultDict, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas._typing import Scalar
 from pandas.util._decorators import deprecate
 
 import pandas as pd
@@ -226,17 +227,17 @@ def _json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js: Dict[str, Any], spec: Union[List, str]) -> Any:
+    def _pull_field(js: Dict[str, Scalar], spec: Union[List, str]) -> Scalar:
         """Internal function to pull field"""
-        result = js  # type: ignore
+        result = js
         if isinstance(spec, list):
             for field in spec:
-                result = result[field]
+                result = result[field]  # type: ignore
         else:
-            result = result[spec]
+            result = result[spec]  # type: ignore
         return result
 
-    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
+    def _pull_records(js: Dict[str, Scalar], spec: Union[List, str]) -> Iterable:
         """
         Interal function to pull field for records, and similar to
         _pull_field, but require to return Iterable. And will raise error
