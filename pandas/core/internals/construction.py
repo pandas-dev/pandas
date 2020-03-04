@@ -570,34 +570,49 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     )
 
 
+def _validate_columns(content, columns):
+    """Validate if columns are valid in length.
+
+    Raises:
+        1. When content is not composed of list of lists, and if length of columns
+        is not equal to length of content.
+        2. When content is list of lists, but length of each sub-list is not equal
+        3. When content is list of lists, but length of sub-list is not equal to
+        length of content
+    """
+
+    # Add mask for data which is composed of list of lists
+    is_mi_list = isinstance(columns, list) and all(
+        isinstance(col, list) for col in columns
+    )
+
+    if not is_mi_list and len(columns) != len(content):  # pragma: no cover
+        # caller's responsibility to check for this...
+        raise AssertionError(
+            f"{len(columns)} columns passed, passed data had "
+            f"{len(content)} columns"
+        )
+    elif is_mi_list:
+
+        # check if nested list column, length of each sub-list should be equal
+        if len({len(col) for col in columns}) > 1:
+            raise ValueError(
+                "Length of columns passed for MultiIndex columns is different"
+            )
+
+        # if columns is not empty and then length of sublist is not equal to content
+        elif columns and len(columns[0]) != len(content):
+            raise ValueError(
+                f"{len(columns[0])} columns passed, passed data had "
+                f"{len(content)} columns"
+            )
+
+
 def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = ibase.default_index(len(content))
     else:
-        is_mi_list = isinstance(columns, list) and all(
-            isinstance(col, list) for col in columns
-        )
-
-        if not is_mi_list and len(columns) != len(content):  # pragma: no cover
-            # caller's responsibility to check for this...
-            raise AssertionError(
-                f"{len(columns)} columns passed, passed data had "
-                f"{len(content)} columns"
-            )
-        elif is_mi_list:
-
-            # check if nested list column, length of each sub-list should be equal
-            if len({len(col) for col in columns}) > 1:
-                raise ValueError(
-                    "Length of columns passed for MultiIndex columns is different"
-                )
-
-            # if columns is not empty and then length of sublist is not equal to content
-            elif columns and len(columns[0]) != len(content):
-                raise ValueError(
-                    f"{len(columns[0])} columns passed, passed data had "
-                    f"{len(content)} columns"
-                )
+        _validate_columns(content, columns)
 
     # provide soft conversion of object dtypes
     def convert(arr):
