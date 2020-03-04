@@ -36,6 +36,14 @@ def test_index_replace_4():
     tm.assert_equal(expected, result)
 
 
+def test_index_replace_5():
+    index = pd.Index([0, 1, 2, 3, 4])
+    expected = pd.Index([0, 3, 3, 3, 4])
+
+    result = index.replace([1, 2], method="bfill")
+    tm.assert_equal(expected, result)
+
+
 if __name__ == "__main__":
     # %load_ext autoreload
     # %autoreload 2

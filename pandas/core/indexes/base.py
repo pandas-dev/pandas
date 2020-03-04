@@ -1371,6 +1371,17 @@ class Index(IndexOpsMixin, PandasObject):
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
 
         if value is None:
+            if isinstance(to_replace, (tuple, list)):
+                fill_f = missing.get_fill_func(method)
+                mask = missing.mask_missing(self.values, to_replace)
+                new_index = fill_f(self.values, limit=limit, mask=mask)
+                new_index = new_index.astype(self.dtype)
+
+                # analogous conditional returns in NDFrame.replace()
+                # it feels somewhat inconsistent since this is the only
+                # condition where there's a return, but well...
+                return self._constructor(new_index)
+
             if not is_dict_like(to_replace) and not is_dict_like(regex):
                 raise NotImplementedError(
                     "This is implemented in NDFrame.replace(). However,"
@@ -1378,9 +1389,6 @@ class Index(IndexOpsMixin, PandasObject):
                     "See issue 5319 and PR 5600. But also note that this"
                     "use is not mentioned in the docs."
                 )
-
-            if isinstance(to_replace, (tuple, list)):
-                raise NotImplementedError()
 
             if not is_dict_like(to_replace):
                 raise NotImplementedError()
