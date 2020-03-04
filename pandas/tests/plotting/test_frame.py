@@ -23,7 +23,6 @@ from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
-from pandas.plotting._matplotlib import compat
 
 
 @td.skip_if_no_mpl
@@ -445,7 +444,7 @@ class TestDataFramePlots(TestPlotBase):
         # sharex can now be switched check whether the right
         # pair of axes is turned on or off
 
-        if compat._mpl_ge_3_2_0():
+        if self.mpl_ge_3_2_0:
             pytest.skip("https://github.com/pandas-dev/pandas/pull/32444")
 
         df = DataFrame(
@@ -749,7 +748,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_subplots_sharex_axes_existing_axes(self):
         # GH 9158
 
-        if compat._mpl_ge_3_2_0():
+        if self.mpl_ge_3_2_0:
             pytest.skip("https://github.com/pandas-dev/pandas/pull/32444")
 
         d = {"A": [1.0, 2.0, 3.0, 4.0], "B": [4.0, 3.0, 2.0, 1.0], "C": [5, 1, 3, 4]}
