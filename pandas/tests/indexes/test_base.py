@@ -2459,13 +2459,15 @@ class TestMixedIntIndex(Base):
         tm.assert_index_equal(result, expected)
 
     def test_index_repr_bool_nan(self):
-        # Tests for the Index representation,
-        # specifically for the case that includes bools and NANs
         # GH32146
         arr = Index([True, False, np.nan], dtype=object)
-        exp = arr.format()
-        out = ["True", "False", "NaN"]
-        assert out == exp
+        exp1 = arr.format()
+        out1 = ["True", "False", "NaN"]
+        assert out1 == exp1
+
+        exp2 = repr(arr)
+        out2 = "Index([True, False, nan], dtype='object')"
+        assert out2 == exp2
 
 
 class TestIndexUtils:
