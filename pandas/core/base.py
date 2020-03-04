@@ -928,11 +928,7 @@ class IndexOpsMixin:
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(
-        op="max",
-        oppose="min",
-        value="largest",
-        position="third",
-        example_values="2",
+        op="max", oppose="min", value="largest", position="third", example_values="2",
     )
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
