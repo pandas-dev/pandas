@@ -122,6 +122,9 @@ class BlockManager(PandasObject):
         "_blklocs",
     ]
 
+    _blknos: np.ndarray
+    _blklocs: np.ndarray
+
     def __init__(
         self,
         blocks: Sequence[Block],
