@@ -570,6 +570,8 @@ class TestIndexOps(Ops):
         if sort:
             expected_uniques = expected_uniques.sort_values()
 
+        # construct an integer ndarray so that
+        # `expected_uniques.take(expected_codes)` is equal to `obj`
         expected_uniques_list = list(expected_uniques)
         expected_codes = [expected_uniques_list.index(val) for val in obj]
         expected_codes = np.asarray(expected_codes, dtype=np.intp)
