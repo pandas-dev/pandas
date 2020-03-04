@@ -69,8 +69,8 @@ from pandas.io.formats.printing import pprint_thing
 
 lzma = _import_lzma()
 
-N = 30
-K = 4
+_N = 30
+_K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
 # set testing_mode
@@ -742,9 +742,9 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
             raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
-def assert_attr_equal(attr, left, right, obj="Attributes"):
+def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     """
-    checks attributes are equal. Both objects must have attribute.
+    Check attributes are equal. Both objects must have attribute.
 
     Parameters
     ----------
@@ -1106,7 +1106,7 @@ def assert_series_equal(
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
-        Whether to compare category order of internal Categoricals
+        Whether to compare category order of internal Categoricals.
 
         .. versionadded:: 1.0.2
     obj : str, default 'Series'
@@ -1790,45 +1790,45 @@ def all_timeseries_index_generator(k=10):
 
 # make series
 def makeFloatSeries(name=None):
-    index = makeStringIndex(N)
-    return Series(randn(N), index=index, name=name)
+    index = makeStringIndex(_N)
+    return Series(randn(_N), index=index, name=name)
 
 
 def makeStringSeries(name=None):
-    index = makeStringIndex(N)
-    return Series(randn(N), index=index, name=name)
+    index = makeStringIndex(_N)
+    return Series(randn(_N), index=index, name=name)
 
 
 def makeObjectSeries(name=None):
-    data = makeStringIndex(N)
+    data = makeStringIndex(_N)
     data = Index(data, dtype=object)
-    index = makeStringIndex(N)
+    index = makeStringIndex(_N)
     return Series(data, index=index, name=name)
 
 
 def getSeriesData():
-    index = makeStringIndex(N)
-    return {c: Series(randn(N), index=index) for c in getCols(K)}
+    index = makeStringIndex(_N)
+    return {c: Series(randn(_N), index=index) for c in getCols(_K)}
 
 
 def makeTimeSeries(nper=None, freq="B", name=None):
     if nper is None:
-        nper = N
+        nper = _N
     return Series(randn(nper), index=makeDateIndex(nper, freq=freq), name=name)
 
 
 def makePeriodSeries(nper=None, name=None):
     if nper is None:
-        nper = N
+        nper = _N
     return Series(randn(nper), index=makePeriodIndex(nper), name=name)
 
 
 def getTimeSeriesData(nper=None, freq="B"):
-    return {c: makeTimeSeries(nper, freq) for c in getCols(K)}
+    return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
 
 
 def getPeriodData(nper=None):
-    return {c: makePeriodSeries(nper) for c in getCols(K)}
+    return {c: makePeriodSeries(nper) for c in getCols(_K)}
 
 
 # make frame
