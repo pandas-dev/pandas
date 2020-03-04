@@ -26,7 +26,14 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DatetimeIndex,
+    IntervalIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
@@ -127,6 +134,11 @@ class TestCategoricalDtype(Base):
         with pytest.raises(ValueError, match=msg):
             CategoricalDtype._from_values_or_dtype(values, categories, ordered, dtype)
 
+    def test_from_values_or_dtype_invalid_dtype(self):
+        msg = "Cannot not construct CategoricalDtype from <class 'object'>"
+        with pytest.raises(ValueError, match=msg):
+            CategoricalDtype._from_values_or_dtype(None, None, None, object)
+
     def test_is_dtype(self, dtype):
         assert CategoricalDtype.is_dtype(dtype)
         assert CategoricalDtype.is_dtype("category")
@@ -171,6 +183,11 @@ class TestCategoricalDtype(Base):
         assert cat.dtype._is_boolean is expected
         assert is_bool_dtype(cat) is expected
         assert is_bool_dtype(cat.dtype) is expected
+
+    def test_dtype_specific_categorical_dtype(self):
+        expected = "datetime64[ns]"
+        result = str(Categorical(DatetimeIndex([])).categories.dtype)
+        assert result == expected
 
 
 class TestDatetimeTZDtype(Base):

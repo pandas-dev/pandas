@@ -171,7 +171,7 @@ class BaseGrouper:
         ):
             try:
                 result_values, mutated = splitter.fast_apply(
-                    f, group_keys, engine=engine
+                    f, sdata, group_keys, engine=engine
                 )
 
             except libreduction.InvalidApply as err:
@@ -928,11 +928,9 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f, names, engine="cython"):
+    def fast_apply(self, f, sdata: FrameOrSeries, names, engine="cython"):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        import pdb; pdb.set_trace()
-        sdata = self._get_sorted_data()
         if engine == "numba":
             return numba_.execute_groupby_function(sdata, f, names, starts, ends)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
@@ -944,11 +942,13 @@ class FrameSplitter(DataSplitter):
             return sdata.iloc[:, slice_obj]
 
 
-def get_splitter(data: FrameOrSeries, *args, **kwargs) -> DataSplitter:
+def get_splitter(
+    data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
+) -> DataSplitter:
     if isinstance(data, Series):
         klass: Type[DataSplitter] = SeriesSplitter
     else:
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(data, *args, **kwargs)
+    return klass(data, labels, ngroups, axis)

@@ -759,17 +759,6 @@ class TestBusinessDateRange:
         with pytest.raises(TypeError, match=msg):
             bdate_range(START, END, periods=10, freq=None)
 
-    def test_naive_aware_conflicts(self):
-        naive = bdate_range(START, END, freq=BDay(), tz=None)
-        aware = bdate_range(START, END, freq=BDay(), tz="Asia/Hong_Kong")
-
-        msg = "tz-naive.*tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            naive.join(aware)
-
-        with pytest.raises(TypeError, match=msg):
-            aware.join(naive)
-
     def test_misc(self):
         end = datetime(2009, 5, 13)
         dr = bdate_range(end=end, periods=20)
