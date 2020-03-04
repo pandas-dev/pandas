@@ -595,7 +595,7 @@ class HDFStore:
         if objects:
             return objects
 
-        self._check_if_open()
+        assert self._handle is not None  # mypy
         return [n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")]
 
     def __iter__(self):
