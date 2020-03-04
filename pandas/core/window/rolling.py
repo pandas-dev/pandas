@@ -97,10 +97,10 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def _shallow_copy(self, obj: FrameOrSeries, **kwargs) -> ShallowMixin:
         if isinstance(obj, ABCDataFrame):
+            # there may be elements in self.exclusions that are no longer
+            # in obj, see GH 32468
             exclusions = self.exclusions.intersection(obj.columns)
-            new_obj = super()._shallow_copy(
-                    obj, exclusions=exclusions, **kwargs
-                )
+            new_obj = super()._shallow_copy(obj, exclusions=exclusions, **kwargs)
             new_obj.obj = new_obj._obj_with_exclusions
         else:
             new_obj = super()._shallow_copy(obj, **kwargs)
