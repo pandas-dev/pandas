@@ -15,7 +15,7 @@ Patterns
 foo.__class__
 -------------
 
-*pandas* uses 'type(foo)' instead 'foo.__class__' as it is making the code more
+pandas uses 'type(foo)' instead 'foo.__class__' as it is making the code more
 readable.
 
 For example:
@@ -44,7 +44,7 @@ Concatenated strings
 f-strings
 ~~~~~~~~~
 
-*pandas* uses f-strings formatting instead of '%' and '.format()' string formatters.
+pandas uses f-strings formatting instead of '%' and '.format()' string formatters.
 
 The convention of using f-strings on a string that is concatenated over serveral lines,
 is to prefix only the lines containing the value needs to be interpeted.
@@ -108,7 +108,7 @@ For example:
 Representation function (aka 'repr()')
 --------------------------------------
 
-*pandas* uses 'repr()' instead of '%r' and '!r'.
+pandas uses 'repr()' instead of '%r' and '!r'.
 
 The use of 'repr()' will only happend when the value is not an obvious string.
 

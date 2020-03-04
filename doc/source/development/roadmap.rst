@@ -22,8 +22,8 @@ See :ref:`roadmap.evolution` for proposing changes to this document.
 Extensibility
 -------------
 
-Pandas :ref:`extending.extension-types` allow for extending NumPy types with custom
-data types and array storage. Pandas uses extension types internally, and provides
+pandas :ref:`extending.extension-types` allow for extending NumPy types with custom
+data types and array storage. pandas uses extension types internally, and provides
 an interface for 3rd-party libraries to define their own custom data types.
 
 Many parts of pandas still unintentionally convert data to a NumPy array.
@@ -71,7 +71,7 @@ Block manager rewrite
 We'd like to replace pandas current internal data structures (a collection of
 1 or 2-D arrays) with a simpler collection of 1-D arrays.
 
-Pandas internal data model is quite complex. A DataFrame is made up of
+pandas internal data model is quite complex. A DataFrame is made up of
 one or more 2-dimensional "blocks", with one or more blocks per dtype. This
 collection of 2-D arrays is managed by the BlockManager.
 
@@ -132,7 +132,7 @@ Some specific goals include
 Performance monitoring
 ----------------------
 
-Pandas uses `airspeed velocity <https://asv.readthedocs.io/en/stable/>`__ to
+pandas uses `airspeed velocity <https://asv.readthedocs.io/en/stable/>`__ to
 monitor for performance regressions. ASV itself is a fabulous tool, but requires
 some additional work to be integrated into an open source project's workflow.
 
@@ -155,7 +155,7 @@ We'd like to fund improvements and maintenance of these tools to
 Roadmap Evolution
 -----------------
 
-Pandas continues to evolve. The direction is primarily determined by community
+pandas continues to evolve. The direction is primarily determined by community
 interest. Everyone is welcome to review existing items on the roadmap and
 to propose a new item.
 
