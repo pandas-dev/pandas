@@ -141,9 +141,37 @@ class BlockManager(PandasObject):
         if do_integrity_check:
             self._verify_integrity()
 
+        # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
+        self._blknos = None
+        self._blklocs = None
 
-        self._rebuild_blknos_and_blklocs()
+    @property
+    def blknos(self):
+        """
+        Suppose we want to find the array corresponding to our i'th column.
+
+        blknos[i] identifies the block from self.blocks that contains this column.
+
+        blklocs[i] identifies the column of interest within
+        self.blocks[self.blknos[i]]
+        """
+        if self._blknos is None:
+            # Note: these can be altered by other BlockManager methods.
+            self._rebuild_blknos_and_blklocs()
+
+        return self._blknos
+
+    @property
+    def blklocs(self):
+        """
+        See blknos.__doc__
+        """
+        if self._blklocs is None:
+            # Note: these can be altered by other BlockManager methods.
+            self._rebuild_blknos_and_blklocs()
+
+        return self._blklocs
 
     def make_empty(self, axes=None) -> "BlockManager":
         """ return an empty BlockManager with the items axis of len 0 """
@@ -230,6 +258,7 @@ class BlockManager(PandasObject):
             new_blklocs[rl.indexer] = np.arange(len(rl))
 
         if (new_blknos == -1).any():
+            # TODO: can we avoid this?  it isn't cheap
             raise AssertionError("Gaps in blk ref_locs")
 
         self._blknos = new_blknos
@@ -253,7 +282,7 @@ class BlockManager(PandasObject):
 
     def get_dtypes(self):
         dtypes = np.array([blk.dtype for blk in self.blocks])
-        return algos.take_1d(dtypes, self._blknos, allow_fill=False)
+        return algos.take_1d(dtypes, self.blknos, allow_fill=False)
 
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
@@ -951,8 +980,8 @@ class BlockManager(PandasObject):
         """
         Return the data as a SingleBlockManager.
         """
-        block = self.blocks[self._blknos[i]]
-        values = block.iget(self._blklocs[i])
+        block = self.blocks[self.blknos[i]]
+        values = block.iget(self.blklocs[i])
 
         # shortcut for select a single-dim from a 2-dim BM
         return SingleBlockManager(
@@ -980,7 +1009,7 @@ class BlockManager(PandasObject):
         else:
             affected_start = is_deleted.nonzero()[0][0]
 
-        for blkno, _ in _fast_count_smallints(self._blknos[affected_start:]):
+        for blkno, _ in _fast_count_smallints(self.blknos[affected_start:]):
             blk = self.blocks[blkno]
             bml = blk.mgr_locs
             blk_del = is_deleted[bml.indexer].nonzero()[0]
@@ -1026,6 +1055,8 @@ class BlockManager(PandasObject):
         """
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
+        if self._blklocs is None and self.ndim > 1:
+            self._rebuild_blknos_and_blklocs()
 
         value_is_extension_type = is_extension_array_dtype(value)
 
@@ -1055,8 +1086,9 @@ class BlockManager(PandasObject):
         if isinstance(loc, int):
             loc = [loc]
 
-        blknos = self._blknos[loc]
-        blklocs = self._blklocs[loc].copy()
+        # Accessing public blknos ensures the public versions are initialized
+        blknos = self.blknos[loc]
+        blklocs = self.blklocs[loc].copy()
 
         unfit_mgr_locs = []
         unfit_val_locs = []
@@ -1161,7 +1193,7 @@ class BlockManager(PandasObject):
 
         block = make_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
-        for blkno, count in _fast_count_smallints(self._blknos[loc:]):
+        for blkno, count in _fast_count_smallints(self.blknos[loc:]):
             blk = self.blocks[blkno]
             if count == len(blk.mgr_locs):
                 blk.mgr_locs = blk.mgr_locs.add(1)
@@ -1170,7 +1202,8 @@ class BlockManager(PandasObject):
                 new_mgr_locs[new_mgr_locs >= loc] += 1
                 blk.mgr_locs = new_mgr_locs
 
-        if loc == self._blklocs.shape[0]:
+        # Accessing public blklocs ensures the public versions are initialized
+        if loc == self.blklocs.shape[0]:
             # np.append is a lot faster, let's use it if we can.
             self._blklocs = np.append(self._blklocs, 0)
             self._blknos = np.append(self._blknos, len(self.blocks))
@@ -1301,14 +1334,14 @@ class BlockManager(PandasObject):
                 ]
 
         if sl_type in ("slice", "mask"):
-            blknos = self._blknos[slobj]
-            blklocs = self._blklocs[slobj]
+            blknos = self.blknos[slobj]
+            blklocs = self.blklocs[slobj]
         else:
             blknos = algos.take_1d(
-                self._blknos, slobj, fill_value=-1, allow_fill=allow_fill
+                self.blknos, slobj, fill_value=-1, allow_fill=allow_fill
             )
             blklocs = algos.take_1d(
-                self._blklocs, slobj, fill_value=-1, allow_fill=allow_fill
+                self.blklocs, slobj, fill_value=-1, allow_fill=allow_fill
             )
 
         # When filling blknos, make sure blknos is updated before appending to

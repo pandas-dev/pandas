@@ -309,7 +309,8 @@ class TestBlockManager:
         msg = "Gaps in blk ref_locs"
 
         with pytest.raises(AssertionError, match=msg):
-            BlockManager(blocks, axes)
+            mgr = BlockManager(blocks, axes)
+            mgr._rebuild_blknos_and_blklocs()
 
         blocks[0].mgr_locs = np.array([0])
         blocks[1].mgr_locs = np.array([1])
