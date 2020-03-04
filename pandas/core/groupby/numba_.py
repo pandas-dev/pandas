@@ -10,30 +10,27 @@ class InvalidApply(Exception):
     pass
 
 
-def execute_groupby_function(sdata, f, names, starts, ends):
+def execute_groupby_function(splitter, f):
     """Mimics apply_frame_axis0 which is the Cython equivalent of this function."""
-    # Run function
-    # Check if its mutated?
-    # copy data (maybe not necessary)
-    # TODO: Raise if we don't have a series here (or dataframe with >1 columns?)
     results = []
-    for start, end in zip(starts, ends):
-        group = sdata.iloc[start, end]
-        group_ndarray = group.values.to_numpy()
-        group_index = group.index.to_numpy()
+    for _, group in splitter:
+        # TODO: what about series names/dataframe columns
+        index = group.index
+        values_as_array = group.to_numpy()
+        index_as_array = index.to_numpy()
         try:
             # TODO: support *args, **kwargs here
-            group_result = f(group_ndarray, group_index)
+            group_result = f(values_as_array, index_as_array)
         except Exception:
             # We can't be more specific without knowing something about `f`
             # Like we do in Cython
-            raise InvalidApply('Let this error raise above us')
+            raise InvalidApply("Let this error raise above us")
         # Reconstruct the pandas object (expected downstream)
-        group_result = group._constructor(group_result, index=group.index, columns = group.columns)
+        # This construction will fail is there is mutation, but we're banning it with numba?
+        group_result = group._constructor(group_result, index=index)
         results.append(group_result)
 
-    # TODO: How do we check mutated?
-    return results, False
+    return results
 
 
 def validate_apply_function_signature(func):

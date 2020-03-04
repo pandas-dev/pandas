@@ -156,6 +156,16 @@ class BaseGrouper:
         result_values = None
 
         sdata: FrameOrSeries = splitter._get_sorted_data()
+
+        if engine == "numba":
+            result_values = numba_.execute_groupby_function(splitter, f)
+
+            # mutation is determined based on index alignment
+            # numba functions always return numpy arrays w/o indexes
+            # therefore, mutated=False?
+            # or just ban mutation so mutated=False always
+            return group_keys, result_values, False
+
         if sdata.ndim == 2 and np.any(sdata.dtypes.apply(is_extension_array_dtype)):
             # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
             #  if we pass EA instead of ndarray
@@ -170,9 +180,7 @@ class BaseGrouper:
             and not sdata.index._has_complex_internals
         ):
             try:
-                result_values, mutated = splitter.fast_apply(
-                    f, sdata, group_keys
-                )
+                result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
 
             except libreduction.InvalidApply as err:
                 # This Exception is raised if `f` triggers an exception

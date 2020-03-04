@@ -733,10 +733,10 @@ b  2""",
 
             numba_.validate_apply_function_signature(func)
 
-            if func in self.grouper._numba_func_cache:
+            if func in self.grouper._numba_apply_cache:
                 # Return an already compiled version of the function if available
                 # TODO: this cache needs to be populated
-                f = self.grouper._numba_func_cache[func]
+                f = self.grouper._numba_apply_cache[func]
             else:
                 # TODO: support args
                 f = numba_.generate_numba_apply_func(args, kwargs, func, engine_kwargs)
