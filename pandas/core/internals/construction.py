@@ -526,9 +526,9 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
     if values.dtype == np.object_:
         content = list(values.T)
-        return _convert_object_array(
-            content, columns, dtype=dtype, coerce_float=coerce_float
-        )
+        columns = _validate_or_indexify_columns(content, columns)
+        content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
+        return content, columns
     else:
         return values.T, columns
 
@@ -565,13 +565,14 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     data = [(type(d) is dict) and d or dict(d) for d in data]
 
     content = list(lib.dicts_to_array(data, list(columns)).T)
-    return _convert_object_array(
-        content, columns, dtype=dtype, coerce_float=coerce_float
-    )
+    columns = _validate_or_indexify_columns(content, columns)
+    content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
+    return content, columns
 
 
-def _validate_columns(content, columns):
-    """Validate if columns are valid in length.
+def _validate_or_indexify_columns(content, columns):
+    """If columns is None, make numbers as column names; If not None, validate if
+    columns are valid in length.
 
     Raises:
         1. When content is not composed of list of lists, and if length of columns
@@ -580,39 +581,39 @@ def _validate_columns(content, columns):
         3. When content is list of lists, but length of sub-list is not equal to
         length of content
     """
-
-    # Add mask for data which is composed of list of lists
-    is_mi_list = isinstance(columns, list) and all(
-        isinstance(col, list) for col in columns
-    )
-
-    if not is_mi_list and len(columns) != len(content):  # pragma: no cover
-        # caller's responsibility to check for this...
-        raise AssertionError(
-            f"{len(columns)} columns passed, passed data had "
-            f"{len(content)} columns"
-        )
-    elif is_mi_list:
-
-        # check if nested list column, length of each sub-list should be equal
-        if len({len(col) for col in columns}) > 1:
-            raise ValueError(
-                "Length of columns passed for MultiIndex columns is different"
-            )
-
-        # if columns is not empty and then length of sublist is not equal to content
-        elif columns and len(columns[0]) != len(content):
-            raise ValueError(
-                f"{len(columns[0])} columns passed, passed data had "
-                f"{len(content)} columns"
-            )
-
-
-def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = ibase.default_index(len(content))
     else:
-        _validate_columns(content, columns)
+
+        # Add mask for data which is composed of list of lists
+        is_mi_list = isinstance(columns, list) and all(
+            isinstance(col, list) for col in columns
+        )
+
+        if not is_mi_list and len(columns) != len(content):  # pragma: no cover
+            # caller's responsibility to check for this...
+            raise AssertionError(
+                f"{len(columns)} columns passed, passed data had "
+                f"{len(content)} columns"
+            )
+        elif is_mi_list:
+
+            # check if nested list column, length of each sub-list should be equal
+            if len({len(col) for col in columns}) > 1:
+                raise ValueError(
+                    "Length of columns passed for MultiIndex columns is different"
+                )
+
+            # if columns is not empty and length of sublist is not equal to content
+            elif columns and len(columns[0]) != len(content):
+                raise ValueError(
+                    f"{len(columns[0])} columns passed, passed data had "
+                    f"{len(content)} columns"
+                )
+    return columns
+
+
+def _convert_object_array(content, coerce_float=False, dtype=None):
 
     # provide soft conversion of object dtypes
     def convert(arr):
@@ -623,7 +624,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 
     arrays = [convert(arr) for arr in content]
 
-    return arrays, columns
+    return arrays
 
 
 # ---------------------------------------------------------------------
