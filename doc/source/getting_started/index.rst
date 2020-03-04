@@ -3,7 +3,7 @@
 .. _getting_started:
 
 ===============
-Getting Started
+Getting started
 ===============
 
 Installation
@@ -630,7 +630,7 @@ the pandas-equivalent operations compared to software you already know:
                     <div class="card-body flex-fill">
                         <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite
                             also provides the <code>data set</code> corresponding to the pandas <code>dataframe</code>.
-                            Also vectorized operations, filtering, string processing operations, and more from SAS have similar
+                            Also SAS vectorized operations, filtering, string processing operations, and more have similar
                             functions in pandas.</p>
 
 .. container:: custom-button
