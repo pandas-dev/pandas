@@ -218,13 +218,13 @@ class PeriodConverter(dates.DateConverter):
         if isinstance(values, valid_types) or is_integer(values) or is_float(values):
             return get_datevalue(values, axis.freq)
         elif isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq)._ndarray_values
+            return values.asfreq(axis.freq).asi8
         elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         elif lib.infer_dtype(values, skipna=False) == "period":
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> PeriodIndex
-            return PeriodIndex(values, freq=axis.freq)._ndarray_values
+            return PeriodIndex(values, freq=axis.freq).asi8
         elif isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -607,7 +607,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(
         span, dtype=[("val", np.int64), ("maj", bool), ("min", bool), ("fmt", "|S20")]
     )
-    info["val"][:] = dates_._ndarray_values
+    info["val"][:] = dates_.asi8
     info["fmt"][:] = ""
     info["maj"][[0, -1]] = True
     # .. and set some shortcuts

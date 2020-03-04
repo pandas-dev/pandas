@@ -4580,7 +4580,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            (inds,) = (-duplicated)._ndarray_values.nonzero()
+            (inds,) = np.asarray(-duplicated).nonzero()
             new_data = self._data.take(inds)
 
             if ignore_index:
