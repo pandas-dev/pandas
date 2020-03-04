@@ -306,7 +306,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                     # the last in the column, because below is no subplot/gap.
                     if not layout[
                         ax.get_subplotspec().rowspan.start + 1,
-                        ax.ax.get_subplotspec().colspan.start,
+                        ax.get_subplotspec().colspan.start,
                     ]:
                         continue
                     if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
