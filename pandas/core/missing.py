@@ -343,10 +343,10 @@ def _interpolate_scipy_wrapper(
     if method == "pchip":
         try:
             alt_methods["pchip"] = interpolate.pchip_interpolate
-        except AttributeError:
+        except AttributeError as err:
             raise ImportError(
                 "Your version of Scipy does not support PCHIP interpolation."
-            )
+            ) from err
     elif method == "akima":
         alt_methods["akima"] = _akima_interpolate
 
