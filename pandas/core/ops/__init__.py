@@ -510,6 +510,7 @@ def _comp_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -523,7 +524,7 @@ def _comp_method_SERIES(cls, op, special):
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = comparison_op(lvalues, rvalues, op)
+        res_values = comparison_op(lvalues, rvalues, op, str_rep)
 
         return _construct_result(self, res_values, index=self.index, name=res_name)
 
@@ -828,7 +829,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             return _combine_series_frame(self, other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -852,13 +853,15 @@ def _comp_method_FRAME(cls, op, special):
             new_data = dispatch_to_series(self, other, op, str_rep)
 
         elif isinstance(other, ABCSeries):
-            new_data = dispatch_to_series(self, other, op, axis="columns")
+            new_data = dispatch_to_series(
+                self, other, op, str_rep=str_rep, axis="columns"
+            )
 
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
 
         return self._construct_result(new_data)
 

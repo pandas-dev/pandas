@@ -986,7 +986,7 @@ indices_dict = {
     "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
     "float": tm.makeFloatIndex(100),
-    "bool": tm.makeBoolIndex(2),
+    "bool": tm.makeBoolIndex(10),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
@@ -998,6 +998,15 @@ indices_dict = {
 
 @pytest.fixture(params=indices_dict.keys())
 def indices(request):
+    """
+    Fixture for many "simple" kinds of indices.
+
+    These indices are unlikely to cover corner cases, e.g.
+        - no names
+        - no NaTs/NaNs
+        - no values near implementation bounds
+        - ...
+    """
     # copy to avoid mutation, e.g. setting .name
     return indices_dict[request.param].copy()
 
@@ -1015,6 +1024,14 @@ _series = {
 }
 
 
+@pytest.fixture
+def series_with_simple_index(indices):
+    """
+    Fixture for tests on series with changing types of indices.
+    """
+    return _create_series(indices)
+
+
 _narrow_dtypes = [
     np.float16,
     np.float32,
@@ -1030,6 +1047,16 @@ _narrow_series = {
     for dtype in _narrow_dtypes
 }
 
+
+@pytest.fixture(params=_narrow_series.keys())
+def narrow_series(request):
+    """
+    Fixture for Series with low precision data types
+    """
+    # copy to avoid mutation, e.g. setting .name
+    return _narrow_series[request.param].copy()
+
+
 _index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
 
 
@@ -1040,3 +1067,17 @@ def index_or_series_obj(request):
     copy to avoid mutation, e.g. setting .name
     """
     return _index_or_series_objs[request.param].copy(deep=True)
+
+
+@pytest.fixture
+def multiindex_year_month_day_dataframe_random_data():
+    """
+    DataFrame with 3 level MultiIndex (year, month, day) covering
+    first 100 business days from 2000-01-01 with random data
+    """
+    tdf = tm.makeTimeDataFrame(100)
+    ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
+    # use Int64Index, to make sure things work
+    ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels], inplace=True)
+    ymd.index.set_names(["year", "month", "day"], inplace=True)
+    return ymd
