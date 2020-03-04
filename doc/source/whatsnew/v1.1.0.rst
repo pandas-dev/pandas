@@ -234,7 +234,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
--
+- Bug in :class:`Timedelta` construction with large nanoseconds keyword value (:issue:`34202`)
 -
 
 Strings
