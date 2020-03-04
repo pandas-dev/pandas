@@ -26,7 +26,8 @@ def execute_groupby_function(splitter, f):
             # Like we do in Cython
             raise InvalidApply("Let this error raise above us")
         # Reconstruct the pandas object (expected downstream)
-        # This construction will fail is there is mutation, but we're banning it with numba?
+        # This construction will fail is there is mutation,
+        # but we're banning it with numba?
         group_result = group._constructor(group_result, index=index)
         results.append(group_result)
 
