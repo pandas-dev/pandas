@@ -391,8 +391,10 @@ def _convert_listlike_datetimes(
                     # datetime64[ns]
                     orig_arg = ensure_object(orig_arg)
                     result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
-                    raise ValueError("cannot convert the input to '%Y%m%d' date format")
+                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime) as err:
+                    raise ValueError(
+                        "cannot convert the input to '%Y%m%d' date format"
+                    ) from err
 
             # fallback
             if result is None:
@@ -484,8 +486,10 @@ def _adjust_to_origin(arg, origin, unit):
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
             arg = arg - j0
-        except TypeError:
-            raise ValueError("incompatible 'arg' type for given 'origin'='julian'")
+        except TypeError as err:
+            raise ValueError(
+                "incompatible 'arg' type for given 'origin'='julian'"
+            ) from err
 
         # preemptively check this for a nice range
         j_max = Timestamp.max.to_julian_date() - j0
@@ -508,10 +512,14 @@ def _adjust_to_origin(arg, origin, unit):
         # we are going to offset back to unix / epoch time
         try:
             offset = Timestamp(origin)
-        except tslibs.OutOfBoundsDatetime:
-            raise tslibs.OutOfBoundsDatetime(f"origin {origin} is Out of Bounds")
-        except ValueError:
-            raise ValueError(f"origin {origin} cannot be converted to a Timestamp")
+        except tslibs.OutOfBoundsDatetime as err:
+            raise tslibs.OutOfBoundsDatetime(
+                f"origin {origin} is Out of Bounds"
+            ) from err
+        except ValueError as err:
+            raise ValueError(
+                f"origin {origin} cannot be converted to a Timestamp"
+            ) from err
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
@@ -861,7 +869,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     try:
         values = to_datetime(values, format="%Y%m%d", errors=errors, utc=tz)
     except (TypeError, ValueError) as err:
-        raise ValueError(f"cannot assemble the datetimes: {err}")
+        raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
     for u in ["h", "m", "s", "ms", "us", "ns"]:
         value = unit_rev.get(u)
@@ -869,7 +877,9 @@ def _assemble_from_unit_mappings(arg, errors, tz):
             try:
                 values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)
             except (TypeError, ValueError) as err:
-                raise ValueError(f"cannot assemble the datetimes [{value}]: {err}")
+                raise ValueError(
+                    f"cannot assemble the datetimes [{value}]: {err}"
+                ) from err
     return values
 
 
@@ -1001,13 +1011,13 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
             for element in arg:
                 try:
                     times.append(datetime.strptime(element, format).time())
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as err:
                     if errors == "raise":
                         msg = (
                             f"Cannot convert {element} to a time with given "
                             f"format {format}"
                         )
-                        raise ValueError(msg)
+                        raise ValueError(msg) from err
                     elif errors == "ignore":
                         return arg
                     else:

@@ -27,6 +27,9 @@ from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
+# We pass through a TypeError raised by numpy
+_slice_msg = "slice indices must be integers or None or have an __index__ method"
+
 
 class TestGet:
     def test_get(self, float_frame):
@@ -994,7 +997,8 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError, match="Too many indexers"):
+        with pytest.raises(IndexError, match="too many indices for array"):
+            # GH#32257 we let numpy do validation, get their exception
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
@@ -1073,7 +1077,7 @@ class TestDataFrameIndexing:
 
         cp = df.copy()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=_slice_msg):
             cp.iloc[1.0:5] = 0
 
         with pytest.raises(TypeError, match=msg):
@@ -2209,16 +2213,17 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(ser.values[2], pd.Timedelta)
 
     mgr = df._data
+    mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
     assert isinstance(arr[1], pd.Timestamp)
     assert isinstance(arr[2], pd.Timedelta)
 
-    blk = mgr.blocks[mgr._blknos[1]]
+    blk = mgr.blocks[mgr.blknos[1]]
     assert blk.dtype == "M8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timestamp)
 
-    blk = mgr.blocks[mgr._blknos[2]]
+    blk = mgr.blocks[mgr.blknos[2]]
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)

@@ -94,10 +94,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
-    ABCPeriodIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -111,7 +109,7 @@ from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.multi import maybe_droplevels
+from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -358,9 +356,9 @@ class DataFrame(NDFrame):
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    read_csv
-    read_table
-    read_clipboard
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_table : Read general delimited file into DataFrame.
+    read_clipboard : Read text from clipboard into DataFrame.
 
     Examples
     --------
@@ -758,8 +756,8 @@ class DataFrame(NDFrame):
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[fmt.formatters_type] = None,
-        float_format: Optional[fmt.float_format_type] = None,
+        formatters: Optional[fmt.FormattersType] = None,
+        float_format: Optional[fmt.FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         justify: Optional[str] = None,
@@ -832,7 +830,6 @@ class DataFrame(NDFrame):
         Returns a Styler object.
 
         Contains methods for building a styled HTML representation of the DataFrame.
-        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
@@ -2742,7 +2739,7 @@ class DataFrame(NDFrame):
         """
         try:
             if takeable is True:
-                series = self._iget_item_cache(col)
+                series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
 
@@ -2771,11 +2768,11 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value) and len(value):
             try:
                 value = Series(value)
-            except (ValueError, NotImplementedError, TypeError):
+            except (ValueError, NotImplementedError, TypeError) as err:
                 raise ValueError(
                     "Cannot set a frame with no defined index "
                     "and a value that cannot be converted to a Series"
-                )
+                ) from err
 
             self._data = self._data.reindex_axis(
                 value.index.copy(), axis=1, fill_value=np.nan
@@ -3338,7 +3335,7 @@ class DataFrame(NDFrame):
                     # other
                     raise TypeError(
                         "incompatible index of inserted column with frame index"
-                    )
+                    ) from err
             return value
 
         if isinstance(value, Series):
@@ -3600,7 +3597,7 @@ class DataFrame(NDFrame):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
@@ -4059,8 +4056,10 @@ class DataFrame(NDFrame):
                 # everything else gets tried as a key; see GH 24969
                 try:
                     found = col in self.columns
-                except TypeError:
-                    raise TypeError(f"{err_msg}. Received column of type {type(col)}")
+                except TypeError as err:
+                    raise TypeError(
+                        f"{err_msg}. Received column of type {type(col)}"
+                    ) from err
                 else:
                     if not found:
                         missing.append(col)
@@ -4569,6 +4568,10 @@ class DataFrame(NDFrame):
         -------
         DataFrame
             DataFrame with duplicates removed or None if ``inplace=True``.
+
+        See Also
+        --------
+        DataFrame.value_counts: Count unique combinations of columns.
         """
         if self.empty:
             return self.copy()
@@ -4577,7 +4580,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            (inds,) = (-duplicated)._ndarray_values.nonzero()
+            (inds,) = np.asarray(-duplicated).nonzero()
             new_data = self._data.take(inds)
 
             if ignore_index:
@@ -4813,6 +4816,102 @@ class DataFrame(NDFrame):
             return self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
+
+    def value_counts(
+        self,
+        subset: Optional[Sequence[Label]] = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+    ):
+        """
+        Return a Series containing counts of unique rows in the DataFrame.
+
+        .. versionadded:: 1.1.0
+
+        Parameters
+        ----------
+        subset : list-like, optional
+            Columns to use when counting unique combinations.
+        normalize : bool, default False
+            Return proportions rather than frequencies.
+        sort : bool, default True
+            Sort by frequencies.
+        ascending : bool, default False
+            Sort in ascending order.
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.value_counts: Equivalent method on Series.
+
+        Notes
+        -----
+        The returned Series will have a MultiIndex with one level per input
+        column. By default, rows that contain any NA values are omitted from
+        the result. By default, the resulting Series will be in descending
+        order so that the first element is the most frequently-occurring row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 4, 6],
+        ...                    'num_wings': [2, 0, 0, 0]},
+        ...                   index=['falcon', 'dog', 'cat', 'ant'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
+        cat            4          0
+        ant            6          0
+
+        >>> df.value_counts()
+        num_legs  num_wings
+        4         0            2
+        6         0            1
+        2         2            1
+        dtype: int64
+
+        >>> df.value_counts(sort=False)
+        num_legs  num_wings
+        2         2            1
+        4         0            2
+        6         0            1
+        dtype: int64
+
+        >>> df.value_counts(ascending=True)
+        num_legs  num_wings
+        2         2            1
+        6         0            1
+        4         0            2
+        dtype: int64
+
+        >>> df.value_counts(normalize=True)
+        num_legs  num_wings
+        4         0            0.50
+        6         0            0.25
+        2         2            0.25
+        dtype: float64
+        """
+        if subset is None:
+            subset = self.columns.tolist()
+
+        counts = self.groupby(subset).size()
+
+        if sort:
+            counts = counts.sort_values(ascending=ascending)
+        if normalize:
+            counts /= counts.sum()
+
+        # Force MultiIndex for single column
+        if len(subset) == 1:
+            counts.index = MultiIndex.from_arrays(
+                [counts.index], names=[counts.index.name]
+            )
+
+        return counts
 
     def nlargest(self, n, columns, keep="first") -> "DataFrame":
         """
@@ -7292,8 +7391,9 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corrwith
-        Series.corr
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
 
         Examples
         --------
@@ -7495,7 +7595,7 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corr
+        DataFrame.corr : Compute pairwise correlation of columns.
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
@@ -7900,7 +8000,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmin
+        Series.idxmin : Return index of the minimum element.
 
         Notes
         -----
@@ -7938,7 +8038,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmax
+        Series.idxmax : Return index of the maximum element.
 
         Notes
         -----
@@ -8144,7 +8244,9 @@ Wild         185.0
 
         return result
 
-    def to_timestamp(self, freq=None, how="start", axis=0, copy=True) -> "DataFrame":
+    def to_timestamp(
+        self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
+    ) -> "DataFrame":
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
 
@@ -8164,23 +8266,16 @@ Wild         185.0
         -------
         DataFrame with DatetimeIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
-        elif axis == 1:
-            assert isinstance(self.columns, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
-        else:  # pragma: no cover
-            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
+        axis_name = self._get_axis_name(axis)
+        old_ax = getattr(self, axis_name)
+        new_ax = old_ax.to_timestamp(freq=freq, how=how)
 
-        return self._constructor(new_data)
+        setattr(new_obj, axis_name, new_ax)
+        return new_obj
 
-    def to_period(self, freq=None, axis=0, copy=True) -> "DataFrame":
+    def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> "DataFrame":
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
@@ -8198,23 +8293,16 @@ Wild         185.0
 
         Returns
         -------
-        TimeSeries with PeriodIndex
+        DataFrame with PeriodIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            assert isinstance(self.index, ABCDatetimeIndex)
-            new_data.set_axis(1, self.index.to_period(freq=freq))
-        elif axis == 1:
-            assert isinstance(self.columns, ABCDatetimeIndex)
-            new_data.set_axis(0, self.columns.to_period(freq=freq))
-        else:  # pragma: no cover
-            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
+        axis_name = self._get_axis_name(axis)
+        old_ax = getattr(self, axis_name)
+        new_ax = old_ax.to_period(freq=freq)
 
-        return self._constructor(new_data)
+        setattr(new_obj, axis_name, new_ax)
+        return new_obj
 
     def isin(self, values) -> "DataFrame":
         """
@@ -8346,9 +8434,8 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = {}
+    new_data = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data
