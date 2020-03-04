@@ -2849,7 +2849,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> non_monotonic_index = pd.Index(list('abcb'))
         >>> non_monotonic_index.get_loc('b')
-        array([False,  True, False,  True], dtype=bool)
+        array([False,  True, False,  True])
         """
         if method is None:
             if tolerance is not None:
