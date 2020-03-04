@@ -162,6 +162,20 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
     ...
     KeyError: Timestamp('1970-01-01 00:00:00')
 
+groupby.rolling no longer returns grouped-by column in values
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+*New behavior*:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]}) 
+    df.groupby("A").rolling(2).sum()                                                                                                                                                          
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_110.deprecations:

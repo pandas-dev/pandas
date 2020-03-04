@@ -129,6 +129,7 @@ class EWM(_Rolling):
         adjust=True,
         ignore_na=False,
         axis=0,
+        **kwargs,
     ):
         self.obj = obj
         self.com = _get_center_of_mass(com, span, halflife, alpha)
