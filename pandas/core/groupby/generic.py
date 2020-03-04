@@ -311,7 +311,7 @@ class SeriesGroupBy(GroupBy):
 
             arg = zip(columns, arg)
 
-        results: Mapping[base.OutputKey, Union[Series, DataFrame]] = {}
+        results: Dict[base.OutputKey, Union[Series, DataFrame]] = {}
         for idx, (name, func) in enumerate(arg):
             obj = self
 
