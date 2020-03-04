@@ -1990,7 +1990,7 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(com.values_from_object(self), skipna=skipna)
+        i = nanops.nanargmin(self._values, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2061,7 +2061,7 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(com.values_from_object(self), skipna=skipna)
+        i = nanops.nanargmax(self._values, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2099,7 +2099,7 @@ Name: Max Speed, dtype: float64
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        result = com.values_from_object(self).round(decimals)
+        result = self._values.round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result

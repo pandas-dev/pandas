@@ -32,6 +32,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
+from pandas.core.construction import extract_array
+
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
 _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
@@ -281,23 +283,20 @@ def _get_values(
     #  with scalar fill_value.  This guarantee is important for the
     #  maybe_upcast_putmask call below
     assert is_scalar(fill_value)
+    values = extract_array(values, extract_numpy=True)
 
     mask = _maybe_get_mask(values, skipna, mask)
 
-    if is_datetime64tz_dtype(values):
-        # lib.values_from_object returns M8[ns] dtype instead of tz-aware,
-        #  so this case must be handled separately from the rest
-        dtype = values.dtype
-        values = getattr(values, "_values", values)
-    else:
-        values = lib.values_from_object(values)
-        dtype = values.dtype
+    dtype = values.dtype
 
     if is_datetime_or_timedelta_dtype(values) or is_datetime64tz_dtype(values):
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
-        values = getattr(values, "asi8", values)
-        values = values.view(np.int64)
+        if isinstance(values, np.ndarray):
+            values = values.view(np.int64)
+        else:
+            # DatetimeArray or TimedeltaArray, use asi8 to get a view
+            values = values.asi8
 
     dtype_ok = _na_ok_dtype(dtype)
 
@@ -311,7 +310,8 @@ def _get_values(
 
     if skipna and copy:
         values = values.copy()
-        if dtype_ok:
+        assert mask is not None  # for mypy
+        if dtype_ok and mask.any():
             np.putmask(values, mask, fill_value)
 
         # promote if needed
