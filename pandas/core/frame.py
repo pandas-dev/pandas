@@ -88,6 +88,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_named_tuple,
     is_object_dtype,
+    is_period_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -7803,11 +7804,11 @@ Wild         185.0
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
 
-        dtype_is_dt = self.dtypes.apply(lambda x: x.kind == "M")
+        dtype_is_dt = self.dtypes.apply(lambda x: x.kind == "M" or is_period_dtype(x))
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
             warnings.warn(
                 "DataFrame.mean and DataFrame.median with numeric_only=None "
-                "will include datetime64 and datetime64tz columns in a "
+                "will include datetime64, datetime64tz, and PeriodDtype columns in a "
                 "future version.",
                 FutureWarning,
                 stacklevel=3,
@@ -7868,6 +7869,9 @@ Wild         185.0
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
             out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
             out.index = df.columns
+            if axis == 0 and df.dtypes.apply(needs_i8_conversion).any():
+                # FIXME: needs_i8_conversion check is kludge
+                out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 
         if numeric_only is None:
