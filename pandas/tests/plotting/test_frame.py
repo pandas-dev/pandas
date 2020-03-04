@@ -23,6 +23,7 @@ from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
+from pandas.plotting._matplotlib import compat
 
 
 @td.skip_if_no_mpl
@@ -439,6 +440,9 @@ class TestDataFramePlots(TestPlotBase):
         expected = [True, True, True, True]
         self._assert_ytickslabels_visibility(axes, expected)
 
+    @pytest.mark.skipif(
+        compat._mpl_ge_3_2_0(), reason="https://github.com/pandas-dev/pandas/pull/32444"
+    )
     def test_groupby_boxplot_sharex(self):
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharex can now be switched check whether the right
@@ -742,6 +746,9 @@ class TestDataFramePlots(TestPlotBase):
         for ax in axes[[0, 1, 2], [2]].ravel():
             self._check_visible(ax.get_yticklabels(), visible=False)
 
+    @pytest.mark.skipif(
+        compat._mpl_ge_3_2_0(), reason="https://github.com/pandas-dev/pandas/pull/32444"
+    )
     def test_subplots_sharex_axes_existing_axes(self):
         # GH 9158
         d = {"A": [1.0, 2.0, 3.0, 4.0], "B": [4.0, 3.0, 2.0, 1.0], "C": [5, 1, 3, 4]}
