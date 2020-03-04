@@ -344,13 +344,20 @@ class TestIndexOps(Ops):
         expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
         expected.index = expected.index.astype(obj.dtype)
 
-        tm.assert_series_equal(obj.value_counts(), expected)
+        # sort_index to avoid switched order when values share the same count
+        expected = expected.sort_index()
+        result = obj.value_counts().sort_index()
+        tm.assert_series_equal(result, expected)
 
         # can't use expected[null_obj] = 3 as
         # IntervalIndex doesn't allow assignment
         new_entry = pd.Series({np.nan: 3}, dtype=np.int64)
         expected = expected.append(new_entry)
-        tm.assert_series_equal(obj.value_counts(dropna=False), expected)
+
+        # sort_index to avoid switched order when values share the same count
+        expected = expected.sort_index()
+        result = obj.value_counts(dropna=False).sort_index()
+        tm.assert_series_equal(result, expected)
 
     def test_value_counts_inferred(self, index_or_series):
         klass = index_or_series
