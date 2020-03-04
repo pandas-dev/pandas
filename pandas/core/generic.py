@@ -11076,8 +11076,8 @@ def _make_cum_function(
     desc: str,
     accum_func: Callable,
     accum_func_name: str,
-    mask_a: Union[float, np.floating],
-    mask_b: Union[float, np.floating],
+    mask_a: float,
+    mask_b: float,
     examples: str,
 ) -> Callable:
     @Substitution(
