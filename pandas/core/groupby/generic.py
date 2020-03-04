@@ -326,7 +326,13 @@ class SeriesGroupBy(GroupBy):
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
             return {key.label: value for key, value in results.items()}
-        return DataFrame(self._wrap_aggregated_output(results), columns=columns)
+
+        if not results:
+            return DataFrame()
+        output = self._wrap_aggregated_output(results)
+        if not isinstance(output, ABCDataFrame):
+            output = output.to_frame()
+        return output
 
     def _wrap_series_output(
         self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index
@@ -357,10 +363,8 @@ class SeriesGroupBy(GroupBy):
         if len(output) > 1:
             result = DataFrame(indexed_output, index=index)
             result.columns = columns
-        elif not columns.empty:
-            result = Series(indexed_output[0], index=index, name=columns[0])
         else:
-            result = DataFrame()
+            result = Series(indexed_output[0], index=index, name=columns[0])
 
         return result
 
