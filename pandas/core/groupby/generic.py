@@ -955,7 +955,8 @@ class DataFrameGroupBy(GroupBy):
                         raise
                     result = self._aggregate_frame(func)
                 else:
-                    # GH 32040
+                    # select everything except for the last level, which is the one
+                    # containing the name of the function, see GH 32040
                     result.columns = result.columns.rename(
                         [self._selected_obj.columns.name] * result.columns.nlevels
                     ).droplevel(-1)
