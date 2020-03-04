@@ -236,7 +236,6 @@ class TestDataFrameApply:
             df.apply(lambda x: Series([1, 2]), axis=1, result_type="broadcast")
 
     def test_apply_raw(self, float_frame, mixed_type_frame):
-
         def _assert_raw(x):
             assert isinstance(x, np.ndarray)
             assert x.ndim == 1
