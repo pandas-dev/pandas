@@ -580,35 +580,26 @@ class HDFStore:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def keys(self, kind: Optional[str] = "pandas") -> List[str]:
+    def keys(self) -> List[str]:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
-
-        Parameters
-        ----------
-        kind : str, default 'pandas'
-                When kind equals 'pandas' return pandas objects
-                When kind equals 'table' return Table objects
-                Otherwise fail with a ValueError
+        If the store contains pandas native tables, it will return their names.
+        Otherwise the list of names of HDF5 Table objects will be returned.
 
         Returns
         -------
         list
             List of ABSOLUTE path-names (e.g. have the leading '/').
-
-        Raises
-        ------
-        raises ValueError if kind has an illegal value
         """
-        if kind == "pandas":
-            return [n._v_pathname for n in self.groups()]
+        #        if kind == "pandas":
+        objects = [n._v_pathname for n in self.groups()]
+        if objects:
+            return objects
 
-        if kind == "tables":
-            self._check_if_open()
-            return [
-                n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
-            ]
-        raise ValueError(f"`kind` should be either 'pandas' or 'table' but is [{kind}]")
+        self._check_if_open()
+        return [
+            n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
+        ]
 
     def __iter__(self):
         return iter(self.keys())
