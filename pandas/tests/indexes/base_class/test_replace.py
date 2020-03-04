@@ -28,6 +28,14 @@ def test_index_replace_3():
         index.replace(np.nan)
 
 
+def test_index_replace_4():
+    index = pd.Index([1, None, 2])
+    expected = pd.Index(["a", None, "a"])
+
+    result = index.replace([1, 2], "a")
+    tm.assert_equal(expected, result)
+
+
 if __name__ == "__main__":
     # %load_ext autoreload
     # %autoreload 2

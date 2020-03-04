@@ -1484,7 +1484,9 @@ class Index(IndexOpsMixin, PandasObject):
                     )
 
                 else:
-                    raise NotImplementedError()
+                    mask = missing.mask_missing(self.values, to_replace)
+                    new_index = self.putmask(mask, value)
+
             elif to_replace is None:
                 raise NotImplementedError()
 
