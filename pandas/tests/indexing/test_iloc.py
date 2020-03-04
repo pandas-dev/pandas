@@ -20,8 +20,6 @@ class TestiLoc(Base):
         self.check_result(
             "iloc",
             2,
-            "iloc",
-            2,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
@@ -31,16 +29,12 @@ class TestiLoc(Base):
         self.check_result(
             "iloc",
             -1,
-            "iloc",
-            -1,
             typs=["labels", "mixed", "ts", "floats", "empty"],
             fails=IndexError,
         )
 
     def test_iloc_getitem_list_int(self):
         self.check_result(
-            "iloc",
-            [0, 1, 2],
             "iloc",
             [0, 1, 2],
             typs=["labels", "mixed", "ts", "floats", "empty"],
@@ -53,6 +47,17 @@ class TestiLoc(Base):
 
 class TestiLoc2:
     # TODO: better name, just separating out things that dont rely on base class
+
+    def test_is_scalar_access(self):
+        # GH#32085 index with duplicates doesnt matter for _is_scalar_access
+        index = pd.Index([1, 2, 1])
+        ser = pd.Series(range(3), index=index)
+
+        assert ser.iloc._is_scalar_access((1,))
+
+        df = ser.to_frame()
+        assert df.iloc._is_scalar_access((1, 0,))
+
     def test_iloc_exceeds_bounds(self):
 
         # GH6296
@@ -252,9 +257,7 @@ class TestiLoc2:
     def test_iloc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        msg = "Boolean index has wrong length: {} instead of {}".format(
-            len(index), len(s)
-        )
+        msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
         with pytest.raises(IndexError, match=msg):
             _ = s.iloc[index]
 
@@ -618,9 +621,7 @@ class TestiLoc2:
                     r = expected.get(key)
                     if r != ans:
                         raise AssertionError(
-                            "[{key}] does not match [{ans}], received [{r}]".format(
-                                key=key, ans=ans, r=r
-                            )
+                            f"[{key}] does not match [{ans}], received [{r}]"
                         )
 
     def test_iloc_non_unique_indexing(self):

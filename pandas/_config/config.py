@@ -82,7 +82,8 @@ _reserved_keys: List[str] = ["all"]
 
 
 class OptionError(AttributeError, KeyError):
-    """Exception for pandas.options, backwards compatible with KeyError
+    """
+    Exception for pandas.options, backwards compatible with KeyError
     checks
     """
 
@@ -212,8 +213,8 @@ class DictWrapper:
         prefix += key
         try:
             v = object.__getattribute__(self, "d")[key]
-        except KeyError:
-            raise OptionError("No such option")
+        except KeyError as err:
+            raise OptionError("No such option") from err
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
@@ -395,7 +396,6 @@ class option_context:
 
     Examples
     --------
-
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
     ...     ...
     """
@@ -546,11 +546,11 @@ def deprecate_option(
 
 
 def _select_options(pat: str) -> List[str]:
-    """returns a list of keys matching `pat`
+    """
+    returns a list of keys matching `pat`
 
     if pat=="all", returns all registered options
     """
-
     # short-circuit for exact key
     if pat in _registered_options:
         return [pat]
@@ -573,7 +573,6 @@ def _get_root(key: str) -> Tuple[Dict[str, Any], str]:
 
 def _is_deprecated(key: str) -> bool:
     """ Returns True if the given option has been deprecated """
-
     key = key.lower()
     return key in _deprecated_options
 
@@ -586,7 +585,6 @@ def _get_deprecated_option(key: str):
     -------
     DeprecatedOption (namedtuple) if key is deprecated, None otherwise
     """
-
     try:
         d = _deprecated_options[key]
     except KeyError:
@@ -611,7 +609,6 @@ def _translate_key(key: str) -> str:
     if key id deprecated and a replacement key defined, will return the
     replacement key, otherwise returns `key` as - is
     """
-
     d = _get_deprecated_option(key)
     if d:
         return d.rkey or key
@@ -627,7 +624,6 @@ def _warn_if_deprecated(key: str) -> bool:
     -------
     bool - True if `key` is deprecated, False otherwise.
     """
-
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
@@ -649,7 +645,6 @@ def _warn_if_deprecated(key: str) -> bool:
 
 def _build_option_description(k: str) -> str:
     """ Builds a formatted description of a registered option and prints it """
-
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
@@ -674,7 +669,6 @@ def _build_option_description(k: str) -> str:
 
 def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
     """ Builds a concise listing of available options, grouped by prefix """
-
     from textwrap import wrap
     from itertools import groupby
 
@@ -716,15 +710,16 @@ F = TypeVar("F", bound=FuncType)
 
 @contextmanager
 def config_prefix(prefix):
-    """contextmanager for multiple invocations of API with a common prefix
+    """
+    contextmanager for multiple invocations of API with a common prefix
 
     supported API functions: (register / get / set )__option
 
     Warning: This is not thread - safe, and won't work properly if you import
     the API functions into your module using the "from x import y" construct.
 
-    Example:
-
+    Example
+    -------
     import pandas._config.config as cf
     with cf.config_prefix("display.font"):
         cf.register_option("color", "red")
@@ -738,7 +733,6 @@ def config_prefix(prefix):
     will register options "display.font.color", "display.font.size", set the
     value of "display.font.size"... and so on.
     """
-
     # Note: reset_option relies on set_option, and on key directly
     # it does not fit in to this monkey-patching scheme
 
@@ -801,7 +795,6 @@ def is_instance_factory(_type) -> Callable[[Any], None]:
                 ValueError if x is not an instance of `_type`
 
     """
-
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
         type_repr = "|".join(map(str, _type))
@@ -848,7 +841,6 @@ def is_nonnegative_int(value: Optional[int]) -> None:
     ValueError
         When the value is not None or is a negative integer
     """
-
     if value is None:
         return
 

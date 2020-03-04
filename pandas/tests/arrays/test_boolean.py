@@ -131,7 +131,8 @@ def test_to_boolean_array_missing_indicators(a, b):
 )
 def test_to_boolean_array_error(values):
     # error in converting existing arrays to BooleanArray
-    with pytest.raises(TypeError):
+    msg = "Need to pass bool-like value"
+    with pytest.raises(TypeError, match=msg):
         pd.array(values, dtype="boolean")
 
 
@@ -247,7 +248,11 @@ def test_coerce_to_numpy_array():
     tm.assert_numpy_array_equal(result, expected)
     # with missing values will raise error
     arr = pd.array([True, False, None], dtype="boolean")
-    with pytest.raises(ValueError):
+    msg = (
+        "cannot convert to 'bool'-dtype NumPy array with missing values. "
+        "Specify an appropriate 'na_value' for this dtype."
+    )
+    with pytest.raises(ValueError, match=msg):
         np.array(arr, dtype="bool")
 
 

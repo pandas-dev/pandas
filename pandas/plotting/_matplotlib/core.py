@@ -432,7 +432,6 @@ class MPLPlot:
 
     def _post_plot_logic_common(self, ax, data):
         """Common post process for each axes"""
-
         if self.orientation == "vertical" or self.orientation is None:
             self._apply_axis_properties(ax.xaxis, rot=self.rot, fontsize=self.fontsize)
             self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
@@ -509,12 +508,12 @@ class MPLPlot:
                 self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis, rot=None, fontsize=None):
-        """ Tick creation within matplotlib is reasonably expensive and is
-            internally deferred until accessed as Ticks are created/destroyed
-            multiple times per draw. It's therefore beneficial for us to avoid
-            accessing unless we will act on the Tick.
         """
-
+        Tick creation within matplotlib is reasonably expensive and is
+        internally deferred until accessed as Ticks are created/destroyed
+        multiple times per draw. It's therefore beneficial for us to avoid
+        accessing unless we will act on the Tick.
+        """
         if rot is not None or fontsize is not None:
             # rot=0 is a valid setting, hence the explicit None check
             labels = axis.get_majorticklabels() + axis.get_minorticklabels()
@@ -755,7 +754,6 @@ class MPLPlot:
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
         """
-
         if err is None:
             return None
 

@@ -1,13 +1,14 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
+from datetime import datetime
 from typing import Any, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs import NaT, iNaT, join as libjoin, lib
-from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import timezones
+from pandas._typing import Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -17,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
-    is_float,
     is_integer,
     is_list_like,
     is_period_dtype,
@@ -80,16 +80,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
     cache=True,
 )
 @inherit_names(
-    [
-        "__iter__",
-        "mean",
-        "freq",
-        "freqstr",
-        "_ndarray_values",
-        "asi8",
-        "_box_values",
-        "_box_func",
-    ],
+    ["mean", "freq", "freqstr", "asi8", "_box_values", "_box_func"],
     DatetimeLikeArrayMixin,
 )
 class DatetimeIndexOpsMixin(ExtensionIndex):
@@ -385,32 +376,56 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _convert_scalar_indexer(self, key, kind: str):
-        """
-        We don't allow integer or float indexing on datetime-like when using
-        loc.
+    def _validate_partial_date_slice(self, reso: str):
+        raise NotImplementedError
 
+    def _parsed_string_to_bounds(self, reso: str, parsed: datetime):
+        raise NotImplementedError
+
+    def _partial_date_slice(
+        self, reso: str, parsed: datetime, use_lhs: bool = True, use_rhs: bool = True
+    ):
+        """
         Parameters
         ----------
-        key : label of the slice bound
-        kind : {'loc', 'getitem'}
+        reso : str
+        parsed : datetime
+        use_lhs : bool, default True
+        use_rhs : bool, default True
+
+        Returns
+        -------
+        slice or ndarray[intp]
         """
+        self._validate_partial_date_slice(reso)
 
-        assert kind in ["loc", "getitem"]
+        t1, t2 = self._parsed_string_to_bounds(reso, parsed)
+        i8vals = self.asi8
+        unbox = self._data._unbox_scalar
 
-        if not is_scalar(key):
-            raise TypeError(key)
+        if self.is_monotonic:
 
-        # we don't allow integer/float indexing for loc
-        # we don't allow float indexing for getitem
-        is_int = is_integer(key)
-        is_flt = is_float(key)
-        if kind == "loc" and (is_int or is_flt):
-            self._invalid_indexer("index", key)
-        elif kind == "getitem" and is_flt:
-            self._invalid_indexer("index", key)
+            if len(self) and (
+                (use_lhs and t1 < self[0] and t2 < self[0])
+                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+            ):
+                # we are out of range
+                raise KeyError
 
-        return super()._convert_scalar_indexer(key, kind=kind)
+            # TODO: does this depend on being monotonic _increasing_?
+
+            # a monotonic (sorted) series can be sliced
+            # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
+            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
+            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            return slice(left, right)
+
+        else:
+            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
+            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+
+            # try to find the dates
+            return (lhs_mask & rhs_mask).nonzero()[0]
 
     # --------------------------------------------------------------------
 
@@ -478,7 +493,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             other = other.view("i8")
 
         result = np.where(cond, values, other).astype("i8")
-        return self._shallow_copy(result)
+        arr = type(self._data)._simple_new(result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
 
     def _summary(self, name=None) -> str:
         """
@@ -509,26 +525,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         # display as values, not quoted
         result = result.replace("'", "")
         return result
-
-    def _concat_same_dtype(self, to_concat, name):
-        """
-        Concatenate to_concat which has the same class.
-        """
-
-        # do not pass tz to set because tzlocal cannot be hashed
-        if len({str(x.dtype) for x in to_concat}) != 1:
-            raise ValueError("to_concat must have the same tz")
-
-        new_data = type(self._data)._concat_same_type(to_concat)
-
-        if not is_period_dtype(self.dtype):
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            is_diff_evenly_spaced = len(unique_deltas(new_data.asi8)) == 1
-            if is_diff_evenly_spaced:
-                new_data._freq = self.freq
-
-        return type(self)._simple_new(new_data, name=name)
 
     def shift(self, periods=1, freq=None):
         """
@@ -582,7 +578,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 if loc.start in (0, None) or loc.stop in (len(self), None):
                     freq = self.freq
 
-        return self._shallow_copy(new_i8s, freq=freq)
+        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+        return type(self)._simple_new(arr, name=self.name)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
@@ -619,18 +616,26 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         self._data._freq = freq
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+
         if values is None:
             values = self._data
 
+        if isinstance(values, type(self)):
+            values = values._data
+        if isinstance(values, np.ndarray):
+            # TODO: We would rather not get here
+            values = type(self._data)(values, dtype=self.dtype)
+
         attributes = self._get_attributes_dict()
 
-        if "freq" not in kwargs and self.freq is not None:
+        if self.freq is not None:
             if isinstance(values, (DatetimeArray, TimedeltaArray)):
                 if values.freq is None:
                     del attributes["freq"]
 
-        attributes.update(kwargs)
+        attributes["name"] = name
         return type(self)._simple_new(values, **attributes)
 
     # --------------------------------------------------------------------
@@ -700,9 +705,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # this point, depending on the values.
 
             result._set_freq(None)
-            result = self._shallow_copy(
-                result._data, name=result.name, dtype=result.dtype, freq=None
-            )
+            result = self._shallow_copy(result._data, name=result.name)
             if result.freq is None:
                 result._set_freq("infer")
             return result
@@ -801,7 +804,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         this, other = self._maybe_utc_convert(other)
 
         if this._can_fast_union(other):
-            return this._fast_union(other, sort=sort)
+            result = this._fast_union(other, sort=sort)
+            if result.freq is None:
+                result._set_freq("infer")
+            return result
         else:
             i8self = Int64Index._simple_new(self.asi8, name=self.name)
             i8other = Int64Index._simple_new(other.asi8, name=other.name)
@@ -878,17 +884,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return True
         return False
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined: np.ndarray, other):
+        assert other.dtype == self.dtype, (other.dtype, self.dtype)
         name = get_op_result_name(self, other)
-        if self._can_fast_union(other):
-            joined = self._shallow_copy(joined)
-            joined.name = name
-            return joined
-        else:
-            kwargs = {}
-            if hasattr(self, "tz"):
-                kwargs["tz"] = getattr(other, "tz", None)
-            return type(self)._simple_new(joined, name, **kwargs)
+
+        freq = self.freq if self._can_fast_union(other) else None
+        new_data = type(self._data)._simple_new(joined, dtype=self.dtype, freq=freq)
+
+        return type(self)._simple_new(new_data, name=name)
 
     # --------------------------------------------------------------------
     # List-Like Methods
@@ -896,12 +899,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location
+
         Parameters
         ----------
         loc : int
         item : object
             if not either a Python datetime or a numpy integer-like, returned
             Index dtype will be object rather than datetime.
+
         Returns
         -------
         new_index : Index
@@ -934,12 +939,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             new_i8s = np.concatenate(
                 (self[:loc].asi8, [item.view(np.int64)], self[loc:].asi8)
             )
-            return self._shallow_copy(new_i8s, freq=freq)
-        except (AttributeError, TypeError):
+            arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
+            return type(self)._simple_new(arr, name=self.name)
+        except (AttributeError, TypeError) as err:
 
             # fall back to object index
             if isinstance(item, str):
                 return self.astype(object).insert(loc, item)
             raise TypeError(
                 f"cannot insert {type(self).__name__} with incompatible label"
-            )
+            ) from err

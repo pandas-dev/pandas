@@ -20,6 +20,9 @@ Examples of unacceptable behavior by participants include:
   addresses, without explicit permission
 * Other unethical or unprofessional conduct
 
+Furthermore, we encourage inclusive behavior - for example,
+please don’t say “hey guys!” but “hey everyone!”.
+
 Project maintainers have the right and responsibility to remove, edit, or
 reject comments, commits, code, wiki edits, issues, and other contributions
 that are not aligned to this Code of Conduct, or to ban temporarily or
