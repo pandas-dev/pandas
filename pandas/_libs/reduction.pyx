@@ -483,6 +483,7 @@ def apply_frame_axis0(object frame, object f, object names,
             item_cache.clear()  # ugh
             chunk = slider.dummy
             object.__setattr__(chunk, 'name', names[i])
+
             try:
                 piece = f(chunk)
             except Exception:
