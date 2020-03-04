@@ -34,6 +34,7 @@ class TestPlotBase:
         self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
         self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
         self.mpl_ge_3_1_0 = compat._mpl_ge_3_1_0()
+        self.mpl_ge_3_2_0 = compat._mpl_ge_3_2_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
