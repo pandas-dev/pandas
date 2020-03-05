@@ -76,10 +76,13 @@ class TestSeriesPlots(TestPlotBase):
 
         _check_plot_works(autocorrelation_plot, series=self.ts)
         _check_plot_works(autocorrelation_plot, series=self.ts.values)
-        _check_plot_works(autocorrelation_plot, series=self.ts, figsize=(15, 8))
 
         ax = autocorrelation_plot(self.ts, label="Test")
         self._check_legend_labels(ax, labels=["Test"])
+
+        s = Series([1, 2, 3, 4, 5])
+        ax = autocorrelation_plot(s)
+        assert len(ax.get_lines()[-1].get_xdata()) == len(s)
 
     @pytest.mark.slow
     def test_lag_plot(self):
@@ -88,6 +91,11 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
         _check_plot_works(lag_plot, series=self.ts, figsize=(15, 8))
+
+        lag = 2
+        s = Series([1, 2, 3, 4, 5])
+        ax = lag_plot(s, lag=lag)
+        assert len(ax.collections[0].get_offsets()) == (len(s) - lag)
 
     @pytest.mark.slow
     def test_bootstrap_plot(self):
