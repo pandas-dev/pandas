@@ -2213,16 +2213,17 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(ser.values[2], pd.Timedelta)
 
     mgr = df._data
+    mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
     assert isinstance(arr[1], pd.Timestamp)
     assert isinstance(arr[2], pd.Timedelta)
 
-    blk = mgr.blocks[mgr._blknos[1]]
+    blk = mgr.blocks[mgr.blknos[1]]
     assert blk.dtype == "M8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timestamp)
 
-    blk = mgr.blocks[mgr._blknos[2]]
+    blk = mgr.blocks[mgr.blknos[2]]
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
