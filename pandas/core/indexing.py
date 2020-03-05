@@ -866,16 +866,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean
-
-        if isinstance(key, slice):
-            return
-
-        if com.is_bool_indexer(key):
-            return
-
-        if not is_list_like_indexer(key):
-            labels = self.obj._get_axis(axis)
-            labels._convert_scalar_indexer(key, kind="loc")
+        pass
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
@@ -1138,15 +1129,6 @@ class _LocIndexer(_LocationIndexer):
 
         if isinstance(key, slice):
             return labels._convert_slice_indexer(key, kind="loc")
-
-        if is_scalar(key):
-            # try to find out correct indexer, if not type correct raise
-            try:
-                key = labels._convert_scalar_indexer(key, kind="loc")
-            except KeyError:
-                # but we will allow setting
-                if not is_setter:
-                    raise
 
         # see if we are positional in nature
         is_int_index = labels.is_integer()
@@ -2029,11 +2011,17 @@ class _AtIndexer(_ScalarAccessIndexer):
         if is_setter:
             return list(key)
 
-        lkey = list(key)
-        for n, (ax, i) in enumerate(zip(self.obj.axes, key)):
-            lkey[n] = ax._convert_scalar_indexer(i, kind="loc")
+        return key
 
-        return tuple(lkey)
+    def __getitem__(self, key):
+        if self.ndim != 1 or not is_scalar(key):
+            # FIXME: is_scalar check is a kludge
+            return super().__getitem__(key)
+
+        # Like Index.get_value, but we do not allow positional fallback
+        obj = self.obj
+        loc = obj.index.get_loc(key)
+        return obj.index._get_values_for_loc(obj, loc, key)
 
 
 @Appender(IndexingMixin.iat.__doc__)

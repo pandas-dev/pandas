@@ -594,7 +594,7 @@ class SeriesGroupBy(GroupBy):
         """
         ids, _, _ = self.grouper.group_info
 
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         codes, _ = algorithms.factorize(val, sort=False)
         sorter = np.lexsort((codes, ids))
@@ -662,7 +662,7 @@ class SeriesGroupBy(GroupBy):
             )
 
         ids, _, _ = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -779,7 +779,7 @@ class SeriesGroupBy(GroupBy):
             Count of values within each group.
         """
         ids, _, ngroups = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)

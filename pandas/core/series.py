@@ -852,9 +852,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         key_is_scalar = is_scalar(key)
-        if key_is_scalar:
-            key = self.index._convert_scalar_indexer(key, kind="getitem")
-        elif isinstance(key, (list, tuple)):
+        if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
@@ -974,8 +972,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
-        # We assume that _convert_scalar_indexer has already been called,
-        #  with kind="loc", if necessary, by the time we get here
         return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value):
@@ -2538,6 +2534,12 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
+        if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
+            msg = (
+                f"to_append should be a Series or list/tuple of Series, "
+                f"got DataFrame"
+            )
+            raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )

@@ -234,7 +234,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
--
+- Bug in :class:`Timedelta` construction with large nanoseconds keyword value (:issue:`32402`)
 -
 
 Strings
@@ -328,6 +328,7 @@ Reshaping
 - :meth:`DataFrame.pivot` can now take lists for ``index`` and ``columns`` arguments (:issue:`21425`)
 - Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
 - Bug in :meth:`SeriesGroupBy.aggregate` was resulting in aggregations being overwritten when they shared the same name (:issue:`30092`)
+- :meth:`Series.append` will now raise a ``TypeError`` when passed a DataFrame or a sequence containing Dataframe (:issue:`31413`)
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 
 
@@ -350,7 +351,6 @@ Other
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 - Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
--
 
 .. ---------------------------------------------------------------------------
 
