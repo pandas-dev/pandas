@@ -329,7 +329,7 @@ def _get_values(
 def _na_ok_dtype(dtype) -> bool:
     # TODO: what about datetime64tz?  PeriodDtype?
     if needs_i8_conversion(dtype):
-        return True
+        return False
     return not issubclass(dtype.type, np.integer)
 
 
