@@ -367,11 +367,9 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     cdef:
         int64_t cur_blkno
         Py_ssize_t i, start, stop, n, diff
-
         object blkno
         list group_order
         dict group_dict
-        int64_t[:] res_view
 
     n = blknos.shape[0]
 
@@ -418,12 +416,10 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
             else:
                 tot_len = sum(stop - start for start, stop in slices)
                 result = np.empty(tot_len, dtype=np.int64)
-                res_view = result
 
                 i = 0
                 for start, stop in slices:
                     for diff in range(start, stop):
-                        res_view[i] = diff
                         i += 1
 
                 yield blkno, result
