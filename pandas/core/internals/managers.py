@@ -1529,7 +1529,9 @@ class SingleBlockManager(BlockManager):
         self.blocks = tuple([block])
 
     @classmethod
-    def _from_blocks(cls, blocks: List[Block], axes: List[Index]):
+    def _from_blocks(
+        cls, blocks: List[Block], axes: List[Index]
+    ) -> "SingleBlockManager":
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
