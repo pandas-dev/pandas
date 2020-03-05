@@ -1003,7 +1003,11 @@ class Styler:
     def _highlight_null(v, null_color: str) -> str:
         return f"background-color: {null_color}" if pd.isna(v) else ""
 
-    def highlight_null(self, null_color: str = "red", subset=None) -> "Styler":
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[Union[Label, Sequence[Label]]] = None,
+    ) -> "Styler":
         """
         Shade the background ``null_color`` for missing values.
 
