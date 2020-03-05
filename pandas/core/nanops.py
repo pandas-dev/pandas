@@ -24,12 +24,12 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_timedelta64_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core.construction import extract_array
@@ -361,7 +361,7 @@ def _wrap_results(result, dtype: Dtype, fill_value=None):
         else:
             result = result.astype("m8[ns]").view(dtype)
 
-    elif is_period_dtype(dtype):
+    elif isinstance(dtype, PeriodDtype):
         if is_float(result) and result.is_integer():
             result = int(result)
         if is_integer(result):
