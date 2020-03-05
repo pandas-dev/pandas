@@ -3,7 +3,7 @@ from functools import partial
 import itertools
 import operator
 import re
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
 
@@ -57,6 +57,8 @@ from pandas.core.internals.concat import (  # all for concatenate_block_managers
 from pandas.io.formats.printing import pprint_thing
 
 # TODO: flexible with index=None and/or items=None
+
+T = TypeVar("T", bound="BlockManager")
 
 
 class BlockManager(PandasObject):
@@ -149,6 +151,13 @@ class BlockManager(PandasObject):
         self._blknos = None
         self._blklocs = None
 
+    @classmethod
+    def _from_blocks(cls, blocks: List[Block], axes: List[Index]):
+        """
+        Constructor for BlockManager and SingleBlockManager with same signature.
+        """
+        return cls(blocks, axes, do_integrity_check=False)
+
     @property
     def blknos(self):
         """
@@ -176,7 +185,7 @@ class BlockManager(PandasObject):
 
         return self._blklocs
 
-    def make_empty(self, axes=None) -> "BlockManager":
+    def make_empty(self: T, axes=None) -> T:
         """ return an empty BlockManager with the items axis of len 0 """
         if axes is None:
             axes = [Index([])] + self.axes[1:]
@@ -184,11 +193,11 @@ class BlockManager(PandasObject):
         # preserve dtype if possible
         if self.ndim == 1:
             assert isinstance(self, SingleBlockManager)  # for mypy
-            blocks = np.array([], dtype=self.array_dtype)
-            blocks = make_block(blocks, placement=slice(0, 0), ndim=1)
+            arr = np.array([], dtype=self.array_dtype)
+            blocks = [make_block(arr, placement=slice(0, 0), ndim=1)]
         else:
             blocks = []
-        return type(self)(blocks, axes)
+        return type(self)._from_blocks(blocks, axes)
 
     def __nonzero__(self) -> bool:
         return True
@@ -381,7 +390,7 @@ class BlockManager(PandasObject):
 
         return res
 
-    def apply(self, f, filter=None, **kwargs) -> "BlockManager":
+    def apply(self: T, f, filter=None, **kwargs) -> T:
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
@@ -459,12 +468,8 @@ class BlockManager(PandasObject):
 
         if len(result_blocks) == 0:
             return self.make_empty(self.axes)
-        if self.ndim == 1:
-            assert len(result_blocks) == 1
-            bm = type(self)(result_blocks[0], self.axes)  # type: ignore
-        else:
-            bm = type(self)(result_blocks, self.axes, do_integrity_check=False)
-        return bm
+
+        return type(self)._from_blocks(result_blocks, self.axes)
 
     def quantile(
         self,
@@ -663,12 +668,8 @@ class BlockManager(PandasObject):
                 rb = new_rb
             result_blocks.extend(rb)
 
-        if self.ndim == 1:
-            assert len(result_blocks) == 1
-            bm = type(self)(result_blocks[0], self.axes)
-        else:
-            bm = type(self)(result_blocks, self.axes)
-            bm._consolidate_inplace()
+        bm = type(self)._from_blocks(result_blocks, self.axes)
+        bm._consolidate_inplace()
         return bm
 
     def is_consolidated(self) -> bool:
@@ -756,10 +757,7 @@ class BlockManager(PandasObject):
         axes = list(self.axes)
         axes[0] = self.items.take(indexer)
 
-        if self.ndim == 1:
-            assert len(new_blocks) == 1
-            return type(self)(new_blocks[0], axes)  # type: ignore
-        return type(self)(new_blocks, axes, do_integrity_check=False)
+        return type(self)._from_blocks(new_blocks, axes)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> "BlockManager":
 
@@ -786,7 +784,7 @@ class BlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep=True) -> "BlockManager":
+    def copy(self: T, deep=True) -> T:
         """
         Make deep or shallow copy of BlockManager
 
@@ -1256,14 +1254,14 @@ class BlockManager(PandasObject):
         )
 
     def reindex_indexer(
-        self,
+        self: T,
         new_axis,
         indexer,
         axis: int,
         fill_value=None,
-        allow_dups=False,
+        allow_dups: bool = False,
         copy: bool = True,
-    ):
+    ) -> T:
         """
         Parameters
         ----------
@@ -1311,10 +1309,8 @@ class BlockManager(PandasObject):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
-        if self.ndim == 1:
-            assert len(new_blocks) == 1
-            return type(self)(new_blocks[0], new_axes)
-        return type(self)(new_blocks, new_axes)
+
+        return type(self)._from_blocks(new_blocks, new_axes)
 
     def _slice_take_blocks_ax0(self, slice_or_indexer, fill_tuple=None):
         """
@@ -1531,6 +1527,15 @@ class SingleBlockManager(BlockManager):
             self.axes = [ensure_index(axis)]
 
         self.blocks = tuple([block])
+
+    @classmethod
+    def _from_blocks(cls, blocks: List[Block], axes: List[Index]):
+        """
+        Constructor for BlockManager and SingleBlockManager with same signature.
+        """
+        assert len(blocks) == 1
+        assert len(axes) == 1
+        return cls(blocks[0], axes[0], do_integrity_check=False, fastpath=True)
 
     @classmethod
     def from_array(cls, array: ArrayLike, index: Index) -> "SingleBlockManager":
