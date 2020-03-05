@@ -58,7 +58,9 @@ class EWM(_Rolling):
         Divide by decaying adjustment factor in beginning periods to account
         for imbalance in relative weightings (viewing EWMA as a moving average).
 
-        - When ``adjust=True`` (default), the EW function is calculated using weights :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average of the series [:math:`x_0, x_1, ..., x_t`] would be:
+        - When ``adjust=True`` (default), the EW function is calculated using weights
+        :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average of the series
+        [:math:`x_0, x_1, ..., x_t`] would be:
 
         .. math::
             y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... + (1 -
