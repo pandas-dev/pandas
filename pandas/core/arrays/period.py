@@ -454,12 +454,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return DatetimeArray._from_sequence(new_data, freq="infer")
 
     # --------------------------------------------------------------------
-    # Array-like / EA-Interface Methods
-
-    def _values_for_argsort(self):
-        return self._data
-
-    # --------------------------------------------------------------------
 
     def _time_shift(self, periods, freq=None):
         """
