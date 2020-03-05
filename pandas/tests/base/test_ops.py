@@ -312,8 +312,9 @@ class TestIndexOps(Ops):
             expected.index = pd.Index(expected.index)
 
         # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
-        result = result.sort_index()
-        expected = expected.sort_index()
+        if obj.duplicated().any():
+            result = result.sort_index()
+            expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
@@ -345,9 +346,11 @@ class TestIndexOps(Ops):
         expected.index = expected.index.astype(obj.dtype)
 
         result = obj.value_counts()
-        # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
+        if obj.duplicated().any():
+            # TODO:
+            #  Order of entries with the same count is inconsistent on CI (gh-32449)
+            expected = expected.sort_index()
+            result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
         # can't use expected[null_obj] = 3 as
@@ -356,9 +359,11 @@ class TestIndexOps(Ops):
         expected = expected.append(new_entry)
 
         result = obj.value_counts(dropna=False)
-        # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
-        expected = expected.sort_index()
-        result = result.sort_index()
+        if obj.duplicated().any():
+            # TODO:
+            #  Order of entries with the same count is inconsistent on CI (gh-32449)
+            expected = expected.sort_index()
+            result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_inferred(self, index_or_series):
