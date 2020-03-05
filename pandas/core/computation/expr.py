@@ -637,7 +637,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     return resolved
                 raise
 
-        raise ValueError(f"Invalid Attribute context {ctx.__class__.__name__}")
+        raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
 
