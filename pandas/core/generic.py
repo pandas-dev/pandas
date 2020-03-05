@@ -13,6 +13,7 @@ from typing import (
     Callable,
     Dict,
     FrozenSet,
+    Hashable,
     List,
     Mapping,
     Optional,
@@ -189,7 +190,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _metadata: List[str] = []
     _is_copy = None
     _data: BlockManager
-    _attrs: Dict[Label, Any]
+    _attrs: Dict[Optional[Hashable], Any]
     _typ: str
 
     # ----------------------------------------------------------------------
@@ -199,7 +200,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self,
         data: BlockManager,
         copy: bool = False,
-        attrs: Optional[Mapping[Label, Any]] = None,
+        attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
     ):
         # copy kwarg is retained for mypy compat, is not used
 
@@ -233,7 +234,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
 
     @property
-    def attrs(self) -> Dict[Label, Any]:
+    def attrs(self) -> Dict[Optional[Hashable], Any]:
         """
         Dictionary of global attributes on this object.
 
@@ -246,7 +247,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: Mapping[Label, Any]) -> None:
+    def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
 
     @classmethod
