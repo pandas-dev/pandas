@@ -927,9 +927,7 @@ class IndexOpsMixin:
         nv.validate_max(args, kwargs)
         return nanops.nanmax(self._values, skipna=skipna)
 
-    @doc(
-        op="max", oppose="min", value="largest",
-    )
+    @doc(op="max", oppose="min", value="largest")
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return int position of the {value} value in the Series.
@@ -953,8 +951,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        Series.argmax : Return position of the maximum value.
-        Series.argmin : Return position of the minimum value.
+        Series.arg{op} : Return position of the {op}imum value.
+        Series.arg{oppose} : Return position of the {oppose}imum value.
         numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
@@ -1026,9 +1024,7 @@ class IndexOpsMixin:
         nv.validate_min(args, kwargs)
         return nanops.nanmin(self._values, skipna=skipna)
 
-    @doc(
-        argmax, op="min", oppose="max", value="smallest",
-    )
+    @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
