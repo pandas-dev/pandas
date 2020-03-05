@@ -94,6 +94,7 @@ def test_on_offset_implementations(dt, offset):
     compare = (dt + offset) - offset
     assert offset.is_on_offset(dt) == (compare == dt)
 
+
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
@@ -121,9 +122,12 @@ def test_apply_index_implementations(offset, rng):
 @pytest.mark.xfail  # TODO: reason?
 @given(gen_yqm_offset)
 def test_shift_across_dst(offset):
-    # GH#18319 check that 1) timezone is correctly normalized and
+    # GH#18319
+    # check that:
+    # 1) timezone is correctly normalized and
     # 2) that hour is not incorrectly changed by this normalization
     # Note that dti includes a transition across DST boundary
+
     dti = pd.date_range(
         start="2017-10-30 12:00:00", end="2017-11-06", freq="D", tz="US/Eastern"
     )
