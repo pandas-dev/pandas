@@ -1071,9 +1071,12 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
-    def test_dt64arr_addsub_time_object_raises(self, box_with_array):
+    def test_dt64arr_addsub_time_object_raises(self, box_with_array, tz_naive_fixture):
         # https://github.com/pandas-dev/pandas/issues/10329
-        obj1 = pd.date_range("2012-01-01", periods=3)
+
+        tz = tz_naive_fixture
+
+        obj1 = pd.date_range("2012-01-01", periods=3, tz=tz)
         obj2 = [time(i, i, i) for i in range(3)]
 
         obj1 = tm.box_expected(obj1, box_with_array)
