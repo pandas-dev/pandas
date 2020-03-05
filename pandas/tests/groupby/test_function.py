@@ -1295,20 +1295,20 @@ def test_count_uses_size_on_exception():
 # --------------------------------
 
 
-@pytest.mark.parametrize("group_key", ["A", "B", ["A", "B"]])
-def test_size(df, group_key):
-    grouped = df.groupby(group_key)
+@pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
+def test_size(df, by):
+    grouped = df.groupby(by=by)
     result = grouped.size()
     for key, group in grouped:
         assert result[key] == len(group)
 
 
-@pytest.mark.parametrize("key", ["A", "B", ["A", "B"]])
+@pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
 @pytest.mark.parametrize("sort", [True, False])
-def test_size_sort(df, sort, key):
+def test_size_sort(df, sort, by):
     df = DataFrame(np.random.choice(20, (1000, 3)), columns=list("ABC"))
-    left = df.groupby(key, sort=sort).size()
-    right = df.groupby(key, sort=sort)["C"].apply(lambda a: a.shape[0])
+    left = df.groupby(by=by, sort=sort).size()
+    right = df.groupby(by=by, sort=sort)["C"].apply(lambda a: a.shape[0])
     tm.assert_series_equal(left, right, check_names=False)
 
 
