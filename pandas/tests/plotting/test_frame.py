@@ -444,9 +444,6 @@ class TestDataFramePlots(TestPlotBase):
         # sharex can now be switched check whether the right
         # pair of axes is turned on or off
 
-        if self.mpl_ge_3_2_0:
-            pytest.skip("https://github.com/pandas-dev/pandas/pull/32444")
-
         df = DataFrame(
             {
                 "a": [-1.43, -0.15, -3.70, -1.43, -0.14],
@@ -747,10 +744,6 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_subplots_sharex_axes_existing_axes(self):
         # GH 9158
-
-        if self.mpl_ge_3_2_0:
-            pytest.skip("https://github.com/pandas-dev/pandas/pull/32444")
-
         d = {"A": [1.0, 2.0, 3.0, 4.0], "B": [4.0, 3.0, 2.0, 1.0], "C": [5, 1, 3, 4]}
         df = DataFrame(d, index=date_range("2014 10 11", "2014 10 14"))
 
