@@ -295,13 +295,19 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                 # so that we can correctly handle 'gaps"
                 layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool)
                 for ax in axarr:
-                    layout[ax.rowNum, ax.colNum] = ax.get_visible()
+                    layout[
+                        ax.get_subplotspec().rowspan.start,
+                        ax.get_subplotspec().colspan.start,
+                    ] = ax.get_visible()
 
                 for ax in axarr:
                     # only the last row of subplots should get x labels -> all
                     # other off layout handles the case that the subplot is
                     # the last in the column, because below is no subplot/gap.
-                    if not layout[ax.rowNum + 1, ax.colNum]:
+                    if not layout[
+                        ax.get_subplotspec().rowspan.start + 1,
+                        ax.get_subplotspec().colspan.start,
+                    ]:
                         continue
                     if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
                         _remove_labels_from_axis(ax.xaxis)
