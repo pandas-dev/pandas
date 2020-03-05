@@ -6,8 +6,8 @@ import pytest
 from pandas.compat import PYPY
 
 from pandas import Categorical, Index, NaT, Series, date_range
+import pandas._testing as tm
 from pandas.api.types import is_scalar
-import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics:
@@ -15,10 +15,10 @@ class TestCategoricalAnalytics:
     def test_min_max_not_ordered_raises(self, aggregation):
         # unordered cats have no min/max
         cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        msg = "Categorical is not ordered for operation {}"
+        msg = f"Categorical is not ordered for operation {aggregation}"
         agg_func = getattr(cat, aggregation)
 
-        with pytest.raises(TypeError, match=msg.format(aggregation)):
+        with pytest.raises(TypeError, match=msg):
             agg_func()
 
     def test_min_max_ordered(self):

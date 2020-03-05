@@ -5,9 +5,9 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
 from pandas.util import hash_array, hash_pandas_object
-import pandas.util.testing as tm
 
 
 @pytest.fixture(
@@ -178,23 +178,6 @@ def test_multiindex_objects():
     assert mi.equals(recons)
     assert Index(mi.values).equals(Index(recons.values))
 
-    # _hashed_values and hash_pandas_object(..., index=False) equivalency.
-    expected = hash_pandas_object(mi, index=False).values
-    result = mi._hashed_values
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    expected = hash_pandas_object(recons, index=False).values
-    result = recons._hashed_values
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    expected = mi._hashed_values
-    result = recons._hashed_values
-
-    # Values should match, but in different order.
-    tm.assert_numpy_array_equal(np.sort(result), np.sort(expected))
-
 
 @pytest.mark.parametrize(
     "obj",
@@ -353,3 +336,31 @@ def test_hash_collisions():
 
     result = hash_array(np.asarray(hashes, dtype=object), "utf8")
     tm.assert_numpy_array_equal(result, np.concatenate([expected1, expected2], axis=0))
+
+
+def test_hash_with_tuple():
+    # GH#28969 array containing a tuple raises on call to arr.astype(str)
+    #  apparently a numpy bug github.com/numpy/numpy/issues/9441
+
+    df = pd.DataFrame({"data": [tuple("1"), tuple("2")]})
+    result = hash_pandas_object(df)
+    expected = pd.Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
+    tm.assert_series_equal(result, expected)
+
+    df2 = pd.DataFrame({"data": [tuple([1]), tuple([2])]})
+    result = hash_pandas_object(df2)
+    expected = pd.Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
+    tm.assert_series_equal(result, expected)
+
+    # require that the elements of such tuples are themselves hashable
+
+    df3 = pd.DataFrame({"data": [tuple([1, []]), tuple([2, {}])]})
+    with pytest.raises(TypeError, match="unhashable type: 'list'"):
+        hash_pandas_object(df3)
+
+
+def test_hash_object_none_key():
+    # https://github.com/pandas-dev/pandas/issues/30887
+    result = pd.util.hash_pandas_object(pd.Series(["a", "b"]), hash_key=None)
+    expected = pd.Series([4578374827886788867, 17338122309987883691], dtype="uint64")
+    tm.assert_series_equal(result, expected)

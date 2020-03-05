@@ -20,9 +20,9 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
+import pandas._testing as tm
 import pandas.core.algorithms as algorithms
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 
 def assert_stat_op_calc(
@@ -60,16 +60,18 @@ def assert_stat_op_calc(
     skipna_alternative : function, default None
         NaN-safe version of alternative
     """
-
     f = getattr(frame, opname)
 
     if check_dates:
+        expected_warning = FutureWarning if opname in ["mean", "median"] else None
         df = DataFrame({"b": date_range("1/1/2001", periods=2)})
-        result = getattr(df, opname)()
+        with tm.assert_produces_warning(expected_warning):
+            result = getattr(df, opname)()
         assert isinstance(result, Series)
 
         df["a"] = range(len(df))
-        result = getattr(df, opname)()
+        with tm.assert_produces_warning(expected_warning):
+            result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
 
@@ -150,7 +152,6 @@ def assert_stat_op_api(opname, float_frame, float_string_frame, has_numeric_only
     has_numeric_only : bool, default False
         Whether the method "opname" has the kwarg "numeric_only"
     """
-
     # make sure works on mixed-type frame
     getattr(float_string_frame, opname)(axis=0)
     getattr(float_string_frame, opname)(axis=1)
@@ -178,7 +179,6 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
     has_skipna : bool, default True
         Whether the method "opname" has the kwarg "skip_na"
     """
-
     f = getattr(frame, opname)
 
     if has_skipna:
@@ -460,7 +460,8 @@ class TestDataFrameAnalytics:
     def test_mean_mixed_datetime_numeric(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
         df = pd.DataFrame({"A": [1, 1], "B": [pd.Timestamp("2000", tz=tz)] * 2})
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.mean()
         expected = pd.Series([1.0], index=["A"])
         tm.assert_series_equal(result, expected)
 
@@ -470,7 +471,9 @@ class TestDataFrameAnalytics:
         # Our long-term desired behavior is unclear, but the behavior in
         # 0.24.0rc1 was buggy.
         df = pd.DataFrame({"A": [pd.Timestamp("2000", tz=tz)] * 2})
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.mean()
+
         expected = pd.Series(dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
@@ -823,6 +826,16 @@ class TestDataFrameAnalytics:
         bools.sum(1)
         bools.sum(0)
 
+    def test_sum_mixed_datetime(self):
+        # GH#30886
+        df = pd.DataFrame(
+            {"A": pd.date_range("2000", periods=4), "B": [1, 2, 3, 4]}
+        ).reindex([2, 3, 4])
+        result = df.sum()
+
+        expected = pd.Series({"B": 7.0})
+        tm.assert_series_equal(result, expected)
+
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
         the_mean = float_string_frame.mean(axis=0)
@@ -856,7 +869,9 @@ class TestDataFrameAnalytics:
         expected = pd.Series({"A": 1.0})
         tm.assert_series_equal(result, expected)
 
-        result = df.mean()
+        with tm.assert_produces_warning(FutureWarning):
+            # in the future datetime columns will be included
+            result = df.mean()
         expected = pd.Series({"A": 1.0, "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
@@ -1247,15 +1262,6 @@ class TestDataFrameAnalytics:
 
     # ---------------------------------------------------------------------
     # Unsorted
-
-    def test_series_nat_conversion(self):
-        # GH 18521
-        # Check rank does not mutate DataFrame
-        df = DataFrame(np.random.randn(10, 3), dtype="float64")
-        expected = df.copy()
-        df.rank()
-        result = df
-        tm.assert_frame_equal(result, expected)
 
     def test_series_broadcasting(self):
         # smoke test for numpy warnings

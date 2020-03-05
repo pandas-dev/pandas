@@ -20,6 +20,9 @@ Examples of unacceptable behavior by participants include:
   addresses, without explicit permission
 * Other unethical or unprofessional conduct
 
+Furthermore, we encourage inclusive behavior - for example,
+please don’t say “hey guys!” but “hey everyone!”.
+
 Project maintainers have the right and responsibility to remove, edit, or
 reject comments, commits, code, wiki edits, issues, and other contributions
 that are not aligned to this Code of Conduct, or to ban temporarily or
@@ -54,10 +57,10 @@ incident.
 
 This Code of Conduct is adapted from the [Contributor Covenant][homepage],
 version 1.3.0, available at
-[http://contributor-covenant.org/version/1/3/0/][version],
+[https://www.contributor-covenant.org/version/1/3/0/][version],
 and the [Swift Code of Conduct][swift].
 
-[homepage]: http://contributor-covenant.org
-[version]: http://contributor-covenant.org/version/1/3/0/
+[homepage]: https://www.contributor-covenant.org
+[version]: https://www.contributor-covenant.org/version/1/3/0/
 [swift]: https://swift.org/community/#code-of-conduct
 

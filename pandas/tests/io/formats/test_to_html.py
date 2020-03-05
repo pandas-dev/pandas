@@ -7,18 +7,18 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, option_context
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
 lorem_ipsum = (
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod"
-    " tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"
-    " veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex"
-    " ea commodo consequat. Duis aute irure dolor in reprehenderit in"
-    " voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur"
-    " sint occaecat cupidatat non proident, sunt in culpa qui officia"
-    " deserunt mollit anim id est laborum."
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
+    "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim "
+    "veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex "
+    "ea commodo consequat. Duis aute irure dolor in reprehenderit in "
+    "voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur "
+    "sint occaecat cupidatat non proident, sunt in culpa qui officia "
+    "deserunt mollit anim id est laborum."
 )
 
 
@@ -300,7 +300,7 @@ def test_to_html_border(option, result, expected):
     else:
         with option_context("display.html.border", option):
             result = result(df)
-    expected = 'border="{}"'.format(expected)
+    expected = f'border="{expected}"'
     assert expected in result
 
 
@@ -318,7 +318,7 @@ def test_to_html(biggie_df_fixture):
     assert isinstance(s, str)
 
     df.to_html(columns=["B", "A"], col_space=17)
-    df.to_html(columns=["B", "A"], formatters={"A": lambda x: "{x:.1f}".format(x=x)})
+    df.to_html(columns=["B", "A"], formatters={"A": lambda x: f"{x:.1f}"})
 
     df.to_html(columns=["B", "A"], float_format=str)
     df.to_html(columns=["B", "A"], col_space=12, float_format=str)
@@ -688,7 +688,7 @@ def test_to_html_float_format_no_fixed_width(value, float_format, expected, data
 def test_to_html_render_links(render_links, expected, datapath):
     # GH 2679
     data = [
-        [0, "http://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
+        [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
         [0, "www.pydata.org", "pydata.org"],
     ]
     df = DataFrame(data, columns=["foo", "bar", None])
@@ -745,7 +745,7 @@ def test_to_html_with_col_space_units(unit):
     if isinstance(unit, int):
         unit = str(unit) + "px"
     for h in hdrs:
-        expected = '<th style="min-width: {unit};">'.format(unit=unit)
+        expected = f'<th style="min-width: {unit};">'
         assert expected in h
 
 

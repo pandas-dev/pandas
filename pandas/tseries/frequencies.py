@@ -1,6 +1,7 @@
 from datetime import timedelta
 import re
 from typing import Dict, Optional
+import warnings
 
 import numpy as np
 from pytz import AmbiguousTimeError
@@ -125,7 +126,7 @@ def to_offset(freq) -> Optional[DateOffset]:
         if isinstance(stride, str):
             name, stride = stride, name
         name, _ = libfreqs._base_and_stride(name)
-        delta = get_offset(name) * stride
+        delta = _get_offset(name) * stride
 
     elif isinstance(freq, timedelta):
         delta = None
@@ -140,8 +141,8 @@ def to_offset(freq) -> Optional[DateOffset]:
                         delta = offset
                     else:
                         delta = delta + offset
-        except ValueError:
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except ValueError as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     else:
         delta = None
@@ -166,14 +167,14 @@ def to_offset(freq) -> Optional[DateOffset]:
                         float(stride), prefix
                     )
                 stride = int(stride)
-                offset = get_offset(name)
+                offset = _get_offset(name)
                 offset = offset * int(np.fabs(stride) * stride_sign)
                 if delta is None:
                     delta = offset
                 else:
                     delta = delta + offset
-        except (ValueError, TypeError):
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except (ValueError, TypeError) as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     if delta is None:
         raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
@@ -185,9 +186,28 @@ def get_offset(name: str) -> DateOffset:
     """
     Return DateOffset object associated with rule name.
 
+    .. deprecated:: 1.0.0
+
     Examples
     --------
     get_offset('EOM') --> BMonthEnd(1)
+    """
+    warnings.warn(
+        "get_offset is deprecated and will be removed in a future version, "
+        "use to_offset instead",
+        FutureWarning,
+        stacklevel=2,
+    )
+    return _get_offset(name)
+
+
+def _get_offset(name: str) -> DateOffset:
+    """
+    Return DateOffset object associated with rule name.
+
+    Examples
+    --------
+    _get_offset('EOM') --> BMonthEnd(1)
     """
     if name not in libfreqs._dont_uppercase:
         name = name.upper()
@@ -203,9 +223,9 @@ def get_offset(name: str) -> DateOffset:
             # handles case where there's no suffix (and will TypeError if too
             # many '-')
             offset = klass._from_name(*split[1:])
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name)) from err
         # cache
         _offset_map[name] = offset
 
@@ -224,7 +244,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
-      if passed a Series will use the values of the series (NOT THE INDEX).
+      If passed a Series will use the values of the series (NOT THE INDEX).
     warn : bool, default True
 
     Returns
@@ -314,7 +334,7 @@ class _FrequencyInferer:
         return len(self.deltas) == 1
 
     @cache_readonly
-    def is_unique_asi8(self):
+    def is_unique_asi8(self) -> bool:
         return len(self.deltas_asi8) == 1
 
     def get_freq(self) -> Optional[str]:

@@ -1,5 +1,5 @@
 from collections import OrderedDict, abc
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import functools
 import itertools
 
@@ -7,8 +7,10 @@ import numpy as np
 import numpy.ma as ma
 import numpy.ma.mrecords as mrecords
 import pytest
+import pytz
 
 from pandas.compat import is_platform_little_endian
+from pandas.compat.numpy import _is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -25,9 +27,9 @@ from pandas import (
     date_range,
     isna,
 )
-from pandas.arrays import IntervalArray, PeriodArray
+import pandas._testing as tm
+from pandas.arrays import IntervalArray, PeriodArray, SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
-import pandas.util.testing as tm
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -144,6 +146,7 @@ class TestDataFrameConstructors:
         assert df.loc[1, 0] is None
         assert df.loc[0, 1] == "2"
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets list of frame as 3D")
     def test_constructor_list_frames(self):
         # see gh-3243
         result = DataFrame([DataFrame()])
@@ -278,7 +281,7 @@ class TestDataFrameConstructors:
         nitems = 100
         nums = list(range(nitems))
         random.shuffle(nums)
-        expected = ["A{i:d}".format(i=i) for i in nums]
+        expected = [f"A{i:d}" for i in nums]
         df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
         assert expected == list(df.columns)
 
@@ -316,7 +319,8 @@ class TestDataFrameConstructors:
 
         # mix dict and array, wrong size - no spec for which error should raise
         # first
-        with pytest.raises(ValueError):
+        msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
+        with pytest.raises(ValueError, match=msg):
             DataFrame({"A": {"a": "a", "b": "b"}, "B": ["a", "b", "c"]})
 
         # Length-one dict micro-optimization
@@ -412,6 +416,12 @@ class TestDataFrameConstructors:
         expected = DataFrame(data=d, columns=list("ba"))
         tm.assert_frame_equal(frame, expected)
 
+    def test_constructor_dict_nan_key_and_columns(self):
+        # GH 16894
+        result = pd.DataFrame({np.nan: [1, 2], 2: [2, 3]}, columns=[np.nan, 2])
+        expected = pd.DataFrame([[1, 2], [2, 3]], columns=[np.nan, 2])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_multi_index(self):
         # GH 4078
         # construction error with mi and all-nan frame
@@ -496,6 +506,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
 
+    @pytest.mark.xfail(_is_numpy_dev, reason="Interprets embedded frame as 3D")
     def test_constructor_with_embedded_frames(self):
 
         # embedded data frames
@@ -511,17 +522,17 @@ class TestDataFrameConstructors:
         result = df2.loc[1, 0]
         tm.assert_frame_equal(result, df1 + 10)
 
-    def test_constructor_subclass_dict(self, float_frame):
+    def test_constructor_subclass_dict(self, float_frame, dict_subclass):
         # Test for passing dict subclass to constructor
         data = {
-            "col1": tm.TestSubDict((x, 10.0 * x) for x in range(10)),
-            "col2": tm.TestSubDict((x, 20.0 * x) for x in range(10)),
+            "col1": dict_subclass((x, 10.0 * x) for x in range(10)),
+            "col2": dict_subclass((x, 20.0 * x) for x in range(10)),
         }
         df = DataFrame(data)
         refdf = DataFrame({col: dict(val.items()) for col, val in data.items()})
         tm.assert_frame_equal(refdf, df)
 
-        data = tm.TestSubDict(data.items())
+        data = dict_subclass(data.items())
         df = DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
@@ -1853,12 +1864,7 @@ class TestDataFrameConstructors:
 
             # No NaN found -> error
             if len(indexer) == 0:
-                msg = (
-                    "cannot do label indexing on"
-                    r" <class 'pandas\.core\.indexes\.range\.RangeIndex'>"
-                    r" with these indexers \[nan\] of <class 'float'>"
-                )
-                with pytest.raises(TypeError, match=msg):
+                with pytest.raises(KeyError, match="^nan$"):
                     df.loc[:, np.nan]
             # single nan should result in Series
             elif len(indexer) == 1:
@@ -2380,6 +2386,12 @@ class TestDataFrameConstructors:
         result = DataFrame.from_records(data)
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_from_records_utc(self):
+        rec = {"datum": 1.5, "begin_time": datetime(2006, 4, 27, tzinfo=pytz.utc)}
+
+        # it works
+        DataFrame.from_records([rec], index="begin_time")
+
     def test_to_frame_with_falsey_names(self):
         # GH 16114
         result = Series(name=0, dtype=object).to_frame().dtypes
@@ -2414,7 +2426,7 @@ class TestDataFrameConstructors:
         "extension_arr",
         [
             Categorical(list("aabbc")),
-            pd.SparseArray([1, np.nan, np.nan, np.nan]),
+            SparseArray([1, np.nan, np.nan, np.nan]),
             IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
             PeriodArray(pd.period_range(start="1/1/2017", end="1/1/2018", freq="M")),
         ],
@@ -2424,6 +2436,44 @@ class TestDataFrameConstructors:
         expected = DataFrame(Series(extension_arr))
         result = DataFrame(extension_arr)
         tm.assert_frame_equal(result, expected)
+
+    def test_datetime_date_tuple_columns_from_dict(self):
+        # GH 10863
+        v = date.today()
+        tup = v, v
+        result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
+        expected = DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))
+        tm.assert_frame_equal(result, expected)
+
+    def test_construct_with_two_categoricalindex_series(self):
+        # GH 14600
+        s1 = pd.Series(
+            [39, 6, 4], index=pd.CategoricalIndex(["female", "male", "unknown"])
+        )
+        s2 = pd.Series(
+            [2, 152, 2, 242, 150],
+            index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
+        )
+        result = pd.DataFrame([s1, s2])
+        expected = pd.DataFrame(
+            np.array(
+                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
+            ),
+            columns=["f", "female", "m", "male", "unknown"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_M8_structured(self):
+        dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
+        arr = np.array(dates, dtype=[("Date", "M8[us]"), ("Forecasting", "M8[us]")])
+        df = DataFrame(arr)
+
+        assert df["Date"][0] == dates[0][0]
+        assert df["Forecasting"][0] == dates[0][1]
+
+        s = Series(arr["Date"])
+        assert isinstance(s[0], Timestamp)
+        assert s[0] == dates[0][0]
 
 
 class TestDataFrameConstructorWithDatetimeTZ:
@@ -2551,3 +2601,11 @@ class TestDataFrameConstructorWithDatetimeTZ:
             "datetime64[ns, CET]",
         ]
         assert (res.dtypes == expected_dtypes).all()
+
+    def test_from_2d_ndarray_with_dtype(self):
+        # GH#12513
+        array_dim2 = np.arange(10).reshape((5, 2))
+        df = pd.DataFrame(array_dim2, dtype="datetime64[ns, UTC]")
+
+        expected = pd.DataFrame(array_dim2).astype("datetime64[ns, UTC]")
+        tm.assert_frame_equal(df, expected)

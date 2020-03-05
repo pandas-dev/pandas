@@ -6,35 +6,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
-import pandas.util.testing as tm
+from pandas import DataFrame, Series
+import pandas._testing as tm
 
 
 class TestSeriesAnalytics:
-    def test_compress(self):
-        cond = [True, False, True, False, False]
-        s = Series([1, -1, 5, 8, 7], index=list("abcde"), name="foo")
-        expected = Series(s.values.compress(cond), index=list("ac"), name="foo")
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.compress(cond)
-        tm.assert_series_equal(result, expected)
-
-    def test_numpy_compress(self):
-        cond = [True, False, True, False, False]
-        s = Series([1, -1, 5, 8, 7], index=list("abcde"), name="foo")
-        expected = Series(s.values.compress(cond), index=list("ac"), name="foo")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_series_equal(np.compress(cond, s), expected)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'axis' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.compress(cond, s, axis=1)
-
-            msg = "the 'out' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.compress(cond, s, out=s)
-
     def test_prod_numpy16_bug(self):
         s = Series([1.0, 1.0, 1.0], index=range(3))
         result = s.prod()
@@ -184,82 +160,6 @@ class TestSeriesAnalytics:
         assert s.is_monotonic is False
         assert s.is_monotonic_decreasing is True
 
-    def test_apply_categorical(self):
-        values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-        s = pd.Series(values, name="XX", index=list("abcdefg"))
-        result = s.apply(lambda x: x.lower())
-
-        # should be categorical dtype when the number of categories are
-        # the same
-        values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
-        exp = pd.Series(values, name="XX", index=list("abcdefg"))
-        tm.assert_series_equal(result, exp)
-        tm.assert_categorical_equal(result.values, exp.values)
-
-        result = s.apply(lambda x: "A")
-        exp = pd.Series(["A"] * 7, name="XX", index=list("abcdefg"))
-        tm.assert_series_equal(result, exp)
-        assert result.dtype == np.object
-
-    def test_unstack(self):
-
-        index = MultiIndex(
-            levels=[["bar", "foo"], ["one", "three", "two"]],
-            codes=[[1, 1, 0, 0], [0, 1, 0, 2]],
-        )
-
-        s = Series(np.arange(4.0), index=index)
-        unstacked = s.unstack()
-
-        expected = DataFrame(
-            [[2.0, np.nan, 3.0], [0.0, 1.0, np.nan]],
-            index=["bar", "foo"],
-            columns=["one", "three", "two"],
-        )
-
-        tm.assert_frame_equal(unstacked, expected)
-
-        unstacked = s.unstack(level=0)
-        tm.assert_frame_equal(unstacked, expected.T)
-
-        index = MultiIndex(
-            levels=[["bar"], ["one", "two", "three"], [0, 1]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-        )
-        s = Series(np.random.randn(6), index=index)
-        exp_index = MultiIndex(
-            levels=[["one", "two", "three"], [0, 1]],
-            codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-        )
-        expected = DataFrame({"bar": s.values}, index=exp_index).sort_index(level=0)
-        unstacked = s.unstack(0).sort_index()
-        tm.assert_frame_equal(unstacked, expected)
-
-        # GH5873
-        idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
-        ts = pd.Series([1, 2], index=idx)
-        left = ts.unstack()
-        right = DataFrame(
-            [[np.nan, 1], [2, np.nan]], index=[101, 102], columns=[np.nan, 3.5]
-        )
-        tm.assert_frame_equal(left, right)
-
-        idx = pd.MultiIndex.from_arrays(
-            [
-                ["cat", "cat", "cat", "dog", "dog"],
-                ["a", "a", "b", "a", "b"],
-                [1, 2, 1, 1, np.nan],
-            ]
-        )
-        ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
-        right = DataFrame(
-            [[1.0, 1.3], [1.1, np.nan], [np.nan, 1.4], [1.2, np.nan]],
-            columns=["cat", "dog"],
-        )
-        tpls = [("a", 1), ("a", 2), ("b", np.nan), ("b", 1)]
-        right.index = pd.MultiIndex.from_tuples(tpls)
-        tm.assert_frame_equal(ts.unstack(level=0), right)
-
     @pytest.mark.parametrize("func", [np.any, np.all])
     @pytest.mark.parametrize("kwargs", [dict(keepdims=True), dict(out=object())])
     @td.skip_if_np_lt("1.15")
@@ -269,10 +169,10 @@ class TestSeriesAnalytics:
         name = func.__name__
 
         msg = (
-            r"the '{arg}' parameter is not "
-            r"supported in the pandas "
-            r"implementation of {fname}\(\)"
-        ).format(arg=param, fname=name)
+            f"the '{param}' parameter is not "
+            "supported in the pandas "
+            fr"implementation of {name}\(\)"
+        )
         with pytest.raises(ValueError, match=msg):
             func(s, **kwargs)
 

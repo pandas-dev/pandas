@@ -11,10 +11,10 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
+import pandas._testing as tm
 from pandas.conftest import _get_cython_table_params
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -691,6 +691,26 @@ class TestDataFrameApply:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_apply_nested_result_axis_1(self):
+        # GH 13820
+        def apply_list(row):
+            return [2 * row["A"], 2 * row["C"], 2 * row["B"]]
+
+        df = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCD"))
+        result = df.apply(apply_list, axis=1)
+        expected = Series(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_apply_noreduction_tzaware_object(self):
+        # https://github.com/pandas-dev/pandas/issues/31505
+        df = pd.DataFrame({"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="object")
+        result = df.apply(lambda x: x)
+        tm.assert_frame_equal(result, df)
+        result = df.apply(lambda x: x.copy())
+        tm.assert_frame_equal(result, df)
+
 
 class TestInferOutputShape:
     # the user has supplied an opaque UDF where
@@ -1331,8 +1351,8 @@ class TestDataFrameAggregate:
             _get_cython_table_params(
                 DataFrame([[np.nan, 1], [1, 2]]),
                 [
-                    ("cumprod", DataFrame([[np.nan, 1], [1.0, 2.0]])),
-                    ("cumsum", DataFrame([[np.nan, 1], [1.0, 3.0]])),
+                    ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
+                    ("cumsum", DataFrame([[np.nan, 1], [1, 3]])),
                 ],
             ),
         ),
@@ -1341,6 +1361,10 @@ class TestDataFrameAggregate:
         # GH 21224
         # test transforming functions in
         # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+        if axis == "columns" or axis == 1:
+            # operating blockwise doesn't let us preserve dtypes
+            expected = expected.astype("float64")
+
         result = df.agg(func, axis=axis)
         tm.assert_frame_equal(result, expected)
 

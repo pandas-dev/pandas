@@ -17,6 +17,7 @@ dependencies:
   - beautifulsoup4=4.6.0
   - bottleneck=1.2.1
   - jinja2=2.8
+  - numba=0.46.0
   - numexpr=2.6.2
   - numpy=1.13.3
   - openpyxl=2.5.7

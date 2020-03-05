@@ -17,7 +17,7 @@ from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _clean_dict(d):
@@ -33,7 +33,6 @@ def _clean_dict(d):
     -------
     cleaned_dict : dict
     """
-
     return {str(k): v for k, v in d.items()}
 
 
@@ -558,11 +557,6 @@ class TestUltraJSONTests:
         msg = "Expected 'str' or 'bytes'"
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
-
-    def test_version(self):
-        assert re.match(
-            r"^\d+\.\d+(\.\d+)?$", ujson.__version__
-        ), "ujson.__version__ must be a string like '1.4.0'"
 
     def test_encode_numeric_overflow(self):
         with pytest.raises(OverflowError):

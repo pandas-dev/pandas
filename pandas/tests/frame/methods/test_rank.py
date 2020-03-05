@@ -6,7 +6,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestRank:
@@ -112,6 +112,15 @@ class TestRank:
         df = DataFrame({"a": [1e-20, -5, 1e-20 + 1e-40, 10, 1e60, 1e80, 1e-30]})
         exp = DataFrame({"a": [3.5, 1.0, 3.5, 5.0, 6.0, 7.0, 2.0]})
         tm.assert_frame_equal(df.rank(), exp)
+
+    def test_rank_does_not_mutate(self):
+        # GH#18521
+        # Check rank does not mutate DataFrame
+        df = DataFrame(np.random.randn(10, 3), dtype="float64")
+        expected = df.copy()
+        df.rank()
+        result = df
+        tm.assert_frame_equal(result, expected)
 
     def test_rank_mixed_frame(self, float_string_frame):
         float_string_frame["datetime"] = datetime.now()

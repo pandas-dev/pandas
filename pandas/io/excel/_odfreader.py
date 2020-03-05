@@ -64,7 +64,8 @@ class _ODFReader(_BaseExcelReader):
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
-        """Parse an ODF Table into a list of lists
+        """
+        Parse an ODF Table into a list of lists
         """
         from odf.table import CoveredTableCell, TableCell, TableRow
 
@@ -120,7 +121,8 @@ class _ODFReader(_BaseExcelReader):
         return table
 
     def _get_row_repeat(self, row) -> int:
-        """Return number of times this row was repeated
+        """
+        Return number of times this row was repeated
         Repeating an empty row appeared to be a common way
         of representing sparse rows in the table.
         """
@@ -134,7 +136,8 @@ class _ODFReader(_BaseExcelReader):
         return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
 
     def _is_empty_row(self, row) -> bool:
-        """Helper function to find empty rows
+        """
+        Helper function to find empty rows
         """
         for column in row.childNodes:
             if len(column.childNodes) > 0:
@@ -156,7 +159,7 @@ class _ODFReader(_BaseExcelReader):
             # GH5394
             cell_value = float(cell.attributes.get((OFFICENS, "value")))
 
-            if cell_value == 0.0 and str(cell) != cell_value:  # NA handling
+            if cell_value == 0.0:  # NA handling
                 return str(cell)
 
             if convert_float:
@@ -178,4 +181,4 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == "time":
             return pd.to_datetime(str(cell)).time()
         else:
-            raise ValueError("Unrecognized type {}".format(cell_type))
+            raise ValueError(f"Unrecognized type {cell_type}")

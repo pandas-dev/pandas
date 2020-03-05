@@ -2,6 +2,7 @@
 # See LICENSE for the license
 import bz2
 import gzip
+import io
 import os
 import sys
 import time
@@ -171,12 +172,9 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        float64_t (*double_converter_nogil)(const char *, char **,
-                                            char, char, char,
-                                            int, int *, int *) nogil
-        float64_t (*double_converter_withgil)(const char *, char **,
-                                              char, char, char,
-                                              int, int *, int *)
+        float64_t (*double_converter)(const char *, char **,
+                                      char, char, char,
+                                      int, int *, int *) nogil
 
         #  error handling
         char *warn_msg
@@ -469,16 +467,11 @@ cdef class TextReader:
 
         if float_precision == "round_trip":
             # see gh-15140
-            #
-            # Our current roundtrip implementation requires the GIL.
-            self.parser.double_converter_nogil = NULL
-            self.parser.double_converter_withgil = round_trip
+            self.parser.double_converter = round_trip
         elif float_precision == "high":
-            self.parser.double_converter_withgil = NULL
-            self.parser.double_converter_nogil = precise_xstrtod
+            self.parser.double_converter = precise_xstrtod
         else:
-            self.parser.double_converter_withgil = NULL
-            self.parser.double_converter_nogil = xstrtod
+            self.parser.double_converter = xstrtod
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -645,11 +638,10 @@ cdef class TextReader:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')
 
-            if b'utf-16' in (self.encoding or b''):
-                # we need to read utf-16 through UTF8Recoder.
-                # if source is utf-16, convert source to utf-8 by UTF8Recoder.
-                source = icom.UTF8Recoder(source,
-                                          self.encoding.decode('utf-8'))
+            if self.encoding and isinstance(source, (io.BufferedIOBase, io.RawIOBase)):
+                source = io.TextIOWrapper(
+                    source, self.encoding.decode('utf-8'), newline='')
+
                 self.encoding = b'utf-8'
                 self.c_encoding = <char*>self.encoding
 
@@ -709,7 +701,7 @@ cdef class TextReader:
             char *word
             object name, old_name
             int status
-            uint64_t hr, data_line
+            uint64_t hr, data_line = 0
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
 
@@ -1377,6 +1369,7 @@ STR_NA_VALUES = {
     "N/A",
     "n/a",
     "NA",
+    "<NA>",
     "#NA",
     "NULL",
     "null",
@@ -1663,22 +1656,12 @@ cdef _try_double(parser_t *parser, int64_t col,
     result = np.empty(lines, dtype=np.float64)
     data = <float64_t *>result.data
     na_fset = kset_float64_from_list(na_flist)
-    if parser.double_converter_nogil != NULL:  # if it can run without the GIL
-        with nogil:
-            error = _try_double_nogil(parser, parser.double_converter_nogil,
-                                      col, line_start, line_end,
-                                      na_filter, na_hashset, use_na_flist,
-                                      na_fset, NA, data, &na_count)
-    else:
-        assert parser.double_converter_withgil != NULL
-        error = _try_double_nogil(parser,
-                                  <float64_t (*)(const char *, char **,
-                                                 char, char, char,
-                                                 int, int *, int *)
-                                  nogil>parser.double_converter_withgil,
+    with nogil:
+        error = _try_double_nogil(parser, parser.double_converter,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
                                   na_fset, NA, data, &na_count)
+
     kh_destroy_float64(na_fset)
     if error != 0:
         return None, None

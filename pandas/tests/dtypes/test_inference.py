@@ -4,6 +4,7 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 import collections
+from collections import namedtuple
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
@@ -51,8 +52,8 @@ from pandas import (
     Timestamp,
     isna,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -239,7 +240,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
 
         if has_contains:
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return self.d.__contains__(key)
 
     d = DictLike({1: 2})
@@ -1113,28 +1114,28 @@ class TestTypeInference:
 
         assert lib.is_string_array(np.array(["foo", "bar"]))
         assert not lib.is_string_array(
-            np.array(["foo", "bar", np.nan], dtype=object), skipna=False
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=False
         )
         assert lib.is_string_array(
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=True
+        )
+        # NaN is not valid for string array, just NA
+        assert not lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=True
         )
+
         assert not lib.is_string_array(np.array([1, 2]))
 
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
-        result = lib.to_object_array_tuples(values)
+        lib.to_object_array_tuples(values)
 
-        try:
-            # make sure record array works
-            from collections import namedtuple
-
-            record = namedtuple("record", "x y")
-            r = record(5, 6)
-            values = [r]
-            result = lib.to_object_array_tuples(values)  # noqa
-        except ImportError:
-            pass
+        # make sure record array works
+        record = namedtuple("record", "x y")
+        r = record(5, 6)
+        values = [r]
+        lib.to_object_array_tuples(values)
 
     def test_object(self):
 
@@ -1174,8 +1175,6 @@ class TestTypeInference:
     def test_categorical(self):
 
         # GH 8974
-        from pandas import Categorical, Series
-
         arr = Categorical(list("abc"))
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
@@ -1200,6 +1199,24 @@ class TestTypeInference:
 
         inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
         assert inferred == "interval"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
+    def test_string_dtype(self, data, skipna, klass):
+        # StringArray
+        val = klass(data, dtype="string")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "string"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
+    def test_boolean_dtype(self, data, skipna, klass):
+        # BooleanArray
+        val = klass(data, dtype="boolean")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "boolean"
 
 
 class TestNumberScalar:
@@ -1347,9 +1364,11 @@ class TestIsScalar:
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
-        assert is_scalar(Number())
         assert is_scalar(Fraction())
         assert is_scalar(0.0)
+        assert is_scalar(1)
+        assert is_scalar(complex(2))
+        assert is_scalar(float("NaN"))
         assert is_scalar(np.nan)
         assert is_scalar("foobar")
         assert is_scalar(b"foobar")
@@ -1358,6 +1377,7 @@ class TestIsScalar:
         assert is_scalar(time(12, 0))
         assert is_scalar(timedelta(hours=1))
         assert is_scalar(pd.NaT)
+        assert is_scalar(pd.NA)
 
     def test_is_scalar_builtin_nonscalars(self):
         assert not is_scalar({})
@@ -1372,6 +1392,7 @@ class TestIsScalar:
         assert is_scalar(np.int64(1))
         assert is_scalar(np.float64(1.0))
         assert is_scalar(np.int32(1))
+        assert is_scalar(np.complex64(2))
         assert is_scalar(np.object_("foobar"))
         assert is_scalar(np.str_("foobar"))
         assert is_scalar(np.unicode_("foobar"))
@@ -1410,6 +1431,21 @@ class TestIsScalar:
         assert not is_scalar(DataFrame([[1]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
+
+    def test_is_scalar_number(self):
+        # Number() is not recognied by PyNumber_Check, so by extension
+        #  is not recognized by is_scalar, but instances of non-abstract
+        #  subclasses are.
+
+        class Numeric(Number):
+            def __init__(self, value):
+                self.value = value
+
+            def __int__(self):
+                return self.value
+
+        num = Numeric(1)
+        assert is_scalar(num)
 
 
 def test_datetimeindex_from_empty_datetime64_array():

@@ -1,6 +1,6 @@
 import pandas as pd
 from pandas import DataFrame, Index, Series, date_range, notna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameIndexingDatetimeWithTZ:
@@ -44,13 +44,6 @@ class TestDataFrameIndexingDatetimeWithTZ:
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
-
-    def test_transpose(self, timezone_frame):
-
-        result = timezone_frame.T
-        expected = DataFrame(timezone_frame.values.T)
-        expected.index = ["A", "B", "C"]
-        tm.assert_frame_equal(result, expected)
 
     def test_scalar_assignment(self):
         # issue #19843

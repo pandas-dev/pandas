@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameSortValues:
@@ -458,5 +458,61 @@ class TestDataFrameSortValues:
             }
         )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="invalid na_position: bad_position"):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
+
+    @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize(
+        "original_dict, sorted_dict, ignore_index, output_index",
+        [
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, [0, 1, 2]),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, [2, 1, 0]),
+            (
+                {"A": [1, 2, 3], "B": [2, 3, 4]},
+                {"A": [3, 2, 1], "B": [4, 3, 2]},
+                True,
+                [0, 1, 2],
+            ),
+            (
+                {"A": [1, 2, 3], "B": [2, 3, 4]},
+                {"A": [3, 2, 1], "B": [4, 3, 2]},
+                False,
+                [2, 1, 0],
+            ),
+        ],
+    )
+    def test_sort_values_ignore_index(
+        self, inplace, original_dict, sorted_dict, ignore_index, output_index
+    ):
+        # GH 30114
+        df = DataFrame(original_dict)
+        expected = DataFrame(sorted_dict, index=output_index)
+        kwargs = {"ignore_index": ignore_index, "inplace": inplace}
+
+        if inplace:
+            result_df = df.copy()
+            result_df.sort_values("A", ascending=False, **kwargs)
+        else:
+            result_df = df.sort_values("A", ascending=False, **kwargs)
+
+        tm.assert_frame_equal(result_df, expected)
+        tm.assert_frame_equal(df, DataFrame(original_dict))
+
+    def test_sort_values_nat_na_position_default(self):
+        # GH 13230
+        expected = pd.DataFrame(
+            {
+                "A": [1, 2, 3, 4, 4],
+                "date": pd.DatetimeIndex(
+                    [
+                        "2010-01-01 09:00:00",
+                        "2010-01-01 09:00:01",
+                        "2010-01-01 09:00:02",
+                        "2010-01-01 09:00:03",
+                        "NaT",
+                    ]
+                ),
+            }
+        )
+        result = expected.sort_values(["A", "date"])
+        tm.assert_frame_equal(result, expected)

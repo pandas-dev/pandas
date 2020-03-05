@@ -20,8 +20,8 @@ from pandas.compat.numpy import np_array_datetime64_compat
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
 
@@ -1101,7 +1101,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly
     parser = all_parsers
-    s = StringIO(("{value},\n".format(value=value)) * 50000)
+    s = StringIO((f"{value},\n") * 50000)
 
     parser.read_csv(
         s,

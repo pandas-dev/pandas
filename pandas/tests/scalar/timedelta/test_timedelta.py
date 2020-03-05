@@ -8,7 +8,7 @@ from pandas._libs.tslibs import NaT, Timestamp, iNaT
 
 import pandas as pd
 from pandas import Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestTimedeltaArithmetic:
@@ -399,7 +399,7 @@ class TestTimedeltas:
                     [np.timedelta64(i, "m") for i in np.arange(5).tolist()]
                 )
 
-            str_repr = ["{}{}".format(x, unit) for x in np.arange(5)]
+            str_repr = [f"{x}{unit}" for x in np.arange(5)]
             result = to_timedelta(wrapper(str_repr))
             tm.assert_index_equal(result, expected)
             result = TimedeltaIndex(wrapper(str_repr))
@@ -416,9 +416,9 @@ class TestTimedeltas:
             if unit == "M":
                 expected = Timedelta(np.timedelta64(2, "m").astype("timedelta64[ns]"))
 
-            result = to_timedelta("2{}".format(unit))
+            result = to_timedelta(f"2{unit}")
             assert result == expected
-            result = Timedelta("2{}".format(unit))
+            result = Timedelta(f"2{unit}")
             assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
@@ -821,3 +821,16 @@ class TestTimedeltas:
 def test_truthiness(value, expected):
     # https://github.com/pandas-dev/pandas/issues/21484
     assert bool(value) is expected
+
+
+def test_timedelta_attribute_precision():
+    # GH 31354
+    td = Timedelta(1552211999999999872, unit="ns")
+    result = td.days * 86400
+    result += td.seconds
+    result *= 1000000
+    result += td.microseconds
+    result *= 1000
+    result += td.nanoseconds
+    expected = td.value
+    assert result == expected

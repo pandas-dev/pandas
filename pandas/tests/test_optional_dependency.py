@@ -5,7 +5,7 @@ import pytest
 
 from pandas.compat._optional import VERSIONS, import_optional_dependency
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_import_optional():
@@ -22,12 +22,12 @@ def test_xlrd_version_fallback():
     import_optional_dependency("xlrd")
 
 
-def test_bad_version():
+def test_bad_version(monkeypatch):
     name = "fakemodule"
     module = types.ModuleType(name)
     module.__version__ = "0.9.0"
     sys.modules[name] = module
-    VERSIONS[name] = "1.0.0"
+    monkeypatch.setitem(VERSIONS, name, "1.0.0")
 
     match = "Pandas requires .*1.0.0.* of .fakemodule.*'0.9.0'"
     with pytest.raises(ImportError, match=match):
@@ -42,11 +42,11 @@ def test_bad_version():
     assert result is module
 
 
-def test_no_version_raises():
+def test_no_version_raises(monkeypatch):
     name = "fakemodule"
     module = types.ModuleType(name)
     sys.modules[name] = module
-    VERSIONS[name] = "1.0.0"
+    monkeypatch.setitem(VERSIONS, name, "1.0.0")
 
     with pytest.raises(ImportError, match="Can't determine .* fakemodule"):
         import_optional_dependency(name)

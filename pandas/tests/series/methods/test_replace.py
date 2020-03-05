@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesReplace:
@@ -120,8 +120,8 @@ class TestSeriesReplace:
         # make sure things don't get corrupted when fillna call fails
         s = ser.copy()
         msg = (
-            r"Invalid fill method\. Expecting pad \(ffill\) or backfill"
-            r" \(bfill\)\. Got crash_cymbal"
+            r"Invalid fill method\. Expecting pad \(ffill\) or backfill "
+            r"\(bfill\)\. Got crash_cymbal"
         )
         with pytest.raises(ValueError, match=msg):
             s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
@@ -362,3 +362,14 @@ class TestSeriesReplace:
         expected = pd.Series(exp)
 
         tm.assert_series_equal(result, expected)
+
+    def test_replace_invalid_to_replace(self):
+        # GH 18634
+        # API: replace() should raise an exception if invalid argument is given
+        series = pd.Series(["a", "b", "c "])
+        msg = (
+            r"Expecting 'to_replace' to be either a scalar, array-like, "
+            r"dict or None, got invalid type.*"
+        )
+        with pytest.raises(TypeError, match=msg):
+            series.replace(lambda x: x.strip())

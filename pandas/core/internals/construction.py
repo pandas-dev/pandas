@@ -74,11 +74,10 @@ def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
 
-def masked_rec_array_to_mgr(data, index, columns, dtype, copy):
+def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
     """
     Extract from a masked rec array and create the manager.
     """
-
     # essentially process a record array then fill it
     fill_value = data.fill_value
     fdata = ma.getdata(data)
@@ -143,7 +142,7 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
     ):
 
         if not hasattr(values, "dtype"):
-            values = prep_ndarray(values, copy=copy)
+            values = _prep_ndarray(values, copy=copy)
             values = values.ravel()
         elif copy:
             values = values.copy()
@@ -152,13 +151,21 @@ def init_ndarray(values, index, columns, dtype=None, copy=False):
         return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
     elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
+
+        if isinstance(values, np.ndarray) and values.ndim > 1:
+            # GH#12513 a EA dtype passed with a 2D array, split into
+            #  multiple EAs that view the values
+            values = [values[:, n] for n in range(values.shape[1])]
+        else:
+            values = [values]
+
         if columns is None:
-            columns = [0]
-        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
+            columns = list(range(len(values)))
+        return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
-    values = prep_ndarray(values, copy=copy)
+    values = _prep_ndarray(values, copy=copy)
 
     if dtype is not None:
         if not is_dtype_equal(values.dtype, dtype):
@@ -249,7 +256,7 @@ def init_dict(data, index, columns, dtype=None):
 # ---------------------------------------------------------------------
 
 
-def prep_ndarray(values, copy=True) -> np.ndarray:
+def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
     if not isinstance(values, (np.ndarray, ABCSeries, Index)):
         if len(values) == 0:
             return np.empty((0, 0), dtype=object)
@@ -527,7 +534,8 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
-    """Convert list of dicts to numpy arrays
+    """
+    Convert list of dicts to numpy arrays
 
     if `columns` is not passed, column names are inferred from the records
     - for OrderedDict and dicts, the column names match
@@ -547,7 +555,6 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     tuple
         arrays, columns
     """
-
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
@@ -590,29 +597,23 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 # Series-Based
 
 
-def sanitize_index(data, index, copy=False):
+def sanitize_index(data, index: Index):
     """
     Sanitize an index type to return an ndarray of the underlying, pass
     through a non-Index.
     """
-
-    if index is None:
-        return data
-
     if len(data) != len(index):
         raise ValueError("Length of values does not match length of index")
 
-    if isinstance(data, ABCIndexClass) and not copy:
+    if isinstance(data, ABCIndexClass):
         pass
     elif isinstance(data, (ABCPeriodIndex, ABCDatetimeIndex)):
         data = data._values
-        if copy:
-            data = data.copy()
 
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
         if data.dtype.kind in ["M", "m"]:
-            data = sanitize_array(data, index, copy=copy)
+            data = sanitize_array(data, index, copy=False)
 
     return data

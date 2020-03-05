@@ -1,23 +1,23 @@
 from datetime import datetime
 from io import StringIO
 import re
-from typing import Dict
+from typing import Dict, List, Union
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture
-def mix_ab() -> Dict[str, list]:
+def mix_ab() -> Dict[str, List[Union[int, str]]]:
     return {"a": list(range(4)), "b": list("ab..")}
 
 
 @pytest.fixture
-def mix_abc() -> Dict[str, list]:
+def mix_abc() -> Dict[str, List[Union[float, str]]]:
     return {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
 
 
@@ -1356,3 +1356,21 @@ class TestDataFrameReplace:
         result = df.replace({"a": replacer, "b": replacer})
         expected = pd.DataFrame([replacer])
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_after_convert_dtypes(self):
+        # GH31517
+        df = pd.DataFrame({"grp": [1, 2, 3, 4, 5]}, dtype="Int64")
+        result = df.replace(1, 10)
+        expected = pd.DataFrame({"grp": [10, 2, 3, 4, 5]}, dtype="Int64")
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_invalid_to_replace(self):
+        # GH 18634
+        # API: replace() should raise an exception if invalid argument is given
+        df = pd.DataFrame({"one": ["a", "b ", "c"], "two": ["d ", "e ", "f "]})
+        msg = (
+            r"Expecting 'to_replace' to be either a scalar, array-like, "
+            r"dict or None, got invalid type.*"
+        )
+        with pytest.raises(TypeError, match=msg):
+            df.replace(lambda x: x.strip())

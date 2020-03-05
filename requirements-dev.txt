@@ -1,5 +1,5 @@
 # This file is auto-generated from environment.yml, do not modify.
-# See that file for comments about the need/usage of each depdendency.
+# See that file for comments about the need/usage of each dependency.
 
 numpy>=1.15
 python-dateutil>=2.6.1
@@ -15,8 +15,8 @@ isort
 mypy==0.730
 pycodestyle
 gitpython
+gitdb2==2.0.6
 sphinx
-numpydoc>=0.9.0
 nbconvert>=5.4.1
 nbsphinx
 pandoc
@@ -36,6 +36,7 @@ moto
 pytest>=5.0.1
 pytest-cov
 pytest-xdist>=1.21
+pytest-asyncio
 seaborn
 statsmodels
 ipywidgets
@@ -45,11 +46,12 @@ pip
 blosc
 bottleneck>=1.2.1
 ipykernel
-ipython>=5.6.0
+ipython>=7.11.1
 jinja2
 matplotlib>=2.2.2
 numexpr>=2.6.8
 scipy>=1.1
+numba>=0.46.0
 beautifulsoup4>=4.6.0
 html5lib
 lxml
@@ -67,4 +69,6 @@ s3fs
 sqlalchemy
 xarray
 pyreadstat
+tabulate>=0.8.3
 git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+git+https://github.com/numpy/numpydoc

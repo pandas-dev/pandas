@@ -3,13 +3,25 @@ from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t)
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 cnp.import_array()
 
 from pandas._libs.algos import (
-    groupsort_indexer, ensure_platform_int, take_1d_int64_int64
+    ensure_platform_int,
+    groupsort_indexer,
+    take_1d_int64_int64,
 )
 
 
@@ -242,6 +254,8 @@ ctypedef fused join_t:
     float64_t
     float32_t
     object
+    int8_t
+    int16_t
     int32_t
     int64_t
     uint64_t
@@ -803,18 +817,22 @@ def asof_join_nearest_on_X_by_Y(asof_t[:] left_values,
     right_indexer = np.empty(left_size, dtype=np.int64)
 
     # search both forward and backward
-    bli, bri = asof_join_backward_on_X_by_Y(left_values,
-                                            right_values,
-                                            left_by_values,
-                                            right_by_values,
-                                            allow_exact_matches,
-                                            tolerance)
-    fli, fri = asof_join_forward_on_X_by_Y(left_values,
-                                           right_values,
-                                           left_by_values,
-                                           right_by_values,
-                                           allow_exact_matches,
-                                           tolerance)
+    bli, bri = asof_join_backward_on_X_by_Y(
+        left_values,
+        right_values,
+        left_by_values,
+        right_by_values,
+        allow_exact_matches,
+        tolerance,
+    )
+    fli, fri = asof_join_forward_on_X_by_Y(
+        left_values,
+        right_values,
+        left_by_values,
+        right_by_values,
+        allow_exact_matches,
+        tolerance,
+    )
 
     for i in range(len(bri)):
         # choose timestamp from right with smaller difference

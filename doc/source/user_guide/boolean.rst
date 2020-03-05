@@ -9,10 +9,33 @@
 .. _boolean:
 
 **************************
-Nullable Boolean Data Type
+Nullable Boolean data type
 **************************
 
 .. versionadded:: 1.0.0
+
+
+.. _boolean.indexing:
+
+Indexing with NA values
+-----------------------
+
+pandas allows indexing with ``NA`` values in a boolean array, which are treated as ``False``.
+
+.. versionchanged:: 1.0.2
+
+.. ipython:: python
+   :okexcept:
+
+   s = pd.Series([1, 2, 3])
+   mask = pd.array([True, False, pd.NA], dtype="boolean")
+   s[mask]
+
+If you would prefer to keep the ``NA`` values you can manually fill them with ``fillna(True)``.
+
+.. ipython:: python
+
+   s[mask.fillna(True)]
 
 .. _boolean.kleene:
 

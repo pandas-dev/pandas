@@ -1,3 +1,4 @@
+from copy import copy
 from distutils.version import LooseVersion
 
 from cython import Py_ssize_t
@@ -15,7 +16,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.lib import maybe_convert_objects
+from pandas._libs.lib import maybe_convert_objects, is_scalar
 
 
 cdef _check_result_array(object obj, Py_ssize_t cnt):
@@ -113,7 +114,8 @@ cdef class Reducer:
                     if self.typ is not None:
                         # In this case, we also have self.index
                         name = labels[i]
-                        cached_typ = self.typ(chunk, index=self.index, name=name)
+                        cached_typ = self.typ(
+                            chunk, index=self.index, name=name, dtype=arr.dtype)
 
                 # use the cached_typ if possible
                 if cached_typ is not None:
@@ -307,8 +309,7 @@ cdef class SeriesGrouper(_BaseGrouper):
     def __init__(self, object series, object f, object labels,
                  Py_ssize_t ngroups, object dummy):
 
-        # in practice we always pass either obj[:0] or the
-        #  safer obj._get_values(slice(None, 0))
+        # in practice we always pass obj.iloc[:0] or equivalent
         assert dummy is not None
 
         if len(series) == 0:
@@ -492,13 +493,18 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if piece.index is chunk.index:
-                    piece = piece.copy(deep='all')
-                else:
+                if piece.index is not chunk.index:
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
                 pass
+
+            if not is_scalar(piece):
+                # Need to copy data to avoid appending references
+                try:
+                    piece = piece.copy(deep="all")
+                except (TypeError, AttributeError):
+                    piece = copy(piece)
 
             results.append(piece)
 

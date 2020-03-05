@@ -5,8 +5,8 @@ import pytest
 
 import pandas as pd
 from pandas import NaT, Series, Timestamp
+import pandas._testing as tm
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 
 class TestSeriesInternals:
@@ -169,6 +169,7 @@ class TestSeriesInternals:
         result = s._convert(datetime=True, coerce=True)
         tm.assert_series_equal(result, s)
 
+        # FIXME: dont leave commented-out
         # r = s.copy()
         # r[0] = np.nan
         # result = r._convert(convert_dates=True,convert_numeric=False)

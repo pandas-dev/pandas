@@ -8,7 +8,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameSelectReindex:

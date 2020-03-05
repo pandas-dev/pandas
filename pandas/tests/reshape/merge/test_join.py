@@ -6,8 +6,8 @@ from pandas._libs import join as libjoin
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
-import pandas.util.testing as tm
 
 a_ = np.array
 
@@ -212,8 +212,8 @@ class TestJoin:
         source_copy = source.copy()
         source_copy["A"] = 0
         msg = (
-            "You are trying to merge on float64 and object columns. If"
-            " you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object columns. If "
+            "you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")
@@ -262,8 +262,9 @@ class TestJoin:
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({"a": [1, 1]})
-        msg = "Can only merge Series or DataFrame objects, a {} was passed".format(
-            str(type(wrong_type))
+        msg = (
+            "Can only merge Series or DataFrame objects, "
+            f"a {type(wrong_type)} was passed"
         )
         with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on="a", right_on="a")
@@ -809,13 +810,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             lgroup = left_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("left", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(l_joined, left.columns, join_col)
         else:
@@ -823,13 +822,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             rgroup = right_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("right", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(r_joined, right.columns, join_col)
         else:

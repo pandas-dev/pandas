@@ -1,3 +1,8 @@
+"""
+These benchmarks are for Series and DataFrame indexing methods.  For the
+lower-level methods directly on Index and subclasses, see index_object.py,
+indexing_engine.py, and index_cached.py
+"""
 import warnings
 
 import numpy as np
@@ -17,7 +22,8 @@ from pandas import (
     option_context,
     period_range,
 )
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
@@ -131,6 +137,7 @@ class DataFrameStringIndexing:
         self.col_scalar = columns[10]
         self.bool_indexer = self.df[self.col_scalar] > 0
         self.bool_obj_indexer = self.bool_indexer.astype(object)
+        self.boolean_indexer = (self.df[self.col_scalar] > 0).astype("boolean")
 
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
@@ -143,6 +150,9 @@ class DataFrameStringIndexing:
 
     def time_boolean_rows_object(self):
         self.df[self.bool_obj_indexer]
+
+    def time_boolean_rows_boolean(self):
+        self.df[self.boolean_indexer]
 
 
 class DataFrameNumericIndexing:

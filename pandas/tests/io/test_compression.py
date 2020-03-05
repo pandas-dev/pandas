@@ -6,7 +6,7 @@ import textwrap
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.common as icom
 
@@ -129,7 +129,8 @@ def test_with_missing_lzma():
 
 def test_with_missing_lzma_runtime():
     """Tests if RuntimeError is hit when calling lzma without
-    having the module available."""
+    having the module available.
+    """
     code = textwrap.dedent(
         """
         import sys

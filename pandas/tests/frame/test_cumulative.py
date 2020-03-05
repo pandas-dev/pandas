@@ -7,9 +7,10 @@ tests.series.test_cumulative
 """
 
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series
-import pandas.util.testing as tm
+from pandas import DataFrame, Series, _is_numpy_dev
+import pandas._testing as tm
 
 
 class TestDataFrameCumulativeOps:
@@ -73,6 +74,11 @@ class TestDataFrameCumulativeOps:
         df.cumprod(0)
         df.cumprod(1)
 
+    @pytest.mark.xfail(
+        _is_numpy_dev,
+        reason="https://github.com/pandas-dev/pandas/issues/31992",
+        strict=False,
+    )
     def test_cummin(self, datetime_frame):
         datetime_frame.loc[5:10, 0] = np.nan
         datetime_frame.loc[10:15, 1] = np.nan
@@ -96,6 +102,11 @@ class TestDataFrameCumulativeOps:
         cummin_xs = datetime_frame.cummin(axis=1)
         assert np.shape(cummin_xs) == np.shape(datetime_frame)
 
+    @pytest.mark.xfail(
+        _is_numpy_dev,
+        reason="https://github.com/pandas-dev/pandas/issues/31992",
+        strict=False,
+    )
     def test_cummax(self, datetime_frame):
         datetime_frame.loc[5:10, 0] = np.nan
         datetime_frame.loc[10:15, 1] = np.nan
@@ -118,3 +129,18 @@ class TestDataFrameCumulativeOps:
         # fix issue
         cummax_xs = datetime_frame.cummax(axis=1)
         assert np.shape(cummax_xs) == np.shape(datetime_frame)
+
+    def test_cumulative_ops_preserve_dtypes(self):
+        # GH#19296 dont incorrectly upcast to object
+        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3.0], "C": [True, False, False]})
+
+        result = df.cumsum()
+
+        expected = DataFrame(
+            {
+                "A": Series([1, 3, 6], dtype=np.int64),
+                "B": Series([1, 3, 6], dtype=np.float64),
+                "C": df["C"].cumsum(),
+            }
+        )
+        tm.assert_frame_equal(result, expected)

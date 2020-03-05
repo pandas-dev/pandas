@@ -11,9 +11,9 @@ from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import Series, isna
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 
 use_bn = nanops._USE_BOTTLENECK
 has_c16 = hasattr(np, "complex128")
@@ -598,6 +598,14 @@ class TestnanopsDataFrame:
         targ1 = spearmanr(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="spearman")
 
+    @td.skip_if_no_scipy
+    def test_invalid_method(self):
+        targ0 = np.corrcoef(self.arr_float_2d, self.arr_float1_2d)[0, 1]
+        targ1 = np.corrcoef(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]
+        msg = "Unkown method 'foo', expected one of 'kendall', 'spearman'"
+        with pytest.raises(ValueError, match=msg):
+            self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="foo")
+
     def test_nancov(self):
         targ0 = np.cov(self.arr_float_2d, self.arr_float1_2d)[0, 1]
         targ1 = np.cov(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]
@@ -742,8 +750,8 @@ class TestEnsureNumeric:
 
         # Test non-convertible string ndarray
         s_values = np.array(["foo", "bar", "baz"], dtype=object)
-        msg = r"could not convert string to float: '(foo|baz)'"
-        with pytest.raises(ValueError, match=msg):
+        msg = r"Could not convert .* to numeric"
+        with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
@@ -985,7 +993,6 @@ class TestNankurtFixedValues:
 
 class TestDatetime64NaNOps:
     @pytest.mark.parametrize("tz", [None, "UTC"])
-    @pytest.mark.xfail(reason="disabled")
     # Enabling mean changes the behavior of DataFrame.mean
     # See https://github.com/pandas-dev/pandas/issues/24752
     def test_nanmean(self, tz):

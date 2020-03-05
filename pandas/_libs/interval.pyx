@@ -326,7 +326,7 @@ cdef class Interval(IntervalMixin):
     def __hash__(self):
         return hash((self.left, self.right, self.closed))
 
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         if _interval_like(key):
             raise TypeError("__contains__ not defined for two intervals")
         return ((self.left < key if self.open_left else self.left <= key) and
@@ -481,8 +481,7 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def intervals_to_interval_bounds(ndarray intervals,
-                                 bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     """
     Parameters
     ----------
@@ -502,14 +501,14 @@ def intervals_to_interval_bounds(ndarray intervals,
     """
     cdef:
         object closed = None, interval
-        int64_t n = len(intervals)
+        Py_ssize_t i, n = len(intervals)
         ndarray left, right
         bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
 
-    for i in range(len(intervals)):
+    for i in range(n):
         interval = intervals[i]
         if interval is None or util.is_nan(interval):
             left[i] = np.nan
