@@ -988,7 +988,7 @@ default 'raise'
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
         objects.

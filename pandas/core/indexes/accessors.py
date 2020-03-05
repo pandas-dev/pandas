@@ -142,7 +142,7 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return the data as an array of native Python datetime objects.
 
@@ -214,7 +214,7 @@ class TimedeltaProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pytimedelta(self):
+    def to_pytimedelta(self) -> np.ndarray:
         """
         Return an array of native `datetime.timedelta` objects.
 
@@ -276,7 +276,7 @@ class TimedeltaProperties(Properties):
         2     0      0        0        2             0             0            0
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
-        """  # noqa: E501
+        """
         return self._get_values().components.set_index(self._parent.index)
 
     @property
