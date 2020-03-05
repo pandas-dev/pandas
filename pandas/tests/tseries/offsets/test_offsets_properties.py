@@ -9,6 +9,7 @@ tests, or when trying to pin down the bugs exposed by the tests below.
 """
 import warnings
 
+import dateutil
 from hypothesis import assume, given, strategies as st
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
@@ -85,6 +86,10 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
+@pytest.mark.skipif(
+    dateutil.__version__ < "2.7",
+    reason="hypothesis uses dateutil.tz.UTC which was intreduced in dateutils 2.7.0",
+)
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
@@ -95,6 +100,10 @@ def test_on_offset_implementations(dt, offset):
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
+@pytest.mark.skipif(
+    dateutil.__version__ < "2.7",
+    reason="hypothesis uses dateutil.tz.UTC which was intreduced in dateutils 2.7.0",
+)
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
