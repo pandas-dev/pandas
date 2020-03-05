@@ -38,49 +38,29 @@ from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
 import pandas._libs.lib as lib
 
 from pandas._libs.khash cimport (
-    kh_destroy_float64,
-    kh_destroy_str,
-    kh_destroy_str_starts,
-    kh_destroy_strbox,
-    kh_exist_str,
-    kh_float64_t,
-    kh_get_float64,
-    kh_get_str,
-    kh_get_str_starts_item,
-    kh_get_strbox,
-    kh_init_float64,
-    kh_init_str,
-    kh_init_str_starts,
-    kh_init_strbox,
-    kh_put_float64,
-    kh_put_str,
-    kh_put_str_starts_item,
-    kh_put_strbox,
-    kh_resize_float64,
-    kh_resize_str_starts,
-    kh_str_starts_t,
-    kh_str_t,
-    kh_strbox_t,
     khiter_t,
-)
+    kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
+    kh_get_str, kh_destroy_str,
+    kh_float64_t, kh_get_float64, kh_destroy_float64,
+    kh_put_float64, kh_init_float64, kh_resize_float64,
+    kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
+    kh_destroy_strbox,
+    kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
+    kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_categorical_dtype,
+    is_integer_dtype, is_float_dtype,
+    is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    pandas_dtype,
-)
-
+    pandas_dtype, is_extension_array_dtype)
 from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
 
-from pandas.compat import _get_lzma_file, _import_lzma
-from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
+from pandas.compat import _import_lzma, _get_lzma_file
+from pandas.errors import (ParserError, DtypeWarning,
+                           EmptyDataError, ParserWarning)
 
 lzma = _import_lzma()
 
@@ -1545,15 +1525,10 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
 
 
 @cython.boundscheck(False)
-cdef _categorical_convert(
-    parser_t *parser,
-    int64_t col,
-    int64_t line_start,
-    int64_t line_end,
-    bint na_filter,
-    kh_str_starts_t *na_hashset,
-    char *encoding
-):
+cdef _categorical_convert(parser_t *parser, int64_t col,
+                          int64_t line_start, int64_t line_end,
+                          bint na_filter, kh_str_starts_t *na_hashset,
+                          char *encoding):
     "Convert column data into codes, categories"
     cdef:
         int error, na_count = 0
@@ -1617,14 +1592,12 @@ cdef _categorical_convert(
     return np.asarray(codes), result, na_count
 
 
-cdef _to_fw_string(
-    parser_t *parser,
-    int64_t col,
-    int64_t line_start,
-    int64_t line_end,
-    int64_t width,
-):
+cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
+                   int64_t line_end, int64_t width):
     cdef:
+        Py_ssize_t i
+        coliter_t it
+        const char *word = NULL
         char *data
         ndarray result
 
@@ -1641,12 +1614,13 @@ cdef inline void _to_fw_string_nogil(parser_t *parser, int64_t col,
                                      int64_t line_start, int64_t line_end,
                                      size_t width, char *data) nogil:
     cdef:
+        int64_t i
         coliter_t it
         const char *word = NULL
 
     coliter_setup(&it, parser, col, line_start)
 
-    for _ in range(line_end - line_start):
+    for i in range(line_end - line_start):
         COLITER_NEXT(it, word)
         strncpy(data, word, width)
         data += width
@@ -1662,22 +1636,20 @@ cdef:
     char* cneginfty = b'-Infinity'
 
 
-cdef _try_double(
-    parser_t *parser,
-    int64_t col,
-    int64_t line_start,
-    int64_t line_end,
-    bint na_filter,
-    kh_str_starts_t *na_hashset,
-    object na_flist,
-):
+cdef _try_double(parser_t *parser, int64_t col,
+                 int64_t line_start, int64_t line_end,
+                 bint na_filter, kh_str_starts_t *na_hashset, object na_flist):
     cdef:
         int error, na_count = 0
-        Py_ssize_t lines
+        Py_ssize_t i, lines
+        coliter_t it
+        const char *word = NULL
+        char *p_end
         float64_t *data
         float64_t NA = na_values[np.float64]
         kh_float64_t *na_fset
         ndarray result
+        khiter_t k
         bint use_na_flist = len(na_flist) > 0
 
     lines = line_end - line_start
@@ -1708,17 +1680,17 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                   int *na_count) nogil:
     cdef:
         int error = 0,
-        Py_ssize_t lines = line_end - line_start
+        Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         char *p_end
-        khiter_t k64
+        khiter_t k, k64
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
-        for _ in range(lines):
+        for i in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(na_hashset, word):
@@ -1748,7 +1720,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                         data[0] = NA
             data += 1
     else:
-        for _ in range(lines):
+        for i in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
                                        parser.sci, parser.thousands,
@@ -1770,20 +1742,16 @@ cdef inline int _try_double_nogil(parser_t *parser,
     return 0
 
 
-cdef _try_uint64(
-    parser_t *parser,
-    int64_t col,
-    int64_t line_start,
-    int64_t line_end,
-    bint na_filter,
-    kh_str_starts_t *na_hashset
-):
+cdef _try_uint64(parser_t *parser, int64_t col,
+                 int64_t line_start, int64_t line_end,
+                 bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error
-        Py_ssize_t lines
+        Py_ssize_t i, lines
         coliter_t it
         uint64_t *data
         ndarray result
+        khiter_t k
         uint_state state
 
     lines = line_end - line_start
@@ -1820,6 +1788,7 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        khiter_t k
 
     coliter_setup(&it, parser, col, line_start)
 
@@ -1847,21 +1816,18 @@ cdef inline int _try_uint64_nogil(parser_t *parser, int64_t col,
     return 0
 
 
-cdef _try_int64(
-    parser_t *parser,
-    int64_t col,
-    int64_t line_start,
-    int64_t line_end,
-    bint na_filter,
-    kh_str_starts_t *na_hashset
-):
+cdef _try_int64(parser_t *parser, int64_t col,
+                int64_t line_start, int64_t line_end,
+                bint na_filter, kh_str_starts_t *na_hashset):
     cdef:
         int error, na_count = 0
-        Py_ssize_t lines
+        Py_ssize_t i, lines
         coliter_t it
         int64_t *data
         ndarray result
+
         int64_t NA = na_values[np.int64]
+        khiter_t k
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.int64)
@@ -1889,6 +1855,7 @@ cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        khiter_t k
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1917,23 +1884,21 @@ cdef inline int _try_int64_nogil(parser_t *parser, int64_t col,
     return 0
 
 
-cdef _try_bool_flex(
-    parser_t *parser,
-    int64_t col,
-    int64_t line_start,
-    int64_t line_end,
-    bint na_filter,
-    const kh_str_starts_t *na_hashset,
-    const kh_str_starts_t *true_hashset,
-    const kh_str_starts_t *false_hashset,
-):
+cdef _try_bool_flex(parser_t *parser, int64_t col,
+                    int64_t line_start, int64_t line_end,
+                    bint na_filter, const kh_str_starts_t *na_hashset,
+                    const kh_str_starts_t *true_hashset,
+                    const kh_str_starts_t *false_hashset):
     cdef:
         int error, na_count = 0
-        Py_ssize_t lines
+        Py_ssize_t i, lines
+        coliter_t it
+        const char *word = NULL
         uint8_t *data
         ndarray result
 
         uint8_t NA = na_values[np.bool_]
+        khiter_t k
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
@@ -1957,15 +1922,16 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                                      int *na_count) nogil:
     cdef:
         int error = 0
-        Py_ssize_t lines = line_end - line_start
+        Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        khiter_t k
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
-        for _ in range(lines):
+        for i in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(na_hashset, word):
@@ -1989,7 +1955,7 @@ cdef inline int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                 return error
             data += 1
     else:
-        for _ in range(lines):
+        for i in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(true_hashset, word):
@@ -2014,8 +1980,10 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
         Py_ssize_t i
+        khiter_t k
         kh_str_starts_t *table
         int ret = 0
+
         object val
 
     table = kh_init_str_starts()
@@ -2043,6 +2011,7 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
 cdef kh_float64_t* kset_float64_from_list(values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
+        Py_ssize_t i
         khiter_t k
         kh_float64_t *table
         int ret = 0
@@ -2176,15 +2145,11 @@ for k in list(na_values):
     na_values[np.dtype(k)] = na_values[k]
 
 
-cdef _apply_converter(
-    object f,
-    parser_t *parser,
-    int64_t col,
-    int64_t line_start,
-    int64_t line_end,
-    char* c_encoding
-):
+cdef _apply_converter(object f, parser_t *parser, int64_t col,
+                      int64_t line_start, int64_t line_end,
+                      char* c_encoding):
     cdef:
+        int error
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
