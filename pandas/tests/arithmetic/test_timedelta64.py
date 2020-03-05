@@ -532,6 +532,20 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = tdi - tdi
         tm.assert_index_equal(result, expected)
 
+    def test_tda_add_dt64_object_array(self, box_df_fail, tz_naive_fixture):
+        # Result should be cast back to DatetimeArray
+        dti = pd.date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
+        dti._set_freq(None)
+        tdi = dti - dti
+
+        obj = tm.box_expected(tdi, box_df_fail)
+        other = tm.box_expected(dti, box_df_fail)
+
+        warn = PerformanceWarning if box_df_fail is not pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
+            result = obj + other.astype(object)
+        tm.assert_equal(result, other)
+
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and timedelta-like
 
