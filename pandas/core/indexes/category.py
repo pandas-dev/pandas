@@ -29,6 +29,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import ExtensionIndex, inherit_names
 import pandas.core.missing as missing
+from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
@@ -573,16 +574,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-        if kind == "loc":
-            try:
-                return self.categories._convert_scalar_indexer(key, kind="loc")
-            except TypeError:
-                self._invalid_indexer("label", key)
-        return super()._convert_scalar_indexer(key, kind=kind)
-
     @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr):
         # Return our indexer or raise if all of the values are not included in
@@ -762,6 +753,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
+
+    def _wrap_joined_index(
+        self, joined: np.ndarray, other: "CategoricalIndex"
+    ) -> "CategoricalIndex":
+        name = get_op_result_name(self, other)
+        return self._create_from_codes(joined, name=name)
 
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
