@@ -175,6 +175,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     ----------
     categories : sequence, optional
         Must be unique, and must not contain any nulls.
+        The categories are stored in an Index,
+        and if an index is provided the dtype of that index will be used.
     ordered : bool or None, default False
         Whether or not this categorical is treated as a ordered categorical.
         None can be used to maintain the ordered value of existing categoricals when
@@ -210,6 +212,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     3    NaN
     dtype: category
     Categories (2, object): [b < a]
+
+    An empty CategoricalDtype with a specific dtype can be created
+    by providing an empty index. As follows,
+
+    >>> pd.CategoricalDtype(pd.DatetimeIndex([])).categories.dtype
+    dtype('<M8[ns]')
     """
 
     # TODO: Document public vs. private API

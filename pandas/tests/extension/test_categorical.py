@@ -282,6 +282,19 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
 
+    @pytest.mark.parametrize(
+        "categories",
+        [["a", "b"], [0, 1], [pd.Timestamp("2019"), pd.Timestamp("2020")]],
+    )
+    def test_not_equal_with_na(self, categories):
+        # https://github.com/pandas-dev/pandas/issues/32276
+        c1 = Categorical.from_codes([-1, 0], categories=categories)
+        c2 = Categorical.from_codes([0, 1], categories=categories)
+
+        result = c1 != c2
+
+        assert result.all()
+
 
 class TestParsing(base.BaseParsingTests):
     pass
