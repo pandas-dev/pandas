@@ -1032,6 +1032,7 @@ class TestDatetime64Arithmetic:
             np.array([2.0, 3.0]),
             # GH#13078 datetime +/- Period is invalid
             pd.Period("2011-01-01", freq="D"),
+            # https://github.com/pandas-dev/pandas/issues/10329
             time(1, 2, 3),
         ],
     )
