@@ -1,5 +1,5 @@
 import builtins
-import datetime
+import datetime as dt
 from io import StringIO
 from string import ascii_lowercase
 
@@ -437,7 +437,7 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
             Timestamp("2011-01-15 12:50:28.502376"),
             Timestamp("2011-01-20 12:50:28.593448"),
         ),
-        (24_650_000_000_000_001, 24_650_000_000_000_002),
+        (24650000000000001, 24650000000000002),
     ],
 )
 def test_groupby_non_arithmetic_agg_int_like_precision(i):
@@ -1132,31 +1132,19 @@ def test_nunique_with_timegrouper():
         ),
         (
             ["x", "x", "x"],
-            [datetime.date(2019, 1, 1), NaT, datetime.date(2019, 1, 1)],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
             True,
             Series([1], index=pd.Index(["x"], name="key"), name="data"),
         ),
         (
             ["x", "x", "x", "y", "y"],
-            [
-                datetime.date(2019, 1, 1),
-                NaT,
-                datetime.date(2019, 1, 1),
-                NaT,
-                datetime.date(2019, 1, 1),
-            ],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
             False,
             Series([2, 2], index=pd.Index(["x", "y"], name="key"), name="data"),
         ),
         (
             ["x", "x", "x", "x", "y"],
-            [
-                datetime.date(2019, 1, 1),
-                NaT,
-                datetime.date(2019, 1, 1),
-                NaT,
-                datetime.date(2019, 1, 1),
-            ],
+            [dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1), NaT, dt.date(2019, 1, 1)],
             False,
             Series([2, 1], index=pd.Index(["x", "y"], name="key"), name="data"),
         ),
