@@ -3147,7 +3147,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "and will raise TypeError in a future version.  "
                     "Use .loc with labels or .iloc with positions instead.",
                     FutureWarning,
-                    stacklevel=5,
+                    stacklevel=6,
                 )
             indexer = key
         else:
