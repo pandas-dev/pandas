@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import itertools
 import operator
 import re
@@ -1242,3 +1242,34 @@ def test_interleave_non_unique_cols():
     assert df_unique.values.shape == df.values.shape
     tm.assert_numpy_array_equal(df_unique.values[0], df.values[0])
     tm.assert_numpy_array_equal(df_unique.values[1], df.values[1])
+
+
+def test_assign_df_datetime_column_with_index():
+    df = pd.DataFrame(
+        [
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+        ],
+        columns=["data"],
+    )
+    df2 = pd.DataFrame(index=df.index)
+    df2.loc[df.index, "data"] = df["data"]
+    tm.assert_numpy_array_equal(np.array(df.data), np.array(df2.data))
+    assert df2.data.dtype == np.object
+
+
+def test_assign_df_datetime_column_without_index():
+    df = pd.DataFrame(
+        [
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+            [datetime(2020, 2, 28, 13, 51, 27, tzinfo=timezone.utc)],
+        ],
+        columns=["data"],
+    )
+    df2 = pd.DataFrame(index=df.index)
+    df2.loc[:, "data"] = df["data"]
+    tm.assert_series_equal(df.data, df2.data)
