@@ -48,8 +48,8 @@ def get_mgr_concatenation_plan(mgr, indexers):
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = algos.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)
-        blklocs = algos.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_1d(mgr.blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr._is_single_block:
@@ -57,8 +57,8 @@ def get_mgr_concatenation_plan(mgr, indexers):
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
         ax0_indexer = None
-        blknos = mgr._blknos
-        blklocs = mgr._blklocs
+        blknos = mgr.blknos
+        blklocs = mgr.blklocs
 
     plan = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
