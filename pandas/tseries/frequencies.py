@@ -4,7 +4,6 @@ from typing import Dict, Optional
 import warnings
 
 import numpy as np
-from pytz import AmbiguousTimeError
 
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import Timedelta, Timestamp
@@ -288,10 +287,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = index.values
 
     if not isinstance(index, pd.DatetimeIndex):
-        try:
-            index = pd.DatetimeIndex(index)
-        except AmbiguousTimeError:
-            index = pd.DatetimeIndex(index.asi8)
+        index = pd.DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
@@ -490,6 +486,7 @@ class _FrequencyInferer:
         )
 
     def _get_wom_rule(self) -> Optional[str]:
+        # FIXME: dont leave commented-out
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
