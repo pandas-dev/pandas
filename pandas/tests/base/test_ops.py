@@ -311,9 +311,10 @@ class TestIndexOps(Ops):
         if isinstance(obj, pd.MultiIndex):
             expected.index = pd.Index(expected.index)
 
-        # sort_index to avoid switched order when values share the same count
-        result = result.sort_index()
-        expected = expected.sort_index()
+        if obj.dtype == np.float16:
+            # TODO: Order of entries with the same count is inconsistent on CI
+            result = result.sort_index()
+            expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
@@ -344,9 +345,11 @@ class TestIndexOps(Ops):
         expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
         expected.index = expected.index.astype(obj.dtype)
 
-        # sort_index to avoid switched order when values share the same count
-        expected = expected.sort_index()
-        result = obj.value_counts().sort_index()
+        result = obj.value_counts()
+        if obj.dtype == np.float16:
+            # TODO: Order of entries with the same count is inconsistent on CI
+            expected = expected.sort_index()
+            result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
         # can't use expected[null_obj] = 3 as
@@ -354,9 +357,11 @@ class TestIndexOps(Ops):
         new_entry = pd.Series({np.nan: 3}, dtype=np.int64)
         expected = expected.append(new_entry)
 
-        # sort_index to avoid switched order when values share the same count
-        expected = expected.sort_index()
-        result = obj.value_counts(dropna=False).sort_index()
+        result = obj.value_counts(dropna=False)
+        if obj.dtype == np.float16:
+            # TODO: Order of entries with the same count is inconsistent on CI
+            expected = expected.sort_index()
+            result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_inferred(self, index_or_series):
