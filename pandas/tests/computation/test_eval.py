@@ -375,7 +375,8 @@ class TestEvalNumexprPandas:
             and is_scalar(rhs)
             and _is_py3_complex_incompat(result, expected)
         ):
-            with pytest.raises(AssertionError):
+            msg = 'DataFrame.columns are different'
+            with pytest.raises(AssertionError, match=msg):
                 tm.assert_numpy_array_equal(result, expected)
         else:
             tm.assert_almost_equal(result, expected)
@@ -449,16 +450,19 @@ class TestEvalNumexprPandas:
         # float always raises
         lhs = DataFrame(randn(5, 2))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert_dd'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "ufunc 'invert' not supported for the input types"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
         # int raises on numexpr
         lhs = DataFrame(randint(5, size=(5, 2)))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert_ii"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = ~lhs
@@ -474,10 +478,11 @@ class TestEvalNumexprPandas:
         # object raises
         lhs = DataFrame({"b": ["a", 1, 2.0], "c": rand(3) > 0.5})
         if self.engine == "numexpr":
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match='unknown type object'):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "bad operand type for unary ~: 'str'"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_series_invert(self):
@@ -488,7 +493,8 @@ class TestEvalNumexprPandas:
         # float raises
         lhs = Series(randn(5))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert_dd'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             with pytest.raises(TypeError):
