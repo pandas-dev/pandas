@@ -2,29 +2,29 @@ from collections import abc
 from decimal import Decimal
 from fractions import Fraction
 from numbers import Number
-
 import sys
 
 import cython
 from cython import Py_ssize_t
 
-from cpython.object cimport PyObject_RichCompareBool, Py_EQ
-from cpython.ref cimport Py_INCREF
-from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
-from cpython.iterator cimport PyIter_Check
-from cpython.sequence cimport PySequence_Check
-from cpython.number cimport PyNumber_Check
-
 from cpython.datetime cimport (
-    PyDateTime_Check,
     PyDate_Check,
-    PyTime_Check,
-    PyDelta_Check,
+    PyDateTime_Check,
     PyDateTime_IMPORT,
+    PyDelta_Check,
+    PyTime_Check,
 )
+from cpython.iterator cimport PyIter_Check
+from cpython.number cimport PyNumber_Check
+from cpython.object cimport Py_EQ, PyObject_RichCompareBool
+from cpython.ref cimport Py_INCREF
+from cpython.sequence cimport PySequence_Check
+from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
+
 PyDateTime_IMPORT
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     NPY_OBJECT,
@@ -42,6 +42,7 @@ from numpy cimport (
     uint8_t,
     uint64_t,
 )
+
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -65,24 +66,23 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport pandas._libs.util as util
-from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+from pandas._libs cimport util as util
+from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX, is_nan
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
-from pandas._libs.tslibs.conversion cimport convert_to_tsobject
-from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
-from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
 from pandas._libs.missing cimport (
-    checknull,
-    isnaobj,
-    is_null_datetime64,
-    is_null_timedelta64,
-    is_null_period,
     C_NA,
+    checknull,
+    is_null_datetime64,
+    is_null_period,
+    is_null_timedelta64,
+    isnaobj,
 )
-
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
 # constants that will be compared to potentially arbitrarily large
 # python int
@@ -1320,8 +1320,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     else:
         if not isinstance(value, list):
             value = list(value)
-        from pandas.core.dtypes.cast import (
-            construct_1d_object_array_from_listlike)
+        from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
 
     # make contiguous

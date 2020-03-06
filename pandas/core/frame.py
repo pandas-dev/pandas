@@ -8,7 +8,6 @@ Similar to its R counterpart, data.frame, except providing automatic data
 alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
-
 import collections
 from collections import abc
 import datetime
@@ -35,7 +34,7 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.ma as ma
+from numpy import ma as ma
 
 from pandas._config import get_option
 
@@ -133,6 +132,7 @@ import pandas.plotting
 
 if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
+
     from pandas.io.formats.style import Styler
 
 # ---------------------------------------------------------------------
@@ -438,7 +438,7 @@ class DataFrame(NDFrame):
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
-            import numpy.ma.mrecords as mrecords
+            from numpy.ma import mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
@@ -4621,8 +4621,9 @@ class DataFrame(NDFrame):
         -------
         Series
         """
+        from pandas._libs.hashtable import _SIZE_HINT_LIMIT, duplicated_int64
+
         from pandas.core.sorting import get_group_index
-        from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
         if self.empty:
             return Series(dtype=bool)
@@ -5455,7 +5456,7 @@ class DataFrame(NDFrame):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        import pandas.core.computation.expressions as expressions
+        from pandas.core.computation import expressions as expressions
 
         def extract_values(arr):
             # Does two things:
@@ -5602,7 +5603,7 @@ class DataFrame(NDFrame):
         1  2  500.0
         2  3    6.0
         """
-        import pandas.core.computation.expressions as expressions
+        from pandas.core.computation import expressions as expressions
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
@@ -7161,8 +7162,8 @@ Wild         185.0
     def _join_compat(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
     ):
-        from pandas.core.reshape.merge import merge
         from pandas.core.reshape.concat import concat
+        from pandas.core.reshape.merge import merge
 
         if isinstance(other, Series):
             if other.name is None:
