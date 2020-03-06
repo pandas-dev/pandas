@@ -692,11 +692,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        name: Label
-        if len(set(names)) == 1:
-            name = names[0]
-        else:
-            name = None
+        name = names[0] if len(set(names)) == 1 else None
 
         def construct_return(result):
             if lib.is_scalar(result):

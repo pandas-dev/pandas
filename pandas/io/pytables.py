@@ -8,17 +8,7 @@ from datetime import date, tzinfo
 import itertools
 import os
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Hashable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -27,7 +17,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
@@ -2811,7 +2801,7 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names: List[Optional[Hashable]] = []
+        names: List[Label] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
@@ -2976,7 +2966,7 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
-    name: Optional[Hashable]
+    name: Label
 
     @property
     def shape(self):

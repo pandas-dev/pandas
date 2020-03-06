@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
 import warnings
 
 import numpy as np
@@ -5546,7 +5546,7 @@ def default_index(n):
     return RangeIndex(0, n, name=None)
 
 
-def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
+def maybe_extract_name(name, obj, cls) -> Label:
     """
     If no name is passed, then extract it from data, validating hashability.
     """
