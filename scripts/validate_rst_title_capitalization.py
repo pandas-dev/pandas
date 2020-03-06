@@ -74,11 +74,11 @@ def correct_title_capitalization(title: str) -> str:
     # first word character.
     correct_title: str = re.sub(r"^\W*", "", title).capitalize()
 
-    # Function to remove a URL from the title. We do this because words in a URL must
+    # Remove a URL from the title. We do this because words in a URL must
     # stay lowercase, even if they are a capitalization exception.
     removed_https_title = re.sub(r"<https?:\/\/.*[\r\n]*>", "", correct_title)
 
-    # Function to split a title into a list using non-word character delimiters.
+    # Split a title into a list using non-word character delimiters.
     word_list = re.split(r"\W", removed_https_title)
 
     for word in word_list:
