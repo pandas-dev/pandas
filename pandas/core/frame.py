@@ -890,7 +890,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def items(self) -> Iterable[Tuple[Label, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -899,10 +899,10 @@ class DataFrame(NDFrame):
                 yield k, self._ixs(i, axis=1)
 
     @Appender(_shared_docs["items"])
-    def iteritems(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def iteritems(self) -> Iterable[Tuple[Label, Series]]:
         yield from self.items()
 
-    def iterrows(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def iterrows(self) -> Iterable[Tuple[Label, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -4043,7 +4043,7 @@ class DataFrame(NDFrame):
             "one-dimensional arrays."
         )
 
-        missing: List[Optional[Hashable]] = []
+        missing: List[Label] = []
         for col in keys:
             if isinstance(
                 col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
@@ -4082,7 +4082,7 @@ class DataFrame(NDFrame):
             else:
                 arrays.append(self.index)
 
-        to_remove: List[Optional[Hashable]] = []
+        to_remove: List[Label] = []
         for col in keys:
             if isinstance(col, ABCMultiIndex):
                 for n in range(col.nlevels):
@@ -4137,7 +4137,7 @@ class DataFrame(NDFrame):
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
-        col_fill: Optional[Hashable] = "",
+        col_fill: Label = "",
     ) -> Optional["DataFrame"]:
         """
         Reset the index, or a level of it.
