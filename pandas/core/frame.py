@@ -1419,6 +1419,7 @@ class DataFrame(NDFrame):
                     ),
                 )
             )
+            
         elif orient == "series":
             return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
 
