@@ -9729,7 +9729,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         ldesc = [describe_1d(s) for _, s in data.items()]
         # set a convenient order for rows
-        names: List[Optional[Hashable]] = []
+        names: List[Label] = []
         ldesc_indexes = sorted((x.index for x in ldesc), key=len)
         for idxnames in ldesc_indexes:
             for name in idxnames:
