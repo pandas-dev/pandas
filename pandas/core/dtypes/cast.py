@@ -6,7 +6,6 @@ from datetime import date, datetime, timedelta
 
 import numpy as np
 
-import pandas as pd
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import (
     NaT,
@@ -70,6 +69,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import isna, notna
+
+import pandas as pd
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
