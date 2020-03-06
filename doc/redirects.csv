@@ -35,9 +35,9 @@ text,user_guide/text
 timedeltas,user_guide/timedeltas
 timeseries,user_guide/timeseries
 visualization,user_guide/visualization
-getting_started/10min,user_guide/10min
-getting_started/10min,user_guide/basics
-getting_started/10min,user_guide/dsintro
+10min,user_guide/10min
+basics,user_guide/basics
+dsintro,user_guide/dsintro
 
 # development
 contributing,development/contributing
