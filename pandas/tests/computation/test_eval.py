@@ -497,13 +497,15 @@ class TestEvalNumexprPandas:
             with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "ufunc 'invert' not supported for the input types"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
         # int raises on numexpr
         lhs = Series(randint(5, size=5))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert_ii"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = ~lhs
@@ -523,10 +525,11 @@ class TestEvalNumexprPandas:
         # object
         lhs = Series(["a", 1, 2.0])
         if self.engine == "numexpr":
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match='unknown type object'):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "bad operand type for unary ~: 'str'"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_frame_negate(self):
@@ -547,7 +550,8 @@ class TestEvalNumexprPandas:
         # bool doesn't work with numexpr but works elsewhere
         lhs = DataFrame(rand(5, 2) > 0.5)
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'neg_bb'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = -lhs
@@ -572,7 +576,8 @@ class TestEvalNumexprPandas:
         # bool doesn't work with numexpr but works elsewhere
         lhs = Series(rand(5) > 0.5)
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'neg_bb'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = -lhs
@@ -616,7 +621,8 @@ class TestEvalNumexprPandas:
         tm.assert_series_equal(expect, result)
 
     def test_scalar_unary(self):
-        with pytest.raises(TypeError):
+        msg = "bad operand type for unary ~: 'float'"
+        with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=self.engine, parser=self.parser)
 
         assert pd.eval("-1.0", parser=self.parser, engine=self.engine) == -1.0
@@ -677,7 +683,8 @@ class TestEvalNumexprPandas:
 
         x, a, b, df = np.random.randn(3), 1, 2, DataFrame(randn(3, 2))  # noqa
         for ex in exprs:
-            with pytest.raises(NotImplementedError):
+            msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
 
     def test_identical(self):
@@ -778,7 +785,8 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         ex1 = f"lhs {cmp1} mid {cmp2} rhs"
-        with pytest.raises(NotImplementedError):
+        msg = "'BoolOp' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex1, engine=self.engine, parser=self.parser)
 
 
@@ -1189,7 +1197,8 @@ class TestOperationsNumExprPandas:
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
         y = Series(randn(10))
-        with pytest.raises(NotImplementedError):
+        msg = 'N-dimensional objects, where N > 2, are not supported with eval'
+        with pytest.raises(NotImplementedError, match=msg):
             self.eval("x + y", local_dict={"x": x, "y": y})
 
     def test_constant(self):
