@@ -116,6 +116,7 @@ from pandas.core.api import (
 )
 
 from pandas.core.arrays.sparse import SparseDtype
+from pandas.core.dtypes.generic import ABCSparseArray
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -341,7 +342,7 @@ else:
         SparseArray = sa
 
         def __instancecheck__(cls, other):
-            return isinstance(other, cls.SparseArray)
+            return isinstance(other, ABCSparseArray)
 
     class __SparseArraySub(metaclass=__SparseArray):
         def emit_warning(dummy=0):
