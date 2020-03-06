@@ -2708,8 +2708,10 @@ class DataFrame(NDFrame):
 
     def _iset_item(self, loc: int, value):
         self._ensure_valid_index(value)
-        value = self._sanitize_column(loc, value)
-        # FIXME: sanitize_column isnt for iloc
+
+        # passing loc to sanitize_column is a misnomer, but harmless
+        #  with broadcast=False as long as value is never a DataFrame
+        value = self._sanitize_column(loc, value, broadcast=False)
         NDFrame._iset_item(self, loc, value)
 
         # check if we are modifying a copy
