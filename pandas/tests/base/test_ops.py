@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
 
 import pandas as pd
 from pandas import (
@@ -727,12 +728,12 @@ class TestIndexOps(Ops):
         obj = index_or_series_obj
         if len(obj) == 0:
             pytest.skip("Test doesn't make sense on empty data")
-        elif isinstance(obj, pd.MultiIndex):
+        elif isinstance(obj, ABCMultiIndex):
             pytest.skip("MultiIndex doesn't support isna")
 
         # values will not be changed
         result = obj.fillna(obj.values[0])
-        if isinstance(obj, Index):
+        if isinstance(obj, ABCIndex):
             tm.assert_index_equal(obj, result)
         else:
             tm.assert_series_equal(obj, result)
@@ -752,7 +753,7 @@ class TestIndexOps(Ops):
             pytest.skip(f"{klass} doesn't allow for NA operations")
         elif len(obj) < 1:
             pytest.skip("Test doesn't make sense on empty data")
-        elif isinstance(obj, pd.MultiIndex):
+        elif isinstance(obj, ABCMultiIndex):
             pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
         values = obj.values
@@ -769,7 +770,7 @@ class TestIndexOps(Ops):
         obj = klass(values)
 
         result = obj.fillna(fill_value)
-        if isinstance(obj, Index):
+        if isinstance(obj, ABCIndex):
             tm.assert_index_equal(result, expected)
         else:
             tm.assert_series_equal(result, expected)
