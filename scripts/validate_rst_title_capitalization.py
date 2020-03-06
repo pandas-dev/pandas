@@ -113,7 +113,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
     """
 
     with open(rst_file, "r") as fd:
-        previous_line = ''
+        previous_line = ""
         for i, line in enumerate(fd):
             line = line[:-1]
             line_chars = set(line)
@@ -122,7 +122,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
                 and line_chars.pop() in symbols
                 and len(line) == len(previous_line)
             ):
-                yield re.sub(r'[`\*_]', '', previous_line), i
+                yield re.sub(r"[`\*_]", "", previous_line), i
             previous_line = line
 
 
