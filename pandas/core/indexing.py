@@ -640,7 +640,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
 
         if (
             axis == column_axis
-            and not isinstance(self.obj._get_axis(column_axis), ABCMultiIndex)
+            and not isinstance(self.obj.columns, ABCMultiIndex)
             and is_list_like_indexer(key)
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
