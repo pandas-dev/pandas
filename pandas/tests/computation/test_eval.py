@@ -1247,7 +1247,7 @@ class TestOperationsNumExprPandas:
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
-        with pytest.raises(NameError):
+        with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
     def test_lhs_expression_subscript(self):
@@ -1394,7 +1394,8 @@ class TestOperationsNumExprPandas:
         assert ans is None
 
         # multi-line not valid if not all assignments
-        with pytest.raises(ValueError):
+        msg = 'Multi-line expressions are only valid if all expressions contain'
+        with pytest.raises(ValueError, match=msg):
             df.eval(
                 """
             a = b + 2
@@ -1489,7 +1490,8 @@ class TestOperationsNumExprPandas:
         # GH 8664
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
-        with pytest.raises(ValueError):
+        msg = 'cannot assign without a target object'
+        with pytest.raises(ValueError, match=msg):
             df.query("a = 1")
         tm.assert_frame_equal(df, df_orig)
 
@@ -1608,19 +1610,21 @@ class TestOperationsNumExprPandas:
             )
             assert res
         else:
-            with pytest.raises(NotImplementedError):
+            msg = "'In' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("1 in [1, 2]", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("2 in (1, 2)", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("3 in (1, 2)", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
-                pd.eval("3 not in (1, 2)", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(
                     "[(3,)] in (1, 2, [(3,)])", engine=self.engine, parser=self.parser
                 )
-            with pytest.raises(NotImplementedError):
+            msg = "'NotIn' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
+                pd.eval("3 not in (1, 2)", engine=self.engine, parser=self.parser)
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(
                     "[3] not in (1, 2, [[3]])", engine=self.engine, parser=self.parser
                 )
@@ -1679,13 +1683,15 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
     def test_fails_ampersand(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = "(df + 2)[df > 1] > 0 & (df > 0)"
-        with pytest.raises(NotImplementedError):
+        msg = 'cannot evaluate scalar only bool ops'
+        with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_fails_pipe(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = "(df + 2)[df > 1] > 0 | (df > 0)"
-        with pytest.raises(NotImplementedError):
+        msg = 'cannot evaluate scalar only bool ops'
+        with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_bool_ops_with_constants(self):
