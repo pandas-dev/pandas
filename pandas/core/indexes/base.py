@@ -2163,7 +2163,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        valid : Index
+        Index
         """
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
