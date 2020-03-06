@@ -717,6 +717,8 @@ class TestILocSetItemDuplicateColumns:
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_series_duplicate_columns(self):
-        df = pd.DataFrame(np.arange(8).reshape(2, 4), columns=["A", "B", "A", "B"])
+        df = pd.DataFrame(
+            np.arange(8, dtype=np.int64).reshape(2, 4), columns=["A", "B", "A", "B"]
+        )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
