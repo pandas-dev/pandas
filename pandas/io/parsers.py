@@ -815,8 +815,10 @@ class TextFileReader(abc.Iterator):
             ):
                 try:
                     dialect_val = getattr(dialect, param)
-                except AttributeError:
-                    raise ValueError(f"Invalid dialect {kwds['dialect']} provided")
+                except AttributeError as err:
+                    raise ValueError(
+                        f"Invalid dialect {kwds['dialect']} provided"
+                    ) from err
                 parser_default = _parser_defaults[param]
                 provided = kwds.get(param, parser_default)
 
@@ -1864,19 +1866,19 @@ class ParserBase:
             array_type = cast_type.construct_array_type()
             try:
                 return array_type._from_sequence_of_strings(values, dtype=cast_type)
-            except NotImplementedError:
+            except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
                     "_from_sequence_of_strings in order to be used in parser methods"
-                )
+                ) from err
 
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True, skipna=True)
-            except ValueError:
+            except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
-                )
+                ) from err
         return values
 
     def _do_date_conversions(self, names, data):
@@ -2427,19 +2429,21 @@ class PythonParser(ParserBase):
 
             dia = MyDialect
 
-            sniff_sep = True
-
             if sep is not None:
-                sniff_sep = False
                 dia.delimiter = sep
-            # attempt to sniff the delimiter
-            if sniff_sep:
+            else:
+                # attempt to sniff the delimiter from the first valid line,
+                # i.e. no comment line and not in skiprows
                 line = f.readline()
-                while self.skipfunc(self.pos):
+                lines = self._check_comments([[line]])[0]
+                while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
                     line = f.readline()
+                    lines = self._check_comments([[line]])[0]
 
-                line = self._check_comments([line])[0]
+                # since `line` was a string, lines will be a list containing
+                # only a single string
+                line = lines[0]
 
                 self.pos += 1
                 self.line_pos += 1
@@ -2602,12 +2606,12 @@ class PythonParser(ParserBase):
                     while self.line_pos <= hr:
                         line = self._next_line()
 
-                except StopIteration:
+                except StopIteration as err:
                     if self.line_pos < hr:
                         raise ValueError(
                             f"Passed header={hr} but only {self.line_pos + 1} lines in "
                             "file"
-                        )
+                        ) from err
 
                     # We have an empty file, so check
                     # if columns are provided. That will
@@ -2619,7 +2623,7 @@ class PythonParser(ParserBase):
                         return columns, num_original_columns, unnamed_cols
 
                     if not self.names:
-                        raise EmptyDataError("No columns to parse from file")
+                        raise EmptyDataError("No columns to parse from file") from err
 
                     line = self.names[:]
 
@@ -2700,9 +2704,9 @@ class PythonParser(ParserBase):
             try:
                 line = self._buffered_line()
 
-            except StopIteration:
+            except StopIteration as err:
                 if not names:
-                    raise EmptyDataError("No columns to parse from file")
+                    raise EmptyDataError("No columns to parse from file") from err
 
                 line = names[:]
 
