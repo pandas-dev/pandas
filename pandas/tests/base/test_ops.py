@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 import pandas as pd
 from pandas import (
@@ -733,7 +733,7 @@ class TestIndexOps(Ops):
 
         # values will not be changed
         result = obj.fillna(obj.values[0])
-        if isinstance(obj, ABCIndex):
+        if isinstance(obj, Index):
             tm.assert_index_equal(obj, result)
         else:
             tm.assert_series_equal(obj, result)
@@ -770,7 +770,7 @@ class TestIndexOps(Ops):
         obj = klass(values)
 
         result = obj.fillna(fill_value)
-        if isinstance(obj, ABCIndex):
+        if isinstance(obj, Index):
             tm.assert_index_equal(result, expected)
         else:
             tm.assert_series_equal(result, expected)
