@@ -34,7 +34,7 @@ from typing import (
 import warnings
 
 import numpy as np
-from numpy import ma as ma
+from numpy import ma
 
 from pandas._config import get_option
 
@@ -438,7 +438,7 @@ class DataFrame(NDFrame):
         elif isinstance(data, dict):
             mgr = init_dict(data, index, columns, dtype=dtype)
         elif isinstance(data, ma.MaskedArray):
-            from numpy.ma import mrecords as mrecords
+            from numpy.ma import mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
@@ -5456,7 +5456,7 @@ class DataFrame(NDFrame):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.computation import expressions as expressions
+        from pandas.core.computation import expressions
 
         def extract_values(arr):
             # Does two things:
@@ -5603,7 +5603,7 @@ class DataFrame(NDFrame):
         1  2  500.0
         2  3    6.0
         """
-        from pandas.core.computation import expressions as expressions
+        from pandas.core.computation import expressions
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
