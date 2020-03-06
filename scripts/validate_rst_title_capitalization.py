@@ -54,6 +54,7 @@ err_msg = "Heading capitalization formatted incorrectly. Please correctly capita
 
 symbols = ("*", "=", "-", "^", "~", "#", '"')
 
+
 def correct_title_capitalization(title: str) -> str:
     """
     Algorithm to create the correct capitalization for a given title.
@@ -121,7 +122,7 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
                 and line_chars.pop() in symbols
                 and len(line) == len(previous_line)
             ):
-                yield re.sub('[`\*_]', '', previous_line), i
+                yield re.sub(r'[`\*_]', '', previous_line), i
             previous_line = line
 
 
