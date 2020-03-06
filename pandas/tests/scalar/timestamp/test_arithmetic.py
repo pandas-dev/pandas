@@ -60,6 +60,15 @@ class TestTimestampArithmetic:
         with pytest.raises(OverflowError, match=msg):
             stamp - offset_overflow
 
+    def test_overflow_timestamp_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/31774
+        msg = "Result is too large"
+        a = Timestamp("2101-01-01 00:00:00")
+        b = Timestamp("1688-01-01 00:00:00")
+
+        with pytest.raises(OverflowError, match=msg):
+            a - b
+
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
