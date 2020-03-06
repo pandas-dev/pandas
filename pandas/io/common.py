@@ -3,11 +3,23 @@
 import bz2
 from collections import abc
 import gzip
-from io import BufferedIOBase, BytesIO
+from io import BufferedIOBase, BytesIO, RawIOBase
 import mmap
 import os
 import pathlib
-from typing import IO, Any, AnyStr, Dict, List, Mapping, Optional, Tuple, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    AnyStr,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 from urllib.parse import (  # noqa
     urlencode,
     urljoin,
@@ -37,6 +49,10 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
 
 
+if TYPE_CHECKING:
+    from io import IOBase  # noqa: F401
+
+
 def is_url(url) -> bool:
     """
     Check to see if a URL has a valid protocol.
@@ -58,8 +74,9 @@ def is_url(url) -> bool:
 def _expand_user(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Return the argument with an initial component of ~ or ~user
-       replaced by that user's home directory.
+    """
+    Return the argument with an initial component of ~ or ~user
+    replaced by that user's home directory.
 
     Parameters
     ----------
@@ -87,7 +104,8 @@ def validate_header_arg(header) -> None:
 def stringify_path(
     filepath_or_buffer: FilePathOrBuffer[AnyStr],
 ) -> FilePathOrBuffer[AnyStr]:
-    """Attempt to convert a path-like object to a string.
+    """
+    Attempt to convert a path-like object to a string.
 
     Parameters
     ----------
@@ -247,8 +265,8 @@ def get_compression_method(
         compression_args = dict(compression)
         try:
             compression = compression_args.pop("method")
-        except KeyError:
-            raise ValueError("If mapping, compression must have key 'method'")
+        except KeyError as err:
+            raise ValueError("If mapping, compression must have key 'method'") from err
     else:
         compression_args = {}
     return compression, compression_args
@@ -280,7 +298,6 @@ def infer_compression(
     ------
     ValueError on invalid compression specified.
     """
-
     # No compression has been explicitly specified
     if compression is None:
         return None
@@ -356,12 +373,13 @@ def get_handle(
     handles : list of file-like objects
         A list of file-like object that were opened in this function.
     """
+    need_text_wrapping: Tuple[Type["IOBase"], ...]
     try:
         from s3fs import S3File
 
-        need_text_wrapping = (BufferedIOBase, S3File)
+        need_text_wrapping = (BufferedIOBase, RawIOBase, S3File)
     except ImportError:
-        need_text_wrapping = BufferedIOBase  # type: ignore
+        need_text_wrapping = (BufferedIOBase, RawIOBase)
 
     handles: List[IO] = list()
     f = path_or_buf
@@ -437,7 +455,7 @@ def get_handle(
         from io import TextIOWrapper
 
         g = TextIOWrapper(f, encoding=encoding, newline="")
-        if not isinstance(f, BufferedIOBase):
+        if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g
 

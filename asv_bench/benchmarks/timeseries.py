@@ -57,6 +57,9 @@ class DatetimeIndex:
     def time_to_pydatetime(self, index_type):
         self.index.to_pydatetime()
 
+    def time_is_dates_only(self, index_type):
+        self.index._is_dates_only
+
 
 class TzLocalize:
 
@@ -89,20 +92,6 @@ class ResetIndex:
 
     def time_reest_datetimeindex(self, tz):
         self.df.reset_index()
-
-
-class Factorize:
-
-    params = [None, "Asia/Tokyo"]
-    param_names = "tz"
-
-    def setup(self, tz):
-        N = 100000
-        self.dti = date_range("2011-01-01", freq="H", periods=N, tz=tz)
-        self.dti = self.dti.repeat(5)
-
-    def time_factorize(self, tz):
-        self.dti.factorize()
 
 
 class InferFreq:
@@ -260,18 +249,6 @@ class SortIndex:
 
     def time_get_slice(self, monotonic):
         self.s[:10000]
-
-
-class IrregularOps:
-    def setup(self):
-        N = 10 ** 5
-        idx = date_range(start="1/1/2000", periods=N, freq="s")
-        s = Series(np.random.randn(N), index=idx)
-        self.left = s.sample(frac=1)
-        self.right = s.sample(frac=1)
-
-    def time_add(self):
-        self.left + self.right
 
 
 class Lookup:

@@ -176,12 +176,11 @@ def hist_frame(
 
     Examples
     --------
+    This example draws a histogram based on the length and width of
+    some animals, displayed in three bins
 
     .. plot::
         :context: close-figs
-
-        This example draws a histogram based on the length and width of
-        some animals, displayed in three bins
 
         >>> df = pd.DataFrame({
         ...     'length': [1.5, 0.5, 1.2, 0.9, 3],
@@ -1430,7 +1429,7 @@ class PlotAccessor(PandasObject):
         Examples
         --------
         In the example below we have a DataFrame with the information about
-        planet's mass and radius. We pass the the 'mass' column to the
+        planet's mass and radius. We pass the 'mass' column to the
         pie function to get a pie plot.
 
         .. plot::
