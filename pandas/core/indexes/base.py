@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Optional, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
 import warnings
 
 import numpy as np
@@ -2129,13 +2129,18 @@ class Index(IndexOpsMixin, PandasObject):
             Scalar value to use to fill holes (e.g. 0).
             This value cannot be a list-likes.
         downcast : dict, default is None
-            a dict of item->dtype of what to downcast if possible,
+            A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
         Returns
         -------
-        filled : Index
+        Index
+
+        See Also
+        --------
+        DataFrame.fillna : Fill NaN values of a DataFrame.
+        Series.fillna : Fill NaN Values of a Series.
         """
         self._assert_can_do_op(value)
         if self.hasnans:
@@ -2158,7 +2163,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        valid : Index
+        Index
         """
         if how not in ("any", "all"):
             raise ValueError(f"invalid how option: {how}")
@@ -2844,7 +2849,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> non_monotonic_index = pd.Index(list('abcb'))
         >>> non_monotonic_index.get_loc('b')
-        array([False,  True, False,  True], dtype=bool)
+        array([False,  True, False,  True])
         """
         if method is None:
             if tolerance is not None:
@@ -5541,7 +5546,7 @@ def default_index(n):
     return RangeIndex(0, n, name=None)
 
 
-def maybe_extract_name(name, obj, cls) -> Optional[Hashable]:
+def maybe_extract_name(name, obj, cls) -> Label:
     """
     If no name is passed, then extract it from data, validating hashability.
     """
