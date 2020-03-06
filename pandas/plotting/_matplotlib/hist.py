@@ -50,8 +50,9 @@ class HistPlot(LinePlot):
         **kwds,
     ):
 
-        # if bins is a string (e.g. "auto"), get actual number of bins
-        hist, bins = np.histogram(
+        # if bins is a string (e.g. "auto"), get actual bins
+        # so that it can be used in creating stackers below
+        _, bins = np.histogram(
             y,
             bins=bins,
             range=kwds.get("range", None),
@@ -65,7 +66,7 @@ class HistPlot(LinePlot):
         base = np.zeros(len(bins) - 1)
         bottom = bottom + cls._get_stacked_values(ax, stacking_id, base, kwds["label"])
         # ignore style
-        n, bins, patches = ax.hist(y, bins=bins, bottom=bottom, **kwds)
+        n, _, patches = ax.hist(y, bins=bins, bottom=bottom, **kwds)
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
