@@ -261,7 +261,7 @@ class TestSeriesDtypes:
 
         value = np.random.RandomState(0).randint(0, 10000, 100)
         df = DataFrame({"value": value})
-        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=["value"], ascending=True)
@@ -384,9 +384,9 @@ class TestSeriesDtypes:
         s = Series(data)
 
         msg = (
-            r"The '{dtype}' dtype has no unit\. "
-            r"Please pass in '{dtype}\[ns\]' instead."
-        ).format(dtype=dtype.__name__)
+            fr"The '{dtype.__name__}' dtype has no unit\. "
+            fr"Please pass in '{dtype.__name__}\[ns\]' instead."
+        )
         with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 

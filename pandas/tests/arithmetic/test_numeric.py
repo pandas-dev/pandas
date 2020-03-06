@@ -66,8 +66,7 @@ class TestNumericComparisons:
         ts = pd.Timestamp.now()
         df = pd.DataFrame({"x": range(5)})
 
-        msg = "Invalid comparison between dtype=int64 and Timestamp"
-
+        msg = "'[<>]' not supported between instances of 'Timestamp' and 'int'"
         with pytest.raises(TypeError, match=msg):
             df > ts
         with pytest.raises(TypeError, match=msg):

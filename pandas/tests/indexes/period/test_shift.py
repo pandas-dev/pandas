@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import PeriodIndex, period_range
 import pandas._testing as tm
 
@@ -62,7 +61,7 @@ class TestPeriodIndexShift:
 
     def test_shift_corner_cases(self):
         # GH#9903
-        idx = pd.PeriodIndex([], name="xxx", freq="H")
+        idx = PeriodIndex([], name="xxx", freq="H")
 
         with pytest.raises(TypeError):
             # period shift doesn't accept freq
@@ -71,19 +70,19 @@ class TestPeriodIndexShift:
         tm.assert_index_equal(idx.shift(0), idx)
         tm.assert_index_equal(idx.shift(3), idx)
 
-        idx = pd.PeriodIndex(
+        idx = PeriodIndex(
             ["2011-01-01 10:00", "2011-01-01 11:00", "2011-01-01 12:00"],
             name="xxx",
             freq="H",
         )
         tm.assert_index_equal(idx.shift(0), idx)
-        exp = pd.PeriodIndex(
+        exp = PeriodIndex(
             ["2011-01-01 13:00", "2011-01-01 14:00", "2011-01-01 15:00"],
             name="xxx",
             freq="H",
         )
         tm.assert_index_equal(idx.shift(3), exp)
-        exp = pd.PeriodIndex(
+        exp = PeriodIndex(
             ["2011-01-01 07:00", "2011-01-01 08:00", "2011-01-01 09:00"],
             name="xxx",
             freq="H",
@@ -104,7 +103,7 @@ class TestPeriodIndexShift:
     def test_shift_gh8083(self):
         # test shift for PeriodIndex
         # GH#8083
-        drange = pd.period_range("20130101", periods=5, freq="D")
+        drange = period_range("20130101", periods=5, freq="D")
         result = drange.shift(1)
         expected = PeriodIndex(
             ["2013-01-02", "2013-01-03", "2013-01-04", "2013-01-05", "2013-01-06"],

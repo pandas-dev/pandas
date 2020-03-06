@@ -687,7 +687,7 @@ class TestDataFrameToCSV:
             df.to_csv(path)
 
             for i in [6, 7]:
-                msg = "len of {i}, but only 5 lines in file".format(i=i)
+                msg = f"len of {i}, but only 5 lines in file"
                 with pytest.raises(ParserError, match=msg):
                     read_csv(path, header=list(range(i)), index_col=0)
 
@@ -744,7 +744,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_mixed(self):
         def create_cols(name):
-            return ["{name}{i:03d}".format(name=name, i=i) for i in range(5)]
+            return [f"{name}{i:03d}" for i in range(5)]
 
         df_float = DataFrame(
             np.random.randn(100, 5), dtype="float64", columns=create_cols("float")

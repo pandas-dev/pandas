@@ -41,7 +41,8 @@ class ExcelCell:
 
 
 class CSSToExcelConverter:
-    """A callable for converting CSS declarations to ExcelWriter styles
+    """
+    A callable for converting CSS declarations to ExcelWriter styles
 
     Supports parts of CSS 2.2, with minimal CSS 3.0 support (e.g. text-shadow),
     focusing on font styling, backgrounds, borders and alignment.
@@ -403,7 +404,7 @@ class ExcelFormatter:
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 
-            self.df = df
+            self.df = df.reindex(columns=cols)
 
         self.columns = self.df.columns
         self.float_format = float_format

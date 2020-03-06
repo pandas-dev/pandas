@@ -156,7 +156,6 @@ def get_is_dtype_funcs():
     begin with 'is_' and end with 'dtype'
 
     """
-
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
     return [getattr(com, fname) for fname in fnames]
 
@@ -675,6 +674,8 @@ def test__get_dtype(input_param, result):
 )
 def test__get_dtype_fails(input_param, expected_error_message):
     # python objects
+    # 2020-02-02 npdev changed error message
+    expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
         com._get_dtype(input_param)
 

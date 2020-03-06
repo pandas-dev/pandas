@@ -1641,3 +1641,46 @@ when plotting a large number of points.
    :suppress:
 
     plt.close('all')
+
+Plotting backends
+-----------------
+
+Starting in version 0.25, pandas can be extended with third-party plotting backends. The
+main idea is letting users select a plotting backend different than the provided
+one based on Matplotlib.
+
+This can be done by passsing 'backend.module' as the argument ``backend`` in ``plot``
+function. For example:
+
+.. code-block:: python
+
+    >>> Series([1, 2, 3]).plot(backend='backend.module')
+
+Alternatively, you can also set this option globally, do you don't need to specify
+the keyword in each ``plot`` call. For example:
+
+.. code-block:: python
+
+    >>> pd.set_option('plotting.backend', 'backend.module')
+    >>> pd.Series([1, 2, 3]).plot()
+
+Or:
+
+.. code-block:: python
+
+    >>> pd.options.plotting.backend = 'backend.module'
+    >>> pd.Series([1, 2, 3]).plot()
+
+This would be more or less equivalent to:
+
+.. code-block:: python
+
+    >>> import backend.module
+    >>> backend.module.plot(pd.Series([1, 2, 3]))
+
+The backend module can then use other visualization tools (Bokeh, Altair, hvplot,...)
+to generate the plots. Some libraries implementing a backend for pandas are listed
+on the ecosystem :ref:`ecosystem.visualization` page.
+
+Developers guide can be found at
+https://dev.pandas.io/docs/development/extending.html#plotting-backends

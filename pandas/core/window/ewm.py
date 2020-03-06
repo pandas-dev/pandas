@@ -98,7 +98,6 @@ class EWM(_Rolling):
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
     >>> df
          B
@@ -116,6 +115,7 @@ class EWM(_Rolling):
     3  1.615385
     4  3.670213
     """
+
     _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
 
     def __init__(
@@ -219,13 +219,13 @@ class EWM(_Rolling):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError):
+            except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
                     del block_list[i]
                     continue
                 else:
-                    raise DataError("No numeric types to aggregate")
+                    raise DataError("No numeric types to aggregate") from err
 
             if values.size == 0:
                 results.append(values.copy())
