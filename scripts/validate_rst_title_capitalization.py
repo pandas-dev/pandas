@@ -52,6 +52,7 @@ CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
 
 err_msg = "Heading capitalization formatted incorrectly. Please correctly capitalize"
 
+symbols = ("*", "=", "-", "^", "~", "#", '"')
 
 def correct_title_capitalization(title: str) -> str:
     """
@@ -64,12 +65,11 @@ def correct_title_capitalization(title: str) -> str:
 
     Returns
     -------
-    correct_title : str
+    str
         Correctly capitalized heading.
-
     """
 
-    # Function to strip all non-word characters from the beginning of the title to the
+    # Strip all non-word characters from the beginning of the title to the
     # first word character.
     correct_title: str = re.sub(r"^\W*", "", title).capitalize()
 
@@ -109,24 +109,20 @@ def find_titles(rst_file: str) -> Generator[Tuple[str, int], None, None]:
 
     line_number : int
         The corresponding line number of the heading.
-
     """
 
-    with open(rst_file, "r") as file_obj:
-        lines = file_obj.read().split("\n")
-
-    symbols = ("*", "=", "-", "^", "~", "#", '"')
-
-    table = str.maketrans("", "", "*`_")
-
-    for i, line in enumerate(lines):
-        line_chars = set(line)
-        if (
-            len(line_chars) == 1
-            and line_chars.pop() in symbols
-            and len(line) == len(lines[i - 1])
-        ):
-            yield lines[i - 1].translate(table), i
+    with open(rst_file, "r") as fd:
+        previous_line = ''
+        for i, line in enumerate(fd):
+            line = line[:-1]
+            line_chars = set(line)
+            if (
+                len(line_chars) == 1
+                and line_chars.pop() in symbols
+                and len(line) == len(previous_line)
+            ):
+                yield re.sub('[`\*_]', '', previous_line), i
+            previous_line = line
 
 
 def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
@@ -141,9 +137,8 @@ def find_rst_files(source_paths: List[str]) -> Generator[str, None, None]:
 
     Yields
     -------
-    directory_address : str
+    str
         Directory address of a .rst files found in command line argument directories.
-
     """
 
     for directory_address in source_paths:
@@ -173,9 +168,8 @@ def main(source_paths: List[str], output_format: str) -> bool:
 
     Returns
     -------
-    number_of_errors : int
+    int
         Number of incorrect headings found overall.
-
     """
 
     number_of_errors: int = 0
