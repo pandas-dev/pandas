@@ -50,6 +50,8 @@ class HistPlot(LinePlot):
         **kwds,
     ):
 
+        y = y[~isna(y)]
+
         # if bins is a string (e.g. "auto"), get actual bins
         # so that it can be used in creating stackers below
         _, bins = np.histogram(
@@ -61,7 +63,6 @@ class HistPlot(LinePlot):
 
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~isna(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + cls._get_stacked_values(ax, stacking_id, base, kwds["label"])
