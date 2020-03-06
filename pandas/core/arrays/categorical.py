@@ -103,7 +103,10 @@ def _cat_compare_op(op):
             mask = (self._codes == -1) | (other_codes == -1)
             if mask.any():
                 # In other series, the leads to False, so do that here too
-                ret[mask] = False
+                if opname == "__ne__":
+                    ret[(self._codes == -1) & (other_codes == -1)] = True
+                else:
+                    ret[mask] = False
             return ret
 
         if is_scalar(other):
