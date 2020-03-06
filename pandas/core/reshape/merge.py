@@ -320,10 +320,10 @@ def merge_asof(
     direction: str = "backward",
 ) -> "DataFrame":
     """
-    Perform an asof merge. This is similar to a left-join except that we
-    match on nearest key rather than equal keys.
+    Perform an asof merge.
 
-    Both DataFrames must be sorted by the key.
+    This is similar to a left-join except that we match on nearest
+    key rather than equal keys. Both DataFrames must be sorted by the key.
 
     For each row in the left DataFrame:
 
@@ -1312,7 +1312,12 @@ def _get_join_indexers(
     kwargs = copy.copy(kwargs)
     if how == "left":
         kwargs["sort"] = sort
-    join_func = _join_functions[how]
+    join_func = {
+        "inner": libjoin.inner_join,
+        "left": libjoin.left_outer_join,
+        "right": _right_outer_join,
+        "outer": libjoin.full_outer_join,
+    }[how]
 
     return join_func(lkey, rkey, count, **kwargs)
 
@@ -1842,14 +1847,6 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 
-_join_functions = {
-    "inner": libjoin.inner_join,
-    "left": libjoin.left_outer_join,
-    "right": _right_outer_join,
-    "outer": libjoin.full_outer_join,
-}
-
-
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
@@ -1923,9 +1920,6 @@ def _factorize_keys(lk, rk, sort=True):
 
 
 def _sort_labels(uniques: np.ndarray, left, right):
-    if not isinstance(uniques, np.ndarray):
-        # tuplesafe
-        uniques = Index(uniques).values
 
     llength = len(left)
     labels = np.concatenate([left, right])

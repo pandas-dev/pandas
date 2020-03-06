@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime, timedelta
 from io import StringIO
 import sys
@@ -11,6 +12,7 @@ from pandas.compat import PYPY
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_object_dtype,
@@ -24,11 +26,9 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
-    PeriodIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
-    Timestamp,
 )
 import pandas._testing as tm
 
@@ -205,176 +205,152 @@ class TestIndexOps(Ops):
         assert Index([1]).item() == 1
         assert Series([1]).item() == 1
 
-    def test_value_counts_unique_nunique(self, index_or_series_obj):
-        orig = index_or_series_obj
-        obj = orig.copy()
-        klass = type(obj)
-        values = obj._values
-
-        if orig.duplicated().any():
-            pytest.xfail(
-                "The test implementation isn't flexible enough to deal "
-                "with duplicated values. This isn't a bug in the "
-                "application code, but in the test code."
-            )
-
-        # create repeated values, 'n'th element is repeated by n+1 times
-        if isinstance(obj, Index):
-            expected_index = Index(obj[::-1])
-            expected_index.name = None
-            obj = obj.repeat(range(1, len(obj) + 1))
-        else:
-            expected_index = Index(values[::-1])
-            idx = obj.index.repeat(range(1, len(obj) + 1))
-            # take-based repeat
-            indices = np.repeat(np.arange(len(obj)), range(1, len(obj) + 1))
-            rep = values.take(indices)
-            obj = klass(rep, index=idx)
-
-        # check values has the same dtype as the original
-        assert obj.dtype == orig.dtype
-
-        expected_s = Series(
-            range(len(orig), 0, -1), index=expected_index, dtype="int64"
-        )
-
-        result = obj.value_counts()
-        tm.assert_series_equal(result, expected_s)
-        assert result.index.name is None
-
+    def test_unique(self, index_or_series_obj):
+        obj = index_or_series_obj
+        obj = np.repeat(obj, range(1, len(obj) + 1))
         result = obj.unique()
-        if isinstance(obj, Index):
-            assert isinstance(result, type(obj))
-            tm.assert_index_equal(result, orig)
-            assert result.dtype == orig.dtype
-        elif is_datetime64tz_dtype(obj):
-            # datetimetz Series returns array of Timestamp
-            assert result[0] == orig[0]
-            for r in result:
-                assert isinstance(r, Timestamp)
 
-            tm.assert_numpy_array_equal(
-                result.astype(object), orig._values.astype(object)
-            )
+        # dict.fromkeys preserves the order
+        unique_values = list(dict.fromkeys(obj.values))
+        if isinstance(obj, pd.MultiIndex):
+            expected = pd.MultiIndex.from_tuples(unique_values)
+            expected.names = obj.names
+            tm.assert_index_equal(result, expected)
+        elif isinstance(obj, pd.Index):
+            expected = pd.Index(unique_values, dtype=obj.dtype)
+            if is_datetime64tz_dtype(obj):
+                expected = expected.normalize()
+            tm.assert_index_equal(result, expected)
         else:
-            tm.assert_numpy_array_equal(result, orig.values)
-            assert result.dtype == orig.dtype
-
-        # dropna=True would break for MultiIndex
-        assert obj.nunique(dropna=False) == len(np.unique(obj.values))
+            expected = np.array(unique_values)
+            tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
-    def test_value_counts_unique_nunique_null(self, null_obj, index_or_series_obj):
-        orig = index_or_series_obj
-        obj = orig.copy()
-        klass = type(obj)
-        values = obj._ndarray_values
-        num_values = len(orig)
+    def test_unique_null(self, null_obj, index_or_series_obj):
+        obj = index_or_series_obj
 
         if not allow_na_ops(obj):
             pytest.skip("type doesn't allow for NA operations")
-        elif isinstance(orig, (pd.CategoricalIndex, pd.IntervalIndex)):
-            pytest.skip(f"values of {klass} cannot be changed")
-        elif isinstance(orig, pd.MultiIndex):
-            pytest.skip("MultiIndex doesn't support isna")
-        elif orig.duplicated().any():
-            pytest.xfail(
-                "The test implementation isn't flexible enough to deal "
-                "with duplicated values. This isn't a bug in the "
-                "application code, but in the test code."
-            )
+        elif len(obj) < 1:
+            pytest.skip("Test doesn't make sense on empty data")
+        elif isinstance(obj, pd.MultiIndex):
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-        # special assign to the numpy array
-        if is_datetime64tz_dtype(obj):
-            if isinstance(obj, DatetimeIndex):
-                v = obj.asi8
-                v[0:2] = iNaT
-                values = obj._shallow_copy(v)
-            else:
-                obj = obj.copy()
-                obj[0:2] = pd.NaT
-                values = obj._values
-
-        elif needs_i8_conversion(obj):
+        values = obj.values
+        if needs_i8_conversion(obj):
             values[0:2] = iNaT
-            values = obj._shallow_copy(values)
         else:
             values[0:2] = null_obj
 
-        # check values has the same dtype as the original
-        assert values.dtype == obj.dtype
-
-        # create repeated values, 'n'th element is repeated by n+1
-        # times
-        if isinstance(obj, (DatetimeIndex, PeriodIndex)):
-            expected_index = obj.copy()
-            expected_index.name = None
-
-            # attach name to klass
-            obj = klass(values.repeat(range(1, len(obj) + 1)))
-            obj.name = "a"
-        else:
-            if isinstance(obj, DatetimeIndex):
-                expected_index = orig._values._shallow_copy(values)
-            else:
-                expected_index = Index(values)
-            expected_index.name = None
-            obj = obj.repeat(range(1, len(obj) + 1))
-            obj.name = "a"
-
-        # check values has the same dtype as the original
-        assert obj.dtype == orig.dtype
-
-        # check values correctly have NaN
-        nanloc = np.zeros(len(obj), dtype=np.bool)
-        nanloc[:3] = True
-        if isinstance(obj, Index):
-            tm.assert_numpy_array_equal(pd.isna(obj), nanloc)
-        else:
-            exp = Series(nanloc, obj.index, name="a")
-            tm.assert_series_equal(pd.isna(obj), exp)
-
-        expected_data = list(range(num_values, 2, -1))
-        expected_data_na = expected_data.copy()
-        if expected_data_na:
-            expected_data_na.append(3)
-        expected_s_na = Series(
-            expected_data_na,
-            index=expected_index[num_values - 1 : 0 : -1],
-            dtype="int64",
-            name="a",
-        )
-        expected_s = Series(
-            expected_data,
-            index=expected_index[num_values - 1 : 1 : -1],
-            dtype="int64",
-            name="a",
-        )
-
-        result_s_na = obj.value_counts(dropna=False)
-        tm.assert_series_equal(result_s_na, expected_s_na)
-        assert result_s_na.index.name is None
-        assert result_s_na.name == "a"
-        result_s = obj.value_counts()
-        tm.assert_series_equal(obj.value_counts(), expected_s)
-        assert result_s.index.name is None
-        assert result_s.name == "a"
-
+        klass = type(obj)
+        repeated_values = np.repeat(values, range(1, len(values) + 1))
+        obj = klass(repeated_values, dtype=obj.dtype)
         result = obj.unique()
-        if isinstance(obj, Index):
-            tm.assert_index_equal(result, Index(values[1:], name="a"))
-        elif is_datetime64tz_dtype(obj):
-            # unable to compare NaT / nan
-            tm.assert_extension_array_equal(result[1:], values[2:])
-            assert result[0] is pd.NaT
-        elif len(obj) > 0:
-            tm.assert_numpy_array_equal(result[1:], values[2:])
 
-            assert pd.isna(result[0])
-            assert result.dtype == orig.dtype
+        unique_values_raw = dict.fromkeys(obj.values)
+        # because np.nan == np.nan is False, but None == None is True
+        # np.nan would be duplicated, whereas None wouldn't
+        unique_values_not_null = [
+            val for val in unique_values_raw if not pd.isnull(val)
+        ]
+        unique_values = [null_obj] + unique_values_not_null
 
-        assert obj.nunique() == max(0, num_values - 2)
-        assert obj.nunique(dropna=False) == max(0, num_values - 1)
+        if isinstance(obj, pd.Index):
+            expected = pd.Index(unique_values, dtype=obj.dtype)
+            if is_datetime64tz_dtype(obj):
+                result = result.normalize()
+                expected = expected.normalize()
+            elif isinstance(obj, pd.CategoricalIndex):
+                expected = expected.set_categories(unique_values_not_null)
+            tm.assert_index_equal(result, expected)
+        else:
+            expected = np.array(unique_values, dtype=obj.dtype)
+            tm.assert_numpy_array_equal(result, expected)
+
+    def test_nunique(self, index_or_series_obj):
+        obj = index_or_series_obj
+        obj = np.repeat(obj, range(1, len(obj) + 1))
+        expected = len(obj.unique())
+        assert obj.nunique(dropna=False) == expected
+
+    @pytest.mark.parametrize("null_obj", [np.nan, None])
+    def test_nunique_null(self, null_obj, index_or_series_obj):
+        obj = index_or_series_obj
+
+        if not allow_na_ops(obj):
+            pytest.skip("type doesn't allow for NA operations")
+        elif isinstance(obj, pd.MultiIndex):
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
+
+        values = obj.values
+        if needs_i8_conversion(obj):
+            values[0:2] = iNaT
+        else:
+            values[0:2] = null_obj
+
+        klass = type(obj)
+        repeated_values = np.repeat(values, range(1, len(values) + 1))
+        obj = klass(repeated_values, dtype=obj.dtype)
+
+        if isinstance(obj, pd.CategoricalIndex):
+            assert obj.nunique() == len(obj.categories)
+            assert obj.nunique(dropna=False) == len(obj.categories) + 1
+        else:
+            num_unique_values = len(obj.unique())
+            assert obj.nunique() == max(0, num_unique_values - 1)
+            assert obj.nunique(dropna=False) == max(0, num_unique_values)
+
+    def test_value_counts(self, index_or_series_obj):
+        obj = index_or_series_obj
+        obj = np.repeat(obj, range(1, len(obj) + 1))
+        result = obj.value_counts()
+
+        counter = collections.Counter(obj)
+        expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
+        expected.index = expected.index.astype(obj.dtype)
+        if isinstance(obj, pd.MultiIndex):
+            expected.index = pd.Index(expected.index)
+
+        # sort_index to avoid switched order when values share the same count
+        result = result.sort_index()
+        expected = expected.sort_index()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("null_obj", [np.nan, None])
+    def test_value_counts_null(self, null_obj, index_or_series_obj):
+        orig = index_or_series_obj
+        obj = orig.copy()
+
+        if not allow_na_ops(obj):
+            pytest.skip("type doesn't allow for NA operations")
+        elif len(obj) < 1:
+            pytest.skip("Test doesn't make sense on empty data")
+        elif isinstance(orig, pd.MultiIndex):
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
+
+        values = obj.values
+        if needs_i8_conversion(obj):
+            values[0:2] = iNaT
+        else:
+            values[0:2] = null_obj
+
+        klass = type(obj)
+        repeated_values = np.repeat(values, range(1, len(values) + 1))
+        obj = klass(repeated_values, dtype=obj.dtype)
+
+        # because np.nan == np.nan is False, but None == None is True
+        # np.nan would be duplicated, whereas None wouldn't
+        counter = collections.Counter(obj.dropna())
+        expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
+        expected.index = expected.index.astype(obj.dtype)
+
+        tm.assert_series_equal(obj.value_counts(), expected)
+
+        # can't use expected[null_obj] = 3 as
+        # IntervalIndex doesn't allow assignment
+        new_entry = pd.Series({np.nan: 3}, dtype=np.int64)
+        expected = expected.append(new_entry)
+        tm.assert_series_equal(obj.value_counts(dropna=False), expected)
 
     def test_value_counts_inferred(self, index_or_series):
         klass = index_or_series
@@ -797,62 +773,83 @@ class TestIndexOps(Ops):
                 assert o is not result
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
-    def test_memory_usage(self):
-        for o in self.objs:
-            res = o.memory_usage()
-            res_deep = o.memory_usage(deep=True)
+    def test_memory_usage(self, index_or_series_obj):
+        obj = index_or_series_obj
+        res = obj.memory_usage()
+        res_deep = obj.memory_usage(deep=True)
 
-            if is_object_dtype(o) or (
-                isinstance(o, Series) and is_object_dtype(o.index)
-            ):
-                # if there are objects, only deep will pick them up
-                assert res_deep > res
-            else:
-                assert res == res_deep
+        is_object = is_object_dtype(obj) or (
+            isinstance(obj, Series) and is_object_dtype(obj.index)
+        )
+        is_categorical = is_categorical_dtype(obj) or (
+            isinstance(obj, Series) and is_categorical_dtype(obj.index)
+        )
 
-            if isinstance(o, Series):
-                assert (
-                    o.memory_usage(index=False) + o.index.memory_usage()
-                ) == o.memory_usage(index=True)
+        if len(obj) == 0:
+            assert res_deep == res == 0
+        elif is_object or is_categorical:
+            # only deep will pick them up
+            assert res_deep > res
+        else:
+            assert res == res_deep
 
-            # sys.getsizeof will call the .memory_usage with
-            # deep=True, and add on some GC overhead
-            diff = res_deep - sys.getsizeof(o)
-            assert abs(diff) < 100
+        # sys.getsizeof will call the .memory_usage with
+        # deep=True, and add on some GC overhead
+        diff = res_deep - sys.getsizeof(obj)
+        assert abs(diff) < 100
 
-    def test_searchsorted(self):
+    def test_memory_usage_components_series(self, series_with_simple_index):
+        series = series_with_simple_index
+        total_usage = series.memory_usage(index=True)
+        non_index_usage = series.memory_usage(index=False)
+        index_usage = series.index.memory_usage()
+        assert total_usage == non_index_usage + index_usage
+
+    def test_memory_usage_components_narrow_series(self, narrow_series):
+        series = narrow_series
+        total_usage = series.memory_usage(index=True)
+        non_index_usage = series.memory_usage(index=False)
+        index_usage = series.index.memory_usage()
+        assert total_usage == non_index_usage + index_usage
+
+    def test_searchsorted(self, index_or_series_obj):
+        # numpy.searchsorted calls obj.searchsorted under the hood.
         # See gh-12238
-        for o in self.objs:
-            index = np.searchsorted(o, max(o))
-            assert 0 <= index <= len(o)
+        obj = index_or_series_obj
 
-            index = np.searchsorted(o, max(o), sorter=range(len(o)))
-            assert 0 <= index <= len(o)
+        if isinstance(obj, pd.MultiIndex):
+            # See gh-14833
+            pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
 
-    def test_validate_bool_args(self):
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
+        max_obj = max(obj, default=0)
+        index = np.searchsorted(obj, max_obj)
+        assert 0 <= index <= len(obj)
 
-        for value in invalid_values:
-            msg = "expected type bool"
-            with pytest.raises(ValueError, match=msg):
-                self.int_series.drop_duplicates(inplace=value)
+        index = np.searchsorted(obj, max_obj, sorter=range(len(obj)))
+        assert 0 <= index <= len(obj)
 
-    def test_getitem(self):
-        for i in self.indexes:
-            s = pd.Series(i)
+    def test_access_by_position(self, indices):
+        index = indices
 
-            assert i[0] == s.iloc[0]
-            assert i[5] == s.iloc[5]
-            assert i[-1] == s.iloc[-1]
+        if len(index) == 0:
+            pytest.skip("Test doesn't make sense on empty data")
+        elif isinstance(index, pd.MultiIndex):
+            pytest.skip("Can't instantiate Series from MultiIndex")
 
-            assert i[-1] == i[9]
+        series = pd.Series(index)
+        assert index[0] == series.iloc[0]
+        assert index[5] == series.iloc[5]
+        assert index[-1] == series.iloc[-1]
 
-            msg = "index 20 is out of bounds for axis 0 with size 10"
-            with pytest.raises(IndexError, match=msg):
-                i[20]
-            msg = "single positional indexer is out-of-bounds"
-            with pytest.raises(IndexError, match=msg):
-                s.iloc[20]
+        size = len(index)
+        assert index[-1] == index[size - 1]
+
+        msg = f"index {size} is out of bounds for axis 0 with size {size}"
+        with pytest.raises(IndexError, match=msg):
+            index[size]
+        msg = "single positional indexer is out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
+            series.iloc[size]
 
     @pytest.mark.parametrize("indexer_klass", [list, pd.Index])
     @pytest.mark.parametrize(

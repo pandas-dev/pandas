@@ -64,7 +64,6 @@ class TestJoin:
         assert isinstance(result, DatetimeIndex)
         assert result.tz.zone == "UTC"
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_datetimeindex_union_join_empty(self, sort):
         dti = date_range(start="1/1/2001", end="2/1/2001", freq="D")
         empty = Index([])
