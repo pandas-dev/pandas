@@ -1419,7 +1419,7 @@ class DataFrame(NDFrame):
                     ),
                 )
             )
-            
+
         elif orient == "series":
             return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
 
@@ -1433,6 +1433,7 @@ class DataFrame(NDFrame):
                 into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
+
         elif orient == "index":
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
@@ -1440,6 +1441,7 @@ class DataFrame(NDFrame):
                 (t[0], dict(zip(self.columns, t[1:])))
                 for t in self.itertuples(name=None)
             )
+            
         else:
             raise ValueError(f"orient '{orient}' not understood")
 
