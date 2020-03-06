@@ -3136,11 +3136,10 @@ class MultiIndex(Index):
         if not isinstance(other, MultiIndex):
             # d-level MultiIndex can equal d-tuple Index
             if not is_object_dtype(other.dtype):
-                if self.nlevels != other.nlevels:
-                    return False
+                # other cannot contain tuples, so cannot match self
+                return False
 
-            other_vals = com.values_from_object(ensure_index(other))
-            return array_equivalent(self._ndarray_values, other_vals)
+            return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:
             return False
