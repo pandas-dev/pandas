@@ -1001,7 +1001,7 @@ def test_loc_setitem_series_datetime64tz_with_index():
     s1 = pd.Series(
         pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
     )
-    s2 = pd.Series(index=s1.index)
+    s2 = pd.Series(index=s1.index, dtype=np.object, name="data")
     s2.loc[s1.index] = s1
     tm.assert_numpy_array_equal(np.array(s1), np.array(s2))
     assert s2.dtype == np.object
@@ -1011,7 +1011,7 @@ def test_loc_setitem_series_datetime64tz_without_index():
     s1 = pd.Series(
         pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
     )
-    s2 = pd.Series(index=s1.index)
+    s2 = pd.Series(index=s1.index, dtype=np.object, name="data")
     s2.loc[:] = s1
     tm.assert_numpy_array_equal(np.array(s1), np.array(s2))
     assert s2.dtype == np.object
