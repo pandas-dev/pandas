@@ -279,3 +279,16 @@ class TestSeriesConvertDtypes:
         )
         result = df.convert_dtypes()
         tm.assert_frame_equal(df, result)
+
+    def test_convert_bool_dtype(self):
+        # GH32287
+        df = pd.DataFrame([["abc", 123, True]])
+        exp_dtypes = pd.Series([np.object, np.int64, np.bool])
+        tm.assert_series_equal(df.dtypes, exp_dtypes)
+
+        df_1 = df.convert_dtypes()
+        exp_dtypes_1 = pd.Series([pd.StringDtype(), pd.Int64Dtype(), pd.BooleanDtype()])
+        tm.assert_series_equal(df_1.dtypes, exp_dtypes_1)
+
+        df_2 = df_1.convert_dtypes()
+        tm.assert_series_equal(df_2.dtypes, exp_dtypes_1)

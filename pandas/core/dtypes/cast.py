@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 
 import numpy as np
 
+import pandas as pd
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import (
     NaT,
@@ -1078,8 +1079,9 @@ def convert_dtypes(
                 inferred_dtype = input_array.dtype
 
         if convert_boolean:
-            if is_bool_dtype(input_array.dtype) and not is_extension_array_dtype(
-                input_array.dtype
+            if is_bool_dtype(input_array.dtype) and (
+                (not is_extension_array_dtype(input_array.dtype))
+                or (input_array.dtype == pd.BooleanDtype())
             ):
                 inferred_dtype = "boolean"
         else:
