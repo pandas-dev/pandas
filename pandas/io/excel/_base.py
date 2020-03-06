@@ -1,5 +1,5 @@
 import abc
-from datetime import date, datetime, timedelta
+import datetime
 from io import BytesIO
 import os
 from textwrap import fill
@@ -28,7 +28,6 @@ from pandas.io.excel._util import (
     _pop_header_name,
     get_writer,
 )
-from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
 _read_excel_doc = (
@@ -742,11 +741,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             val = float(val)
         elif is_bool(val):
             val = bool(val)
-        elif isinstance(val, datetime):
+        elif isinstance(val, datetime.datetime):
             fmt = self.datetime_format
-        elif isinstance(val, date):
+        elif isinstance(val, datetime.date):
             fmt = self.date_format
-        elif isinstance(val, timedelta):
+        elif isinstance(val, datetime.timedelta):
             val = val.total_seconds() / float(86400)
             fmt = "0"
         else:
@@ -763,9 +762,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         if ext.startswith("."):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = "Invalid extension for engine"
-            f"'{pprint_thing(cls.engine)}': '{pprint_thing(ext)}'"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
         else:
             return True
 
