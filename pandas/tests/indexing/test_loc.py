@@ -1,4 +1,5 @@
 """ test label based indexing with loc """
+from datetime import timezone
 from io import StringIO
 import re
 
@@ -975,3 +976,42 @@ def test_loc_mixed_int_float():
 
     result = ser.loc[1]
     assert result == 0
+
+
+def test_loc_setitem_df_datetime64tz_column_with_index():
+    df = pd.DataFrame(
+        pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), columns=["data"]
+    )
+    df2 = pd.DataFrame(index=df.index)
+    df2.loc[df.index, "data"] = df["data"]
+    tm.assert_numpy_array_equal(np.array(df.data), np.array(df2.data))
+    assert df2.data.dtype == np.object
+
+
+def test_loc_setitem_df_datetime64tz_column_without_index():
+    df = pd.DataFrame(
+        pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), columns=["data"]
+    )
+    df2 = pd.DataFrame(index=df.index)
+    df2.loc[:, "data"] = df["data"]
+    tm.assert_series_equal(df.data, df2.data)
+
+
+def test_loc_setitem_series_datetime64tz_with_index():
+    s1 = pd.Series(
+        pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
+    )
+    s2 = pd.Series(index=s1.index)
+    s2.loc[s1.index] = s1
+    tm.assert_numpy_array_equal(np.array(s1), np.array(s2))
+    assert s2.dtype == np.object
+
+
+def test_loc_setitem_series_datetime64tz_without_index():
+    s1 = pd.Series(
+        pd.date_range("2020-01-01", "2020-01-06", 6, tz=timezone.utc), name="data"
+    )
+    s2 = pd.Series(index=s1.index)
+    s2.loc[:] = s1
+    tm.assert_numpy_array_equal(np.array(s1), np.array(s2))
+    assert s2.dtype == np.object

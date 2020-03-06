@@ -839,7 +839,7 @@ class Block(PandasObject):
 
         # coerce if block dtype can store value
         values = self.values
-        if is_object_dtype(values) and isinstance(value, DatetimeArray):
+        if is_object_dtype(values.dtype) and isinstance(value, DatetimeArray):
             value = value.astype(object)
 
         if self._can_hold_element(value):
