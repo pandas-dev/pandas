@@ -375,7 +375,7 @@ class TestEvalNumexprPandas:
             and is_scalar(rhs)
             and _is_py3_complex_incompat(result, expected)
         ):
-            msg = 'DataFrame.columns are different'
+            msg = "DataFrame.columns are different"
             with pytest.raises(AssertionError, match=msg):
                 tm.assert_numpy_array_equal(result, expected)
         else:
@@ -478,7 +478,7 @@ class TestEvalNumexprPandas:
         # object raises
         lhs = DataFrame({"b": ["a", 1, 2.0], "c": rand(3) > 0.5})
         if self.engine == "numexpr":
-            with pytest.raises(ValueError, match='unknown type object'):
+            with pytest.raises(ValueError, match="unknown type object"):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             msg = "bad operand type for unary ~: 'str'"
@@ -525,7 +525,7 @@ class TestEvalNumexprPandas:
         # object
         lhs = Series(["a", 1, 2.0])
         if self.engine == "numexpr":
-            with pytest.raises(ValueError, match='unknown type object'):
+            with pytest.raises(ValueError, match="unknown type object"):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             msg = "bad operand type for unary ~: 'str'"
@@ -1197,7 +1197,7 @@ class TestOperationsNumExprPandas:
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
         y = Series(randn(10))
-        msg = 'N-dimensional objects, where N > 2, are not supported with eval'
+        msg = "N-dimensional objects, where N > 2, are not supported with eval"
         with pytest.raises(NotImplementedError, match=msg):
             self.eval("x + y", local_dict={"x": x, "y": y})
 
@@ -1394,7 +1394,7 @@ class TestOperationsNumExprPandas:
         assert ans is None
 
         # multi-line not valid if not all assignments
-        msg = 'Multi-line expressions are only valid if all expressions contain'
+        msg = "Multi-line expressions are only valid if all expressions contain"
         with pytest.raises(ValueError, match=msg):
             df.eval(
                 """
@@ -1490,7 +1490,7 @@ class TestOperationsNumExprPandas:
         # GH 8664
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
-        msg = 'cannot assign without a target object'
+        msg = "cannot assign without a target object"
         with pytest.raises(ValueError, match=msg):
             df.query("a = 1")
         tm.assert_frame_equal(df, df_orig)
@@ -1683,14 +1683,14 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
     def test_fails_ampersand(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = "(df + 2)[df > 1] > 0 & (df > 0)"
-        msg = 'cannot evaluate scalar only bool ops'
+        msg = "cannot evaluate scalar only bool ops"
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_fails_pipe(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = "(df + 2)[df > 1] > 0 | (df > 0)"
-        msg = 'cannot evaluate scalar only bool ops'
+        msg = "cannot evaluate scalar only bool ops"
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
@@ -1932,7 +1932,7 @@ def test_disallowed_nodes(engine, parser):
 
 def test_syntax_error_exprs(engine, parser):
     e = "s +"
-    with pytest.raises(SyntaxError, match='invalid syntax'):
+    with pytest.raises(SyntaxError, match="invalid syntax"):
         pd.eval(e, engine=engine, parser=parser)
 
 
