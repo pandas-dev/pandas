@@ -33,6 +33,8 @@ from pandas.tseries.offsets import (
     YearEnd,
 )
 
+DATEUTIL_VERSION = dateutil.__version__  # type: ignore
+
 # ----------------------------------------------------------------
 # Helpers for generating random data
 
@@ -87,7 +89,7 @@ gen_yqm_offset = st.one_of(
 
 
 @pytest.mark.skipif(
-    dateutil.__version__ < "2.7",
+    DATEUTIL_VERSION < "2.7",
     reason="hypothesis uses dateutil.tz.UTC which was intreduced in dateutils 2.7.0",
 )
 @given(gen_random_datetime, gen_yqm_offset)
@@ -101,7 +103,7 @@ def test_on_offset_implementations(dt, offset):
 
 
 @pytest.mark.skipif(
-    dateutil.__version__ < "2.7",
+    DATEUTIL_VERSION < "2.7",
     reason="hypothesis uses dateutil.tz.UTC which was intreduced in dateutils 2.7.0",
 )
 @given(gen_yqm_offset, gen_date_range)
