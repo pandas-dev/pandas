@@ -96,6 +96,17 @@ class TestSparseArray:
         with pytest.raises(ValueError, match="Cannot convert"):
             SparseArray([0, 1, np.nan], dtype=dtype)
 
+    def test_constructor_extension_dtype_raises(self):
+        # Cannot construct SparseArray from ExtensionDtype
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+        msg = "Cannot losslessly convert to ndarray"
+        with pytest.raises(NotImplementedError, match=msg):
+            SparseArray(dti)
+
+        with pytest.raises(NotImplementedError, match=msg):
+            SparseArray(pd.Series(dti))
+
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # XXX: Behavior change: specifying SparseIndex no longer changes the
