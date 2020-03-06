@@ -173,6 +173,11 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(df.hist, bins="auto")
 
+        tm.assert_equal(
+            df[0].hist().get_xaxis().get_majorticklocs(),
+            df[0].hist(bins="auto").get_xaxis().get_majorticklocs(),
+        )
+
         # make sure xlabelsize and xrot are handled
         ser = df[0]
         xf, yf = 20, 18
