@@ -1748,6 +1748,7 @@ class Categorical(ExtensionArray, PandasObject):
 
                 values_codes = _get_codes_for_values(value, self.categories)
                 indexer = np.where(codes == -1)
+                codes = codes.copy()
                 codes[indexer] = values_codes[indexer]
 
             # If value is not a dict or Series it should be a scalar
