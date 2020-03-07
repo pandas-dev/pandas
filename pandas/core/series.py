@@ -47,7 +47,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
-    ABCSparseArray,
 )
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -289,9 +288,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif isinstance(data, (set, frozenset)):
                 raise TypeError(f"'{type(data).__name__}' type is unordered")
-            elif isinstance(data, ABCSparseArray):
-                # handle sparse passed here (and force conversion)
-                data = data.to_dense()
             else:
                 data = com.maybe_iterable_to_list(data)
 
