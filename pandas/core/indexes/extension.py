@@ -39,7 +39,6 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     -------
     attribute, method, property, or cache_readonly
     """
-
     attr = getattr(delegate, name)
 
     if isinstance(attr, property):
@@ -224,6 +223,9 @@ class ExtensionIndex(Index):
         return self._data.__iter__()
 
     # ---------------------------------------------------------------------
+
+    def __array__(self, dtype=None) -> np.ndarray:
+        return np.asarray(self._data, dtype=dtype)
 
     @property
     def _ndarray_values(self) -> np.ndarray:

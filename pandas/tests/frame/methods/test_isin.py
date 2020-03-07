@@ -60,10 +60,14 @@ class TestDataFrameIsIn:
             },
             index=["foo", "bar", "baz", "qux"],
         )
-        with pytest.raises(TypeError):
+        msg = (
+            r"only list-like or dict-like objects are allowed "
+            r"to be passed to DataFrame.isin\(\), you passed a 'str'"
+        )
+        with pytest.raises(TypeError, match=msg):
             df.isin("a")
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             df.isin("aaa")
 
     def test_isin_df(self):
@@ -92,7 +96,8 @@ class TestDataFrameIsIn:
         df1 = DataFrame({"A": [1, 2, 3, 4], "B": [2, np.nan, 4, 4]})
         # just cols duped
         df2 = DataFrame([[0, 2], [12, 4], [2, np.nan], [4, 5]], columns=["B", "B"])
-        with pytest.raises(ValueError):
+        msg = r"cannot compute isin with a duplicate axis\."
+        with pytest.raises(ValueError, match=msg):
             df1.isin(df2)
 
         # just index duped
@@ -101,12 +106,12 @@ class TestDataFrameIsIn:
             columns=["A", "B"],
             index=[0, 0, 1, 1],
         )
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df1.isin(df2)
 
         # cols and index:
         df2.columns = ["B", "B"]
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df1.isin(df2)
 
     def test_isin_dupe_self(self):

@@ -482,7 +482,8 @@ alphanumerics and underscores, no Stata reserved words)
 
 
 def _cast_to_stata_types(data: DataFrame) -> DataFrame:
-    """Checks the dtypes of the columns of a pandas DataFrame for
+    """
+    Checks the dtypes of the columns of a pandas DataFrame for
     compatibility with the data types and ranges supported by Stata, and
     converts if necessary.
 
@@ -1160,8 +1161,8 @@ class StataReader(StataParser, abc.Iterator):
                 return typ
             try:
                 return self.TYPE_MAP_XML[typ]
-            except KeyError:
-                raise ValueError(f"cannot convert stata types [{typ}]")
+            except KeyError as err:
+                raise ValueError(f"cannot convert stata types [{typ}]") from err
 
         typlist = [f(x) for x in raw_typlist]
 
@@ -1170,8 +1171,8 @@ class StataReader(StataParser, abc.Iterator):
                 return str(typ)
             try:
                 return self.DTYPE_MAP_XML[typ]
-            except KeyError:
-                raise ValueError(f"cannot convert stata dtype [{typ}]")
+            except KeyError as err:
+                raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
         dtyplist = [g(x) for x in raw_typlist]
 
@@ -1295,14 +1296,14 @@ class StataReader(StataParser, abc.Iterator):
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        except ValueError:
+        except ValueError as err:
             invalid_types = ",".join(str(x) for x in typlist)
-            raise ValueError(f"cannot convert stata types [{invalid_types}]")
+            raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        except ValueError:
+        except ValueError as err:
             invalid_dtypes = ",".join(str(x) for x in typlist)
-            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]")
+            raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
 
         if self.format_version > 108:
             self.varlist = [
@@ -1671,17 +1672,13 @@ the string values returned are correct."""
                 continue
 
             if convert_missing:  # Replacement follows Stata notation
-                missing_loc = np.argwhere(missing._ndarray_values)
+                missing_loc = np.nonzero(np.asarray(missing))[0]
                 umissing, umissing_loc = np.unique(series[missing], return_inverse=True)
                 replacement = Series(series, dtype=np.object)
                 for j, um in enumerate(umissing):
                     missing_value = StataMissingValue(um)
 
                     loc = missing_loc[umissing_loc == j]
-                    if loc.ndim == 2 and loc.shape[1] == 1:
-                        # GH#31813 avoid trying to set Series values with wrong
-                        #  dimension
-                        loc = loc[:, 0]
                     replacement.iloc[loc] = missing_value
             else:  # All replacements are identical
                 dtype = series.dtype
@@ -1764,7 +1761,7 @@ the string values returned are correct."""
                         categories.append(category)  # Partially labeled
                 try:
                     cat_data.categories = categories
-                except ValueError:
+                except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])
                     repeats = "-" * 80 + "\n" + "\n".join(repeated_cats)
@@ -1780,7 +1777,7 @@ value_labels.
 The repeated labels are:
 {repeats}
 """
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
                 # TODO: is the next line needed above in the data(...) method?
                 cat_series = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_series))
@@ -2132,9 +2129,10 @@ class StataWriter(StataParser):
         self._file.write(value)
 
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
-        """Check for categorical columns, retain categorical information for
-        Stata file and convert categorical data to int"""
-
+        """
+        Check for categorical columns, retain categorical information for
+        Stata file and convert categorical data to int
+        """
         is_cat = [is_categorical_dtype(data[col]) for col in data]
         self._is_col_cat = is_cat
         self._value_labels: List[StataValueLabel] = []
@@ -2174,8 +2172,10 @@ class StataWriter(StataParser):
 
     def _replace_nans(self, data: DataFrame) -> DataFrame:
         # return data
-        """Checks floating point data columns for nans, and replaces these with
-        the generic Stata for missing value (.)"""
+        """
+        Checks floating point data columns for nans, and replaces these with
+        the generic Stata for missing value (.)
+        """
         for c in data:
             dtype = data[c].dtype
             if dtype in (np.float32, np.float64):
@@ -2773,7 +2773,6 @@ class StataStrLWriter:
           * 118: 6
           * 119: 5
         """
-
         gso_table = self._gso_table
         gso_df = self.df
         columns = list(gso_df.columns)
@@ -3039,9 +3038,11 @@ class StataWriter117(StataWriter):
         self._write_bytes(self._tag(bio.read(), "header"))
 
     def _write_map(self) -> None:
-        """Called twice during file write. The first populates the values in
+        """
+        Called twice during file write. The first populates the values in
         the map with 0s.  The second call writes the final map locations when
-        all blocks have been written."""
+        all blocks have been written.
+        """
         assert self._file is not None
         if not self._map:
             self._map = dict(
@@ -3142,11 +3143,11 @@ class StataWriter117(StataWriter):
                     raise ValueError("Variable labels must be 80 characters or fewer")
                 try:
                     encoded = label.encode(self._encoding)
-                except UnicodeEncodeError:
+                except UnicodeEncodeError as err:
                     raise ValueError(
                         "Variable labels must contain only characters that "
                         f"can be encoded in {self._encoding}"
-                    )
+                    ) from err
 
                 bio.write(_pad_bytes_new(encoded, vl_len + 1))
             else:
@@ -3188,8 +3189,10 @@ class StataWriter117(StataWriter):
         self._update_map("end-of-file")
 
     def _update_strl_names(self) -> None:
-        """Update column names for conversion to strl if they might have been
-        changed to comply with Stata naming rules"""
+        """
+        Update column names for conversion to strl if they might have been
+        changed to comply with Stata naming rules
+        """
         # Update convert_strl if names changed
         for orig, new in self._converted_names.items():
             if orig in self._convert_strl:
@@ -3197,8 +3200,10 @@ class StataWriter117(StataWriter):
                 self._convert_strl[idx] = new
 
     def _convert_strls(self, data: DataFrame) -> DataFrame:
-        """Convert columns to StrLs if either very large or in the
-        convert_strl variable"""
+        """
+        Convert columns to StrLs if either very large or in the
+        convert_strl variable
+        """
         convert_cols = [
             col
             for i, col in enumerate(data)

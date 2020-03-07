@@ -163,6 +163,23 @@ The commands in this table will install pandas for Python 3 from your distributi
 to get the newest version of pandas, it's recommended to install using the ``pip`` or ``conda``
 methods described above.
 
+Handling ImportErrors
+~~~~~~~~~~~~~~~~~~~~~~
+
+If you encounter an ImportError, it usually means that Python couldn't find pandas in the list of available
+libraries. Python internally has a list of directories it searches through, to find packages. You can
+obtain these directories with::
+
+            import sys
+            sys.path
+
+One way you could be encountering this error is if you have multiple Python installations on your system
+and you don't have pandas installed in the Python installation you're currently using.
+In Linux/Mac you can run ``which python`` on your terminal and it will tell you which Python installation you're
+using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
+
+It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
+You can find simple installation instructions for pandas in this document: `installation instructions </getting_started.html>`.
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~

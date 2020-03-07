@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
@@ -74,7 +73,7 @@ class disallow:
                 # e.g. this is normally a disallowed function on
                 # object arrays that contain strings
                 if is_object_dtype(args[0]):
-                    raise TypeError(e)
+                    raise TypeError(e) from e
                 raise
 
         return _f
@@ -224,7 +223,6 @@ def _maybe_get_mask(
     -------
     Optional[np.ndarray]
     """
-
     if mask is None:
         if is_bool_dtype(values.dtype) or is_integer_dtype(values.dtype):
             # Boolean data cannot contain nulls, so signal via mask being None
@@ -279,7 +277,6 @@ def _get_values(
     fill_value : Any
         fill value used
     """
-
     # In _get_values is only called from within nanops, and in all cases
     #  with scalar fill_value.  This guarantee is important for the
     #  maybe_upcast_putmask call below
@@ -338,7 +335,6 @@ def _na_ok_dtype(dtype) -> bool:
 
 def _wrap_results(result, dtype: Dtype, fill_value=None):
     """ wrap our results if needed """
-
     if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if fill_value is None:
             # GH#24293
@@ -519,7 +515,6 @@ def nansum(
     return _wrap_results(the_sum, dtype)
 
 
-@disallow("M8", DatetimeTZDtype)
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -577,7 +572,6 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     return _wrap_results(the_mean, dtype)
 
 
-@disallow("M8")
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True, mask=None):
     """
@@ -610,8 +604,12 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
         return np.nanmedian(x[mask])
 
     values, mask, dtype, dtype_max, _ = _get_values(values, skipna, mask=mask)
-    if not is_float_dtype(values):
-        values = values.astype("f8")
+    if not is_float_dtype(values.dtype):
+        try:
+            values = values.astype("f8")
+        except ValueError as err:
+            # e.g. "could not convert string to float: 'a'"
+            raise TypeError from err
         if mask is not None:
             values[mask] = np.nan
 
@@ -654,7 +652,8 @@ def _get_counts_nanvar(
     ddof: int,
     dtype: Dtype = float,
 ) -> Tuple[Union[int, np.ndarray], Union[int, np.ndarray]]:
-    """ Get the count of non-null values along an axis, accounting
+    """
+    Get the count of non-null values along an axis, accounting
     for degrees of freedom.
 
     Parameters
@@ -833,7 +832,6 @@ def nansem(
     >>> nanops.nansem(s)
      0.5773502691896258
     """
-
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
     nanvar(values, axis, skipna, ddof=ddof, mask=mask)
@@ -959,7 +957,8 @@ def nanskew(
     skipna: bool = True,
     mask: Optional[np.ndarray] = None,
 ) -> float:
-    """ Compute the sample skewness.
+    """
+    Compute the sample skewness.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
     moment coefficient G1. The algorithm computes this coefficient directly
@@ -982,7 +981,7 @@ def nanskew(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 2])
+    >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
@@ -1066,7 +1065,7 @@ def nankurt(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 3, 2])
+    >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
@@ -1197,7 +1196,8 @@ def _get_counts(
     axis: Optional[int],
     dtype: Dtype = float,
 ) -> Union[int, np.ndarray]:
-    """ Get the count of non-null values along an axis
+    """
+    Get the count of non-null values along an axis
 
     Parameters
     ----------
@@ -1359,7 +1359,11 @@ def _ensure_numeric(x):
             try:
                 x = x.astype(np.complex128)
             except (TypeError, ValueError):
-                x = x.astype(np.float64)
+                try:
+                    x = x.astype(np.float64)
+                except ValueError as err:
+                    # GH#29941 we get here with object arrays containing strs
+                    raise TypeError(f"Could not convert {x} to numeric") from err
             else:
                 if not np.any(np.imag(x)):
                     x = x.real
@@ -1370,9 +1374,9 @@ def _ensure_numeric(x):
             # e.g. "1+1j" or "foo"
             try:
                 x = complex(x)
-            except ValueError:
+            except ValueError as err:
                 # e.g. "foo"
-                raise TypeError(f"Could not convert {x} to numeric")
+                raise TypeError(f"Could not convert {x} to numeric") from err
     return x
 
 

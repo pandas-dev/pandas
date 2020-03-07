@@ -364,14 +364,14 @@ class TestDataFrameBlockInternals:
     def test_consolidate_datetime64(self):
         # numpy vstack bug
 
-        data = """\
-starting,ending,measure
-2012-06-21 00:00,2012-06-23 07:00,77
-2012-06-23 07:00,2012-06-23 16:30,65
-2012-06-23 16:30,2012-06-25 08:00,77
-2012-06-25 08:00,2012-06-26 12:00,0
-2012-06-26 12:00,2012-06-27 08:00,77
-"""
+        data = (
+            "starting,ending,measure\n"
+            "2012-06-21 00:00,2012-06-23 07:00,77\n"
+            "2012-06-23 07:00,2012-06-23 16:30,65\n"
+            "2012-06-23 16:30,2012-06-25 08:00,77\n"
+            "2012-06-25 08:00,2012-06-26 12:00,0\n"
+            "2012-06-26 12:00,2012-06-27 08:00,77\n"
+        )
         df = pd.read_csv(StringIO(data), parse_dates=[0, 1])
 
         ser_starting = df.starting
@@ -397,9 +397,6 @@ starting,ending,measure
         assert float_string_frame._is_mixed_type
 
     def test_get_numeric_data(self):
-        # TODO(wesm): unused?
-        intname = np.dtype(np.int_).name  # noqa
-        floatname = np.dtype(np.float_).name  # noqa
 
         datetime64name = np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
@@ -581,6 +578,7 @@ starting,ending,measure
         tm.assert_index_equal(df._get_numeric_data().columns, pd.Index(["a", "b", "e"]))
 
     def test_strange_column_corruption_issue(self):
+        # FIXME: dont leave commented-out
         # (wesm) Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan

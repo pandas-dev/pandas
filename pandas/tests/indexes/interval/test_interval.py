@@ -845,7 +845,7 @@ class TestIntervalIndex:
     def test_set_closed_errors(self, bad_closed):
         # GH 21670
         index = interval_range(0, 5)
-        msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
+        msg = f"invalid option for 'closed': {bad_closed}"
         with pytest.raises(ValueError, match=msg):
             index.set_closed(bad_closed)
 

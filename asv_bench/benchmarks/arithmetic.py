@@ -1,14 +1,23 @@
 import operator
+import warnings
 
 import numpy as np
 
-from pandas import DataFrame, Series, date_range
+import pandas as pd
+from pandas import DataFrame, Series, Timestamp, date_range, to_timedelta
+import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
+
+from .pandas_vb_common import numeric_dtypes
 
 try:
     import pandas.core.computation.expressions as expr
 except ImportError:
     import pandas.computation.expressions as expr
+try:
+    import pandas.tseries.holiday
+except ImportError:
+    pass
 
 
 class IntFrameWithScalar:
@@ -151,6 +160,110 @@ class Timeseries:
         self.s - self.s.shift()
 
 
+class IrregularOps:
+    def setup(self):
+        N = 10 ** 5
+        idx = date_range(start="1/1/2000", periods=N, freq="s")
+        s = Series(np.random.randn(N), index=idx)
+        self.left = s.sample(frac=1)
+        self.right = s.sample(frac=1)
+
+    def time_add(self):
+        self.left + self.right
+
+
+class TimedeltaOps:
+    def setup(self):
+        self.td = to_timedelta(np.arange(1000000))
+        self.ts = Timestamp("2000")
+
+    def time_add_td_ts(self):
+        self.td + self.ts
+
+
+class CategoricalComparisons:
+    params = ["__lt__", "__le__", "__eq__", "__ne__", "__ge__", "__gt__"]
+    param_names = ["op"]
+
+    def setup(self, op):
+        N = 10 ** 5
+        self.cat = pd.Categorical(list("aabbcd") * N, ordered=True)
+
+    def time_categorical_op(self, op):
+        getattr(self.cat, op)("b")
+
+
+class IndexArithmetic:
+
+    params = ["float", "int"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 10 ** 6
+        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
+        self.index = getattr(tm, indexes[dtype])(N)
+
+    def time_add(self, dtype):
+        self.index + 2
+
+    def time_subtract(self, dtype):
+        self.index - 2
+
+    def time_multiply(self, dtype):
+        self.index * 2
+
+    def time_divide(self, dtype):
+        self.index / 2
+
+    def time_modulo(self, dtype):
+        self.index % 2
+
+
+class NumericInferOps:
+    # from GH 7332
+    params = numeric_dtypes
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 5 * 10 ** 5
+        self.df = DataFrame(
+            {"A": np.arange(N).astype(dtype), "B": np.arange(N).astype(dtype)}
+        )
+
+    def time_add(self, dtype):
+        self.df["A"] + self.df["B"]
+
+    def time_subtract(self, dtype):
+        self.df["A"] - self.df["B"]
+
+    def time_multiply(self, dtype):
+        self.df["A"] * self.df["B"]
+
+    def time_divide(self, dtype):
+        self.df["A"] / self.df["B"]
+
+    def time_modulo(self, dtype):
+        self.df["A"] % self.df["B"]
+
+
+class DateInferOps:
+    # from GH 7332
+    def setup_cache(self):
+        N = 5 * 10 ** 5
+        df = DataFrame({"datetime64": np.arange(N).astype("datetime64[ms]")})
+        df["timedelta"] = df["datetime64"] - df["datetime64"]
+        return df
+
+    def time_subtract_datetimes(self, df):
+        df["datetime64"] - df["datetime64"]
+
+    def time_timedelta_plus_datetime(self, df):
+        df["timedelta"] + df["datetime64"]
+
+    def time_add_timedeltas(self, df):
+        df["timedelta"] + df["timedelta"]
+
+
 class AddOverflowScalar:
 
     params = [1, -1, 0]
@@ -186,6 +299,70 @@ class AddOverflowArray:
         checked_add_with_arr(
             self.arr, self.arr_mixed, arr_mask=self.arr_nan_1, b_mask=self.arr_nan_2
         )
+
+
+hcal = pd.tseries.holiday.USFederalHolidayCalendar()
+# These offsets currently raise a NotImplimentedError with .apply_index()
+non_apply = [
+    pd.offsets.Day(),
+    pd.offsets.BYearEnd(),
+    pd.offsets.BYearBegin(),
+    pd.offsets.BQuarterEnd(),
+    pd.offsets.BQuarterBegin(),
+    pd.offsets.BMonthEnd(),
+    pd.offsets.BMonthBegin(),
+    pd.offsets.CustomBusinessDay(),
+    pd.offsets.CustomBusinessDay(calendar=hcal),
+    pd.offsets.CustomBusinessMonthBegin(calendar=hcal),
+    pd.offsets.CustomBusinessMonthEnd(calendar=hcal),
+    pd.offsets.CustomBusinessMonthEnd(calendar=hcal),
+]
+other_offsets = [
+    pd.offsets.YearEnd(),
+    pd.offsets.YearBegin(),
+    pd.offsets.QuarterEnd(),
+    pd.offsets.QuarterBegin(),
+    pd.offsets.MonthEnd(),
+    pd.offsets.MonthBegin(),
+    pd.offsets.DateOffset(months=2, days=2),
+    pd.offsets.BusinessDay(),
+    pd.offsets.SemiMonthEnd(),
+    pd.offsets.SemiMonthBegin(),
+]
+offsets = non_apply + other_offsets
+
+
+class OffsetArrayArithmetic:
+
+    params = offsets
+    param_names = ["offset"]
+
+    def setup(self, offset):
+        N = 10000
+        rng = pd.date_range(start="1/1/2000", periods=N, freq="T")
+        self.rng = rng
+        self.ser = pd.Series(rng)
+
+    def time_add_series_offset(self, offset):
+        with warnings.catch_warnings(record=True):
+            self.ser + offset
+
+    def time_add_dti_offset(self, offset):
+        with warnings.catch_warnings(record=True):
+            self.rng + offset
+
+
+class ApplyIndex:
+    params = other_offsets
+    param_names = ["offset"]
+
+    def setup(self, offset):
+        N = 10000
+        rng = pd.date_range(start="1/1/2000", periods=N, freq="T")
+        self.rng = rng
+
+    def time_apply_index(self, offset):
+        offset.apply_index(self.rng)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

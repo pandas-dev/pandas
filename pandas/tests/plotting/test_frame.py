@@ -2352,6 +2352,23 @@ class TestDataFramePlots(TestPlotBase):
             # Color contains invalid key results in ValueError
             df.plot.box(color=dict(boxes="red", xxxx="blue"))
 
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd_plot_box(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1")}
+        result = df.plot.box(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
+
     def test_default_color_cycle(self):
         import matplotlib.pyplot as plt
         import cycler

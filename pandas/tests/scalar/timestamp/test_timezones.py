@@ -140,7 +140,7 @@ class TestTimestampTZOperations:
         # see gh-14621
         assert result_pytz.to_pydatetime().tzname() == "GMT"
         assert result_dateutil.to_pydatetime().tzname() == "BST"
-        assert str(result_pytz) != str(result_dateutil)
+        assert str(result_pytz) == str(result_dateutil)
 
         # 1 hour difference
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=1)

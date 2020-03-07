@@ -129,6 +129,10 @@ class TestComparison:
     def test_compare_scalar_na(self, op, array, nulls_fixture):
         result = op(array, nulls_fixture)
         expected = self.elementwise_comparison(op, array, nulls_fixture)
+
+        if nulls_fixture is pd.NA and array.dtype != pd.IntervalDtype("int"):
+            pytest.xfail("broken for non-integer IntervalArray; see GH 31882")
+
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -207,6 +211,10 @@ class TestComparison:
         other = [nulls_fixture] * 4
         result = op(array, other)
         expected = self.elementwise_comparison(op, array, other)
+
+        if nulls_fixture is pd.NA:
+            pytest.xfail("broken for non-integer IntervalArray; see GH 31882")
+
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
