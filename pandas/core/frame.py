@@ -1399,6 +1399,7 @@ class DataFrame(NDFrame):
             )
         # GH16122
         into_c = com.standardize_mapping(into)
+        orient = orient.lower()
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
