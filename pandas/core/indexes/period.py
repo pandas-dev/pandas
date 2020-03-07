@@ -250,21 +250,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return True
 
     def _shallow_copy(self, values=None, name: Label = no_default):
-        # TODO: simplify, figure out type of values
         name = name if name is not no_default else self.name
 
         if values is None:
             values = self._data
-
-        if isinstance(values, type(self)):
-            values = values._data
-
-        if not isinstance(values, PeriodArray):
-            if isinstance(values, np.ndarray) and values.dtype == "i8":
-                values = PeriodArray(values, freq=self.freq)
-            else:
-                # GH#30713 this should never be reached
-                raise TypeError(type(values), getattr(values, "dtype", None))
 
         return self._simple_new(values, name=name)
 
@@ -618,10 +607,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
-        idx = np.concatenate(
+        i8result = np.concatenate(
             (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
         )
-        return self._shallow_copy(idx)
+        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         """

@@ -927,16 +927,17 @@ class IndexOpsMixin:
         nv.validate_max(args, kwargs)
         return nanops.nanmax(self._values, skipna=skipna)
 
+    @doc(op="max", oppose="min", value="largest")
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return int position of the largest value in the Series.
+        Return int position of the {value} value in the Series.
 
-        If the maximum is achieved in multiple locations,
+        If the {op}imum is achieved in multiple locations,
         the first row position is returned.
 
         Parameters
         ----------
-        axis : {None}
+        axis : {{None}}
             Dummy argument for consistency with Series.
         skipna : bool, default True
             Exclude NA/null values when showing the result.
@@ -946,12 +947,13 @@ class IndexOpsMixin:
         Returns
         -------
         int
-            Row position of the maximum values.
+            Row position of the {op}imum value.
 
         See Also
         --------
-        numpy.ndarray.argmax : Equivalent method for numpy arrays.
-        Series.argmin : Similar method, but returning the minimum.
+        Series.arg{op} : Return position of the {op}imum value.
+        Series.arg{oppose} : Return position of the {oppose}imum value.
+        numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
 
@@ -959,8 +961,8 @@ class IndexOpsMixin:
         --------
         Consider dataset containing cereal calories
 
-        >>> s = pd.Series({'Corn Flakes': 100.0, 'Almond Delight': 110.0,
-        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0})
+        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
         >>> s
         Corn Flakes              100.0
         Almond Delight           110.0
@@ -970,8 +972,11 @@ class IndexOpsMixin:
 
         >>> s.argmax()
         2
+        >>> s.argmin()
+        0
 
-        The maximum cereal calories is in the third element,
+        The maximum cereal calories is the third element and
+        the minimum cereal calories is the first element,
         since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
@@ -1019,24 +1024,8 @@ class IndexOpsMixin:
         nv.validate_min(args, kwargs)
         return nanops.nanmin(self._values, skipna=skipna)
 
+    @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return a ndarray of the minimum argument indexer.
-
-        Parameters
-        ----------
-        axis : {None}
-            Dummy argument for consistency with Series.
-        skipna : bool, default True
-
-        Returns
-        -------
-        numpy.ndarray
-
-        See Also
-        --------
-        numpy.ndarray.argmin
-        """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
@@ -1055,7 +1044,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.tolist
+        numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
+            nested list of Python scalars.
         """
         if not isinstance(self._values, np.ndarray):
             # check for ndarray instead of dtype to catch DTA/TDA
@@ -1402,7 +1392,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
 
         Notes
         -----
@@ -1473,8 +1464,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        sort_values
-        numpy.searchsorted
+        sort_values : Sort by the values along either axis.
+        numpy.searchsorted : Similar method from NumPy.
 
         Notes
         -----
