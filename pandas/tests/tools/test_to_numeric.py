@@ -629,10 +629,10 @@ def test_non_coerce_uint64_conflict(errors, exp):
         tm.assert_series_equal(result, ser)
 
 
-def test_downcast_empty():
-    dc_int = pd.to_numeric([], downcast="integer")
-    dc_float = pd.to_numeric([], downcast="float")
-    dc_us = pd.to_numeric([], downcast="unsigned")
+@pytest.mark.parametrize("dc1", ["integer", "float", "unsigned"])
+@pytest.mark.parametrize("dc2", ["integer", "float", "unsigned"])
+def test_downcast_empty(dc1, dc2):
 
-    assert np.array_equal(dc_int, dc_float)
-    assert np.array_equal(dc_us, dc_float)
+    assert np.array_equal(
+        pd.to_numeric([], downcast=dc1), pd.to_numeric([], downcast=dc2)
+    )
