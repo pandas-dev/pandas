@@ -19,7 +19,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_period_arraylike,
+    is_period_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -269,7 +269,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_arraylike(index):
+    if is_period_dtype(index):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."

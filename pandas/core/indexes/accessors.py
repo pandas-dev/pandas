@@ -9,10 +9,9 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetime_arraylike,
     is_integer_dtype,
     is_list_like,
-    is_period_arraylike,
+    is_period_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -50,12 +49,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
-        else:
-            if is_period_arraylike(data):
-                # TODO: use to_period_array
-                return PeriodArray(data, copy=False)
-            if is_datetime_arraylike(data):
-                return DatetimeIndex(data, copy=False, name=self.name)
+        elif is_period_dtype(data):
+            return PeriodArray(data, copy=False)
 
         raise TypeError(
             f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -335,9 +330,7 @@ class CombinedDatetimelikeProperties(
             return DatetimeProperties(data, orig)
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaProperties(data, orig)
-        elif is_period_arraylike(data):
+        elif is_period_dtype(data):
             return PeriodProperties(data, orig)
-        elif is_datetime_arraylike(data):
-            return DatetimeProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")

@@ -72,7 +72,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
-    is_period_arraylike,
     is_re_compilable,
     is_scalar,
     is_timedelta64_dtype,
@@ -1342,7 +1341,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def __pos__(self):
         values = self._values
-        if is_bool_dtype(values) or is_period_arraylike(values):
+        if is_bool_dtype(values):
             arr = values
         elif (
             is_numeric_dtype(values)
