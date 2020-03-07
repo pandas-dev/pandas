@@ -2102,53 +2102,6 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
     return i.tolist(), j.tolist()
 
 
-def makeMissingCustomDataframe(
-    nrows,
-    ncols,
-    density=0.9,
-    random_state=None,
-    c_idx_names=True,
-    r_idx_names=True,
-    c_idx_nlevels=1,
-    r_idx_nlevels=1,
-    data_gen_f=None,
-    c_ndupe_l=None,
-    r_ndupe_l=None,
-    dtype=None,
-    c_idx_type=None,
-    r_idx_type=None,
-):
-    """
-    Parameters
-    ----------
-    Density : float, optional
-        Float in (0, 1) that gives the percentage of non-missing numbers in
-        the DataFrame.
-    random_state : {np.random.RandomState, int}, optional
-        Random number generator or random seed.
-
-    See makeCustomDataframe for descriptions of the rest of the parameters.
-    """
-    df = makeCustomDataframe(
-        nrows,
-        ncols,
-        c_idx_names=c_idx_names,
-        r_idx_names=r_idx_names,
-        c_idx_nlevels=c_idx_nlevels,
-        r_idx_nlevels=r_idx_nlevels,
-        data_gen_f=data_gen_f,
-        c_ndupe_l=c_ndupe_l,
-        r_ndupe_l=r_ndupe_l,
-        dtype=dtype,
-        c_idx_type=c_idx_type,
-        r_idx_type=r_idx_type,
-    )
-
-    i, j = _create_missing_idx(nrows, ncols, density, random_state)
-    df.values[i, j] = np.nan
-    return df
-
-
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
