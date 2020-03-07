@@ -66,6 +66,9 @@ class TestDataFrameToDict:
 
     @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i", "xinvalid"])
     def test_to_dict_invalid_orient(self, orient):
+        # to_dict(orient='d') should fail, as should only take the listed options
+        # see GH#32515
+
         df = DataFrame({"A": [0, 1]})
         msg = f"orient '{orient}' not understood"
         with pytest.raises(ValueError, match=msg):
@@ -73,6 +76,8 @@ class TestDataFrameToDict:
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
+        # orient= should only take the listed options
+        # see GH#32515
         test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
 
         # GH#16122
