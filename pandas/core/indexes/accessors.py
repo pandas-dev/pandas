@@ -1,6 +1,8 @@
 """
 datetimelike delegation
 """
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas.core.dtypes.common import (
@@ -21,9 +23,12 @@ from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
+
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
-    def __init__(self, data, orig):
+    def __init__(self, data: "Series", orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -137,7 +142,7 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return the data as an array of native Python datetime objects.
 
@@ -209,7 +214,7 @@ class TimedeltaProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pytimedelta(self):
+    def to_pytimedelta(self) -> np.ndarray:
         """
         Return an array of native `datetime.timedelta` objects.
 
@@ -271,7 +276,7 @@ class TimedeltaProperties(Properties):
         2     0      0        0        2             0             0            0
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
-        """  # noqa: E501
+        """
         return self._get_values().components.set_index(self._parent.index)
 
     @property
@@ -303,7 +308,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data):
+    def __new__(cls, data: "Series"):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
