@@ -1,6 +1,6 @@
 from cpython.object cimport Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE
 
-from cpython.datetime cimport (datetime, date,
+from cpython.datetime cimport (
                                PyDateTime_IMPORT,
                                PyDateTime_GET_YEAR, PyDateTime_GET_MONTH,
                                PyDateTime_GET_DAY, PyDateTime_DATE_GET_HOUR,
