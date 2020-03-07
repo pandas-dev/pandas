@@ -416,10 +416,7 @@ def rands_array(nchars, size, dtype="O"):
         .view((np.str_, nchars))
         .reshape(size)
     )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
+    return retval.astype(dtype)
 
 
 def randu_array(nchars, size, dtype="O"):
@@ -431,10 +428,7 @@ def randu_array(nchars, size, dtype="O"):
         .view((np.unicode_, nchars))
         .reshape(size)
     )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
+    return retval.astype(dtype)
 
 
 def rands(nchars):
@@ -445,16 +439,6 @@ def rands(nchars):
 
     """
     return "".join(np.random.choice(RANDS_CHARS, nchars))
-
-
-def randu(nchars):
-    """
-    Generate one random unicode string.
-
-    See `randu_array` if you want to create an array of random unicode strings.
-
-    """
-    return "".join(np.random.choice(RANDU_CHARS, nchars))
 
 
 def close(fignum=None):
@@ -723,10 +707,7 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
             # return Index as it is to include values in the error message
             return x
 
-        try:
-            return type(x).__name__
-        except AttributeError:
-            return repr(type(x))
+        return type(x).__name__
 
     if exact == "equiv":
         if type(left) != type(right):
