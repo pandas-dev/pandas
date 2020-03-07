@@ -224,6 +224,9 @@ class ExtensionIndex(Index):
 
     # ---------------------------------------------------------------------
 
+    def __array__(self, dtype=None) -> np.ndarray:
+        return np.asarray(self._data, dtype=dtype)
+
     @property
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
