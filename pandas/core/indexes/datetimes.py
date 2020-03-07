@@ -78,21 +78,26 @@ def _new_DatetimeIndex(cls, d):
 )
 class DatetimeIndex(DatetimeTimedeltaMixin):
     """
-    Immutable ndarray of datetime64 data, represented internally as int64, and
-    which can be boxed to Timestamp objects that are subclasses of datetime and
-    carry metadata such as frequency information.
+    Immutable ndarray-like of datetime64 data.
+
+    Represented internally as int64, and which can be boxed to Timestamp objects
+    that are subclasses of datetime and carry metadata.
 
     Parameters
     ----------
     data : array-like (1-dimensional), optional
         Optional datetime-like data to construct index with.
-    copy : bool
-        Make a copy of input ndarray.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
-    tz : pytz.timezone or dateutil.tz.tzfile
+    tz : pytz.timezone or dateutil.tz.tzfile or datetime.tzinfo or str
+        Set the Timezone of the data.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    closed : {'left', 'right'}, optional
+        Set whether to include `start` and `end` that are on the
+        boundary. The default includes boundary points on either end.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         When clocks moved backward due to DST, ambiguous times may arise.
         For example in Central European Time (UTC+01), when going from 03:00
@@ -107,12 +112,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times.
-    name : object
-        Name to be stored in the index.
     dayfirst : bool, default False
         If True, parse dates in `data` with the day first order.
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
+    dtype : numpy.dtype or DatetimeTZDtype or str, default None
+        Note that the only NumPy dtype allowed is ‘datetime64[ns]’.
+    copy : bool, default False
+        Make a copy of input ndarray.
+    name : label, default None
+        Name to be stored in the index.
 
     Attributes
     ----------
