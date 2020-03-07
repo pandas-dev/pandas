@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
     is_integer,
+    is_list_like,
 )
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import _iterable_not_string
@@ -408,7 +409,7 @@ def random_state(state=None):
     """
     if is_integer(state):
         return np.random.RandomState(state)
-    elif is_array_like(state) and all(is_integer(item) for item in state):
+    elif is_list_like(state) and all(is_integer(item) for item in state):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
