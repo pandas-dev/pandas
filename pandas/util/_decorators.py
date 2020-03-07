@@ -269,24 +269,27 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
         def wrapper(*args, **kwargs) -> Callable:
             return func(*args, **kwargs)
 
-        # collecting and docstring templates
-        wrapper._doc_args: List[Union[str, Callable]] = []  # type: ignore
+        # collecting docstring and docstring templates
+        doc_args: List[Union[str, Callable]] = []
         if func.__doc__:
-            wrapper._doc_args.append(dedent(func.__doc__))  # type: ignore
+            doc_args.append(dedent(func.__doc__))
 
         for arg in args:
             if hasattr(arg, "_doc_args"):
-                wrapper._doc_args.extend(arg._doc_args)  # type: ignore
+                doc_args.extend(arg._doc_args)  # type: ignore
             elif isinstance(arg, str) or arg.__doc__:
-                wrapper._doc_args.append(arg)  # type: ignore
+                doc_args.append(arg)
 
         # formatting templates and concatenating docstring
         wrapper.__doc__ = "".join(
             [
                 arg.format(**kwargs) if isinstance(arg, str) else dedent(arg.__doc__)
-                for arg in wrapper._doc_args  # type: ignore
+                for arg in doc_args
             ]
         )
+
+        # saving docstring components list
+        wrapper._doc_args = doc_args  # type: ignore
 
         return cast(F, wrapper)
 
