@@ -111,7 +111,7 @@ class NumericIndex(Index):
             return Float64Index._simple_new(values, name=name)
 
         if values is None:
-            values = self.values
+            values = self._values
         return type(self)._simple_new(values, name=name)
 
     def _convert_for_op(self, value):
@@ -252,7 +252,7 @@ class IntegerIndex(NumericIndex):
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
-        return self.values.view(self._default_dtype)
+        return self._values.view(self._default_dtype)
 
 
 class Int64Index(IntegerIndex):
@@ -372,7 +372,7 @@ class Float64Index(NumericIndex):
         elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
             # TODO(jreback); this can change once we have an EA Index type
             # GH 13149
-            arr = astype_nansafe(self.values, dtype=dtype)
+            arr = astype_nansafe(self._values, dtype=dtype)
             return Int64Index(arr)
         return super().astype(dtype, copy=copy)
 
@@ -399,7 +399,7 @@ class Float64Index(NumericIndex):
         from pandas.io.formats.format import FloatArrayFormatter
 
         formatter = FloatArrayFormatter(
-            self.values,
+            self._values,
             na_rep=na_rep,
             float_format=float_format,
             decimal=decimal,

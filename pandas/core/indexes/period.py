@@ -300,7 +300,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.astype(object).values
+        return self.astype(object)._values
 
     @property
     def _formatter_func(self):

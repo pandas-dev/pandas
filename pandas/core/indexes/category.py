@@ -245,7 +245,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         name = self.name if name is no_default else name
 
         if values is None:
-            values = self.values
+            values = self._values
 
         cat = Categorical(values, dtype=self.dtype)
 
