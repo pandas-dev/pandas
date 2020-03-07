@@ -547,66 +547,27 @@ class TestIndexOps(Ops):
         result2 = td2.value_counts()
         tm.assert_series_equal(result2, expected_s)
 
-    def test_factorize(self):
-        for orig in self.objs:
-            o = orig.copy()
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize(self, index_or_series_obj, sort):
+        obj = index_or_series_obj
+        result_codes, result_uniques = obj.factorize(sort=sort)
 
-            if isinstance(o, Index) and o.is_boolean():
-                exp_arr = np.array([0, 1] + [0] * 8, dtype=np.intp)
-                exp_uniques = o
-                exp_uniques = Index([False, True])
-            else:
-                exp_arr = np.array(range(len(o)), dtype=np.intp)
-                exp_uniques = o
-            codes, uniques = o.factorize()
+        constructor = pd.Index
+        if isinstance(obj, pd.MultiIndex):
+            constructor = pd.MultiIndex.from_tuples
+        expected_uniques = constructor(obj.unique())
 
-            tm.assert_numpy_array_equal(codes, exp_arr)
-            if isinstance(o, Series):
-                tm.assert_index_equal(uniques, Index(orig), check_names=False)
-            else:
-                # factorize explicitly resets name
-                tm.assert_index_equal(uniques, exp_uniques, check_names=False)
+        if sort:
+            expected_uniques = expected_uniques.sort_values()
 
-    def test_factorize_repeated(self):
-        for orig in self.objs:
-            o = orig.copy()
+        # construct an integer ndarray so that
+        # `expected_uniques.take(expected_codes)` is equal to `obj`
+        expected_uniques_list = list(expected_uniques)
+        expected_codes = [expected_uniques_list.index(val) for val in obj]
+        expected_codes = np.asarray(expected_codes, dtype=np.intp)
 
-            # don't test boolean
-            if isinstance(o, Index) and o.is_boolean():
-                continue
-
-            # sort by value, and create duplicates
-            if isinstance(o, Series):
-                o = o.sort_values()
-                n = o.iloc[5:].append(o)
-            else:
-                indexer = o.argsort()
-                o = o.take(indexer)
-                n = o[5:].append(o)
-
-            exp_arr = np.array(
-                [5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp
-            )
-            codes, uniques = n.factorize(sort=True)
-
-            tm.assert_numpy_array_equal(codes, exp_arr)
-            if isinstance(o, Series):
-                tm.assert_index_equal(
-                    uniques, Index(orig).sort_values(), check_names=False
-                )
-            else:
-                tm.assert_index_equal(uniques, o, check_names=False)
-
-            exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4], np.intp)
-            codes, uniques = n.factorize(sort=False)
-            tm.assert_numpy_array_equal(codes, exp_arr)
-
-            if isinstance(o, Series):
-                expected = Index(o.iloc[5:10].append(o.iloc[:5]))
-                tm.assert_index_equal(uniques, expected, check_names=False)
-            else:
-                expected = o[5:10].append(o[:5])
-                tm.assert_index_equal(uniques, expected, check_names=False)
+        tm.assert_numpy_array_equal(result_codes, expected_codes)
+        tm.assert_index_equal(result_uniques, expected_uniques)
 
     def test_duplicated_drop_duplicates_index(self):
         # GH 4060
