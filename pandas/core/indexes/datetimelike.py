@@ -486,7 +486,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 # e.g. we have a Categorical holding self.dtype
                 if needs_i8_conversion(other.categories):
                     other = other._internal_get_values()
-                    # TODO: other.astype(other.categories.dtype)?
 
             if not is_dtype_equal(self.dtype, other.dtype):
                 raise TypeError(f"Where requires matching dtype, not {other.dtype}")

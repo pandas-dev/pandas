@@ -1479,7 +1479,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories):
-            # TODO: should fill_value=NaT here?
             return self.categories.take(self._codes, fill_value=np.nan)
         elif is_integer_dtype(self.categories) and -1 in self._codes:
             return self.categories.astype("object").take(self._codes, fill_value=np.nan)
