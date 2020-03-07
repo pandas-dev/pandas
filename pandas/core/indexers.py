@@ -23,7 +23,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 def is_valid_positional_slice(slc: slice) -> bool:
     """
-    Check if a slice object can be interpretd as a positional indexer.
+    Check if a slice object can be interpreted as a positional indexer.
 
     Parameters
     ----------
