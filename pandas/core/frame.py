@@ -1441,7 +1441,7 @@ class DataFrame(NDFrame):
                 (t[0], dict(zip(self.columns, t[1:])))
                 for t in self.itertuples(name=None)
             )
-            
+
         else:
             raise ValueError(f"orient '{orient}' not understood")
 
