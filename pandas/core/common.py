@@ -408,13 +408,16 @@ def random_state(state=None):
     """
     if is_integer(state):
         return np.random.RandomState(state)
+    elif is_array_like(state) and all(is_integer(item) for item in state):
+        return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
     elif state is None:
         return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, a numpy RandomState, or None"
+            "random_state must be an integer, integer array like,"
+            "a numpy RandomState, or None"
         )
 
 

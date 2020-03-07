@@ -56,11 +56,18 @@ def test_random_state():
     state2 = npr.RandomState(10)
     assert com.random_state(state2).uniform() == npr.RandomState(10).uniform()
 
+    # Check with array ike
+    state3 = com.random_state([1, 5, 10])
+    assert com.random_state(state3).uniform() == npr.RandomState([1, 5, 10]).uniform()
+
     # check with no arg random state
     assert com.random_state() is np.random
 
     # Error for floats or strings
-    msg = "random_state must be an integer, a numpy RandomState, or None"
+    msg = (
+        "random_state must be an integer, integer array like,"
+        "a numpy RandomState, or None"
+    )
     with pytest.raises(ValueError, match=msg):
         com.random_state("test")
 

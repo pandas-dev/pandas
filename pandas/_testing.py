@@ -2125,7 +2125,7 @@ def makeMissingCustomDataframe(
     Density : float, optional
         Float in (0, 1) that gives the percentage of non-missing numbers in
         the DataFrame.
-    random_state : {np.random.RandomState, int}, optional
+    random_state : {np.random.RandomState, int, integer array like}, optional
         Random number generator or random seed.
 
     See makeCustomDataframe for descriptions of the rest of the parameters.
