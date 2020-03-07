@@ -352,7 +352,6 @@ Other
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 - Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
-- Using an `orient` argument not listed inside :meth:`DataFrame.to_dict` will raise a ``ValueError`` (:issue:`32515`)
 
 .. ---------------------------------------------------------------------------
 
