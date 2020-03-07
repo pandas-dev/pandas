@@ -250,10 +250,11 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
-    This decorator will add a variable "_doc_args" to the wrapped function to
-    keep track the original docstring template for potential usage. If it should
-    be consider as a template, it will be saved as a string. Otherwise, it will
-    be saved as callable, and later user __doc__ and dedent to get docstring.
+    This decorator will add a variable "_docstring_components" to the wrapped 
+    function to keep track the original docstring template for potential usage.
+    If it should be consider as a template, it will be saved as a string.
+    Otherwise, it will be saved as callable, and later user __doc__ and dedent
+    to get docstring.
 
     Parameters
     ----------
@@ -270,26 +271,26 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
             return func(*args, **kwargs)
 
         # collecting docstring and docstring templates
-        doc_args: List[Union[str, Callable]] = []
+        docstring_components: List[Union[str, Callable]] = []
         if func.__doc__:
-            doc_args.append(dedent(func.__doc__))
+            docstring_components.append(dedent(func.__doc__))
 
         for arg in args:
-            if hasattr(arg, "_doc_args"):
-                doc_args.extend(arg._doc_args)  # type: ignore
+            if hasattr(arg, "_docstring_components"):
+                docstring_components.extend(arg._docstring_components)  # type: ignore
             elif isinstance(arg, str) or arg.__doc__:
-                doc_args.append(arg)
+                docstring_components.append(arg)
 
         # formatting templates and concatenating docstring
         wrapper.__doc__ = "".join(
             [
                 arg.format(**kwargs) if isinstance(arg, str) else dedent(arg.__doc__)
-                for arg in doc_args
+                for arg in docstring_components
             ]
         )
 
         # saving docstring components list
-        wrapper._doc_args = doc_args  # type: ignore
+        wrapper._docstring_components = docstring_components  # type: ignore
 
         return cast(F, wrapper)
 
