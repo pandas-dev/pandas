@@ -627,3 +627,12 @@ def test_non_coerce_uint64_conflict(errors, exp):
     else:
         result = to_numeric(ser, errors=errors)
         tm.assert_series_equal(result, ser)
+
+
+def test_downcast_empty():
+    dc_int = pd.to_numeric([], downcast="integer")
+    dc_float = pd.to_numeric([], downcast="float")
+    dc_us = pd.to_numeric([], downcast="unsigned")
+
+    assert np.array_equal(dc_int, dc_float)
+    assert np.array_equal(dc_us, dc_float)
