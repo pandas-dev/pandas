@@ -1144,8 +1144,8 @@ def assert_series_equal(
         # is False. We'll still raise if only one is a `Categorical`,
         # regardless of `check_categorical`
         if (
-            is_categorical_dtype(left)
-            and is_categorical_dtype(right)
+            is_categorical_dtype(left.dtype)
+            and is_categorical_dtype(right.dtype)
             and not check_categorical
         ):
             pass
@@ -1153,13 +1153,11 @@ def assert_series_equal(
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
     if check_exact:
-        assert is_numeric_dtype(left.dtype), (left.dtype, right.dtype)
+        if not is_numeric_dtype(left.dtype):
+            raise AssertionError("check_exact may only be used with numeric Series")
 
         assert_numpy_array_equal(
-            left._internal_get_values(),
-            right._internal_get_values(),
-            check_dtype=check_dtype,
-            obj=str(obj),
+            left._values, right._values, check_dtype=check_dtype, obj=str(obj)
         )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
