@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_interval_dtype,
-    is_list_like,
     is_number,
     is_period_dtype,
     is_sequence,
@@ -2397,7 +2396,6 @@ with_connectivity_check = network
 def assert_produces_warning(
     expected_warning=Warning,
     filter_level="always",
-    clear=None,
     check_stacklevel=True,
     raise_on_extra_warnings=True,
 ):
@@ -2427,12 +2425,6 @@ def assert_produces_warning(
           from each module
         * "once" - print the warning the first time it is generated
 
-    clear : str, default None
-        If not ``None`` then remove any previously raised warnings from
-        the ``__warningsregistry__`` to ensure that no warning messages are
-        suppressed by this context manager. If ``None`` is specified,
-        the ``__warningsregistry__`` keeps track of which warnings have been
-        shown, and does not show them again.
     check_stacklevel : bool, default True
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
@@ -2464,19 +2456,6 @@ def assert_produces_warning(
     __tracebackhide__ = True
 
     with warnings.catch_warnings(record=True) as w:
-
-        if clear is not None:
-            # make sure that we are clearing these warnings
-            # if they have happened before
-            # to guarantee that we will catch them
-            if not is_list_like(clear):
-                clear = [clear]
-            for m in clear:
-                try:
-                    m.__warningregistry__.clear()
-                except AttributeError:
-                    # module may not have __warningregistry__
-                    pass
 
         saw_warning = False
         warnings.simplefilter(filter_level)
