@@ -825,7 +825,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         """
         return self._maybe_mask_results(1e-9 * self.asi8, fill_value=None)
 
-    def to_pytimedelta(self):
+    def to_pytimedelta(self) -> np.ndarray:
         """
         Return Timedelta Array/Index as object ndarray of datetime.timedelta
         objects.

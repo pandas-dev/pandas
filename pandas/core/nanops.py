@@ -981,7 +981,7 @@ def nanskew(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 2])
+    >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
@@ -1065,7 +1065,7 @@ def nankurt(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 3, 2])
+    >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """

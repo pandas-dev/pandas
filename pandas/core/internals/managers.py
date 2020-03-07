@@ -24,7 +24,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_v_string_like,
     is_scalar,
-    is_sparse,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -32,6 +31,7 @@ from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, MultiIndex, ensure_index
@@ -843,8 +843,8 @@ class BlockManager(PandasObject):
 
         # TODO: https://github.com/pandas-dev/pandas/issues/22791
         # Give EAs some input on what happens here. Sparse needs this.
-        if is_sparse(dtype):
-            dtype = dtype.subtype  # type: ignore
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
         elif is_extension_array_dtype(dtype):
             dtype = "object"
 
