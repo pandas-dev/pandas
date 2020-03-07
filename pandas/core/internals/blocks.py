@@ -3144,14 +3144,15 @@ def _safe_reshape(arr, new_shape):
     return arr
 
 
-def _putmask_smart(v, mask, n):
+def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     """
     Return a new ndarray, try to preserve dtype if possible.
 
     Parameters
     ----------
-    v : `values`, updated in-place (array like)
-    mask : np.ndarray
+    v : np.ndarray
+        `values`, updated in-place.
+    mask : np.ndarray[bool]
         Applies to both sides (array like).
     n : `new values` either scalar or an array like aligned with `values`
 
@@ -3218,9 +3219,6 @@ def _putmask_smart(v, mask, n):
     # change the dtype if needed
     dtype, _ = maybe_promote(n.dtype)
 
-    if is_extension_array_dtype(v.dtype) and is_object_dtype(dtype):
-        v = v._internal_get_values(dtype)
-    else:
-        v = v.astype(dtype)
+    v = v.astype(dtype)
 
     return _putmask_preserve(v, n)
