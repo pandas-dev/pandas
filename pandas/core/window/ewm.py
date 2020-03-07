@@ -107,8 +107,7 @@ class EWM(_Rolling):
     -----
 
     More details can be found at:
-    `Exponentially weighted windows
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/computation.html#exponentially-weighted-windows>`_.
+    :ref:`Exponentially weighted windows <stats.moments.exponentially_weighted>`.
 
     Examples
     --------
