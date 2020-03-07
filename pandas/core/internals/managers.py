@@ -1596,10 +1596,6 @@ class SingleBlockManager(BlockManager):
         """The array that Series._values returns"""
         return self._block.internal_values()
 
-    def get_values(self) -> np.ndarray:
-        """ return a dense type view """
-        return np.array(self._block.to_dense(), copy=False)
-
     @property
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
