@@ -406,7 +406,11 @@ def random_state(state=None):
     -------
     np.random.RandomState
     """
-    if is_integer(state):
+    if (
+        is_integer(state)
+        or is_array_like(state)
+        or isinstance(state, np.random.BitGenerator)
+    ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
