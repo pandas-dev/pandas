@@ -351,3 +351,36 @@ def test_iat_series_with_period_index():
     expected = ser[index[0]]
     result = ser.iat[0]
     assert expected == result
+
+
+def test_tuple_indexed_series_at_get():
+    # GH 26989
+    # Series.at works with MultiIndex
+    series = Series([1, 2], index=[(1, 2), (3, 4)])
+    assert series.at[1, 2] == 1
+
+
+def test_tuple_indexed_series_at_set():
+    # GH 26989
+    # Series.at works with MultiIndex
+    series = Series([1, 2], index=[(1, 2), (3, 4)])
+    series.at[1, 2] = 3
+    assert series.at[1, 2] == 3
+
+
+def test_multiindex_series_at_get():
+    # GH 26989
+    # Series.at works with MultiIndex
+    series = Series([1, 2], index=[[1, 2], [3, 4]])
+    assert series.at[1, 3] == 1
+    assert series.loc[1, 3] == 1
+
+
+def test_multiindex_series_at_set():
+    # GH 26989
+    # Series.at works with MultiIndex
+    series = Series([1, 2], index=[[1, 2], [3, 4]])
+    series.at[1, 3] = 3
+    assert series.at[1, 3] == 3
+    series.loc[1, 3] = 4
+    assert series.loc[1, 3] == 4
