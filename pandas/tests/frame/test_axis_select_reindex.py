@@ -1159,15 +1159,17 @@ class TestDataFrameSelectReindex:
     @pytest.mark.parametrize("inplace", [False, True])
     def test_inplace_drop_and_operation(self, operation, inplace):
         # GH 30484
-        data_dict = {"x": [1, 2, 3, 4, 5], "y": [10, 20, 30, 40, 50]}
-        df = pd.DataFrame(data_dict)
+        df = pd.DataFrame({"x": range(5)})
+        expected = df.copy()
+        df["y"] = range(5)
         y = df["y"]
 
-        if inplace:
-            df.drop("y", axis=1, inplace=inplace)
-        else:
-            df = df.drop("y", axis=1, inplace=inplace)
-        # Perform operation and ensure that df is not changed
-        expected = df.copy()
-        getattr(y, operation)(1)
-        tm.assert_frame_equal(df, expected)
+        with tm.assert_produces_warning(None):
+            if inplace:
+                df.drop("y", axis=1, inplace=inplace)
+            else:
+                df = df.drop("y", axis=1, inplace=inplace)
+
+            # Perform operation and check result
+            getattr(y, operation)(1)
+            tm.assert_frame_equal(df, expected)
