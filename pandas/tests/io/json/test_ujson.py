@@ -857,7 +857,7 @@ class TestPandasJSONTests:
         elif orient == "index":
             df = df.transpose()
 
-        tm.assert_frame_equal(output, df, check_dtype=False)
+        tm.assert_frame_equal(output, df)
 
     def test_dataframe_nested(self, orient):
         df = DataFrame(
@@ -920,7 +920,7 @@ class TestPandasJSONTests:
             s.name = None
             s.index = [0, 1, 2, 3, 4, 5]
 
-        tm.assert_series_equal(output, s, check_dtype=False)
+        tm.assert_series_equal(output, s)
 
     def test_series_nested(self, orient):
         s = Series(
