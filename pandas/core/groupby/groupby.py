@@ -194,9 +194,8 @@ Apply a function `func` with arguments to this %(klass)s object and return the r
 
 %(versionadded)s
 
-Use `.pipe` when you want to improve readability.
-You can do it by chaining together functions.
-Where the functions expect Series, DataFrames, GroupBy or Resampler objects.
+Use `.pipe` when you want to improve readability by chaining together
+functions expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing.
 
 >>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
@@ -213,7 +212,7 @@ which is much more readable.
 Parameters
 ----------
 func : callable or tuple of (callable, str)
-    Function to apply to this %(klass)s object or, alternatiy,
+    Function to apply to this %(klass)s object or
     a `(callable, data_keyword)` tuple where `data_keyword` is a
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
