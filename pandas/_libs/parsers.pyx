@@ -1612,7 +1612,7 @@ cdef inline void _to_fw_string_nogil(parser_t *parser, int64_t col,
                                      int64_t line_start, int64_t line_end,
                                      size_t width, char *data) nogil:
     cdef:
-        Py_ssize_t i
+        int64_t i
         coliter_t it
         const char *word = NULL
 
