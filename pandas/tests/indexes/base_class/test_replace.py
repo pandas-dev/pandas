@@ -14,6 +14,15 @@ def test_index_replace():
     tm.assert_equal(result, expected)
 
 
+def test_index_replace_1():
+    index = pd.Index([1, 2, 3])
+    expected = pd.Index(["a", 2, 3])
+
+    result = index.replace(1, "a")
+
+    tm.assert_equal(result, expected)
+
+
 def test_index_replace_2():
     index = pd.Index([1, 2, 3])
     expected = pd.Index(["a", 2, "c"])
@@ -41,6 +50,30 @@ def test_index_replace_5():
     expected = pd.Index([0, 3, 3, 3, 4])
 
     result = index.replace([1, 2], method="bfill")
+    tm.assert_equal(expected, result)
+
+
+def test_index_replace_6():
+    index = pd.Index(["bat", "foo", "baait", "bar"])
+    expected = pd.Index(["new", "foo", "baait", "new"])
+
+    result = index.replace(to_replace=r"^ba.$", value="new", regex=True)
+    tm.assert_equal(expected, result)
+
+
+def test_index_replace_7():
+    index = pd.Index(["bat", "foo", "baait", "bar"])
+    expected = pd.Index(["new", "foo", "baait", "new"])
+
+    result = index.replace(regex=r"^ba.$", value="new")
+    tm.assert_equal(expected, result)
+
+
+def test_index_replace_8():
+    index = pd.Index(["bat", "foo", "baait", "bar"])
+    expected = pd.Index(["new", "xyz", "baait", "new"])
+
+    result = index.replace(regex={r"^ba.$": "new", "foo": "xyz"})
     tm.assert_equal(expected, result)
 
 

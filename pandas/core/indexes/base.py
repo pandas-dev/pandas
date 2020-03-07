@@ -1,6 +1,7 @@
 from copy import copy as copy_func
 from datetime import datetime
 import operator
+import re
 from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Hashable, Optional, Union
 import warnings
@@ -67,6 +68,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
+from pandas.core.dtypes.inference import is_re, is_re_compilable
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 from pandas.core import ops
@@ -1367,6 +1369,7 @@ class Index(IndexOpsMixin, PandasObject):
     ):
         if inplace:
             raise NotImplementedError("Can't perform inplace operation on Index.")
+
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
 
@@ -1383,6 +1386,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._constructor(new_index)
 
             if not is_dict_like(to_replace) and not is_dict_like(regex):
+                # to_replace = [to_replace]
                 raise NotImplementedError(
                     "This is implemented in NDFrame.replace(). However,"
                     "not clear if we should include this in the API."
@@ -1391,7 +1395,14 @@ class Index(IndexOpsMixin, PandasObject):
                 )
 
             if not is_dict_like(to_replace):
-                raise NotImplementedError()
+                if not is_dict_like(regex):
+                    raise TypeError(
+                        'If "to_replace" and "value" are both None '
+                        'and "to_replace" is not a list, then '
+                        "regex must be a mapping"
+                    )
+                to_replace = regex
+                regex = True
 
             items = list(to_replace.items())
             keys, values = zip(*items) if items else ([], [])
@@ -1423,7 +1434,6 @@ class Index(IndexOpsMixin, PandasObject):
                     )
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
-
             elif is_list_like(to_replace):
                 if is_list_like(value):
                     if len(to_replace) != len(value):
@@ -1433,8 +1443,6 @@ class Index(IndexOpsMixin, PandasObject):
                             f"Length of `to_replace=` ({len(to_replace)}) should "
                             f"match length of `value=` ({len(value)})."
                         )
-                    if regex:
-                        raise NotImplementedError()
 
                     # copied method from BlockManager(), temporarily here
                     def replace_list(
@@ -1449,9 +1457,6 @@ class Index(IndexOpsMixin, PandasObject):
                             raise NotImplementedError(
                                 "Can't perform inplace operation on Index."
                             )
-
-                        if regex:
-                            raise NotImplementedError("TODO.")
 
                         def comp(s, regex=False):
                             """
@@ -1494,12 +1499,135 @@ class Index(IndexOpsMixin, PandasObject):
                 else:
                     mask = missing.mask_missing(self.values, to_replace)
                     new_index = self.putmask(mask, value)
-
             elif to_replace is None:
-                raise NotImplementedError()
+                if is_re_compilable(regex):
+                    to_replace = regex
+                    regex = True
+                    new_index = self.replace(
+                        to_replace=to_replace,
+                        value=value,
+                        inplace=inplace,
+                        limit=limit,
+                        regex=regex,
+                        method=method,
+                    )
+            else:
+                new_index = self._replace_single(
+                    to_replace=to_replace,
+                    value=value,
+                    inplace=inplace,
+                    filter=None,
+                    regex=regex,
+                )
 
-        # import ipdb; ipdb.set_trace()
         return new_index
+
+    def _replace_single(
+        self,
+        to_replace,
+        value,
+        inplace=False,
+        filter=None,
+        regex=False,
+        convert=True,
+        mask=None,
+    ):
+        """
+        Replace elements by the given value.
+
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool, default False
+            Perform inplace modification.
+        filter : list, optional
+        regex : bool, default False
+            If true, perform regular expression substitution.
+        convert : bool, default True
+            If true, try to coerce any object types to better types.
+        mask : array-like of bool, optional
+            True indicate corresponding element is ignored.
+
+        Returns
+        -------
+        a new block, the result after replacing
+        """
+        # inplace = validate_bool_kwarg(inplace, "inplace")
+        # import ipdb; ipdb.set_trace()
+
+        # to_replace is regex compilable
+        to_rep_re = regex and is_re_compilable(to_replace)
+
+        # regex is regex compilable
+        regex_re = is_re_compilable(regex)
+
+        # only one will survive
+        if to_rep_re and regex_re:
+            raise AssertionError(
+                "only one of to_replace and regex can be regex compilable"
+            )
+
+        # if regex was passed as something that can be a regex (rather than a
+        # boolean)
+        if regex_re:
+            to_replace = regex
+
+        regex = regex_re or to_rep_re
+
+        # try to get the pattern attribute (compiled re) or it's a string
+        if is_re(to_replace):
+            pattern = to_replace.pattern
+        else:
+            pattern = to_replace
+
+        # if the pattern is not empty and to_replace is either a string or a
+        # regex
+        if regex and pattern:
+            rx = re.compile(to_replace)
+        else:
+            # if the thing to replace is not a string or compiled regex call
+            # the superclass method -> to_replace is some kind of object
+            return self.replace(
+                to_replace=[to_replace], value=[value], inplace=inplace, regex=regex,
+            )
+
+        new_values = self.values if inplace else self.values.copy()
+
+        # deal with replacing values with objects (strings) that match but
+        # whose replacement is not a string (numeric, nan, object)
+        if isna(value) or not isinstance(value, str):
+
+            def re_replacer(s):
+                if is_re(rx) and isinstance(s, str):
+                    return value if rx.search(s) is not None else s
+                else:
+                    return s
+
+        else:
+            # value is guaranteed to be a string here, s can be either a string
+            # or null if it's null it gets returned
+            def re_replacer(s):
+                if is_re(rx) and isinstance(s, str):
+                    return rx.sub(value, s)
+                else:
+                    return s
+
+        f = np.vectorize(re_replacer, otypes=[self.dtype])
+
+        if filter is None:
+            filt = slice(None)
+        else:
+            filt = self.mgr_locs.isin(filter).nonzero()[0]
+
+        if mask is None:
+            new_values[filt] = f(new_values[filt])
+        else:
+            new_values[filt][mask] = f(new_values[filt][mask])
+
+        return self._constructor(new_values)
 
     # --------------------------------------------------------------------
     # Level-Centric Methods
