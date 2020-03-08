@@ -7510,8 +7510,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Notes
         -----
-        To learn more about the frequency strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+        To learn more about the frequency strings, please see this link:
+        :ref:`Timeseries <timeseries.offset_aliases>`
 
         Examples
         --------
