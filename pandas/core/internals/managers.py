@@ -152,7 +152,7 @@ class BlockManager(PandasObject):
         self._blklocs = None
 
     @classmethod
-    def _from_blocks(cls, blocks: List[Block], axes: List[Index]):
+    def from_blocks(cls, blocks: List[Block], axes: List[Index]):
         """
         Constructor for BlockManager and SingleBlockManager with same signature.
         """
@@ -197,7 +197,7 @@ class BlockManager(PandasObject):
             blocks = [make_block(arr, placement=slice(0, 0), ndim=1)]
         else:
             blocks = []
-        return type(self)._from_blocks(blocks, axes)
+        return type(self).from_blocks(blocks, axes)
 
     def __nonzero__(self) -> bool:
         return True
@@ -469,7 +469,7 @@ class BlockManager(PandasObject):
         if len(result_blocks) == 0:
             return self.make_empty(self.axes)
 
-        return type(self)._from_blocks(result_blocks, self.axes)
+        return type(self).from_blocks(result_blocks, self.axes)
 
     def quantile(
         self,
@@ -668,7 +668,7 @@ class BlockManager(PandasObject):
                 rb = new_rb
             result_blocks.extend(rb)
 
-        bm = type(self)._from_blocks(result_blocks, self.axes)
+        bm = type(self).from_blocks(result_blocks, self.axes)
         bm._consolidate_inplace()
         return bm
 
@@ -757,7 +757,7 @@ class BlockManager(PandasObject):
         axes = list(self.axes)
         axes[0] = self.items.take(indexer)
 
-        return type(self)._from_blocks(new_blocks, axes)
+        return type(self).from_blocks(new_blocks, axes)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> "BlockManager":
 
@@ -1310,7 +1310,7 @@ class BlockManager(PandasObject):
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
 
-        return type(self)._from_blocks(new_blocks, new_axes)
+        return type(self).from_blocks(new_blocks, new_axes)
 
     def _slice_take_blocks_ax0(self, slice_or_indexer, fill_tuple=None):
         """
@@ -1529,7 +1529,7 @@ class SingleBlockManager(BlockManager):
         self.blocks = tuple([block])
 
     @classmethod
-    def _from_blocks(
+    def from_blocks(
         cls, blocks: List[Block], axes: List[Index]
     ) -> "SingleBlockManager":
         """
