@@ -883,6 +883,7 @@ class TestReaders:
         expected = pd.Series([1, 2, 3], name="a")
         tm.assert_series_equal(actual, expected)
 
+
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
@@ -1048,4 +1049,4 @@ class TestExcelFileRead:
         # GH 23809
 
         # should not produce a segmentation violation
-        pd.read_excel('high_surrogate.xlsx')
+        pd.read_excel("high_surrogate.xlsx")
