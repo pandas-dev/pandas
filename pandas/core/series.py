@@ -435,6 +435,51 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self) -> Label:
+        """
+        Return the name of the Series.
+
+        The name of a Series becomes its index or column name if it is used
+        to form a DataFrame. It is also used whenever displaying the Series
+        using the interpreter, and persists through some transformations.
+
+        Returns
+        -------
+        Label (int, str or other hashable object).
+
+        See Also
+        --------
+        Index.name : Equivalent property for Index object.
+
+        Examples
+        --------
+        >>> s1 = pd.Series([1, 2, 3], dtype=np.int64)
+        >>> s1
+        0    1
+        1    2
+        2    3
+        dtype: int64
+        >>> s1.name = "Numbers"
+        >>> s1
+        0    1
+        1    2
+        2    3
+        Name: Numbers, dtype: int64
+        >>> s2 = s1.copy()
+        >>> s2.name = "More Numbers"
+        >>> pd.concat([s1, s2], axis=1)
+           Numbers  More Numbers
+        0        1             1
+        1        2             2
+        2        3             3
+
+        The name of a Series also persists through some transformations.
+
+        >>> s1.cumsum()
+        0    1
+        1    3
+        2    6
+        Name: Numbers, dtype: int64
+        """
         return self._name
 
     @name.setter
