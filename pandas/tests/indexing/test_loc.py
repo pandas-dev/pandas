@@ -863,6 +863,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         data = [1, 2]
         df = DataFrame(columns=["x", "y"])
+        df.index = df.index.astype(np.int64)
         msg = (
             r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
             r"are in the \[index\]"
@@ -975,3 +976,42 @@ def test_loc_mixed_int_float():
 
     result = ser.loc[1]
     assert result == 0
+
+
+def test_loc_with_positional_slice_deprecation():
+    # GH#31840
+    ser = pd.Series(range(4), index=["A", "B", "C", "D"])
+
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        ser.loc[:3] = 2
+
+    expected = pd.Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_slice_disallows_positional():
+    # GH#16121, GH#24612, GH#31810
+    dti = pd.date_range("2016-01-01", periods=3)
+    df = pd.DataFrame(np.random.random((3, 2)), index=dti)
+
+    ser = df[0]
+
+    msg = (
+        "cannot do slice indexing on DatetimeIndex with these "
+        r"indexers \[1\] of type int"
+    )
+
+    for obj in [df, ser]:
+        with pytest.raises(TypeError, match=msg):
+            obj.loc[1:3]
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#31840 deprecated incorrect behavior
+            obj.loc[1:3] = 1
+
+    with pytest.raises(TypeError, match=msg):
+        df.loc[1:3, 1]
+
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31840 deprecated incorrect behavior
+        df.loc[1:3, 1] = 2

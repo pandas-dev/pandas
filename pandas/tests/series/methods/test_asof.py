@@ -14,7 +14,7 @@ class TestSeriesAsof:
         N = 50
         rng = date_range("1/1/1990", periods=N, freq="53s")
         ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
+        ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
         result = ts.asof(dates)
@@ -39,8 +39,8 @@ class TestSeriesAsof:
         N = 30
         rng = date_range("1/1/1990", periods=N, freq="53s")
         ts = Series(np.arange(N), index=rng)
-        ts[5:10] = np.NaN
-        ts[15:20] = np.NaN
+        ts.iloc[5:10] = np.NaN
+        ts.iloc[15:20] = np.NaN
 
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
@@ -96,7 +96,7 @@ class TestSeriesAsof:
         N = 50
         rng = period_range("1/1/1990", periods=N, freq="H")
         ts = Series(np.random.randn(N), index=rng)
-        ts[15:30] = np.nan
+        ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="37min")
 
         result = ts.asof(dates)
@@ -114,8 +114,8 @@ class TestSeriesAsof:
         rs = result[mask]
         assert (rs == ts[lb]).all()
 
-        ts[5:10] = np.nan
-        ts[15:20] = np.nan
+        ts.iloc[5:10] = np.nan
+        ts.iloc[15:20] = np.nan
 
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])

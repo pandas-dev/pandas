@@ -40,8 +40,8 @@ def float_frame_with_na():
     """
     df = DataFrame(tm.getSeriesData())
     # set some NAs
-    df.loc[5:10] = np.nan
-    df.loc[15:20, -2:] = np.nan
+    df.iloc[5:10] = np.nan
+    df.iloc[15:20, -2:] = np.nan
     return df
 
 
@@ -74,8 +74,8 @@ def bool_frame_with_na():
     df = DataFrame(tm.getSeriesData()) > 0
     df = df.astype(object)
     # set some NAs
-    df.loc[5:10] = np.nan
-    df.loc[15:20, -2:] = np.nan
+    df.iloc[5:10] = np.nan
+    df.iloc[15:20, -2:] = np.nan
     return df
 
 

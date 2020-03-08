@@ -3137,8 +3137,18 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
 
         if com.is_null_slice(key):
+            # It doesn't matter if we are positional or label based
             indexer = key
         elif is_positional:
+            if kind == "loc":
+                # GH#16121, GH#24612, GH#31810
+                warnings.warn(
+                    "Slicing a positional slice with .loc is not supported, "
+                    "and will raise TypeError in a future version.  "
+                    "Use .loc with labels or .iloc with positions instead.",
+                    FutureWarning,
+                    stacklevel=6,
+                )
             indexer = key
         else:
             indexer = self.slice_indexer(start, stop, step, kind=kind)
