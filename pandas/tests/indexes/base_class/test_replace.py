@@ -31,6 +31,13 @@ def test_index_replace_2():
     tm.assert_equal(result, expected)
 
 
+def test_index_replace_2_1():
+    index = pd.Index([1, 2, 3])
+
+    with pytest.raises(TypeError):
+        index.replace({1: "a", 3: "c"}, "x")
+
+
 def test_index_replace_3():
     index = pd.Index([1, None, 2])
     with pytest.raises(NotImplementedError):

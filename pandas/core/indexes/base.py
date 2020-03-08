@@ -1380,13 +1380,9 @@ class Index(IndexOpsMixin, PandasObject):
                 new_index = fill_f(self.values, limit=limit, mask=mask)
                 new_index = new_index.astype(self.dtype)
 
-                # analogous conditional returns in NDFrame.replace()
-                # it feels somewhat inconsistent since this is the only
-                # condition where there's a return, but well...
                 return self._constructor(new_index)
 
             if not is_dict_like(to_replace) and not is_dict_like(regex):
-                # to_replace = [to_replace]
                 raise NotImplementedError(
                     "This is implemented in NDFrame.replace(). However,"
                     "not clear if we should include this in the API."
@@ -1407,12 +1403,7 @@ class Index(IndexOpsMixin, PandasObject):
             items = list(to_replace.items())
             keys, values = zip(*items) if items else ([], [])
 
-            are_mappings = [is_dict_like(v) for v in values]
-
-            if any(are_mappings):
-                raise NotImplementedError()
-            else:
-                to_replace, value = keys, values
+            to_replace, value = keys, values
 
             return self.replace(
                 to_replace=to_replace,
@@ -1424,17 +1415,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             if is_dict_like(to_replace):
-                if is_dict_like(value):
-                    raise NotImplementedError(
-                        "This won't happen for an Index, I think."
-                    )
-                elif not is_list_like(value):
-                    raise NotImplementedError(
-                        "This won't happen for an Index, I think."
-                    )
-                else:
-                    raise TypeError("value argument must be scalar, dict, or Series")
-            elif is_list_like(to_replace):
+                raise TypeError("If `to_replace` is a dict, `value` should be None.")
+            if is_list_like(to_replace):
                 if is_list_like(value):
                     if len(to_replace) != len(value):
                         # NOTE: Corresponding error message in core.generic.replace
@@ -1444,51 +1426,7 @@ class Index(IndexOpsMixin, PandasObject):
                             f"match length of `value=` ({len(value)})."
                         )
 
-                    # copied method from BlockManager(), temporarily here
-                    def replace_list(
-                        self, values, src_list, dest_list, inplace=False, regex=False
-                    ):
-                        from pandas.core.internals.managers import (
-                            _compare_or_regex_search,
-                        )
-                        from pandas.core.internals.managers import maybe_convert_objects
-
-                        if inplace:
-                            raise NotImplementedError(
-                                "Can't perform inplace operation on Index."
-                            )
-
-                        def comp(s, regex=False):
-                            """
-                            Generate a bool array by perform an equality check,
-                            or perform an element-wise regular expression
-                            matching.
-                            """
-                            if isna(s):
-                                return isna(values)
-                            if (
-                                isinstance(s, (Timedelta, Timestamp))
-                                and getattr(s, "tz", None) is None
-                            ):
-
-                                return _compare_or_regex_search(
-                                    maybe_convert_objects(values), s.asm8, regex
-                                )
-                            return _compare_or_regex_search(values, s, regex)
-
-                        masks = [comp(s, regex) for s in src_list]
-
-                        new_index = self.copy()  # NOTE: no inplace, right?
-                        zipped = zip(src_list, dest_list)
-                        for i, (_, dest) in enumerate(zipped):
-                            m = masks[i]
-                            if m.any():
-                                new_index = new_index.putmask(mask=m, value=dest)
-
-                        return new_index
-
-                    new_index = replace_list(
-                        self=self,
+                    new_index = self.replace_list(
                         values=self.values,
                         src_list=to_replace,
                         dest_list=value,
@@ -1519,6 +1457,40 @@ class Index(IndexOpsMixin, PandasObject):
                     filter=None,
                     regex=regex,
                 )
+
+        return new_index
+
+    def replace_list(self, values, src_list, dest_list, inplace=False, regex=False):
+        from pandas.core.internals.managers import _compare_or_regex_search
+        from pandas.core.internals.managers import maybe_convert_objects
+
+        if inplace:
+            raise TypeError("Index can't be updated inplace.")
+
+        def comp(s, regex=False):
+            """
+            Generate a bool array by perform an equality check,
+            or perform an element-wise regular expression
+            matching.
+            """
+            if isna(s):
+                return isna(values)
+            if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
+
+                return _compare_or_regex_search(
+                    maybe_convert_objects(values), s.asm8, regex
+                )
+            return _compare_or_regex_search(values, s, regex)
+
+        masks = [comp(s, regex) for s in src_list]
+
+        # This is never inplace.
+        new_index = self.copy()
+        zipped = zip(src_list, dest_list)
+        for i, (_, dest) in enumerate(zipped):
+            m = masks[i]
+            if m.any():
+                new_index = new_index.putmask(mask=m, value=dest)
 
         return new_index
 
@@ -1555,8 +1527,8 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         a new block, the result after replacing
         """
-        # inplace = validate_bool_kwarg(inplace, "inplace")
-        # import ipdb; ipdb.set_trace()
+        if inplace:
+            raise TypeError("Index can't be updated inplace.")
 
         # to_replace is regex compilable
         to_rep_re = regex and is_re_compilable(to_replace)
