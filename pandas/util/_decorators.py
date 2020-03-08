@@ -250,7 +250,7 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
-    This decorator will add a variable "_docstring_components" to the wrapped 
+    This decorator will add a variable "_docstring_components" to the wrapped
     function to keep track the original docstring template for potential usage.
     If it should be consider as a template, it will be saved as a string.
     Otherwise, it will be saved as callable, and later user __doc__ and dedent
