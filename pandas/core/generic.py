@@ -93,7 +93,6 @@ from pandas.core.indexes.api import (
     MultiIndex,
     RangeIndex,
     ensure_index,
-    transform_index,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -984,7 +983,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     ]
                     raise KeyError(f"{missing_labels} not found in axis")
 
-            new_index = transform_index(ax, f, level)
+            new_index = ax._transform_index(f, level)
             result.set_axis(new_index, axis=axis_no, inplace=True)
             result._clear_item_cache()
 

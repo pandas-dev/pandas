@@ -46,7 +46,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
-from pandas.core.indexes.api import transform_index
 from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
@@ -2023,4 +2022,4 @@ def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
     lrenamer = partial(renamer, suffix=lsuffix)
     rrenamer = partial(renamer, suffix=rsuffix)
 
-    return (transform_index(left, lrenamer), transform_index(right, rrenamer))
+    return (left._transform_index(lrenamer), right._transform_index(rrenamer))
