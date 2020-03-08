@@ -73,7 +73,7 @@ class disallow:
                 # e.g. this is normally a disallowed function on
                 # object arrays that contain strings
                 if is_object_dtype(args[0]):
-                    raise TypeError(e)
+                    raise TypeError(e) from e
                 raise
 
         return _f
@@ -607,9 +607,9 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
     if not is_float_dtype(values.dtype):
         try:
             values = values.astype("f8")
-        except ValueError:
+        except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
-            raise TypeError
+            raise TypeError from err
         if mask is not None:
             values[mask] = np.nan
 
@@ -981,7 +981,7 @@ def nanskew(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 2])
+    >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
@@ -1065,7 +1065,7 @@ def nankurt(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 3, 2])
+    >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
@@ -1361,9 +1361,9 @@ def _ensure_numeric(x):
             except (TypeError, ValueError):
                 try:
                     x = x.astype(np.float64)
-                except ValueError:
+                except ValueError as err:
                     # GH#29941 we get here with object arrays containing strs
-                    raise TypeError(f"Could not convert {x} to numeric")
+                    raise TypeError(f"Could not convert {x} to numeric") from err
             else:
                 if not np.any(np.imag(x)):
                     x = x.real
@@ -1374,9 +1374,9 @@ def _ensure_numeric(x):
             # e.g. "1+1j" or "foo"
             try:
                 x = complex(x)
-            except ValueError:
+            except ValueError as err:
                 # e.g. "foo"
-                raise TypeError(f"Could not convert {x} to numeric")
+                raise TypeError(f"Could not convert {x} to numeric") from err
     return x
 
 

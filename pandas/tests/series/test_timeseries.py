@@ -1,21 +1,11 @@
-from datetime import datetime
 from io import StringIO
 
 import numpy as np
-import pytest
 
 from pandas._libs.tslib import iNaT
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    timedelta_range,
-)
+from pandas import DataFrame, DatetimeIndex, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
@@ -57,39 +47,6 @@ class TestTimeSeries:
             assert np.isnan(corr2)
         else:
             assert corr1 == corr2
-
-    def test_first_last_valid(self, datetime_series):
-        ts = datetime_series.copy()
-        ts[:5] = np.NaN
-
-        index = ts.first_valid_index()
-        assert index == ts.index[5]
-
-        ts[-5:] = np.NaN
-        index = ts.last_valid_index()
-        assert index == ts.index[-6]
-
-        ts[:] = np.nan
-        assert ts.last_valid_index() is None
-        assert ts.first_valid_index() is None
-
-        ser = Series([], index=[], dtype=object)
-        assert ser.last_valid_index() is None
-        assert ser.first_valid_index() is None
-
-        # GH12800
-        empty = Series(dtype=object)
-        assert empty.last_valid_index() is None
-        assert empty.first_valid_index() is None
-
-        # GH20499: its preserves freq with holes
-        ts.index = date_range("20110101", periods=len(ts), freq="B")
-        ts.iloc[1] = 1
-        ts.iloc[-2] = 1
-        assert ts.first_valid_index() == ts.index[1]
-        assert ts.last_valid_index() == ts.index[-2]
-        assert ts.first_valid_index().freq == ts.index.freq
-        assert ts.last_valid_index().freq == ts.index.freq
 
     def test_mpl_compat_hack(self, datetime_series):
 
@@ -224,82 +181,6 @@ class TestTimeSeries:
 
         # does .resample() set .freq correctly?
         assert df.resample("D").asfreq().index.freq == "D"
-
-    def test_pickle(self):
-
-        # GH4606
-        p = tm.round_trip_pickle(NaT)
-        assert p is NaT
-
-        idx = pd.to_datetime(["2013-01-01", NaT, "2014-01-06"])
-        idx_p = tm.round_trip_pickle(idx)
-        assert idx_p[0] == idx[0]
-        assert idx_p[1] is NaT
-        assert idx_p[2] == idx[2]
-
-        # GH11002
-        # don't infer freq
-        idx = date_range("1750-1-1", "2050-1-1", freq="7D")
-        idx_p = tm.round_trip_pickle(idx)
-        tm.assert_index_equal(idx, idx_p)
-
-    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Eastern"])
-    def test_setops_preserve_freq(self, tz):
-        rng = date_range("1/1/2000", "1/1/2002", name="idx", tz=tz)
-
-        result = rng[:50].union(rng[50:100])
-        assert result.name == rng.name
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
-
-        result = rng[:50].union(rng[30:100])
-        assert result.name == rng.name
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
-
-        result = rng[:50].union(rng[60:100])
-        assert result.name == rng.name
-        assert result.freq is None
-        assert result.tz == rng.tz
-
-        result = rng[:50].intersection(rng[25:75])
-        assert result.name == rng.name
-        assert result.freqstr == "D"
-        assert result.tz == rng.tz
-
-        nofreq = DatetimeIndex(list(rng[25:75]), name="other")
-        result = rng[:50].union(nofreq)
-        assert result.name is None
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
-
-        result = rng[:50].intersection(nofreq)
-        assert result.name is None
-        assert result.freq == rng.freq
-        assert result.tz == rng.tz
-
-    def test_from_M8_structured(self):
-        dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
-        arr = np.array(dates, dtype=[("Date", "M8[us]"), ("Forecasting", "M8[us]")])
-        df = DataFrame(arr)
-
-        assert df["Date"][0] == dates[0][0]
-        assert df["Forecasting"][0] == dates[0][1]
-
-        s = Series(arr["Date"])
-        assert isinstance(s[0], Timestamp)
-        assert s[0] == dates[0][0]
-
-    def test_get_level_values_box(self):
-        from pandas import MultiIndex
-
-        dates = date_range("1/1/2000", periods=4)
-        levels = [dates, [0, 1]]
-        codes = [[0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]]
-
-        index = MultiIndex(levels=levels, codes=codes)
-
-        assert isinstance(index.get_level_values(0)[0], Timestamp)
 
     def test_view_tz(self):
         # GH#24024

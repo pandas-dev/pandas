@@ -7,7 +7,7 @@ Release Notes
 *************
 
 This is the list of changes to pandas between each release. For full details,
-see the commit logs at https://github.com/pandas-dev/pandas. For install and
+see the `commit logs <https://github.com/pandas-dev/pandas/commits/>`_. For install and
 upgrade instructions, see :ref:`install`.
 
 Version 1.1
@@ -24,9 +24,9 @@ Version 1.0
 .. toctree::
    :maxdepth: 2
 
-   v1.0.0
-   v1.0.1
    v1.0.2
+   v1.0.1
+   v1.0.0
 
 Version 0.25
 ------------

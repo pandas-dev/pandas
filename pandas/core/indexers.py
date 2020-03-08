@@ -437,10 +437,10 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     elif is_integer_dtype(dtype):
         try:
             indexer = np.asarray(indexer, dtype=np.intp)
-        except ValueError:
+        except ValueError as err:
             raise ValueError(
                 "Cannot index with an integer indexer containing NA values"
-            )
+            ) from err
     else:
         raise IndexError("arrays used as indices must be of integer or boolean type")
 
