@@ -1418,8 +1418,8 @@ class Index(IndexOpsMixin, PandasObject):
                         # NOTE: Corresponding error message in core.generic.replace
                         #       is not clear. Let's decide on one.
                         raise ValueError(
-                            f"Length of `to_replace=` ({len(to_replace)}) should "
-                            f"match length of `value=` ({len(value)})."
+                            f"Length of 'to_replace=' ({len(to_replace)}) should "
+                            f"match length of 'value=' ({len(value)})."
                         )
 
                     new_index = self.replace_list(
