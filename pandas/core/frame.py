@@ -1407,8 +1407,9 @@ class DataFrame(NDFrame):
                 "options: ('dict', list, 'series', 'split', 'records', 'index') "
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
-                DeprecationWarning, 
-                stacklevel=2)
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         if orient.startswith("d"):
             orient = "dict"

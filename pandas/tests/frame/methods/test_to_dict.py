@@ -79,7 +79,6 @@ class TestDataFrameToDict:
         with pytest.warns(DeprecationWarning):
             df.to_dict(orient=orient)
 
-
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
         # orient= should only take the listed options
