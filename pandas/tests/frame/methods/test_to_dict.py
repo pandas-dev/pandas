@@ -64,15 +64,21 @@ class TestDataFrameToDict:
         with pytest.raises(ValueError, match=msg):
             df.to_dict(orient="index")
 
-    @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i", "xinvalid"])
+    @pytest.mark.parametrize("orient", ["xinvalid"])
     def test_to_dict_invalid_orient(self, orient):
-        # to_dict(orient='d') should fail, as should only take the listed options
-        # see GH#32515
-
         df = DataFrame({"A": [0, 1]})
         msg = f"orient '{orient}' not understood"
         with pytest.raises(ValueError, match=msg):
             df.to_dict(orient=orient)
+
+    @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
+    def test_to_dict_short_orient(self, orient):
+        # to_dict(orient='d') or any other short option should raise DeprecationWarning
+        # see GH#32515
+        df = DataFrame({"A": [0, 1]})
+        with pytest.warns(DeprecationWarning):
+            df.to_dict(orient=orient)
+
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):

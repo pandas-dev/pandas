@@ -1400,6 +1400,29 @@ class DataFrame(NDFrame):
         # GH16122
         into_c = com.standardize_mapping(into)
         orient = orient.lower()
+        # GH32515
+        if orient not in {"dict", "list", "series", "split", "records", "index"}:
+            warnings.warn(
+                "Using short name for 'orient' is deprecated. Only the "
+                "options: ('dict', list, 'series', 'split', 'records', 'index') "
+                "will be used in a future version. Use one of the above "
+                "to silence this warning.",
+                DeprecationWarning, 
+                stacklevel=2)
+
+        if orient.startswith("d"):
+            orient = "dict"
+        elif orient.startswith("l"):
+            orient = "list"
+        elif orient.startswith("sp"):
+            orient = "split"
+        elif orient.startswith("s"):
+            orient = "series"
+        elif orient.startswith("r"):
+            orient = "records"
+        elif orient.startswith("i"):
+            orient = "index"
+
         if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
 
