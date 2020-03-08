@@ -575,16 +575,12 @@ class TestGrouping:
             frame.groupby(by=None, level=None)
 
     @pytest.mark.parametrize(
-        "sort,labels",
-        [
-            [True, [2, 2, 2, 0, 0, 1, 1, 3, 3, 3]],
-            [False, [0, 0, 0, 1, 1, 2, 2, 3, 3, 3]],
-        ],
+        "sort", [True, False],
     )
-    def test_level_preserve_order(self, sort, labels, mframe):
+    def test_level_preserve_order(self, sort, mframe):
         # GH 17537
         grouped = mframe.groupby(level=0, sort=sort)
-        exp_labels = np.array(labels, np.intp)
+        exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], np.intp)
         tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 
     def test_grouping_labels(self, mframe):

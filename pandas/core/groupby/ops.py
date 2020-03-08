@@ -281,7 +281,7 @@ class BaseGrouper:
         ping = self.groupings[0]
         all_codes = self.codes
         if len(all_codes) > 1 or not isinstance(
-            ping.grouper, (Categorical, CategoricalIndex)
+            ping.grouper, (Categorical, CategoricalIndex, BinGrouper)
         ):
             group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self.sort)
