@@ -1427,10 +1427,7 @@ class Index(IndexOpsMixin, PandasObject):
                         )
 
                     new_index = self.replace_list(
-                        values=self.values,
-                        src_list=to_replace,
-                        dest_list=value,
-                        regex=regex,
+                        src_list=to_replace, dest_list=value, regex=regex,
                     )
 
                 else:
@@ -1455,7 +1452,26 @@ class Index(IndexOpsMixin, PandasObject):
 
         return new_index
 
-    def replace_list(self, values, src_list, dest_list, regex=False):
+    def replace_list(self, src_list, dest_list, regex=False):
+        """
+        Replace elements of the index that are found in the `src_list` with the
+        elements in `dest_list`.
+
+        Parameters
+        ----------
+        src_list : list
+            List of elements to be replaced.
+        dest_list : list
+            List of elements to be replaced.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+
+        Returns
+        -------
+        Index
+            The same type as the caller.
+        """
+
         from pandas.core.internals.managers import _compare_or_regex_search
         from pandas.core.internals.managers import maybe_convert_objects
 
@@ -1466,13 +1482,13 @@ class Index(IndexOpsMixin, PandasObject):
             matching.
             """
             if isna(s):
-                return isna(values)
+                return isna(self.values)
             if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
 
                 return _compare_or_regex_search(
-                    maybe_convert_objects(values), s.asm8, regex
+                    maybe_convert_objects(self.values), s.asm8, regex
                 )
-            return _compare_or_regex_search(values, s, regex)
+            return _compare_or_regex_search(self.values, s, regex)
 
         masks = [comp(s, regex) for s in src_list]
 
