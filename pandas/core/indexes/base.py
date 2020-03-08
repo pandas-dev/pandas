@@ -76,6 +76,10 @@ from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.internals.managers import (
+    _compare_or_regex_search,
+    maybe_convert_objects,
+)
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
@@ -1389,8 +1393,8 @@ class Index(IndexOpsMixin, PandasObject):
             if not is_dict_like(to_replace):
                 if not is_dict_like(regex):
                     raise TypeError(
-                        'If "to_replace" and "value" are both None '
-                        'and "to_replace" is not a list, then '
+                        "If 'to_replace' and 'value' are both None "
+                        "and 'to_replace' is not a list, then "
                         "regex must be a mapping"
                     )
                 to_replace = regex
@@ -1411,7 +1415,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             if is_dict_like(to_replace):
-                raise TypeError("If `to_replace` is a dict, `value` should be None.")
+                raise TypeError("If 'to_replace' is a dict, 'value' should be None.")
             if is_list_like(to_replace):
                 if is_list_like(value):
                     if len(to_replace) != len(value):
@@ -1467,9 +1471,6 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             The same type as the caller.
         """
-
-        from pandas.core.internals.managers import _compare_or_regex_search
-        from pandas.core.internals.managers import maybe_convert_objects
 
         def comp(s, regex=False):
             """
