@@ -75,7 +75,7 @@ Filtering in SQL is done via a WHERE clause.
     LIMIT 5;
 
 DataFrames can be filtered in multiple ways; the most intuitive of which is using
-:ref:`boolean indexing <boolean.indexing>`_.
+:ref:`boolean indexing <boolean.indexing>`.
 
 .. ipython:: python
 
