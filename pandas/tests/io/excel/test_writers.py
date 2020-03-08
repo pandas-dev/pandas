@@ -18,6 +18,7 @@ from pandas.io.excel import (
     _OpenpyxlWriter,
     _XlsxWriter,
     _XlwtWriter,
+    _ODSWriter,
     register_writer,
 )
 
@@ -49,7 +50,8 @@ def set_engine(engine, ext):
 
 
 @td.skip_if_no("xlrd")
-@pytest.mark.parametrize("ext", [".xls", ".xlsx", ".xlsm"])
+@td.skip_if_no("odf")
+@pytest.mark.parametrize("ext", [".xls", ".xlsx", ".xlsm", ".ods"])
 class TestRoundTrip:
     @td.skip_if_no("xlwt")
     @td.skip_if_no("openpyxl")
@@ -297,6 +299,7 @@ class TestRoundTrip:
 
 
 @td.skip_if_no("xlrd")
+@td.skip_if_no("odf")
 @pytest.mark.parametrize(
     "engine,ext",
     [
@@ -304,6 +307,7 @@ class TestRoundTrip:
         pytest.param("openpyxl", ".xlsm", marks=td.skip_if_no("openpyxl")),
         pytest.param("xlwt", ".xls", marks=td.skip_if_no("xlwt")),
         pytest.param("xlsxwriter", ".xlsx", marks=td.skip_if_no("xlsxwriter")),
+        pytest.param("odf", ".ods"),
     ],
 )
 @pytest.mark.usefixtures("set_engine")

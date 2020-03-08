@@ -533,13 +533,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, openpyxl for xlsx.
+    Default is to use xlwt for xls, openpyxl for xlsx, odf for ods.
     See DataFrame.to_excel for typical usage.
 
     Parameters
     ----------
     path : str
-        Path to xls or xlsx file.
+        Path to xls or xlsx or ods file.
     engine : str (optional)
         Engine to use for writing. If None, defaults to
         ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
@@ -789,7 +789,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    io : str, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_io : str, path object (pathlib.Path or py._path.local.LocalPath),
          a file-like object, xlrd workbook or openpypl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
@@ -816,18 +816,22 @@ class ExcelFile:
         "pyxlsb": _PyxlsbReader,
     }
 
-    def __init__(self, io, engine=None):
+    def __init__(self, path_or_io, engine=None):
         if engine is None:
             engine = "xlrd"
+            if isinstance(path_or_io, str):
+                ext = os.path.splitext(path_or_io)[-1][1:]
+                if ext == "ods":
+                    engine = "odf"
         if engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
         self.engine = engine
 
         # Could be a str, ExcelFile, Book, etc.
-        self.io = io
+        self.io = path_or_io
         # Always a string
-        self._io = stringify_path(io)
+        self._io = stringify_path(path_or_io)
 
         self._reader = self._engines[engine](self._io)
 
