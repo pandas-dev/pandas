@@ -33,6 +33,9 @@ class _ODFReader(_BaseExcelReader):
 
         return load(filepath_or_buffer)
 
+    def close(self):
+        pass
+
     @property
     def empty_value(self) -> str:
         """Property for compat with other readers."""

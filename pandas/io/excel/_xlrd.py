@@ -36,6 +36,9 @@ class _XlrdReader(_BaseExcelReader):
         else:
             return open_workbook(filepath_or_buffer)
 
+    def close(self):
+        pass
+
     @property
     def sheet_names(self):
         return self.book.sheet_names()
