@@ -750,9 +750,8 @@ class TestGroupBy:
         grouper = pd.Grouper(freq="D")
 
         grouped = data_frame.groupby(grouper)
-
         result = grouped.count()
-
         grouped = data_frame.groupby([grouper])
         expected = grouped.count()
+
         tm.assert_frame_equal(result, expected)
