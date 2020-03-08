@@ -112,7 +112,7 @@ class MPLPlot:
 
         self.data = data
         self.by = by
-        self.column = [column] if not isinstance(column, list) else column
+        self.columns = [column] if not isinstance(column, list) else column
 
         self.kind = kind
 
@@ -385,6 +385,28 @@ class MPLPlot:
             else:
                 return self.axes[0]
 
+    def _transform_grouped_data(self, data: ABCDataFrame) -> ABCDataFrame:
+        """
+        Internal function to transform grouped DataFrame object to a normal
+        DataFrame to facilitate further manipulation.
+
+        The input is the original DataFrame to plot, and output is the reconstructed
+        DataFrame with MultiIndex columns. The first level of MI is unique values of
+        groups, and second level of MI is the columns selected by users.
+        """
+        grouped = data.groupby(self.by)
+        self._grouped_data_size = len(grouped)
+
+        data_list = []
+        for key, group in grouped:
+            columns = MultiIndex.from_product([[key], self.columns])
+            sub_group = group[self.columns]
+            sub_group.columns = columns
+            data_list.append(sub_group)
+
+        data = concat(data_list, axis=1)
+        return data
+
     def _compute_plot_data(self):
         data = self.data
 
@@ -394,20 +416,12 @@ class MPLPlot:
                 label = "None"
             data = data.to_frame(name=label)
 
-        # GH15079 restructure data if by is defined
+        # GH15079 reconstruct data if by is defined
         if self.by is not None:
+
+            # Set subplots to True if self.by is defined
             self.subplots = True
-            grouped = data.groupby(self.by)
-            self._grouped_data_size = len(grouped)
-
-            data_list = []
-            for key, group in grouped:
-                columns = MultiIndex.from_product([[key], self.column])
-                sub_group = group[self.column]
-                sub_group.columns = columns
-                data_list.append(sub_group)
-
-            data = concat(data_list, axis=1)
+            data = self._transform_grouped_data(data)
 
         # GH16953, _convert is needed as fallback, for ``Series``
         # with ``dtype == object``

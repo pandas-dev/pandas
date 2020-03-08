@@ -32,7 +32,7 @@ class HistPlot(LinePlot):
                 self.bins = self._caculcate_bins(self.data)
 
             else:
-                grouped = self.data.groupby(self.by)[self.column]
+                grouped = self.data.groupby(self.by)[self.columns]
                 bins_list = []
                 for key, group in grouped:
                     bins_list.append(self._caculcate_bins(group))
@@ -100,7 +100,7 @@ class HistPlot(LinePlot):
             # when by is applied, label should be columns that are grouped
             if self.by is not None:
                 kwds["bins"] = kwds["bins"][i]
-                kwds["label"] = self.column
+                kwds["label"] = self.columns
                 kwds.pop("color")
 
             y = self._reformat_y(y)
