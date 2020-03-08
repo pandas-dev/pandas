@@ -1450,7 +1450,7 @@ class Index(IndexOpsMixin, PandasObject):
                     )
             else:
                 new_index = self._replace_single(
-                    to_replace=to_replace, value=value, filter=None, regex=regex,
+                    to_replace=to_replace, value=value, regex=regex,
                 )
 
         return new_index
@@ -1487,7 +1487,7 @@ class Index(IndexOpsMixin, PandasObject):
         return new_index
 
     def _replace_single(
-        self, to_replace, value, filter=None, regex=False, convert=True, mask=None,
+        self, to_replace, value, regex=False, convert=True, mask=None,
     ):
         """
         Replace elements by the given value.
@@ -1498,7 +1498,6 @@ class Index(IndexOpsMixin, PandasObject):
             Scalar to replace or regular expression to match.
         value : object
             Replacement object.
-        filter : list, optional
         regex : bool, default False
             If true, perform regular expression substitution.
         convert : bool, default True
@@ -1568,15 +1567,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         f = np.vectorize(re_replacer, otypes=[self.dtype])
 
-        if filter is None:
-            filt = slice(None)
-        else:
-            filt = self.mgr_locs.isin(filter).nonzero()[0]
-
         if mask is None:
-            new_values[filt] = f(new_values[filt])
+            new_values = f(new_values)
         else:
-            new_values[filt][mask] = f(new_values[filt][mask])
+            new_values[mask] = f(new_values[mask])
 
         return self._constructor(new_values)
 
