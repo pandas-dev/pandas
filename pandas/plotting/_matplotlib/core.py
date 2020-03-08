@@ -241,6 +241,29 @@ class MPLPlot:
                         )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
+        """
+        Iterate data to yield inputs for plotting methods.
+
+        When self.by is not defined, iter_data is served as a DataFrame, and column
+        name and Series or values of Series are yielded.
+
+        When self.by is defined, since values of multiple columns might have to be
+        yielded at the same time to visualize multiple plots, `df.items()` cannot
+        achieve it, so here to convert iter_data to dictionaries to provide input
+        for plot methods, and column name and DataFrame or values of DataFrame are
+        yielded.
+
+        Parameters
+        ----------
+        data: DataFrame
+        keep_index: bool, if to keep original index or not
+        fillna: values used to fill NAs, default is None
+
+        Returns
+        -------
+        If self.by is None, return column name and Series/values of Series; If self.by
+        is not None, return column name and DataFrame/values of DataFrame.
+        """
         if data is None:
             data = self.data
         if fillna is not None:
