@@ -637,7 +637,7 @@ class TestReaders:
         from py.path import local as LocalPath
 
         str_path = os.path.join("test1" + read_ext)
-        with open(str_path, 'rb') as f:
+        with open(str_path, "rb") as f:
             x = pd.read_excel(f, "Sheet1", index_col=0)
             del x
             # should not throw an exception because the passed file was closed
