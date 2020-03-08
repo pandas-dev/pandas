@@ -33,11 +33,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
-<<<<<<< HEAD
-=======
-    is_datetime64tz_dtype,
     is_dict_like,
->>>>>>> initial coommit & test
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
