@@ -5212,20 +5212,6 @@ class DataFrame(NDFrame):
 
         return new_data
 
-    def _combine_match_index(self, other: Series, func):
-        # at this point we have `self.index.equals(other.index)`
-
-        if ops.should_series_dispatch(self, other, func):
-            # operate column-wise; avoid costly object-casting in `.values`
-            new_data = ops.dispatch_to_series(self, other, func)
-        else:
-            # fastpath --> operate directly on values
-            other_vals = other.values.reshape(-1, 1)
-            with np.errstate(all="ignore"):
-                new_data = func(self.values, other_vals)
-            new_data = dispatch_fill_zeros(func, self.values, other_vals, new_data)
-        return new_data
-
     def _construct_result(self, result) -> "DataFrame":
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
