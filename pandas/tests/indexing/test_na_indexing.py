@@ -1,5 +1,3 @@
-from contextlib import nullcontext as do_not_raise
-
 import pytest
 
 import pandas as pd
@@ -54,11 +52,10 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
 
     if indexer_class is pd.Series:
         msg = "iLocation based boolean indexing cannot use an indexable as a mask"
-        expectation = pytest.raises(ValueError, match=msg)
+        with pytest.raises(ValueError, match=msg):
+            result = obj.iloc[mask]
+            tm.assert_equal(result, expected)
     else:
-        expectation = do_not_raise()
-
-    with expectation:
         result = obj.iloc[mask]
         tm.assert_equal(result, expected)
 
