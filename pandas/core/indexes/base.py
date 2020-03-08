@@ -76,10 +76,6 @@ from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
-from pandas.core.internals.managers import (
-    _compare_or_regex_search,
-    maybe_convert_objects,
-)
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
@@ -1478,6 +1474,12 @@ class Index(IndexOpsMixin, PandasObject):
             or perform an element-wise regular expression
             matching.
             """
+
+            from pandas.core.internals.managers import (
+                _compare_or_regex_search,
+                maybe_convert_objects,
+            )
+
             if isna(s):
                 return isna(self.values)
             if isinstance(s, (Timedelta, Timestamp)) and getattr(s, "tz", None) is None:
