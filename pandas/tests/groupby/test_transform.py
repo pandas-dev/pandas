@@ -1198,7 +1198,7 @@ def test_transform_lambda_indexing():
     tm.assert_frame_equal(result, expected)
 
 
-def test_me():
+def test_categorical_and_not_categorical_key():
     df = pd.DataFrame(
         {
             "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
@@ -1207,8 +1207,6 @@ def test_me():
         }
     )
     result = df.groupby(["A", "C"]).transform("sum")["B"]
-    # breakpoint()
     df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]})
     expected = df.groupby(["A", "C"]).transform("sum")["B"]
-    # breakpoint()
     tm.assert_series_equal(result, expected)

@@ -57,6 +57,7 @@ from pandas.core.aggregation import (
     normalize_keyword_aggregation,
 )
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -69,7 +70,12 @@ from pandas.core.groupby.groupby import (
     _transform_template,
     get_groupby,
 )
-from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+    all_indexes_same,
+)
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
@@ -1453,10 +1459,14 @@ class DataFrameGroupBy(GroupBy):
         # by take operation
         ids, _, ngroup = self.grouper.group_info
 
-        # Deal with categorical case
-        ids = np.array([result.index.get_loc(i) for i in self.grouper.result_index])[
-            ids
-        ]
+        if any(
+            isinstance(ping.grouper, (Categorical, CategoricalIndex))
+            for ping in self.grouper.groupings
+        ):
+            ids = np.array(
+                [result.index.get_loc(i) for i in self.grouper.result_index]
+            )[ids]
+
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)
