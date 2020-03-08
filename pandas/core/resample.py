@@ -885,6 +885,7 @@ class Resampler(_GroupBy, ShallowMixin):
                 result = DataFrame(
                     [], index=result.index, columns=result.columns, dtype="int64"
                 )
+
         return result
 
     def quantile(self, q=0.5, **kwargs):
