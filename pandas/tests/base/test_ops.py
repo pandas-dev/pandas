@@ -726,19 +726,21 @@ class TestIndexOps(Ops):
         # test here to confirm these works as the same
 
         obj = index_or_series_obj
-        if len(obj) == 0:
-            pytest.skip("Test doesn't make sense on empty data")
-        elif isinstance(obj, ABCMultiIndex):
+        if isinstance(obj, ABCMultiIndex):
             pytest.skip("MultiIndex doesn't support isna")
 
         # values will not be changed
-        result = obj.fillna(obj.values[0])
+        fill_value = obj.values[0] if len(obj) > 0 else 0
+        result = obj.fillna(fill_value)
         if isinstance(obj, Index):
             tm.assert_index_equal(obj, result)
         else:
             tm.assert_series_equal(obj, result)
 
         # check shallow_copied
+        if isinstance(obj, Series) and len(obj) == 0:
+            # TODO: GH-32543
+            pytest.xfail("Shallow copy for empty Series is bugged")
         assert obj is not result
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
