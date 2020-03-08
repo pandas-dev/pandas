@@ -1180,7 +1180,7 @@ class MultiIndex(Index):
                 sortorder=self.sortorder,
                 verify_integrity=False,
             )
-            return mi.values
+            return mi._values
 
     def format(
         self,
@@ -1419,7 +1419,7 @@ class MultiIndex(Index):
         except TypeError:
 
             # we have mixed types and np.lexsort is not happy
-            return Index(self.values).is_monotonic
+            return Index(self._values).is_monotonic
 
     @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
@@ -1612,7 +1612,7 @@ class MultiIndex(Index):
                ('bar', 'baz'), ('bar', 'qux')],
               dtype='object')
         """
-        return Index(self.values, tupleize_cols=False)
+        return Index(self._values, tupleize_cols=False)
 
     @property
     def is_all_dates(self) -> bool:
@@ -1914,7 +1914,7 @@ class MultiIndex(Index):
                 arrays.append(label.append(appended))
             return MultiIndex.from_arrays(arrays, names=self.names)
 
-        to_concat = (self.values,) + tuple(k._values for k in other)
+        to_concat = (self._values,) + tuple(k._values for k in other)
         new_tuples = np.concatenate(to_concat)
 
         # if all(isinstance(x, MultiIndex) for x in other):
@@ -1924,7 +1924,7 @@ class MultiIndex(Index):
             return Index(new_tuples)
 
     def argsort(self, *args, **kwargs) -> np.ndarray:
-        return self.values.argsort(*args, **kwargs)
+        return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats, axis=None):
@@ -2368,7 +2368,7 @@ class MultiIndex(Index):
 
                 # let's instead try with a straight Index
                 if method is None:
-                    return Index(self.values).get_indexer(
+                    return Index(self._values).get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
                     )
 
@@ -3456,8 +3456,8 @@ class MultiIndex(Index):
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):
         if level is None:
-            values = MultiIndex.from_tuples(values, names=self.names).values
-            return algos.isin(self.values, values)
+            values = MultiIndex.from_tuples(values, names=self.names)._values
+            return algos.isin(self._values, values)
         else:
             num = self._get_level_number(level)
             levs = self.get_level_values(num)

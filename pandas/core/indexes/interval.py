@@ -404,7 +404,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
-            new_values = self.values.astype(dtype, copy=copy)
+            new_values = self._values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values)
         return Index.astype(self, dtype, copy=copy)
@@ -1090,9 +1090,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
             # GH 19101: ensure empty results have correct dtype
             if result.empty:
-                result = result.values.astype(self.dtype.subtype)
+                result = result._values.astype(self.dtype.subtype)
             else:
-                result = result.values
+                result = result._values
 
             return type(self).from_tuples(result, closed=self.closed, name=result_name)
 
