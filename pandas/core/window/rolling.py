@@ -819,8 +819,8 @@ class Window(_Window):
     By default, the result is set to the right edge of the window. This can be
     changed to the center of the window by setting ``center=True``.
 
-    To learn more about the offsets & frequency strings, please see this link
-    :ref:`Timeseries <timeseries.offset_aliases>`
+    To learn more about the offsets & frequency strings, please see `this link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     The recognized win_types are:
 

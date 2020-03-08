@@ -183,8 +183,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     Notes
     -----
-    To learn more about the frequency strings, please see
-    :ref:`Timeseries <timeseries.offset_aliases>`
+    To learn more about the frequency strings, please see `this link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
     """
 
     _typ = "datetimeindex"
@@ -856,8 +856,8 @@ def date_range(
     ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
     ``start`` and ``end`` (closed on both sides).
 
-    To learn more about the frequency strings, please see
-    :ref:`Timeseries <timeseries.offset_aliases>`
+    To learn more about the frequency strings, please see `this link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
@@ -1026,8 +1026,8 @@ def bdate_range(
     for ``bdate_range``.  Use ``date_range`` if specifying ``freq`` is not
     desired.
 
-    To learn more about the frequency strings, please see
-    :ref:`Timeseries <timeseries.offset_aliases>`
+    To learn more about the frequency strings, please see `this link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
