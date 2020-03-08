@@ -290,11 +290,7 @@ def _get_values(
     if needs_i8_conversion(values):
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
-        if isinstance(values, np.ndarray):
-            values = values.view(np.int64)
-        else:
-            # DatetimeArray or TimedeltaArray, use asi8 to get a view
-            values = values.asi8
+        values = np.asarray(values.view("i8"))
 
     dtype_ok = _na_ok_dtype(dtype)
 
@@ -327,7 +323,6 @@ def _get_values(
 
 
 def _na_ok_dtype(dtype) -> bool:
-    # TODO: what about datetime64tz?  PeriodDtype?
     if needs_i8_conversion(dtype):
         return False
     return not issubclass(dtype.type, np.integer)
