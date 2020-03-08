@@ -43,7 +43,7 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
 
     msg = "iLocation based boolean indexing cannot use an indexable as a mask"
     if indexer_class is pd.Series:
-        with pytest.raises((ValueError, TypeError), match=msg):
+        with pytest.raises(ValueError, match=msg):
             result = ser.iloc[mask]
             tm.assert_equal(result, expected)
     else:
@@ -91,7 +91,7 @@ def test_series_mask_boolean_empty(dtype, indexer_class, frame):
 
     msg = "iLocation based boolean indexing cannot use an indexable as a mask"
     if indexer_class is pd.Series:
-        with pytest.raises((ValueError, TypeError), match=msg):
+        with pytest.raises(ValueError, match=msg):
             result = ser.iloc[mask]
             tm.assert_equal(result, expected)
     else:
