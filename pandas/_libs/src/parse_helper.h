@@ -34,6 +34,10 @@ int floatify(PyObject *str, double *result, int *maybe_int) {
         data = PyBytes_AS_STRING(str);
     } else if (PyUnicode_Check(str)) {
         tmp = PyUnicode_AsUTF8String(str);
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "UTF8 decode error");
+            return -1;
+        }
         data = PyBytes_AS_STRING(tmp);
     } else {
         PyErr_SetString(PyExc_TypeError, "Invalid object type");
