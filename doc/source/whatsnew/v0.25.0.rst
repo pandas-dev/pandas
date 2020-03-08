@@ -6,7 +6,7 @@ What's new in 0.25.0 (July 18, 2019)
 .. warning::
 
    Starting with the 0.25.x series of releases, pandas only supports Python 3.5.3 and higher.
-   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more details.
+   See :ref:`Dropping Python 2.7 <install>` for more details.
 
 .. warning::
 
