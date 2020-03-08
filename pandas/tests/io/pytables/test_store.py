@@ -2312,7 +2312,7 @@ class TestHDFStore:
             values = np.random.randn(2)
 
             func = lambda l, r: tm.assert_series_equal(
-                l, r, check_dtype=True, check_index_type=True, check_series_type=True
+                l, r, check_dtype=True, check_index_type=True
             )
 
         with catch_warnings(record=True):
