@@ -1368,7 +1368,7 @@ class Index(IndexOpsMixin, PandasObject):
         method="pad",
     ):
         if inplace:
-            raise NotImplementedError("Can't perform inplace operation on Index.")
+            raise TypeError("Index can't be updated inplace.")
 
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
