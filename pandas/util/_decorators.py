@@ -289,7 +289,6 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
             ]
         )
 
-        # saving docstring components list
         wrapper._docstring_components = docstring_components  # type: ignore
 
         return cast(F, wrapper)
