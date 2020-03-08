@@ -1452,6 +1452,11 @@ class DataFrameGroupBy(GroupBy):
         # for each col, reshape to to size of original frame
         # by take operation
         ids, _, ngroup = self.grouper.group_info
+
+        # Deal with categorical case
+        ids = np.array([result.index.get_loc(i) for i in self.grouper.result_index])[
+            ids
+        ]
         output = []
         for i, _ in enumerate(result.columns):
             res = algorithms.take_1d(result.iloc[:, i].values, ids)

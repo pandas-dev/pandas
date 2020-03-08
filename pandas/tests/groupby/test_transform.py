@@ -1196,3 +1196,19 @@ def test_transform_lambda_indexing():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_me():
+    df = pd.DataFrame(
+        {
+            "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
+            "B": [1, 2, 3],
+            "C": ["a", "b", "a"],
+        }
+    )
+    result = df.groupby(["A", "C"]).transform("sum")["B"]
+    # breakpoint()
+    df = pd.DataFrame({"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]})
+    expected = df.groupby(["A", "C"]).transform("sum")["B"]
+    # breakpoint()
+    tm.assert_series_equal(result, expected)
