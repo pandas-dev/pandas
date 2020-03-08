@@ -39,12 +39,13 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import _maybe_fill, isna
 
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base, grouper
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -141,7 +142,7 @@ class BaseGrouper:
 
     def _get_group_keys(self):
         if len(self.groupings) == 1:
-            return self.levels[0]
+            return self.result_index
         else:
             comp_ids, _, ngroups = self.group_info
 
@@ -277,12 +278,13 @@ class BaseGrouper:
         return codes
 
     def _get_compressed_codes(self) -> Tuple[np.ndarray, np.ndarray]:
+        ping = self.groupings[0]
         all_codes = self.codes
-        if len(all_codes) > 1:
+        if len(all_codes) > 1 and not isinstance(
+            ping.grouper, (Categorical, CategoricalIndex)
+        ):
             group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self.sort)
-
-        ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index))
 
     @cache_readonly
@@ -297,14 +299,13 @@ class BaseGrouper:
 
     @cache_readonly
     def result_index(self) -> Index:
-        if not self.compressed and len(self.groupings) == 1:
-            return self.groupings[0].result_index.rename(self.names[0])
-
         codes = self.reconstructed_codes
         levels = [ping.result_index for ping in self.groupings]
         result = MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )
+        if not self.compressed and len(self.groupings) == 1:
+            return result.get_level_values(0)
         return result
 
     def get_group_levels(self):

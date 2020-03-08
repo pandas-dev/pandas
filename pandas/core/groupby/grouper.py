@@ -412,7 +412,7 @@ class Grouping:
                 codes = self.grouper.codes_info
                 uniques = self.grouper.result_index
             else:
-                codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+                codes, uniques = algorithms.factorize(self.grouper, sort=True)
                 uniques = Index(uniques, name=self.name)
             self._codes = codes
             self._group_index = uniques

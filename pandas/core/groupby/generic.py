@@ -1185,8 +1185,6 @@ class DataFrameGroupBy(GroupBy):
         if len(keys) == 0:
             return DataFrame(index=keys)
 
-        key_names = self.grouper.names
-
         # GH12824.
         def first_not_none(values):
             try:
@@ -1203,27 +1201,9 @@ class DataFrameGroupBy(GroupBy):
         elif isinstance(v, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         elif self.grouper.groupings is not None:
-            if len(self.grouper.groupings) > 1:
-                key_index = self.grouper.result_index
-
-            else:
-                ping = self.grouper.groupings[0]
-                if len(keys) == ping.ngroups:
-                    key_index = ping.group_index
-                    key_index.name = key_names[0]
-
-                    key_lookup = Index(keys)
-                    indexer = key_lookup.get_indexer(key_index)
-
-                    # reorder the values
-                    values = [values[i] for i in indexer]
-                else:
-
-                    key_index = Index(keys, name=key_names[0])
-
-                # don't use the key indexer
-                if not self.as_index:
-                    key_index = None
+            key_index = self.grouper.result_index
+            if not self.as_index:
+                key_index = None
 
             # make Nones an empty object
             v = first_not_none(values)
@@ -1635,7 +1615,7 @@ class DataFrameGroupBy(GroupBy):
         raise AssertionError("invalid ndim for _gotitem")
 
     def _wrap_frame_output(self, result, obj) -> DataFrame:
-        result_index = self.grouper.levels[0]
+        result_index = self.grouper.result_index
 
         if self.axis == 0:
             return DataFrame(result, index=obj.columns, columns=result_index).T

@@ -2057,3 +2057,27 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+def test_sort_false_multiindex_lexsorted():
+    # GH 32259
+    d = pd.to_datetime(
+        [
+            "2020-11-02",
+            "2019-01-02",
+            "2020-01-02",
+            "2020-02-04",
+            "2020-11-03",
+            "2019-11-03",
+            "2019-11-13",
+            "2019-11-13",
+        ]
+    )
+    a = np.arange(len(d))
+    b = np.random.rand(len(d))
+    df = pd.DataFrame({"d": d, "a": a, "b": b})
+    t = df.groupby(["d", "a"], sort=False).mean()
+    assert not t.index.is_lexsorted()
+
+    t = df.groupby(["d", "a"], sort=True).mean()
+    assert t.index.is_lexsorted()
