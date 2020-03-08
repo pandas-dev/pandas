@@ -794,8 +794,8 @@ The :ref:`Resample <timeseries.resampling>` docs.
 `Time grouping with some missing values
 <https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
 
-`Valid frequency arguments to Grouper
-:ref:`timeseries offset aliases <offset.aliases>``__
+`Valid frequency arguments to Grouper`
+:ref:`timeseries offset aliases <offset.aliases>`
 
 `Grouping using a MultiIndex
 <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
