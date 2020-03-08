@@ -71,14 +71,6 @@ class TestDataFrameToDict:
         with pytest.raises(ValueError, match=msg):
             df.to_dict(orient=orient)
 
-    @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
-    def test_to_dict_short_orient(self, orient):
-        # to_dict(orient='d') or any other short option should raise DeprecationWarning
-        # see GH#32515
-        df = DataFrame({"A": [0, 1]})
-        with pytest.warns(DeprecationWarning):
-            df.to_dict(orient=orient)
-
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
         # orient= should only take the listed options
