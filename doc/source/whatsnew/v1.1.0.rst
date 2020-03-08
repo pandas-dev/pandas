@@ -67,6 +67,7 @@ Other enhancements
 - When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
+- Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -248,7 +249,6 @@ Strings
 
 Interval
 ^^^^^^^^
-
 -
 -
 
