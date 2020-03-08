@@ -1199,6 +1199,7 @@ def test_transform_lambda_indexing():
 
 
 def test_categorical_and_not_categorical_key():
+    # GH 32494
     df = pd.DataFrame(
         {
             "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
