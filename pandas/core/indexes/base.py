@@ -1430,7 +1430,6 @@ class Index(IndexOpsMixin, PandasObject):
                         values=self.values,
                         src_list=to_replace,
                         dest_list=value,
-                        inplace=inplace,
                         regex=regex,
                     )
 
@@ -1451,21 +1450,14 @@ class Index(IndexOpsMixin, PandasObject):
                     )
             else:
                 new_index = self._replace_single(
-                    to_replace=to_replace,
-                    value=value,
-                    inplace=inplace,
-                    filter=None,
-                    regex=regex,
+                    to_replace=to_replace, value=value, filter=None, regex=regex,
                 )
 
         return new_index
 
-    def replace_list(self, values, src_list, dest_list, inplace=False, regex=False):
+    def replace_list(self, values, src_list, dest_list, regex=False):
         from pandas.core.internals.managers import _compare_or_regex_search
         from pandas.core.internals.managers import maybe_convert_objects
-
-        if inplace:
-            raise TypeError("Index can't be updated inplace.")
 
         def comp(s, regex=False):
             """
@@ -1495,14 +1487,7 @@ class Index(IndexOpsMixin, PandasObject):
         return new_index
 
     def _replace_single(
-        self,
-        to_replace,
-        value,
-        inplace=False,
-        filter=None,
-        regex=False,
-        convert=True,
-        mask=None,
+        self, to_replace, value, filter=None, regex=False, convert=True, mask=None,
     ):
         """
         Replace elements by the given value.
@@ -1513,8 +1498,6 @@ class Index(IndexOpsMixin, PandasObject):
             Scalar to replace or regular expression to match.
         value : object
             Replacement object.
-        inplace : bool, default False
-            Perform inplace modification.
         filter : list, optional
         regex : bool, default False
             If true, perform regular expression substitution.
@@ -1527,8 +1510,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         a new block, the result after replacing
         """
-        if inplace:
-            raise TypeError("Index can't be updated inplace.")
 
         # to_replace is regex compilable
         to_rep_re = regex and is_re_compilable(to_replace)
@@ -1562,11 +1543,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             # if the thing to replace is not a string or compiled regex call
             # the superclass method -> to_replace is some kind of object
-            return self.replace(
-                to_replace=[to_replace], value=[value], inplace=inplace, regex=regex,
-            )
+            return self.replace(to_replace=[to_replace], value=[value], regex=regex,)
 
-        new_values = self.values if inplace else self.values.copy()
+        new_values = self.values.copy()
 
         # deal with replacing values with objects (strings) that match but
         # whose replacement is not a string (numeric, nan, object)
