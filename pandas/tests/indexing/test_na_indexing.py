@@ -22,38 +22,79 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "mask", [[True, False, False], [True, True, True], [False, False, False]]
 )
-@pytest.mark.parametrize("box_mask", [True, False])
+@pytest.mark.parametrize("indexer_class", [list, pd.array, pd.Index, pd.Series])
 @pytest.mark.parametrize("frame", [True, False])
-def test_series_mask_boolean(values, dtype, mask, box_mask, frame):
+def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
     ser = pd.Series(values, dtype=dtype, index=["a", "b", "c"])
     if frame:
         ser = ser.to_frame()
-    mask = pd.array(mask, dtype="boolean")
-    if box_mask:
-        mask = pd.Series(mask, index=ser.index)
 
-    expected = ser[mask.astype("bool")]
+    if indexer_class is pd.array:
+        mask = pd.array(mask, dtype="boolean")
+    elif indexer_class is pd.Series:
+        mask = pd.Series(mask, index=ser.index)
+    else:
+        mask = indexer_class(mask)
+
+    expected = ser[mask]
 
     result = ser[mask]
     tm.assert_equal(result, expected)
 
-    if not box_mask:
-        # Series.iloc[Series[bool]] isn't allowed
+    msg = "iLocation based boolean indexing cannot use an indexable as a mask"
+    if indexer_class is pd.Series:
+        with pytest.raises((ValueError, TypeError), match=msg):
+            result = ser.iloc[mask]
+            tm.assert_equal(result, expected)
+    else:
         result = ser.iloc[mask]
         tm.assert_equal(result, expected)
 
     result = ser.loc[mask]
     tm.assert_equal(result, expected)
 
-    # empty
-    mask = mask[:0]
-    ser = ser.iloc[:0]
-    expected = ser[mask.astype("bool")]
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int64",
+        "float64",
+        "object",
+        "string",
+        "datetime64[ns]",
+        "datetime64[ns, CET]",
+        "timedelta64[ns]",
+        "Period[D]",
+        "Sparse",
+        "interval",
+    ],
+)
+@pytest.mark.parametrize("indexer_class", [list, pd.array, pd.Index, pd.Series])
+@pytest.mark.parametrize("frame", [True, False])
+def test_series_mask_boolean_empty(dtype, indexer_class, frame):
+    if frame:
+        ser = pd.DataFrame(dtype=dtype)
+    else:
+        ser = pd.Series(dtype=dtype)
+
+    mask = []
+    if indexer_class is pd.array:
+        mask = pd.array(mask, dtype="boolean")
+    elif indexer_class is pd.Series:
+        mask = pd.Series(mask, index=ser.index, dtype="boolean")
+    else:
+        mask = indexer_class(mask)
+
+    expected = ser[mask]
     result = ser[mask]
     tm.assert_equal(result, expected)
 
-    if not box_mask:
-        # Series.iloc[Series[bool]] isn't allowed
+    msg = "iLocation based boolean indexing cannot use an indexable as a mask"
+    if indexer_class is pd.Series:
+        with pytest.raises((ValueError, TypeError), match=msg):
+            result = ser.iloc[mask]
+            tm.assert_equal(result, expected)
+    else:
         result = ser.iloc[mask]
         tm.assert_equal(result, expected)
 
