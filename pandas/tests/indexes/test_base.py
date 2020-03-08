@@ -2598,7 +2598,8 @@ def test_convert_almost_null_slice(indices):
     key = slice(None, None, "foo")
 
     if isinstance(idx, pd.IntervalIndex):
-        with pytest.raises(ValueError, match="cannot support not-default step"):
+        msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+        with pytest.raises(ValueError, match=msg):
             idx._convert_slice_indexer(key, "loc")
     else:
         msg = "'>=' not supported between instances of 'str' and 'int'"

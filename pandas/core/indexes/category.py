@@ -364,10 +364,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         hash(key)
         return contains(self, key, container=self._engine)
 
-    def __array__(self, dtype=None) -> np.ndarray:
-        """ the array interface, return my values """
-        return np.array(self._data, dtype=dtype)
-
     @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
@@ -573,16 +569,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
-
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-        if kind == "loc":
-            try:
-                return self.categories._convert_scalar_indexer(key, kind="loc")
-            except TypeError:
-                raise KeyError(key)
-        return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr):
