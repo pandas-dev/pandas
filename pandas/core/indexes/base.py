@@ -1476,7 +1476,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         masks = [comp(s, regex) for s in src_list]
 
-        # This is never inplace.
         new_index = self.copy()
         zipped = zip(src_list, dest_list)
         for i, (_, dest) in enumerate(zipped):
