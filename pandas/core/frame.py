@@ -1401,7 +1401,14 @@ class DataFrame(NDFrame):
         into_c = com.standardize_mapping(into)
         orient = orient.lower()
         # GH32515
-        if orient not in {"dict", "list", "series", "split", "records", "index"}:
+        if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
+            "dict",
+            "list",
+            "series",
+            "split",
+            "records",
+            "index",
+        }:
             warnings.warn(
                 "Using short name for 'orient' is deprecated. Only the "
                 "options: ('dict', list, 'series', 'split', 'records', 'index') "
