@@ -18,7 +18,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
-from pandas._typing import AnyArrayLike, ArrayLike, Scalar
+from pandas._typing import AnyArrayLike, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly
@@ -52,6 +52,7 @@ from pandas.core.indexes.base import (
     ensure_index,
 )
 from pandas.core.indexes.frozen import FrozenList
+from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
 from pandas.core.sorting import (
     get_group_index,
@@ -2831,7 +2832,8 @@ class MultiIndex(Index):
                 mapper = Series(indexer)
                 indexer = codes.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
-                m = result.map(mapper)._ndarray_values
+                m = result.map(mapper)
+                m = np.asarray(m)
 
             else:
                 m = np.zeros(len(codes), dtype=bool)
@@ -2949,7 +2951,7 @@ class MultiIndex(Index):
         n = len(self)
         indexer = None
 
-        def _convert_to_indexer(r):
+        def _convert_to_indexer(r) -> Int64Index:
             # return an indexer
             if isinstance(r, slice):
                 m = np.zeros(n, dtype=bool)
@@ -3026,13 +3028,16 @@ class MultiIndex(Index):
         if indexer is None:
             return np.array([], dtype=np.int64)
 
+        assert isinstance(indexer, Int64Index), type(indexer)
         indexer = self._reorder_indexer(seq, indexer)
 
-        return indexer._ndarray_values
+        return indexer._values
 
     def _reorder_indexer(
-        self, seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...], indexer: ArrayLike
-    ) -> ArrayLike:
+        self,
+        seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...],
+        indexer: Int64Index,
+    ) -> Int64Index:
         """
         Reorder an indexer of a MultiIndex (self) so that the label are in the
         same order as given in seq
@@ -3139,8 +3144,8 @@ class MultiIndex(Index):
                 if self.nlevels != other.nlevels:
                     return False
 
-            other_vals = com.values_from_object(ensure_index(other))
-            return array_equivalent(self._ndarray_values, other_vals)
+            other_vals = com.values_from_object(other)
+            return array_equivalent(self._values, other_vals)
 
         if self.nlevels != other.nlevels:
             return False
@@ -3232,7 +3237,7 @@ class MultiIndex(Index):
         # TODO: Index.union returns other when `len(self)` is 0.
 
         uniq_tuples = lib.fast_unique_multiple(
-            [self._ndarray_values, other._ndarray_values], sort=sort
+            [self._values, other._ndarray_values], sort=sort
         )
 
         return MultiIndex.from_arrays(
@@ -3267,7 +3272,7 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        lvals = self._ndarray_values
+        lvals = self._values
         rvals = other._ndarray_values
 
         uniq_tuples = None  # flag whether _inner_indexer was succesful
@@ -3342,7 +3347,7 @@ class MultiIndex(Index):
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
-        difference = this.values.take(label_diff)
+        difference = this._values.take(label_diff)
         if sort is None:
             difference = sorted(difference)
 
@@ -3359,7 +3364,8 @@ class MultiIndex(Index):
     def _convert_can_do_setop(self, other):
         result_names = self.names
 
-        if not hasattr(other, "names"):
+        if not isinstance(other, Index):
+
             if len(other) == 0:
                 other = MultiIndex(
                     levels=[[]] * self.nlevels,

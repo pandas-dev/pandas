@@ -761,7 +761,7 @@ class TestDataFrameToCSV:
         )
 
         # add in some nans
-        df_float.loc[30:50, 1:3] = np.nan
+        df_float.iloc[30:50, 1:3] = np.nan
 
         # ## this is a bug in read_csv right now ####
         # df_dt.loc[30:50,1:3] = np.nan
