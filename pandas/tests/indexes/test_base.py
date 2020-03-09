@@ -2458,6 +2458,17 @@ class TestMixedIntIndex(Base):
         expected = Index([], dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_index_repr_bool_nan(self):
+        # GH32146
+        arr = Index([True, False, np.nan], dtype=object)
+        exp1 = arr.format()
+        out1 = ["True", "False", "NaN"]
+        assert out1 == exp1
+
+        exp2 = repr(arr)
+        out2 = "Index([True, False, nan], dtype='object')"
+        assert out2 == exp2
+
 
 class TestIndexUtils:
     @pytest.mark.parametrize(

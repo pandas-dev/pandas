@@ -575,6 +575,13 @@ class TestInference:
 
         tm.assert_extension_array_equal(result, exp)
 
+    def test_maybe_convert_objects_bool_nan(self):
+        # GH32146
+        ind = pd.Index([True, False, np.nan], dtype=object)
+        exp = np.array([True, False, np.nan], dtype=object)
+        out = lib.maybe_convert_objects(ind.values, safe=1)
+        tm.assert_numpy_array_equal(out, exp)
+
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
         array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
