@@ -469,7 +469,7 @@ Current behavior
    Passing list-likes to .loc or [] with any missing label will raise
    KeyError in the future, you can use .reindex() as an alternative.
 
-   See the documentation here :ref:`here <indexing.deprecate_loc_reindex_listlike>`
+   See the documentation :ref:`here <indexing.deprecate_loc_reindex_listlike>`
 
    Out[4]:
    1    2.0
