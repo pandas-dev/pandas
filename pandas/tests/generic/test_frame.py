@@ -72,10 +72,9 @@ class TestDataFrame(Generic):
         assert not df.bool()
 
         df = DataFrame([[False, False]])
-        msg = "Frame must contain a single value"
+        msg = "The truth value of a DataFrame is ambiguous"
         with pytest.raises(ValueError, match=msg):
             df.bool()
-        msg = "Can't use standard bool() on Frame"
         with pytest.raises(ValueError, match=msg):
             bool(df)
 
@@ -191,7 +190,7 @@ class TestDataFrame2:
     def test_validate_bool_args(self, value):
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
-        msg = "Argument 'inplace' has incorrect type (expected bool, got list)"
+        msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).rename_axis(
                 mapper={"a": "x", "b": "y"}, axis=1, inplace=value
@@ -225,18 +224,16 @@ class TestDataFrame2:
         ts = df["joe"].copy()
         ts[2] = np.nan
 
-        msg = "unexpected keyword 'in_place'"
+        msg = "unexpected keyword"
         with pytest.raises(TypeError, match=msg):
             df.drop("joe", axis=1, in_place=True)
 
-        msg = "unexpected keyword 'inplace'"
         with pytest.raises(TypeError, match=msg):
             df.reindex([1, 0], inplace=True)
 
         with pytest.raises(TypeError, match=msg):
             ca.fillna(0, inplace=True)
 
-        msg = "unexpected keyword 'in_place'"
         with pytest.raises(TypeError, match=msg):
             ts.fillna(0, in_place=True)
 
