@@ -2709,8 +2709,8 @@ class DataFrame(NDFrame):
     def _iset_item(self, loc: int, value):
         self._ensure_valid_index(value)
 
-        # passing loc to sanitize_column is a misnomer, but harmless
-        #  with broadcast=False as long as value is never a DataFrame
+        # technically _sanitize_column expects a label, not a position,
+        #  but the behavior is the same as long as we pass broadcast=False
         value = self._sanitize_column(loc, value, broadcast=False)
         NDFrame._iset_item(self, loc, value)
 

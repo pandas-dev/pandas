@@ -1641,6 +1641,7 @@ class _iLocIndexer(_LocationIndexer):
             pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
             def isetter(loc, v):
+                # positional setting on column loc
                 ser = self.obj._ixs(loc, axis=1)
 
                 # perform the equivalent of a setitem on the info axis
