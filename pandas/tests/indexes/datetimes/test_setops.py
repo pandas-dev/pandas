@@ -33,7 +33,6 @@ class TestDatetimeIndexSetOps:
     ]
 
     # TODO: moved from test_datetimelike; dedup with version below
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union2(self, sort):
         everything = tm.makeDateIndex(10)
         first = everything[:5]
@@ -42,7 +41,6 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(union, everything)
 
     @pytest.mark.parametrize("box", [np.array, Series, list])
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union3(self, sort, box):
         everything = tm.makeDateIndex(10)
         first = everything[:5]
@@ -57,7 +55,6 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", tz)
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union(self, tz, sort):
         rng1 = pd.date_range("1/1/2000", freq="D", periods=5, tz=tz)
         other1 = pd.date_range("1/6/2000", freq="D", periods=5, tz=tz)
@@ -89,7 +86,6 @@ class TestDatetimeIndexSetOps:
             else:
                 tm.assert_index_equal(result_union, exp_notsorted)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_coverage(self, sort):
         idx = DatetimeIndex(["2000-01-03", "2000-01-01", "2000-01-02"])
         ordered = DatetimeIndex(idx.sort_values(), freq="infer")
@@ -100,7 +96,6 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, ordered)
         assert result.freq == ordered.freq
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_bug_1730(self, sort):
         rng_a = date_range("1/1/2012", periods=4, freq="3H")
         rng_b = date_range("1/1/2012", periods=4, freq="4H")
@@ -113,7 +108,6 @@ class TestDatetimeIndexSetOps:
             exp = DatetimeIndex(exp)
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_bug_1745(self, sort):
         left = DatetimeIndex(["2012-05-11 15:19:49.695000"])
         right = DatetimeIndex(
@@ -137,7 +131,6 @@ class TestDatetimeIndexSetOps:
             exp = exp.sort_values()
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_bug_4564(self, sort):
         from pandas import DateOffset
 
@@ -152,7 +145,6 @@ class TestDatetimeIndexSetOps:
             exp = DatetimeIndex(exp)
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_freq_both_none(self, sort):
         # GH11086
         expected = bdate_range("20150101", periods=10)
@@ -188,7 +180,6 @@ class TestDatetimeIndexSetOps:
         exp = pd.date_range("1/1/1980", "1/1/2012", freq="MS")
         tm.assert_index_equal(df.index, exp)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_with_DatetimeIndex(self, sort):
         i1 = Int64Index(np.arange(0, 20, 2))
         i2 = date_range(start="2012-01-03 00:00:00", periods=10, freq="D")
@@ -218,7 +209,6 @@ class TestDatetimeIndexSetOps:
     @pytest.mark.parametrize(
         "tz", [None, "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, tz, sort):
         # GH 4690 (with tz)
         base = date_range("6/1/2000", "6/30/2000", freq="D", name="idx")
@@ -298,7 +288,6 @@ class TestDatetimeIndexSetOps:
         assert len(result) == 0
 
     @pytest.mark.parametrize("tz", tz)
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference(self, tz, sort):
         rng_dates = ["1/2/2000", "1/3/2000", "1/1/2000", "1/4/2000", "1/5/2000"]
 
@@ -324,7 +313,6 @@ class TestDatetimeIndexSetOps:
                 expected = expected.sort_values()
             tm.assert_index_equal(result_diff, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_freq(self, sort):
         # GH14323: difference of DatetimeIndex should not preserve frequency
 
@@ -341,7 +329,6 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_datetimeindex_diff(self, sort):
         dti1 = date_range(freq="Q-JAN", start=datetime(1997, 12, 31), periods=100)
         dti2 = date_range(freq="Q-JAN", start=datetime(1997, 12, 31), periods=98)
@@ -387,7 +374,6 @@ class TestBusinessDatetimeIndex:
     def setup_method(self, method):
         self.rng = bdate_range(START, END)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union(self, sort):
         # overlapping
         left = self.rng[:10]
@@ -423,7 +409,6 @@ class TestBusinessDatetimeIndex:
         the_union = self.rng.union(rng, sort=sort)
         assert isinstance(the_union, DatetimeIndex)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_not_cacheable(self, sort):
         rng = date_range("1/1/2000", periods=50, freq=Minute())
         rng1 = rng[10:]
@@ -466,7 +451,6 @@ class TestBusinessDatetimeIndex:
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_month_range_union_tz_pytz(self, sort):
         from pytz import timezone
 
@@ -484,7 +468,6 @@ class TestBusinessDatetimeIndex:
         early_dr.union(late_dr, sort=sort)
 
     @td.skip_if_windows_python_3
-    @pytest.mark.parametrize("sort", [None, False])
     def test_month_range_union_tz_dateutil(self, sort):
         from pandas._libs.tslibs.timezones import dateutil_gettz
 
@@ -506,7 +489,6 @@ class TestCustomDatetimeIndex:
     def setup_method(self, method):
         self.rng = bdate_range(START, END, freq="C")
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union(self, sort):
         # overlapping
         left = self.rng[:10]

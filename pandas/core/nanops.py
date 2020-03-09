@@ -32,6 +32,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
+from pandas.core.construction import extract_array
+
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
 _BOTTLENECK_INSTALLED = bn is not None
 _USE_BOTTLENECK = False
@@ -73,7 +75,7 @@ class disallow:
                 # e.g. this is normally a disallowed function on
                 # object arrays that contain strings
                 if is_object_dtype(args[0]):
-                    raise TypeError(e)
+                    raise TypeError(e) from e
                 raise
 
         return _f
@@ -284,14 +286,8 @@ def _get_values(
 
     mask = _maybe_get_mask(values, skipna, mask)
 
-    if is_datetime64tz_dtype(values):
-        # lib.values_from_object returns M8[ns] dtype instead of tz-aware,
-        #  so this case must be handled separately from the rest
-        dtype = values.dtype
-        values = getattr(values, "_values", values)
-    else:
-        values = lib.values_from_object(values)
-        dtype = values.dtype
+    values = extract_array(values, extract_numpy=True)
+    dtype = values.dtype
 
     if is_datetime_or_timedelta_dtype(values) or is_datetime64tz_dtype(values):
         # changing timedelta64/datetime64 to int64 needs to happen after
@@ -607,9 +603,9 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
     if not is_float_dtype(values.dtype):
         try:
             values = values.astype("f8")
-        except ValueError:
+        except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
-            raise TypeError
+            raise TypeError from err
         if mask is not None:
             values[mask] = np.nan
 
@@ -758,7 +754,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanvar(s)
     1.0
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if is_any_int_dtype(values):
@@ -981,11 +977,11 @@ def nanskew(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 2])
+    >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1065,11 +1061,11 @@ def nankurt(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 3, 2])
+    >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1361,9 +1357,9 @@ def _ensure_numeric(x):
             except (TypeError, ValueError):
                 try:
                     x = x.astype(np.float64)
-                except ValueError:
+                except ValueError as err:
                     # GH#29941 we get here with object arrays containing strs
-                    raise TypeError(f"Could not convert {x} to numeric")
+                    raise TypeError(f"Could not convert {x} to numeric") from err
             else:
                 if not np.any(np.imag(x)):
                     x = x.real
@@ -1374,9 +1370,9 @@ def _ensure_numeric(x):
             # e.g. "1+1j" or "foo"
             try:
                 x = complex(x)
-            except ValueError:
+            except ValueError as err:
                 # e.g. "foo"
-                raise TypeError(f"Could not convert {x} to numeric")
+                raise TypeError(f"Could not convert {x} to numeric") from err
     return x
 
 
