@@ -2,7 +2,7 @@
 
 import calendar
 from collections import deque
-from datetime import datetime, time
+from datetime import datetime, timedelta
 import locale
 
 from dateutil.parser import parse
@@ -199,7 +199,7 @@ class TestTimeConversionFormats:
         # these are locale dependent
         lang, _ = locale.getlocale()
         month_abbr = calendar.month_abbr[4]
-        val = "01-{}-2011 00:00:01.978".format(month_abbr)
+        val = f"01-{month_abbr}-2011 00:00:01.978"
 
         format = "%d-%b-%Y %H:%M:%S.%f"
         result = to_datetime(val, format=format, cache=cache)
@@ -551,7 +551,7 @@ class TestToDatetime:
     )
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_dt64s_out_of_bounds(self, cache, dt):
-        msg = "Out of bounds nanosecond timestamp: {}".format(dt)
+        msg = f"Out of bounds nanosecond timestamp: {dt}"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(dt, errors="raise")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
@@ -1110,8 +1110,8 @@ class TestToDatetimeUnit:
         for val in ["foo", Timestamp("20130101")]:
             try:
                 to_datetime(val, errors="raise", unit="s", cache=cache)
-            except tslib.OutOfBoundsDatetime:
-                raise AssertionError("incorrect exception raised")
+            except tslib.OutOfBoundsDatetime as err:
+                raise AssertionError("incorrect exception raised") from err
             except ValueError:
                 pass
 
@@ -1374,6 +1374,86 @@ class TestToDatetimeUnit:
         # GH 23758
         result = pd.to_datetime([1], unit="s", utc=True, errors="ignore")
         expected = DatetimeIndex(["1970-01-01 00:00:01"], tz="UTC")
+        tm.assert_index_equal(result, expected)
+
+    # TODO: this is moved from tests.series.test_timeseries, may be redundant
+    def test_to_datetime_unit(self):
+
+        epoch = 1370745748
+        s = Series([epoch + t for t in range(20)])
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series([epoch + t for t in range(20)]).astype(float)
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series([epoch + t for t in range(20)] + [iNaT])
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = Series([epoch + t for t in range(20)] + [iNaT]).astype(float)
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # GH13834
+        s = Series([epoch + t for t in np.arange(0, 2, 0.25)] + [iNaT]).astype(float)
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [
+                Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t)
+                for t in np.arange(0, 2, 0.25)
+            ]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        s = pd.concat(
+            [Series([epoch + t for t in range(20)]).astype(float), Series([np.nan])],
+            ignore_index=True,
+        )
+        result = to_datetime(s, unit="s")
+        expected = Series(
+            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+            + [NaT]
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = to_datetime([1, 2, "NaT", pd.NaT, np.nan], unit="D")
+        expected = DatetimeIndex(
+            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 3
+        )
+        tm.assert_index_equal(result, expected)
+
+        msg = "non convertible value foo with the unit 'D'"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime([1, 2, "foo"], unit="D")
+        msg = "cannot convert input 111111111 with the unit 'D'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime([1, 2, 111111111], unit="D")
+
+        # coerce we can process
+        expected = DatetimeIndex(
+            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 1
+        )
+        result = to_datetime([1, 2, "foo"], unit="D", errors="coerce")
+        tm.assert_index_equal(result, expected)
+
+        result = to_datetime([1, 2, 111111111], unit="D", errors="coerce")
         tm.assert_index_equal(result, expected)
 
 
@@ -2032,52 +2112,6 @@ class TestDatetimeParsingWrappers:
             assert result4 == exp_now
             assert result5 == exp_now
 
-    @td.skip_if_has_locale
-    def test_parsers_time(self):
-        # GH11818
-        strings = [
-            "14:15",
-            "1415",
-            "2:15pm",
-            "0215pm",
-            "14:15:00",
-            "141500",
-            "2:15:00pm",
-            "021500pm",
-            time(14, 15),
-        ]
-        expected = time(14, 15)
-
-        for time_string in strings:
-            assert tools.to_time(time_string) == expected
-
-        new_string = "14.15"
-        msg = r"Cannot convert arg \['14\.15'\] to a time"
-        with pytest.raises(ValueError, match=msg):
-            tools.to_time(new_string)
-        assert tools.to_time(new_string, format="%H.%M") == expected
-
-        arg = ["14:15", "20:20"]
-        expected_arr = [time(14, 15), time(20, 20)]
-        assert tools.to_time(arg) == expected_arr
-        assert tools.to_time(arg, format="%H:%M") == expected_arr
-        assert tools.to_time(arg, infer_time_format=True) == expected_arr
-        assert tools.to_time(arg, format="%I:%M%p", errors="coerce") == [None, None]
-
-        res = tools.to_time(arg, format="%I:%M%p", errors="ignore")
-        tm.assert_numpy_array_equal(res, np.array(arg, dtype=np.object_))
-
-        with pytest.raises(ValueError):
-            tools.to_time(arg, format="%I:%M%p", errors="raise")
-
-        tm.assert_series_equal(
-            tools.to_time(Series(arg, name="test")), Series(expected_arr, name="test")
-        )
-
-        res = tools.to_time(np.array(arg))
-        assert isinstance(res, list)
-        assert res == expected_arr
-
     @pytest.mark.parametrize("cache", [True, False])
     @pytest.mark.parametrize(
         "dt_string, tz, dt_string_repr",
@@ -2315,3 +2349,10 @@ def test_nullable_integer_to_datetime():
     tm.assert_series_equal(res, expected)
     # Check that ser isn't mutated
     tm.assert_series_equal(ser, ser_copy)
+
+
+@pytest.mark.parametrize("klass", [np.array, list])
+def test_na_to_datetime(nulls_fixture, klass):
+    result = pd.to_datetime(klass([nulls_fixture]))
+
+    assert result[0] is pd.NaT

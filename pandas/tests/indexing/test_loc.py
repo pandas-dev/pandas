@@ -16,7 +16,7 @@ class TestLoc(Base):
     def test_loc_getitem_int(self):
 
         # int label
-        self.check_result("loc", 2, typs=["labels"], fails=TypeError)
+        self.check_result("loc", 2, typs=["labels"], fails=KeyError)
 
     def test_loc_getitem_label(self):
 
@@ -34,8 +34,8 @@ class TestLoc(Base):
         self.check_result(
             "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
         )
-        self.check_result("loc", 20, typs=["labels"], fails=TypeError)
-        self.check_result("loc", 20, typs=["ts"], axes=0, fails=TypeError)
+        self.check_result("loc", 20, typs=["labels"], fails=KeyError)
+        self.check_result("loc", 20, typs=["ts"], axes=0, fails=KeyError)
         self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):
@@ -217,9 +217,7 @@ class TestLoc2:
     def test_loc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        msg = "Boolean index has wrong length: {} instead of {}".format(
-            len(index), len(s)
-        )
+        msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
         with pytest.raises(IndexError, match=msg):
             _ = s.loc[index]
 
@@ -484,12 +482,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             }
         )
 
-        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(
-            "datetime64[{unit}]".format(unit=unit)
-        )
-        df["expected"] = df.loc[:, "timestamp"].values.astype(
-            "datetime64[{unit}]".format(unit=unit)
-        )
+        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
+        df["expected"] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
         expected = Series(df.loc[:, "expected"], name=unit)
         tm.assert_series_equal(df.loc[:, unit], expected)
 
@@ -869,6 +863,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         data = [1, 2]
         df = DataFrame(columns=["x", "y"])
+        df.index = df.index.astype(np.int64)
         msg = (
             r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
             r"are in the \[index\]"
@@ -973,3 +968,50 @@ def test_loc_set_dataframe_multiindex():
     result = expected.copy()
     result.loc[0, [(0, 1)]] = result.loc[0, [(0, 1)]]
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_mixed_int_float():
+    # GH#19456
+    ser = pd.Series(range(2), pd.Index([1, 2.0], dtype=object))
+
+    result = ser.loc[1]
+    assert result == 0
+
+
+def test_loc_with_positional_slice_deprecation():
+    # GH#31840
+    ser = pd.Series(range(4), index=["A", "B", "C", "D"])
+
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        ser.loc[:3] = 2
+
+    expected = pd.Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_slice_disallows_positional():
+    # GH#16121, GH#24612, GH#31810
+    dti = pd.date_range("2016-01-01", periods=3)
+    df = pd.DataFrame(np.random.random((3, 2)), index=dti)
+
+    ser = df[0]
+
+    msg = (
+        "cannot do slice indexing on DatetimeIndex with these "
+        r"indexers \[1\] of type int"
+    )
+
+    for obj in [df, ser]:
+        with pytest.raises(TypeError, match=msg):
+            obj.loc[1:3]
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#31840 deprecated incorrect behavior
+            obj.loc[1:3] = 1
+
+    with pytest.raises(TypeError, match=msg):
+        df.loc[1:3, 1]
+
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31840 deprecated incorrect behavior
+        df.loc[1:3, 1] = 2

@@ -283,7 +283,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_NS_DTYPE):
         assert isinstance(values, np.ndarray)
-        if values.dtype == "i8":
+        if values.dtype != _NS_DTYPE:
+            assert values.dtype == "i8"
             values = values.view(_NS_DTYPE)
 
         result = object.__new__(cls)
@@ -987,7 +988,7 @@ default 'raise'
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
         objects.
@@ -2079,11 +2080,11 @@ def _infer_tz_from_endpoints(start, end, tz):
     """
     try:
         inferred_tz = timezones.infer_tzinfo(start, end)
-    except AssertionError:
+    except AssertionError as err:
         # infer_tzinfo raises AssertionError if passed mismatched timezones
         raise TypeError(
             "Start and end cannot both be tz-aware with different timezones"
-        )
+        ) from err
 
     inferred_tz = timezones.maybe_get_tz(inferred_tz)
     tz = timezones.maybe_get_tz(tz)

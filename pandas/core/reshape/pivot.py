@@ -567,7 +567,6 @@ def crosstab(
     b      0  1  0
     c      0  0  0
     """
-
     index = com.maybe_make_list(index)
     columns = com.maybe_make_list(columns)
 
@@ -632,8 +631,8 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
         axis_subs = {0: "index", 1: "columns"}
         try:
             normalize = axis_subs[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
     if margins is False:
 
@@ -648,8 +647,8 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
 
         try:
             f = normalizers[normalize]
-        except KeyError:
-            raise ValueError("Not a valid normalize argument")
+        except KeyError as err:
+            raise ValueError("Not a valid normalize argument") from err
 
         table = f(table)
         table = table.fillna(0)

@@ -507,6 +507,13 @@ class TestInference:
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
+    def test_convert_numeric_string_uint64(self):
+        # GH32394
+        result = lib.maybe_convert_numeric(
+            np.array(["uint64"], dtype=object), set(), coerce_numeric=True
+        )
+        assert np.isnan(result)
+
     @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
@@ -1199,6 +1206,24 @@ class TestTypeInference:
 
         inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
         assert inferred == "interval"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
+    def test_string_dtype(self, data, skipna, klass):
+        # StringArray
+        val = klass(data, dtype="string")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "string"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
+    def test_boolean_dtype(self, data, skipna, klass):
+        # BooleanArray
+        val = klass(data, dtype="boolean")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "boolean"
 
 
 class TestNumberScalar:
