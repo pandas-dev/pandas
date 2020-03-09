@@ -424,8 +424,10 @@ class PyTablesExprVisitor(BaseExprVisitor):
 
         try:
             return self.const_type(value[slobj], self.env)
-        except TypeError:
-            raise ValueError(f"cannot subscript {repr(value)} with {repr(slobj)}")
+        except TypeError as err:
+            raise ValueError(
+                f"cannot subscript {repr(value)} with {repr(slobj)}"
+            ) from err
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr
@@ -575,18 +577,18 @@ class PyTablesExpr(expr.Expr):
         """ create and return the numexpr condition and filter """
         try:
             self.condition = self.terms.prune(ConditionBinOp)
-        except AttributeError:
+        except AttributeError as err:
             raise ValueError(
                 f"cannot process expression [{self.expr}], [{self}] "
                 "is not a valid condition"
-            )
+            ) from err
         try:
             self.filter = self.terms.prune(FilterBinOp)
-        except AttributeError:
+        except AttributeError as err:
             raise ValueError(
                 f"cannot process expression [{self.expr}], [{self}] "
                 "is not a valid filter"
-            )
+            ) from err
 
         return self.condition, self.filter
 
