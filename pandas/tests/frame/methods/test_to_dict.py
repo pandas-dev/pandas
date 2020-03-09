@@ -76,7 +76,7 @@ class TestDataFrameToDict:
         # to_dict(orient='d') or any other short option should raise DeprecationWarning
         # see GH#32515
         df = DataFrame({"A": [0, 1]})
-        with pytest.deprecated_call():
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
