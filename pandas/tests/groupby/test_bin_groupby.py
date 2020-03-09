@@ -62,20 +62,18 @@ def cumsum_max(x):
     return 0
 
 
-@pytest.mark.parametrize(
-    "func",
-    [
-        cumsum_max,
-        pytest.param(assert_block_lengths, marks=pytest.mark.xfail(reason="debatable")),
-    ],
-)
-def test_operation_on_invalid_block_passes(func):
+@pytest.mark.parametrize("func", [cumsum_max, assert_block_lengths])
+def test_mgr_locs_updated(func):
     # https://github.com/pandas-dev/pandas/issues/31802
-    # SeriesBinGrouper creates an invalid block, which may
-    # raise arbitrary exceptions.
+    # Some operations may require creating new blocks, which requires
+    # valid mgr_locs
     df = pd.DataFrame({"A": ["a", "a", "a"], "B": ["a", "b", "b"], "C": [1, 1, 1]})
     result = df.groupby(["A", "B"]).agg(func)
-    assert isinstance(result, pd.DataFrame)
+    expected = pd.DataFrame(
+        {"C": [0, 0]},
+        index=pd.MultiIndex.from_product([["a"], ["a", "b"]], names=["A", "B"]),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
