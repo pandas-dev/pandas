@@ -75,7 +75,11 @@ def df(request):
         )
     elif data_type == "mixed":
         return DataFrame(
-            {"a": np.arange(1.0, 6.0) + 0.01, "b": np.arange(1, 6), "c": list("abcde")}
+            {
+                "a": np.arange(1.0, 6.0) + 0.01,
+                "b": np.arange(1, 6).astype(np.int64),
+                "c": list("abcde"),
+            }
         )
     elif data_type == "float":
         return tm.makeCustomDataframe(

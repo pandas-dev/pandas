@@ -834,7 +834,10 @@ class TestPandasJSONTests:
             pytest.skip("Not idiomatic pandas")
 
         df = DataFrame(
-            [[1, 2, 3], [4, 5, 6]], index=["a", "b"], columns=["x", "y", "z"]
+            [[1, 2, 3], [4, 5, 6]],
+            index=["a", "b"],
+            columns=["x", "y", "z"],
+            dtype=np.intp,
         )
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
@@ -898,7 +901,10 @@ class TestPandasJSONTests:
 
     def test_series(self, orient, numpy):
         s = Series(
-            [10, 20, 30, 40, 50, 60], name="series", index=[6, 7, 8, 9, 10, 15]
+            [10, 20, 30, 40, 50, 60],
+            name="series",
+            index=[6, 7, 8, 9, 10, 15],
+            dtype=np.intp,
         ).sort_values()
 
         encode_kwargs = {} if orient is None else dict(orient=orient)
