@@ -31,7 +31,7 @@ Check the :ref:`API Changes <whatsnew_0230.api_breaking>` and :ref:`deprecations
 .. warning::
 
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
-   See :ref:`Dropping Python 2.7 <install>` for more.
+   See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
 
 .. contents:: What's new in v0.23.0
     :local:

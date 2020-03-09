@@ -6,7 +6,7 @@ Whats new in 0.24.1 (February 3, 2019)
 .. warning::
 
    The 0.24.x series of releases will be the last to support Python 2. Future feature
-   releases will support Python 3 only. See :ref:`Dropping Python 2.7 <install>` for more.
+   releases will support Python 3 only. See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more.
 
 {{ header }}
 
