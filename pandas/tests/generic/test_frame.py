@@ -76,7 +76,7 @@ class TestDataFrame(Generic):
         with pytest.raises(ValueError, match=msg):
             df.bool()
         msg = "Can't use standard bool() on Frame"
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bool(df)
 
     def test_get_numeric_data_preserve_dtype(self):
