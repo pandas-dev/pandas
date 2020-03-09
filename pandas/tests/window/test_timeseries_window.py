@@ -723,6 +723,13 @@ class TestRollingTS:
         expected = DataFrame({"column": [3.0, 3.0, 4.0, 4.0, 6.0]}, index=index)
         tm.assert_frame_equal(result, expected)
 
+    def test_rolling_on_empty(self):
+        # GH-32385
+        df = DataFrame({"column": []}, index=[])
+        result = df.rolling("5s").min()
+        expected = DataFrame({"column": []}, index=[])
+        tm.assert_frame_equal(result, expected)
+
     def test_rolling_on_multi_index_level(self):
         # GH-15584
         df = DataFrame(
