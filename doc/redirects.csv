@@ -67,7 +67,6 @@ reference/api/pandas.core.window.Rolling.std,pandas.core.window.rolling.Rolling.
 reference/api/pandas.core.window.Rolling.sum,pandas.core.window.rolling.Rolling.sum
 reference/api/pandas.core.window.Rolling.var,pandas.core.window.rolling.Rolling.var
 
-
 # api url change (generated -> reference/api rename)
 api,reference/index
 generated/pandas.api.extensions.ExtensionArray.argsort,../reference/api/pandas.api.extensions.ExtensionArray.argsort
