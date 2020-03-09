@@ -8029,6 +8029,35 @@ Wild         185.0
         Notes
         -----
         This method is the DataFrame version of ``ndarray.argmax``.
+
+        Examples
+        --------
+        Consider dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emission': [37.2, 19.66, 1712]},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emission
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns index for the maximum value in each columns.
+
+        >>> df.idxmax()
+        consumption     Wheat Products
+        co2_emission              Beef
+        dtype: object
+
+        To return index for the maximum value in each rows, use ``axis="columns"``.
+
+        >>> df.idxmax(axis="columns")
+        Pork              co2_emission
+        Wheat Products     consumption
+        Beef              co2_emission
+        dtype: object
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
