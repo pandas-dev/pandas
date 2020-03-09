@@ -348,6 +348,25 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
+    @pytest.mark.slow
+    @pytest.mark.parametrize("opname", ["floordiv", "pow"])
+    def test_floordiv_axis0_numexpr_path(self, opname):
+        # case that goes through numexpr and has to fall back to masked_arith_op
+        op = getattr(operator, opname)
+
+        arr = np.arange(10 ** 6).reshape(100, -1)
+        df = pd.DataFrame(arr)
+        df["C"] = 1.0
+
+        ser = df[0]
+        result = getattr(df, opname)(ser, axis=0)
+
+        expected = pd.DataFrame({col: op(df[col], ser) for col in df.columns})
+        tm.assert_frame_equal(result, expected)
+
+        result2 = getattr(df, opname)(ser.values, axis=0)
+        tm.assert_frame_equal(result2, expected)
+
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)

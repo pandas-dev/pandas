@@ -47,7 +47,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
-    ABCSparseArray,
 )
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -289,9 +288,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif isinstance(data, (set, frozenset)):
                 raise TypeError(f"'{type(data).__name__}' type is unordered")
-            elif isinstance(data, ABCSparseArray):
-                # handle sparse passed here (and force conversion)
-                data = data.to_dense()
             else:
                 data = com.maybe_iterable_to_list(data)
 
@@ -555,7 +551,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel : Return a flattened array.
         """
         return self._values.ravel(order=order)
 
@@ -692,11 +688,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        name: Label
-        if len(set(names)) == 1:
-            name = names[0]
-        else:
-            name = None
+        name = names[0] if len(set(names)) == 1 else None
 
         def construct_return(result):
             if lib.is_scalar(result):
@@ -852,9 +844,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         key_is_scalar = is_scalar(key)
-        if key_is_scalar:
-            key = self.index._convert_scalar_indexer(key, kind="getitem")
-        elif isinstance(key, (list, tuple)):
+        if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
         if key_is_scalar or isinstance(self.index, MultiIndex):
@@ -974,13 +964,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
-        # We assume that _convert_scalar_indexer has already been called,
-        #  with kind="loc", if necessary, by the time we get here
         return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
+
+        if key is Ellipsis:
+            key = slice(None)
 
         try:
             self._set_with_engine(key, value)
@@ -988,8 +979,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values = self._values
             if is_integer(key) and not self.index.inferred_type == "integer":
                 values[key] = value
-            elif key is Ellipsis:
-                self[:] = value
             else:
                 self.loc[key] = value
 
@@ -1007,9 +996,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     self._where(~key, value, inplace=True)
                     return
                 except InvalidIndexError:
-                    pass
+                    self._set_values(key.astype(np.bool_), value)
 
-            self._set_with(key, value)
+            else:
+                self._set_with(key, value)
 
         if cacher_needs_updating:
             self._maybe_update_cacher()
@@ -1050,13 +1040,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 key_type = lib.infer_dtype(key, skipna=False)
 
+            # Note: key_type == "boolean" should not occur because that
+            #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
                 if self.index.inferred_type == "integer":
                     self._set_labels(key, value)
                 else:
                     return self._set_values(key, value)
-            elif key_type == "boolean":
-                self._set_values(key.astype(np.bool_), value)
             else:
                 self._set_labels(key, value)
 
@@ -2079,6 +2069,9 @@ Name: Max Speed, dtype: float64
         decimals : int, default 0
             Number of decimal places to round to. If decimals is negative,
             it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
 
         Returns
         -------
@@ -2133,8 +2126,8 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        core.window.Rolling.quantile
-        numpy.percentile
+        core.window.Rolling.quantile : Calculate the rolling quantile.
+        numpy.percentile : Returns the q-th percentile(s) of the array elements.
 
         Examples
         --------
@@ -2535,6 +2528,12 @@ Name: Max Speed, dtype: float64
             to_concat.extend(to_append)
         else:
             to_concat = [self, to_append]
+        if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
+            msg = (
+                f"to_append should be a Series or list/tuple of Series, "
+                f"got DataFrame"
+            )
+            raise TypeError(msg)
         return concat(
             to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
         )
@@ -3152,7 +3151,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort : Returns the indices that would sort this array.
         """
         values = self._values
         mask = isna(values)

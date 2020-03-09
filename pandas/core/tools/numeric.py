@@ -35,6 +35,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     Parameters
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
+        Argument to be converted.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
@@ -61,7 +62,8 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     Returns
     -------
-    ret : numeric if parsing succeeded.
+    ret
+        Numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray.
 
     See Also
