@@ -2024,8 +2024,6 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             except (TypeError, ValueError) as err:
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
-                elif "uint64" in str(err):  # Exception from check functions.
-                    raise
 
                 seen.saw_null()
                 floats[i] = NaN
