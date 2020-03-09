@@ -3316,21 +3316,15 @@ class TestDataFramePlots(TestPlotBase):
         self._check_legend_labels(ax, labels=["A", "B", "C"])
         self._check_legend_marker(ax, expected_markers=[".", ".", "."])
 
-    def test_colors_of_columns_with_same_name(
-        self,
-    ):  # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
-        df = pd.DataFrame(
-            {"b": [0, 1, 0], "a": [1, 2, 3]}
-        )  # generate a dataframe with 2 columns
-        df1 = pd.DataFrame({"a": [2, 4, 6]})  # generate another dataframe
-        df_concat = pd.concat([df, df1], axis=1)  # concat two dataframes
-        a = df_concat.plot()  # plotting the concat
-        for i in range(
-            len(a.legend_.legendHandles)
-        ):  # passing on each label of legend and lines
-            assert (
-                a.legend_.legendHandles[i]._color == a.lines[i]._color
-            )  # testing if the color of both are equal
+    def test_colors_of_columns_with_same_name(self):
+        # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
+        # Creating a DataFrame with duplicate column labels and testing colors of them.
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        df1 = pd.DataFrame({"a": [2, 4, 6]})
+        df_concat = pd.concat([df, df1], axis=1)
+        result = df_concat.plot()
+        for i in range(len(result.legend_.legendHandles)):
+            assert result.legend_.legendHandles[i]._color == result.lines[i]._color
 
 
 def _generate_4_axes_via_gridspec():
