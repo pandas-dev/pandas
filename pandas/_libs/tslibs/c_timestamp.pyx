@@ -287,9 +287,13 @@ cdef class _Timestamp(datetime):
         if (PyDateTime_Check(self)
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
             if isinstance(self, _Timestamp):
-                other = type(self)(other)
+                both_timestamps = isinstance(other, _Timestamp)
+                if not both_timestamps:
+                    other = type(self)(other)
             else:
-                self = type(other)(self)
+                both_timestamps = isinstance(self, _Timestamp)
+                if not both_timestamps:
+                    self = type(other)(self)
 
             # validate tz's
             if not tz_compare(self.tzinfo, other.tzinfo):
@@ -303,11 +307,12 @@ cdef class _Timestamp(datetime):
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime) as err:
                 if isinstance(other, _Timestamp):
-                    raise OutOfBoundsDatetime(
-                        "Result is too large for pandas.Timedelta. Convert inputs "
-                        "to datetime.datetime with 'Timestamp.to_pydatetime()' "
-                        "before subtracting."
-                    ) from err
+                    if both_timestamps:
+                        raise OutOfBoundsDatetime(
+                            "Result is too large for pandas.Timedelta. Convert inputs "
+                            "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                            "before subtracting."
+                        ) from err
                 pass
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
