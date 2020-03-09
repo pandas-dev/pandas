@@ -284,7 +284,9 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
         # formatting templates and concatenating docstring
         wrapper.__doc__ = "".join(
             [
-                arg.format(**kwargs) if isinstance(arg, str) else dedent(arg.__doc__)
+                arg.format(**kwargs)
+                if isinstance(arg, str)
+                else dedent(arg.__doc__ or "")
                 for arg in docstring_components
             ]
         )
