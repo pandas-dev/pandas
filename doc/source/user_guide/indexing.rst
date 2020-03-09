@@ -676,7 +676,7 @@ Current behavior
    KeyError in the future, you can use .reindex() as an alternative.
 
    See the documentation here:
-   :ref:`deprecate loc reindex for list-likes <deprecate.loc.reindex.listlike>`
+   :ref:`deprecate loc reindex for list-likes <indexing.list_with_missing_labels_deprecated>`
 
    Out[4]:
    1    2.0

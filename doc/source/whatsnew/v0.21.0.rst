@@ -470,7 +470,7 @@ Current behavior
    KeyError in the future, you can use .reindex() as an alternative.
 
    See the documentation here:
-   :ref:`Indexing <indexing>`
+   :ref:`Indexing and Selecting data<indexing>`
 
    Out[4]:
    1    2.0
