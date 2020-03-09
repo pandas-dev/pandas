@@ -639,8 +639,15 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "Function does not reduce" in str(err):
+            msg = str(err)
+            if "Function does not reduce" in msg:
                 # raised in libreduction
+                pass
+            elif "Wrong number of items" in msg:
+                # https://github.com/pandas-dev/pandas/issues/31802
+                # libreduction.SeriesGrouper can create invalid Series /
+                # Blocks, which might raise arbitrary exceptions when
+                # operated upon.
                 pass
             else:
                 raise

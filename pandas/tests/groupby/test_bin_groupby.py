@@ -5,6 +5,7 @@ from pandas._libs import groupby, lib, reduction as libreduction
 
 from pandas.core.dtypes.common import ensure_int64
 
+import pandas as pd
 from pandas import Index, Series, isna
 import pandas._testing as tm
 
@@ -49,6 +50,32 @@ def test_series_bin_grouper():
 
     exp_counts = np.array([3, 3, 4], dtype=np.int64)
     tm.assert_almost_equal(counts, exp_counts)
+
+
+def assert_block_lengths(x):
+    assert len(x) == len(x._data.blocks[0].mgr_locs)
+    return 0
+
+
+def cumsum_max(x):
+    x.cumsum().max()  # triggers the ValueError when creating a block
+    return 0
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        cumsum_max,
+        pytest.param(assert_block_lengths, marks=pytest.mark.xfail(reason="debatable")),
+    ],
+)
+def test_operation_on_invalid_block_passes(func):
+    # https://github.com/pandas-dev/pandas/issues/31802
+    # SeriesBinGrouper creates an invalid block, which may
+    # raise arbitrary exceptions.
+    df = pd.DataFrame({"A": ["a", "a", "a"], "B": ["a", "b", "b"], "C": [1, 1, 1]})
+    result = df.groupby(["A", "B"]).agg(func)
+    assert isinstance(result, pd.DataFrame)
 
 
 @pytest.mark.parametrize(
