@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_extension_array_dtype,
+    is_integer,
     is_integer_dtype,
     is_list_like,
 )
@@ -18,6 +19,34 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 # -----------------------------------------------------------
 # Indexer Identification
+
+
+def is_valid_positional_slice(slc: slice) -> bool:
+    """
+    Check if a slice object can be interpreted as a positional indexer.
+
+    Parameters
+    ----------
+    slc : slice
+
+    Returns
+    -------
+    bool
+
+    Notes
+    -----
+    A valid positional slice may also be interpreted as a label-based slice
+    depending on the index being sliced.
+    """
+
+    def is_int_or_none(val):
+        return val is None or is_integer(val)
+
+    return (
+        is_int_or_none(slc.start)
+        and is_int_or_none(slc.stop)
+        and is_int_or_none(slc.step)
+    )
 
 
 def is_list_like_indexer(key) -> bool:
