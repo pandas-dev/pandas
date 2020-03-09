@@ -64,12 +64,11 @@ class TestDataFrameToDict:
         with pytest.raises(ValueError, match=msg):
             df.to_dict(orient="index")
 
-    @pytest.mark.parametrize("orient", ["xinvalid"])
-    def test_to_dict_invalid_orient(self, orient):
+    def test_to_dict_invalid_orient(self):
         df = DataFrame({"A": [0, 1]})
-        msg = f"orient '{orient}' not understood"
+        msg = "orient 'xinvalid' not understood"
         with pytest.raises(ValueError, match=msg):
-            df.to_dict(orient=orient)
+            df.to_dict(orient="xinvalid")
 
     @pytest.mark.parametrize("orient", ["d", "l", "r", "sp", "s", "i"])
     def test_to_dict_short_orient_warns(self, orient):
