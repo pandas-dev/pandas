@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_sequence,
@@ -1878,7 +1879,10 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Returns an Iterator over the values of this Categorical.
         """
-        return iter(self._internal_get_values().tolist())
+        if is_numeric_dtype(self.categories):
+            # Convert numpy scalars to python scalars
+            return (self[i].item() for i in range(len(self)))
+        return (self[i] for i in range(len(self)))
 
     def __contains__(self, key) -> bool:
         """
