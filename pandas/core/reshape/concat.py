@@ -2,11 +2,11 @@
 Concat routines.
 """
 
-from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
+from typing import Iterable, List, Mapping, Union, overload
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -32,7 +32,7 @@ from pandas.core.internals import concatenate_block_managers
 
 @overload
 def concat(
-    objs: Union[Iterable["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
+    objs: Union[Iterable["DataFrame"], Mapping[Label, "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -48,9 +48,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[
-        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
-    ],
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -65,9 +63,7 @@ def concat(
 
 
 def concat(
-    objs: Union[
-        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
-    ],
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -536,7 +532,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Optional[Hashable]] = [None] * len(self.objs)
+                names: List[Label] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):

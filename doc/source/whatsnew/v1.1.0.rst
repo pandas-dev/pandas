@@ -67,6 +67,7 @@ Other enhancements
 - When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
+- Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -91,6 +92,8 @@ Backwards incompatible API changes
   now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
   Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median``) (:issue:`31485`)
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
+- Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
+-
 
 .. _whatsnew_110.api_breaking.indexing_raises_key_errors:
 
@@ -170,7 +173,7 @@ Deprecations
 ~~~~~~~~~~~~
 - Lookups on a :class:`Series` with a single-item list containing a slice (e.g. ``ser[[slice(0, 4)]]``) are deprecated, will raise in a future version.  Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
 - :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
--
+- Setting values with ``.loc`` using a positional slice is deprecated and will raise in a future version.  Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -183,7 +186,7 @@ Performance improvements
 
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
 - Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
--
+- Performance improvement in flex arithmetic ops between :class:`DataFrame` and :class:`Series` with ``axis=0`` (:issue:`31296`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -228,7 +231,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.floordiv` with ``axis=0`` not treating division-by-zero like :meth:`Series.floordiv` (:issue:`31271`)
--
+- Bug in :meth:`to_numeric` with string argument ``"uint64"`` and ``errors="coerce"`` silently fails (:issue:`32394`)
 -
 
 Conversion
@@ -246,7 +249,6 @@ Strings
 
 Interval
 ^^^^^^^^
-
 -
 -
 

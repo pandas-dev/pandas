@@ -913,8 +913,8 @@ class TestDataFrameAnalytics:
 
     def test_idxmin(self, float_frame, int_frame):
         frame = float_frame
-        frame.loc[5:10] = np.nan
-        frame.loc[15:20, -2:] = np.nan
+        frame.iloc[5:10] = np.nan
+        frame.iloc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
                 for df in [frame, int_frame]:
@@ -928,8 +928,8 @@ class TestDataFrameAnalytics:
 
     def test_idxmax(self, float_frame, int_frame):
         frame = float_frame
-        frame.loc[5:10] = np.nan
-        frame.loc[15:20, -2:] = np.nan
+        frame.iloc[5:10] = np.nan
+        frame.iloc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
                 for df in [frame, int_frame]:
