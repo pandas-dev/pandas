@@ -299,15 +299,15 @@ cdef class _Timestamp(datetime):
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
             from pandas._libs.tslibs.timedeltas import Timedelta
-            from pandas._libs.tslibs.timestamps import Timestamp
             try:
                 return Timedelta(self.value - other.value)
-            except (OverflowError, OutOfBoundsDatetime) as e:
-                if isinstance(other, Timestamp):
-                    raise OverflowError(
-                        "Result is too large for pandas.Timestamp. Convert inputs "
-                        "to datetime.datetime before subtracting."
-                    ) from e
+            except (OverflowError, OutOfBoundsDatetime) as err:
+                if isinstance(other, _Timestamp):
+                    raise OutOfBoundsDatetime(
+                        "Result is too large for pandas.Timedelta. Convert inputs "
+                        "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                        "before subtracting."
+                    ) from err
                 pass
         elif is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
