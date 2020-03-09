@@ -500,9 +500,9 @@ class Index(IndexOpsMixin, PandasObject):
         name : Label, defaults to self.name
         """
         name = self.name if name is no_default else name
-
-        cache = self._cache if values is None else {}
-        values = self.values if values is None else values
+        cache = self._cache.copy() if values is None else {}
+        if values is None:
+            values = self.values
 
         result = self._simple_new(values, name=name)
         result._cache = cache
