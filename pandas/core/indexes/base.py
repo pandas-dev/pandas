@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Hashable, Union
 import warnings
 
 import numpy as np
@@ -250,6 +250,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
+    _cache: Dict[str, Any]
     _id = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -468,6 +469,7 @@ class Index(IndexOpsMixin, PandasObject):
         # we actually set this value too.
         result._index_data = values
         result._name = name
+        result._cache = {}
 
         return result._reset_identity()
 
@@ -499,10 +501,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         name = self.name if name is no_default else name
 
-        if values is None:
-            values = self.values
+        cache = self._cache if values is None else {}
+        values = self.values if values is None else values
 
-        return self._simple_new(values, name=name)
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
         """
