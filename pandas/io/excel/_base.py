@@ -366,7 +366,6 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
     def load_workbook(self, filepath_or_buffer):
         pass
 
-    @abc.abstractmethod
     def close(self):
         pass
 

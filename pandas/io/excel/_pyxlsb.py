@@ -36,9 +36,6 @@ class _PyxlsbReader(_BaseExcelReader):
 
         return open_workbook(filepath_or_buffer)
 
-    def close(self):
-        pass
-
     @property
     def sheet_names(self) -> List[str]:
         return self.book.sheets
