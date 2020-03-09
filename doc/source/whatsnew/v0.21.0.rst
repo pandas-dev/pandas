@@ -470,7 +470,7 @@ Current behavior
    KeyError in the future, you can use .reindex() as an alternative.
 
    See the documentation here:
-   :ref:`Indexing and Selecting Data<indexing>`
+   :ref:`Deprecation doc <indexing.deprecate_loc_reindex_listlike>`
 
    Out[4]:
    1    2.0

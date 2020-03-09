@@ -237,7 +237,7 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
 
     In [1]: df = pd.DataFrame({'one': [1., 2., 3.]})
     In [2]: df.two = [4, 5, 6]
-    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see :ref:`attribute accessing for Series <attribute.access>`
+    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see :ref:`attribute accessing for Series <indexing>`
     In [3]: df
     Out[3]:
        one
@@ -676,7 +676,7 @@ Current behavior
    KeyError in the future, you can use .reindex() as an alternative.
 
    See the documentation here:
-   :ref:`deprecate loc reindex for list-likes <indexing>`
+   :ref:`Deprecation doc <indexing.deprecate_loc_reindex_listlike>`
 
    Out[4]:
    1    2.0
