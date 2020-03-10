@@ -10,10 +10,12 @@ from io import BytesIO, StringIO
 
 import pytest
 
-from pandas.errors import ParserError
+from pandas.errors import ParserError, EmptyDataError
 
 from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
+
+import psutil
 
 
 def test_default_separator(python_parser_only):
@@ -314,3 +316,15 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
+
+
+def test_file_descriptor_leak(python_parser_only):
+    # GH 31488
+    parser = python_parser_only
+    with open("empty.csv", "w"):
+        pass
+
+    proc = psutil.Process()
+    with pytest.raises(EmptyDataError):
+        parser.read_csv("empty.csv")
+    assert not proc.open_files()
