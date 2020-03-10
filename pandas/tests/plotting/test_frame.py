@@ -3323,8 +3323,8 @@ class TestDataFramePlots(TestPlotBase):
         df1 = pd.DataFrame({"a": [2, 4, 6]})
         df_concat = pd.concat([df, df1], axis=1)
         result = df_concat.plot()
-        for i in range(len(result.legend_.legendHandles)):
-            assert result.legend_.legendHandles[i]._color == result.lines[i]._color
+        for legend, line in zip(result.get_legend().legendHandles, result.lines):
+            assert legend.get_color() == line.get_color()
 
 
 def _generate_4_axes_via_gridspec():
