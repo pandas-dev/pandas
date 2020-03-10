@@ -1824,12 +1824,11 @@ def _factorize_keys(lk, rk, sort=True):
     lk = extract_array(lk, extract_numpy=True)
     rk = extract_array(rk, extract_numpy=True)
 
-    if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
+    if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk = lk._data
-        rk = rk._data
-        # TODO: this is equivalent to _values_for_factorize()[0]; more idiomatic?
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
 
     elif (
         is_categorical_dtype(lk) and is_categorical_dtype(rk) and lk.is_dtype_equal(rk)
