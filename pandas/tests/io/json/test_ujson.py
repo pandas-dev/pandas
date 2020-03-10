@@ -847,8 +847,10 @@ class TestPandasJSONTests:
         )
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        assert (df.dtypes == dtype).all()
 
         output = ujson.decode(ujson.encode(df, **encode_kwargs), **decode_kwargs)
+        assert (df.dtypes == dtype).all()
 
         # Ensure proper DataFrame initialization.
         if orient == "split":
@@ -918,11 +920,13 @@ class TestPandasJSONTests:
             index=[6, 7, 8, 9, 10, 15],
             dtype=dtype,
         ).sort_values()
+        assert s.dtype == dtype
 
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
 
         output = ujson.decode(ujson.encode(s, **encode_kwargs), **decode_kwargs)
+        assert s.dtype == dtype
 
         if orient == "split":
             dec = _clean_dict(output)
