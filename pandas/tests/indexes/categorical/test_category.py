@@ -357,14 +357,13 @@ class TestCategoricalIndex(Base):
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 1], categories=[2,3], name="foo")
+        idx = CategoricalIndex([0, 1], categories=[2, 3], name="foo")
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
         idx = CategoricalIndex([0, 1, 2, 3], categories=[1, 2, 3], name="foo")
         assert idx.is_unique is True
         assert idx.has_duplicates is False
-
 
     def _test_drop_duplicates(self, idx, keep, expected):
         for k, e in zip(keep, expected):
@@ -378,7 +377,7 @@ class TestCategoricalIndex(Base):
             tm.assert_series_equal(result, Series(exp))
 
     def test_drop_duplicates(self):
-        keep = ["first"]#, "last", False]
+        keep = ["first", "last", False]
 
         categories = [[1, 2, 3], list('abc')]
         expected = [
@@ -403,7 +402,6 @@ class TestCategoricalIndex(Base):
         ]
         self._test_drop_duplicates(idx, keep, expected)
 
-
     def test_unique(self):
 
         categories = [1, 2, 3]
@@ -411,12 +409,10 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex([1], categories=[1])
         tm.assert_index_equal(idx.unique(), expected)
 
-
         categories = list('abc')
         idx = CategoricalIndex([1, 1, 1], categories=categories)
         expected = CategoricalIndex([np.nan], categories=[])
         tm.assert_index_equal(idx.unique(), expected)
-
 
         categories = [1, 2, 3]
         idx = CategoricalIndex([1, 2, 'a'], categories=categories)

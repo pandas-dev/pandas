@@ -153,14 +153,14 @@ class TestTimedeltaIndexOps:
         assert result.freq is None
 
     @pytest.mark.parametrize(
-        "freq", ["D",]# "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
+        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
     )
     @pytest.mark.parametrize(
-        "keep, expected, index", 
+        "keep, expected, index",
          [
-             ("first", np.concatenate(([False]*10, [True]*5)), np.arange(0, 10)),
-             ("last", np.concatenate(([True]*5, [False]*10)), np.arange(5, 15)),
-             (False, np.concatenate(([True]*5, [False]*5, [True]*5)), np.arange(5, 10)),
+             ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
+             ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
+             (False, np.concatenate(([True] * 5, [False] * 5, [True] * 5)), np.arange(5, 10)),
          ]
     )
     def test_drop_duplicates(self, freq, keep, expected, index):
