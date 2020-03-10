@@ -47,7 +47,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -587,7 +586,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`.
+    :func:`re.sub`, depending on the regex value.
 
     Parameters
     ----------
@@ -790,13 +789,15 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if x is libmissing.NA:
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:
                 return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
 

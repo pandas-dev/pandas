@@ -32,6 +32,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
+from pandas.core.construction import extract_array
+
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray  # noqa: F401
 
@@ -291,14 +293,8 @@ def _get_values(
 
     mask = _maybe_get_mask(values, skipna, mask)
 
-    if is_datetime64tz_dtype(values):
-        # lib.values_from_object returns M8[ns] dtype instead of tz-aware,
-        #  so this case must be handled separately from the rest
-        dtype = values.dtype
-        values = getattr(values, "_values", values)
-    else:
-        values = lib.values_from_object(values)
-        dtype = values.dtype
+    values = extract_array(values, extract_numpy=True)
+    dtype = values.dtype
 
     if is_datetime_or_timedelta_dtype(values) or is_datetime64tz_dtype(values):
         # changing timedelta64/datetime64 to int64 needs to happen after
@@ -771,7 +767,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanvar(s)
     1.0
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if is_any_int_dtype(values):
@@ -996,11 +992,11 @@ def nanskew(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 2])
+    >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1080,11 +1076,11 @@ def nankurt(
     Examples
     --------
     >>> import pandas.core.nanops as nanops
-    >>> s = pd.Series([1,np.nan, 1, 3, 2])
+    >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")

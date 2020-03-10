@@ -19,7 +19,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
     is_integer,
-    is_integer_dtype,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
@@ -271,21 +270,10 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return True
 
     def _shallow_copy(self, values=None, name: Label = no_default):
-        # TODO: simplify, figure out type of values
         name = name if name is not no_default else self.name
 
         if values is None:
             values = self._data
-
-        if isinstance(values, type(self)):
-            values = values._data
-
-        if not isinstance(values, PeriodArray):
-            if isinstance(values, np.ndarray) and values.dtype == "i8":
-                values = PeriodArray(values, freq=self.freq)
-            else:
-                # GH#30713 this should never be reached
-                raise TypeError(type(values), getattr(values, "dtype", None))
 
         return self._simple_new(values, name=name)
 
@@ -370,12 +358,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
-        if is_integer_dtype(dtype):
-            return self.asi8
-        else:
-            return self.astype(object).values
-
     def __array_wrap__(self, result, context=None):
         """
         Gets called after a ufunc. Needs additional handling as
@@ -409,27 +391,26 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
 
-    def asof_locs(self, where, mask):
+    def asof_locs(self, where, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
         mask : array of booleans where data is not NA
-
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
             where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+        elif not isinstance(where_idx, PeriodIndex):
+            raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
+        elif where_idx.freq != self.freq:
+            raise raise_on_incompatible(self, where_idx)
 
-        locs = self._ndarray_values[mask].searchsorted(
-            where_idx._ndarray_values, side="right"
-        )
+        locs = self.asi8[mask].searchsorted(where_idx.asi8, side="right")
 
         locs = np.where(locs > 0, locs - 1, 0)
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[
-            (locs == 0) & (where_idx._ndarray_values < self._ndarray_values[first])
-        ] = -1
+        result[(locs == 0) & (where_idx.asi8 < self.asi8[first])] = -1
 
         return result
 
@@ -639,10 +620,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
-        idx = np.concatenate(
+        i8result = np.concatenate(
             (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
         )
-        return self._shallow_copy(idx)
+        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         """

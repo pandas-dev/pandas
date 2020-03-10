@@ -95,10 +95,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
-    ABCPeriodIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -361,9 +359,9 @@ class DataFrame(NDFrame):
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    read_csv
-    read_table
-    read_clipboard
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_table : Read general delimited file into DataFrame.
+    read_clipboard : Read text from clipboard into DataFrame.
 
     Examples
     --------
@@ -761,8 +759,8 @@ class DataFrame(NDFrame):
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[fmt.formatters_type] = None,
-        float_format: Optional[fmt.float_format_type] = None,
+        formatters: Optional[fmt.FormattersType] = None,
+        float_format: Optional[fmt.FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         justify: Optional[str] = None,
@@ -895,7 +893,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def items(self) -> Iterable[Tuple[Label, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -904,10 +902,10 @@ class DataFrame(NDFrame):
                 yield k, self._ixs(i, axis=1)
 
     @Appender(_shared_docs["items"])
-    def iteritems(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def iteritems(self) -> Iterable[Tuple[Label, Series]]:
         yield from self.items()
 
-    def iterrows(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def iterrows(self) -> Iterable[Tuple[Label, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -2750,7 +2748,7 @@ class DataFrame(NDFrame):
         """
         try:
             if takeable is True:
-                series = self._iget_item_cache(col)
+                series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
 
@@ -3613,7 +3611,7 @@ class DataFrame(NDFrame):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
@@ -4059,7 +4057,7 @@ class DataFrame(NDFrame):
             "one-dimensional arrays."
         )
 
-        missing: List[Optional[Hashable]] = []
+        missing: List[Label] = []
         for col in keys:
             if isinstance(
                 col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
@@ -4098,7 +4096,7 @@ class DataFrame(NDFrame):
             else:
                 arrays.append(self.index)
 
-        to_remove: List[Optional[Hashable]] = []
+        to_remove: List[Label] = []
         for col in keys:
             if isinstance(col, ABCMultiIndex):
                 for n in range(col.nlevels):
@@ -4153,7 +4151,7 @@ class DataFrame(NDFrame):
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
-        col_fill: Optional[Hashable] = "",
+        col_fill: Label = "",
     ) -> Optional["DataFrame"]:
         """
         Reset the index, or a level of it.
@@ -4598,7 +4596,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            (inds,) = (-duplicated)._ndarray_values.nonzero()
+            (inds,) = np.asarray(-duplicated).nonzero()
             new_data = self._data.take(inds)
 
             if ignore_index:
@@ -5228,20 +5226,6 @@ class DataFrame(NDFrame):
                 res_values = _arith_op(self.values, other.values)
             new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
 
-        return new_data
-
-    def _combine_match_index(self, other: Series, func):
-        # at this point we have `self.index.equals(other.index)`
-
-        if ops.should_series_dispatch(self, other, func):
-            # operate column-wise; avoid costly object-casting in `.values`
-            new_data = ops.dispatch_to_series(self, other, func)
-        else:
-            # fastpath --> operate directly on values
-            other_vals = other.values.reshape(-1, 1)
-            with np.errstate(all="ignore"):
-                new_data = func(self.values, other_vals)
-            new_data = dispatch_fill_zeros(func, self.values, other_vals, new_data)
         return new_data
 
     def _construct_result(self, result) -> "DataFrame":
@@ -7415,8 +7399,9 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corrwith
-        Series.corr
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
 
         Examples
         --------
@@ -7618,7 +7603,7 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corr
+        DataFrame.corr : Compute pairwise correlation of columns.
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
@@ -8023,7 +8008,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmin
+        Series.idxmin : Return index of the minimum element.
 
         Notes
         -----
@@ -8062,7 +8047,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmax
+        Series.idxmax : Return index of the maximum element.
 
         Notes
         -----
@@ -8269,7 +8254,9 @@ Wild         185.0
 
         return result
 
-    def to_timestamp(self, freq=None, how="start", axis=0, copy=True) -> "DataFrame":
+    def to_timestamp(
+        self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
+    ) -> "DataFrame":
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
 
@@ -8289,23 +8276,16 @@ Wild         185.0
         -------
         DataFrame with DatetimeIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
-        elif axis == 1:
-            assert isinstance(self.columns, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
-        else:  # pragma: no cover
-            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
+        axis_name = self._get_axis_name(axis)
+        old_ax = getattr(self, axis_name)
+        new_ax = old_ax.to_timestamp(freq=freq, how=how)
 
-        return self._constructor(new_data)
+        setattr(new_obj, axis_name, new_ax)
+        return new_obj
 
-    def to_period(self, freq=None, axis=0, copy=True) -> "DataFrame":
+    def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> "DataFrame":
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
@@ -8323,23 +8303,16 @@ Wild         185.0
 
         Returns
         -------
-        TimeSeries with PeriodIndex
+        DataFrame with PeriodIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            assert isinstance(self.index, ABCDatetimeIndex)
-            new_data.set_axis(1, self.index.to_period(freq=freq))
-        elif axis == 1:
-            assert isinstance(self.columns, ABCDatetimeIndex)
-            new_data.set_axis(0, self.columns.to_period(freq=freq))
-        else:  # pragma: no cover
-            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
+        axis_name = self._get_axis_name(axis)
+        old_ax = getattr(self, axis_name)
+        new_ax = old_ax.to_period(freq=freq)
 
-        return self._constructor(new_data)
+        setattr(new_obj, axis_name, new_ax)
+        return new_obj
 
     def isin(self, values) -> "DataFrame":
         """
