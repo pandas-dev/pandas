@@ -146,7 +146,7 @@ requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
-Using a Docker Container
+Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Instead of manually setting up a development environment, you can use Docker to
@@ -754,7 +754,7 @@ You can then verify the changes look ok, then git :ref:`commit <contributing.com
 
 .. _contributing.pre-commit:
 
-Pre-Commit
+Pre-commit
 ~~~~~~~~~~
 
 You can run many of these styling checks manually as we have described above. However,
@@ -822,12 +822,12 @@ See :ref:`contributing.warnings` for more.
 
 .. _contributing.type_hints:
 
-Type Hints
+Type hints
 ----------
 
 *pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
 
-Style Guidelines
+Style guidelines
 ~~~~~~~~~~~~~~~~
 
 Types imports should follow the ``from typing import ...`` convention. So rather than
@@ -903,7 +903,7 @@ The limitation here is that while a human can reasonably understand that ``is_nu
 
 With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
 
-Pandas-specific Types
+pandas-specific types
 ~~~~~~~~~~~~~~~~~~~~~
 
 Commonly used types specific to *pandas* will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
@@ -919,7 +919,7 @@ For example, quite a few functions in *pandas* accept a ``dtype`` argument. This
 
 This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like `axis`. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
 
-Validating Type Hints
+Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
 *pandas* uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
@@ -1539,7 +1539,7 @@ The branch will still exist on GitHub, so to delete it there do::
 .. _Gitter: https://gitter.im/pydata/pandas
 
 
-Tips for a successful Pull Request
+Tips for a successful pull request
 ==================================
 
 If you have made it to the `Review your code`_ phase, one of the core contributors may
