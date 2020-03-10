@@ -836,6 +836,8 @@ class TestPandasJSONTests:
         dtype = np.intp
         if numpy is None or orient == "index":
             dtype = np.int64
+        if numpy is True and orient is None:
+            dtype = np.int64
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],
             index=["a", "b"],
@@ -905,6 +907,8 @@ class TestPandasJSONTests:
     def test_series(self, orient, numpy):
         dtype = np.intp
         if numpy is None or orient == "index":
+            dtype = np.int64
+        if numpy is True and orient is None:
             dtype = np.int64
         s = Series(
             [10, 20, 30, 40, 50, 60],
