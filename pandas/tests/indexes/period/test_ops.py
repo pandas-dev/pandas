@@ -102,11 +102,11 @@ class TestPeriodIndexOps:
     @pytest.mark.parametrize(
         "keep, expected, index",
         [
-            ("first", np.concatenate(([False] * 10, [True] * 5)), 
+            ("first", np.concatenate(([False] * 10, [True] * 5)),
                 np.arange(0, 10)),
-            ("last", np.concatenate(([True] * 5, [False] * 10)), 
+            ("last", np.concatenate(([True] * 5, [False] * 10)),
                 np.arange(5, 15)),
-            (False, np.concatenate(([True] * 5, [False] * 5, [True] * 5)), 
+            (False, np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
                 np.arange(5, 10)),
         ]
     )
