@@ -367,7 +367,7 @@ class TestCategoricalIndex(Base):
 
     def _test_drop_duplicates(self, idx, keep, expected):
         for k, e in zip(keep, expected):
-            np.testing.assert_equal(idx.duplicated(keep=k), e)
+            tm.assert_numpy_array_equal(idx.duplicated(keep=k), e)
             exp = idx[~e]
 
             result = idx.drop_duplicates(keep=k)

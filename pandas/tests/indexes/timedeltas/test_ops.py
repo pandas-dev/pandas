@@ -171,7 +171,7 @@ class TestTimedeltaIndexOps:
         idx = pd.timedelta_range("1 day", periods=10, freq=freq, name="idx")
         idx = idx.append(idx[:5])
 
-        np.testing.assert_equal(idx.duplicated(keep=keep), expected)
+        tm.testing.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
         expected = idx[~expected]
 
         result = idx.drop_duplicates(keep=keep)

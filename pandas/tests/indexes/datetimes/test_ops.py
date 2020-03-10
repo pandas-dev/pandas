@@ -294,7 +294,7 @@ class TestDatetimeIndexOps:
         idx = pd.date_range("2011-01-01", freq=freq, periods=10, name="idx")
         idx = idx.append(idx[:5])
 
-        np.testing.assert_equal(idx.duplicated(keep=keep), expected)
+        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
         expected = idx[~expected]
 
         result = idx.drop_duplicates(keep=keep)
