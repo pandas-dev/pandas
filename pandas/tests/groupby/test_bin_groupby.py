@@ -58,7 +58,7 @@ def assert_block_lengths(x):
 
 
 def cumsum_max(x):
-    x.cumsum().max()  # triggers the ValueError when creating a block
+    x.cumsum().max()
     return 0
 
 
