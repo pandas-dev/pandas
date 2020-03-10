@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._typing import T
+from pandas.compat.numpy import _np_version_under1p17
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -395,8 +396,9 @@ def random_state(state=None):
 
     Parameters
     ----------
-    state : int, np.random.RandomState, None.
-        If receives an int, passes to np.random.RandomState() as seed.
+    state : int, array-like, BitGenerator (NumPy>=1.17), np.random.RandomState, None.
+        If receives an int, array-like, or BitGenerator, passes to
+        np.random.RandomState() as seed.
         If receives an np.random.RandomState object, just returns object.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
@@ -405,11 +407,15 @@ def random_state(state=None):
     Returns
     -------
     np.random.RandomState
+
+    ..versionchanged:: 1.1.0
+        array-like and BitGenerator (for NumPy>=1.17) object now passed to
+        np.random.RandomState() as seed
     """
     if (
         is_integer(state)
         or is_array_like(state)
-        or isinstance(state, np.random.BitGenerator)
+        or (not _np_version_under1p17 and isinstance(state, np.random.BitGenerator))
     ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):

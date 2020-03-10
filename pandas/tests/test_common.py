@@ -6,6 +6,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p17
+
 import pandas as pd
 from pandas import Series, Timestamp
 from pandas.core import ops
@@ -67,14 +69,15 @@ def test_random_state():
     )
 
     # Check BitGenerators
-    assert (
-        com.random_state(npr.MT19937(3)).uniform()
-        == npr.RandomState(npr.MT19937(3)).uniform()
-    )
-    assert (
-        com.random_state(npr.PCG64(11)).uniform()
-        == npr.RandomState(npr.PCG64(11)).uniform()
-    )
+    if not _np_version_under1p17:
+        assert (
+            com.random_state(npr.MT19937(3)).uniform()
+            == npr.RandomState(npr.MT19937(3)).uniform()
+        )
+        assert (
+            com.random_state(npr.PCG64(11)).uniform()
+            == npr.RandomState(npr.PCG64(11)).uniform()
+        )
 
     # Error for floats or strings
     msg = "random_state must be an integer, a numpy RandomState, or None"
