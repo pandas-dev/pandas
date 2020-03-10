@@ -73,12 +73,15 @@ _name_to_offset_map = {
 
 def to_offset(freq) -> Optional[DateOffset]:
     """
-    Return DateOffset object from string or tuple representation
+    Return DateOffset object from string or int or tuple representation
     or datetime.timedelta object.
+
+    Note: Int values return as follows (Matching dateutil.rrule)
+        0 = YEARLY, 1 = MONTHLY, 2 = WEEKLY, 3 = DAILY, 4 = HOURLY, 5 = MINUTELY, 6 = SECONDLY
 
     Parameters
     ----------
-    freq : str, tuple, datetime.timedelta, DateOffset or None
+    freq : str, int, tuple, datetime.timedelta, DateOffset or None
 
     Returns
     -------
@@ -113,6 +116,12 @@ def to_offset(freq) -> Optional[DateOffset]:
 
     >>> to_offset(Hour())
     <Hour>
+
+    >>> to_offset(0)
+    <YearEnd: month=12>
+
+    >>> to_offset(1)
+    <MonthEnd>
     """
     if freq is None:
         return None
@@ -141,6 +150,22 @@ def to_offset(freq) -> Optional[DateOffset]:
                         delta = offset
                     else:
                         delta = delta + offset
+        except ValueError as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
+
+    elif isinstance(freq, int):
+        stride = 1
+        options = {0 : {"name": DateOffset(years=1)},
+                   1 : {"name": "M"},
+                   2 : {"name": "7D"},
+                   3 : {"name": "D"},
+                   4 : {"name": "H"},
+                   5 : {"name": "T"},
+                   6 : {"name": "S"}}
+        try:
+            delta = to_offset(options[freq]["name"])
+        except KeyError as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
         except ValueError as err:
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
