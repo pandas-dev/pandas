@@ -392,7 +392,7 @@ def array_with_unit_to_datetime(
         bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
-        ndarray[uint8_t] mask
+        ndarray[uint8_t, ndim=1, cast=True] mask
         object tz = None
 
     assert is_ignore or is_coerce or is_raise
