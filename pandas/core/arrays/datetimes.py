@@ -579,7 +579,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         #   --> datetime
         #   --> period
         # DatetimeLikeArrayMixin Super handles the rest.
-        # breakpoint()
         dtype = pandas_dtype(dtype)
 
         if is_datetime64_ns_dtype(dtype) and not is_dtype_equal(dtype, self.dtype):
