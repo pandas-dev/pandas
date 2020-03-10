@@ -286,14 +286,14 @@ cdef class _Timestamp(datetime):
         # coerce if necessary if we are a Timestamp-like
         if (PyDateTime_Check(self)
                 and (PyDateTime_Check(other) or is_datetime64_object(other))):
+            # both_timestamps is to determine whether Timedelta(self - other)
+            # should raise the OOB error, or fall back returning a timedelta.
+            both_timestamps = (isinstance(other, _Timestamp) and
+                               isinstance(self, _Timestamp))
             if isinstance(self, _Timestamp):
-                both_timestamps = isinstance(other, _Timestamp)
-                if not both_timestamps:
-                    other = type(self)(other)
+                other = type(self)(other)
             else:
-                both_timestamps = isinstance(self, _Timestamp)
-                if not both_timestamps:
-                    self = type(other)(self)
+                self = type(other)(self)
 
             # validate tz's
             if not tz_compare(self.tzinfo, other.tzinfo):
