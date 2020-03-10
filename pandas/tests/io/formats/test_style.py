@@ -1091,6 +1091,23 @@ class TestStyler:
         expected = {(0, 0): [""], (1, 0): ["background-color: red"]}
         assert result == expected
 
+    def test_highlight_null_subset(self):
+        # GH 31345
+        df = pd.DataFrame({"A": [0, np.nan], "B": [0, np.nan]})
+        result = (
+            df.style.highlight_null(null_color="red", subset=["A"])
+            .highlight_null(null_color="green", subset=["B"])
+            ._compute()
+            .ctx
+        )
+        expected = {
+            (0, 0): [""],
+            (1, 0): ["background-color: red"],
+            (0, 1): [""],
+            (1, 1): ["background-color: green"],
+        }
+        assert result == expected
+
     def test_nonunique_raises(self):
         df = pd.DataFrame([[1, 2]], columns=["A", "A"])
         with pytest.raises(ValueError):
