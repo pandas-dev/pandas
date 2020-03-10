@@ -579,6 +579,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         #   --> datetime
         #   --> period
         # DatetimeLikeArrayMixin Super handles the rest.
+        # breakpoint()
         dtype = pandas_dtype(dtype)
 
         if is_datetime64_ns_dtype(dtype) and not is_dtype_equal(dtype, self.dtype):
@@ -587,6 +588,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             if getattr(self.dtype, "tz", None) is None:
                 return self.tz_localize(new_tz)
             result = self.tz_convert(new_tz)
+            if copy:
+                result = result.copy()
             if new_tz is None:
                 # Do we want .astype('datetime64[ns]') to be an ndarray.
                 # The astype in Block._astype expects this to return an
