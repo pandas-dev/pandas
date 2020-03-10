@@ -49,7 +49,25 @@ internals,development/internals
 # api moved function
 reference/api/pandas.io.json.json_normalize,pandas.json_normalize
 
-# api rename
+# rename due to refactors
+reference/api/pandas.core.window.Rolling,pandas.core.window.rolling.Rolling
+reference/api/pandas.core.window.Rolling.aggregate,pandas.core.window.rolling.Rolling.aggregate
+reference/api/pandas.core.window.Rolling.apply,pandas.core.window.rolling.Rolling.apply
+reference/api/pandas.core.window.Rolling.corr,pandas.core.window.rolling.Rolling.corr
+reference/api/pandas.core.window.Rolling.count,pandas.core.window.rolling.Rolling.count
+reference/api/pandas.core.window.Rolling.cov,pandas.core.window.rolling.Rolling.cov
+reference/api/pandas.core.window.Rolling.kurt,pandas.core.window.rolling.Rolling.kurt
+reference/api/pandas.core.window.Rolling.max,pandas.core.window.rolling.Rolling.max
+reference/api/pandas.core.window.Rolling.mean,pandas.core.window.rolling.Rolling.mean
+reference/api/pandas.core.window.Rolling.median,pandas.core.window.rolling.Rolling.median
+reference/api/pandas.core.window.Rolling.min,pandas.core.window.rolling.Rolling.min
+reference/api/pandas.core.window.Rolling.quantile,pandas.core.window.rolling.Rolling.quantile
+reference/api/pandas.core.window.Rolling.skew,pandas.core.window.rolling.Rolling.skew
+reference/api/pandas.core.window.Rolling.std,pandas.core.window.rolling.Rolling.std
+reference/api/pandas.core.window.Rolling.sum,pandas.core.window.rolling.Rolling.sum
+reference/api/pandas.core.window.Rolling.var,pandas.core.window.rolling.Rolling.var
+
+# api url change (generated -> reference/api rename)
 api,reference/index
 generated/pandas.api.extensions.ExtensionArray.argsort,../reference/api/pandas.api.extensions.ExtensionArray.argsort
 generated/pandas.api.extensions.ExtensionArray.astype,../reference/api/pandas.api.extensions.ExtensionArray.astype
