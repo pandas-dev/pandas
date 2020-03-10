@@ -1190,11 +1190,11 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     /* cannot guarantee that nrows + 1 has been observed */
     word_deletions = self->line_start[nrows - 1] + self->line_fields[nrows - 1];
     if (word_deletions >= 1) {
-	char_count = (self->word_starts[word_deletions - 1] +
-		      strlen(self->words[word_deletions - 1]) + 1);
+        char_count = (self->word_starts[word_deletions - 1] +
+                      strlen(self->words[word_deletions - 1]) + 1);
     }
     else {
-	char_count = 1;
+        char_count = 1;
     }
 
     TRACE(("parser_consume_rows: Deleting %d words, %d chars\n", word_deletions,
