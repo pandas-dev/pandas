@@ -833,7 +833,7 @@ class TestPandasJSONTests:
         if orient == "records" and numpy:
             pytest.skip("Not idiomatic pandas")
 
-        dtype = np.intp
+        dtype = np.intp if not compat.is_platform_windows() else np.int32
         if numpy is None or orient == "index":
             dtype = np.int64
         if numpy is True and orient is None:
@@ -909,7 +909,7 @@ class TestPandasJSONTests:
         tm.assert_frame_equal(output, df)
 
     def test_series(self, orient, numpy):
-        dtype = np.intp
+        dtype = np.intp if not compat.is_platform_windows() else np.int32
         if numpy is None or orient == "index":
             dtype = np.int64
         if numpy is True and orient is None:
