@@ -342,6 +342,7 @@ a,b,c
         assert isinstance(df, TextFileReader)
 
     def test_blank_lines_between_header_and_data_rows(self):
+        # GH 28071
         ref = DataFrame(
             [[np.nan, np.nan], [np.nan, np.nan], [1, 2], [np.nan, np.nan], [3, 4]],
             columns=list("ab"),
