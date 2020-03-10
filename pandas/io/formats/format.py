@@ -1352,8 +1352,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
             values = self.values
             is_complex = is_complex_dtype(values)
             mask = isna(values)
-            if hasattr(values, "to_dense"):  # sparse numpy ndarray
-                values = values.to_dense()
             values = np.array(values, dtype="object")
             values[mask] = na_rep
             imask = (~mask).ravel()
