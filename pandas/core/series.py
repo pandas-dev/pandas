@@ -2619,7 +2619,7 @@ dtype: object
 
 Keep all the original indices
 
->>> s1.differences(s2, keep_indices=True)
+>>> s1.differences(s2, keep_shape=True)
   self other
 0  NaN   NaN
 1    b     a
@@ -2629,7 +2629,7 @@ Keep all the original indices
 
 Keep all original indices and data
 
->>> s1.differences(s2, keep_indices=True, keep_values=True)
+>>> s1.differences(s2, keep_shape=True, keep_equal=True)
   self other
 0    a     a
 1    b     a
