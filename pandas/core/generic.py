@@ -7503,8 +7503,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        converted
-            Same type as caller.
+        Same type as caller
+            Object converted to the specified frequency.
 
         See Also
         --------
