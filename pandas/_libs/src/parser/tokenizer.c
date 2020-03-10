@@ -1192,8 +1192,7 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
     if (word_deletions >= 1) {
         char_count = (self->word_starts[word_deletions - 1] +
                       strlen(self->words[word_deletions - 1]) + 1);
-    }
-    else {
+    } else {
         char_count = 1;
     }
 
