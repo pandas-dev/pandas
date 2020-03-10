@@ -72,9 +72,10 @@ class TestDataFrame(Generic):
         assert not df.bool()
 
         df = DataFrame([[False, False]])
-        with pytest.raises(ValueError):
+        msg = "The truth value of a DataFrame is ambiguous"
+        with pytest.raises(ValueError, match=msg):
             df.bool()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bool(df)
 
     def test_get_numeric_data_preserve_dtype(self):
@@ -189,30 +190,31 @@ class TestDataFrame2:
     def test_validate_bool_args(self, value):
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
-        with pytest.raises(ValueError):
+        msg = 'For argument "inplace" expected type bool, received type'
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).rename_axis(
                 mapper={"a": "x", "b": "y"}, axis=1, inplace=value
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).drop("a", axis=1, inplace=value)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df)._consolidate(inplace=value)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).fillna(value=0, inplace=value)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).interpolate(inplace=value)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
 
     def test_unexpected_keyword(self):
@@ -222,16 +224,17 @@ class TestDataFrame2:
         ts = df["joe"].copy()
         ts[2] = np.nan
 
-        with pytest.raises(TypeError, match="unexpected keyword"):
+        msg = "unexpected keyword"
+        with pytest.raises(TypeError, match=msg):
             df.drop("joe", axis=1, in_place=True)
 
-        with pytest.raises(TypeError, match="unexpected keyword"):
+        with pytest.raises(TypeError, match=msg):
             df.reindex([1, 0], inplace=True)
 
-        with pytest.raises(TypeError, match="unexpected keyword"):
+        with pytest.raises(TypeError, match=msg):
             ca.fillna(0, inplace=True)
 
-        with pytest.raises(TypeError, match="unexpected keyword"):
+        with pytest.raises(TypeError, match=msg):
             ts.fillna(0, in_place=True)
 
 
