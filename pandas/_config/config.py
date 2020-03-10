@@ -82,7 +82,8 @@ _reserved_keys: List[str] = ["all"]
 
 
 class OptionError(AttributeError, KeyError):
-    """Exception for pandas.options, backwards compatible with KeyError
+    """
+    Exception for pandas.options, backwards compatible with KeyError
     checks
     """
 
@@ -212,8 +213,8 @@ class DictWrapper:
         prefix += key
         try:
             v = object.__getattribute__(self, "d")[key]
-        except KeyError:
-            raise OptionError("No such option")
+        except KeyError as err:
+            raise OptionError("No such option") from err
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
@@ -545,7 +546,8 @@ def deprecate_option(
 
 
 def _select_options(pat: str) -> List[str]:
-    """returns a list of keys matching `pat`
+    """
+    returns a list of keys matching `pat`
 
     if pat=="all", returns all registered options
     """
@@ -708,7 +710,8 @@ F = TypeVar("F", bound=FuncType)
 
 @contextmanager
 def config_prefix(prefix):
-    """contextmanager for multiple invocations of API with a common prefix
+    """
+    contextmanager for multiple invocations of API with a common prefix
 
     supported API functions: (register / get / set )__option
 

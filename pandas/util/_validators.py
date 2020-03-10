@@ -216,7 +216,8 @@ def validate_bool_kwarg(value, arg_name):
 
 
 def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
-    """Argument handler for mixed index, columns / axis functions
+    """
+    Argument handler for mixed index, columns / axis functions
 
     In an attempt to handle both `.method(index, columns)`, and
     `.method(arg, axis=.)`, we have to do some bad things to argument
@@ -310,7 +311,8 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
-    """Validate the keyword arguments to 'fillna'.
+    """
+    Validate the keyword arguments to 'fillna'.
 
     This checks that exactly one of 'value' and 'method' is specified.
     If 'method' is specified, this validates that it's a valid method.

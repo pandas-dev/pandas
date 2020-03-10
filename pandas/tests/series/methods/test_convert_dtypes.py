@@ -81,6 +81,18 @@ class TestSeriesConvertDtypes:
                     ),
                 },
             ),
+            (  # GH32117
+                ["h", "i", 1],
+                np.dtype("O"),
+                {
+                    (
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                        (True, False),
+                    ): np.dtype("O"),
+                },
+            ),
             (
                 [10, np.nan, 20],
                 np.dtype("float"),
@@ -144,11 +156,23 @@ class TestSeriesConvertDtypes:
                 [1, 2.0],
                 object,
                 {
-                    ((True, False), (True, False), (True,), (True, False)): "Int64",
+                    ((True,), (True, False), (True,), (True, False)): "Int64",
                     ((True,), (True, False), (False,), (True, False)): np.dtype(
                         "float"
                     ),
-                    ((False,), (True, False), (False,), (True, False)): np.dtype(
+                    ((False,), (True, False), (True, False), (True, False)): np.dtype(
+                        "object"
+                    ),
+                },
+            ),
+            (
+                [1, 2.5],
+                object,
+                {
+                    ((True,), (True, False), (True, False), (True, False)): np.dtype(
+                        "float"
+                    ),
+                    ((False,), (True, False), (True, False), (True, False)): np.dtype(
                         "object"
                     ),
                 },

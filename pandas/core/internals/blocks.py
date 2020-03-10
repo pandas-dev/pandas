@@ -11,6 +11,7 @@ from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -170,20 +171,20 @@ class Block(PandasObject):
         return (self._can_consolidate, self.dtype.name)
 
     @property
-    def _is_single_block(self):
+    def _is_single_block(self) -> bool:
         return self.ndim == 1
 
     @property
-    def is_view(self):
+    def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         return self.values.base is not None
 
     @property
-    def is_datelike(self):
+    def is_datelike(self) -> bool:
         """ return True if I am a non-datelike """
         return self.is_datetime or self.is_timedelta
 
-    def is_categorical_astype(self, dtype):
+    def is_categorical_astype(self, dtype) -> bool:
         """
         validate that we have a astypeable to categorical,
         returns a boolean if we are a categorical
@@ -255,8 +256,9 @@ class Block(PandasObject):
         self._mgr_locs = new_mgr_locs
 
     @property
-    def array_dtype(self):
-        """ the dtype to return if I want to construct this block as an
+    def array_dtype(self) -> DtypeObj:
+        """
+        the dtype to return if I want to construct this block as an
         array
         """
         return self.dtype
@@ -332,7 +334,7 @@ class Block(PandasObject):
         return self.values.dtype
 
     @property
-    def ftype(self):
+    def ftype(self) -> str:
         if getattr(self.values, "_pandas_ftype", False):
             dtype = self.dtype.subtype
         else:
@@ -366,7 +368,7 @@ class Block(PandasObject):
         """
         self.values[locs] = values
 
-    def delete(self, loc):
+    def delete(self, loc) -> None:
         """
         Delete given loc(-s) from block in-place.
         """
@@ -374,7 +376,8 @@ class Block(PandasObject):
         self.mgr_locs = self.mgr_locs.delete(loc)
 
     def apply(self, func, **kwargs) -> List["Block"]:
-        """ apply the function to my values; return a block if we are not
+        """
+        apply the function to my values; return a block if we are not
         one
         """
         with np.errstate(all="ignore"):
@@ -399,8 +402,9 @@ class Block(PandasObject):
 
         return [result]
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
-        """ fillna on the block with the value. If we fail, then convert to
+    def fillna(self, value, limit=None, inplace: bool = False, downcast=None):
+        """
+        fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -648,7 +652,8 @@ class Block(PandasObject):
         timedelta: bool = True,
         coerce: bool = False,
     ):
-        """ attempt to coerce any object types to better types return a copy
+        """
+        attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
         """
@@ -683,7 +688,7 @@ class Block(PandasObject):
         return values
 
     # block actions #
-    def copy(self, deep=True):
+    def copy(self, deep: bool = True):
         """ copy constructor """
         values = self.values
         if deep:
@@ -691,9 +696,16 @@ class Block(PandasObject):
         return self.make_block_same_class(values, ndim=self.ndim)
 
     def replace(
-        self, to_replace, value, inplace=False, filter=None, regex=False, convert=True
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        filter=None,
+        regex: bool = False,
+        convert: bool = True,
     ):
-        """replace the to_replace value with value, possible to create new
+        """
+        replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
         It is used in ObjectBlocks.  It is here for API compatibility.
         """
@@ -912,8 +924,17 @@ class Block(PandasObject):
         block = self.make_block(values)
         return block
 
-    def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):
-        """ putmask the data to the block; it is possible that we may create a
+    def putmask(
+        self,
+        mask,
+        new,
+        align: bool = True,
+        inplace: bool = False,
+        axis: int = 0,
+        transpose: bool = False,
+    ):
+        """
+        putmask the data to the block; it is possible that we may create a
         new dtype of block
 
         return the resulting block(s)
@@ -1101,7 +1122,6 @@ class Block(PandasObject):
         method="pad",
         axis=0,
         index=None,
-        values=None,
         inplace=False,
         limit=None,
         limit_direction="forward",
@@ -1151,7 +1171,6 @@ class Block(PandasObject):
         return self._interpolate(
             method=m,
             index=index,
-            values=values,
             axis=axis,
             limit=limit,
             limit_direction=limit_direction,
@@ -1205,7 +1224,6 @@ class Block(PandasObject):
         self,
         method=None,
         index=None,
-        values=None,
         fill_value=None,
         axis=0,
         limit=None,
@@ -1258,7 +1276,7 @@ class Block(PandasObject):
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
-    def take_nd(self, indexer, axis, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(self, indexer, axis: int, new_mgr_locs=None, fill_tuple=None):
         """
         Take values according to indexer and return them as a block.bb
 
@@ -1299,7 +1317,7 @@ class Block(PandasObject):
         new_values = _block_shape(new_values, ndim=self.ndim)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis=0, fill_value=None):
+    def shift(self, periods, axis: int = 0, fill_value=None):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
@@ -1331,7 +1349,7 @@ class Block(PandasObject):
         self,
         other,
         cond,
-        align=True,
+        align: bool = True,
         errors="raise",
         try_cast: bool = False,
         axis: int = 0,
@@ -1343,11 +1361,12 @@ class Block(PandasObject):
         ----------
         other : a ndarray/object
         cond  : the condition to respect
-        align : boolean, perform alignment on other/cond
+        align : bool, default True
+            Perform alignment on other/cond.
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-        axis : int
+        axis : int, default 0
 
         Returns
         -------
@@ -1446,7 +1465,8 @@ class Block(PandasObject):
         return array_equivalent(self.values, other.values)
 
     def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
-        """Return a list of unstacked blocks of self
+        """
+        Return a list of unstacked blocks of self
 
         Parameters
         ----------
@@ -1478,7 +1498,7 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation="linear", axis=0):
+    def quantile(self, qs, interpolation="linear", axis: int = 0):
         """
         compute the quantiles of the
 
@@ -1535,7 +1555,13 @@ class Block(PandasObject):
         return make_block(result, placement=np.arange(len(result)), ndim=ndim)
 
     def _replace_coerce(
-        self, to_replace, value, inplace=True, regex=False, convert=False, mask=None
+        self,
+        to_replace,
+        value,
+        inplace: bool = True,
+        regex: bool = False,
+        convert: bool = False,
+        mask=None,
     ):
         """
         Replace value corresponding to the given boolean array with another
@@ -1547,7 +1573,7 @@ class Block(PandasObject):
             Scalar to replace or regular expression to match.
         value : object
             Replacement object.
-        inplace : bool, default False
+        inplace : bool, default True
             Perform inplace modification.
         regex : bool, default False
             If true, perform regular expression substitution.
@@ -1584,7 +1610,8 @@ class NonConsolidatableMixIn:
     _validate_ndim = False
 
     def __init__(self, values, placement, ndim=None):
-        """Initialize a non-consolidatable block.
+        """
+        Initialize a non-consolidatable block.
 
         'ndim' may be inferred from 'placement'.
 
@@ -1633,7 +1660,9 @@ class NonConsolidatableMixIn:
         assert locs.tolist() == [0]
         self.values = values
 
-    def putmask(self, mask, new, align=True, inplace=False, axis=0, transpose=False):
+    def putmask(
+        self, mask, new, align=True, inplace=False, axis=0, transpose=False,
+    ):
         """
         putmask the data to the block; we must be a single block and not
         generate other blocks
@@ -1699,7 +1728,8 @@ class NonConsolidatableMixIn:
 
 
 class ExtensionBlock(NonConsolidatableMixIn, Block):
-    """Block for holding extension types.
+    """
+    Block for holding extension types.
 
     Notes
     -----
@@ -1748,7 +1778,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self._holder._can_hold_na
 
     @property
-    def is_view(self):
+    def is_view(self) -> bool:
         """Extension arrays are never treated as views."""
         return False
 
@@ -1757,7 +1787,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.values.dtype._is_numeric
 
     def setitem(self, indexer, value):
-        """Set the value inplace, returning a same-typed block.
+        """
+        Set the value inplace, returning a same-typed block.
 
         This differs from Block.setitem by not allowing setitem to change
         the dtype of the Block.
@@ -1812,7 +1843,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
-    def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
+    def take_nd(self, indexer, axis: int = 0, new_mgr_locs=None, fill_tuple=None):
         """
         Take values according to indexer and return them as a block.
         """
@@ -2073,7 +2104,7 @@ class FloatBlock(FloatOrComplexBlock):
         )
         return formatter.get_result_as_array()
 
-    def should_store(self, value):
+    def should_store(self, value) -> bool:
         # when inserting a column should not coerce integers to floats
         # unnecessarily
         return issubclass(value.dtype.type, np.floating) and value.dtype == self.dtype
@@ -2091,7 +2122,7 @@ class ComplexBlock(FloatOrComplexBlock):
             element, (float, int, complex, np.float_, np.int_)
         ) and not isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value):
+    def should_store(self, value) -> bool:
         return issubclass(value.dtype.type, np.complexfloating)
 
 
@@ -2110,7 +2141,7 @@ class IntBlock(NumericBlock):
             )
         return is_integer(element)
 
-    def should_store(self, value):
+    def should_store(self, value) -> bool:
         return is_integer_dtype(value) and value.dtype == self.dtype
 
 
@@ -2248,7 +2279,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         ).reshape(i8values.shape)
         return np.atleast_2d(result)
 
-    def should_store(self, value):
+    def should_store(self, value) -> bool:
         return (
             issubclass(value.dtype.type, np.datetime64)
             and not is_datetime64tz_dtype(value)
@@ -2291,7 +2322,8 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return DatetimeArray
 
     def _maybe_coerce_values(self, values):
-        """Input validation for values passed to __init__. Ensure that
+        """
+        Input validation for values passed to __init__. Ensure that
         we have datetime64TZ, coercing if necessary.
 
         Parameters
@@ -2312,7 +2344,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return values
 
     @property
-    def is_view(self):
+    def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         # check the ndarray values of the DatetimeIndex values
         return self.values._data.base is not None
@@ -2499,7 +2531,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def should_store(self, value):
+    def should_store(self, value) -> bool:
         return issubclass(
             value.dtype.type, np.timedelta64
         ) and not is_extension_array_dtype(value)
@@ -2545,7 +2577,7 @@ class BoolBlock(NumericBlock):
             return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value):
+    def should_store(self, value) -> bool:
         return issubclass(value.dtype.type, np.bool_) and not is_extension_array_dtype(
             value
         )
@@ -2580,7 +2612,8 @@ class ObjectBlock(Block):
 
     @property
     def is_bool(self):
-        """ we can be a bool if we have only bool values but are of type
+        """
+        we can be a bool if we have only bool values but are of type
         object
         """
         return lib.is_bool_array(self.values.ravel())
@@ -2593,7 +2626,8 @@ class ObjectBlock(Block):
         timedelta: bool = True,
         coerce: bool = False,
     ):
-        """ attempt to coerce any object types to better types return a copy of
+        """
+        attempt to coerce any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
 
         can return multiple blocks!
@@ -2635,7 +2669,7 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element: Any) -> bool:
         return True
 
-    def should_store(self, value):
+    def should_store(self, value) -> bool:
         return not (
             issubclass(
                 value.dtype.type,
@@ -2886,7 +2920,8 @@ class CategoricalBlock(ExtensionBlock):
 
     @property
     def array_dtype(self):
-        """ the dtype to return if I want to construct this block as an
+        """
+        the dtype to return if I want to construct this block as an
         array
         """
         return np.object_
@@ -3109,14 +3144,15 @@ def _safe_reshape(arr, new_shape):
     return arr
 
 
-def _putmask_smart(v, mask, n):
+def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     """
     Return a new ndarray, try to preserve dtype if possible.
 
     Parameters
     ----------
-    v : `values`, updated in-place (array like)
-    mask : np.ndarray
+    v : np.ndarray
+        `values`, updated in-place.
+    mask : np.ndarray[bool]
         Applies to both sides (array like).
     n : `new values` either scalar or an array like aligned with `values`
 
@@ -3183,9 +3219,6 @@ def _putmask_smart(v, mask, n):
     # change the dtype if needed
     dtype, _ = maybe_promote(n.dtype)
 
-    if is_extension_array_dtype(v.dtype) and is_object_dtype(dtype):
-        v = v._internal_get_values(dtype)
-    else:
-        v = v.astype(dtype)
+    v = v.astype(dtype)
 
     return _putmask_preserve(v, n)

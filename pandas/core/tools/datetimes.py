@@ -2,7 +2,7 @@ from collections import abc
 from datetime import datetime, time
 from functools import partial
 from itertools import islice
-from typing import Optional, TypeVar, Union
+from typing import List, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -296,7 +296,9 @@ def _convert_listlike_datetimes(
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
             return DatetimeIndex(arg, tz=tz, name=name)
         if tz == "utc":
-            arg = arg.tz_convert(None).tz_localize(tz)
+            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
+            # no attribute "tz_convert"
+            arg = arg.tz_convert(None).tz_localize(tz)  # type: ignore
         return arg
 
     elif is_datetime64_ns_dtype(arg):
@@ -307,7 +309,9 @@ def _convert_listlike_datetimes(
                 pass
         elif tz:
             # DatetimeArray, DatetimeIndex
-            return arg.tz_localize(tz)
+            # error: Item "DatetimeIndex" of "Union[DatetimeArray, DatetimeIndex]" has
+            # no attribute "tz_localize"
+            return arg.tz_localize(tz)  # type: ignore
 
         return arg
 
@@ -387,8 +391,10 @@ def _convert_listlike_datetimes(
                     # datetime64[ns]
                     orig_arg = ensure_object(orig_arg)
                     result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
-                    raise ValueError("cannot convert the input to '%Y%m%d' date format")
+                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime) as err:
+                    raise ValueError(
+                        "cannot convert the input to '%Y%m%d' date format"
+                    ) from err
 
             # fallback
             if result is None:
@@ -480,8 +486,10 @@ def _adjust_to_origin(arg, origin, unit):
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
             arg = arg - j0
-        except TypeError:
-            raise ValueError("incompatible 'arg' type for given 'origin'='julian'")
+        except TypeError as err:
+            raise ValueError(
+                "incompatible 'arg' type for given 'origin'='julian'"
+            ) from err
 
         # preemptively check this for a nice range
         j_max = Timestamp.max.to_julian_date() - j0
@@ -504,10 +512,14 @@ def _adjust_to_origin(arg, origin, unit):
         # we are going to offset back to unix / epoch time
         try:
             offset = Timestamp(origin)
-        except tslibs.OutOfBoundsDatetime:
-            raise tslibs.OutOfBoundsDatetime(f"origin {origin} is Out of Bounds")
-        except ValueError:
-            raise ValueError(f"origin {origin} cannot be converted to a Timestamp")
+        except tslibs.OutOfBoundsDatetime as err:
+            raise tslibs.OutOfBoundsDatetime(
+                f"origin {origin} is Out of Bounds"
+            ) from err
+        except ValueError as err:
+            raise ValueError(
+                f"origin {origin} cannot be converted to a Timestamp"
+            ) from err
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
@@ -826,18 +838,18 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     required = ["year", "month", "day"]
     req = sorted(set(required) - set(unit_rev.keys()))
     if len(req):
-        required = ",".join(req)
+        _required = ",".join(req)
         raise ValueError(
             "to assemble mappings requires at least that "
-            f"[year, month, day] be specified: [{required}] is missing"
+            f"[year, month, day] be specified: [{_required}] is missing"
         )
 
     # keys we don't recognize
     excess = sorted(set(unit_rev.keys()) - set(_unit_map.values()))
     if len(excess):
-        excess = ",".join(excess)
+        _excess = ",".join(excess)
         raise ValueError(
-            f"extra keys have been passed to the datetime assemblage: [{excess}]"
+            f"extra keys have been passed to the datetime assemblage: [{_excess}]"
         )
 
     def coerce(values):
@@ -857,7 +869,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     try:
         values = to_datetime(values, format="%Y%m%d", errors=errors, utc=tz)
     except (TypeError, ValueError) as err:
-        raise ValueError(f"cannot assemble the datetimes: {err}")
+        raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
     for u in ["h", "m", "s", "ms", "us", "ns"]:
         value = unit_rev.get(u)
@@ -865,7 +877,9 @@ def _assemble_from_unit_mappings(arg, errors, tz):
             try:
                 values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)
             except (TypeError, ValueError) as err:
-                raise ValueError(f"cannot assemble the datetimes [{value}]: {err}")
+                raise ValueError(
+                    f"cannot assemble the datetimes [{value}]: {err}"
+                ) from err
     return values
 
 
@@ -992,18 +1006,18 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         if infer_time_format and format is None:
             format = _guess_time_format_for_array(arg)
 
-        times = []
+        times: List[Optional[time]] = []
         if format is not None:
             for element in arg:
                 try:
                     times.append(datetime.strptime(element, format).time())
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as err:
                     if errors == "raise":
                         msg = (
                             f"Cannot convert {element} to a time with given "
                             f"format {format}"
                         )
-                        raise ValueError(msg)
+                        raise ValueError(msg) from err
                     elif errors == "ignore":
                         return arg
                     else:

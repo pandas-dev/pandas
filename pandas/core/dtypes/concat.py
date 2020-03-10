@@ -136,7 +136,8 @@ def concat_compat(to_concat, axis: int = 0):
 
 
 def concat_categorical(to_concat, axis: int = 0):
-    """Concatenate an object/categorical array of arrays, each of which is a
+    """
+    Concatenate an object/categorical array of arrays, each of which is a
     single dtype
 
     Parameters

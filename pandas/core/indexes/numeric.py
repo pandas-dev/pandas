@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 
 from pandas._libs import index as libindex, lib
-from pandas._typing import Dtype
+from pandas._typing import Dtype, Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -103,11 +103,16 @@ class NumericIndex(Index):
         return self._maybe_cast_indexer(label)
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is not None and not self._can_hold_na:
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = name if name is not lib.no_default else self.name
+
+        if values is not None and not self._can_hold_na and values.dtype.kind == "f":
             # Ensure we are not returning an Int64Index with float data:
-            return self._shallow_copy_with_infer(values=values, **kwargs)
-        return super()._shallow_copy(values=values, **kwargs)
+            return Float64Index._simple_new(values, name=name)
+
+        if values is None:
+            values = self.values
+        return type(self)._simple_new(values, name=name)
 
     def _convert_for_op(self, value):
         """
@@ -249,14 +254,6 @@ class IntegerIndex(NumericIndex):
         # do not cache or you'll create a memory leak
         return self.values.view(self._default_dtype)
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-
-        # never iloc, which we don't coerce to integers
-        key = self._maybe_cast_indexer(key)
-        return super()._convert_scalar_indexer(key, kind=kind)
-
 
 class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _int64_descr_args
@@ -386,12 +383,6 @@ class Float64Index(NumericIndex):
     def _should_fallback_to_positional(self):
         return False
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-        # no-op for non-iloc
-        return key
-
     @Appender(Index._convert_slice_indexer.__doc__)
     def _convert_slice_indexer(self, key: slice, kind: str):
         assert kind in ["loc", "getitem"]
@@ -434,7 +425,7 @@ class Float64Index(NumericIndex):
                 other = self._constructor(other)
             if not is_dtype_equal(self.dtype, other.dtype) or self.shape != other.shape:
                 return False
-            left, right = self._ndarray_values, other._ndarray_values
+            left, right = self._values, other._values
             return ((left == right) | (self._isnan & other._isnan)).all()
         except (TypeError, ValueError):
             return False

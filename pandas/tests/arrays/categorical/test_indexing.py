@@ -240,14 +240,17 @@ def test_mask_with_boolean(index):
 
 
 @pytest.mark.parametrize("index", [True, False])
-def test_mask_with_boolean_raises(index):
+def test_mask_with_boolean_na_treated_as_false(index):
+    # https://github.com/pandas-dev/pandas/issues/31503
     s = Series(range(3))
     idx = Categorical([True, False, None])
     if index:
         idx = CategoricalIndex(idx)
 
-    with pytest.raises(ValueError, match="NA / NaN"):
-        s[idx]
+    result = s[idx]
+    expected = s[idx.fillna(False)]
+
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.fixture

@@ -600,7 +600,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
 
 def _build_xpath_expr(attrs) -> str:
-    """Build an xpath expression to simulate bs4's ability to pass in kwargs to
+    """
+    Build an xpath expression to simulate bs4's ability to pass in kwargs to
     search for attributes when using the lxml parser.
 
     Parameters
@@ -903,7 +904,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
                     "Since you passed a non-rewindable file "
                     "object, we can't rewind it to try "
                     "another parser. Try read_html() with a different flavor."
-                )
+                ) from caught
 
             retained = caught
         else:
