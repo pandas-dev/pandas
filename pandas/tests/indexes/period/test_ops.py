@@ -82,7 +82,7 @@ class TestPeriodIndexOps:
         tm.assert_index_equal(idx.unique(), exp_idx)
 
     @pytest.mark.parametrize(
-        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
+        "freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"]
     )
     def test_drop_duplicates_metadata(self, freq):
         # GH 10115
