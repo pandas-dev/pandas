@@ -364,10 +364,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         hash(key)
         return contains(self, key, container=self._engine)
 
-    def __array__(self, dtype=None) -> np.ndarray:
-        """ the array interface, return my values """
-        return np.array(self._data, dtype=dtype)
-
     @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
