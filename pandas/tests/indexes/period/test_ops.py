@@ -81,9 +81,7 @@ class TestPeriodIndexOps:
 
         tm.assert_index_equal(idx.unique(), exp_idx)
 
-    @pytest.mark.parametrize(
-        "freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"]
-    )
+    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
     def test_drop_duplicates_metadata(self, freq):
         # GH 10115
         idx = pd.period_range("2011-01-01", periods=10, freq=freq, name="idx")
@@ -96,19 +94,18 @@ class TestPeriodIndexOps:
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
 
-    @pytest.mark.parametrize(
-        "freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"]
-    )
+    @pytest.mark.parametrize("freq", ["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
     @pytest.mark.parametrize(
         "keep, expected, index",
         [
-            ("first", np.concatenate(([False] * 10, [True] * 5)),
-                np.arange(0, 10)),
-            ("last", np.concatenate(([True] * 5, [False] * 10)),
-                np.arange(5, 15)),
-            (False, np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
-                np.arange(5, 10)),
-        ]
+            ("first", np.concatenate(([False] * 10, [True] * 5)), np.arange(0, 10)),
+            ("last", np.concatenate(([True] * 5, [False] * 10)), np.arange(5, 15)),
+            (
+                False,
+                np.concatenate(([True] * 5, [False] * 5, [True] * 5)),
+                np.arange(5, 10),
+            ),
+        ],
     )
     def test_drop_duplicates(self, freq, keep, expected, index):
         # to check Index/Series compat

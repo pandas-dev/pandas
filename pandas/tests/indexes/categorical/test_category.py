@@ -379,28 +379,28 @@ class TestCategoricalIndex(Base):
     def test_drop_duplicates(self):
         keep = ["first", "last", False]
 
-        categories = [[1, 2, 3], list('abc')]
+        categories = [[1, 2, 3], list("abc")]
         expected = [
             np.array([False, True, True]),
             np.array([True, True, False]),
-            np.array([True, True, True])
+            np.array([True, True, True]),
         ]
         index = [[0], [2], np.empty(shape=(0), dtype=int)]
         for c in categories:
             idx = pd.CategoricalIndex([1, 1, 1], categories=c, name="foo")
             self._test_drop_duplicates(idx, keep, expected, index)
 
-        categories = ['a', 'b', 'c']
-        idx = CategoricalIndex([2, 'a', 'b'], categories=categories, name="foo")
+        categories = ["a", "b", "c"]
+        idx = CategoricalIndex([2, "a", "b"], categories=categories, name="foo")
         expected = np.zeros(shape=(3, 3), dtype=np.bool)
         index = [[0, 1, 2], [0, 1, 2], [0, 1, 2]]
         self._test_drop_duplicates(idx, keep, expected, index)
 
-        idx = CategoricalIndex(list('abb'), categories=categories, name="foo")
+        idx = CategoricalIndex(list("abb"), categories=categories, name="foo")
         expected = [
             np.array([False, False, True]),
             np.array([False, True, False]),
-            np.array([False, True, True])
+            np.array([False, True, True]),
         ]
         index = [[0, 1], [0, 2], [0]]
         self._test_drop_duplicates(idx, keep, expected, index)
@@ -412,19 +412,19 @@ class TestCategoricalIndex(Base):
         expected = CategoricalIndex([1], categories=[1])
         tm.assert_index_equal(idx.unique(), expected)
 
-        categories = list('abc')
+        categories = list("abc")
         idx = CategoricalIndex([1, 1, 1], categories=categories)
         expected = CategoricalIndex([np.nan], categories=[])
         tm.assert_index_equal(idx.unique(), expected)
 
         categories = [1, 2, 3]
-        idx = CategoricalIndex([1, 2, 'a'], categories=categories)
+        idx = CategoricalIndex([1, 2, "a"], categories=categories)
         expected = CategoricalIndex([1, 2, np.nan], categories=[1, 2])
         tm.assert_index_equal(idx.unique(), expected)
 
-        categories = list('abc')
-        idx = CategoricalIndex([2, 'a', 'b'], categories=categories)
-        expected = CategoricalIndex([np.nan, 'a', 'b'], categories=['a', 'b'])
+        categories = list("abc")
+        idx = CategoricalIndex([2, "a", "b"], categories=categories)
+        expected = CategoricalIndex([np.nan, "a", "b"], categories=["a", "b"])
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):
