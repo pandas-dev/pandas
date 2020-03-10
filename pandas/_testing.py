@@ -1461,14 +1461,7 @@ def to_array(obj):
 # Sparse
 
 
-def assert_sp_array_equal(
-    left,
-    right,
-    check_dtype=True,
-    check_kind=True,
-    check_fill_value=True,
-    consolidate_block_indices=False,
-):
+def assert_sp_array_equal(left, right):
     """
     Check that the left and right SparseArray are equal.
 
@@ -1476,38 +1469,17 @@ def assert_sp_array_equal(
     ----------
     left : SparseArray
     right : SparseArray
-    check_dtype : bool, default True
-        Whether to check the data dtype is identical.
-    check_kind : bool, default True
-        Whether to just the kind of the sparse index for each column.
-    check_fill_value : bool, default True
-        Whether to check that left.fill_value matches right.fill_value
-    consolidate_block_indices : bool, default False
-        Whether to consolidate contiguous blocks for sparse arrays with
-        a BlockIndex. Some operations, e.g. concat, will end up with
-        block indices that could be consolidated. Setting this to true will
-        create a new BlockIndex for that array, with consolidated
-        block indices.
     """
     _check_isinstance(left, right, pd.arrays.SparseArray)
 
-    assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
+    assert_numpy_array_equal(left.sp_values, right.sp_values)
 
     # SparseIndex comparison
     assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
     assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
 
-    if not check_kind:
-        left_index = left.sp_index.to_block_index()
-        right_index = right.sp_index.to_block_index()
-    else:
-        left_index = left.sp_index
-        right_index = right.sp_index
-
-    if consolidate_block_indices and left.kind == "block":
-        # we'll probably remove this hack...
-        left_index = left_index.to_int_index().to_block_index()
-        right_index = right_index.to_int_index().to_block_index()
+    left_index = left.sp_index
+    right_index = right.sp_index
 
     if not left_index.equals(right_index):
         raise_assert_detail(
@@ -1517,11 +1489,9 @@ def assert_sp_array_equal(
         # Just ensure a
         pass
 
-    if check_fill_value:
-        assert_attr_equal("fill_value", left, right)
-    if check_dtype:
-        assert_attr_equal("dtype", left, right)
-    assert_numpy_array_equal(left.to_dense(), right.to_dense(), check_dtype=check_dtype)
+    assert_attr_equal("fill_value", left, right)
+    assert_attr_equal("dtype", left, right)
+    assert_numpy_array_equal(left.to_dense(), right.to_dense())
 
 
 # -----------------------------------------------------------------------------
