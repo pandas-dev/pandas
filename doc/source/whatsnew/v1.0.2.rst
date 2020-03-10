@@ -85,6 +85,10 @@ Bug fixes
 - Fixed bug where :meth:`GroupBy.first` and :meth:`GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
 - Fix bug in :meth:`Series.convert_dtypes` for series with mix of integers and strings (:issue:`32117`)
 
+**Strings**
+
+- Using ``pd.NA`` with :meth:`Series.str.repeat` now correctly outputs a null value instead of raising error for vector inputs (:issue:`31632`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_102.contributors:
