@@ -81,10 +81,10 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Series, DataFrame, Categorical
 
-formatters_type = Union[
+FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
-float_format_type = Union[str, Callable, "EngFormatter"]
+FloatFormatType = Union[str, Callable, "EngFormatter"]
 
 common_docstring = """
         Parameters
@@ -455,7 +455,7 @@ class TableFormatter:
 
     show_dimensions: Union[bool, str]
     is_truncated: bool
-    formatters: formatters_type
+    formatters: FormattersType
     columns: Index
 
     @property
@@ -548,9 +548,9 @@ class DataFrameFormatter(TableFormatter):
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[formatters_type] = None,
+        formatters: Optional[FormattersType] = None,
         justify: Optional[str] = None,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         line_width: Optional[int] = None,
@@ -1089,7 +1089,7 @@ class DataFrameFormatter(TableFormatter):
 def format_array(
     values: Any,
     formatter: Optional[Callable],
-    float_format: Optional[float_format_type] = None,
+    float_format: Optional[FloatFormatType] = None,
     na_rep: str = "NaN",
     digits: Optional[int] = None,
     space: Optional[Union[str, int]] = None,
@@ -1171,7 +1171,7 @@ class GenericArrayFormatter:
         formatter: Optional[Callable] = None,
         na_rep: str = "NaN",
         space: Union[str, int] = 12,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         justify: str = "right",
         decimal: str = ".",
         quoting: Optional[int] = None,
@@ -1278,7 +1278,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
     def _value_formatter(
         self,
-        float_format: Optional[float_format_type] = None,
+        float_format: Optional[FloatFormatType] = None,
         threshold: Optional[Union[float, int]] = None,
     ) -> Callable:
         """Returns a function to be applied on each value to format it"""
@@ -1372,7 +1372,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
         # There is a special default string when we are fixed-width
         # The default is otherwise to use str instead of a formatting string
-        float_format: Optional[float_format_type]
+        float_format: Optional[FloatFormatType]
         if self.float_format is None:
             if self.fixed_width:
                 float_format = partial(

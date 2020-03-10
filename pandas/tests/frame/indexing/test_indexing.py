@@ -27,6 +27,9 @@ from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
+# We pass through a TypeError raised by numpy
+_slice_msg = "slice indices must be integers or None or have an __index__ method"
+
 
 class TestGet:
     def test_get(self, float_frame):
@@ -994,7 +997,8 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError, match="Too many indexers"):
+        with pytest.raises(IndexError, match="too many indices for array"):
+            # GH#32257 we let numpy do validation, get their exception
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
@@ -1073,7 +1077,7 @@ class TestDataFrameIndexing:
 
         cp = df.copy()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=_slice_msg):
             cp.iloc[1.0:5] = 0
 
         with pytest.raises(TypeError, match=msg):

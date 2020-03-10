@@ -254,14 +254,6 @@ class IntegerIndex(NumericIndex):
         # do not cache or you'll create a memory leak
         return self.values.view(self._default_dtype)
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-
-        # never iloc, which we don't coerce to integers
-        key = self._maybe_cast_indexer(key)
-        return super()._convert_scalar_indexer(key, kind=kind)
-
 
 class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _int64_descr_args
@@ -390,12 +382,6 @@ class Float64Index(NumericIndex):
     @Appender(Index._should_fallback_to_positional.__doc__)
     def _should_fallback_to_positional(self):
         return False
-
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-        # no-op for non-iloc
-        return key
 
     @Appender(Index._convert_slice_indexer.__doc__)
     def _convert_slice_indexer(self, key: slice, kind: str):

@@ -219,13 +219,13 @@ class EWM(_Rolling):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError):
+            except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
                     del block_list[i]
                     continue
                 else:
-                    raise DataError("No numeric types to aggregate")
+                    raise DataError("No numeric types to aggregate") from err
 
             if values.size == 0:
                 results.append(values.copy())

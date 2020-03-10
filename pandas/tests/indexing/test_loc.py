@@ -35,7 +35,7 @@ class TestLoc(Base):
             "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
         )
         self.check_result("loc", 20, typs=["labels"], fails=KeyError)
-        self.check_result("loc", 20, typs=["ts"], axes=0, fails=TypeError)
+        self.check_result("loc", 20, typs=["ts"], axes=0, fails=KeyError)
         self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):

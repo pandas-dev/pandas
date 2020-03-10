@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Timestamp, date_range, offsets
 import pandas._testing as tm
 
 randn = np.random.randn
@@ -19,6 +19,24 @@ class TestDatetimeIndex:
         index = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
         unpickled = tm.round_trip_pickle(index)
         tm.assert_index_equal(index, unpickled)
+
+    def test_pickle(self):
+
+        # GH#4606
+        p = tm.round_trip_pickle(NaT)
+        assert p is NaT
+
+        idx = pd.to_datetime(["2013-01-01", NaT, "2014-01-06"])
+        idx_p = tm.round_trip_pickle(idx)
+        assert idx_p[0] == idx[0]
+        assert idx_p[1] is NaT
+        assert idx_p[2] == idx[2]
+
+        # GH#11002
+        # don't infer freq
+        idx = date_range("1750-1-1", "2050-1-1", freq="7D")
+        idx_p = tm.round_trip_pickle(idx)
+        tm.assert_index_equal(idx, idx_p)
 
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774

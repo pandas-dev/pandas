@@ -117,7 +117,6 @@ class TestPeriodIndex(DatetimeLike):
         assert isinstance(series, Series)
 
     def test_shallow_copy_empty(self):
-
         # GH13067
         idx = PeriodIndex([], freq="M")
         result = idx._shallow_copy()
@@ -125,11 +124,16 @@ class TestPeriodIndex(DatetimeLike):
 
         tm.assert_index_equal(result, expected)
 
-    def test_shallow_copy_i8(self):
+    def test_shallow_copy_disallow_i8(self):
         # GH-24391
         pi = period_range("2018-01-01", periods=3, freq="2D")
-        result = pi._shallow_copy(pi.asi8)
-        tm.assert_index_equal(result, pi)
+        with pytest.raises(AssertionError, match="ndarray"):
+            pi._shallow_copy(pi.asi8)
+
+    def test_shallow_copy_requires_disallow_period_index(self):
+        pi = period_range("2018-01-01", periods=3, freq="2D")
+        with pytest.raises(AssertionError, match="PeriodIndex"):
+            pi._shallow_copy(pi)
 
     def test_view_asi8(self):
         idx = PeriodIndex([], freq="M")

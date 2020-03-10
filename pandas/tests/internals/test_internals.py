@@ -748,11 +748,6 @@ class TestIndexing:
         create_mgr("a,b,c,d,e,f: i8", item_shape=(N,)),
         create_mgr("a,b: f8; c,d: i8; e,f: string", item_shape=(N,)),
         create_mgr("a,b: f8; c,d: i8; e,f: f8", item_shape=(N,)),
-        # 3-dim
-        create_mgr("a,b,c,d,e,f: f8", item_shape=(N, N)),
-        create_mgr("a,b,c,d,e,f: i8", item_shape=(N, N)),
-        create_mgr("a,b: f8; c,d: i8; e,f: string", item_shape=(N, N)),
-        create_mgr("a,b: f8; c,d: i8; e,f: f8", item_shape=(N, N)),
     ]
 
     @pytest.mark.parametrize("mgr", MANAGERS)
@@ -775,6 +770,7 @@ class TestIndexing:
             )
             tm.assert_index_equal(mgr.axes[axis][slobj], sliced.axes[axis])
 
+        assert mgr.ndim <= 2, mgr.ndim
         for ax in range(mgr.ndim):
             # slice
             assert_slice_ok(mgr, ax, slice(None))

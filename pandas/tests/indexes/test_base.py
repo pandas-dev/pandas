@@ -681,7 +681,6 @@ class TestIndex(Base):
         with pytest.raises(IndexError, match=msg):
             index[empty_farr]
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, index, sort):
         first = index[:20]
         second = index[:10]
@@ -702,7 +701,6 @@ class TestIndex(Base):
             (Index([3, 4, 5, 6, 7]), False),
         ],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_name_preservation(self, index2, keeps_name, sort):
         index1 = Index([1, 2, 3, 4, 5], name="index")
         expected = Index([3, 4, 5])
@@ -718,7 +716,6 @@ class TestIndex(Base):
         "first_name,second_name,expected_name",
         [("A", "A", "A"), ("A", "B", None), (None, "B", None)],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_name_preservation2(
         self, index, first_name, second_name, expected_name, sort
     ):
@@ -736,7 +733,6 @@ class TestIndex(Base):
             (Index([4, 7, 6, 5, 3], name="other"), False),
         ],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_monotonic(self, index2, keeps_name, sort):
         index1 = Index([5, 3, 2, 4, 1], name="index")
         expected = Index([5, 3, 4])
@@ -753,7 +749,6 @@ class TestIndex(Base):
         "index2,expected_arr",
         [(Index(["B", "D"]), ["B"]), (Index(["B", "D", "A"]), ["A", "B", "A"])],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
         # non-monotonic non-unique
         index1 = Index(["A", "B", "A", "C"])
@@ -763,7 +758,6 @@ class TestIndex(Base):
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersect_str_dates(self, sort):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
 
@@ -780,7 +774,6 @@ class TestIndex(Base):
         sorted_ = pd.Index(["a", "b", "c"])
         tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_chained_union(self, sort):
         # Chained unions handles names correctly
         i1 = Index([1, 2], name="i1")
@@ -797,7 +790,6 @@ class TestIndex(Base):
         expected = j1.union(j2, sort=sort).union(j3, sort=sort)
         tm.assert_index_equal(union, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union(self, index, sort):
         first = index[5:20]
         second = index[:10]
@@ -835,7 +827,6 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_from_iterables(self, index, klass, sort):
         # GH 10149
         first = index[5:20]
@@ -848,7 +839,6 @@ class TestIndex(Base):
             tm.assert_index_equal(result, everything.sort_values())
         assert tm.equalContents(result, everything)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_identity(self, index, sort):
         first = index[5:20]
 
@@ -870,7 +860,6 @@ class TestIndex(Base):
         "first_name, second_name, expected_name",
         [("A", "B", None), (None, "B", None), ("A", None, None)],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_name_preservation(
         self, first_list, second_list, first_name, second_name, expected_name, sort
     ):
@@ -887,7 +876,6 @@ class TestIndex(Base):
             expected = Index(vals, name=expected_name)
             assert tm.equalContents(union, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_union_dt_as_obj(self, sort):
         # TODO: Replace with fixturesult
         index = self.create_index()
@@ -1022,7 +1010,6 @@ class TestIndex(Base):
         assert result.name == expected
 
     @pytest.mark.parametrize("second_name,expected", [(None, None), ("name", "name")])
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_name_preservation(self, index, second_name, expected, sort):
         first = index[5:20]
         second = index[:10]
@@ -1039,7 +1026,6 @@ class TestIndex(Base):
         else:
             assert result.name == expected
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_empty_arg(self, index, sort):
         first = index[5:20]
         first.name == "name"
@@ -1048,7 +1034,6 @@ class TestIndex(Base):
         assert tm.equalContents(result, first)
         assert result.name == first.name
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_identity(self, index, sort):
         first = index[5:20]
         first.name == "name"
@@ -1057,7 +1042,6 @@ class TestIndex(Base):
         assert len(result) == 0
         assert result.name == first.name
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_sort(self, index, sort):
         first = index[5:20]
         second = index[:10]
@@ -1070,7 +1054,6 @@ class TestIndex(Base):
 
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_symmetric_difference(self, sort):
         # smoke
         index1 = Index([5, 2, 3, 4], name="index1")
@@ -1118,7 +1101,6 @@ class TestIndex(Base):
         with pytest.raises(TypeError, match="Cannot compare"):
             op(a)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_symmetric_difference_mi(self, sort):
         index1 = MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3]))
         index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
@@ -1136,7 +1118,6 @@ class TestIndex(Base):
             (Index([0, 1]), Index([np.nan, 2.0, 3.0, 0.0])),
         ],
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_symmetric_difference_missing(self, index2, expected, sort):
         # GH 13514 change: {nan} - {nan} == {}
         # (GH 6444, sorting of nans, is no longer an issue)
@@ -1147,7 +1128,6 @@ class TestIndex(Base):
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_symmetric_difference_non_index(self, sort):
         index1 = Index([1, 2, 3, 4], name="index1")
         index2 = np.array([2, 3, 4, 5])
@@ -1160,7 +1140,6 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == "new_name"
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_type(self, indices, sort):
         # GH 20040
         # If taking difference of a set and itself, it
@@ -1171,7 +1150,6 @@ class TestIndex(Base):
         expected = indices.drop(indices)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection_difference(self, indices, sort):
         # GH 20040
         # Test that the intersection of an index with an

@@ -358,9 +358,9 @@ class DataFrame(NDFrame):
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    read_csv
-    read_table
-    read_clipboard
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_table : Read general delimited file into DataFrame.
+    read_clipboard : Read text from clipboard into DataFrame.
 
     Examples
     --------
@@ -758,8 +758,8 @@ class DataFrame(NDFrame):
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[fmt.formatters_type] = None,
-        float_format: Optional[fmt.float_format_type] = None,
+        formatters: Optional[fmt.FormattersType] = None,
+        float_format: Optional[fmt.FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         justify: Optional[str] = None,
@@ -832,7 +832,6 @@ class DataFrame(NDFrame):
         Returns a Styler object.
 
         Contains methods for building a styled HTML representation of the DataFrame.
-        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
@@ -2742,7 +2741,7 @@ class DataFrame(NDFrame):
         """
         try:
             if takeable is True:
-                series = self._iget_item_cache(col)
+                series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
 
@@ -2771,11 +2770,11 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value) and len(value):
             try:
                 value = Series(value)
-            except (ValueError, NotImplementedError, TypeError):
+            except (ValueError, NotImplementedError, TypeError) as err:
                 raise ValueError(
                     "Cannot set a frame with no defined index "
                     "and a value that cannot be converted to a Series"
-                )
+                ) from err
 
             self._data = self._data.reindex_axis(
                 value.index.copy(), axis=1, fill_value=np.nan
@@ -3338,7 +3337,7 @@ class DataFrame(NDFrame):
                     # other
                     raise TypeError(
                         "incompatible index of inserted column with frame index"
-                    )
+                    ) from err
             return value
 
         if isinstance(value, Series):
@@ -3600,7 +3599,7 @@ class DataFrame(NDFrame):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
@@ -4059,8 +4058,10 @@ class DataFrame(NDFrame):
                 # everything else gets tried as a key; see GH 24969
                 try:
                     found = col in self.columns
-                except TypeError:
-                    raise TypeError(f"{err_msg}. Received column of type {type(col)}")
+                except TypeError as err:
+                    raise TypeError(
+                        f"{err_msg}. Received column of type {type(col)}"
+                    ) from err
                 else:
                     if not found:
                         missing.append(col)
@@ -7487,8 +7488,9 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corrwith
-        Series.corr
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
 
         Examples
         --------
@@ -7690,7 +7692,7 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corr
+        DataFrame.corr : Compute pairwise correlation of columns.
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
@@ -8095,7 +8097,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmin
+        Series.idxmin : Return index of the minimum element.
 
         Notes
         -----
@@ -8133,7 +8135,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmax
+        Series.idxmax : Return index of the maximum element.
 
         Notes
         -----
@@ -8541,9 +8543,8 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = {}
+    new_data = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data

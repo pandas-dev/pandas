@@ -628,8 +628,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                     engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
                         engine = _get_default_writer(ext)
-                except KeyError:
-                    raise ValueError(f"No engine for filetype: '{ext}'")
+                except KeyError as err:
+                    raise ValueError(f"No engine for filetype: '{ext}'") from err
             cls = get_writer(engine)
 
         return object.__new__(cls)

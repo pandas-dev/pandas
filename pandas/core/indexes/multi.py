@@ -1373,9 +1373,9 @@ class MultiIndex(Index):
             )
         try:
             level = self.names.index(level)
-        except ValueError:
+        except ValueError as err:
             if not is_integer(level):
-                raise KeyError(f"Level {level} not found")
+                raise KeyError(f"Level {level} not found") from err
             elif level < 0:
                 level += self.nlevels
                 if level < 0:
@@ -1383,13 +1383,13 @@ class MultiIndex(Index):
                     raise IndexError(
                         f"Too many levels: Index has only {self.nlevels} levels, "
                         f"{orig_level} is not a valid level number"
-                    )
+                    ) from err
             # Note: levels are zero-based
             elif level >= self.nlevels:
                 raise IndexError(
                     f"Too many levels: Index has only {self.nlevels} levels, "
                     f"not {level + 1}"
-                )
+                ) from err
         return level
 
     @property
@@ -3370,8 +3370,8 @@ class MultiIndex(Index):
                 msg = "other must be a MultiIndex or a list of tuples"
                 try:
                     other = MultiIndex.from_tuples(other)
-                except TypeError:
-                    raise TypeError(msg)
+                except TypeError as err:
+                    raise TypeError(msg) from err
         else:
             result_names = self.names if self.names == other.names else None
         return other, result_names
