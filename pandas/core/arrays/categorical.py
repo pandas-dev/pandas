@@ -1409,12 +1409,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     notnull = notna
 
-    def put(self, *args, **kwargs):
-        """
-        Replace specific elements in the Categorical with given values.
-        """
-        raise NotImplementedError(("'put' is not yet implemented for Categorical"))
-
     def dropna(self):
         """
         Return the Categorical without null values.
@@ -1728,7 +1722,8 @@ class Categorical(ExtensionArray, PandasObject):
         # pad / bfill
         if method is not None:
 
-            values = self.to_dense().reshape(-1, len(self))
+            # TODO: dispatch when self.categories is EA-dtype
+            values = np.asarray(self).reshape(-1, len(self))
             values = interpolate_2d(values, method, 0, None, value).astype(
                 self.categories.dtype
             )[0]
