@@ -229,12 +229,12 @@ def _json_normalize(
 
     def _pull_field(js: Dict[str, Scalar], spec: Union[List, str]) -> Scalar:
         """Internal function to pull field"""
-        result = js
+        result = js  # type: ignore
         if isinstance(spec, list):
             for field in spec:
-                result = result[field]  # type: ignore
+                result = result[field]
         else:
-            result = result[spec]  # type: ignore
+            result = result[spec]
         return result
 
     def _pull_records(js: Dict[str, Scalar], spec: Union[List, str]) -> Iterable:
