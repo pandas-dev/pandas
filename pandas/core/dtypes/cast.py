@@ -70,8 +70,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import isna, notna
 
-import pandas as pd
-
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
@@ -1051,7 +1049,8 @@ def convert_dtypes(
     dtype
         new dtype
     """
-    if convert_string or convert_integer or convert_boolean:
+    is_extension = is_extension_array_dtype(input_array.dtype)
+    if (convert_string or convert_integer or convert_boolean) and not is_extension:
         try:
             inferred_dtype = lib.infer_dtype(input_array)
         except ValueError:
@@ -1064,9 +1063,7 @@ def convert_dtypes(
         if convert_integer:
             target_int_dtype = "Int64"
 
-            if is_integer_dtype(input_array.dtype) and not is_extension_array_dtype(
-                input_array.dtype
-            ):
+            if is_integer_dtype(input_array.dtype):
                 from pandas.core.arrays.integer import _dtypes
 
                 inferred_dtype = _dtypes.get(input_array.dtype.name, target_int_dtype)
@@ -1080,10 +1077,7 @@ def convert_dtypes(
                 inferred_dtype = input_array.dtype
 
         if convert_boolean:
-            if is_bool_dtype(input_array.dtype) and (
-                (not is_extension_array_dtype(input_array.dtype))
-                or (input_array.dtype == pd.BooleanDtype())
-            ):
+            if is_bool_dtype(input_array.dtype):
                 inferred_dtype = "boolean"
         else:
             if isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
