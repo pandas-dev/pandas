@@ -838,6 +838,7 @@ class TestPandasJSONTests:
             dtype = np.int64
         if numpy is True and orient is None:
             dtype = np.int64
+
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],
             index=["a", "b"],
@@ -865,6 +866,7 @@ class TestPandasJSONTests:
         elif orient == "index":
             df = df.transpose()
 
+        assert (df.dtypes == dtype).all()
         tm.assert_frame_equal(output, df)
 
     def test_dataframe_nested(self, orient):
@@ -936,6 +938,7 @@ class TestPandasJSONTests:
             s.name = None
             s.index = [0, 1, 2, 3, 4, 5]
 
+        assert s.dtype == dtype
         tm.assert_series_equal(output, s)
 
     def test_series_nested(self, orient):
