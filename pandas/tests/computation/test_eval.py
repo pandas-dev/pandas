@@ -375,7 +375,7 @@ class TestEvalNumexprPandas:
             and is_scalar(rhs)
             and _is_py3_complex_incompat(result, expected)
         ):
-            msg = "DataFrame.columns are different"
+            msg = "(DataFrame.columns|numpy array) are different"
             with pytest.raises(AssertionError, match=msg):
                 tm.assert_numpy_array_equal(result, expected)
         else:
@@ -461,7 +461,7 @@ class TestEvalNumexprPandas:
         # int raises on numexpr
         lhs = DataFrame(randint(5, size=(5, 2)))
         if self.engine == "numexpr":
-            msg = "couldn't find matching opcode for 'invert_ii"
+            msg = "couldn't find matching opcode for 'invert"
             with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
@@ -504,7 +504,7 @@ class TestEvalNumexprPandas:
         # int raises on numexpr
         lhs = Series(randint(5, size=5))
         if self.engine == "numexpr":
-            msg = "couldn't find matching opcode for 'invert_ii"
+            msg = "couldn't find matching opcode for 'invert"
             with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
