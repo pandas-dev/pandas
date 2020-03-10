@@ -833,11 +833,14 @@ class TestPandasJSONTests:
         if orient == "records" and numpy:
             pytest.skip("Not idiomatic pandas")
 
+        dtype = np.intp
+        if numpy is None or orient == "index":
+            dtype = np.int64
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],
             index=["a", "b"],
             columns=["x", "y", "z"],
-            dtype=np.int64,
+            dtype=dtype,
         )
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
@@ -900,11 +903,14 @@ class TestPandasJSONTests:
         tm.assert_frame_equal(output, df)
 
     def test_series(self, orient, numpy):
+        dtype = np.intp
+        if numpy is None or orient == "index":
+            dtype = np.int64
         s = Series(
             [10, 20, 30, 40, 50, 60],
             name="series",
             index=[6, 7, 8, 9, 10, 15],
-            dtype=np.int64,
+            dtype=dtype,
         ).sort_values()
 
         encode_kwargs = {} if orient is None else dict(orient=orient)
