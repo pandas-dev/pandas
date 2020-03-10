@@ -2337,9 +2337,8 @@ class MultiIndex(Index):
         """
         # GH#10331
         if isinstance(key, str) and self.levels[0]._supports_partial_string_indexing:
-            # Convert key '2016-01-01' to
-            # ('2016-01-01'[, slice(None, None, None)]+)
-            key = tuple([key] + [slice(None)] * (len(self.levels) - 1))
+            # Convert key '2016-01-01' to ('2016-01-01'[, slice(None, None, None)]+)
+            key = tuple(key, *([slice(None)] * (len(self.levels) - 1)))
 
         if isinstance(key, tuple):
             # Convert (..., '2016-01-01', ...) in tuple to
@@ -2988,7 +2987,7 @@ class MultiIndex(Index):
             elif is_list_like(k):
                 # a collection of labels to include from this level (these
                 # are or'd)
-                indexers = None
+                indexers: Optional[Int64Index] = None
                 for x in k:
                     try:
                         idxrs = _convert_to_indexer(

@@ -4,7 +4,7 @@ SparseArray data structure
 from collections import abc
 import numbers
 import operator
-from typing import Any, Callable, List, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar, Union
 import warnings
 
 import numpy as np
@@ -818,7 +818,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
 
-        result: List
+        result: Union[np.ndarray, "SparseArray"]
         if indices.size == 0:
             result = np.array([], dtype="object")
             kwargs = {"dtype": self.dtype}
