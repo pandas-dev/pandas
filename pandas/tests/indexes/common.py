@@ -35,6 +35,9 @@ class Base:
     _holder: Optional[Type[Index]] = None
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
+    def create_index(self) -> Index:
+        raise NotImplementedError("Method not implemented")
+
     def test_pickle_compat_construction(self):
         # need an object to create with
         msg = (

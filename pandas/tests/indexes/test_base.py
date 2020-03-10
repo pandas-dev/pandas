@@ -59,7 +59,7 @@ class TestIndex(Base):
         # copy to avoid mutation, e.g. setting .name
         return indices_dict[key].copy()
 
-    def create_index(self):
+    def create_index(self) -> Index:
         return Index(list("abcde"))
 
     def test_can_hold_identifiers(self):
@@ -2277,7 +2277,7 @@ class TestMixedIntIndex(Base):
     def indices(self, request):
         return Index(request.param)
 
-    def create_index(self):
+    def create_index(self) -> Index:
         return Index([0, "a", 1, "b", 2, "c"])
 
     def test_argsort(self):

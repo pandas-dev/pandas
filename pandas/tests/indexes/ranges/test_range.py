@@ -30,7 +30,7 @@ class TestRangeIndex(Numeric):
     def indices(self, request):
         return request.param
 
-    def create_index(self):
+    def create_index(self) -> RangeIndex:
         return RangeIndex(start=0, stop=20, step=2)
 
     def test_can_hold_identifiers(self):
