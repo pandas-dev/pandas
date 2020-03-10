@@ -30,6 +30,13 @@ import pandas.tseries.offsets as offsets
         ("2SM-16", offsets.SemiMonthEnd(2, day_of_month=16)),
         ("2SMS-14", offsets.SemiMonthBegin(2, day_of_month=14)),
         ("2SMS-15", offsets.SemiMonthBegin(2)),
+        (0, offsets.DateOffset(years=1)),
+        (1, offsets.MonthEnd(1)),
+        (2, offsets.Day(7)),
+        (3, offsets.Day(1)),
+        (4, offsets.Hour(1)),
+        (5, offsets.Minute(1)),
+        (6, offsets.Second(1)),
     ],
 )
 def test_to_offset(freq_input, expected):
@@ -58,6 +65,7 @@ def test_to_offset_negative(freqstr, expected):
         "2SMS-15-15",
         "2SMS-15D",
         "100foo",
+        8,
         # Invalid leading +/- signs.
         "+-1d",
         "-+1h",
@@ -65,6 +73,7 @@ def test_to_offset_negative(freqstr, expected):
         "-7",
         "+d",
         "-m",
+        -1,
         # Invalid shortcut anchors.
         "SM-0",
         "SM-28",
