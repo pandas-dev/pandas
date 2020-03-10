@@ -147,7 +147,7 @@ class TestSeriesAsof:
         )
 
         # non-monotonic
-        assert not s.index.is_monotonic
+        assert s.index.is_monotonic is False
         with pytest.raises(ValueError):
             s.asof(s.index[0])
 

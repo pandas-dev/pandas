@@ -2037,7 +2037,7 @@ class TestSorted(Base):
         )
         result = result.sort_index()
         assert result.index.is_lexsorted()
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic is True
 
         tm.assert_frame_equal(result, expected)
 
@@ -2056,7 +2056,7 @@ class TestSorted(Base):
         result = concatted.sort_index()
 
         assert result.index.is_lexsorted()
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic is True
 
         tm.assert_frame_equal(result, expected)
 
@@ -2073,13 +2073,13 @@ class TestSorted(Base):
             pd.to_datetime(df.columns.levels[1]), level=1, inplace=True
         )
         assert not df.columns.is_lexsorted()
-        assert not df.columns.is_monotonic
+        assert df.columns.is_monotonic is False
         result = df.sort_index(axis=1)
         assert result.columns.is_lexsorted()
-        assert result.columns.is_monotonic
+        assert result.columns.is_monotonic is True
         result = df.sort_index(axis=1, level=1)
         assert result.columns.is_lexsorted()
-        assert result.columns.is_monotonic
+        assert result.columns.is_monotonic is True
 
     def test_sort_index_and_reconstruction_doc_example(self):
         # doc example
@@ -2090,7 +2090,7 @@ class TestSorted(Base):
             ),
         )
         assert df.index.is_lexsorted()
-        assert not df.index.is_monotonic
+        assert df.index.is_monotonic is False
 
         # sort it
         expected = DataFrame(
@@ -2101,7 +2101,7 @@ class TestSorted(Base):
         )
         result = df.sort_index()
         assert result.index.is_lexsorted()
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic is True
 
         tm.assert_frame_equal(result, expected)
 
@@ -2109,7 +2109,7 @@ class TestSorted(Base):
         result = df.sort_index().copy()
         result.index = result.index._sort_levels_monotonic()
         assert result.index.is_lexsorted()
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic is True
 
         tm.assert_frame_equal(result, expected)
 

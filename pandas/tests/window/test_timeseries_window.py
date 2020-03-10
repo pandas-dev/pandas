@@ -106,11 +106,11 @@ class TestRollingTS:
             {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
         )
 
-        assert df.A.is_monotonic
+        assert df.A.is_monotonic is True
         df.rolling("2s", on="A").sum()
 
         df = df.set_index("A")
-        assert df.index.is_monotonic
+        assert df.index.is_monotonic is True
         df.rolling("2s").sum()
 
     def test_non_monotonic_on(self):
@@ -123,7 +123,7 @@ class TestRollingTS:
         non_monotonic_index[0] = non_monotonic_index[3]
         df.index = non_monotonic_index
 
-        assert not df.index.is_monotonic
+        assert df.index.is_monotonic is False
 
         with pytest.raises(ValueError):
             df.rolling("2s").sum()

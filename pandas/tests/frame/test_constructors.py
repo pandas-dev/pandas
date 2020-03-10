@@ -1314,7 +1314,7 @@ class TestDataFrameConstructors:
         data["B"] = Series([4, 3, 2, 1], index=["bar", "qux", "baz", "foo"])
 
         result = DataFrame(data)
-        assert result.index.is_monotonic
+        assert result.index.is_monotonic is True
 
         # ordering ambiguous, raise exception
         with pytest.raises(ValueError, match="ambiguous ordering"):

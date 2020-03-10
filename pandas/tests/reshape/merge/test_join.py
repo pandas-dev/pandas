@@ -485,7 +485,7 @@ class TestJoin:
         expected = expected.drop(["first", "second"], axis=1)
         expected.index = joined.index
 
-        assert joined.index.is_monotonic
+        assert joined.index.is_monotonic is True
         tm.assert_frame_equal(joined, expected)
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])

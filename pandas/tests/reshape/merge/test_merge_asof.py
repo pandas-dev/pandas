@@ -570,20 +570,20 @@ class TestAsOfMerge:
         quotes = self.quotes.sort_values("time", ascending=False)
 
         # we require that we are already sorted on time & quotes
-        assert not trades.time.is_monotonic
-        assert not quotes.time.is_monotonic
+        assert trades.time.is_monotonic is False
+        assert quotes.time.is_monotonic is False
         with pytest.raises(ValueError):
             merge_asof(trades, quotes, on="time", by="ticker")
 
         trades = self.trades.sort_values("time")
-        assert trades.time.is_monotonic
-        assert not quotes.time.is_monotonic
+        assert trades.time.is_monotonic is True
+        assert quotes.time.is_monotonic is False
         with pytest.raises(ValueError):
             merge_asof(trades, quotes, on="time", by="ticker")
 
         quotes = self.quotes.sort_values("time")
-        assert trades.time.is_monotonic
-        assert quotes.time.is_monotonic
+        assert trades.time.is_monotonic is True
+        assert quotes.time.is_monotonic is True
 
         # ok, though has dupes
         merge_asof(trades, self.quotes, on="time", by="ticker")

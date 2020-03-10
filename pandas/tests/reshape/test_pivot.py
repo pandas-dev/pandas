@@ -1115,7 +1115,7 @@ class TestPivotTable:
             aggfunc="mean",
         )
 
-        assert pivoted.columns.is_monotonic
+        assert pivoted.columns.is_monotonic is True
 
     def test_pivot_complex_aggfunc(self):
         f = {"D": ["std"], "E": ["sum"]}

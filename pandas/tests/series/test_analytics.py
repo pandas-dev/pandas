@@ -146,7 +146,7 @@ class TestSeriesAnalytics:
     def test_is_monotonic(self):
 
         s = Series(np.random.randint(0, 10, size=1000))
-        assert not s.is_monotonic
+        assert s.is_monotonic is False
         s = Series(np.arange(1000))
         assert s.is_monotonic is True
         assert s.is_monotonic_increasing is True

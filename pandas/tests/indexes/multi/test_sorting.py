@@ -144,11 +144,11 @@ def test_reconstruct_sort():
     # starts off lexsorted & monotonic
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert mi.is_lexsorted()
-    assert mi.is_monotonic
+    assert mi.is_monotonic is True
 
     recons = mi._sort_levels_monotonic()
     assert recons.is_lexsorted()
-    assert recons.is_monotonic
+    assert recons.is_monotonic is True
     assert mi is recons
 
     assert mi.equals(recons)
@@ -160,11 +160,11 @@ def test_reconstruct_sort():
         names=["one", "two"],
     )
     assert not mi.is_lexsorted()
-    assert not mi.is_monotonic
+    assert not mi.is_monotonic is True
 
     recons = mi._sort_levels_monotonic()
     assert not recons.is_lexsorted()
-    assert not recons.is_monotonic
+    assert not recons.is_monotonic is True
 
     assert mi.equals(recons)
     assert Index(mi.values).equals(Index(recons.values))
@@ -176,11 +176,11 @@ def test_reconstruct_sort():
         names=["col1", "col2"],
     )
     assert not mi.is_lexsorted()
-    assert not mi.is_monotonic
+    assert not mi.is_monotonic is True
 
     recons = mi._sort_levels_monotonic()
     assert not recons.is_lexsorted()
-    assert not recons.is_monotonic
+    assert recons.is_monotonic is False
 
     assert mi.equals(recons)
     assert Index(mi.values).equals(Index(recons.values))

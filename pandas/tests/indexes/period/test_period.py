@@ -653,7 +653,7 @@ def test_is_monotonic_with_nat():
     for obj in [pi, pi._engine, dti, dti._engine, tdi, tdi._engine]:
         if isinstance(obj, Index):
             # i.e. not Engines
-            assert obj.is_monotonic
+            assert obj.is_monotonic is True
         assert obj.is_monotonic_increasing
         assert not obj.is_monotonic_decreasing
         assert obj.is_unique
@@ -665,7 +665,7 @@ def test_is_monotonic_with_nat():
     for obj in [pi1, pi1._engine, dti1, dti1._engine, tdi1, tdi1._engine]:
         if isinstance(obj, Index):
             # i.e. not Engines
-            assert not obj.is_monotonic
+            assert obj.is_monotonic is False
         assert not obj.is_monotonic_increasing
         assert not obj.is_monotonic_decreasing
         assert obj.is_unique
@@ -677,7 +677,7 @@ def test_is_monotonic_with_nat():
     for obj in [pi2, pi2._engine, dti2, dti2._engine, tdi2, tdi2._engine]:
         if isinstance(obj, Index):
             # i.e. not Engines
-            assert not obj.is_monotonic
+            assert obj.is_monotonic is False
         assert not obj.is_monotonic_increasing
         assert not obj.is_monotonic_decreasing
         assert obj.is_unique
