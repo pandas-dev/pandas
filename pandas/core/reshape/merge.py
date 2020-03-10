@@ -92,9 +92,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
-def _groupby_and_merge(
-    by, on, left, right: "DataFrame", _merge_pieces, check_duplicates: bool = True
-):
+def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_pieces):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -102,11 +100,9 @@ def _groupby_and_merge(
     ----------
     by: field to group
     on: duplicates field
-    left: left frame
-    right: right frame
-    _merge_pieces: function for merging
-    check_duplicates: bool, default True
-        should we check & clean duplicates
+    left: DataFrame
+    right: DataFrame
+    merge_pieces: function for merging
     """
     pieces = []
     if not isinstance(by, (list, tuple)):
@@ -118,18 +114,6 @@ def _groupby_and_merge(
     # if we can groupby the rhs
     # then we can get vastly better perf
 
-    # we will check & remove duplicates if indicated
-    if check_duplicates:
-        if on is None:
-            on = []
-        elif not isinstance(on, (list, tuple)):
-            on = [on]
-
-        if right.duplicated(by + on).any():
-            _right = right.drop_duplicates(by + on, keep="last")
-            # TODO: use overload to refine return type of drop_duplicates
-            assert _right is not None  # needed for mypy
-            right = _right
     try:
         rby = right.groupby(by, sort=False)
     except KeyError:
@@ -151,16 +135,13 @@ def _groupby_and_merge(
                 pieces.append(merged)
                 continue
 
-        merged = _merge_pieces(lhs, rhs)
+        merged = merge_pieces(lhs, rhs)
 
         # make sure join keys are in the merged
-        # TODO, should _merge_pieces do this?
+        # TODO, should merge_pieces do this?
         for k in by:
-            try:
-                if k in merged:
-                    merged[k] = key
-            except KeyError:
-                pass
+            if k in merged:
+                merged[k] = key
 
         pieces.append(merged)
 
@@ -287,16 +268,11 @@ def merge_ordered(
         raise ValueError("Can only group either left or right frames")
     elif left_by is not None:
         result, _ = _groupby_and_merge(
-            left_by, on, left, right, lambda x, y: _merger(x, y), check_duplicates=False
+            left_by, on, left, right, lambda x, y: _merger(x, y)
         )
     elif right_by is not None:
         result, _ = _groupby_and_merge(
-            right_by,
-            on,
-            right,
-            left,
-            lambda x, y: _merger(y, x),
-            check_duplicates=False,
+            right_by, on, right, left, lambda x, y: _merger(y, x)
         )
     else:
         result = _merger(left, right)
@@ -1604,11 +1580,6 @@ class _AsOfMerge(_OrderedMerge):
         # check 'direction' is valid
         if self.direction not in ["backward", "forward", "nearest"]:
             raise MergeError(f"direction invalid: {self.direction}")
-
-    @property
-    def _asof_key(self):
-        """ This is our asof key, the 'on' """
-        return self.left_on[-1]
 
     def _get_merge_keys(self):
 

@@ -50,6 +50,36 @@ class IntFrameWithScalar:
         op(self.df, scalar)
 
 
+class MixedFrameWithSeriesAxis0:
+    params = [
+        [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "add",
+            "sub",
+            "div",
+            "floordiv",
+            "mul",
+            "pow",
+        ]
+    ]
+    param_names = ["opname"]
+
+    def setup(self, opname):
+        arr = np.arange(10 ** 6).reshape(100, -1)
+        df = DataFrame(arr)
+        df["C"] = 1.0
+        self.df = df
+        self.ser = df[0]
+
+    def time_frame_op_with_series_axis0(self, opname):
+        getattr(self.df, opname)(self.ser, axis=0)
+
+
 class Ops:
 
     params = [[True, False], ["default", 1]]
