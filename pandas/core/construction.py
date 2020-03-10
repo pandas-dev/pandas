@@ -434,7 +434,9 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
+    elif isinstance(data, (list, tuple, set)) and len(data) > 0:
+        if isinstance(data, set):
+            data = list(data)
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
