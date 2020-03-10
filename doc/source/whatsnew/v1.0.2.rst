@@ -1,7 +1,7 @@
 .. _whatsnew_102:
 
-What's new in 1.0.2 (February ??, 2020)
----------------------------------------
+What's new in 1.0.2 (March 11, 2020)
+------------------------------------
 
 These are the changes in pandas 1.0.2. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -18,13 +18,13 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.to_excel` when ``columns`` kwarg is passed (:issue:`31677`)
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
 - Fixed regression in :meth:`pandas.core.groupby.RollingGroupby.apply` where the ``raw`` parameter was ignored (:issue:`31754`)
-- Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.Rolling.corr>` when using a time offset (:issue:`31789`)
-- Fixed regression in :meth:`DataFrameGroupBy.nunique` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
+- Fixed regression in :meth:`pandas.core.window.Rolling.corr` when using a time offset (:issue:`31789`)
+- Fixed regression in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
 - Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
 - Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
-- Fixed regression in :meth:`GroupBy.agg` calling a user-provided function an extra time on an empty input (:issue:`31760`)
+- Fixed regression in :meth:`pandas.core.groupby.GroupBy.agg` calling a user-provided function an extra time on an empty input (:issue:`31760`)
 - Joining on :class:`DatetimeIndex` or :class:`TimedeltaIndex` will preserve ``freq`` in simple cases (:issue:`32166`)
-- Fixed bug in the repr of an object-dtype ``Index`` with bools and missing values (:issue:`32146`)
+- Fixed bug in the repr of an object-dtype :class:`Index` with bools and missing values (:issue:`32146`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -82,7 +82,7 @@ Bug fixes
 
 - Fix bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the ``"string"`` dtype (:issue:`31731`).
 - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
-- Fixed bug where :meth:`GroupBy.first` and :meth:`GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
+- Fixed bug where :meth:`pandas.core.groupby.GroupBy.first` and :meth:`pandas.core.groupby.GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
 - Fix bug in :meth:`Series.convert_dtypes` for series with mix of integers and strings (:issue:`32117`)
 
 **Strings**
