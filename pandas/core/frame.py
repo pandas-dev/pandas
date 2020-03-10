@@ -8032,31 +8032,31 @@ Wild         185.0
 
         Examples
         --------
-        Consider dataset containing food consumption in Argentina.
+        Consider a dataset containing food consumption in Argentina.
 
         >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
-        ...                    'co2_emission': [37.2, 19.66, 1712]},
+        ...                    'co2_emissions': [37.2, 19.66, 1712]},
         ...                    index=['Pork', 'Wheat Products', 'Beef'])
 
         >>> df
-                        consumption  co2_emission
+                        consumption  co2_emissions
         Pork                  10.51         37.20
         Wheat Products       103.11         19.66
         Beef                  55.48       1712.00
 
-        By default, it returns index for the maximum value in each columns.
+        By default, it returns the index for the maximum value in each column.
 
         >>> df.idxmax()
         consumption     Wheat Products
-        co2_emission              Beef
+        co2_emissions             Beef
         dtype: object
 
-        To return index for the maximum value in each rows, use ``axis="columns"``.
+        To return the index for the maximum value in each row, use ``axis="columns"``.
 
         >>> df.idxmax(axis="columns")
-        Pork              co2_emission
+        Pork              co2_emissions
         Wheat Products     consumption
-        Beef              co2_emission
+        Beef              co2_emissions
         dtype: object
         """
         axis = self._get_axis_number(axis)
