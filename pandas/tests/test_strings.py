@@ -1157,6 +1157,18 @@ class TestStringMethods:
         assert isinstance(rs, Series)
         tm.assert_series_equal(rs, xp)
 
+    def test_repeat_with_null(self):
+        # GH: 31632
+        values = Series(["a", None], dtype="string")
+        result = values.str.repeat([3, 4])
+        exp = Series(["aaa", None], dtype="string")
+        tm.assert_series_equal(result, exp)
+
+        values = Series(["a", "b"], dtype="string")
+        result = values.str.repeat([3, None])
+        exp = Series(["aaa", None], dtype="string")
+        tm.assert_series_equal(result, exp)
+
     def test_match(self):
         # New match behavior introduced in 0.13
         values = Series(["fooBAD__barBAD", np.nan, "foo"])
