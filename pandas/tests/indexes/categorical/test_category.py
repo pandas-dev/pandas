@@ -365,16 +365,16 @@ class TestCategoricalIndex(Base):
         assert idx.is_unique is True
         assert idx.has_duplicates is False
 
-    def _test_drop_duplicates(self, idx, keep, expected):
-        for k, e in zip(keep, expected):
+    def _test_drop_duplicates(self, idx, keep, expected, index):
+        for k, e, i in zip(keep, expected, index):
             tm.assert_numpy_array_equal(idx.duplicated(keep=k), e)
-            exp = idx[~e]
+            e = idx[~e]
 
             result = idx.drop_duplicates(keep=k)
-            tm.assert_index_equal(result, exp)
+            tm.assert_index_equal(result, e)
 
             result = Series(idx).drop_duplicates(keep=k)
-            tm.assert_series_equal(result, Series(exp))
+            tm.assert_series_equal(result, Series(e, i))
 
     def test_drop_duplicates(self):
         keep = ["first", "last", False]
@@ -385,22 +385,25 @@ class TestCategoricalIndex(Base):
             np.array([True, True, False]),
             np.array([True, True, True])
         ]
+        index = [[0], [2], np.empty(shape=(0), dtype=int)]
         for c in categories:
             idx = pd.CategoricalIndex([1, 1, 1], categories=c, name="foo")
-            self._test_drop_duplicates(idx, keep, expected)
+            self._test_drop_duplicates(idx, keep, expected, index)
 
         categories = ['a', 'b', 'c']
         idx = CategoricalIndex([2, 'a', 'b'], categories=categories, name="foo")
         expected = np.zeros(shape=(3, 3), dtype=np.bool)
-        self._test_drop_duplicates(idx, keep, expected)
+        index = [[0, 1, 2], [0, 1, 2], [0, 1, 2]]
+        self._test_drop_duplicates(idx, keep, expected, index)
 
         idx = CategoricalIndex(list('abb'), categories=categories, name="foo")
         expected = [
             np.array([False, False, True]),
             np.array([False, True, False]),
-            np.array([True, True, False])
+            np.array([False, True, True])
         ]
-        self._test_drop_duplicates(idx, keep, expected)
+        index = [[0, 1], [0, 2], [0]]
+        self._test_drop_duplicates(idx, keep, expected, index)
 
     def test_unique(self):
 
