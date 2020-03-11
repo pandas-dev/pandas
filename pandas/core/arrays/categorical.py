@@ -1317,7 +1317,7 @@ class Categorical(ExtensionArray, PandasObject):
             setattr(self, k, v)
 
     @property
-    def T(self):
+    def T(self) -> "Categorical":
         """
         Return transposed numpy array.
         """
@@ -1409,12 +1409,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     notnull = notna
 
-    def put(self, *args, **kwargs):
-        """
-        Replace specific elements in the Categorical with given values.
-        """
-        raise NotImplementedError(("'put' is not yet implemented for Categorical"))
-
     def dropna(self):
         """
         Return the Categorical without null values.
@@ -1494,7 +1488,7 @@ class Categorical(ExtensionArray, PandasObject):
             )
 
     def _values_for_argsort(self):
-        return self._codes.copy()
+        return self._codes
 
     def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """

@@ -231,11 +231,12 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
-    def get_block_values(self, dtype=None):
+    def get_block_values_for_json(self) -> np.ndarray:
         """
-        This is used in the JSON C code
+        This is used in the JSON C code.
         """
-        return self.get_values(dtype=dtype)
+        # TODO(2DEA): reshape will be unnecessary with 2D EAs
+        return np.asarray(self.values).reshape(self.shape)
 
     def to_dense(self):
         return self.values.view()
@@ -2228,6 +2229,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         # if we are passed a datetime64[ns, tz]
         if is_datetime64tz_dtype(dtype):
             values = self.values
+            if copy:
+                # this should be the only copy
+                values = values.copy()
             if getattr(values, "tz", None) is None:
                 values = DatetimeArray(values).tz_localize("UTC")
             values = values.tz_convert(dtype.tz)
