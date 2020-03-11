@@ -718,9 +718,7 @@ class TestDataFrameConstructors:
         assert df["b"].dtype == b.dtype
 
         # list of periods
-        df = DataFrame(
-            {"a": a.astype(object).tolist(), "b": b.astype(object).tolist()}
-        )
+        df = DataFrame({"a": a.astype(object).tolist(), "b": b.astype(object).tolist()})
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
 
