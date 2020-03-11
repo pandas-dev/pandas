@@ -1843,7 +1843,7 @@ def _factorize_keys(lk, rk, sort=True):
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
 
-    elif is_extension_array_dtype(lk.dtype) and lk.dtype == rk.dtype:
+    elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         lk, _ = lk._values_for_factorize()
         rk, _ = rk._values_for_factorize()
 
@@ -1854,7 +1854,7 @@ def _factorize_keys(lk, rk, sort=True):
         lk = ensure_int64(np.asarray(lk))
         rk = ensure_int64(np.asarray(rk))
 
-    elif needs_i8_conversion(lk.dtype) and lk.dtype == rk.dtype:
+    elif needs_i8_conversion(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         # GH#23917 TODO: Needs tests for non-matching dtypes
         klass = libhashtable.Int64Factorizer
         lk = ensure_int64(np.asarray(lk, dtype=np.int64))
