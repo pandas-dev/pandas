@@ -1618,8 +1618,7 @@ def test_groupby_mean_no_overflow():
     ],
 )
 @pytest.mark.parametrize("function", ["mean", "median", "var"])
-@pytest.mark.parametrize("use_agg", [True, False])
-def test_apply_to_nullable_integer_returns_float(values, function, use_agg):
+def test_apply_to_nullable_integer_returns_float(values, function):
     # https://github.com/pandas-dev/pandas/issues/32219
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
@@ -1628,13 +1627,12 @@ def test_apply_to_nullable_integer_returns_float(values, function, use_agg):
 
     groups = pd.DataFrame(values, dtype="Int64").groupby("a")
 
-    if use_agg:
-        result = groups.agg(function)
-        tm.assert_frame_equal(result, expected)
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
 
-        result = groups.agg([function])
-        expected.columns = MultiIndex.from_tuples([("b", function)])
-        tm.assert_frame_equal(result, expected)
-    else:
-        result = getattr(groups, function)()
-        tm.assert_frame_equal(result, expected)
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
