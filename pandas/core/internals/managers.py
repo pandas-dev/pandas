@@ -1096,7 +1096,10 @@ class BlockManager(PandasObject):
                     "Shape of new values must be compatible with manager shape"
                 )
 
-        if isinstance(loc, int):
+        if lib.is_integer(loc):
+            # We have 6 tests where loc is _not_ an int.
+            # In this case, get_blkno_placements will yield only one tuple,
+            #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
             loc = [loc]
 
         # Accessing public blknos ensures the public versions are initialized
@@ -1148,7 +1151,7 @@ class BlockManager(PandasObject):
                 # one item.
                 new_blocks.extend(
                     make_block(
-                        values=value.copy(),
+                        values=value,
                         ndim=self.ndim,
                         placement=slice(mgr_loc, mgr_loc + 1),
                     )
