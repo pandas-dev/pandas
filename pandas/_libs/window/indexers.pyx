@@ -44,6 +44,7 @@ def calculate_variable_window_bounds(
     cdef:
         bint left_closed = False
         bint right_closed = False
+        int index_growth_sign = 1
         ndarray[int64_t, ndim=1] start, end
         int64_t start_bound, end_bound
         Py_ssize_t i, j
@@ -57,6 +58,9 @@ def calculate_variable_window_bounds(
 
     if closed in ['left', 'both']:
         left_closed = True
+
+    if index[num_values - 1] < index[0]:
+        index_growth_sign = -1
 
     start = np.empty(num_values, dtype='int64')
     start.fill(-1)
@@ -78,7 +82,7 @@ def calculate_variable_window_bounds(
         # end is end of slice interval (not including)
         for i in range(1, num_values):
             end_bound = index[i]
-            start_bound = index[i] - window_size
+            start_bound = index[i] - index_growth_sign * window_size
 
             # left endpoint is closed
             if left_closed:
@@ -88,13 +92,13 @@ def calculate_variable_window_bounds(
             # within the constraint
             start[i] = i
             for j in range(start[i - 1], i):
-                if index[j] > start_bound:
+                if (index[j] - start_bound) * index_growth_sign > 0:
                     start[i] = j
                     break
 
             # end bound is previous end
             # or current index
-            if index[end[i - 1]] <= end_bound:
+            if (index[end[i - 1]] - end_bound) * index_growth_sign <= 0:
                 end[i] = i + 1
             else:
                 end[i] = end[i - 1]

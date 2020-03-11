@@ -1296,14 +1296,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def transpose(self, *axes):
+    def transpose(self, *axes) -> "SparseArray":
         """
         Returns the SparseArray.
         """
         return self
 
     @property
-    def T(self):
+    def T(self) -> "SparseArray":
         """
         Returns the SparseArray.
         """
