@@ -182,6 +182,32 @@ class TestDataFrameSelectReindex:
         with pytest.raises(ValueError):
             df.drop(axis=1)
 
+    def test_merge_join_different_index_levels(self):
+        #GH 13094
+
+        df1 = DataFrame([[2, 3], [5, 7]], columns=['a', 'p']).set_index('a')
+
+        df2 = DataFrame([[1, 2, 3], [3, 4, 8], [5, 6, 9]],
+            columns=['a', 'b', 'c']).set_index(['a', 'b'])
+
+        # join
+        columns = ['a', 'b', 'p', 'c']
+        expected = DataFrame([[5, 6, 7, 9]], columns=columns).set_index(['a', 'b'])
+
+        with tm.assert_produces_warning(UserWarning):
+            result = df1.join(df2, how='left')
+
+        tm.assert_frame_equal(result, expected)
+
+        # merge
+        columns = ['a', 'p', 'c']
+        expected = DataFrame([[5, 7, 9]], columns=columns).set_index('a')
+
+        with tm.assert_produces_warning(UserWarning):
+            result = pd.merge(df1, df2, on='a')
+        
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_join_different_levels(self):
         # GH 9455
 

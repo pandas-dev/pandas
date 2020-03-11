@@ -606,10 +606,19 @@ class _MergeOperation:
                 f"right_index parameter must be of type bool, not {type(right_index)}"
             )
 
-        # warn user when merging between different levels
+        # warn users when merging between different index levels
+        if _left.index.nlevels != _right.index.nlevels:
+            msg = (
+                "merging between different index levels can give an unintended "
+                f"result ({left.index.nlevels} levels on the left,"
+                f"{right.index.nlevels} on the right)"
+            )
+            warnings.warn(msg, UserWarning)
+
+        # warn user when merging between different column levels
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
-                "merging between different levels can give an unintended "
+                "merging between different column levels can give an unintended "
                 f"result ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
