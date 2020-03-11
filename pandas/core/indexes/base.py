@@ -4120,7 +4120,6 @@ class Index(IndexOpsMixin, PandasObject):
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
 
-        key = com.values_from_object(key)
         result = getitem(key)
         if not is_scalar(result):
             if np.ndim(result) > 1:
@@ -4245,19 +4244,19 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        if is_object_dtype(self) and not is_object_dtype(other):
+        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
 
         if isinstance(other, ABCMultiIndex):
             # d-level MultiIndex can equal d-tuple Index
-            if not is_object_dtype(self.dtype):
-                if self.nlevels != other.nlevels:
-                    return False
+            return other.equals(self)
 
-        return array_equivalent(
-            com.values_from_object(self), com.values_from_object(other)
-        )
+        if is_extension_array_dtype(other.dtype):
+            # All EA-backed Index subclasses override equals
+            return other.equals(self)
+
+        return array_equivalent(self._values, other._values)
 
     def identical(self, other) -> bool:
         """
