@@ -434,11 +434,7 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple, set)) and len(data) > 0:
-        # We can't use is_list_like since range and array.array inputs
-        # are handled differently
-        if isinstance(data, set):
-            data = list(data)
+    elif isinstance(data, (list, tuple)) and len(data) > 0:
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
