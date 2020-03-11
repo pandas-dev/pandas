@@ -7,13 +7,10 @@ release,whatsnew/index
 
 # getting started
 install,getting_started/install
-10min,getting_started/10min
-basics,getting_started/basics
 comparison_with_r,getting_started/comparison/comparison_with_r
 comparison_with_sql,getting_started/comparison/comparison_with_sql
 comparison_with_sas,getting_started/comparison/comparison_with_sas
 comparison_with_stata,getting_started/comparison/comparison_with_stata
-dsintro,getting_started/dsintro
 overview,getting_started/overview
 tutorials,getting_started/tutorials
 
@@ -38,6 +35,9 @@ text,user_guide/text
 timedeltas,user_guide/timedeltas
 timeseries,user_guide/timeseries
 visualization,user_guide/visualization
+10min,user_guide/10min
+basics,user_guide/basics
+dsintro,user_guide/dsintro
 
 # development
 contributing,development/contributing

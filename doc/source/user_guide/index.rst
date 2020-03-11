@@ -12,6 +12,8 @@ pandas approaches the problem, with many examples throughout.
 
 Users brand-new to pandas should start with :ref:`10min`.
 
+For a high level summary of the pandas fundamentals, see :ref:`dsintro` and :ref:`basics`.
+
 Further information on any specific method can be obtained in the
 :ref:`api`.
 
@@ -21,6 +23,9 @@ Further information on any specific method can be obtained in the
 .. toctree::
     :maxdepth: 2
 
+    10min
+    dsintro
+    basics
     io
     indexing
     advanced
