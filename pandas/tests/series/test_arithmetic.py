@@ -74,7 +74,7 @@ class TestSeriesArithmetic:
 
         result = ts + ts[::2]
         expected = ts + ts
-        expected[1::2] = np.nan
+        expected.iloc[1::2] = np.nan
         tm.assert_series_equal(result, expected)
 
         result = ts + _permute(ts[::2])

@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
+from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
 from pandas._typing import Dtype, Scalar
 from pandas.compat._optional import import_optional_dependency
 
@@ -17,9 +17,7 @@ from pandas.core.dtypes.common import (
     is_any_int_dtype,
     is_bool_dtype,
     is_complex,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
+    is_datetime64_any_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -28,9 +26,13 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_timedelta64_dtype,
+    needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+
+from pandas.core.construction import extract_array
 
 bn = import_optional_dependency("bottleneck", raise_on_missing=False, on_version="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -132,10 +134,8 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: Dtype, name: str) -> bool:
-    # Bottleneck chokes on datetime64
-    if not is_object_dtype(dtype) and not (
-        is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype)
-    ):
+    # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
+    if not is_object_dtype(dtype) and not needs_i8_conversion(dtype):
 
         # GH 15507
         # bottleneck does not properly upcast during the sum
@@ -281,23 +281,16 @@ def _get_values(
     #  with scalar fill_value.  This guarantee is important for the
     #  maybe_upcast_putmask call below
     assert is_scalar(fill_value)
+    values = extract_array(values, extract_numpy=True)
 
     mask = _maybe_get_mask(values, skipna, mask)
 
-    if is_datetime64tz_dtype(values):
-        # lib.values_from_object returns M8[ns] dtype instead of tz-aware,
-        #  so this case must be handled separately from the rest
-        dtype = values.dtype
-        values = getattr(values, "_values", values)
-    else:
-        values = lib.values_from_object(values)
-        dtype = values.dtype
+    dtype = values.dtype
 
-    if is_datetime_or_timedelta_dtype(values) or is_datetime64tz_dtype(values):
+    if needs_i8_conversion(values):
         # changing timedelta64/datetime64 to int64 needs to happen after
         #  finding `mask` above
-        values = getattr(values, "asi8", values)
-        values = values.view(np.int64)
+        values = np.asarray(values.view("i8"))
 
     dtype_ok = _na_ok_dtype(dtype)
 
@@ -311,7 +304,8 @@ def _get_values(
 
     if skipna and copy:
         values = values.copy()
-        if dtype_ok:
+        assert mask is not None  # for mypy
+        if dtype_ok and mask.any():
             np.putmask(values, mask, fill_value)
 
         # promote if needed
@@ -329,13 +323,14 @@ def _get_values(
 
 
 def _na_ok_dtype(dtype) -> bool:
-    # TODO: what about datetime64tz?  PeriodDtype?
-    return not issubclass(dtype.type, (np.integer, np.timedelta64, np.datetime64))
+    if needs_i8_conversion(dtype):
+        return False
+    return not issubclass(dtype.type, np.integer)
 
 
 def _wrap_results(result, dtype: Dtype, fill_value=None):
     """ wrap our results if needed """
-    if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+    if is_datetime64_any_dtype(dtype):
         if fill_value is None:
             # GH#24293
             fill_value = iNaT
@@ -346,7 +341,8 @@ def _wrap_results(result, dtype: Dtype, fill_value=None):
                 result = np.nan
             result = Timestamp(result, tz=tz)
         else:
-            result = result.view(dtype)
+            # If we have float dtype, taking a view will give the wrong result
+            result = result.astype(dtype)
     elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
             if result == fill_value:
@@ -359,6 +355,14 @@ def _wrap_results(result, dtype: Dtype, fill_value=None):
             result = Timedelta(result, unit="ns")
         else:
             result = result.astype("m8[ns]").view(dtype)
+
+    elif isinstance(dtype, PeriodDtype):
+        if is_float(result) and result.is_integer():
+            result = int(result)
+        if is_integer(result):
+            result = Period._from_ordinal(result, freq=dtype.freq)
+        else:
+            raise NotImplementedError(type(result), result)
 
     return result
 
@@ -546,12 +550,7 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     )
     dtype_sum = dtype_max
     dtype_count = np.float64
-    if (
-        is_integer_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
-        or is_datetime64_dtype(dtype)
-        or is_datetime64tz_dtype(dtype)
-    ):
+    if is_integer_dtype(dtype) or needs_i8_conversion(dtype):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
@@ -758,7 +757,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanvar(s)
     1.0
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if is_any_int_dtype(values):
@@ -985,7 +984,7 @@ def nanskew(
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1069,7 +1068,7 @@ def nankurt(
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
-    values = lib.values_from_object(values)
+    values = extract_array(values, extract_numpy=True)
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
