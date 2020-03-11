@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
 import pandas.core.common as com
+from pandas.core.indexers import is_valid_positional_slice
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -514,12 +515,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["getitem", "loc"]
-        # never iloc, so no-op
-        return key
-
     def _maybe_cast_slice_bound(self, label, side, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
@@ -724,9 +719,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             op_right = le if self.closed_right else lt
             try:
                 mask = op_left(self.left, key) & op_right(key, self.right)
-            except TypeError:
+            except TypeError as err:
                 # scalar is not comparable to II subtype --> invalid label
-                raise KeyError(key)
+                raise KeyError(key) from err
 
         matches = mask.sum()
         if matches == 0:
@@ -805,9 +800,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                     loc = self.get_loc(key)
                 except KeyError:
                     loc = -1
-                except InvalidIndexError:
+                except InvalidIndexError as err:
                     # i.e. non-scalar key
-                    raise TypeError(key)
+                    raise TypeError(key) from err
                 indexer.append(loc)
 
         return ensure_platform_int(indexer)
@@ -872,7 +867,16 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
-            raise ValueError("cannot support not-default step in a slice")
+            # GH#31658 if label-based, we require step == 1,
+            #  if positional, we disallow float start/stop
+            msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+            if kind == "loc":
+                raise ValueError(msg)
+            elif kind == "getitem":
+                if not is_valid_positional_slice(key):
+                    # i.e. this cannot be interpreted as a positional slice
+                    raise ValueError(msg)
+
         return super()._convert_slice_indexer(key, kind)
 
     @Appender(Index.where.__doc__)
@@ -1279,10 +1283,10 @@ def interval_range(
     if freq is not None and not is_number(freq):
         try:
             freq = to_offset(freq)
-        except ValueError:
+        except ValueError as err:
             raise ValueError(
                 f"freq must be numeric or convertible to DateOffset, got {freq}"
-            )
+            ) from err
 
     # verify type compatibility
     if not all(

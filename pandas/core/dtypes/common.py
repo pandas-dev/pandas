@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos, lib
+from pandas._libs import algos
 from pandas._libs.tslibs import conversion
 from pandas._typing import ArrayLike, DtypeObj
 
@@ -19,14 +19,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
     registry,
 )
-from pandas.core.dtypes.generic import (
-    ABCCategorical,
-    ABCDatetimeIndex,
-    ABCIndexClass,
-    ABCPeriodArray,
-    ABCPeriodIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCCategorical, ABCIndexClass
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
@@ -198,8 +191,8 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
     try:
         new_value = int(value)
         assert new_value == value
-    except (TypeError, ValueError, AssertionError):
-        raise TypeError(f"Wrong type {type(value)} for value {value}")
+    except (TypeError, ValueError, AssertionError) as err:
+        raise TypeError(f"Wrong type {type(value)} for value {value}") from err
     return new_value
 
 
@@ -604,71 +597,6 @@ def is_string_dtype(arr_or_dtype) -> bool:
         return any(is_excluded(dtype) for is_excluded in is_excluded_checks)
 
     return _is_dtype(arr_or_dtype, condition)
-
-
-def is_period_arraylike(arr) -> bool:
-    """
-    Check whether an array-like is a periodical array-like or PeriodIndex.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a periodical array-like or
-        PeriodIndex instance.
-
-    Examples
-    --------
-    >>> is_period_arraylike([1, 2, 3])
-    False
-    >>> is_period_arraylike(pd.Index([1, 2, 3]))
-    False
-    >>> is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
-    True
-    """
-    if isinstance(arr, (ABCPeriodIndex, ABCPeriodArray)):
-        return True
-    elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return is_period_dtype(arr.dtype)
-    return getattr(arr, "inferred_type", None) == "period"
-
-
-def is_datetime_arraylike(arr) -> bool:
-    """
-    Check whether an array-like is a datetime array-like or DatetimeIndex.
-
-    Parameters
-    ----------
-    arr : array-like
-        The array-like to check.
-
-    Returns
-    -------
-    boolean
-        Whether or not the array-like is a datetime array-like or
-        DatetimeIndex.
-
-    Examples
-    --------
-    >>> is_datetime_arraylike([1, 2, 3])
-    False
-    >>> is_datetime_arraylike(pd.Index([1, 2, 3]))
-    False
-    >>> is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
-    True
-    """
-    if isinstance(arr, ABCDatetimeIndex):
-        return True
-    elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return (
-            is_object_dtype(arr.dtype)
-            and lib.infer_dtype(arr, skipna=False) == "datetime"
-        )
-    return getattr(arr, "inferred_type", None) == "datetime"
 
 
 def is_dtype_equal(source, target) -> bool:
@@ -1801,7 +1729,7 @@ def _validate_date_like_dtype(dtype) -> None:
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
-        raise TypeError(e)
+        raise TypeError(e) from e
     if typ != "generic" and typ != "ns":
         raise ValueError(
             f"{repr(dtype.name)} is too specific of a frequency, "
@@ -1840,9 +1768,9 @@ def pandas_dtype(dtype) -> DtypeObj:
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except SyntaxError:
+    except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError
-        raise TypeError(f"data type '{dtype}' not understood")
+        raise TypeError(f"data type '{dtype}' not understood") from err
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will

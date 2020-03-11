@@ -10,11 +10,6 @@ def name(request):
     return request.param
 
 
-@pytest.fixture(params=[None, False])
-def sort(request):
-    return request.param
-
-
 def monotonic_index(start, end, dtype="int64", closed="right"):
     return IntervalIndex.from_breaks(np.arange(start, end, dtype=dtype), closed=closed)
 
@@ -153,7 +148,6 @@ class TestIntervalIndex:
     @pytest.mark.parametrize(
         "op_name", ["union", "intersection", "difference", "symmetric_difference"]
     )
-    @pytest.mark.parametrize("sort", [None, False])
     def test_set_incompatible_types(self, closed, op_name, sort):
         index = monotonic_index(0, 11, closed=closed)
         set_op = getattr(index, op_name)

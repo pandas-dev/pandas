@@ -104,15 +104,11 @@ class NumericIndex(Index):
 
     @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
-        name = name if name is not lib.no_default else self.name
-
         if values is not None and not self._can_hold_na and values.dtype.kind == "f":
+            name = self.name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
             return Float64Index._simple_new(values, name=name)
-
-        if values is None:
-            values = self.values
-        return type(self)._simple_new(values, name=name)
+        return super()._shallow_copy(values=values, name=name)
 
     def _convert_for_op(self, value):
         """
@@ -254,14 +250,6 @@ class IntegerIndex(NumericIndex):
         # do not cache or you'll create a memory leak
         return self.values.view(self._default_dtype)
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-
-        # never iloc, which we don't coerce to integers
-        key = self._maybe_cast_indexer(key)
-        return super()._convert_scalar_indexer(key, kind=kind)
-
 
 class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs["class_descr"] % _int64_descr_args
@@ -391,12 +379,6 @@ class Float64Index(NumericIndex):
     def _should_fallback_to_positional(self):
         return False
 
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-        # no-op for non-iloc
-        return key
-
     @Appender(Index._convert_slice_indexer.__doc__)
     def _convert_slice_indexer(self, key: slice, kind: str):
         assert kind in ["loc", "getitem"]
@@ -439,7 +421,7 @@ class Float64Index(NumericIndex):
                 other = self._constructor(other)
             if not is_dtype_equal(self.dtype, other.dtype) or self.shape != other.shape:
                 return False
-            left, right = self._ndarray_values, other._ndarray_values
+            left, right = self._values, other._values
             return ((left == right) | (self._isnan & other._isnan)).all()
         except (TypeError, ValueError):
             return False

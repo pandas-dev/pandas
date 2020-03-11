@@ -313,8 +313,8 @@ def unique(values):
 
     See Also
     --------
-    Index.unique
-    Series.unique
+    Index.unique : Return unique values from an Index.
+    Series.unique : Return unique values of Series object.
 
     Examples
     --------
@@ -686,8 +686,8 @@ def value_counts(
         values = Series(values)
         try:
             ii = cut(values, bins, include_lowest=True)
-        except TypeError:
-            raise TypeError("bins argument only works with numeric data.")
+        except TypeError as err:
+            raise TypeError("bins argument only works with numeric data.") from err
 
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)
@@ -1515,7 +1515,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
     See Also
     --------
-    numpy.take
+    numpy.take : Take elements from an array along an axis.
 
     Examples
     --------

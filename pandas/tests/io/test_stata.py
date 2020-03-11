@@ -254,12 +254,21 @@ class TestStata:
         )
 
         # these are all categoricals
-        expected = pd.concat(
-            [expected[col].astype("category") for col in expected], axis=1
-        )
+        for col in expected:
+            orig = expected[col].copy()
+
+            categories = np.asarray(expected["fully_labeled"][orig.notna()])
+            if col == "incompletely_labeled":
+                categories = orig
+
+            cat = orig.astype("category")._values
+            cat = cat.set_categories(categories, ordered=True)
+            cat.categories.rename(None, inplace=True)
+
+            expected[col] = cat
 
         # stata doesn't save .category metadata
-        tm.assert_frame_equal(parsed, expected, check_categorical=False)
+        tm.assert_frame_equal(parsed, expected)
 
     # File containing strls
     def test_read_dta12(self):
@@ -952,19 +961,27 @@ class TestStata:
         original = pd.concat(
             [original[col].astype("category") for col in original], axis=1
         )
+        expected.index.name = "index"
 
         expected["incompletely_labeled"] = expected["incompletely_labeled"].apply(str)
         expected["unlabeled"] = expected["unlabeled"].apply(str)
-        expected = pd.concat(
-            [expected[col].astype("category") for col in expected], axis=1
-        )
-        expected.index.name = "index"
+        for col in expected:
+            orig = expected[col].copy()
+
+            cat = orig.astype("category")._values
+            cat = cat.as_ordered()
+            if col == "unlabeled":
+                cat = cat.set_categories(orig, ordered=True)
+
+            cat.categories.rename(None, inplace=True)
+
+            expected[col] = cat
 
         with tm.ensure_clean() as path:
             original.to_stata(path, version=version)
             written_and_read_again = self.read_dta(path)
             res = written_and_read_again.set_index("index")
-            tm.assert_frame_equal(res, expected, check_categorical=False)
+            tm.assert_frame_equal(res, expected)
 
     def test_categorical_warnings_and_errors(self):
         # Warning for non-string labels
@@ -1056,9 +1073,11 @@ class TestStata:
         parsed.index = np.arange(parsed.shape[0])
         codes = [-1, -1, 0, 1, 1, 1, 2, 2, 3, 4]
         categories = ["Poor", "Fair", "Good", "Very good", "Excellent"]
-        cat = pd.Categorical.from_codes(codes=codes, categories=categories)
+        cat = pd.Categorical.from_codes(
+            codes=codes, categories=categories, ordered=True
+        )
         expected = pd.Series(cat, name="srh")
-        tm.assert_series_equal(expected, parsed["srh"], check_categorical=False)
+        tm.assert_series_equal(expected, parsed["srh"])
 
     @pytest.mark.parametrize("file", ["dta19_115", "dta19_117"])
     def test_categorical_ordering(self, file):

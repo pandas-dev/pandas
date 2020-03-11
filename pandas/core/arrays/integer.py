@@ -154,7 +154,7 @@ def safe_cast(values, dtype, copy: bool):
     """
     try:
         return values.astype(dtype, casting="safe", copy=copy)
-    except TypeError:
+    except TypeError as err:
 
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
@@ -162,7 +162,7 @@ def safe_cast(values, dtype, copy: bool):
 
         raise TypeError(
             f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
-        )
+        ) from err
 
 
 def coerce_to_array(
@@ -199,8 +199,8 @@ def coerce_to_array(
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
-            except KeyError:
-                raise ValueError(f"invalid dtype specified {dtype}")
+            except KeyError as err:
+                raise ValueError(f"invalid dtype specified {dtype}") from err
 
     if isinstance(values, IntegerArray):
         values, mask = values._data, values._mask

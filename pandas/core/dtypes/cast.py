@@ -1049,7 +1049,8 @@ def convert_dtypes(
     dtype
         new dtype
     """
-    if convert_string or convert_integer or convert_boolean:
+    is_extension = is_extension_array_dtype(input_array.dtype)
+    if (convert_string or convert_integer or convert_boolean) and not is_extension:
         try:
             inferred_dtype = lib.infer_dtype(input_array)
         except ValueError:
@@ -1062,9 +1063,7 @@ def convert_dtypes(
         if convert_integer:
             target_int_dtype = "Int64"
 
-            if is_integer_dtype(input_array.dtype) and not is_extension_array_dtype(
-                input_array.dtype
-            ):
+            if is_integer_dtype(input_array.dtype):
                 from pandas.core.arrays.integer import _dtypes
 
                 inferred_dtype = _dtypes.get(input_array.dtype.name, target_int_dtype)
@@ -1078,9 +1077,7 @@ def convert_dtypes(
                 inferred_dtype = input_array.dtype
 
         if convert_boolean:
-            if is_bool_dtype(input_array.dtype) and not is_extension_array_dtype(
-                input_array.dtype
-            ):
+            if is_bool_dtype(input_array.dtype):
                 inferred_dtype = "boolean"
         else:
             if isinstance(inferred_dtype, str) and inferred_dtype == "boolean":
@@ -1181,9 +1178,11 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
         from pandas import to_timedelta
 
         try:
-            return to_timedelta(v)._ndarray_values.reshape(shape)
+            td_values = to_timedelta(v)
         except ValueError:
             return v.reshape(shape)
+        else:
+            return np.asarray(td_values).reshape(shape)
 
     inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
@@ -1573,11 +1572,11 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
             casted = np.array(arr, dtype=dtype, copy=copy)
         else:
             casted = arr.astype(dtype, copy=copy)
-    except OverflowError:
+    except OverflowError as err:
         raise OverflowError(
             "The elements provided in the data cannot all be "
             f"casted to the dtype {dtype}"
-        )
+        ) from err
 
     if np.array_equal(arr, casted):
         return casted
