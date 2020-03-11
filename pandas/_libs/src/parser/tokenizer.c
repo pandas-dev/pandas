@@ -1193,7 +1193,7 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
         char_count = (self->word_starts[word_deletions - 1] +
                       strlen(self->words[word_deletions - 1]) + 1);
     } else {
-        char_count = 1;
+        char_count = self->stream_len;
     }
 
     TRACE(("parser_consume_rows: Deleting %d words, %d chars\n", word_deletions,
