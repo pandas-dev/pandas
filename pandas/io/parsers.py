@@ -10,7 +10,7 @@ import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Iterable
 import warnings
 
 import numpy as np
@@ -1440,6 +1440,7 @@ class ParserBase:
             If column to parse_date is not in dataframe.
 
         """
+        cols_needed: Iterable
         if isinstance(self.parse_dates, list):
             # a column in parse_dates could be represented
             # ColReference = Union[int, str]
@@ -1452,7 +1453,7 @@ class ParserBase:
         elif isinstance(self.parse_dates, dict):
             cols_needed = itertools.chain(*self.parse_dates.values())
         else:
-            cols_needed = itertools.chain()
+            cols_needed = []
 
         # get only columns that are references using names (str), not by index
         missing_cols = ", ".join(
