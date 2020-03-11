@@ -5,8 +5,8 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from itertools import chain
 from io import StringIO, TextIOWrapper
+import itertools
 import re
 import sys
 from textwrap import fill
@@ -1432,7 +1432,7 @@ class ParserBase:
         Parameters
         ----------
         columns : list
-            list of names of the dataframe.
+            List of names of the dataframe.
 
         Raises
         ------
@@ -1444,15 +1444,15 @@ class ParserBase:
             # a column in parse_dates could be represented
             # ColReference = Union[int, str]
             # DateGroups = List[ColReference]
-            # ParseDates = Union[ DateGroups, List[DateGroups],
+            # ParseDates = Union[DateGroups, List[DateGroups],
             #     Dict[ColReference, DateGroups]]
-            cols_needed = chain.from_iterable(
-                [col if isinstance(col, list) else [col] for col in self.parse_dates]
+            cols_needed = itertools.chain.from_iterable(
+                col if isinstance(col, list) else [col] for col in self.parse_dates
             )
         elif isinstance(self.parse_dates, dict):
-            cols_needed = chain(*self.parse_dates.values())
+            cols_needed = itertools.chain(*self.parse_dates.values())
         else:
-            cols_needed = chain()
+            cols_needed = itertools.chain()
 
         # get only columns that are references using names (str), not by index
         missing_cols = ", ".join(
