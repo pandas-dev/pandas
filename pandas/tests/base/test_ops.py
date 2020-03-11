@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 import pandas as pd
 from pandas import (
@@ -694,58 +695,65 @@ class TestIndexOps(Ops):
                 dropped_series = df[column].drop_duplicates(keep=keep)
                 tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
 
-    def test_fillna(self):
+    def test_fillna(self, index_or_series_obj):
         # # GH 11343
         # though Index.fillna and Series.fillna has separate impl,
         # test here to confirm these works as the same
 
-        for orig in self.objs:
+        obj = index_or_series_obj
+        if isinstance(obj, ABCMultiIndex):
+            pytest.skip("MultiIndex doesn't support isna")
 
-            o = orig.copy()
-            values = o.values
+        # values will not be changed
+        fill_value = obj.values[0] if len(obj) > 0 else 0
+        result = obj.fillna(fill_value)
+        if isinstance(obj, Index):
+            tm.assert_index_equal(obj, result)
+        else:
+            tm.assert_series_equal(obj, result)
 
-            # values will not be changed
-            result = o.fillna(o.astype(object).values[0])
-            if isinstance(o, Index):
-                tm.assert_index_equal(o, result)
-            else:
-                tm.assert_series_equal(o, result)
-            # check shallow_copied
-            assert o is not result
+        # check shallow_copied
+        if isinstance(obj, Series) and len(obj) == 0:
+            # TODO: GH-32543
+            pytest.xfail("Shallow copy for empty Series is bugged")
+        assert obj is not result
 
-        for null_obj in [np.nan, None]:
-            for orig in self.objs:
-                o = orig.copy()
-                klass = type(o)
+    @pytest.mark.parametrize("null_obj", [np.nan, None])
+    def test_fillna_null(self, null_obj, index_or_series_obj):
+        # # GH 11343
+        # though Index.fillna and Series.fillna has separate impl,
+        # test here to confirm these works as the same
+        obj = index_or_series_obj
+        klass = type(obj)
 
-                if not allow_na_ops(o):
-                    continue
+        if not allow_na_ops(obj):
+            pytest.skip(f"{klass} doesn't allow for NA operations")
+        elif len(obj) < 1:
+            pytest.skip("Test doesn't make sense on empty data")
+        elif isinstance(obj, ABCMultiIndex):
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-                if needs_i8_conversion(o):
+        values = obj.values
+        fill_value = values[0]
+        expected = values.copy()
+        if needs_i8_conversion(obj):
+            values[0:2] = iNaT
+            expected[0:2] = fill_value
+        else:
+            values[0:2] = null_obj
+            expected[0:2] = fill_value
 
-                    values = o.astype(object).values
-                    fill_value = values[0]
-                    values[0:2] = pd.NaT
-                else:
-                    values = o.values.copy()
-                    fill_value = o.values[0]
-                    values[0:2] = null_obj
+        expected = klass(expected)
+        obj = klass(values)
 
-                expected = [fill_value] * 2 + list(values[2:])
+        result = obj.fillna(fill_value)
+        if isinstance(obj, Index):
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_series_equal(result, expected)
 
-                expected = klass(expected, dtype=orig.dtype)
-                o = klass(values)
-
-                # check values has the same dtype as the original
-                assert o.dtype == orig.dtype
-
-                result = o.fillna(fill_value)
-                if isinstance(o, Index):
-                    tm.assert_index_equal(result, expected)
-                else:
-                    tm.assert_series_equal(result, expected)
-                # check shallow_copied
-                assert o is not result
+        # check shallow_copied
+        assert obj is not result
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self, index_or_series_obj):
