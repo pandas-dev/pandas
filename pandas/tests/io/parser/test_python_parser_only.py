@@ -8,14 +8,13 @@ arguments when parsing.
 import csv
 from io import BytesIO, StringIO
 
+import psutil
 import pytest
 
-from pandas.errors import ParserError, EmptyDataError
+from pandas.errors import EmptyDataError, ParserError
 
 from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
-
-import psutil
 
 
 def test_default_separator(python_parser_only):
