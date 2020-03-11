@@ -60,6 +60,33 @@ jobs:
           PANDAS_TESTING_MODE: "deprecate"
           EXTRA_APT: "xsel"
 
+        py37_np_115_32bit:
+          ENV_FILE: ci/deps/azure-37-numpy115-32bit.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          TEST_ARGS: "-W error"
+          PANDAS_TESTING_MODE: "deprecate"
+          EXTRA_APT: "xsel"
+          BITS32: "yes"
+
+        py37_np_116_32bit:
+          ENV_FILE: ci/deps/azure-37-numpy116-32bit.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          TEST_ARGS: "-W error"
+          PANDAS_TESTING_MODE: "deprecate"
+          EXTRA_APT: "xsel"
+          BITS32: "yes"
+
+        py37_np_117_32bit:
+          ENV_FILE: ci/deps/azure-37-numpy117-32bit.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network"
+          TEST_ARGS: "-W error"
+          PANDAS_TESTING_MODE: "deprecate"
+          EXTRA_APT: "xsel"
+          BITS32: "yes"
+
         py37_np_dev_32bit:
           ENV_FILE: ci/deps/azure-37-numpydev-32bit.yaml
           CONDA_PY: "37"
