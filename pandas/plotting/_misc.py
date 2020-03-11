@@ -388,9 +388,14 @@ def lag_plot(series, lag=1, ax=None, figsize=None, **kwds):
 
     Parameters
     ----------
-    series : Time series
-    lag : lag of the scatter plot, default 1
-    ax : Matplotlib axis object, optional
+    series : Series
+        time series
+    lag : int
+        lag of the scatter plot, default 1
+    ax : matplotlib.axis, optional
+        Matplotlib axis object.
+    figsize : (float,float), optional
+        A tuple (width, height) in inches.
     **kwds
         Matplotlib scatter method keyword arguments.
 
@@ -408,8 +413,12 @@ def autocorrelation_plot(series, ax=None, figsize=None, **kwargs):
 
     Parameters
     ----------
-    series : Time series
-    ax : Matplotlib axis object, optional
+    series : Series
+        time series
+    ax : matplotlib.axis, optional
+        Matplotlib axis object.
+    figsize : (float,float), optional
+        A tuple (width, height) in inches.
     **kwargs
         Options to pass to matplotlib plotting method.
 
