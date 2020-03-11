@@ -25,6 +25,7 @@ Fixed regressions
 - Fixed regression in :meth:`pandas.core.groupby.GroupBy.agg` calling a user-provided function an extra time on an empty input (:issue:`31760`)
 - Joining on :class:`DatetimeIndex` or :class:`TimedeltaIndex` will preserve ``freq`` in simple cases (:issue:`32166`)
 - Fixed bug in the repr of an object-dtype :class:`Index` with bools and missing values (:issue:`32146`)
+- Fixed regression in :meth:`read_csv` in which the ``encoding`` option was not recognized with certain file-like objects (:issue:`31819`)
 -
 
 .. ---------------------------------------------------------------------------
