@@ -3597,6 +3597,9 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
+    def replace(self, *args, **kwargs):
+        raise NotImplementedError("Replacing in MultiIndex is not supported.")
+
 
 MultiIndex._add_numeric_methods_disabled()
 MultiIndex._add_numeric_methods_add_sub_disabled()

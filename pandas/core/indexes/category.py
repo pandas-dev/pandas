@@ -760,6 +760,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         name = get_op_result_name(self, other)
         return self._create_from_codes(joined, name=name)
 
+    def replace(self, *args, **kwargs):
+        raise NotImplementedError("Replacing in CategoricalIndex is not supported.")
+
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
