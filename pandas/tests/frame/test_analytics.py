@@ -856,11 +856,6 @@ class TestDataFrameAnalytics:
         expected = pd.Series({"A": 1.0, "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="casts to object-dtype and then tries to add timestamps",
-        raises=TypeError,
-        strict=True,
-    )
     def test_mean_datetimelike_numeric_only_false(self):
         df = pd.DataFrame(
             {
