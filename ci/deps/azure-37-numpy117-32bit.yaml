@@ -19,5 +19,5 @@ dependencies:
   - pip:
     - pytest>=5.0.1
     - cython>=0.29.13
-    - numpy=1.17.*
+    - numpy=1.17
     - scipy
