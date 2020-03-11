@@ -8,10 +8,9 @@ arguments when parsing.
 import csv
 from io import BytesIO, StringIO
 
-import psutil
 import pytest
 
-from pandas.errors import EmptyDataError, ParserError
+from pandas.errors import ParserError
 
 from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
@@ -315,14 +314,3 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
-
-
-def test_file_descriptor_leak(python_parser_only):
-    # GH 31488
-    proc = psutil.Process()
-    parser = python_parser_only
-    with tm.ensure_clean() as path:
-        expected = proc.open_files()
-        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
-            parser.read_csv(path)
-        assert proc.open_files() == expected

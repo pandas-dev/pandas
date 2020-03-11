@@ -11,6 +11,7 @@ import platform
 from urllib.error import URLError
 
 import numpy as np
+import psutil
 import pytest
 
 from pandas._libs.tslib import Timestamp
@@ -2079,3 +2080,14 @@ def test_integer_precision(all_parsers):
     result = parser.read_csv(StringIO(s), header=None)[4]
     expected = Series([4321583677327450765, 4321113141090630389], name=4)
     tm.assert_series_equal(result, expected)
+
+
+def test_file_descriptor_leak(all_parsers):
+    # GH 31488
+    proc = psutil.Process()
+    parser = all_parsers
+    with tm.ensure_clean() as path:
+        expected = proc.open_files()
+        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+            parser.read_csv(path)
+        assert proc.open_files() == expected
