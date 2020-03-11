@@ -435,6 +435,8 @@ def sanitize_array(
         return subarr
 
     elif isinstance(data, (list, tuple, set)) and len(data) > 0:
+        # We can't use is_list_like since range and array.array inputs
+        # are handled differently
         if isinstance(data, set):
             data = list(data)
         if dtype is not None:
