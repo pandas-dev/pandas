@@ -8,7 +8,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
-from pandas._typing import Dtype, Scalar
+from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
@@ -1502,7 +1502,20 @@ def nanpercentile(
         return np.percentile(values, q, axis=axis, interpolation=interpolation)
 
 
-def na_accum_func(values, accum_func, skipna: bool):
+def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
+    """
+    Cumulative function with skipna support.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minumum.accumulate}
+    skipna : bool
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
     mask_a, mask_b = {
         np.cumprod: (1.0, np.nan),
         np.maximum.accumulate: (-np.inf, np.nan),
