@@ -24,7 +24,6 @@ foo.__class__
 
 pandas uses 'type(foo)' instead 'foo.__class__' as it is making the code more
 readable.
-
 For example:
 
 **Good:**

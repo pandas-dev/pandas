@@ -1272,7 +1272,7 @@ Running the performance test suite
 ----------------------------------
 
 Performance matters and it is worth considering whether your code has introduced
-performance regressions.  pandas is in the process of migrating to
+performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/spacetelescope/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
@@ -1386,7 +1386,7 @@ Doing 'git status' again should give something like::
     #       modified:   /relative/path/to/file-you-added.py
     #
 
-Finally, commit your changes to your local repository with an explanatory message.  Pandas
+Finally, commit your changes to your local repository with an explanatory message. pandas
 uses a convention for commit message prefixes and layout.  Here are
 some common prefixes along with general guidelines for when to use them:
 
@@ -1434,7 +1434,7 @@ like::
     upstream        git://github.com/pandas-dev/pandas.git (fetch)
     upstream        git://github.com/pandas-dev/pandas.git (push)
 
-Now your code is on GitHub, but it is not yet a part of the pandas project.  For that to
+Now your code is on GitHub, but it is not yet a part of the pandas project. For that to
 happen, a pull request needs to be submitted on GitHub.
 
 Review your code
