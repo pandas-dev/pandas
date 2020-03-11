@@ -11,8 +11,9 @@ import platform
 from urllib.error import URLError
 
 import numpy as np
-import psutil
 import pytest
+
+import pandas.util._test_decorators as td
 
 from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
@@ -2082,8 +2083,10 @@ def test_integer_precision(all_parsers):
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_if_no("psutil")
 def test_file_descriptor_leak(all_parsers):
     # GH 31488
+    import psutil
     proc = psutil.Process()
     parser = all_parsers
     with tm.ensure_clean() as path:
