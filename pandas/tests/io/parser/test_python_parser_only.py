@@ -324,6 +324,6 @@ def test_file_descriptor_leak(python_parser_only):
     parser = python_parser_only
     with tm.ensure_clean() as path:
         expected = proc.open_files()
-        with pytest.raises(EmptyDataError):
+        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
             parser.read_csv(path)
         assert proc.open_files() == expected
