@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
+from io import StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -1870,7 +1870,7 @@ class CParserWrapper(ParserBase):
 
             # Handle the file object with universal line mode enabled.
             # We will handle the newline character ourselves later on.
-            if isinstance(src, (BufferedIOBase, RawIOBase)):
+            if hasattr(src, "read") and not hasattr(src, "encoding"):
                 src = TextIOWrapper(src, encoding=encoding, newline="")
 
             kwds["encoding"] = "utf-8"

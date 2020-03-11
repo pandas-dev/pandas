@@ -279,3 +279,8 @@ class TestSeriesConvertDtypes:
         )
         result = df.convert_dtypes()
         tm.assert_frame_equal(df, result)
+
+    def test_convert_bool_dtype(self):
+        # GH32287
+        df = pd.DataFrame({"A": pd.array([True])})
+        tm.assert_frame_equal(df, df.convert_dtypes())
