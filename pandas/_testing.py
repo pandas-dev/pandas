@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_extension_array_dtype,
     is_interval_dtype,
-    is_list_like,
     is_number,
     is_numeric_dtype,
     is_period_dtype,
@@ -418,10 +417,7 @@ def rands_array(nchars, size, dtype="O"):
         .view((np.str_, nchars))
         .reshape(size)
     )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
+    return retval.astype(dtype)
 
 
 def randu_array(nchars, size, dtype="O"):
@@ -433,10 +429,7 @@ def randu_array(nchars, size, dtype="O"):
         .view((np.unicode_, nchars))
         .reshape(size)
     )
-    if dtype is None:
-        return retval
-    else:
-        return retval.astype(dtype)
+    return retval.astype(dtype)
 
 
 def rands(nchars):
@@ -447,16 +440,6 @@ def rands(nchars):
 
     """
     return "".join(np.random.choice(RANDS_CHARS, nchars))
-
-
-def randu(nchars):
-    """
-    Generate one random unicode string.
-
-    See `randu_array` if you want to create an array of random unicode strings.
-
-    """
-    return "".join(np.random.choice(RANDU_CHARS, nchars))
 
 
 def close(fignum=None):
@@ -725,10 +708,7 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
             # return Index as it is to include values in the error message
             return x
 
-        try:
-            return type(x).__name__
-        except AttributeError:
-            return repr(type(x))
+        return type(x).__name__
 
     if exact == "equiv":
         if type(left) != type(right):
@@ -1481,14 +1461,7 @@ def to_array(obj):
 # Sparse
 
 
-def assert_sp_array_equal(
-    left,
-    right,
-    check_dtype=True,
-    check_kind=True,
-    check_fill_value=True,
-    consolidate_block_indices=False,
-):
+def assert_sp_array_equal(left, right):
     """
     Check that the left and right SparseArray are equal.
 
@@ -1496,38 +1469,17 @@ def assert_sp_array_equal(
     ----------
     left : SparseArray
     right : SparseArray
-    check_dtype : bool, default True
-        Whether to check the data dtype is identical.
-    check_kind : bool, default True
-        Whether to just the kind of the sparse index for each column.
-    check_fill_value : bool, default True
-        Whether to check that left.fill_value matches right.fill_value
-    consolidate_block_indices : bool, default False
-        Whether to consolidate contiguous blocks for sparse arrays with
-        a BlockIndex. Some operations, e.g. concat, will end up with
-        block indices that could be consolidated. Setting this to true will
-        create a new BlockIndex for that array, with consolidated
-        block indices.
     """
     _check_isinstance(left, right, pd.arrays.SparseArray)
 
-    assert_numpy_array_equal(left.sp_values, right.sp_values, check_dtype=check_dtype)
+    assert_numpy_array_equal(left.sp_values, right.sp_values)
 
     # SparseIndex comparison
     assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
     assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
 
-    if not check_kind:
-        left_index = left.sp_index.to_block_index()
-        right_index = right.sp_index.to_block_index()
-    else:
-        left_index = left.sp_index
-        right_index = right.sp_index
-
-    if consolidate_block_indices and left.kind == "block":
-        # we'll probably remove this hack...
-        left_index = left_index.to_int_index().to_block_index()
-        right_index = right_index.to_int_index().to_block_index()
+    left_index = left.sp_index
+    right_index = right.sp_index
 
     if not left_index.equals(right_index):
         raise_assert_detail(
@@ -1537,11 +1489,9 @@ def assert_sp_array_equal(
         # Just ensure a
         pass
 
-    if check_fill_value:
-        assert_attr_equal("fill_value", left, right)
-    if check_dtype:
-        assert_attr_equal("dtype", left, right)
-    assert_numpy_array_equal(left.to_dense(), right.to_dense(), check_dtype=check_dtype)
+    assert_attr_equal("fill_value", left, right)
+    assert_attr_equal("dtype", left, right)
+    assert_numpy_array_equal(left.to_dense(), right.to_dense())
 
 
 # -----------------------------------------------------------------------------
@@ -2093,53 +2043,6 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
     return i.tolist(), j.tolist()
 
 
-def makeMissingCustomDataframe(
-    nrows,
-    ncols,
-    density=0.9,
-    random_state=None,
-    c_idx_names=True,
-    r_idx_names=True,
-    c_idx_nlevels=1,
-    r_idx_nlevels=1,
-    data_gen_f=None,
-    c_ndupe_l=None,
-    r_ndupe_l=None,
-    dtype=None,
-    c_idx_type=None,
-    r_idx_type=None,
-):
-    """
-    Parameters
-    ----------
-    Density : float, optional
-        Float in (0, 1) that gives the percentage of non-missing numbers in
-        the DataFrame.
-    random_state : {np.random.RandomState, int}, optional
-        Random number generator or random seed.
-
-    See makeCustomDataframe for descriptions of the rest of the parameters.
-    """
-    df = makeCustomDataframe(
-        nrows,
-        ncols,
-        c_idx_names=c_idx_names,
-        r_idx_names=r_idx_names,
-        c_idx_nlevels=c_idx_nlevels,
-        r_idx_nlevels=r_idx_nlevels,
-        data_gen_f=data_gen_f,
-        c_ndupe_l=c_ndupe_l,
-        r_ndupe_l=r_ndupe_l,
-        dtype=dtype,
-        c_idx_type=c_idx_type,
-        r_idx_type=r_idx_type,
-    )
-
-    i, j = _create_missing_idx(nrows, ncols, density, random_state)
-    df.values[i, j] = np.nan
-    return df
-
-
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
     i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
@@ -2387,7 +2290,6 @@ with_connectivity_check = network
 def assert_produces_warning(
     expected_warning=Warning,
     filter_level="always",
-    clear=None,
     check_stacklevel=True,
     raise_on_extra_warnings=True,
 ):
@@ -2417,12 +2319,6 @@ def assert_produces_warning(
           from each module
         * "once" - print the warning the first time it is generated
 
-    clear : str, default None
-        If not ``None`` then remove any previously raised warnings from
-        the ``__warningsregistry__`` to ensure that no warning messages are
-        suppressed by this context manager. If ``None`` is specified,
-        the ``__warningsregistry__`` keeps track of which warnings have been
-        shown, and does not show them again.
     check_stacklevel : bool, default True
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
@@ -2454,19 +2350,6 @@ def assert_produces_warning(
     __tracebackhide__ = True
 
     with warnings.catch_warnings(record=True) as w:
-
-        if clear is not None:
-            # make sure that we are clearing these warnings
-            # if they have happened before
-            # to guarantee that we will catch them
-            if not is_list_like(clear):
-                clear = [clear]
-            for m in clear:
-                try:
-                    m.__warningregistry__.clear()
-                except AttributeError:
-                    # module may not have __warningregistry__
-                    pass
 
         saw_warning = False
         warnings.simplefilter(filter_level)
