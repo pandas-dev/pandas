@@ -205,7 +205,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             # data is an ndarray, index is defined
             if not isinstance(data, SingleBlockManager):
-                data = SingleBlockManager(data, index, fastpath=True)
+                data = SingleBlockManager.from_array(data, index)
             if copy:
                 data = data.copy()
             if index is None:
@@ -317,7 +317,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 data = sanitize_array(data, index, dtype, copy, raise_cast_failure=True)
 
-                data = SingleBlockManager(data, index, fastpath=True)
+                data = SingleBlockManager.from_array(data, index)
 
         generic.NDFrame.__init__(self, data)
         self.name = name
