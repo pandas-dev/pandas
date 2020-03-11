@@ -463,7 +463,7 @@ class TestDatetimeArray(SharedTests):
         else:
             other = arr.tz_localize(None)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match="to_concat must have the same"):
             arr._concat_same_type([arr, other])
 
     def test_concat_same_type_different_freq(self):
@@ -687,10 +687,10 @@ class TestPeriodArray(SharedTests):
         result = np.asarray(arr, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-        # to other dtypes
-        with pytest.raises(TypeError):
-            np.asarray(arr, dtype="int64")
+        result = np.asarray(arr, dtype="int64")
+        tm.assert_numpy_array_equal(result, arr.asi8)
 
+        # to other dtypes
         with pytest.raises(TypeError):
             np.asarray(arr, dtype="float64")
 

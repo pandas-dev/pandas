@@ -85,7 +85,6 @@ class _XlsxStyler:
         style_dict : style dictionary to convert
         num_format_str : optional number format string
         """
-
         # Create a XlsxWriter format object.
         props = {}
 
@@ -191,7 +190,6 @@ class _XlsxWriter(ExcelWriter):
         """
         Save workbook to disk.
         """
-
         return self.book.close()
 
     def write_cells(

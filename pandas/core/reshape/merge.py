@@ -92,9 +92,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
-def _groupby_and_merge(
-    by, on, left, right: "DataFrame", _merge_pieces, check_duplicates: bool = True
-):
+def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_pieces):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -102,13 +100,10 @@ def _groupby_and_merge(
     ----------
     by: field to group
     on: duplicates field
-    left: left frame
-    right: right frame
-    _merge_pieces: function for merging
-    check_duplicates: bool, default True
-        should we check & clean duplicates
+    left: DataFrame
+    right: DataFrame
+    merge_pieces: function for merging
     """
-
     pieces = []
     if not isinstance(by, (list, tuple)):
         by = [by]
@@ -119,18 +114,6 @@ def _groupby_and_merge(
     # if we can groupby the rhs
     # then we can get vastly better perf
 
-    # we will check & remove duplicates if indicated
-    if check_duplicates:
-        if on is None:
-            on = []
-        elif not isinstance(on, (list, tuple)):
-            on = [on]
-
-        if right.duplicated(by + on).any():
-            _right = right.drop_duplicates(by + on, keep="last")
-            # TODO: use overload to refine return type of drop_duplicates
-            assert _right is not None  # needed for mypy
-            right = _right
     try:
         rby = right.groupby(by, sort=False)
     except KeyError:
@@ -152,16 +135,13 @@ def _groupby_and_merge(
                 pieces.append(merged)
                 continue
 
-        merged = _merge_pieces(lhs, rhs)
+        merged = merge_pieces(lhs, rhs)
 
         # make sure join keys are in the merged
-        # TODO, should _merge_pieces do this?
+        # TODO, should merge_pieces do this?
         for k in by:
-            try:
-                if k in merged:
-                    merged[k] = key
-            except KeyError:
-                pass
+            if k in merged:
+                merged[k] = key
 
         pieces.append(merged)
 
@@ -288,16 +268,11 @@ def merge_ordered(
         raise ValueError("Can only group either left or right frames")
     elif left_by is not None:
         result, _ = _groupby_and_merge(
-            left_by, on, left, right, lambda x, y: _merger(x, y), check_duplicates=False
+            left_by, on, left, right, lambda x, y: _merger(x, y)
         )
     elif right_by is not None:
         result, _ = _groupby_and_merge(
-            right_by,
-            on,
-            right,
-            left,
-            lambda x, y: _merger(y, x),
-            check_duplicates=False,
+            right_by, on, right, left, lambda x, y: _merger(y, x)
         )
     else:
         result = _merger(left, right)
@@ -321,10 +296,10 @@ def merge_asof(
     direction: str = "backward",
 ) -> "DataFrame":
     """
-    Perform an asof merge. This is similar to a left-join except that we
-    match on nearest key rather than equal keys.
+    Perform an asof merge.
 
-    Both DataFrames must be sorted by the key.
+    This is similar to a left-join except that we match on nearest
+    key rather than equal keys. Both DataFrames must be sorted by the key.
 
     For each row in the left DataFrame:
 
@@ -611,8 +586,9 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels can give an unintended "
-                "result ({left} levels on the left, {right} on the right)"
-            ).format(left=_left.columns.nlevels, right=_right.columns.nlevels)
+                f"result ({left.columns.nlevels} levels on the left,"
+                f"{right.columns.nlevels} on the right)"
+            )
             warnings.warn(msg, UserWarning)
 
         self._validate_specification()
@@ -679,7 +655,7 @@ class _MergeOperation:
             if i in columns:
                 raise ValueError(
                     "Cannot use `indicator=True` option when "
-                    "data contains a column named {name}".format(name=i)
+                    f"data contains a column named {i}"
                 )
         if self.indicator_name in columns:
             raise ValueError(
@@ -831,7 +807,7 @@ class _MergeOperation:
                     else:
                         result.index = Index(key_col, name=name)
                 else:
-                    result.insert(i, name or "key_{i}".format(i=i), key_col)
+                    result.insert(i, name or f"key_{i}", key_col)
 
     def _get_join_indexers(self):
         """ return the join indexers """
@@ -1185,13 +1161,10 @@ class _MergeOperation:
                 if len(common_cols) == 0:
                     raise MergeError(
                         "No common columns to perform merge on. "
-                        "Merge options: left_on={lon}, right_on={ron}, "
-                        "left_index={lidx}, right_index={ridx}".format(
-                            lon=self.left_on,
-                            ron=self.right_on,
-                            lidx=self.left_index,
-                            ridx=self.right_index,
-                        )
+                        f"Merge options: left_on={self.left_on}, "
+                        f"right_on={self.right_on}, "
+                        f"left_index={self.left_index}, "
+                        f"right_index={self.right_index}"
                     )
                 if not common_cols.is_unique:
                     raise MergeError(f"Data columns not unique: {repr(common_cols)}")
@@ -1315,7 +1288,12 @@ def _get_join_indexers(
     kwargs = copy.copy(kwargs)
     if how == "left":
         kwargs["sort"] = sort
-    join_func = _join_functions[how]
+    join_func = {
+        "inner": libjoin.inner_join,
+        "left": libjoin.left_outer_join,
+        "right": _right_outer_join,
+        "outer": libjoin.full_outer_join,
+    }[how]
 
     return join_func(lkey, rkey, count, **kwargs)
 
@@ -1486,12 +1464,12 @@ class _OrderedMerge(_MergeOperation):
 
 
 def _asof_function(direction: str):
-    name = "asof_join_{dir}".format(dir=direction)
+    name = f"asof_join_{direction}"
     return getattr(libjoin, name, None)
 
 
 def _asof_by_function(direction: str):
-    name = "asof_join_{dir}_on_X_by_Y".format(dir=direction)
+    name = f"asof_join_{direction}_on_X_by_Y"
     return getattr(libjoin, name, None)
 
 
@@ -1601,14 +1579,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # check 'direction' is valid
         if self.direction not in ["backward", "forward", "nearest"]:
-            raise MergeError(
-                "direction invalid: {direction}".format(direction=self.direction)
-            )
-
-    @property
-    def _asof_key(self):
-        """ This is our asof key, the 'on' """
-        return self.left_on[-1]
+            raise MergeError(f"direction invalid: {self.direction}")
 
     def _get_merge_keys(self):
 
@@ -1628,17 +1599,13 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        "incompatible merge keys [{i}] {lkdtype} and "
-                        "{rkdtype}, both sides category, but not equal ones".format(
-                            i=i, lkdtype=repr(lk.dtype), rkdtype=repr(rk.dtype)
-                        )
+                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
+                        f"{repr(rk.dtype)}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        "incompatible merge keys [{i}] {lkdtype} and "
-                        "{rkdtype}, must be the same type".format(
-                            i=i, lkdtype=repr(lk.dtype), rkdtype=repr(rk.dtype)
-                        )
+                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
+                        f"{repr(rk.dtype)}, must be the same type"
                     )
                 raise MergeError(msg)
 
@@ -1651,10 +1618,8 @@ class _AsOfMerge(_OrderedMerge):
                 lt = left_join_keys[-1]
 
             msg = (
-                "incompatible tolerance {tolerance}, must be compat "
-                "with type {lkdtype}".format(
-                    tolerance=type(self.tolerance), lkdtype=repr(lt.dtype)
-                )
+                f"incompatible tolerance {self.tolerance}, must be compat "
+                f"with type {repr(lk.dtype)}"
             )
 
             if needs_i8_conversion(lt):
@@ -1680,8 +1645,11 @@ class _AsOfMerge(_OrderedMerge):
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
-            msg = "allow_exact_matches must be boolean, passed {passed}"
-            raise MergeError(msg.format(passed=self.allow_exact_matches))
+            msg = (
+                "allow_exact_matches must be boolean, "
+                f"passed {self.allow_exact_matches}"
+            )
+            raise MergeError(msg)
 
         return left_join_keys, right_join_keys, join_names
 
@@ -1850,14 +1818,6 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 
-_join_functions = {
-    "inner": libjoin.inner_join,
-    "left": libjoin.left_outer_join,
-    "right": _right_outer_join,
-    "outer": libjoin.full_outer_join,
-}
-
-
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
@@ -1931,9 +1891,6 @@ def _factorize_keys(lk, rk, sort=True):
 
 
 def _sort_labels(uniques: np.ndarray, left, right):
-    if not isinstance(uniques, np.ndarray):
-        # tuplesafe
-        uniques = Index(uniques).values
 
     llength = len(left)
     labels = np.concatenate([left, right])

@@ -9,13 +9,19 @@ pandas code style guide
 .. contents:: Table of contents:
    :local:
 
+*pandas* follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
+standard and uses `Black <https://black.readthedocs.io/en/stable/>`_
+and `Flake8 <https://flake8.pycqa.org/en/latest/>`_ to ensure a
+consistent code format throughout the project. For details see the
+:ref:`contributing guide to pandas<contributing.code-formatting>`.
+
 Patterns
 ========
 
 foo.__class__
 -------------
 
-*pandas* uses 'type(foo)' instead 'foo.__class__' as it is making the code more
+*pandas* uses 'type(foo)' instead 'foo.__class__' as it makes the code more
 readable.
 
 For example:
@@ -46,8 +52,8 @@ f-strings
 
 *pandas* uses f-strings formatting instead of '%' and '.format()' string formatters.
 
-The convention of using f-strings on a string that is concatenated over serveral lines,
-is to prefix only the lines containing the value needs to be interpeted.
+The convention of using f-strings on a string that is concatenated over several lines,
+is to prefix only the lines containing values which need to be interpreted.
 
 For example:
 
@@ -80,8 +86,8 @@ For example:
 White spaces
 ~~~~~~~~~~~~
 
-Putting the white space only at the end of the previous line, so
-there is no whitespace at the beggining of the concatenated string.
+Only put white space at the end of the previous line, so
+there is no whitespace at the beginning of the concatenated string.
 
 For example:
 
@@ -110,7 +116,7 @@ Representation function (aka 'repr()')
 
 *pandas* uses 'repr()' instead of '%r' and '!r'.
 
-The use of 'repr()' will only happend when the value is not an obvious string.
+The use of 'repr()' will only happen when the value is not an obvious string.
 
 For example:
 
@@ -119,27 +125,27 @@ For example:
 .. code-block:: python
 
     value = str
-    f"Unknown recived value, got: {repr(value)}"
+    f"Unknown received value, got: {repr(value)}"
 
 **Good:**
 
 .. code-block:: python
 
     value = str
-    f"Unknown recived type, got: '{type(value).__name__}'"
+    f"Unknown received type, got: '{type(value).__name__}'"
 
 
 Imports (aim for absolute)
 ==========================
 
-In Python 3, absolute imports are recommended. In absolute import doing something
+In Python 3, absolute imports are recommended. Using absolute imports, doing something
 like ``import string`` will import the string module rather than ``string.py``
 in the same directory. As much as possible, you should try to write out
-absolute imports that show the whole import chain from toplevel pandas.
+absolute imports that show the whole import chain from top-level pandas.
 
-Explicit relative imports are also supported in Python 3. But it is not
-recommended to use it. Implicit relative imports should never be used
-and is removed in Python 3.
+Explicit relative imports are also supported in Python 3 but it is not
+recommended to use them. Implicit relative imports should never be used
+and are removed in Python 3.
 
 For example:
 

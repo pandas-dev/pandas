@@ -1,4 +1,5 @@
-"""Base test suite for extension arrays.
+"""
+Base test suite for extension arrays.
 
 These tests are intended for third-party libraries to subclass to validate
 that their extension arrays and dtypes satisfy the interface. Moving or

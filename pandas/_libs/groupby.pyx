@@ -22,6 +22,8 @@ from pandas._libs.algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE,
 from pandas._libs.algos import (take_2d_axis1_float64_float64,
                                 groupsort_indexer, tiebreakers)
 
+from pandas._libs.missing cimport checknull
+
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max
 
@@ -887,7 +889,7 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -976,7 +978,7 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1

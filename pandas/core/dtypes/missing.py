@@ -430,7 +430,6 @@ def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     ...     np.array([1, 2, np.nan]))
     False
     """
-
     left, right = np.asarray(left), np.asarray(right)
 
     # shape compat
@@ -504,7 +503,6 @@ def _infer_fill_value(val):
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
     element to provide proper block construction
     """
-
     if not is_list_like(val):
         val = [val]
     val = np.array(val, copy=False)
@@ -583,7 +581,7 @@ def remove_na_arraylike(arr):
     if is_extension_array_dtype(arr):
         return arr[notna(arr)]
     else:
-        return arr[notna(lib.values_from_object(arr))]
+        return arr[notna(np.asarray(arr))]
 
 
 def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:

@@ -71,10 +71,9 @@ def test_slice_float64():
 def test_getitem_negative_out_of_bounds():
     s = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
-    msg = "index out of bounds"
+    msg = "index -11 is out of bounds for axis 0 with size 10"
     with pytest.raises(IndexError, match=msg):
         s[-11]
-    msg = "index -11 is out of bounds for axis 0 with size 10"
     with pytest.raises(IndexError, match=msg):
         s[-11] = "foo"
 
@@ -129,9 +128,8 @@ def test_setitem_float_labels():
 
 def test_slice_float_get_set(datetime_series):
     msg = (
-        r"cannot do slice indexing on <class 'pandas\.core\.indexes"
-        r"\.datetimes\.DatetimeIndex'> with these indexers \[{key}\] "
-        r"of <class 'float'>"
+        "cannot do slice indexing on DatetimeIndex with these indexers "
+        r"\[{key}\] of type float"
     )
     with pytest.raises(TypeError, match=msg.format(key=r"4\.0")):
         datetime_series[4.0:10.0]

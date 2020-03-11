@@ -9,7 +9,8 @@ import pandas._testing as tm
 @contextlib.contextmanager
 def ensure_removed(obj, attr):
     """Ensure that an attribute added to 'obj' during the test is
-    removed when we're done"""
+    removed when we're done
+    """
     try:
         yield
     finally:

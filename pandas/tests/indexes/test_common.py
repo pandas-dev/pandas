@@ -10,7 +10,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
-from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex, RangeIndex
@@ -158,13 +158,6 @@ class TestCommon:
         assert indices.name == name
         assert indices.names == [name]
 
-    def test_hash_error(self, indices):
-        index = indices
-        with pytest.raises(
-            TypeError, match=f"unhashable type: '{type(index).__name__}'"
-        ):
-            hash(indices)
-
     def test_copy_and_deepcopy(self, indices):
         from copy import copy, deepcopy
 
@@ -226,7 +219,10 @@ class TestCommon:
         if not indices._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        if needs_i8_conversion(indices):
+        if is_period_dtype(indices):
+            vals = indices[[0] * 5]._data
+            vals[0] = pd.NaT
+        elif needs_i8_conversion(indices):
             vals = indices.asi8[[0] * 5]
             vals[0] = iNaT
         else:
@@ -246,11 +242,6 @@ class TestCommon:
                 result = i._get_unique_index(dropna=dropna)
                 tm.assert_index_equal(result, expected)
 
-    def test_sort(self, indices):
-        msg = "cannot sort an Index object in-place, use sort_values instead"
-        with pytest.raises(TypeError, match=msg):
-            indices.sort()
-
     def test_mutability(self, indices):
         if not len(indices):
             pytest.skip("Skip check for empty Index")
@@ -260,9 +251,6 @@ class TestCommon:
 
     def test_view(self, indices):
         assert indices.view().name == indices.name
-
-    def test_compat(self, indices):
-        assert indices.tolist() == list(indices)
 
     def test_searchsorted_monotonic(self, indices):
         # GH17271

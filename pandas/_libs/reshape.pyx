@@ -1,8 +1,20 @@
 import cython
 from cython import Py_ssize_t
 
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t, ndarray)
+from numpy cimport (
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
+
 cimport numpy as cnp
 import numpy as np
 from pandas._libs.lib cimport c_is_list_like
