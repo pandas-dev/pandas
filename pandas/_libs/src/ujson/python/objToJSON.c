@@ -237,9 +237,9 @@ static PyObject *get_values(PyObject *obj) {
         }
     }
 
-    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values")) {
+    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values_for_json")) {
         PRINTMARK();
-        values = PyObject_CallMethod(obj, "get_block_values", NULL);
+        values = PyObject_CallMethod(obj, "get_block_values_for_json", NULL);
 
         if (values == NULL) {
             // Clear so we can subsequently try another method

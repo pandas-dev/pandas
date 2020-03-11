@@ -1167,7 +1167,7 @@ class Timedelta(_Timedelta):
 
         Possible values:
 
-        * 'Y', 'M', 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
+        * 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
         * 'days' or 'day'
         * 'hours', 'hour', 'hr', or 'h'
         * 'minutes', 'minute', 'min', or 'm'
@@ -1198,7 +1198,7 @@ class Timedelta(_Timedelta):
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
-            nano = np.timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
+            nano = convert_to_timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
             try:
                 value = nano + convert_to_timedelta64(timedelta(**kwargs),
                                                       'ns')

@@ -231,11 +231,12 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
-    def get_block_values(self, dtype=None):
+    def get_block_values_for_json(self) -> np.ndarray:
         """
-        This is used in the JSON C code
+        This is used in the JSON C code.
         """
-        return self.get_values(dtype=dtype)
+        # TODO(2DEA): reshape will be unnecessary with 2D EAs
+        return np.asarray(self.values).reshape(self.shape)
 
     def to_dense(self):
         return self.values.view()
@@ -2228,6 +2229,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         # if we are passed a datetime64[ns, tz]
         if is_datetime64tz_dtype(dtype):
             values = self.values
+            if copy:
+                # this should be the only copy
+                values = values.copy()
             if getattr(values, "tz", None) is None:
                 values = DatetimeArray(values).tz_localize("UTC")
             values = values.tz_convert(dtype.tz)
@@ -3144,14 +3148,15 @@ def _safe_reshape(arr, new_shape):
     return arr
 
 
-def _putmask_smart(v, mask, n):
+def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     """
     Return a new ndarray, try to preserve dtype if possible.
 
     Parameters
     ----------
-    v : `values`, updated in-place (array like)
-    mask : np.ndarray
+    v : np.ndarray
+        `values`, updated in-place.
+    mask : np.ndarray[bool]
         Applies to both sides (array like).
     n : `new values` either scalar or an array like aligned with `values`
 
@@ -3218,9 +3223,6 @@ def _putmask_smart(v, mask, n):
     # change the dtype if needed
     dtype, _ = maybe_promote(n.dtype)
 
-    if is_extension_array_dtype(v.dtype) and is_object_dtype(dtype):
-        v = v._internal_get_values(dtype)
-    else:
-        v = v.astype(dtype)
+    v = v.astype(dtype)
 
     return _putmask_preserve(v, n)

@@ -104,15 +104,11 @@ class NumericIndex(Index):
 
     @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
-        name = name if name is not lib.no_default else self.name
-
         if values is not None and not self._can_hold_na and values.dtype.kind == "f":
+            name = self.name if name is lib.no_default else name
             # Ensure we are not returning an Int64Index with float data:
             return Float64Index._simple_new(values, name=name)
-
-        if values is None:
-            values = self.values
-        return type(self)._simple_new(values, name=name)
+        return super()._shallow_copy(values=values, name=name)
 
     def _convert_for_op(self, value):
         """
@@ -425,7 +421,7 @@ class Float64Index(NumericIndex):
                 other = self._constructor(other)
             if not is_dtype_equal(self.dtype, other.dtype) or self.shape != other.shape:
                 return False
-            left, right = self._ndarray_values, other._ndarray_values
+            left, right = self._values, other._values
             return ((left == right) | (self._isnan & other._isnan)).all()
         except (TypeError, ValueError):
             return False

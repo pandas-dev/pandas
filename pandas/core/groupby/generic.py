@@ -49,7 +49,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
@@ -589,7 +589,7 @@ class SeriesGroupBy(GroupBy):
         """
         ids, _, _ = self.grouper.group_info
 
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         codes, _ = algorithms.factorize(val, sort=False)
         sorter = np.lexsort((codes, ids))
@@ -657,7 +657,7 @@ class SeriesGroupBy(GroupBy):
             )
 
         ids, _, _ = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -774,7 +774,7 @@ class SeriesGroupBy(GroupBy):
             Count of values within each group.
         """
         ids, _, ngroups = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
@@ -1772,10 +1772,8 @@ class DataFrameGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        vals = (
-            (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
-            for blk in data.blocks
-        )
+        # TODO(2DEA): reshape would not be necessary with 2D EAs
+        vals = ((mask & ~isna(blk.values).reshape(blk.shape)) for blk in data.blocks)
         locs = (blk.mgr_locs for blk in data.blocks)
 
         counted = (
