@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import FrozenSet, List, Optional, Union
+from typing import Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -36,6 +36,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
+_shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(
     klass="IndexOpsMixin",
     inplace="",
@@ -1401,9 +1402,9 @@ class IndexOpsMixin:
     def factorize(self, sort=False, na_sentinel=-1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
-    @doc(klass="Index")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
-        """
+    _shared_docs[
+        "searchsorted"
+    ] = """
         Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted {klass} `self` such that, if the
@@ -1487,6 +1488,9 @@ class IndexOpsMixin:
         >>> x.searchsorted(1)
         0  # wrong result, correct would be 1
         """
+
+    @doc(_shared_docs["searchsorted"], klass="Index")
+    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first", inplace=False):

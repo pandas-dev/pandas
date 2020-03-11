@@ -52,7 +52,7 @@ from pandas.core.arrays.base import (
     _extension_array_shared_docs,
     try_cast_to_ea,
 )
-from pandas.core.base import IndexOpsMixin, NoNewAttributesMixin, PandasObject
+from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
@@ -1353,7 +1353,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    @doc(IndexOpsMixin.searchsorted, klass="Categorical")
+    @doc(_shared_docs["searchsorted"], klass="Categorical")
     def searchsorted(self, value, side="left", sorter=None):
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
