@@ -34,7 +34,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 from pandas.core.indexers import maybe_convert_indices
-from pandas.core.indexes.api import Index, MultiIndex, ensure_index
+from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.blocks import (
     Block,
     CategoricalBlock,
@@ -225,23 +225,6 @@ class BlockManager(PandasObject):
             )
 
         self.axes[axis] = new_labels
-
-    def rename_axis(
-        self, mapper, axis: int, copy: bool = True, level=None
-    ) -> "BlockManager":
-        """
-        Rename one of axes.
-
-        Parameters
-        ----------
-        mapper : unary callable
-        axis : int
-        copy : bool, default True
-        level : int or None, default None
-        """
-        obj = self.copy(deep=copy)
-        obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
-        return obj
 
     @property
     def _is_single_block(self) -> bool:
@@ -1970,28 +1953,6 @@ def _compare_or_regex_search(a, b, regex=False):
             f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
         )
     return result
-
-
-def _transform_index(index, func, level=None):
-    """
-    Apply function to all values found in index.
-
-    This includes transforming multiindex entries separately.
-    Only apply function to one level of the MultiIndex if level is specified.
-
-    """
-    if isinstance(index, MultiIndex):
-        if level is not None:
-            items = [
-                tuple(func(y) if i == level else y for i, y in enumerate(x))
-                for x in index
-            ]
-        else:
-            items = [tuple(func(y) for y in x) for x in index]
-        return MultiIndex.from_tuples(items, names=index.names)
-    else:
-        items = [func(x) for x in index]
-        return Index(items, name=index.name, tupleize_cols=False)
 
 
 def _fast_count_smallints(arr):
