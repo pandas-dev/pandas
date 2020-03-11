@@ -92,6 +92,10 @@ Bug fixes
 
 - Using ``pd.NA`` with :meth:`Series.str.repeat` now correctly outputs a null value instead of raising error for vector inputs (:issue:`31632`)
 
+**Rolling**
+
+- Fixed rolling operations with variable window (defined by time duration) on decreasing time index (:issue:`32385`).
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_102.contributors:

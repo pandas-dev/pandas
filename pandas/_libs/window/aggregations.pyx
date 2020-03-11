@@ -1013,7 +1013,7 @@ def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
                    ndarray[int64_t] end, int64_t minp, int64_t win):
     """
-    Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
+    Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
     Parameters
     ----------
@@ -1030,7 +1030,7 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                       ndarray[int64_t] end, int64_t minp):
     """
-    Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
+    Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
     Parameters
     ----------
