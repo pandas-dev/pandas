@@ -745,6 +745,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def _values_for_argsort(self):
         return self._data
 
+    @Appender(ExtensionArray.shift.__doc__)
     def shift(self, periods=1, fill_value=None, axis=0):
         if not self.size or periods == 0:
             return self.copy()
@@ -754,7 +755,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif not isinstance(fill_value, self._recognized_scalars):
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
-                # kludge for #31971
+                # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
                 new_fill = self._scalar_type(fill_value)
