@@ -320,11 +320,10 @@ footer
 
 def test_file_descriptor_leak(python_parser_only):
     # GH 31488
-    parser = python_parser_only
-    with open("empty.csv", "w"):
-        pass
-
     proc = psutil.Process()
-    with pytest.raises(EmptyDataError):
-        parser.read_csv("empty.csv")
-    assert not proc.open_files()
+    parser = python_parser_only
+    with tm.ensure_clean() as path:
+        expected = proc.open_files()
+        with pytest.raises(EmptyDataError):
+            parser.read_csv(path)
+        assert proc.open_files() == expected
