@@ -64,6 +64,7 @@ Bug fixes
 **Datetimelike**
 
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with a tz-aware index (:issue:`26683`)
+- Bug in :meth:`Series.astype` not copying for tz-naive and tz-aware datetime64 dtype (:issue:`32490`)
 - Bug where :func:`to_datetime` would raise when passed ``pd.NA`` (:issue:`32213`)
 - Improved error message when subtracting two :class:`Timestamp` that result in an out-of-bounds :class:`Timedelta` (:issue:`31774`)
 
@@ -85,6 +86,7 @@ Bug fixes
 - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
 - Fixed bug where :meth:`pandas.core.groupby.GroupBy.first` and :meth:`pandas.core.groupby.GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
 - Fix bug in :meth:`Series.convert_dtypes` for series with mix of integers and strings (:issue:`32117`)
+- Fixed bug in :meth:`DataFrame.convert_dtypes`, where ``BooleanDtype`` columns were converted to ``Int64`` (:issue:`32287`)
 
 **Strings**
 
