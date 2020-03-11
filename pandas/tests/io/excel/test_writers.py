@@ -564,7 +564,7 @@ class TestExcelWriter:
 
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, "test1", index_col=[0, 1])
-        tm.assert_frame_equal(df, recons, check_less_precise=True)
+        tm.assert_frame_equal(df, recons)
 
     def test_excel_roundtrip_indexname(self, merge_cells, path):
         df = DataFrame(np.random.randn(10, 4))
