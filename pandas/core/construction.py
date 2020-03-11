@@ -446,6 +446,8 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
+    elif isinstance(data, set):
+        raise TypeError("Set type is unordered")
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 
