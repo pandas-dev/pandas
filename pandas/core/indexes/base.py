@@ -3395,6 +3395,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         join_index, (left_indexer, right_indexer)
         """
+        other = ensure_index(other)
         self_is_mi = isinstance(self, ABCMultiIndex)
         other_is_mi = isinstance(other, ABCMultiIndex)
 
@@ -3413,8 +3414,6 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_level(
                 other, level, how=how, return_indexers=return_indexers
             )
-
-        other = ensure_index(other)
 
         if len(other) == 0 and how in ("left", "outer"):
             join_index = self._shallow_copy()
@@ -3577,16 +3576,26 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(self, other, how="left", return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
 
+        # We only get here if dtypes match
+        assert self.dtype == other.dtype
+
+        if is_extension_array_dtype(self.dtype):
+            lvalues = self._data._values_for_argsort()
+            rvalues = other._data._values_for_argsort()
+        else:
+            lvalues = self._values
+            rvalues = other._values
+
         left_idx, right_idx = _get_join_indexers(
-            [self._ndarray_values], [other._ndarray_values], how=how, sort=True
+            [lvalues], [rvalues], how=how, sort=True
         )
 
         left_idx = ensure_platform_int(left_idx)
         right_idx = ensure_platform_int(right_idx)
 
-        join_index = np.asarray(self._ndarray_values.take(left_idx))
+        join_index = np.asarray(lvalues.take(left_idx))
         mask = left_idx == -1
-        np.putmask(join_index, mask, other._ndarray_values.take(right_idx))
+        np.putmask(join_index, mask, rvalues.take(right_idx))
 
         join_index = self._wrap_joined_index(join_index, other)
 
@@ -3737,6 +3746,9 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _join_monotonic(self, other, how="left", return_indexers=False):
+        # We only get here with matching dtypes
+        assert other.dtype == self.dtype
+
         if self.equals(other):
             ret_index = other if how == "right" else self
             if return_indexers:
@@ -3744,8 +3756,12 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return ret_index
 
-        sv = self._ndarray_values
-        ov = other._ndarray_values
+        if is_extension_array_dtype(self.dtype):
+            sv = self._data._values_for_argsort()
+            ov = other._data._values_for_argsort()
+        else:
+            sv = self._values
+            ov = other._values
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
@@ -4228,21 +4244,19 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        if is_object_dtype(self) and not is_object_dtype(other):
+        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
 
         if isinstance(other, ABCMultiIndex):
             # d-level MultiIndex can equal d-tuple Index
-            if not is_object_dtype(self.dtype):
-                if self.nlevels != other.nlevels:
-                    return False
+            return other.equals(self)
 
-        if is_extension_array_dtype(self.dtype):
-            # All extant EA-backed Indexes override equals; any future ones
-            #  will need to do so as well.
-            raise NotImplementedError
-        return array_equivalent(np.asarray(self), np.asarray(other))
+        if is_extension_array_dtype(other.dtype):
+            # All EA-backed Index subclasses override equals
+            return other.equals(self)
+
+        return array_equivalent(self._values, other._values)
 
     def identical(self, other) -> bool:
         """
@@ -4738,6 +4752,27 @@ class Index(IndexOpsMixin, PandasObject):
             attributes["dtype"] = self.dtype
 
         return Index(new_values, **attributes)
+
+    # TODO: De-duplicate with map, xref GH#32349
+    def _transform_index(self, func, level=None) -> "Index":
+        """
+        Apply function to all values found in index.
+
+        This includes transforming multiindex entries separately.
+        Only apply function to one level of the MultiIndex if level is specified.
+        """
+        if isinstance(self, ABCMultiIndex):
+            if level is not None:
+                items = [
+                    tuple(func(y) if i == level else y for i, y in enumerate(x))
+                    for x in self
+                ]
+            else:
+                items = [tuple(func(y) for y in x) for x in self]
+            return type(self).from_tuples(items, names=self.names)
+        else:
+            items = [func(x) for x in self]
+            return Index(items, name=self.name, tupleize_cols=False)
 
     def isin(self, values, level=None):
         """
