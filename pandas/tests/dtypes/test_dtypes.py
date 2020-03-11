@@ -361,7 +361,7 @@ class TestPeriodDtype(Base):
         assert hash(dtype) == hash(dtype3)
 
     def test_construction(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid frequency: xx"):
             PeriodDtype("xx")
 
         for s in ["period[D]", "Period[D]", "D"]:
@@ -414,16 +414,17 @@ class TestPeriodDtype(Base):
         assert is_dtype_equal(dtype, result)
         result = PeriodDtype.construct_from_string("period[D]")
         assert is_dtype_equal(dtype, result)
-        with pytest.raises(TypeError):
+        msg = "Cannot construct a 'PeriodDtype' from "
+        with pytest.raises(TypeError, match=msg):
             PeriodDtype.construct_from_string("foo")
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             PeriodDtype.construct_from_string("period[foo]")
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             PeriodDtype.construct_from_string("foo[D]")
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             PeriodDtype.construct_from_string("datetime64[ns]")
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             PeriodDtype.construct_from_string("datetime64[ns, US/Eastern]")
 
         with pytest.raises(TypeError, match="list"):
@@ -475,7 +476,8 @@ class TestPeriodDtype(Base):
 
     def test_empty(self):
         dt = PeriodDtype()
-        with pytest.raises(AttributeError):
+        msg = "object has no attribute 'freqstr'"
+        with pytest.raises(AttributeError, match=msg):
             str(dt)
 
     def test_not_string(self):
@@ -764,11 +766,13 @@ class TestCategoricalDtypeParametrized:
         assert c1 is not c3
 
     def test_nan_invalid(self):
-        with pytest.raises(ValueError):
+        msg = "Categorical categories cannot be null"
+        with pytest.raises(ValueError, match=msg):
             CategoricalDtype([1, 2, np.nan])
 
     def test_non_unique_invalid(self):
-        with pytest.raises(ValueError):
+        msg = "Categorical categories must be unique"
+        with pytest.raises(ValueError, match=msg):
             CategoricalDtype([1, 2, 1])
 
     def test_same_categories_different_order(self):
