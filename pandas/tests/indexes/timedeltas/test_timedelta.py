@@ -28,7 +28,7 @@ class TestTimedeltaIndex(DatetimeLike):
     def indices(self):
         return tm.makeTimedeltaIndex(10)
 
-    def create_index(self):
+    def create_index(self) -> TimedeltaIndex:
         return pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
 
     def test_numeric_compat(self):
