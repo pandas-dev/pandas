@@ -255,6 +255,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> from pandas.arrays import SparseArray
+    >>> arr = SparseArray([0, 0, 1, 2])
+    >>> arr
+    [0, 0, 1, 2]
+    Fill: 0
+    IntIndex
+    Indices: array([2, 3], dtype=int32)
     """
 
     _pandas_ftype = "sparse"
@@ -1286,14 +1296,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def transpose(self, *axes):
+    def transpose(self, *axes) -> "SparseArray":
         """
         Returns the SparseArray.
         """
         return self
 
     @property
-    def T(self):
+    def T(self) -> "SparseArray":
         """
         Returns the SparseArray.
         """

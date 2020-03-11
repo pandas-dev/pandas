@@ -46,7 +46,7 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
 from pandas.core.frame import _merge_doc
-from pandas.core.internals import _transform_index, concatenate_block_managers
+from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -92,9 +92,7 @@ if __debug__:
     merge.__doc__ = _merge_doc % "\nleft : DataFrame"
 
 
-def _groupby_and_merge(
-    by, on, left, right: "DataFrame", _merge_pieces, check_duplicates: bool = True
-):
+def _groupby_and_merge(by, on, left: "DataFrame", right: "DataFrame", merge_pieces):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -102,11 +100,9 @@ def _groupby_and_merge(
     ----------
     by: field to group
     on: duplicates field
-    left: left frame
-    right: right frame
-    _merge_pieces: function for merging
-    check_duplicates: bool, default True
-        should we check & clean duplicates
+    left: DataFrame
+    right: DataFrame
+    merge_pieces: function for merging
     """
     pieces = []
     if not isinstance(by, (list, tuple)):
@@ -118,18 +114,6 @@ def _groupby_and_merge(
     # if we can groupby the rhs
     # then we can get vastly better perf
 
-    # we will check & remove duplicates if indicated
-    if check_duplicates:
-        if on is None:
-            on = []
-        elif not isinstance(on, (list, tuple)):
-            on = [on]
-
-        if right.duplicated(by + on).any():
-            _right = right.drop_duplicates(by + on, keep="last")
-            # TODO: use overload to refine return type of drop_duplicates
-            assert _right is not None  # needed for mypy
-            right = _right
     try:
         rby = right.groupby(by, sort=False)
     except KeyError:
@@ -151,16 +135,13 @@ def _groupby_and_merge(
                 pieces.append(merged)
                 continue
 
-        merged = _merge_pieces(lhs, rhs)
+        merged = merge_pieces(lhs, rhs)
 
         # make sure join keys are in the merged
-        # TODO, should _merge_pieces do this?
+        # TODO, should merge_pieces do this?
         for k in by:
-            try:
-                if k in merged:
-                    merged[k] = key
-            except KeyError:
-                pass
+            if k in merged:
+                merged[k] = key
 
         pieces.append(merged)
 
@@ -287,16 +268,11 @@ def merge_ordered(
         raise ValueError("Can only group either left or right frames")
     elif left_by is not None:
         result, _ = _groupby_and_merge(
-            left_by, on, left, right, lambda x, y: _merger(x, y), check_duplicates=False
+            left_by, on, left, right, lambda x, y: _merger(x, y)
         )
     elif right_by is not None:
         result, _ = _groupby_and_merge(
-            right_by,
-            on,
-            right,
-            left,
-            lambda x, y: _merger(y, x),
-            check_duplicates=False,
+            right_by, on, right, left, lambda x, y: _merger(y, x)
         )
     else:
         result = _merger(left, right)
@@ -320,10 +296,10 @@ def merge_asof(
     direction: str = "backward",
 ) -> "DataFrame":
     """
-    Perform an asof merge. This is similar to a left-join except that we
-    match on nearest key rather than equal keys.
+    Perform an asof merge.
 
-    Both DataFrames must be sorted by the key.
+    This is similar to a left-join except that we match on nearest
+    key rather than equal keys. Both DataFrames must be sorted by the key.
 
     For each row in the left DataFrame:
 
@@ -1312,7 +1288,12 @@ def _get_join_indexers(
     kwargs = copy.copy(kwargs)
     if how == "left":
         kwargs["sort"] = sort
-    join_func = _join_functions[how]
+    join_func = {
+        "inner": libjoin.inner_join,
+        "left": libjoin.left_outer_join,
+        "right": _right_outer_join,
+        "outer": libjoin.full_outer_join,
+    }[how]
 
     return join_func(lkey, rkey, count, **kwargs)
 
@@ -1600,11 +1581,6 @@ class _AsOfMerge(_OrderedMerge):
         if self.direction not in ["backward", "forward", "nearest"]:
             raise MergeError(f"direction invalid: {self.direction}")
 
-    @property
-    def _asof_key(self):
-        """ This is our asof key, the 'on' """
-        return self.left_on[-1]
-
     def _get_merge_keys(self):
 
         # note this function has side effects
@@ -1842,14 +1818,6 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 
-_join_functions = {
-    "inner": libjoin.inner_join,
-    "left": libjoin.left_outer_join,
-    "right": _right_outer_join,
-    "outer": libjoin.full_outer_join,
-}
-
-
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
     if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
@@ -1923,9 +1891,6 @@ def _factorize_keys(lk, rk, sort=True):
 
 
 def _sort_labels(uniques: np.ndarray, left, right):
-    if not isinstance(uniques, np.ndarray):
-        # tuplesafe
-        uniques = Index(uniques).values
 
     llength = len(left)
     labels = np.concatenate([left, right])
@@ -2028,4 +1993,4 @@ def _items_overlap_with_suffix(left: Index, lsuffix, right: Index, rsuffix):
     lrenamer = partial(renamer, suffix=lsuffix)
     rrenamer = partial(renamer, suffix=rsuffix)
 
-    return (_transform_index(left, lrenamer), _transform_index(right, rrenamer))
+    return (left._transform_index(lrenamer), right._transform_index(rrenamer))

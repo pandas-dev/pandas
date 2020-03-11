@@ -36,7 +36,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core import algorithms, common as com
 from pandas.core.arrays import Categorical
-from pandas.core.construction import sanitize_array
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     Index,
@@ -519,7 +519,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = com.values_from_object(s)
+        values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)
