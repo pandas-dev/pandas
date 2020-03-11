@@ -42,11 +42,12 @@ else
 fi
 
 if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
-  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.2-1/Miniforge3-4.8.2-1-Linux-aarch64.sh";
+  sudo apt-get -y install xvfb
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.2-1/Miniforge3-4.8.2-1-Linux-aarch64.sh"
 else
-  CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh";
+  CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
 fi
-wget -q $CONDA_URL -O miniconda.sh;
+wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
 
 # Installation path is required for ARM64 platform as miniforge script installs in path $HOME/miniforge3.
