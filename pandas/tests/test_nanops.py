@@ -98,26 +98,13 @@ class TestnanopsDataFrame:
     def check_results(self, targ, res, axis, check_dtype=True):
         res = getattr(res, "asm8", res)
 
-        # timedeltas are a beast here
-        def _coerce_tds(targ, res):
-            if hasattr(targ, "dtype") and targ.dtype == "m8[ns]":
-                if len(targ) == 1:
-                    targ = targ[0].item()
-                    res = res.item()
-                else:
-                    targ = targ.view("i8")
-            return targ, res
-
-        try:
-            if (
-                axis != 0
-                and hasattr(targ, "shape")
-                and targ.ndim
-                and targ.shape != res.shape
-            ):
-                res = np.split(res, [targ.shape[0]], axis=0)[0]
-        except (ValueError, IndexError):
-            targ, res = _coerce_tds(targ, res)
+        if (
+            axis != 0
+            and hasattr(targ, "shape")
+            and targ.ndim
+            and targ.shape != res.shape
+        ):
+            res = np.split(res, [targ.shape[0]], axis=0)[0]
 
         try:
             tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
@@ -125,9 +112,7 @@ class TestnanopsDataFrame:
 
             # handle timedelta dtypes
             if hasattr(targ, "dtype") and targ.dtype == "m8[ns]":
-                targ, res = _coerce_tds(targ, res)
-                tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
-                return
+                raise
 
             # There are sometimes rounding errors with
             # complex and object dtypes.
