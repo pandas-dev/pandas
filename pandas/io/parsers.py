@@ -10,7 +10,7 @@ import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, List, Set, Iterable
+from typing import Any, Dict, Iterable, List, Set
 import warnings
 
 import numpy as np
