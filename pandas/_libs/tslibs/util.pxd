@@ -236,13 +236,11 @@ cdef inline const char* get_c_string_buf_and_size(str py_string,
 
     Returns
     -------
-    buf : const char*
+    c_string_buf : const char*
     """
-    cdef:
-        const char *buf
-
-    buf = PyUnicode_AsUTF8AndSize(py_string, length)
-    return buf
+    if not py_string.isprintable():
+        return PyUnicode_AsUTF8AndSize(repr(py_string), length)
+    return PyUnicode_AsUTF8AndSize(py_string, length)
 
 
 cdef inline const char* get_c_string(str py_string):
