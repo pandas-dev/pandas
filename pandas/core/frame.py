@@ -2445,7 +2445,9 @@ class DataFrame(NDFrame):
 
         return result.__finalize__(self)
 
-    T = property(transpose)
+    @property
+    def T(self) -> "DataFrame":
+        return self.transpose()
 
     # ----------------------------------------------------------------------
     # Indexing Methods
