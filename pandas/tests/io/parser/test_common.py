@@ -13,10 +13,9 @@ from urllib.error import URLError
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
+import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 import pandas._testing as tm
