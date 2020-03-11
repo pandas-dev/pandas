@@ -574,12 +574,19 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
         columns = ibase.default_index(len(content))
     else:
-        if len(columns) != len(content):  # pragma: no cover
+        content_length = len(content)
+        if len(columns) != content_length:  # pragma: no cover
             # caller's responsibility to check for this...
-            raise AssertionError(
-                f"{len(columns)} columns passed, passed data had "
-                f"{len(content)} columns"
-            )
+            # Its possible that the user may be trying to pass a MultiIndex here.
+            # Attempt to convert columns to MultiIndex, and check length again.
+            # This conversion should be safe to do, as the input expects an Index
+            # and the colums are left unmodified throughout the rest of this function.
+            columns = ensure_index(columns)
+            if len(columns) != content_length:
+                raise AssertionError(
+                    f"{len(columns)} columns passed, passed data had "
+                    f"{len(content)} columns"
+                )
 
     # provide soft conversion of object dtypes
     def convert(arr):
