@@ -1003,19 +1003,27 @@ class Styler:
     def _highlight_null(v, null_color: str) -> str:
         return f"background-color: {null_color}" if pd.isna(v) else ""
 
-    def highlight_null(self, null_color: str = "red") -> "Styler":
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[Union[Label, Sequence[Label]]] = None,
+    ) -> "Styler":
         """
         Shade the background ``null_color`` for missing values.
 
         Parameters
         ----------
-        null_color : str
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
         self : Styler
         """
-        self.applymap(self._highlight_null, null_color=null_color)
+        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
         return self
 
     def background_gradient(
