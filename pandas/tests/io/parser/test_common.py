@@ -2086,6 +2086,7 @@ def test_integer_precision(all_parsers):
 def test_file_descriptor_leak(all_parsers):
     # GH 31488
     import psutil
+
     proc = psutil.Process()
     parser = all_parsers
     with tm.ensure_clean() as path:
