@@ -618,6 +618,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
+        cache = self._cache if values is None else {}
 
         if values is None:
             values = self._data
@@ -636,7 +637,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                     del attributes["freq"]
 
         attributes["name"] = name
-        return type(self)._simple_new(values, **attributes)
+        result = self._simple_new(values, **attributes)
+        result._cache = cache
+        return result
 
     # --------------------------------------------------------------------
     # Set Operation Methods
