@@ -967,7 +967,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 continue
 
             ax = self._get_axis(axis_no)
-            baxis = self._get_block_manager_axis(axis_no)
             f = com.get_rename_function(replacements)
 
             if level is not None:
@@ -984,9 +983,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     ]
                     raise KeyError(f"{missing_labels} not found in axis")
 
-            result._data = result._data.rename_axis(
-                f, axis=baxis, copy=copy, level=level
-            )
+            new_index = ax._transform_index(f, level)
+            result.set_axis(new_index, axis=axis_no, inplace=True)
             result._clear_item_cache()
 
         if inplace:
@@ -3578,6 +3576,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         is_copy = axis != 0 or result._is_view
         result._set_is_copy(self, copy=is_copy)
         return result
+
+    def _iset_item(self, loc: int, value) -> None:
+        self._data.iset(loc, value)
+        self._clear_item_cache()
 
     def _set_item(self, key, value) -> None:
         self._data.set(key, value)

@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
+from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Hashable, Union
 import warnings
 
 import numpy as np
@@ -250,6 +250,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
+    _cache: Dict[str, Any]
     _id = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -468,6 +469,7 @@ class Index(IndexOpsMixin, PandasObject):
         # we actually set this value too.
         result._index_data = values
         result._name = name
+        result._cache = {}
 
         return result._reset_identity()
 
@@ -498,11 +500,13 @@ class Index(IndexOpsMixin, PandasObject):
         name : Label, defaults to self.name
         """
         name = self.name if name is no_default else name
-
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self.values
 
-        return self._simple_new(values, name=name)
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
         """
@@ -4120,7 +4124,6 @@ class Index(IndexOpsMixin, PandasObject):
         if com.is_bool_indexer(key):
             key = np.asarray(key, dtype=bool)
 
-        key = com.values_from_object(key)
         result = getitem(key)
         if not is_scalar(result):
             if np.ndim(result) > 1:
@@ -4245,19 +4248,19 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
-        if is_object_dtype(self) and not is_object_dtype(other):
+        if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
 
         if isinstance(other, ABCMultiIndex):
             # d-level MultiIndex can equal d-tuple Index
-            if not is_object_dtype(self.dtype):
-                if self.nlevels != other.nlevels:
-                    return False
+            return other.equals(self)
 
-        return array_equivalent(
-            com.values_from_object(self), com.values_from_object(other)
-        )
+        if is_extension_array_dtype(other.dtype):
+            # All EA-backed Index subclasses override equals
+            return other.equals(self)
+
+        return array_equivalent(self._values, other._values)
 
     def identical(self, other) -> bool:
         """
@@ -4753,6 +4756,27 @@ class Index(IndexOpsMixin, PandasObject):
             attributes["dtype"] = self.dtype
 
         return Index(new_values, **attributes)
+
+    # TODO: De-duplicate with map, xref GH#32349
+    def _transform_index(self, func, level=None) -> "Index":
+        """
+        Apply function to all values found in index.
+
+        This includes transforming multiindex entries separately.
+        Only apply function to one level of the MultiIndex if level is specified.
+        """
+        if isinstance(self, ABCMultiIndex):
+            if level is not None:
+                items = [
+                    tuple(func(y) if i == level else y for i, y in enumerate(x))
+                    for x in self
+                ]
+            else:
+                items = [tuple(func(y) for y in x) for x in self]
+            return type(self).from_tuples(items, names=self.names)
+        else:
+            items = [func(x) for x in self]
+            return Index(items, name=self.name, tupleize_cols=False)
 
     def isin(self, values, level=None):
         """
