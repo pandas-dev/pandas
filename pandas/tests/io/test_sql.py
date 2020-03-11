@@ -2372,7 +2372,7 @@ class TestXSQLite(SQLiteMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame)
 
     def test_execute(self):
         frame = tm.makeTimeDataFrame()
@@ -2632,7 +2632,7 @@ class TestXMySQL(MySQLMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame)
 
     def test_chunksize_read_type(self):
         frame = tm.makeTimeDataFrame()

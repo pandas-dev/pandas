@@ -393,7 +393,7 @@ class TestSeriesConstructors:
         expected = Series(
             ["a", "a"], index=[0, 1], dtype=CategoricalDtype(["a", "b"], ordered=True)
         )
-        tm.assert_series_equal(result, expected, check_categorical=True)
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_categorical_string(self):
         # GH 26336: the string 'category' maintains existing CategoricalDtype
