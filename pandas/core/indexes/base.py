@@ -623,7 +623,17 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
-        return self._ndarray_values.ravel(order=order)
+        values = self._values
+        if isinstance(values, np.ndarray):
+            return values.ravel(order=order)
+
+        warnings.warn(
+            f"The behavior of Index.ravel for {self.dtype} is deprecated; "
+            "in a future version it will return the underlying ExtensionArray",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return values._ndarray_values.ravel(order=order)
 
     def view(self, cls=None):
 

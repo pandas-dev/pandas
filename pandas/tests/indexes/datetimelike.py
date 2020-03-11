@@ -95,3 +95,8 @@ class DatetimeLike(Base):
         expected = pd.Index([np.nan] * len(index))
         result = index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
+
+    def test_ravel_deprecated(self):
+        idx = self.create_index()
+        with tm.assert_produces_warning(FutureWarning):
+            idx.ravel()

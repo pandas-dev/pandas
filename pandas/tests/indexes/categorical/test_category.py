@@ -645,3 +645,8 @@ class TestCategoricalIndex(Base):
     def test_map_str(self):
         # See test_map.py
         pass
+
+    def test_ravel_deprecated(self):
+        idx = self.create_index()
+        with tm.assert_produces_warning(FutureWarning):
+            idx.ravel()

@@ -857,6 +857,11 @@ class TestIntervalIndex:
         year_2017_index = pd.IntervalIndex([year_2017])
         assert not year_2017_index.is_all_dates
 
+    def test_ravel_deprecated(self):
+        idx = self.create_index()
+        with tm.assert_produces_warning(FutureWarning):
+            idx.ravel()
+
 
 def test_dir():
     # GH#27571 dir(interval_index) should not raise
