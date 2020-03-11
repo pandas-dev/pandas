@@ -98,7 +98,6 @@ reduction_kernels = frozenset(
     [
         "all",
         "any",
-        # `corrwith` is a reduction as long as `other` is a Series
         "corrwith",
         "count",
         "first",
