@@ -250,8 +250,13 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
     -------
     str or None
         None if no discernible frequency
-        TypeError if the index is not datetime-like
-        ValueError if there are less than three values.
+
+    Raises
+    ------
+    TypeError
+        If the index is not datetime-like
+    ValueError
+        If there are less than three values.
     """
     import pandas as pd
 
