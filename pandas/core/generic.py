@@ -3579,6 +3579,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=is_copy)
         return result
 
+    def _iset_item(self, loc: int, value) -> None:
+        self._data.iset(loc, value)
+        self._clear_item_cache()
+
     def _set_item(self, key, value) -> None:
         self._data.set(key, value)
         self._clear_item_cache()

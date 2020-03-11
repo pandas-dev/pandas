@@ -2708,6 +2708,20 @@ class DataFrame(NDFrame):
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
+    def _iset_item(self, loc: int, value):
+        self._ensure_valid_index(value)
+
+        # technically _sanitize_column expects a label, not a position,
+        #  but the behavior is the same as long as we pass broadcast=False
+        value = self._sanitize_column(loc, value, broadcast=False)
+        NDFrame._iset_item(self, loc, value)
+
+        # check if we are modifying a copy
+        # try to set first as we want an invalid
+        # value exception to occur first
+        if len(self):
+            self._check_setitem_copy()
+
     def _set_item(self, key, value):
         """
         Add series to DataFrame in specified column.
