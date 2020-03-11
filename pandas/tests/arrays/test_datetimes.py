@@ -151,6 +151,18 @@ class TestDatetimeArray:
         result = arr.astype(DatetimeTZDtype(tz="US/Central"), copy=False)
         assert result is arr
 
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "datetime64[ns, UTC]"])
+    @pytest.mark.parametrize(
+        "other", ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, CET]"]
+    )
+    def test_astype_copies(self, dtype, other):
+        # https://github.com/pandas-dev/pandas/pull/32490
+        s = pd.Series([1, 2], dtype=dtype)
+        orig = s.copy()
+        t = s.astype(other)
+        t[:] = pd.NaT
+        tm.assert_series_equal(s, orig)
+
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
         arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
