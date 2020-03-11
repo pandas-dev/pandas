@@ -541,10 +541,10 @@ class TestBlockManager:
         assert new_mgr.get("h").dtype == np.float16
 
     def test_invalid_ea_block(self):
-        with pytest.raises(ValueError, match="block.size != values.size"):
+        with pytest.raises(AssertionError, match="block.size != values.size"):
             create_mgr("a: category; b: category")
 
-        with pytest.raises(ValueError, match="block.size != values.size"):
+        with pytest.raises(AssertionError, match="block.size != values.size"):
             create_mgr("a: category2; b: category2")
 
     def test_interleave(self):

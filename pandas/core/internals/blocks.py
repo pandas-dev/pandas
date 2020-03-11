@@ -1748,7 +1748,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         if self.ndim == 2 and len(self.mgr_locs) != 1:
             # TODO(2DEA): check unnecessary with 2D EAs
-            raise ValueError("block.size != values.size")
+            raise AssertionError("block.size != values.size")
 
     def _maybe_coerce_values(self, values):
         """
