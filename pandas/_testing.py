@@ -1018,7 +1018,8 @@ def assert_extension_array_equal(
 
     if hasattr(left, "asi8") and type(right) == type(left):
         # Avoid slow object-dtype comparisons
-        assert_numpy_array_equal(left.asi8, right.asi8)
+        # np.asarray for case where we have a np.MaskedArray
+        assert_numpy_array_equal(np.asarray(left.asi8), np.asarray(right.asi8))
         return
 
     left_na = np.asarray(left.isna())
@@ -1156,20 +1157,23 @@ def assert_series_equal(
             raise AssertionError(msg)
     elif is_interval_dtype(left.dtype) or is_interval_dtype(right.dtype):
         assert_interval_array_equal(left.array, right.array)
-    elif is_datetime64tz_dtype(left.dtype):
-        # .values is an ndarray, but ._values is the ExtensionArray.
+    elif is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
+        _testing.assert_almost_equal(
+            left._values,
+            right._values,
+            check_less_precise=check_less_precise,
+            check_dtype=check_dtype,
+            obj=str(obj),
+        )
+    elif is_extension_array_dtype(left.dtype) or is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(left._values, right._values)
-    elif (
-        is_extension_array_dtype(left)
-        and not is_categorical_dtype(left)
-        and is_extension_array_dtype(right)
-        and not is_categorical_dtype(right)
-    ):
-        assert_extension_array_equal(left.array, right.array)
+    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
+        # DatetimeArray or TimedeltaArray
+        assert_extension_array_equal(left._values, right._values)
     else:
         _testing.assert_almost_equal(
-            left._internal_get_values(),
-            right._internal_get_values(),
+            left._values,
+            right._values,
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),
