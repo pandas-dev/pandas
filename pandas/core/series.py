@@ -537,7 +537,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray
             Data of the Series.
         """
-        return self._data.get_values()
+        blk = self._data._block
+        return np.array(blk.to_dense(), copy=False)
 
     # ops
     def ravel(self, order="C"):
