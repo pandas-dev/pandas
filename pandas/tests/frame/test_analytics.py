@@ -32,7 +32,6 @@ def assert_stat_op_calc(
     has_skipna=True,
     check_dtype=True,
     check_dates=False,
-    check_less_precise=False,
     skipna_alternative=None,
 ):
     """
@@ -54,9 +53,6 @@ def assert_stat_op_calc(
         "alternative(frame)" should be checked.
     check_dates : bool, default false
         Whether opname should be tested on a Datetime Series
-    check_less_precise : bool, default False
-        Whether results should only be compared approximately;
-        passed on to tm.assert_series_equal
     skipna_alternative : function, default None
         NaN-safe version of alternative
     """
@@ -84,17 +80,11 @@ def assert_stat_op_calc(
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
         tm.assert_series_equal(
-            result0,
-            frame.apply(wrapper),
-            check_dtype=check_dtype,
-            check_less_precise=check_less_precise,
+            result0, frame.apply(wrapper), check_dtype=check_dtype,
         )
         # HACK: win32
         tm.assert_series_equal(
-            result1,
-            frame.apply(wrapper, axis=1),
-            check_dtype=False,
-            check_less_precise=check_less_precise,
+            result1, frame.apply(wrapper, axis=1), check_dtype=False,
         )
     else:
         skipna_wrapper = alternative
@@ -102,17 +92,12 @@ def assert_stat_op_calc(
     result0 = f(axis=0)
     result1 = f(axis=1)
     tm.assert_series_equal(
-        result0,
-        frame.apply(skipna_wrapper),
-        check_dtype=check_dtype,
-        check_less_precise=check_less_precise,
+        result0, frame.apply(skipna_wrapper), check_dtype=check_dtype,
     )
 
     if opname in ["sum", "prod"]:
         expected = frame.apply(skipna_wrapper, axis=1)
-        tm.assert_series_equal(
-            result1, expected, check_dtype=False, check_less_precise=check_less_precise
-        )
+        tm.assert_series_equal(result1, expected, check_dtype=False)
 
     # check dtypes
     if check_dtype:
@@ -333,11 +318,7 @@ class TestDataFrameAnalytics:
 
         # mixed types (with upcasting happening)
         assert_stat_op_calc(
-            "sum",
-            np.sum,
-            mixed_float_frame.astype("float32"),
-            check_dtype=False,
-            check_less_precise=True,
+            "sum", np.sum, mixed_float_frame.astype("float32"), check_dtype=False,
         )
 
         assert_stat_op_calc(
