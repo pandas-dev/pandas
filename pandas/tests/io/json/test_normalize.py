@@ -486,6 +486,16 @@ class TestJSONNormalize:
         with pytest.raises(TypeError, match=msg):
             json_normalize([test_input], record_path=[test_path])
 
+    def test_meta_non_iterable(self):
+        # GH 31507
+        data = """[{"id": 99, "data": [{"one": 1, "two": 2}]}]"""
+
+        result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
+        expected = DataFrame(
+            {"one": [1], "two": [2], "id": np.array([99], dtype=object)}
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
