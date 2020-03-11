@@ -2610,9 +2610,8 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = pd.DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
 
-    def test_construction_from_set(self):
+    def test_construction_from_set_raises(self):
         # https://github.com/pandas-dev/pandas/issues/32582
-        result = pd.DataFrame({"a": {1, 2, 3}})
-        expected = pd.DataFrame({"a": [1, 2, 3]})
-
-        tm.assert_frame_equal(result, expected)
+        msg = "Set type is unordered"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame({"a": {1, 2, 3}})
