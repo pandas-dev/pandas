@@ -691,7 +691,9 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", [lambda s: s.mean(), np.mean, np.nanmean])
+@pytest.mark.parametrize(
+    "func", [lambda s: s.mean(), lambda s: np.mean(s), lambda s: np.nanmean(s)]
+)
 def test_multiindex_custom_func(func):
     # GH 31777
     data = [[1, 4, 2], [5, 7, 1]]
