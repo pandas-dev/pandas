@@ -691,25 +691,14 @@ def test_agg_relabel_multiindex_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "func, expected_values",
-    [
-        (lambda s: s.mean(), [[3, 2], [5.5, 8.0], [1.5, 3.0], [6.0, 5.5]]),
-        (np.mean, [[3.0, 2.0], [5.5, 8.0], [1.5, 3.0], [6.0, 5.5]]),
-        (np.nanmean, [[3.0, 2.0], [5.5, 8.0], [1.5, 3.0], [6.0, 5.5]]),
-    ],
-)
-def test_multiindex_custom_func(func, expected_values):
+@pytest.mark.parametrize("func", [lambda s: s.mean(), np.mean, np.nanmean])
+def test_multiindex_custom_func(func):
     # GH 31777
-    data = [[1, 4, 2, 8], [5, 7, 1, 4], [2, 8, 1, 4], [2, 8, 5, 7]]
-    df = pd.DataFrame(data, columns=pd.MultiIndex.from_product([[1, 2], [3, 4]]))
-    grp = df.groupby(np.r_[np.zeros(2), np.ones(2)])
-    result = grp.agg(func)
-    expected_keys = [(1, 3), (1, 4), (2, 3), (2, 4)]
-    expected = pd.DataFrame(
-        {key: value for key, value in zip(expected_keys, expected_values)},
-        index=Index([0.0, 1.0], dtype=float),
-    )
+    data = [[1, 4, 2], [5, 7, 1]]
+    df = pd.DataFrame(data, columns=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
+    result = df.groupby(np.array([0, 1])).agg(func)
+    expected_dict = {(1, 3): {0: 1, 1: 5}, (1, 4): {0: 4, 1: 7}, (2, 3): {0: 2, 1: 1}}
+    expected = pd.DataFrame(expected_dict)
     tm.assert_frame_equal(result, expected)
 
 
