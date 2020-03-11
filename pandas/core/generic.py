@@ -33,7 +33,6 @@ from pandas._config import config
 from pandas._libs import Timestamp, iNaT, lib
 from pandas._typing import (
     Axis,
-    Dtype,
     FilePathOrBuffer,
     FrameOrSeries,
     JSONSerializable,
@@ -73,7 +72,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
-    is_period_arraylike,
     is_re_compilable,
     is_scalar,
     is_timedelta64_dtype,
@@ -200,22 +198,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __init__(
         self,
         data: BlockManager,
-        axes: Optional[List[Index]] = None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
         attrs: Optional[Mapping[Optional[Hashable], Any]] = None,
-        fastpath: bool = False,
     ):
-
-        if not fastpath:
-            if dtype is not None:
-                data = data.astype(dtype)
-            elif copy:
-                data = data.copy()
-
-            if axes is not None:
-                for i, ax in enumerate(axes):
-                    data = data.reindex_axis(ax, axis=i)
+        # copy kwarg is retained for mypy compat, is not used
 
         object.__setattr__(self, "_is_copy", None)
         object.__setattr__(self, "_data", data)
@@ -226,12 +212,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             attrs = dict(attrs)
         object.__setattr__(self, "_attrs", attrs)
 
-    def _init_mgr(self, mgr, axes=None, dtype=None, copy=False):
+    @classmethod
+    def _init_mgr(cls, mgr, axes=None, dtype=None, copy=False):
         """ passed a manager and a axes dict """
         for a, axe in axes.items():
             if axe is not None:
                 mgr = mgr.reindex_axis(
-                    axe, axis=self._get_block_manager_axis(a), copy=False
+                    axe, axis=cls._get_block_manager_axis(a), copy=False
                 )
 
         # make a copy if explicitly requested
@@ -262,7 +249,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
 
-    def _validate_dtype(self, dtype):
+    @classmethod
+    def _validate_dtype(cls, dtype):
         """ validate the passed dtype """
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -271,7 +259,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if dtype.kind == "V":
                 raise NotImplementedError(
                     "compound dtypes are not implemented "
-                    f"in the {type(self).__name__} constructor"
+                    f"in the {cls.__name__} constructor"
                 )
 
         return dtype
@@ -324,8 +312,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d.update(kwargs)
         return d
 
+    @classmethod
     def _construct_axes_from_arguments(
-        self, args, kwargs, require_all: bool = False, sentinel=None
+        cls, args, kwargs, require_all: bool = False, sentinel=None
     ):
         """
         Construct and returns axes if supplied in args/kwargs.
@@ -339,17 +328,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         # construct the args
         args = list(args)
-        for a in self._AXIS_ORDERS:
+        for a in cls._AXIS_ORDERS:
 
             # look for a argument by position
             if a not in kwargs:
                 try:
                     kwargs[a] = args.pop(0)
-                except IndexError:
+                except IndexError as err:
                     if require_all:
-                        raise TypeError("not enough/duplicate arguments specified!")
+                        raise TypeError(
+                            "not enough/duplicate arguments specified!"
+                        ) from err
 
-        axes = {a: kwargs.pop(a, sentinel) for a in self._AXIS_ORDERS}
+        axes = {a: kwargs.pop(a, sentinel) for a in cls._AXIS_ORDERS}
         return axes, kwargs
 
     @classmethod
@@ -495,7 +486,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._data.ndim
 
     @property
-    def size(self):
+    def size(self) -> int:
         """
         Return an int representing the number of elements in this object.
 
@@ -528,7 +519,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """ internal compat with SelectionMixin """
         return self
 
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         """
         Assign desired index to given axis.
 
@@ -569,7 +560,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             obj.set_axis(labels, axis=axis, inplace=True)
             return obj
 
-    def _set_axis(self, axis, labels) -> None:
+    def _set_axis(self, axis: int, labels: Index) -> None:
+        labels = ensure_index(labels)
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
@@ -612,6 +604,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             of levels.
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            Axis along which the level(s) is removed:
+
+            * 0 or 'index': remove level(s) in column.
+            * 1 or 'columns': remove level(s) in row.
 
         Returns
         -------
@@ -627,7 +623,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ... ]).set_index([0, 1]).rename_axis(['a', 'b'])
 
         >>> df.columns = pd.MultiIndex.from_tuples([
-        ...    ('c', 'e'), ('d', 'f')
+        ...     ('c', 'e'), ('d', 'f')
         ... ], names=['level_1', 'level_2'])
 
         >>> df
@@ -646,7 +642,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         6        7   8
         10      11  12
 
-        >>> df.droplevel('level2', axis=1)
+        >>> df.droplevel('level_2', axis=1)
         level_1   c   d
         a b
         1 2      3   4
@@ -1216,7 +1212,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.index = pd.MultiIndex.from_product(
         ...                [["mammal"], ['dog', 'cat', 'monkey']])
         >>> df._set_axis_name(["type", "name"])
-                       legs
+                       num_legs
         type   name
         mammal dog        4
                cat        4
@@ -1330,7 +1326,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # Unary Methods
 
     def __neg__(self):
-        values = com.values_from_object(self)
+        values = self._values
         if is_bool_dtype(values):
             arr = operator.inv(values)
         elif (
@@ -1344,8 +1340,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self.__array_wrap__(arr)
 
     def __pos__(self):
-        values = com.values_from_object(self)
-        if is_bool_dtype(values) or is_period_arraylike(values):
+        values = self._values
+        if is_bool_dtype(values):
             arr = values
         elif (
             is_numeric_dtype(values)
@@ -1756,8 +1752,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        Series.dropna
-        DataFrame.dropna
+        Series.dropna : Return series without null values.
+        DataFrame.dropna : Return DataFrame with labels on given axis omitted
+            where (all or any) data are missing.
 
         Notes
         -----
@@ -1798,7 +1795,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     __array_priority__ = 1000
 
     def __array__(self, dtype=None) -> np.ndarray:
-        return com.values_from_object(self)
+        return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(self, result, context=None):
         result = lib.item_from_zerodim(result)
@@ -2176,7 +2173,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        read_json
+        read_json : Convert a JSON string to pandas object.
 
         Notes
         -----
@@ -2187,45 +2184,141 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
-        ...                   index=['row 1', 'row 2'],
-        ...                   columns=['col 1', 'col 2'])
-        >>> df.to_json(orient='split')
-        '{"columns":["col 1","col 2"],
-          "index":["row 1","row 2"],
-          "data":[["a","b"],["c","d"]]}'
+        >>> import json
+        >>> df = pd.DataFrame(
+        ...     [["a", "b"], ["c", "d"]],
+        ...     index=["row 1", "row 2"],
+        ...     columns=["col 1", "col 2"],
+        ... )
+
+        >>> result = df.to_json(orient="split")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        {
+            "columns": [
+                "col 1",
+                "col 2"
+            ],
+            "index": [
+                "row 1",
+                "row 2"
+            ],
+            "data": [
+                [
+                    "a",
+                    "b"
+                ],
+                [
+                    "c",
+                    "d"
+                ]
+            ]
+        }
 
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
 
-        >>> df.to_json(orient='records')
-        '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+        >>> result = df.to_json(orient="records")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        [
+            {
+                "col 1": "a",
+                "col 2": "b"
+            },
+            {
+                "col 1": "c",
+                "col 2": "d"
+            }
+        ]
 
         Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
 
-        >>> df.to_json(orient='index')
-        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+        >>> result = df.to_json(orient="index")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        {
+            "row 1": {
+                "col 1": "a",
+                "col 2": "b"
+            },
+            "row 2": {
+                "col 1": "c",
+                "col 2": "d"
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
 
-        >>> df.to_json(orient='columns')
-        '{"col 1":{"row 1":"a","row 2":"c"},"col 2":{"row 1":"b","row 2":"d"}}'
+        >>> result = df.to_json(orient="columns")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        {
+            "col 1": {
+                "row 1": "a",
+                "row 2": "c"
+            },
+            "col 2": {
+                "row 1": "b",
+                "row 2": "d"
+            }
+        }
 
         Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
 
-        >>> df.to_json(orient='values')
-        '[["a","b"],["c","d"]]'
+        >>> result = df.to_json(orient="values")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        [
+            [
+                "a",
+                "b"
+            ],
+            [
+                "c",
+                "d"
+            ]
+        ]
 
-        Encoding with Table Schema
+        Encoding with Table Schema:
 
-        >>> df.to_json(orient='table')
-        '{"schema": {"fields": [{"name": "index", "type": "string"},
-                                {"name": "col 1", "type": "string"},
-                                {"name": "col 2", "type": "string"}],
-                     "primaryKey": "index",
-                     "pandas_version": "0.20.0"},
-          "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
-                   {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
+        >>> result = df.to_json(orient="table")
+        >>> parsed = json.loads(result)
+        >>> json.dumps(parsed, indent=4)  # doctest: +SKIP
+        {
+            "schema": {
+                "fields": [
+                    {
+                        "name": "index",
+                        "type": "string"
+                    },
+                    {
+                        "name": "col 1",
+                        "type": "string"
+                    },
+                    {
+                        "name": "col 2",
+                        "type": "string"
+                    }
+                ],
+                "primaryKey": [
+                    "index"
+                ],
+                "pandas_version": "0.20.0"
+            },
+            "data": [
+                {
+                    "index": "row 1",
+                    "col 1": "a",
+                    "col 2": "b"
+                },
+                {
+                    "index": "row 2",
+                    "col 1": "c",
+                    "col 2": "d"
+                }
+            ]
+        }
         """
         from pandas.io import json
 
@@ -2652,7 +2745,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Copy the contents of a DataFrame to the clipboard.
 
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
-        >>> df.to_clipboard(sep=',')
+
+        >>> df.to_clipboard(sep=',')  # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # ,A,B,C
         ... # 0,1,2,3
@@ -2661,7 +2755,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         We can omit the index by passing the keyword `index` and setting
         it to false.
 
-        >>> df.to_clipboard(sep=',', index=False)
+        >>> df.to_clipboard(sep=',', index=False)  # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
         ... # A,B,C
         ... # 1,2,3
@@ -3272,9 +3366,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self)
 
-    def _take_with_is_copy(
-        self: FrameOrSeries, indices, axis=0, **kwargs
-    ) -> FrameOrSeries:
+    def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
         Internal version of the `take` method that sets the `_is_copy`
         attribute to keep track of the parent dataframe (using in indexing
@@ -3282,7 +3374,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See the docstring of `take` for full explanation of the parameters.
         """
-        result = self.take(indices=indices, axis=axis, **kwargs)
+        result = self.take(indices=indices, axis=axis)
         # Maybe set copy if we didn't actually change the index.
         if not result._get_axis(axis).equals(self._get_axis(axis)):
             result._set_is_copy(self)
@@ -3466,15 +3558,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # for a chain
             res._is_copy = self._is_copy
         return res
-
-    def _iget_item_cache(self, item):
-        """Return the cached item, item represents a positional indexer."""
-        ax = self._info_axis
-        if ax.is_unique:
-            lower = self._get_item_cache(ax[item])
-        else:
-            lower = self._take_with_is_copy(item, axis=self._info_axis_number)
-        return lower
 
     def _box_item_values(self, key, values):
         raise AbstractMethodError(self)
@@ -3660,7 +3743,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return default
 
     @property
-    def _is_view(self):
+    def _is_view(self) -> bool_t:
         """Return boolean indicating if self is view of another array """
         return self._data.is_view
 
@@ -4457,7 +4540,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.loc
+        DataFrame.loc : Access a group of rows and columns
+            by label(s) or a boolean array.
 
         Notes
         -----
@@ -4800,10 +4884,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     if axis == 0:
                         try:
                             weights = self[weights]
-                        except KeyError:
+                        except KeyError as err:
                             raise KeyError(
                                 "String passed to weights not a valid column"
-                            )
+                            ) from err
                     else:
                         raise ValueError(
                             "Strings can only be passed to "
@@ -4889,24 +4973,24 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.apply
-        DataFrame.applymap
-        Series.map
+        DataFrame.apply : Apply a function along input axis of DataFrame.
+        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
+        Series.map : Apply a mapping correspondence on a
+            :class:`~pandas.Series`.
 
         Notes
         -----
-
         Use ``.pipe`` when chaining together functions that expect
         Series, DataFrames or GroupBy objects. Instead of writing
 
-        >>> f(g(h(df), arg1=a), arg2=b, arg3=c)
+        >>> func(g(h(df), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
 
         You can write
 
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
-        ...    .pipe(f, arg2=b, arg3=c)
-        ... )
+        ...    .pipe(func, arg2=b, arg3=c)
+        ... )  # doctest: +SKIP
 
         If you have a function that takes the data as (say) the second
         argument, pass a tuple indicating which keyword expects the
@@ -4914,8 +4998,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> (df.pipe(h)
         ...    .pipe(g, arg1=a)
-        ...    .pipe((f, 'arg2'), arg1=a, arg3=c)
-        ...  )
+        ...    .pipe((func, 'arg2'), arg1=a, arg3=c)
+        ...  )  # doctest: +SKIP
     """
 
     @Appender(_shared_docs["pipe"] % _shared_doc_kwargs)
@@ -5176,12 +5260,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self._constructor(cons_data).__finalize__(self)
 
     @property
-    def _is_mixed_type(self):
+    def _is_mixed_type(self) -> bool_t:
         f = lambda: self._data.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
-    def _is_numeric_mixed_type(self):
+    def _is_numeric_mixed_type(self) -> bool_t:
         f = lambda: self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
@@ -5264,7 +5348,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         dtype: object
         >>> df.values
         array([[  3,  94,  31],
-               [ 29, 170, 115]], dtype=int64)
+               [ 29, 170, 115]])
 
         A DataFrame with mixed type columns(e.g., str/object, int64, float32)
         results in an ndarray of the broadest type that accommodates these
@@ -6180,7 +6264,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         AssertionError
             * If `regex` is not a ``bool`` and `to_replace` is not
               ``None``.
+
         TypeError
+            * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
@@ -6189,6 +6275,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * When replacing multiple ``bool`` or ``datetime64`` objects and
               the arguments to `to_replace` does not match the type of the
               value being replaced
+
         ValueError
             * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
               `value` but they are not the same length.
@@ -6384,6 +6471,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         regex=False,
         method="pad",
     ):
+        if not (
+            is_scalar(to_replace)
+            or isinstance(to_replace, pd.Series)
+            or is_re_compilable(to_replace)
+            or is_list_like(to_replace)
+        ):
+            raise TypeError(
+                "Expecting 'to_replace' to be either a scalar, array-like, "
+                "dict or None, got invalid type "
+                f"{repr(type(to_replace).__name__)}"
+            )
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is not a bool")
@@ -6804,7 +6903,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method=method,
             axis=ax,
             index=index,
-            values=_maybe_transposed_self,
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
@@ -7529,8 +7627,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self._get_axis(axis)
         try:
             indexer = index.indexer_at_time(time, asof=asof)
-        except AttributeError:
-            raise TypeError("Index must be DatetimeIndex")
+        except AttributeError as err:
+            raise TypeError("Index must be DatetimeIndex") from err
 
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -7617,8 +7715,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 include_start=include_start,
                 include_end=include_end,
             )
-        except AttributeError:
-            raise TypeError("Index must be DatetimeIndex")
+        except AttributeError as err:
+            raise TypeError("Index must be DatetimeIndex") from err
 
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -7916,15 +8014,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:
         """
-        Method to subset initial periods of time series data based on a date offset.
+        Select initial periods of time series data based on a date offset.
+
+        When having a DataFrame with dates as index, this function can
+        select the first few rows based on a date offset.
 
         Parameters
         ----------
-        offset : str, DateOffset, dateutil.relativedelta
+        offset : str, DateOffset or dateutil.relativedelta
+            The offset length of the data that will be selected. For instance,
+            '1M' will display all the rows having their index within the first month.
 
         Returns
         -------
-        subset : same type as caller
+        Series or DataFrame
+            A subset of the caller.
 
         Raises
         ------
@@ -7940,7 +8044,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
@@ -8518,7 +8622,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                         # try to not change dtype at first (if try_quick)
                         if try_quick:
-                            new_other = com.values_from_object(self)
+                            new_other = np.asarray(self)
                             new_other = new_other.copy()
                             new_other[icond] = other
                             other = new_other
@@ -9519,12 +9623,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ...   np.datetime64("2010-01-01")
         ... ])
         >>> s.describe()
-        count                       3
-        unique                      2
-        top       2010-01-01 00:00:00
-        freq                        2
-        first     2000-01-01 00:00:00
-        last      2010-01-01 00:00:00
+        count                      3
+        mean     2006-09-01 08:00:00
+        min      2000-01-01 00:00:00
+        25%      2004-12-31 12:00:00
+        50%      2010-01-01 00:00:00
+        75%      2010-01-01 00:00:00
+        max      2010-01-01 00:00:00
         dtype: object
 
         Describing a ``DataFrame``. By default only numeric fields
@@ -9547,11 +9652,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Describing all columns of a ``DataFrame`` regardless of data type.
 
-        >>> df.describe(include='all')
-                categorical  numeric object
+        >>> df.describe(include='all')  # doctest: +SKIP
+               categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
-        top              f      NaN      c
+        top              f      NaN      a
         freq             1      NaN      1
         mean           NaN      2.0    NaN
         std            NaN      1.0    NaN
@@ -9590,11 +9695,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Including only string columns in a ``DataFrame`` description.
 
-        >>> df.describe(include=[np.object])
+        >>> df.describe(include=[np.object])  # doctest: +SKIP
                object
         count       3
         unique      3
-        top         c
+        top         a
         freq        1
 
         Including only categorical columns from a ``DataFrame`` description.
@@ -9608,16 +9713,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Excluding numeric columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.number])
+        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
                categorical object
         count            3      3
         unique           3      3
-        top              f      c
+        top              f      a
         freq             1      1
 
         Excluding object columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.object])
+        >>> df.describe(exclude=[np.object])  # doctest: +SKIP
                categorical  numeric
         count            3      3.0
         unique           3      NaN
@@ -9726,7 +9831,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         ldesc = [describe_1d(s) for _, s in data.items()]
         # set a convenient order for rows
-        names: List[Optional[Hashable]] = []
+        names: List[Label] = []
         ldesc_indexes = sorted((x.index for x in ldesc), key=len)
         for idxnames in ldesc_indexes:
             for name in idxnames:
@@ -9896,37 +10001,37 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         Add the operations to the cls; evaluate the doc strings again
         """
-        axis_descr, name, name2 = _doc_parms(cls)
+        axis_descr, name1, name2 = _doc_parms(cls)
 
         cls.any = _make_logical_function(
             cls,
             "any",
-            name,
-            name2,
-            axis_descr,
-            _any_desc,
-            nanops.nanany,
-            _any_see_also,
-            _any_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc=_any_desc,
+            func=nanops.nanany,
+            see_also=_any_see_also,
+            examples=_any_examples,
             empty_value=False,
         )
         cls.all = _make_logical_function(
             cls,
             "all",
-            name,
-            name2,
-            axis_descr,
-            _all_desc,
-            nanops.nanall,
-            _all_see_also,
-            _all_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc=_all_desc,
+            func=nanops.nanall,
+            see_also=_all_see_also,
+            examples=_all_examples,
             empty_value=True,
         )
 
         @Substitution(
             desc="Return the mean absolute deviation of the values "
             "for the requested axis.",
-            name1=name,
+            name1=name1,
             name2=name2,
             axis_descr=axis_descr,
             min_count="",
@@ -9954,177 +10059,177 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cls.sem = _make_stat_function_ddof(
             cls,
             "sem",
-            name,
-            name2,
-            axis_descr,
-            "Return unbiased standard error of the mean over requested "
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return unbiased standard error of the mean over requested "
             "axis.\n\nNormalized by N-1 by default. This can be changed "
             "using the ddof argument",
-            nanops.nansem,
+            func=nanops.nansem,
         )
         cls.var = _make_stat_function_ddof(
             cls,
             "var",
-            name,
-            name2,
-            axis_descr,
-            "Return unbiased variance over requested axis.\n\nNormalized by "
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return unbiased variance over requested axis.\n\nNormalized by "
             "N-1 by default. This can be changed using the ddof argument",
-            nanops.nanvar,
+            func=nanops.nanvar,
         )
         cls.std = _make_stat_function_ddof(
             cls,
             "std",
-            name,
-            name2,
-            axis_descr,
-            "Return sample standard deviation over requested axis."
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return sample standard deviation over requested axis."
             "\n\nNormalized by N-1 by default. This can be changed using the "
             "ddof argument",
-            nanops.nanstd,
+            func=nanops.nanstd,
         )
 
         cls.cummin = _make_cum_function(
             cls,
             "cummin",
-            name,
-            name2,
-            axis_descr,
-            "minimum",
-            np.minimum.accumulate,
-            "min",
-            np.inf,
-            np.nan,
-            _cummin_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="minimum",
+            accum_func=np.minimum.accumulate,
+            accum_func_name="min",
+            mask_a=np.inf,
+            mask_b=np.nan,
+            examples=_cummin_examples,
         )
         cls.cumsum = _make_cum_function(
             cls,
             "cumsum",
-            name,
-            name2,
-            axis_descr,
-            "sum",
-            np.cumsum,
-            "sum",
-            0.0,
-            np.nan,
-            _cumsum_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="sum",
+            accum_func=np.cumsum,
+            accum_func_name="sum",
+            mask_a=0.0,
+            mask_b=np.nan,
+            examples=_cumsum_examples,
         )
         cls.cumprod = _make_cum_function(
             cls,
             "cumprod",
-            name,
-            name2,
-            axis_descr,
-            "product",
-            np.cumprod,
-            "prod",
-            1.0,
-            np.nan,
-            _cumprod_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="product",
+            accum_func=np.cumprod,
+            accum_func_name="prod",
+            mask_a=1.0,
+            mask_b=np.nan,
+            examples=_cumprod_examples,
         )
         cls.cummax = _make_cum_function(
             cls,
             "cummax",
-            name,
-            name2,
-            axis_descr,
-            "maximum",
-            np.maximum.accumulate,
-            "max",
-            -np.inf,
-            np.nan,
-            _cummax_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="maximum",
+            accum_func=np.maximum.accumulate,
+            accum_func_name="max",
+            mask_a=-np.inf,
+            mask_b=np.nan,
+            examples=_cummax_examples,
         )
 
         cls.sum = _make_min_count_stat_function(
             cls,
             "sum",
-            name,
-            name2,
-            axis_descr,
-            """Return the sum of the values for the requested axis.\n
-            This is equivalent to the method ``numpy.sum``.""",
-            nanops.nansum,
-            _stat_func_see_also,
-            _sum_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return the sum of the values for the requested axis.\n\n"
+            "This is equivalent to the method ``numpy.sum``.",
+            func=nanops.nansum,
+            see_also=_stat_func_see_also,
+            examples=_sum_examples,
         )
         cls.mean = _make_stat_function(
             cls,
             "mean",
-            name,
-            name2,
-            axis_descr,
-            "Return the mean of the values for the requested axis.",
-            nanops.nanmean,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return the mean of the values for the requested axis.",
+            func=nanops.nanmean,
         )
         cls.skew = _make_stat_function(
             cls,
             "skew",
-            name,
-            name2,
-            axis_descr,
-            "Return unbiased skew over requested axis.\n\nNormalized by N-1.",
-            nanops.nanskew,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return unbiased skew over requested axis.\n\nNormalized by N-1.",
+            func=nanops.nanskew,
         )
         cls.kurt = _make_stat_function(
             cls,
             "kurt",
-            name,
-            name2,
-            axis_descr,
-            "Return unbiased kurtosis over requested axis.\n\n"
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return unbiased kurtosis over requested axis.\n\n"
             "Kurtosis obtained using Fisher's definition of\n"
             "kurtosis (kurtosis of normal == 0.0). Normalized "
             "by N-1.",
-            nanops.nankurt,
+            func=nanops.nankurt,
         )
         cls.kurtosis = cls.kurt
         cls.prod = _make_min_count_stat_function(
             cls,
             "prod",
-            name,
-            name2,
-            axis_descr,
-            "Return the product of the values for the requested axis.",
-            nanops.nanprod,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return the product of the values for the requested axis.",
+            func=nanops.nanprod,
             examples=_prod_examples,
         )
         cls.product = cls.prod
         cls.median = _make_stat_function(
             cls,
             "median",
-            name,
-            name2,
-            axis_descr,
-            "Return the median of the values for the requested axis.",
-            nanops.nanmedian,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return the median of the values for the requested axis.",
+            func=nanops.nanmedian,
         )
         cls.max = _make_stat_function(
             cls,
             "max",
-            name,
-            name2,
-            axis_descr,
-            """Return the maximum of the values for the requested axis.\n
-            If you want the *index* of the maximum, use ``idxmax``. This is
-            the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax,
-            _stat_func_see_also,
-            _max_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return the maximum of the values for the requested axis.\n\n"
+            "If you want the *index* of the maximum, use ``idxmax``. This is"
+            "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
+            func=nanops.nanmax,
+            see_also=_stat_func_see_also,
+            examples=_max_examples,
         )
         cls.min = _make_stat_function(
             cls,
             "min",
-            name,
-            name2,
-            axis_descr,
-            """Return the minimum of the values for the requested axis.\n
-            If you want the *index* of the minimum, use ``idxmin``. This is
-            the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
-            nanops.nanmin,
-            _stat_func_see_also,
-            _min_examples,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            desc="Return the minimum of the values for the requested axis.\n\n"
+            "If you want the *index* of the minimum, use ``idxmin``. This is"
+            "the equivalent of the ``numpy.ndarray`` method ``argmin``.",
+            func=nanops.nanmin,
+            see_also=_stat_func_see_also,
+            examples=_min_examples,
         )
 
     @classmethod
@@ -10944,8 +11049,16 @@ min_count : int, default 0
 
 
 def _make_min_count_stat_function(
-    cls, name, name1, name2, axis_descr, desc, f, see_also: str = "", examples: str = ""
-):
+    cls,
+    name: str,
+    name1: str,
+    name2: str,
+    axis_descr: str,
+    desc: str,
+    func: Callable,
+    see_also: str = "",
+    examples: str = "",
+) -> Callable:
     @Substitution(
         desc=desc,
         name1=name1,
@@ -10980,8 +11093,8 @@ def _make_min_count_stat_function(
                 name, axis=axis, level=level, skipna=skipna, min_count=min_count
             )
         return self._reduce(
-            f,
-            name,
+            func,
+            name=name,
             axis=axis,
             skipna=skipna,
             numeric_only=numeric_only,
@@ -10992,8 +11105,16 @@ def _make_min_count_stat_function(
 
 
 def _make_stat_function(
-    cls, name, name1, name2, axis_descr, desc, f, see_also: str = "", examples: str = ""
-):
+    cls,
+    name: str,
+    name1: str,
+    name2: str,
+    axis_descr: str,
+    desc: str,
+    func: Callable,
+    see_also: str = "",
+    examples: str = "",
+) -> Callable:
     @Substitution(
         desc=desc,
         name1=name1,
@@ -11018,13 +11139,15 @@ def _make_stat_function(
         if level is not None:
             return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
         return self._reduce(
-            f, name, axis=axis, skipna=skipna, numeric_only=numeric_only
+            func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
 
     return set_function_name(stat_func, name, cls)
 
 
-def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
+def _make_stat_function_ddof(
+    cls, name: str, name1: str, name2: str, axis_descr: str, desc: str, func: Callable
+) -> Callable:
     @Substitution(desc=desc, name1=name1, name2=name2, axis_descr=axis_descr)
     @Appender(_num_ddof_doc)
     def stat_func(
@@ -11040,7 +11163,7 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
                 name, axis=axis, level=level, skipna=skipna, ddof=ddof
             )
         return self._reduce(
-            f, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
+            func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
         )
 
     return set_function_name(stat_func, name, cls)
@@ -11048,17 +11171,17 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
 
 def _make_cum_function(
     cls,
-    name,
-    name1,
-    name2,
-    axis_descr,
-    desc,
-    accum_func,
-    accum_func_name,
-    mask_a,
-    mask_b,
-    examples,
-):
+    name: str,
+    name1: str,
+    name2: str,
+    axis_descr: str,
+    desc: str,
+    accum_func: Callable,
+    accum_func_name: str,
+    mask_a: float,
+    mask_b: float,
+    examples: str,
+) -> Callable:
     @Substitution(
         desc=desc,
         name1=name1,
@@ -11142,8 +11265,17 @@ def _make_cum_function(
 
 
 def _make_logical_function(
-    cls, name, name1, name2, axis_descr, desc, f, see_also, examples, empty_value
-):
+    cls,
+    name: str,
+    name1: str,
+    name2: str,
+    axis_descr: str,
+    desc: str,
+    func: Callable,
+    see_also: str,
+    examples: str,
+    empty_value: bool,
+) -> Callable:
     @Substitution(
         desc=desc,
         name1=name1,
@@ -11163,8 +11295,8 @@ def _make_logical_function(
                 )
             return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
         return self._reduce(
-            f,
-            name,
+            func,
+            name=name,
             axis=axis,
             skipna=skipna,
             numeric_only=bool_only,

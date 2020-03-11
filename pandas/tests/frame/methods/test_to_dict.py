@@ -132,7 +132,13 @@ class TestDataFrameToDict:
     def test_to_dict_errors(self, mapping):
         # GH#16122
         df = DataFrame(np.random.randn(3, 3))
-        with pytest.raises(TypeError):
+        msg = "|".join(
+            [
+                "unsupported type: <class 'list'>",
+                r"to_dict\(\) only accepts initialized defaultdicts",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
             df.to_dict(into=mapping)
 
     def test_to_dict_not_unique_warning(self):

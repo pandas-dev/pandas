@@ -27,6 +27,9 @@ from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
+# We pass through a TypeError raised by numpy
+_slice_msg = "slice indices must be integers or None or have an __index__ method"
+
 
 class TestGet:
     def test_get(self, float_frame):
@@ -481,7 +484,8 @@ class TestDataFrameIndexing:
         # so raise/warn
         smaller = float_frame[:2]
 
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
@@ -865,7 +869,8 @@ class TestDataFrameIndexing:
         # setting it triggers setting with copy
         sliced = float_frame.iloc[:, -3:]
 
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             sliced["C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
@@ -992,7 +997,8 @@ class TestDataFrameIndexing:
         with pytest.raises(IndexingError, match="Too many indexers"):
             ix[:, :, :]
 
-        with pytest.raises(IndexingError):
+        with pytest.raises(IndexError, match="too many indices for array"):
+            # GH#32257 we let numpy do validation, get their exception
             ix[:, :, :] = 1
 
     def test_getitem_setitem_boolean_misaligned(self, float_frame):
@@ -1071,10 +1077,10 @@ class TestDataFrameIndexing:
 
         cp = df.copy()
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=_slice_msg):
             cp.iloc[1.0:5] = 0
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             result = cp.iloc[1.0:5] == 0  # noqa
 
         assert result.values.all()
@@ -1203,7 +1209,7 @@ class TestDataFrameIndexing:
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0]], index=f.index[0:2], columns=["A", "B"]
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
@@ -1214,7 +1220,7 @@ class TestDataFrameIndexing:
             index=list(f.index[0:2]) + ["foo", "bar"],
             columns=["A", "B"],
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
@@ -1224,7 +1230,7 @@ class TestDataFrameIndexing:
         f = float_string_frame.copy()
         piece = f.loc[f.index[:2], ["A"]]
         piece.index = f.index[-2:]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece
         piece["B"] = np.nan
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
@@ -1232,7 +1238,7 @@ class TestDataFrameIndexing:
         # ndarray
         f = float_string_frame.copy()
         piece = float_string_frame.loc[f.index[:2], ["A", "B"]]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece.values
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
 
@@ -1470,7 +1476,8 @@ class TestDataFrameIndexing:
 
         # verify slice is view
         # setting it makes it raise/warn
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             result[2] = 0.0
 
         exp_col = df[2].copy()
@@ -1501,7 +1508,8 @@ class TestDataFrameIndexing:
 
         # verify slice is view
         # and that we are setting a copy
-        with pytest.raises(com.SettingWithCopyError):
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             result[8] = 0.0
 
         assert (df[8] == 0).all()
@@ -1618,6 +1626,14 @@ class TestDataFrameIndexing:
         expected = df.head(3)
         actual = df.reindex(idx[:3], method="nearest")
         tm.assert_frame_equal(expected, actual)
+
+    def test_reindex_nearest_tz_empty_frame(self):
+        # https://github.com/pandas-dev/pandas/issues/31964
+        dti = pd.DatetimeIndex(["2016-06-26 14:27:26+00:00"])
+        df = pd.DataFrame(index=pd.DatetimeIndex(["2016-07-04 14:00:59+00:00"]))
+        expected = pd.DataFrame(index=dti)
+        result = df.reindex(dti, method="nearest")
+        tm.assert_frame_equal(result, expected)
 
     def test_reindex_frame_add_nat(self):
         rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
@@ -1857,7 +1873,7 @@ class TestDataFrameIndexing:
         df = DataFrame(index=date_range("20130101", periods=4))
         df["A"] = np.array([1 * one_hour] * 4, dtype="m8[ns]")
         df.loc[:, "B"] = np.array([2 * one_hour] * 4, dtype="m8[ns]")
-        df.loc[:3, "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
+        df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
         df.loc[:, "D"] = np.array([4 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
         df["F"] = np.timedelta64("NaT")
@@ -2197,16 +2213,17 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(ser.values[2], pd.Timedelta)
 
     mgr = df._data
+    mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
     assert isinstance(arr[1], pd.Timestamp)
     assert isinstance(arr[2], pd.Timedelta)
 
-    blk = mgr.blocks[mgr._blknos[1]]
+    blk = mgr.blocks[mgr.blknos[1]]
     assert blk.dtype == "M8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timestamp)
 
-    blk = mgr.blocks[mgr._blknos[2]]
+    blk = mgr.blocks[mgr.blknos[2]]
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)

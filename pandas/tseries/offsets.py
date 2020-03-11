@@ -2530,12 +2530,12 @@ def _tick_comp(op):
     def f(self, other):
         try:
             return op(self.delta, other.delta)
-        except AttributeError:
+        except AttributeError as err:
             # comparing with a non-Tick object
             raise TypeError(
                 f"Invalid comparison between {type(self).__name__} "
                 f"and {type(other).__name__}"
-            )
+            ) from err
 
     f.__name__ = f"__{op.__name__}__"
     return f
@@ -2570,10 +2570,10 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             return self.apply(other)
         except ApplyTypeError:
             return NotImplemented
-        except OverflowError:
+        except OverflowError as err:
             raise OverflowError(
                 f"the add operation between {self} and {other} will overflow"
-            )
+            ) from err
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):

@@ -98,8 +98,9 @@ class BaseSetitemTests(BaseExtensionTests):
         [
             np.array([True, True, True, False, False]),
             pd.array([True, True, True, False, False], dtype="boolean"),
+            pd.array([True, True, True, pd.NA, pd.NA], dtype="boolean"),
         ],
-        ids=["numpy-array", "boolean-array"],
+        ids=["numpy-array", "boolean-array", "boolean-array-na"],
     )
     def test_setitem_mask(self, data, mask, box_in_series):
         arr = data[:5].copy()
@@ -124,20 +125,17 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError, match="wrong length"):
             data[mask] = data[0]
 
-    def test_setitem_mask_boolean_array_raises(self, data, box_in_series):
-        # missing values in mask
+    def test_setitem_mask_boolean_array_with_na(self, data, box_in_series):
         mask = pd.array(np.zeros(data.shape, dtype="bool"), dtype="boolean")
-        mask[:2] = pd.NA
+        mask[:3] = True
+        mask[3:5] = pd.NA
 
         if box_in_series:
             data = pd.Series(data)
 
-        msg = (
-            "Cannot mask with a boolean indexer containing NA values|"
-            "cannot mask with array containing NA / NaN values"
-        )
-        with pytest.raises(ValueError, match=msg):
-            data[mask] = data[0]
+        data[mask] = data[0]
+
+        assert (data[:3] == data[0]).all()
 
     @pytest.mark.parametrize(
         "idx",

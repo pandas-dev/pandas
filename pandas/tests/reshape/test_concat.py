@@ -1849,8 +1849,8 @@ class TestConcatenate:
             def __getitem__(self, index):
                 try:
                     return {0: df1, 1: df2}[index]
-                except KeyError:
-                    raise IndexError
+                except KeyError as err:
+                    raise IndexError from err
 
         tm.assert_frame_equal(pd.concat(CustomIterator1(), ignore_index=True), expected)
 

@@ -14,7 +14,6 @@ from collections import abc
 import datetime
 from io import StringIO
 import itertools
-import sys
 from textwrap import dedent
 from typing import (
     IO,
@@ -95,10 +94,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
     ABCIndexClass,
     ABCMultiIndex,
-    ABCPeriodIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -112,7 +109,7 @@ from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.multi import maybe_droplevels
+from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -131,7 +128,7 @@ from pandas.core.series import Series
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.info import info
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -359,9 +356,9 @@ class DataFrame(NDFrame):
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
     DataFrame.from_dict : From dicts of Series, arrays, or dicts.
-    read_csv
-    read_table
-    read_clipboard
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_table : Read general delimited file into DataFrame.
+    read_clipboard : Read text from clipboard into DataFrame.
 
     Examples
     --------
@@ -515,7 +512,7 @@ class DataFrame(NDFrame):
             else:
                 raise ValueError("DataFrame constructor not properly called!")
 
-        NDFrame.__init__(self, mgr, fastpath=True)
+        NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
 
@@ -759,8 +756,8 @@ class DataFrame(NDFrame):
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
-        formatters: Optional[fmt.formatters_type] = None,
-        float_format: Optional[fmt.float_format_type] = None,
+        formatters: Optional[fmt.FormattersType] = None,
+        float_format: Optional[fmt.FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
         justify: Optional[str] = None,
@@ -833,7 +830,6 @@ class DataFrame(NDFrame):
         Returns a Styler object.
 
         Contains methods for building a styled HTML representation of the DataFrame.
-        a styled HTML representation fo the DataFrame.
 
         See Also
         --------
@@ -894,7 +890,7 @@ class DataFrame(NDFrame):
         """
 
     @Appender(_shared_docs["items"])
-    def items(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def items(self) -> Iterable[Tuple[Label, Series]]:
         if self.columns.is_unique and hasattr(self, "_item_cache"):
             for k in self.columns:
                 yield k, self._get_item_cache(k)
@@ -903,10 +899,10 @@ class DataFrame(NDFrame):
                 yield k, self._ixs(i, axis=1)
 
     @Appender(_shared_docs["items"])
-    def iteritems(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def iteritems(self) -> Iterable[Tuple[Label, Series]]:
         yield from self.items()
 
-    def iterrows(self) -> Iterable[Tuple[Optional[Hashable], Series]]:
+    def iterrows(self) -> Iterable[Tuple[Label, Series]]:
         """
         Iterate over DataFrame rows as (index, Series) pairs.
 
@@ -2225,282 +2221,11 @@ class DataFrame(NDFrame):
         )
 
     # ----------------------------------------------------------------------
-
+    @Appender(info.__doc__)
     def info(
         self, verbose=None, buf=None, max_cols=None, memory_usage=None, null_counts=None
     ) -> None:
-        """
-        Print a concise summary of a DataFrame.
-
-        This method prints information about a DataFrame including
-        the index dtype and column dtypes, non-null values and memory usage.
-
-        Parameters
-        ----------
-        verbose : bool, optional
-            Whether to print the full summary. By default, the setting in
-            ``pandas.options.display.max_info_columns`` is followed.
-        buf : writable buffer, defaults to sys.stdout
-            Where to send the output. By default, the output is printed to
-            sys.stdout. Pass a writable buffer if you need to further process
-            the output.
-        max_cols : int, optional
-            When to switch from the verbose to the truncated output. If the
-            DataFrame has more than `max_cols` columns, the truncated output
-            is used. By default, the setting in
-            ``pandas.options.display.max_info_columns`` is used.
-        memory_usage : bool, str, optional
-            Specifies whether total memory usage of the DataFrame
-            elements (including the index) should be displayed. By default,
-            this follows the ``pandas.options.display.memory_usage`` setting.
-
-            True always show memory usage. False never shows memory usage.
-            A value of 'deep' is equivalent to "True with deep introspection".
-            Memory usage is shown in human-readable units (base-2
-            representation). Without deep introspection a memory estimation is
-            made based in column dtype and number of rows assuming values
-            consume the same memory amount for corresponding dtypes. With deep
-            memory introspection, a real memory usage calculation is performed
-            at the cost of computational resources.
-        null_counts : bool, optional
-            Whether to show the non-null counts. By default, this is shown
-            only if the frame is smaller than
-            ``pandas.options.display.max_info_rows`` and
-            ``pandas.options.display.max_info_columns``. A value of True always
-            shows the counts, and False never shows the counts.
-
-        Returns
-        -------
-        None
-            This method prints a summary of a DataFrame and returns None.
-
-        See Also
-        --------
-        DataFrame.describe: Generate descriptive statistics of DataFrame
-            columns.
-        DataFrame.memory_usage: Memory usage of DataFrame columns.
-
-        Examples
-        --------
-        >>> int_values = [1, 2, 3, 4, 5]
-        >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
-        >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
-        >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
-        ...                   "float_col": float_values})
-        >>> df
-           int_col text_col  float_col
-        0        1    alpha       0.00
-        1        2     beta       0.25
-        2        3    gamma       0.50
-        3        4    delta       0.75
-        4        5  epsilon       1.00
-
-        Prints information of all columns:
-
-        >>> df.info(verbose=True)
-        <class 'pandas.core.frame.DataFrame'>
-        RangeIndex: 5 entries, 0 to 4
-        Data columns (total 3 columns):
-         #   Column     Non-Null Count  Dtype
-        ---  ------     --------------  -----
-         0   int_col    5 non-null      int64
-         1   text_col   5 non-null      object
-         2   float_col  5 non-null      float64
-        dtypes: float64(1), int64(1), object(1)
-        memory usage: 248.0+ bytes
-
-        Prints a summary of columns count and its dtypes but not per column
-        information:
-
-        >>> df.info(verbose=False)
-        <class 'pandas.core.frame.DataFrame'>
-        RangeIndex: 5 entries, 0 to 4
-        Columns: 3 entries, int_col to float_col
-        dtypes: float64(1), int64(1), object(1)
-        memory usage: 248.0+ bytes
-
-        Pipe output of DataFrame.info to buffer instead of sys.stdout, get
-        buffer content and writes to a text file:
-
-        >>> import io
-        >>> buffer = io.StringIO()
-        >>> df.info(buf=buffer)
-        >>> s = buffer.getvalue()
-        >>> with open("df_info.txt", "w",
-        ...           encoding="utf-8") as f:  # doctest: +SKIP
-        ...     f.write(s)
-        260
-
-        The `memory_usage` parameter allows deep introspection mode, specially
-        useful for big DataFrames and fine-tune memory optimization:
-
-        >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-        >>> df = pd.DataFrame({
-        ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-        ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-        ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
-        ... })
-        >>> df.info()
-        <class 'pandas.core.frame.DataFrame'>
-        RangeIndex: 1000000 entries, 0 to 999999
-        Data columns (total 3 columns):
-         #   Column    Non-Null Count    Dtype
-        ---  ------    --------------    -----
-         0   column_1  1000000 non-null  object
-         1   column_2  1000000 non-null  object
-         2   column_3  1000000 non-null  object
-        dtypes: object(3)
-        memory usage: 22.9+ MB
-
-        >>> df.info(memory_usage='deep')
-        <class 'pandas.core.frame.DataFrame'>
-        RangeIndex: 1000000 entries, 0 to 999999
-        Data columns (total 3 columns):
-         #   Column    Non-Null Count    Dtype
-        ---  ------    --------------    -----
-         0   column_1  1000000 non-null  object
-         1   column_2  1000000 non-null  object
-         2   column_3  1000000 non-null  object
-        dtypes: object(3)
-        memory usage: 188.8 MB
-        """
-        if buf is None:  # pragma: no cover
-            buf = sys.stdout
-
-        lines = []
-
-        lines.append(str(type(self)))
-        lines.append(self.index._summary())
-
-        if len(self.columns) == 0:
-            lines.append(f"Empty {type(self).__name__}")
-            fmt.buffer_put_lines(buf, lines)
-            return
-
-        cols = self.columns
-        col_count = len(self.columns)
-
-        # hack
-        if max_cols is None:
-            max_cols = get_option("display.max_info_columns", len(self.columns) + 1)
-
-        max_rows = get_option("display.max_info_rows", len(self) + 1)
-
-        if null_counts is None:
-            show_counts = (col_count <= max_cols) and (len(self) < max_rows)
-        else:
-            show_counts = null_counts
-        exceeds_info_cols = col_count > max_cols
-
-        def _verbose_repr():
-            lines.append(f"Data columns (total {len(self.columns)} columns):")
-
-            id_head = " # "
-            column_head = "Column"
-            col_space = 2
-
-            max_col = max(len(pprint_thing(k)) for k in cols)
-            len_column = len(pprint_thing(column_head))
-            space = max(max_col, len_column) + col_space
-
-            max_id = len(pprint_thing(col_count))
-            len_id = len(pprint_thing(id_head))
-            space_num = max(max_id, len_id) + col_space
-            counts = None
-
-            header = _put_str(id_head, space_num) + _put_str(column_head, space)
-            if show_counts:
-                counts = self.count()
-                if len(cols) != len(counts):  # pragma: no cover
-                    raise AssertionError(
-                        f"Columns must equal counts ({len(cols)} != {len(counts)})"
-                    )
-                count_header = "Non-Null Count"
-                len_count = len(count_header)
-                non_null = " non-null"
-                max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
-                space_count = max(len_count, max_count) + col_space
-                count_temp = "{count}" + non_null
-            else:
-                count_header = ""
-                space_count = len(count_header)
-                len_count = space_count
-                count_temp = "{count}"
-
-            dtype_header = "Dtype"
-            len_dtype = len(dtype_header)
-            max_dtypes = max(len(pprint_thing(k)) for k in self.dtypes)
-            space_dtype = max(len_dtype, max_dtypes)
-            header += _put_str(count_header, space_count) + _put_str(
-                dtype_header, space_dtype
-            )
-
-            lines.append(header)
-            lines.append(
-                _put_str("-" * len_id, space_num)
-                + _put_str("-" * len_column, space)
-                + _put_str("-" * len_count, space_count)
-                + _put_str("-" * len_dtype, space_dtype)
-            )
-
-            for i, col in enumerate(self.columns):
-                dtype = self.dtypes.iloc[i]
-                col = pprint_thing(col)
-
-                line_no = _put_str(f" {i}", space_num)
-                count = ""
-                if show_counts:
-                    count = counts.iloc[i]
-
-                lines.append(
-                    line_no
-                    + _put_str(col, space)
-                    + _put_str(count_temp.format(count=count), space_count)
-                    + _put_str(dtype, space_dtype)
-                )
-
-        def _non_verbose_repr():
-            lines.append(self.columns._summary(name="Columns"))
-
-        def _sizeof_fmt(num, size_qualifier):
-            # returns size in human readable format
-            for x in ["bytes", "KB", "MB", "GB", "TB"]:
-                if num < 1024.0:
-                    return f"{num:3.1f}{size_qualifier} {x}"
-                num /= 1024.0
-            return f"{num:3.1f}{size_qualifier} PB"
-
-        if verbose:
-            _verbose_repr()
-        elif verbose is False:  # specifically set to False, not nesc None
-            _non_verbose_repr()
-        else:
-            if exceeds_info_cols:
-                _non_verbose_repr()
-            else:
-                _verbose_repr()
-
-        counts = self._data.get_dtype_counts()
-        dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
-        lines.append(f"dtypes: {', '.join(dtypes)}")
-
-        if memory_usage is None:
-            memory_usage = get_option("display.memory_usage")
-        if memory_usage:
-            # append memory usage of df to display
-            size_qualifier = ""
-            if memory_usage == "deep":
-                deep = True
-            else:
-                # size_qualifier is just a best effort; not guaranteed to catch
-                # all cases (e.g., it misses categorical data even with object
-                # categories)
-                deep = False
-                if "object" in counts or self.index._is_memory_usage_qualified():
-                    size_qualifier = "+"
-            mem_usage = self.memory_usage(index=True, deep=deep).sum()
-            lines.append(f"memory usage: {_sizeof_fmt(mem_usage, size_qualifier)}\n")
-        fmt.buffer_put_lines(buf, lines)
+        return info(self, verbose, buf, max_cols, memory_usage, null_counts)
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """
@@ -2894,8 +2619,8 @@ class DataFrame(NDFrame):
         scalar
         """
         if takeable:
-            series = self._iget_item_cache(col)
-            return com.maybe_box_datetimelike(series._values[index])
+            series = self._ixs(col, axis=1)
+            return series._values[index]
 
         series = self._get_item_cache(col)
         engine = self.index._engine
@@ -3014,7 +2739,7 @@ class DataFrame(NDFrame):
         """
         try:
             if takeable is True:
-                series = self._iget_item_cache(col)
+                series = self._ixs(col, axis=1)
                 series._set_value(index, value, takeable=True)
                 return
 
@@ -3043,11 +2768,11 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value) and len(value):
             try:
                 value = Series(value)
-            except (ValueError, NotImplementedError, TypeError):
+            except (ValueError, NotImplementedError, TypeError) as err:
                 raise ValueError(
                     "Cannot set a frame with no defined index "
                     "and a value that cannot be converted to a Series"
-                )
+                ) from err
 
             self._data = self._data.reindex_axis(
                 value.index.copy(), axis=1, fill_value=np.nan
@@ -3610,7 +3335,7 @@ class DataFrame(NDFrame):
                     # other
                     raise TypeError(
                         "incompatible index of inserted column with frame index"
-                    )
+                    ) from err
             return value
 
         if isinstance(value, Series):
@@ -3872,7 +3597,7 @@ class DataFrame(NDFrame):
         see_also_sub=" or columns",
     )
     @Appender(NDFrame.set_axis.__doc__)
-    def set_axis(self, labels, axis=0, inplace=False):
+    def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
     @Substitution(**_shared_doc_kwargs)
@@ -4318,7 +4043,7 @@ class DataFrame(NDFrame):
             "one-dimensional arrays."
         )
 
-        missing: List[Optional[Hashable]] = []
+        missing: List[Label] = []
         for col in keys:
             if isinstance(
                 col, (ABCIndexClass, ABCSeries, np.ndarray, list, abc.Iterator)
@@ -4331,8 +4056,10 @@ class DataFrame(NDFrame):
                 # everything else gets tried as a key; see GH 24969
                 try:
                     found = col in self.columns
-                except TypeError:
-                    raise TypeError(f"{err_msg}. Received column of type {type(col)}")
+                except TypeError as err:
+                    raise TypeError(
+                        f"{err_msg}. Received column of type {type(col)}"
+                    ) from err
                 else:
                     if not found:
                         missing.append(col)
@@ -4355,7 +4082,7 @@ class DataFrame(NDFrame):
             else:
                 arrays.append(self.index)
 
-        to_remove: List[Optional[Hashable]] = []
+        to_remove: List[Label] = []
         for col in keys:
             if isinstance(col, ABCMultiIndex):
                 for n in range(col.nlevels):
@@ -4410,7 +4137,7 @@ class DataFrame(NDFrame):
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
-        col_fill: Optional[Hashable] = "",
+        col_fill: Label = "",
     ) -> Optional["DataFrame"]:
         """
         Reset the index, or a level of it.
@@ -4841,6 +4568,10 @@ class DataFrame(NDFrame):
         -------
         DataFrame
             DataFrame with duplicates removed or None if ``inplace=True``.
+
+        See Also
+        --------
+        DataFrame.value_counts: Count unique combinations of columns.
         """
         if self.empty:
             return self.copy()
@@ -4849,7 +4580,7 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            (inds,) = (-duplicated)._ndarray_values.nonzero()
+            (inds,) = np.asarray(-duplicated).nonzero()
             new_data = self._data.take(inds)
 
             if ignore_index:
@@ -5004,8 +4735,9 @@ class DataFrame(NDFrame):
             and 1 identifies the columns.
         level : int or level name or list of ints or list of level names
             If not None, sort on values in specified index level(s).
-        ascending : bool, default True
-            Sort ascending vs. descending.
+        ascending : bool or list of bools, default True
+            Sort ascending vs. descending. When the index is a MultiIndex the
+            sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
@@ -5084,6 +4816,102 @@ class DataFrame(NDFrame):
             return self._update_inplace(new_data)
         else:
             return self._constructor(new_data).__finalize__(self)
+
+    def value_counts(
+        self,
+        subset: Optional[Sequence[Label]] = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+    ):
+        """
+        Return a Series containing counts of unique rows in the DataFrame.
+
+        .. versionadded:: 1.1.0
+
+        Parameters
+        ----------
+        subset : list-like, optional
+            Columns to use when counting unique combinations.
+        normalize : bool, default False
+            Return proportions rather than frequencies.
+        sort : bool, default True
+            Sort by frequencies.
+        ascending : bool, default False
+            Sort in ascending order.
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.value_counts: Equivalent method on Series.
+
+        Notes
+        -----
+        The returned Series will have a MultiIndex with one level per input
+        column. By default, rows that contain any NA values are omitted from
+        the result. By default, the resulting Series will be in descending
+        order so that the first element is the most frequently-occurring row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 4, 6],
+        ...                    'num_wings': [2, 0, 0, 0]},
+        ...                   index=['falcon', 'dog', 'cat', 'ant'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
+        cat            4          0
+        ant            6          0
+
+        >>> df.value_counts()
+        num_legs  num_wings
+        4         0            2
+        6         0            1
+        2         2            1
+        dtype: int64
+
+        >>> df.value_counts(sort=False)
+        num_legs  num_wings
+        2         2            1
+        4         0            2
+        6         0            1
+        dtype: int64
+
+        >>> df.value_counts(ascending=True)
+        num_legs  num_wings
+        2         2            1
+        6         0            1
+        4         0            2
+        dtype: int64
+
+        >>> df.value_counts(normalize=True)
+        num_legs  num_wings
+        4         0            0.50
+        6         0            0.25
+        2         2            0.25
+        dtype: float64
+        """
+        if subset is None:
+            subset = self.columns.tolist()
+
+        counts = self.groupby(subset).size()
+
+        if sort:
+            counts = counts.sort_values(ascending=ascending)
+        if normalize:
+            counts /= counts.sum()
+
+        # Force MultiIndex for single column
+        if len(subset) == 1:
+            counts.index = MultiIndex.from_arrays(
+                [counts.index], names=[counts.index.name]
+            )
+
+        return counts
 
     def nlargest(self, n, columns, keep="first") -> "DataFrame":
         """
@@ -5382,20 +5210,6 @@ class DataFrame(NDFrame):
                 res_values = _arith_op(self.values, other.values)
             new_data = dispatch_fill_zeros(func, self.values, other.values, res_values)
 
-        return new_data
-
-    def _combine_match_index(self, other: Series, func):
-        # at this point we have `self.index.equals(other.index)`
-
-        if ops.should_series_dispatch(self, other, func):
-            # operate column-wise; avoid costly object-casting in `.values`
-            new_data = ops.dispatch_to_series(self, other, func)
-        else:
-            # fastpath --> operate directly on values
-            other_vals = other.values.reshape(-1, 1)
-            with np.errstate(all="ignore"):
-                new_data = func(self.values, other_vals)
-            new_data = dispatch_fill_zeros(func, self.values, other_vals, new_data)
         return new_data
 
     def _construct_result(self, result) -> "DataFrame":
@@ -7563,8 +7377,9 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corrwith
-        Series.corr
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
 
         Examples
         --------
@@ -7766,7 +7581,7 @@ Wild         185.0
 
         See Also
         --------
-        DataFrame.corr
+        DataFrame.corr : Compute pairwise correlation of columns.
         """
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
@@ -8171,7 +7986,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmin
+        Series.idxmin : Return index of the minimum element.
 
         Notes
         -----
@@ -8209,7 +8024,7 @@ Wild         185.0
 
         See Also
         --------
-        Series.idxmax
+        Series.idxmax : Return index of the maximum element.
 
         Notes
         -----
@@ -8415,7 +8230,9 @@ Wild         185.0
 
         return result
 
-    def to_timestamp(self, freq=None, how="start", axis=0, copy=True) -> "DataFrame":
+    def to_timestamp(
+        self, freq=None, how: str = "start", axis: Axis = 0, copy: bool = True
+    ) -> "DataFrame":
         """
         Cast to DatetimeIndex of timestamps, at *beginning* of period.
 
@@ -8435,23 +8252,16 @@ Wild         185.0
         -------
         DataFrame with DatetimeIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            assert isinstance(self.index, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(1, self.index.to_timestamp(freq=freq, how=how))
-        elif axis == 1:
-            assert isinstance(self.columns, (ABCDatetimeIndex, ABCPeriodIndex))
-            new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
-        else:  # pragma: no cover
-            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
+        axis_name = self._get_axis_name(axis)
+        old_ax = getattr(self, axis_name)
+        new_ax = old_ax.to_timestamp(freq=freq, how=how)
 
-        return self._constructor(new_data)
+        setattr(new_obj, axis_name, new_ax)
+        return new_obj
 
-    def to_period(self, freq=None, axis=0, copy=True) -> "DataFrame":
+    def to_period(self, freq=None, axis: Axis = 0, copy: bool = True) -> "DataFrame":
         """
         Convert DataFrame from DatetimeIndex to PeriodIndex.
 
@@ -8469,23 +8279,16 @@ Wild         185.0
 
         Returns
         -------
-        TimeSeries with PeriodIndex
+        DataFrame with PeriodIndex
         """
-        new_data = self._data
-        if copy:
-            new_data = new_data.copy()
+        new_obj = self.copy(deep=copy)
 
-        axis = self._get_axis_number(axis)
-        if axis == 0:
-            assert isinstance(self.index, ABCDatetimeIndex)
-            new_data.set_axis(1, self.index.to_period(freq=freq))
-        elif axis == 1:
-            assert isinstance(self.columns, ABCDatetimeIndex)
-            new_data.set_axis(0, self.columns.to_period(freq=freq))
-        else:  # pragma: no cover
-            raise AssertionError(f"Axis must be 0 or 1. Got {axis}")
+        axis_name = self._get_axis_name(axis)
+        old_ax = getattr(self, axis_name)
+        new_ax = old_ax.to_period(freq=freq)
 
-        return self._constructor(new_data)
+        setattr(new_obj, axis_name, new_ax)
+        return new_obj
 
     def isin(self, values) -> "DataFrame":
         """
@@ -8617,13 +8420,8 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 def _from_nested_dict(data):
     # TODO: this should be seriously cythonized
-    new_data = {}
+    new_data = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
-            new_data[col] = new_data.get(col, {})
             new_data[col][index] = v
     return new_data
-
-
-def _put_str(s, space):
-    return str(s)[:space].ljust(space)

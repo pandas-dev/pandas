@@ -2575,19 +2575,19 @@ class TestXMySQL(MySQLMixIn):
         pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
         try:
             pymysql.connect(read_default_group="pandas")
-        except pymysql.ProgrammingError:
+        except pymysql.ProgrammingError as err:
             raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
-        except pymysql.Error:
+            ) from err
+        except pymysql.Error as err:
             raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
+            ) from err
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
@@ -2595,19 +2595,19 @@ class TestXMySQL(MySQLMixIn):
         pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
         try:
             pymysql.connect(read_default_group="pandas")
-        except pymysql.ProgrammingError:
+        except pymysql.ProgrammingError as err:
             raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
-        except pymysql.Error:
+            ) from err
+        except pymysql.Error as err:
             raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
+            ) from err
 
         self.method = request.function
 
