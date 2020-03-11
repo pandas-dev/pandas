@@ -638,7 +638,8 @@ cdef class TextReader:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')
 
-            if self.encoding and isinstance(source, (io.BufferedIOBase, io.RawIOBase)):
+            if (self.encoding and hasattr(source, "read") and
+                    not hasattr(source, "encoding")):
                 source = io.TextIOWrapper(
                     source, self.encoding.decode('utf-8'), newline='')
 
