@@ -1057,11 +1057,6 @@ class TestHDFStore:
 
         tm.assert_series_equal(s_nan, retr)
 
-        # FIXME: don't leave commented-out
-        # fails:
-        # for x in examples:
-        #     roundtrip(s, nan_rep=b'\xf8\xfc')
-
     def test_append_some_nans(self, setup_path):
 
         with ensure_clean_store(setup_path) as store:
