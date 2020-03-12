@@ -303,26 +303,19 @@ class TestCommon:
         indices.name = original_name
 
     @pytest.mark.parametrize("keep", ["first", "last", False])
-    def test_duplicated_and_drop_duplicates(self, indices, keep):
-        if isinstance(indices, (MultiIndex, RangeIndex)):
-            # MultiIndex tested separately in:
-            # tests/indexes/multi/test_unique_and_duplicates
-            pytest.skip("Skip check for MultiIndex, RangeIndex")
+    def test_drop_duplicates(self, indices, keep):
+        if isinstance(indices, MultiIndex):
+            pytest.skip("MultiIndex is tested separately")
+        if isinstance(indices, RangeIndex):
+            pytest.skip(
+                "RangeIndex is tested in test_drop_duplicates_no_duplicates"
+                " as it cannot hold duplicates"
+            )
 
         # make unique index
         holder = type(indices)
         unique_values = list(set(indices))
         unique_idx = holder(unique_values)
-
-        # check on unique index
-        expected_duplicated = np.array([False] * len(unique_idx), dtype="bool")
-        tm.assert_numpy_array_equal(
-            unique_idx.duplicated(keep=keep), expected_duplicated
-        )
-        result_dropped = unique_idx.drop_duplicates(keep=keep)
-        tm.assert_index_equal(result_dropped, unique_idx)
-        # validate shallow copy
-        assert result_dropped is not unique_idx
 
         # make duplicated index
         n = len(unique_idx)
@@ -338,6 +331,32 @@ class TestCommon:
         # Series.drop_duplicates is tested separately
         expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
         tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
+
+    def test_drop_duplicates_no_duplicates(self, indices):
+        if isinstance(indices, MultiIndex):
+            pytest.skip("MultiIndex is tested separately")
+
+        # make unique index
+        if isinstance(indices, RangeIndex):
+            # RangeIndex cannot have duplicates
+            unique_idx = indices
+        else:
+            holder = type(indices)
+            unique_values = list(set(indices))
+            unique_idx = holder(unique_values)
+
+        # check on unique index
+        expected_duplicated = np.array([False] * len(unique_idx), dtype="bool")
+        tm.assert_numpy_array_equal(unique_idx.duplicated(), expected_duplicated)
+        result_dropped = unique_idx.drop_duplicates()
+        tm.assert_index_equal(result_dropped, unique_idx)
+        # validate shallow copy
+        assert result_dropped is not unique_idx
+
+    def test_drop_duplicates_inplace(self, indices):
+        msg = r"drop_duplicates\(\) got an unexpected keyword argument"
+        with pytest.raises(TypeError, match=msg):
+            indices.drop_duplicates(inplace=True)
 
     def test_has_duplicates(self, indices):
         holder = type(indices)
