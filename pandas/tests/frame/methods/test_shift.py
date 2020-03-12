@@ -185,3 +185,26 @@ class TestDataFrameShift:
         msg = "Freq was not given and was not set in the index"
         with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
+
+    def test_shift_dt64values_int_fill_deprecated(self):
+        # GH#31971
+        ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
+        df = ser.to_frame()
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.shift(1, fill_value=0)
+
+        expected = pd.Series([pd.Timestamp(0), ser[0]]).to_frame()
+        tm.assert_frame_equal(result, expected)
+
+        # axis = 1
+        df2 = pd.DataFrame({"A": ser, "B": ser})
+        df2._consolidate_inplace()
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = df2.shift(1, axis=1, fill_value=0)
+
+        expected = pd.DataFrame(
+            {"A": [pd.Timestamp(0), pd.Timestamp(0)], "B": df2["A"]}
+        )
+        tm.assert_frame_equal(result, expected)

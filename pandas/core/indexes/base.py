@@ -571,10 +571,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _engine(self):
         # property, for now, slow to look up
 
-        # to avoid a reference cycle, bind `_ndarray_values` to a local variable, so
+        # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
-        _ndarray_values = self._ndarray_values
-        return self._engine_type(lambda: _ndarray_values, len(self))
+        target_values = self._get_engine_target()
+        return self._engine_type(lambda: target_values, len(self))
 
     # --------------------------------------------------------------------
     # Array-Like Methods
@@ -2976,7 +2976,7 @@ class Index(IndexOpsMixin, PandasObject):
                     "backfill or nearest reindexing"
                 )
 
-            indexer = self._engine.get_indexer(target._ndarray_values)
+            indexer = self._engine.get_indexer(target._get_engine_target())
 
         return ensure_platform_int(indexer)
 
@@ -2990,19 +2990,20 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_fill_indexer(
         self, target: "Index", method: str_t, limit=None, tolerance=None
     ) -> np.ndarray:
+
+        target_values = target._get_engine_target()
+
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             engine_method = (
                 self._engine.get_pad_indexer
                 if method == "pad"
                 else self._engine.get_backfill_indexer
             )
-            indexer = engine_method(target._ndarray_values, limit)
+            indexer = engine_method(target_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(
-                target._ndarray_values, indexer, tolerance
-            )
+            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
     def _get_fill_indexer_searchsorted(
@@ -3915,6 +3916,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.values
 
+    def _get_engine_target(self) -> np.ndarray:
+        """
+        Get the ndarray that we can pass to the IndexEngine constructor.
+        """
+        return self._values
+
     @Appender(IndexOpsMixin.memory_usage.__doc__)
     def memory_usage(self, deep: bool = False) -> int:
         result = super().memory_usage(deep=deep)
@@ -4657,7 +4664,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif self.is_all_dates and target.is_all_dates:  # GH 30399
             tgt_values = target.asi8
         else:
-            tgt_values = target._ndarray_values
+            tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), missing
