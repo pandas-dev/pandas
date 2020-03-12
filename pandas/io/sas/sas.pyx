@@ -120,7 +120,7 @@ cdef const uint8_t[:] rdc_decompress(int result_length, const uint8_t[:] inbuff)
 
     cdef:
         uint8_t cmd
-        uint16_t ctrl_bits, ctrl_mask = 0, ofs, cnt
+        uint16_t ctrl_bits = 0, ctrl_mask = 0, ofs, cnt
         int rpos = 0, k
         uint8_t[:] outbuff = np.zeros(result_length, dtype=np.uint8)
         Py_ssize_t ipos = 0, length = len(inbuff)
