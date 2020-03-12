@@ -85,7 +85,7 @@ if you compute the levels and codes yourself, please be careful.
 Values
 ~~~~~~
 
-Pandas extends NumPy's type system with custom types, like ``Categorical`` or
+pandas extends NumPy's type system with custom types, like ``Categorical`` or
 datetimes with a timezone, so we have multiple notions of "values". For 1-D
 containers (``Index`` classes and ``Series``) we have the following convention:
 

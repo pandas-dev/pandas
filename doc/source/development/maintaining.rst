@@ -13,7 +13,7 @@ The main contributing guide is available at :ref:`contributing`.
 Roles
 -----
 
-Pandas uses two levels of permissions: **triage** and **core** team members.
+pandas uses two levels of permissions: **triage** and **core** team members.
 
 Triage members can label and close issues and pull requests.
 
@@ -25,7 +25,7 @@ GitHub publishes the full `list of permissions`_.
 Tasks
 -----
 
-Pandas is largely a volunteer project, so these tasks shouldn't be read as
+pandas is largely a volunteer project, so these tasks shouldn't be read as
 "expectations" of triage and maintainers. Rather, they're general descriptions
 of what it means to be a maintainer.
 

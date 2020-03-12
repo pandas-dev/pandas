@@ -53,7 +53,7 @@ Feel free to ask questions on the `mailing list
 Bug reports and enhancement requests
 ====================================
 
-Bug reports are an important part of making *pandas* more stable. Having a complete bug report
+Bug reports are an important part of making pandas more stable. Having a complete bug report
 will allow others to reproduce the bug and provide insight into fixing. See
 `this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
 `this blogpost <https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
@@ -75,14 +75,14 @@ Bug reports must:
       ...
       ```
 
-#. Include the full version string of *pandas* and its dependencies. You can use the built-in function::
+#. Include the full version string of pandas and its dependencies. You can use the built-in function::
 
       >>> import pandas as pd
       >>> pd.show_versions()
 
 #. Explain why the current behavior is wrong/not desired and what you expect instead.
 
-The issue will then show up to the *pandas* community and be open to comments/ideas from others.
+The issue will then show up to the pandas community and be open to comments/ideas from others.
 
 .. _contributing.github:
 
@@ -90,14 +90,14 @@ Working with the code
 =====================
 
 Now that you have an issue you want to fix, enhancement to add, or documentation to improve,
-you need to learn how to work with GitHub and the *pandas* code base.
+you need to learn how to work with GitHub and the pandas code base.
 
 .. _contributing.version_control:
 
 Version control, Git, and GitHub
 --------------------------------
 
-To the new user, working with Git is one of the more daunting aspects of contributing to *pandas*.
+To the new user, working with Git is one of the more daunting aspects of contributing to pandas.
 It can very quickly become overwhelming, but sticking to the guidelines below will help keep the process
 straightforward and mostly trouble free.  As always, if you are having difficulties please
 feel free to ask for help.
@@ -221,7 +221,7 @@ environment:
   <https://conda.io/miniconda.html>`_
 * Make sure your conda is up to date (``conda update conda``)
 * Make sure that you have :ref:`cloned the repository <contributing.forking>`
-* ``cd`` to the *pandas* source directory
+* ``cd`` to the pandas source directory
 
 We'll now kick off a three-step process:
 
@@ -330,7 +330,7 @@ The above can be simplified to::
 
 This changes your working directory to the shiny-new-feature branch.  Keep any
 changes in this branch specific to one bug or feature so it is clear
-what the branch brings to *pandas*. You can have many shiny-new-features
+what the branch brings to pandas. You can have many shiny-new-features
 and switch in between them using the git checkout command.
 
 When creating this branch, make sure your master branch is up to date with
@@ -349,9 +349,9 @@ you created the branch, check the section on
 Contributing to the documentation
 =================================
 
-Contributing to the documentation benefits everyone who uses *pandas*.
+Contributing to the documentation benefits everyone who uses pandas.
 We encourage you to help us improve the documentation, and
-you don't have to be an expert on *pandas* to do so! In fact,
+you don't have to be an expert on pandas to do so! In fact,
 there are sections of the docs that are worse off after being written by
 experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
@@ -361,7 +361,7 @@ the next person.
    :local:
 
 
-About the *pandas* documentation
+About the pandas documentation
 --------------------------------
 
 The documentation is written in **reStructuredText**, which is almost like writing
@@ -372,7 +372,7 @@ complex changes to the documentation as well.
 
 Some other important things to know about the docs:
 
-* The *pandas* documentation consists of two parts: the docstrings in the code
+* The pandas documentation consists of two parts: the docstrings in the code
   itself and the docs in this folder ``doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
@@ -452,7 +452,7 @@ This will identify methods documented in ``doc/source/reference`` that are not a
 class methods, and existing methods that are not documented in ``doc/source/reference``.
 
 
-Updating a *pandas* docstring
+Updating a pandas docstring
 -----------------------------
 
 When improving a single function or method's docstring, it is not necessarily
@@ -477,7 +477,7 @@ When doing a PR with a docstring update, it is good to post the
 output of the validation script in a comment on github.
 
 
-How to build the *pandas* documentation
+How to build the pandas documentation
 ---------------------------------------
 
 Requirements
@@ -543,7 +543,7 @@ And you'll have the satisfaction of seeing your new and improved documentation!
 Building master branch documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When pull requests are merged into the *pandas* ``master`` branch, the main parts of
+When pull requests are merged into the pandas ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <https://dev.pandas.io>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
@@ -563,7 +563,7 @@ Writing good code is not just about what you write. It is also about *how* you
 write it. During :ref:`Continuous Integration <contributing.ci>` testing, several
 tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
-Thus, good style is a requirement for submitting code to *pandas*.
+Thus, good style is a requirement for submitting code to pandas.
 
 There is a tool in pandas to help contributors verify their changes before
 contributing them to the project::
@@ -601,7 +601,7 @@ set in the ``pandas.compat._optional.VERSIONS`` dict.
 C (cpplint)
 ~~~~~~~~~~~
 
-*pandas* uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
+pandas uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
 standard. Google provides an open source style checker called ``cpplint``, but we
 use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
@@ -652,7 +652,7 @@ fixes manually.
 Python (PEP8 / black)
 ~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
+pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
 `Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
 format throughout the project.
@@ -703,7 +703,7 @@ Note that these commands can be run analogously with ``black``.
 
 Import formatting
 ~~~~~~~~~~~~~~~~~
-*pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
+pandas uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
 
 A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
@@ -778,7 +778,7 @@ Note that if needed, you can skip these checks with ``git commit --no-verify``.
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Please try to maintain backward compatibility. *pandas* has lots of users with lots of
+Please try to maintain backward compatibility. pandas has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
 signatures and add deprecation warnings where needed. Also, add the deprecated sphinx
@@ -825,7 +825,7 @@ See :ref:`contributing.warnings` for more.
 Type hints
 ----------
 
-*pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
+pandas strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
 
 Style guidelines
 ~~~~~~~~~~~~~~~~
@@ -906,9 +906,9 @@ With custom types and inference this is not always possible so exceptions are ma
 pandas-specific types
 ~~~~~~~~~~~~~~~~~~~~~
 
-Commonly used types specific to *pandas* will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
 
-For example, quite a few functions in *pandas* accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
+For example, quite a few functions in pandas accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
 
 .. code-block:: python
 
@@ -922,7 +922,7 @@ This module will ultimately house types for repeatedly used concepts like "path-
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
 
 .. code-block:: shell
 
@@ -933,7 +933,7 @@ Validating type hints
 Testing with continuous integration
 -----------------------------------
 
-The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
+The pandas test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
 `Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__
 continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
@@ -959,7 +959,7 @@ This is an example of a green build.
 Test-driven development/code writing
 ------------------------------------
 
-*pandas* is serious about testing and strongly encourages contributors to embrace
+pandas is serious about testing and strongly encourages contributors to embrace
 `test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
@@ -968,10 +968,10 @@ So, before actually writing any code, you should write your tests.  Often the te
 taken from the original GitHub issue.  However, it is always worth considering additional
 use cases and writing corresponding tests.
 
-Adding tests is one of the most common requests after code is pushed to *pandas*.  Therefore,
+Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, *pandas* uses `pytest
+Like many packages, pandas uses `pytest
 <https://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <https://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
@@ -1018,7 +1018,7 @@ E.g. "# brief comment, see GH#28907"
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
+pandas existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 
@@ -1220,7 +1220,7 @@ Running the test suite
 ----------------------
 
 The tests can then be run directly inside your Git clone (without having to
-install *pandas*) by typing::
+install pandas) by typing::
 
     pytest pandas
 
@@ -1272,9 +1272,9 @@ Running the performance test suite
 ----------------------------------
 
 Performance matters and it is worth considering whether your code has introduced
-performance regressions.  *pandas* is in the process of migrating to
+performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/spacetelescope/asv>`__
-to enable easy monitoring of the performance of critical *pandas* operations.
+to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
 supports both python2 and python3.
 
@@ -1361,7 +1361,7 @@ directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).
 
-Contributing your changes to *pandas*
+Contributing your changes to pandas
 =====================================
 
 .. _contributing.commit-code:
@@ -1386,7 +1386,7 @@ Doing 'git status' again should give something like::
     #       modified:   /relative/path/to/file-you-added.py
     #
 
-Finally, commit your changes to your local repository with an explanatory message.  *Pandas*
+Finally, commit your changes to your local repository with an explanatory message. pandas
 uses a convention for commit message prefixes and layout.  Here are
 some common prefixes along with general guidelines for when to use them:
 
@@ -1434,7 +1434,7 @@ like::
     upstream        git://github.com/pandas-dev/pandas.git (fetch)
     upstream        git://github.com/pandas-dev/pandas.git (push)
 
-Now your code is on GitHub, but it is not yet a part of the *pandas* project.  For that to
+Now your code is on GitHub, but it is not yet a part of the pandas project. For that to
 happen, a pull request needs to be submitted on GitHub.
 
 Review your code
