@@ -17,6 +17,7 @@ Fixed regressions
 
 - Fixed regression in :meth:`DataFrame.to_excel` when ``columns`` kwarg is passed (:issue:`31677`)
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
+- Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` which was failing on frames with MultiIndex columns and a custom function (:issue:`31777`)
 - Fixed regression in ``groupby(..).rolling(..).apply()`` (``RollingGroupby``) where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.rolling.Rolling.corr>` when using a time offset (:issue:`31789`)
 - Fixed regression in :meth:`groupby(..).nunique() <pandas.core.groupby.DataFrameGroupBy.nunique>` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
