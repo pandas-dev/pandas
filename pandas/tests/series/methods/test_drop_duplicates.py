@@ -44,7 +44,6 @@ def test_drop_duplicates_bool(keep, expected):
     tm.assert_series_equal(sc, tc[~expected])
 
 
-@pytest.mark.parametrize("keep", ["first", "last", False])
 @pytest.mark.parametrize("values", [[], list(range(5))])
 def test_drop_duplicates_no_duplicates(any_numpy_dtype, keep, values):
     tc = Series(values, dtype=np.dtype(any_numpy_dtype))

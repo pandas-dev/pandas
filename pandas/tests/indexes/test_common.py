@@ -302,7 +302,6 @@ class TestCommon:
         assert indices.equals(unpickled)
         indices.name = original_name
 
-    @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_drop_duplicates(self, indices, keep):
         if isinstance(indices, MultiIndex):
             pytest.skip("MultiIndex is tested separately")
