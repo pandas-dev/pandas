@@ -327,9 +327,9 @@ def test_transform_transformation_func(transformation_func):
         }
     )
 
-    if transformation_func in ["pad", "backfill", "tshift", "corrwith", "cumcount"]:
+    if transformation_func in ["pad", "backfill", "tshift", "cumcount"]:
         # These transformation functions are not yet covered in this test
-        pytest.xfail("See GH 31269 and GH 31270")
+        pytest.xfail("See GH 31269")
     elif _is_numpy_dev and transformation_func in ["cummin"]:
         pytest.xfail("https://github.com/pandas-dev/pandas/issues/31992")
     elif transformation_func == "fillna":
@@ -1093,8 +1093,10 @@ def test_transform_agg_by_name(reduction_func, obj):
         pytest.xfail("TODO: g.transform('ngroup') doesn't work")
     if func == "size":  # GH#27469
         pytest.xfail("TODO: g.transform('size') doesn't work")
+    if func == "corrwith" and isinstance(obj, Series):  # GH#32293
+        pytest.xfail("TODO: implement SeriesGroupBy.corrwith")
 
-    args = {"nth": [0], "quantile": [0.5]}.get(func, [])
+    args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
 
     result = g.transform(func, *args)
 
