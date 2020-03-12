@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_dtype_equal,
@@ -4652,10 +4651,8 @@ class Index(IndexOpsMixin, PandasObject):
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if is_categorical(target):
+        if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
-        elif self.is_all_dates and target.is_all_dates:  # GH 30399
-            tgt_values = target.asi8
         else:
             tgt_values = target._ndarray_values
 
