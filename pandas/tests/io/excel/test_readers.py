@@ -629,6 +629,17 @@ class TestReaders:
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.check_file_leaks
+    def test_close_from_py_localpath(self, read_ext):
+
+        # GH31467
+        str_path = os.path.join("test1" + read_ext)
+        with open(str_path, "rb") as f:
+            x = pd.read_excel(f, "Sheet1", index_col=0)
+            del x
+            # should not throw an exception because the passed file was closed
+            f.read()
+
     def test_reader_seconds(self, read_ext):
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -1020,10 +1031,10 @@ class TestExcelFileRead:
         tm.assert_frame_equal(expected, actual)
 
     def test_reader_closes_file(self, engine, read_ext):
-        f = open("test1" + read_ext, "rb")
-        with pd.ExcelFile(f) as xlsx:
-            # parses okay
-            pd.read_excel(xlsx, "Sheet1", index_col=0, engine=engine)
+        with open("test1" + read_ext, "rb") as f:
+            with pd.ExcelFile(f) as xlsx:
+                # parses okay
+                pd.read_excel(xlsx, "Sheet1", index_col=0, engine=engine)
 
         assert f.closed
 

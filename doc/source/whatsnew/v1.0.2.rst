@@ -29,6 +29,7 @@ Fixed regressions
 - Fixed regression in the repr of an object-dtype :class:`Index` with bools and missing values (:issue:`32146`)
 - Fixed regression in :meth:`read_csv` in which the ``encoding`` option was not recognized with certain file-like objects (:issue:`31819`)
 - Fixed regression in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with (tz-aware) index and ``method=nearest`` (:issue:`26683`)
+- Fixed regression in :class:`ExcelFile` where the stream passed into the function was closed by the destructor. (:issue:`31467`)
 - Fixed regression in :meth:`DataFrame.reindex_like` on a :class:`DataFrame` subclass raised an  ``AssertionError`` (:issue:`31925`)
 - Fixed regression in :meth:`Series.shift` with ``datetime64`` dtype when passing an integer ``fill_value`` (:issue:`32591`)
 
