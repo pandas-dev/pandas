@@ -303,31 +303,41 @@ class TestCommon:
         indices.name = original_name
 
     @pytest.mark.parametrize("keep", ["first", "last", False])
-    def test_duplicated(self, indices, keep):
+    def test_duplicated_and_drop_duplicates(self, indices, keep):
         if isinstance(indices, (MultiIndex, RangeIndex)):
             # MultiIndex tested separately in:
             # tests/indexes/multi/test_unique_and_duplicates
             pytest.skip("Skip check for MultiIndex, RangeIndex")
 
+        # make unique index
         holder = type(indices)
+        unique_values = list(set(indices))
+        unique_idx = holder(unique_values)
 
-        idx = holder(indices)
-        if idx.has_duplicates:
-            # We are testing the duplicated-method here, so we need to know
-            # exactly which indices are duplicate and how (for the result).
-            # This is not possible if "idx" has duplicates already, which we
-            # therefore remove. This is seemingly circular, as drop_duplicates
-            # invokes duplicated, but in the end, it all works out because we
-            # cross-check with Series.duplicated, which is tested separately.
-            idx = idx.drop_duplicates()
+        # check on unique index
+        expected_duplicated = np.array([False] * len(unique_idx), dtype="bool")
+        tm.assert_numpy_array_equal(
+            unique_idx.duplicated(keep=keep), expected_duplicated
+        )
+        result_dropped = unique_idx.drop_duplicates(keep=keep)
+        tm.assert_index_equal(result_dropped, unique_idx)
+        # validate shallow copy
+        assert result_dropped is not unique_idx
 
-        n, k = len(idx), 10
-        duplicated_selection = np.random.choice(n, k * n)
-        expected = pd.Series(duplicated_selection).duplicated(keep=keep).values
-        idx = holder(idx.values[duplicated_selection])
+        # make duplicated index
+        n = len(unique_idx)
+        duplicated_selection = np.random.choice(n, int(n * 1.5))
+        idx = holder(unique_idx.values[duplicated_selection])
 
-        result = idx.duplicated(keep=keep)
-        tm.assert_numpy_array_equal(result, expected)
+        # Series.duplicated is tested separately
+        expected_duplicated = (
+            pd.Series(duplicated_selection).duplicated(keep=keep).values
+        )
+        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected_duplicated)
+
+        # Series.drop_duplicates is tested separately
+        expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
+        tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
 
     def test_has_duplicates(self, indices):
         holder = type(indices)
