@@ -1083,7 +1083,7 @@ class DataFrameGroupBy(GroupBy):
                         result = type(block.values)._from_sequence(
                             result.ravel(), dtype=block.values.dtype
                         )
-                    except ValueError:
+                    except (ValueError, TypeError):
                         # reshape to be valid for non-Extension Block
                         result = result.reshape(1, -1)
 
