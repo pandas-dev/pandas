@@ -243,6 +243,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result = IntervalMixin.__new__(cls)
         result._data = array
         result.name = name
+        result._cache = {}
         result._no_setting_name = False
         result._reset_identity()
         return result
@@ -332,12 +333,15 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self._data
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        return self._simple_new(values, **attributes)
+
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     @cache_readonly
     def _isnan(self):

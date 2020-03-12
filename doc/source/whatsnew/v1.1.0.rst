@@ -89,9 +89,9 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
   Previously a ``AttributeError`` was raised (:issue:`31126`)
-- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std`` and :meth:`~DataFrameGroupby.var``)
+- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std` and :meth:`~DataFrameGroupby.var`)
   now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
-  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median``) (:issue:`31485`)
+  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
 - Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
 -
@@ -188,9 +188,9 @@ Performance improvements
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
 - Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 - Performance improvement in flex arithmetic ops between :class:`DataFrame` and :class:`Series` with ``axis=0`` (:issue:`31296`)
-- The internal :meth:`Index._shallow_copy` now copies cached attributes over to the new index,
-  avoiding creating these again on the new index. This can speed up many operations
-  that depend on creating copies of existing indexes (:issue:`28584`)
+- The internal index method :meth:`~Index._shallow_copy` now copies cached attributes over to the new index,
+  avoiding creating these again on the new index. This can speed up many operations that depend on creating copies of
+  existing indexes (:issue:`28584`, :issue:`32640`)
 
 .. ---------------------------------------------------------------------------
 

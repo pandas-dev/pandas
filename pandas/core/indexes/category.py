@@ -233,6 +233,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         result._data = values
         result.name = name
+        result._cache = {}
 
         result._reset_identity()
         result._no_setting_name = False
@@ -242,14 +243,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, name: Label = no_default):
-        name = self.name if name is no_default else name
-
-        if values is None:
-            values = self.values
-
-        cat = Categorical(values, dtype=self.dtype)
-
-        return type(self)._simple_new(cat, name=name)
+        if values is not None:
+            values = Categorical(values, dtype=self.dtype)
+        return super()._shallow_copy(values=values, name=name)
 
     def _is_dtype_compat(self, other) -> bool:
         """
