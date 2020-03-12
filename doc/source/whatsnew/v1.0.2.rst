@@ -27,7 +27,7 @@ Fixed regressions
 **I/O**
 
 - Fixed regression in :meth:`read_csv` in which the ``encoding`` option was not recognized with certain file-like objects (:issue:`31819`)
-- Fixed regression in :meth:`DataFrame.to_excel` when the ``columns`` keyword argumnet is passed (:issue:`31677`)
+- Fixed regression in :meth:`DataFrame.to_excel` when the ``columns`` keyword argument is passed (:issue:`31677`)
 - Fixed regression in :class:`ExcelFile` where the stream passed into the function was closed by the destructor. (:issue:`31467`)
 - Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
 
