@@ -31,7 +31,7 @@ Fixed regressions
 - Fixed regression in :class:`ExcelFile` where the stream passed into the function was closed by the destructor. (:issue:`31467`)
 - Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
 
-**Reindexing**
+**Reindexing/alignment**
 
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
 - Fixed regression in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with (tz-aware) index and ``method=nearest`` (:issue:`26683`)
