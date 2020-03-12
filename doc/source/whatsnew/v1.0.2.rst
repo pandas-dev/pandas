@@ -1,6 +1,6 @@
 .. _whatsnew_102:
 
-What's new in 1.0.2 (March 11, 2020)
+What's new in 1.0.2 (March 12, 2020)
 ------------------------------------
 
 These are the changes in pandas 1.0.2. See :ref:`release` for a full changelog
@@ -15,23 +15,34 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
-- Fixed regression in :meth:`DataFrame.to_excel` when ``columns`` kwarg is passed (:issue:`31677`)
-- Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
+**Groupby**
+
 - Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` which was failing on frames with MultiIndex columns and a custom function (:issue:`31777`)
 - Fixed regression in ``groupby(..).rolling(..).apply()`` (``RollingGroupby``) where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.rolling.Rolling.corr>` when using a time offset (:issue:`31789`)
 - Fixed regression in :meth:`groupby(..).nunique() <pandas.core.groupby.DataFrameGroupBy.nunique>` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
 - Fixed regression in ``DataFrame.groupby`` raising a ``ValueError`` from an internal operation (:issue:`31802`)
-- Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
-- Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
 - Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` calling a user-provided function an extra time on an empty input (:issue:`31760`)
-- Fixed regression in joining on :class:`DatetimeIndex` or :class:`TimedeltaIndex` to preserve ``freq`` in simple cases (:issue:`32166`)
-- Fixed regression in the repr of an object-dtype :class:`Index` with bools and missing values (:issue:`32146`)
+
+**I/O**
+
 - Fixed regression in :meth:`read_csv` in which the ``encoding`` option was not recognized with certain file-like objects (:issue:`31819`)
-- Fixed regression in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with (tz-aware) index and ``method=nearest`` (:issue:`26683`)
+- Fixed regression in :meth:`DataFrame.to_excel` when the ``columns`` keyword argument is passed (:issue:`31677`)
 - Fixed regression in :class:`ExcelFile` where the stream passed into the function was closed by the destructor. (:issue:`31467`)
+- Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
+
+**Reindexing/alignment**
+
+- Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
+- Fixed regression in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with (tz-aware) index and ``method=nearest`` (:issue:`26683`)
 - Fixed regression in :meth:`DataFrame.reindex_like` on a :class:`DataFrame` subclass raised an  ``AssertionError`` (:issue:`31925`)
+- Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
+
+**Other**
+
+- Fixed regression in joining on :class:`DatetimeIndex` or :class:`TimedeltaIndex` to preserve ``freq`` in simple cases (:issue:`32166`)
 - Fixed regression in :meth:`Series.shift` with ``datetime64`` dtype when passing an integer ``fill_value`` (:issue:`32591`)
+- Fixed regression in the repr of an object-dtype :class:`Index` with bools and missing values (:issue:`32146`)
 
 
 .. ---------------------------------------------------------------------------
