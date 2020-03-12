@@ -231,6 +231,9 @@ class ExtensionIndex(Index):
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
 
+    def _get_engine_target(self) -> np.ndarray:
+        return self._data._values_for_argsort()
+
     @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
         if how not in ("any", "all"):
