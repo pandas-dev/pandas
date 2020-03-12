@@ -2287,11 +2287,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return np.atleast_2d(result)
 
     def should_store(self, value) -> bool:
-        return (
-            issubclass(value.dtype.type, np.datetime64)
-            and not is_datetime64tz_dtype(value)
-            and not is_extension_array_dtype(value)
-        )
+        return is_datetime64_dtype(value.dtype)
 
     def set(self, locs, values):
         """
@@ -2539,9 +2535,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return super().fillna(value, **kwargs)
 
     def should_store(self, value) -> bool:
-        return issubclass(
-            value.dtype.type, np.timedelta64
-        ) and not is_extension_array_dtype(value)
+        return is_timedelta64_dtype(value.dtype)
 
     def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """

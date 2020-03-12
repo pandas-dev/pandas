@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_period_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
@@ -484,7 +483,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             if is_categorical_dtype(other):
                 # e.g. we have a Categorical holding self.dtype
-                if needs_i8_conversion(other.categories):
+                if is_dtype_equal(other.categories.dtype, self.dtype):
                     other = other._internal_get_values()
 
             if not is_dtype_equal(self.dtype, other.dtype):
