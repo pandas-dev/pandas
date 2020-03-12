@@ -1055,3 +1055,11 @@ class TestExcelFileRead:
 
         actual = pd.read_excel(data, engine=engine)
         tm.assert_frame_equal(expected, actual)
+
+    def test_excel_high_surrogate(self, engine):
+        # GH 23809
+        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
+
+        # should not produce a segmentation violation
+        actual = pd.read_excel("high_surrogate.xlsx")
+        tm.assert_frame_equal(expected, actual)
