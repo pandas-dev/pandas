@@ -249,7 +249,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
     Returns
     -------
     str or None
-        None if no discernible frequency
+        None if no discernible frequency.
 
     Raises
     ------
