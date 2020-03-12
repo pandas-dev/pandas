@@ -18,12 +18,10 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
-    is_float,
     is_integer,
     is_list_like,
     is_period_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
@@ -377,32 +375,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _convert_scalar_indexer(self, key, kind: str):
-        """
-        We don't allow integer or float indexing on datetime-like when using
-        loc.
-
-        Parameters
-        ----------
-        key : label of the slice bound
-        kind : {'loc', 'getitem'}
-        """
-        assert kind in ["loc", "getitem"]
-
-        if not is_scalar(key):
-            raise TypeError(key)
-
-        # we don't allow integer/float indexing for loc
-        # we don't allow float indexing for getitem
-        is_int = is_integer(key)
-        is_flt = is_float(key)
-        if kind == "loc" and (is_int or is_flt):
-            raise KeyError(key)
-        elif kind == "getitem" and is_flt:
-            raise KeyError(key)
-
-        return super()._convert_scalar_indexer(key, kind=kind)
-
     def _validate_partial_date_slice(self, reso: str):
         raise NotImplementedError
 
@@ -511,7 +483,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             if is_categorical_dtype(other):
                 # e.g. we have a Categorical holding self.dtype
-                if needs_i8_conversion(other.categories):
+                if is_dtype_equal(other.categories.dtype, self.dtype):
                     other = other._internal_get_values()
 
             if not is_dtype_equal(self.dtype, other.dtype):
@@ -520,7 +492,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             other = other.view("i8")
 
         result = np.where(cond, values, other).astype("i8")
-        return self._shallow_copy(result)
+        arr = type(self._data)._simple_new(result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
 
     def _summary(self, name=None) -> str:
         """
@@ -644,6 +617,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
+        cache = self._cache.copy() if values is None else {}
 
         if values is None:
             values = self._data
@@ -662,7 +636,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                     del attributes["freq"]
 
         attributes["name"] = name
-        return type(self)._simple_new(values, **attributes)
+        result = self._simple_new(values, **attributes)
+        result._cache = cache
+        return result
 
     # --------------------------------------------------------------------
     # Set Operation Methods

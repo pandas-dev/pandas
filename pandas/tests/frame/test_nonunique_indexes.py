@@ -474,8 +474,8 @@ class TestDataFrameNonuniqueIndexes:
         )
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
-        assert len(df._data._blknos) == len(df.columns)
-        assert len(df._data._blklocs) == len(df.columns)
+        assert len(df._data.blknos) == len(df.columns)
+        assert len(df._data.blklocs) == len(df.columns)
 
         # testing iloc
         for i in range(len(df.columns)):

@@ -233,6 +233,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         result._data = values
         result.name = name
+        result._cache = {}
 
         result._reset_identity()
         result._no_setting_name = False
@@ -242,14 +243,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, name: Label = no_default):
-        name = self.name if name is no_default else name
-
-        if values is None:
-            values = self.values
-
-        cat = Categorical(values, dtype=self.dtype)
-
-        return type(self)._simple_new(cat, name=name)
+        if values is not None:
+            values = Categorical(values, dtype=self.dtype)
+        return super()._shallow_copy(values=values, name=name)
 
     def _is_dtype_compat(self, other) -> bool:
         """
@@ -363,10 +359,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         hash(key)
         return contains(self, key, container=self._engine)
-
-    def __array__(self, dtype=None) -> np.ndarray:
-        """ the array interface, return my values """
-        return np.array(self._data, dtype=dtype)
 
     @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
@@ -573,16 +565,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
-
-    @Appender(Index._convert_scalar_indexer.__doc__)
-    def _convert_scalar_indexer(self, key, kind: str):
-        assert kind in ["loc", "getitem"]
-        if kind == "loc":
-            try:
-                return self.categories._convert_scalar_indexer(key, kind="loc")
-            except TypeError:
-                raise KeyError(key)
-        return super()._convert_scalar_indexer(key, kind=kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr):
