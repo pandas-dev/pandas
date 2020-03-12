@@ -114,7 +114,7 @@ def convert_pandas_type_to_json_field(arr, dtype=None):
         field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
     elif is_period_dtype(arr):
-        field["freq"] = arr.freqstr
+        field["freq"] = arr.dtype.freq.freqstr
     elif is_datetime64tz_dtype(arr):
         if hasattr(arr, "dt"):
             field["tz"] = arr.dt.tz.zone
