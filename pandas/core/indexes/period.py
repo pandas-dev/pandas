@@ -20,10 +20,10 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -301,7 +301,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         Can we compare values of the given dtype to our own?
         """
-        if not is_period_dtype(dtype):
+        if not isinstance(dtype, PeriodDtype):
             return False
         return dtype.freq == self.freq
 
