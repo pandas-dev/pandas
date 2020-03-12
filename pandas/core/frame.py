@@ -3637,7 +3637,7 @@ class DataFrame(NDFrame):
         # Pop these, since the values are in `kwargs` under different names
         kwargs.pop("axis", None)
         kwargs.pop("labels", None)
-        return self._ensure_type(super().reindex(**kwargs))
+        return super().reindex(**kwargs)
 
     def drop(
         self,
@@ -3955,8 +3955,8 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
-        return self._ensure_type(
-            super().shift(periods=periods, freq=freq, axis=axis, fill_value=fill_value)
+        return super().shift(
+            periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
 
     def set_index(
@@ -5903,7 +5903,8 @@ Wild         185.0
             If dict is passed, the key is column to aggregate and value
             is function or list of functions.
         fill_value : scalar, default None
-            Value to replace missing values with.
+            Value to replace missing values with (in the resulting pivot table,
+            after aggregation).
         margins : bool, default False
             Add all row / columns (e.g. for subtotal / grand totals).
         dropna : bool, default True
@@ -8409,14 +8410,12 @@ Wild         185.0
             from pandas.core.reshape.concat import concat
 
             values = collections.defaultdict(list, values)
-            return self._ensure_type(
-                concat(
-                    (
-                        self.iloc[:, [i]].isin(values[col])
-                        for i, col in enumerate(self.columns)
-                    ),
-                    axis=1,
-                )
+            return concat(
+                (
+                    self.iloc[:, [i]].isin(values[col])
+                    for i, col in enumerate(self.columns)
+                ),
+                axis=1,
             )
         elif isinstance(values, Series):
             if not values.index.is_unique:
