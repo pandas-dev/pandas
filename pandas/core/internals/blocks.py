@@ -1917,10 +1917,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return super().diff(n, axis)
 
     def shift(
-        self,
-        periods: int,
-        axis: libinternals.BlockPlacement = 0,
-        fill_value: Any = None,
+        self, periods: int, axis: int = 0, fill_value: Any = None,
     ) -> List["ExtensionBlock"]:
         """
         Shift the block by `periods`.
@@ -2173,13 +2170,19 @@ class DatetimeLikeBlockMixin:
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
-        # TODO: this can be removed if we ever have 2D EA
+        # TODO(EA2D): this can be removed if we ever have 2D EA
         result = super().iget(key)
         if isinstance(result, np.datetime64):
             result = Timestamp(result)
         elif isinstance(result, np.timedelta64):
             result = Timedelta(result)
         return result
+
+    def shift(self, periods, axis=0, fill_value=None):
+        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
+        values = self.array_values()
+        new_values = values.shift(periods, fill_value=fill_value, axis=axis)
+        return self.make_block_same_class(new_values)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
