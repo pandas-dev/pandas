@@ -92,6 +92,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrame.convert_dtypes` where ``BooleanDtype`` columns were converted to ``Int64`` (:issue:`32287`)
 - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
 - Fixed bug where :meth:`pandas.core.groupby.GroupBy.first` and :meth:`pandas.core.groupby.GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
+- Fixed bug where :meth:`DataFrameGroupBy.mean`, :meth:`DataFrameGroupBy.median`, :meth:`DataFrameGroupBy.var`, and :meth:`DataFrameGroupBy.std` would raise a ``TypeError`` on ``Int64`` dtype columns (:issue:`32219`)
 
 **Strings**
 
