@@ -919,3 +919,15 @@ class Base:
 
         with pytest.raises(TypeError):
             {} in idx._engine
+
+    def test_shallow_copy_copies_cache(self):
+        # GH32669
+        idx = self.create_index()
+        idx.get_loc(idx[0])  # initiate the _engine etc.
+        shallow_copy = idx._shallow_copy()
+        # check that the shallow_copied cache is a copy of the original
+        assert idx._cache == shallow_copy._cache
+        assert idx._cache is not shallow_copy._cache
+        # the cache values should reference the same objects
+        for key, val in idx._cache.items():
+            assert shallow_copy._cache[key] is val

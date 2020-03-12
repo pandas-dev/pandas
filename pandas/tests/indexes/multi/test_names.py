@@ -7,6 +7,7 @@ import pandas._testing as tm
 
 def check_level_names(index, names):
     assert [level.name for level in index.levels] == list(names)
+    assert index.names == list(names)
 
 
 def test_slice_keep_name():

@@ -276,6 +276,7 @@ class MultiIndex(Index):
             raise ValueError("Must pass non-zero number of levels/codes")
 
         result = object.__new__(MultiIndex)
+        result._cache = {}
 
         # we've already validated levels and codes, so shortcut here
         result._set_levels(levels, copy=copy, validate=False)
@@ -689,7 +690,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Levels Methods
 
-    @cache_readonly
+    @property
     def levels(self):
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
@@ -991,7 +992,10 @@ class MultiIndex(Index):
             # discards freq
             kwargs.pop("freq", None)
             return MultiIndex.from_tuples(values, names=names, **kwargs)
-        return self.copy(**kwargs)
+
+        result = self.copy(**kwargs)
+        result._cache = self._cache.copy()
+        return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
         # On equal MultiIndexes the difference is empty.
