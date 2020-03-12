@@ -136,6 +136,23 @@ index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
 """
         assert result == expected
 
+    def test_to_latex_with_formatters_col(self):
+        data = [[1, 2, 3], [4, 5, 6], [7, 8, 9.001]]
+        df = DataFrame(data, columns=["a", "b", "c"], index=["foo", "bar", "foobar"])
+
+        result = df.to_latex(formatters_col=["%1i", "%1.1f", "%1.3f"])
+        expected = r"""\begin{tabular}{lrrr}
+\toprule
+{} &     a &     b &     c \\
+\midrule
+foo    & 1.000 & 2.000 & 3.000 \\
+bar    & 4.000 & 5.000 & 6.000 \\
+foobar & 7.000 & 8.000 & 9.001 \\
+\bottomrule
+\end{tabular}
+"""
+        assert result == expected
+
     def test_to_latex_multiindex(self):
         df = DataFrame({("x", "y"): ["a"]})
         result = df.to_latex()

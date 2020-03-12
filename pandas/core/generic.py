@@ -2762,6 +2762,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index=True,
         na_rep="NaN",
         formatters=None,
+        formatters_col=None,
         float_format=None,
         sparsify=None,
         index_names=True,
@@ -2809,6 +2810,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
+        formatter_col: list of str, optional
+            Formatter elements. The result of each function must be a unicode string. 
+            List must be of length equal to the number. This applies the changes in the original 
+            order of the columns.
         float_format : one-parameter function or str, optional, default None
             Formatter for floating point numbers. For example
             ``float_format="%%.2f"`` and ``float_format="{:0.2f}".format`` will
@@ -2896,6 +2901,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multicolumn_format = config.get_option("display.latex.multicolumn_format")
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
+
+        # formatters is a list
+        if formatters_col:
+            formatters = [lambda x: style % x for style in formatters_col]
 
         formatter = DataFrameFormatter(
             self,
