@@ -4195,7 +4195,7 @@ Name: Max Speed, dtype: float64
         >>> s.memory_usage()
         144
         >>> s.memory_usage(deep=True)
-        260
+        252
         """
         v = super().memory_usage(deep=deep)
         if index:
