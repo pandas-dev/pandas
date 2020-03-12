@@ -194,9 +194,10 @@ Apply a function `func` with arguments to this %(klass)s object and return the r
 
 %(versionadded)s
 
+Instead of writing:
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
-Instead of writing.
+
 
 >>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
 
