@@ -2647,7 +2647,7 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         ex1 = np.array([0, 3, 1, 4, 2, 5] * 2, dtype=np.intp)
         ex2 = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], ex1)
-        tm.assert_numpy_array_equal(result[1], ex2)
+        tm.assert_numpy_array_equal(result[1], ex2.astype(np.int64))
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)
