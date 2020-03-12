@@ -17,6 +17,7 @@ Fixed regressions
 
 - Fixed regression in :meth:`DataFrame.to_excel` when ``columns`` kwarg is passed (:issue:`31677`)
 - Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
+- Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` which was failing on frames with MultiIndex columns and a custom function (:issue:`31777`)
 - Fixed regression in ``groupby(..).rolling(..).apply()`` (``RollingGroupby``) where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.rolling.Rolling.corr>` when using a time offset (:issue:`31789`)
 - Fixed regression in :meth:`groupby(..).nunique() <pandas.core.groupby.DataFrameGroupBy.nunique>` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
@@ -28,6 +29,8 @@ Fixed regressions
 - Fixed regression in the repr of an object-dtype :class:`Index` with bools and missing values (:issue:`32146`)
 - Fixed regression in :meth:`read_csv` in which the ``encoding`` option was not recognized with certain file-like objects (:issue:`31819`)
 - Fixed regression in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with (tz-aware) index and ``method=nearest`` (:issue:`26683`)
+- Fixed regression in :meth:`DataFrame.reindex_like` on a :class:`DataFrame` subclass raised an  ``AssertionError`` (:issue:`31925`)
+- Fixed regression in :meth:`Series.shift` with ``datetime64`` dtype when passing an integer ``fill_value`` (:issue:`32591`)
 
 
 .. ---------------------------------------------------------------------------
@@ -90,6 +93,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrame.convert_dtypes` where ``BooleanDtype`` columns were converted to ``Int64`` (:issue:`32287`)
 - Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
 - Fixed bug where :meth:`pandas.core.groupby.GroupBy.first` and :meth:`pandas.core.groupby.GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
+- Fixed bug where :meth:`DataFrameGroupBy.mean`, :meth:`DataFrameGroupBy.median`, :meth:`DataFrameGroupBy.var`, and :meth:`DataFrameGroupBy.std` would raise a ``TypeError`` on ``Int64`` dtype columns (:issue:`32219`)
 
 **Strings**
 
