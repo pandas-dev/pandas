@@ -335,7 +335,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
-        cache = self._cache if values is None else {}
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self._data
 
