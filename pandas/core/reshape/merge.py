@@ -45,6 +45,7 @@ from pandas.core import groupby
 import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import _recode_for_categories
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
@@ -1820,9 +1821,14 @@ def _right_outer_join(x, y, max_groups):
 
 def _factorize_keys(lk, rk, sort=True):
     # Some pre-processing for non-ndarray lk / rk
-    if is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
-        lk = getattr(lk, "_values", lk)._data
-        rk = getattr(rk, "_values", rk)._data
+    lk = extract_array(lk, extract_numpy=True)
+    rk = extract_array(rk, extract_numpy=True)
+
+    if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
+        # Extract the ndarray (UTC-localized) values
+        # Note: we dont need the dtypes to match, as these can still be compared
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
 
     elif (
         is_categorical_dtype(lk) and is_categorical_dtype(rk) and lk.is_dtype_equal(rk)
@@ -1837,11 +1843,7 @@ def _factorize_keys(lk, rk, sort=True):
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
 
-    elif (
-        is_extension_array_dtype(lk.dtype)
-        and is_extension_array_dtype(rk.dtype)
-        and lk.dtype == rk.dtype
-    ):
+    elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         lk, _ = lk._values_for_factorize()
         rk, _ = rk._values_for_factorize()
 
@@ -1849,15 +1851,15 @@ def _factorize_keys(lk, rk, sort=True):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
         klass = libhashtable.Int64Factorizer
-        lk = ensure_int64(com.values_from_object(lk))
-        rk = ensure_int64(com.values_from_object(rk))
-    elif issubclass(lk.dtype.type, (np.timedelta64, np.datetime64)) and issubclass(
-        rk.dtype.type, (np.timedelta64, np.datetime64)
-    ):
+        lk = ensure_int64(np.asarray(lk))
+        rk = ensure_int64(np.asarray(rk))
+
+    elif needs_i8_conversion(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         # GH#23917 TODO: Needs tests for non-matching dtypes
         klass = libhashtable.Int64Factorizer
-        lk = ensure_int64(com.values_from_object(lk))
-        rk = ensure_int64(com.values_from_object(rk))
+        lk = ensure_int64(np.asarray(lk, dtype=np.int64))
+        rk = ensure_int64(np.asarray(rk, dtype=np.int64))
+
     else:
         klass = libhashtable.Factorizer
         lk = ensure_object(lk)
