@@ -587,6 +587,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             if getattr(self.dtype, "tz", None) is None:
                 return self.tz_localize(new_tz)
             result = self.tz_convert(new_tz)
+            if copy:
+                result = result.copy()
             if new_tz is None:
                 # Do we want .astype('datetime64[ns]') to be an ndarray.
                 # The astype in Block._astype expects this to return an
@@ -988,7 +990,7 @@ default 'raise'
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
         objects.

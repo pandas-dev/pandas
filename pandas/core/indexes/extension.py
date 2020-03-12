@@ -225,9 +225,15 @@ class ExtensionIndex(Index):
 
     # ---------------------------------------------------------------------
 
+    def __array__(self, dtype=None) -> np.ndarray:
+        return np.asarray(self._data, dtype=dtype)
+
     @property
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
+
+    def _get_engine_target(self) -> np.ndarray:
+        return self._data._values_for_argsort()
 
     @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
