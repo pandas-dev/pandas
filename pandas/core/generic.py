@@ -4788,9 +4788,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-        random_state : int or numpy.random.RandomState, optional
-            Seed for the random number generator (if int), or numpy RandomState
-            object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
+            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
+            random number generator
+            If np.random.RandomState, use as numpy RandomState object.
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).

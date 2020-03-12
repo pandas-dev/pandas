@@ -3,11 +3,14 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p17
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
+import pandas.core.common as com
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -653,6 +656,24 @@ class TestNDFrame:
         s4 = Series([1, 0], index=[1, 2])
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
+
+        # Check that random_state arguments are processed correctly
+        df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
+        seed_arr = np.random.randint(4, size=10)
+        tm.assert_frame_equal(
+            df.sample(n=3, random_state=com.random_state(seed_arr)),
+            df.sample(n=3, random_state=seed_arr),
+        )
+
+        if not _np_version_under1p17:
+            tm.assert_frame_equal(
+                df.sample(n=3, random_state=com.random_state(np.random.MT19937(3))),
+                df.sample(n=3, random_state=np.random.MT19937(3)),
+            )
+            tm.assert_frame_equal(
+                df.sample(n=3, random_state=com.random_state(np.random.PCG64(11))),
+                df.sample(n=3, random_state=np.random.PCG64(11)),
+            )
 
     def test_squeeze(self):
         # noop
