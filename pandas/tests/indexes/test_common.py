@@ -304,10 +304,10 @@ class TestCommon:
 
     @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, indices, keep):
-        if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):
+        if isinstance(indices, (MultiIndex, RangeIndex)):
             # MultiIndex tested separately in:
             # tests/indexes/multi/test_unique_and_duplicates
-            pytest.skip("Skip check for empty Index, MultiIndex, RangeIndex")
+            pytest.skip("Skip check for MultiIndex, RangeIndex")
 
         holder = type(indices)
 
