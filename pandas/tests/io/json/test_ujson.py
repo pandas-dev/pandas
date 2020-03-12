@@ -48,6 +48,18 @@ def numpy(request):
     return request.param
 
 
+def get_int32_compat_dtype(numpy, orient):
+    # See GH#32527
+    dtype = np.int64
+    if not ((numpy is None or orient == "index") or (numpy is True and orient is None)):
+        if compat.is_platform_windows():
+            dtype = np.int32
+        else:
+            dtype = np.intp
+
+    return dtype
+
+
 class TestUltraJSONTests:
     @pytest.mark.skipif(
         compat.is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
@@ -833,11 +845,7 @@ class TestPandasJSONTests:
         if orient == "records" and numpy:
             pytest.skip("Not idiomatic pandas")
 
-        dtype = np.intp if not compat.is_platform_windows() else np.int32
-        if numpy is None or orient == "index":
-            dtype = np.int64
-        if numpy is True and orient is None:
-            dtype = np.int64
+        dtype = get_int32_compat_dtype(numpy, orient)
 
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6]],
@@ -909,11 +917,7 @@ class TestPandasJSONTests:
         tm.assert_frame_equal(output, df)
 
     def test_series(self, orient, numpy):
-        dtype = np.intp if not compat.is_platform_windows() else np.int32
-        if numpy is None or orient == "index":
-            dtype = np.int64
-        if numpy is True and orient is None:
-            dtype = np.int64
+        dtype = get_int32_compat_dtype(numpy, orient)
         s = Series(
             [10, 20, 30, 40, 50, 60],
             name="series",
