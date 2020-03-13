@@ -77,7 +77,8 @@ def to_offset(freq) -> Optional[DateOffset]:
     or datetime.timedelta object.
 
     Note: Int values return as follows (Matching dateutil.rrule)
-        0 = YEARLY, 1 = MONTHLY, 2 = WEEKLY, 3 = DAILY, 4 = HOURLY, 5 = MINUTELY, 6 = SECONDLY
+        0 = YEARLY, 1 = MONTHLY, 2 = WEEKLY, 3 = DAILY, 4 = HOURLY,
+         5 = MINUTELY, 6 = SECONDLY
 
     Parameters
     ----------
@@ -155,13 +156,15 @@ def to_offset(freq) -> Optional[DateOffset]:
 
     elif isinstance(freq, int):
         stride = 1
-        options = {0 : {"name": DateOffset(years=1)},
-                   1 : {"name": "M"},
-                   2 : {"name": "7D"},
-                   3 : {"name": "D"},
-                   4 : {"name": "H"},
-                   5 : {"name": "T"},
-                   6 : {"name": "S"}}
+        options = {
+            0: {"name": DateOffset(years=1)},
+            1: {"name": "M"},
+            2: {"name": "7D"},
+            3: {"name": "D"},
+            4: {"name": "H"},
+            5: {"name": "T"},
+            6: {"name": "S"},
+        }
         try:
             delta = to_offset(options[freq]["name"])
         except KeyError as err:
