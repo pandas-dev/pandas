@@ -544,7 +544,7 @@ class TestBlockManager:
     @pytest.mark.parametrize(
         "dtype", ["f8", "i8", "object", "bool", "complex", "M8[ns]", "m8[ns]"]
     )
-    def test_interleave(self, mgr_string, dtype):
+    def test_interleave_dtype(self, mgr_string, dtype):
         mgr = create_mgr(mgr_string.format(dtype=dtype))
         assert mgr.as_array().dtype == dtype
 
