@@ -286,7 +286,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
-    q : int or list-like of int
+    q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
     labels : array or False, default None
