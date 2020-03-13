@@ -27,8 +27,8 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_integer,
     is_object_dtype,
     is_scalar,
@@ -313,7 +313,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             dtype = dtype.subtype
 
         if index is not None and not is_scalar(data):
-            raise Exception("must only pass scalars with an index ")
+            raise Exception("must only pass scalars with an index")
 
         if is_scalar(data):
             if index is not None:
@@ -371,9 +371,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             data = extract_array(data, extract_numpy=True)
             if not isinstance(data, np.ndarray):
                 # EA
-                if is_extension_array_dtype(data.dtype):
-                    raise NotImplementedError("Cannot losslessly convert to ndarray")
-                # otherwise we have DatetimeArray or TimedeltaArray
+                if is_datetime64tz_dtype(data.dtype):
+                    warnings.warn(
+                        f"Creating SparseArray from {data.dtype} data "
+                        "loses timezone information.  Cast to object before "
+                        "sparse to retain timezone information.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    data = np.asarray(data, dtype="datetime64[ns]")
                 data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value, dtype=dtype
