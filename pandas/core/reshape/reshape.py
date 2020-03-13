@@ -985,12 +985,7 @@ def _get_dummies_1d(
     if prefix is None:
         dummy_cols = levels
     else:
-
-        # PY2 embedded unicode, gh-22084
-        def _make_col_name(prefix, prefix_sep, level) -> str:
-            return f"{prefix}{prefix_sep}{level}"
-
-        dummy_cols = [_make_col_name(prefix, prefix_sep, level) for level in levels]
+        dummy_cols = [f"{prefix}{prefix_sep}{level}" for level in levels]
 
     index: Optional[Index]
     if isinstance(data, Series):
