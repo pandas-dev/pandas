@@ -347,7 +347,6 @@ class Timestamp(_Timestamp):
         cls,
         object ts_input=_no_input,
         object freq=None,
-        tz=None,
         unit=None,
         year=None,
         month=None,
@@ -357,8 +356,9 @@ class Timestamp(_Timestamp):
         second=None,
         microsecond=None,
         nanosecond=None,
-        tzinfo=None,
         *,
+        tz=None,
+        tzinfo=None,
         fold=None
     ):
         # The parameter list folds together legacy parameter names (the first
@@ -470,10 +470,9 @@ class Timestamp(_Timestamp):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
-            ts_input = datetime(ts_input, freq, tz, unit or 0,
-                                year or 0, month or 0, day or 0, fold=fold or 0)
-            nanosecond = hour
-            tz = minute
+            ts_input = datetime(ts_input, freq, unit,
+                                year or 0, month or 0, day or 0, hour or 0, fold=fold or 0)
+            nanosecond = minute
             freq = None
 
         if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:

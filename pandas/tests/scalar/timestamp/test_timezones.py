@@ -416,3 +416,32 @@ class TestTimestampTZOperations:
         expected = _datetime.timetz()
 
         assert result == expected
+
+
+class TestConstructorWithTZ:
+    def test_timestamp_creating_with_tz_or_tzinfo_only_date(self):
+        stamp = Timestamp(2019, 1, 1, tzinfo=pytz.timezone("EST5EDT"))
+        stamp2 = Timestamp(2019, 1, 1, tz="EST5EDT")
+        expected = datetime(2019, 1, 1, tzinfo=pytz.timezone("EST5EDT"))
+        assert stamp == expected
+        assert stamp2 == expected
+
+    def test_timestamp_creating_with_tz_or_tzinfo_all_fields(self):
+        stamp = Timestamp(2019, 1, 1, 1, 1, 1, 1, tzinfo=pytz.timezone("EST5EDT"))
+        stamp2 = Timestamp(2019, 1, 1, 1, 1, 1, 1, tz="EST5EDT")
+        expected = datetime(2019, 1, 1, 1, 1, 1, 1, pytz.timezone("EST5EDT"))
+        assert stamp == expected
+        assert stamp2 == expected
+
+    def test_timestamp_tzinfo_has_affect(self):
+        stamp = Timestamp(2019, 1, 1, 1, tzinfo=pytz.timezone("EST5EDT"))
+        stamp2 = Timestamp(2019, 1, 1, 1, tz="UTC")
+        assert stamp != stamp2
+
+    def test_creating_with_nano(self):
+        stamp = Timestamp(2019, 1, 2, 3, 4, 5, 6, 7, tzinfo=pytz.timezone("UTC"))
+        assert str(stamp) == "2019-01-02 03:04:05.000006007+00:00"
+
+    def test_creating_with_kwargs(self):
+        stamp = Timestamp(year=2019, month=1, day=2, hour=3, minute=4, second=5, microsecond=6, nanosecond=7, tz="UTC")
+        assert str(stamp) == "2019-01-02 03:04:05.000006007+00:00"
