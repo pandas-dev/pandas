@@ -1107,8 +1107,8 @@ def assert_series_equal(
     if check_series_type:
         # TODO: There are some tests using rhs is sparse
         # lhs is dense. Should use assert_class_equal in future
-        assert isinstance(
-            left, type(right)
+        assert type(left) is type(
+            right
         ), f"Series type not equal: {type(left)} vs {type(right)}"
         # assert_class_equal(left, right, obj=obj)
 
