@@ -268,6 +268,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         result = object.__new__(cls)
         result._data = dtarr
         result.name = name
+        result._cache = {}
         result._no_setting_name = False
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = dtarr._data
