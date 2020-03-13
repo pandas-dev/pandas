@@ -994,10 +994,10 @@ class MultiIndex(Index):
             return MultiIndex.from_tuples(values, names=names, **kwargs)
 
         result = self.copy(**kwargs)
-        cache = self._cache.copy()
-        if "levels" in cache:
-            cache["levels"] = FrozenList(lev._shallow_copy() for lev in cache["levels"])
-        result._cache = cache
+        result._cache = self._cache.copy()
+        # GH32669
+        if "levels" in result._cache:
+            del result._cache["levels"]
         return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
