@@ -1092,20 +1092,39 @@ class TestDatetime64Arithmetic:
 
             msg = (
                 r"unsupported operand type\(s\) for -: "
-                "'(Timestamp|DatetimeArray)' and 'datetime.time'",
+                "'(Timestamp|DatetimeArray)' and 'datetime.time'"
             )
             with pytest.raises(TypeError, match=msg):
                 # sub
                 obj1 - obj2
 
+            msg = "|".join(
+                [
+                    "cannot subtract DatetimeArray from ndarray",
+                    "ufunc 'subtract' cannot use operands with types "
+                    r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
+                ]
+            )
             with pytest.raises(TypeError, match=msg):
                 # sub
                 obj2 - obj1
 
+            msg = (
+                r"unsupported operand type\(s\) for \+: "
+                "'(Timestamp|DatetimeArray)' and 'datetime.time'"
+            )
             with pytest.raises(TypeError, match=msg):
                 # add
                 obj1 + obj2
 
+            msg = "|".join(
+                [
+                    r"unsupported operand type\(s\) for \+: "
+                    "'(Timestamp|DatetimeArray)' and 'datetime.time'",
+                    "ufunc 'add' cannot use operands with types "
+                    r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
+                ]
+            )
             with pytest.raises(TypeError, match=msg):
                 # add
                 obj2 + obj1
