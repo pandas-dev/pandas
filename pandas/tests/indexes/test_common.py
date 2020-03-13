@@ -310,6 +310,11 @@ class TestCommon:
                 "RangeIndex is tested in test_drop_duplicates_no_duplicates"
                 " as it cannot hold duplicates"
             )
+        if len(indices) == 0:
+            pytest.skip(
+                "empty index is tested in test_drop_duplicates_no_duplicates"
+                " as it cannot hold duplicates"
+            )
 
         # make unique index
         holder = type(indices)
