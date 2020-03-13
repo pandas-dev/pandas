@@ -690,7 +690,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Levels Methods
 
-    @property
+    @cache_readonly
     def levels(self):
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
@@ -994,7 +994,10 @@ class MultiIndex(Index):
             return MultiIndex.from_tuples(values, names=names, **kwargs)
 
         result = self.copy(**kwargs)
-        result._cache = self._cache.copy()
+        cache = self._cache.copy()
+        if "levels" in cache:
+            cache["levels"] = FrozenList(lev._shallow_copy() for lev in cache["levels"])
+        result._cache = cache
         return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
