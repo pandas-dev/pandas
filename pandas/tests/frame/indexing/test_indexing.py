@@ -1209,7 +1209,7 @@ class TestDataFrameIndexing:
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0]], index=f.index[0:2], columns=["A", "B"]
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
@@ -1220,7 +1220,7 @@ class TestDataFrameIndexing:
             index=list(f.index[0:2]) + ["foo", "bar"],
             columns=["A", "B"],
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
@@ -1230,7 +1230,7 @@ class TestDataFrameIndexing:
         f = float_string_frame.copy()
         piece = f.loc[f.index[:2], ["A"]]
         piece.index = f.index[-2:]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece
         piece["B"] = np.nan
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
@@ -1238,7 +1238,7 @@ class TestDataFrameIndexing:
         # ndarray
         f = float_string_frame.copy()
         piece = float_string_frame.loc[f.index[:2], ["A", "B"]]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece.values
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
 
@@ -1605,6 +1605,17 @@ class TestDataFrameIndexing:
         actual = df[::-1].reindex(target, method=switched_method)
         tm.assert_frame_equal(expected, actual)
 
+    def test_reindex_subclass(self):
+        # https://github.com/pandas-dev/pandas/issues/31925
+        class MyDataFrame(DataFrame):
+            pass
+
+        expected = DataFrame()
+        df = MyDataFrame()
+        result = df.reindex_like(expected)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex_methods_nearest_special(self):
         df = pd.DataFrame({"x": list(range(5))})
         target = np.array([-0.1, 0.9, 1.1, 1.5])
@@ -1873,7 +1884,7 @@ class TestDataFrameIndexing:
         df = DataFrame(index=date_range("20130101", periods=4))
         df["A"] = np.array([1 * one_hour] * 4, dtype="m8[ns]")
         df.loc[:, "B"] = np.array([2 * one_hour] * 4, dtype="m8[ns]")
-        df.loc[:3, "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
+        df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
         df.loc[:, "D"] = np.array([4 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
         df["F"] = np.timedelta64("NaT")
