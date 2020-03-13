@@ -108,7 +108,7 @@ cdef class BlockPlacement:
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             # NOTE: this is the C-optimized equivalent of
-            # np.arange(start, stop, step, dtype=np.int64)
+            #  np.arange(start, stop, step, dtype=np.int64)
             self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
             self._has_array = True
         return self._as_array
