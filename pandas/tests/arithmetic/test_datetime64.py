@@ -1082,23 +1082,32 @@ class TestDatetime64Arithmetic:
         obj1 = tm.box_expected(obj1, box_with_array)
         obj2 = tm.box_expected(obj2, box_with_array)
 
-        msg = (
-            r"unsupported operand type\(s\) for -: "
-            "'(Timestamp|DatetimeArray)' and 'datetime.time'"
-        )
+        with warnings.catch_warnings(record=True):
+            # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
+            # applied to Series or DatetimeIndex
+            # we aren't testing that here, so ignore.
+            warnings.simplefilter("ignore", PerformanceWarning)
 
-        with pytest.raises(TypeError, match=msg):
-            with warnings.catch_warnings(record=True):
-                # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
-                # applied to Series or DatetimeIndex
-                # we aren't testing that here, so ignore.
-                warnings.simplefilter("ignore", PerformanceWarning)
+            # If `x + y` raises, then `y + x` should raise here as well
+
+            msg = (
+                r"unsupported operand type\(s\) for -: "
+                "'(Timestamp|DatetimeArray)' and 'datetime.time'",
+            )
+            with pytest.raises(TypeError, match=msg):
                 # sub
                 obj1 - obj2
+
+            with pytest.raises(TypeError, match=msg):
+                # sub
                 obj2 - obj1
 
+            with pytest.raises(TypeError, match=msg):
                 # add
                 obj1 + obj2
+
+            with pytest.raises(TypeError, match=msg):
+                # add
                 obj2 + obj1
 
 
