@@ -4558,6 +4558,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
         ...                   index=['mouse', 'rabbit'],
         ...                   columns=['one', 'two', 'three'])
+        >>> df
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
 
         >>> # select columns by name
         >>> df.filter(items=['one', 'three'])
@@ -8442,9 +8446,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
         if method is not None:
-            left = self._ensure_type(
-                left.fillna(method=method, axis=fill_axis, limit=limit)
-            )
+            _left = left.fillna(method=method, axis=fill_axis, limit=limit)
+            assert _left is not None  # needed for mypy
+            left = _left
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
@@ -9977,9 +9981,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if fill_method is None:
             data = self
         else:
-            data = self._ensure_type(
-                self.fillna(method=fill_method, axis=axis, limit=limit)
-            )
+            _data = self.fillna(method=fill_method, axis=axis, limit=limit)
+            assert _data is not None  # needed for mypy
+            data = _data
 
         rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
         if freq is not None:
