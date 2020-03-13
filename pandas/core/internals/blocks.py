@@ -231,11 +231,12 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
-    def get_block_values(self, dtype=None):
+    def get_block_values_for_json(self) -> np.ndarray:
         """
-        This is used in the JSON C code
+        This is used in the JSON C code.
         """
-        return self.get_values(dtype=dtype)
+        # TODO(2DEA): reshape will be unnecessary with 2D EAs
+        return np.asarray(self.values).reshape(self.shape)
 
     def to_dense(self):
         return self.values.view()
@@ -1916,10 +1917,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return super().diff(n, axis)
 
     def shift(
-        self,
-        periods: int,
-        axis: libinternals.BlockPlacement = 0,
-        fill_value: Any = None,
+        self, periods: int, axis: int = 0, fill_value: Any = None,
     ) -> List["ExtensionBlock"]:
         """
         Shift the block by `periods`.
@@ -2172,13 +2170,19 @@ class DatetimeLikeBlockMixin:
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
-        # TODO: this can be removed if we ever have 2D EA
+        # TODO(EA2D): this can be removed if we ever have 2D EA
         result = super().iget(key)
         if isinstance(result, np.datetime64):
             result = Timestamp(result)
         elif isinstance(result, np.timedelta64):
             result = Timedelta(result)
         return result
+
+    def shift(self, periods, axis=0, fill_value=None):
+        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
+        values = self.array_values()
+        new_values = values.shift(periods, fill_value=fill_value, axis=axis)
+        return self.make_block_same_class(new_values)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2228,6 +2232,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         # if we are passed a datetime64[ns, tz]
         if is_datetime64tz_dtype(dtype):
             values = self.values
+            if copy:
+                # this should be the only copy
+                values = values.copy()
             if getattr(values, "tz", None) is None:
                 values = DatetimeArray(values).tz_localize("UTC")
             values = values.tz_convert(dtype.tz)
@@ -2280,11 +2287,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return np.atleast_2d(result)
 
     def should_store(self, value) -> bool:
-        return (
-            issubclass(value.dtype.type, np.datetime64)
-            and not is_datetime64tz_dtype(value)
-            and not is_extension_array_dtype(value)
-        )
+        return is_datetime64_dtype(value.dtype)
 
     def set(self, locs, values):
         """
@@ -2532,9 +2535,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return super().fillna(value, **kwargs)
 
     def should_store(self, value) -> bool:
-        return issubclass(
-            value.dtype.type, np.timedelta64
-        ) and not is_extension_array_dtype(value)
+        return is_timedelta64_dtype(value.dtype)
 
     def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
