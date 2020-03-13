@@ -1346,7 +1346,7 @@ def _restore_dropped_levels_multijoin(
         if isinstance(index, MultiIndex):
             return index
         else:
-            return MultiIndex.from_arrays([index.values], names=[index.name])
+            return MultiIndex.from_arrays([index._values], names=[index.name])
 
     # For multi-multi joins with one overlapping level,
     # the returned index if of type Index
@@ -1668,10 +1668,10 @@ class _AsOfMerge(_OrderedMerge):
 
         # values to compare
         left_values = (
-            self.left.index.values if self.left_index else self.left_join_keys[-1]
+            self.left.index._values if self.left_index else self.left_join_keys[-1]
         )
         right_values = (
-            self.right.index.values if self.right_index else self.right_join_keys[-1]
+            self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
         tolerance = self.tolerance
 

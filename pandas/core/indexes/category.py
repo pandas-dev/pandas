@@ -564,7 +564,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 target = target.codes
                 indexer, missing = self._engine.get_indexer_non_unique(target)
                 return ensure_platform_int(indexer), missing
-            target = target.values
+            target = target._values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
@@ -683,7 +683,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        return self._shallow_copy_with_infer(self.values.map(mapper))
+        return self._shallow_copy_with_infer(self._values.map(mapper))
 
     def delete(self, loc):
         """

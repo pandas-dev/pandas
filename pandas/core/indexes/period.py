@@ -377,7 +377,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
-            where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+            where_idx = PeriodIndex(where_idx._values, freq=self.freq)
         elif not isinstance(where_idx, PeriodIndex):
             raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
         elif where_idx.freq != self.freq:

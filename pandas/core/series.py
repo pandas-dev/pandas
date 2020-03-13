@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
+    is_datetime64tz_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
@@ -1676,7 +1677,7 @@ Name: Max Speed, dtype: float64
             level_codes[mask] = cnt = len(lev)
             lev = lev.insert(cnt, lev._na_value)
 
-        obs = level_codes[notna(self.values)]
+        obs = level_codes[notna(self._values)]
         out = np.bincount(obs, minlength=len(lev) or None)
         return self._constructor(out, index=lev, dtype="int64").__finalize__(self)
 
@@ -2666,9 +2667,13 @@ Name: Max Speed, dtype: float64
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if is_categorical_dtype(self.values):
+        new_values = np.asarray(new_values)
+        if is_categorical_dtype(self.dtype) or is_datetime64tz_dtype(self.dtype):
+            # if we let dt64tz through, try_cast_to_ea would incorrectly
+            #  allow bool through
             pass
-        elif is_extension_array_dtype(self.values):
+        elif is_extension_array_dtype(self.dtype):
+            # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
             new_values = try_cast_to_ea(self._values, new_values)
