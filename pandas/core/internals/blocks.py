@@ -403,7 +403,9 @@ class Block(PandasObject):
 
         return [result]
 
-    def fillna(self, value, limit=None, inplace: bool = False, downcast=None):
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List["Block"]:
         """
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
@@ -417,9 +419,9 @@ class Block(PandasObject):
 
         if not self._can_hold_na:
             if inplace:
-                return self
+                return [self]
             else:
-                return self.copy()
+                return [self.copy()]
 
         if self._can_hold_element(value):
             # equivalent: _try_coerce_args(value) would not raise
@@ -428,7 +430,7 @@ class Block(PandasObject):
 
         # we can't process the value, but nothing to do
         if not mask.any():
-            return self if inplace else self.copy()
+            return [self] if inplace else [self.copy()]
 
         # operate column-by-column
         def f(mask, val, idx):
@@ -442,7 +444,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, inplace)
 
-    def split_and_operate(self, mask, f, inplace: bool):
+    def split_and_operate(self, mask, f, inplace: bool) -> List["Block"]:
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -1191,7 +1193,7 @@ class Block(PandasObject):
         fill_value=None,
         coerce=False,
         downcast=None,
-    ):
+    ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -1233,7 +1235,7 @@ class Block(PandasObject):
         inplace=False,
         downcast=None,
         **kwargs,
-    ):
+    ) -> List["Block"]:
         """ interpolate using scipy wrappers """
         inplace = validate_bool_kwarg(inplace, "inplace")
         data = self.values if inplace else self.values.copy()
@@ -1241,7 +1243,7 @@ class Block(PandasObject):
         # only deal with floats
         if not self.is_float:
             if not self.is_integer:
-                return self
+                return [self]
             data = data.astype(np.float64)
 
         if fill_value is None:

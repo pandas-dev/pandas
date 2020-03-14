@@ -565,8 +565,8 @@ class BlockManager(PandasObject):
     def where(self, **kwargs) -> "BlockManager":
         return self.apply("where", **kwargs)
 
-    def setitem(self, **kwargs) -> "BlockManager":
-        return self.apply("setitem", **kwargs)
+    def setitem(self, indexer, value) -> "BlockManager":
+        return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, **kwargs):
         return self.apply("putmask", **kwargs)
@@ -583,16 +583,30 @@ class BlockManager(PandasObject):
     def fillna(self, **kwargs) -> "BlockManager":
         return self.apply("fillna", **kwargs)
 
-    def downcast(self, **kwargs) -> "BlockManager":
-        return self.apply("downcast", **kwargs)
+    def downcast(self) -> "BlockManager":
+        return self.apply("downcast")
 
     def astype(
         self, dtype, copy: bool = False, errors: str = "raise"
     ) -> "BlockManager":
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self, **kwargs) -> "BlockManager":
-        return self.apply("convert", **kwargs)
+    def convert(
+        self,
+        copy: bool = True,
+        datetime: bool = True,
+        numeric: bool = True,
+        timedelta: bool = True,
+        coerce: bool = False,
+    ) -> "BlockManager":
+        return self.apply(
+            "convert",
+            copy=copy,
+            datetime=datetime,
+            numeric=numeric,
+            timedelta=timedelta,
+            coerce=coerce,
+        )
 
     def replace(self, value, **kwargs) -> "BlockManager":
         assert np.ndim(value) == 0, value
