@@ -7,7 +7,9 @@ cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
-from numpy cimport int64_t
+cimport numpy as cnp
+from numpy cimport NPY_INT64, int64_t
+cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
@@ -105,7 +107,9 @@ cdef class BlockPlacement:
             Py_ssize_t start, stop, end, _
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
-            self._as_array = np.arange(start, stop, step, dtype=np.int64)
+            # NOTE: this is the C-optimized equivalent of
+            #  np.arange(start, stop, step, dtype=np.int64)
+            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
             self._has_array = True
         return self._as_array
 
