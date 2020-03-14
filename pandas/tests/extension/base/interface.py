@@ -19,6 +19,9 @@ class BaseInterfaceTests(BaseExtensionTests):
     def test_len(self, data):
         assert len(data) == 100
 
+    def test_size(self, data):
+        assert data.size == 100
+
     def test_ndim(self, data):
         assert data.ndim == 1
 

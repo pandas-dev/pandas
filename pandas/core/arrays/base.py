@@ -408,6 +408,13 @@ class ExtensionArray:
         return (len(self),)
 
     @property
+    def size(self) -> int:
+        """
+        The number of elements in the array.
+        """
+        return np.prod(self.shape)
+
+    @property
     def ndim(self) -> int:
         """
         Extension Arrays are only allowed to be 1-dimensional.
