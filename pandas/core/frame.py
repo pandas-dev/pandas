@@ -5312,7 +5312,7 @@ Stack the differences on rows
 2 self   NaN   3.0
   other  NaN   4.0
 
-Keep all the original indices (rows and columns)
+Keep all original rows and columns
 
 >>> df.differences(df2, keep_shape=True)
   col1       col2       col3
@@ -5323,7 +5323,7 @@ Keep all the original indices (rows and columns)
 3  NaN   NaN  NaN   NaN  NaN   NaN
 4  NaN   NaN  NaN   NaN  NaN   NaN
 
-Keep all original indices and data
+Keep all original rows and columns and also all original values
 
 >>> df.differences(df2, keep_shape=True, keep_equal=True)
   col1       col2       col3

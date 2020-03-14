@@ -2618,7 +2618,7 @@ Stack the differences on indices
    other    b
 dtype: object
 
-Keep all the original indices
+Keep all original rows
 
 >>> s1.differences(s2, keep_shape=True)
   self other
@@ -2628,7 +2628,7 @@ Keep all the original indices
 3    d     b
 4  NaN   NaN
 
-Keep all original indices and data
+Keep all original rows and also all original values
 
 >>> s1.differences(s2, keep_shape=True, keep_equal=True)
   self other
