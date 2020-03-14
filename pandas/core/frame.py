@@ -7808,6 +7808,8 @@ Wild         185.0
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
 
+        assert filter_type is None or filter_type == "bool", filter_type
+
         dtype_is_dt = self.dtypes.apply(
             lambda x: is_datetime64_any_dtype(x) or is_period_dtype(x)
         )
@@ -7835,7 +7837,7 @@ Wild         185.0
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         def _get_data(axis_matters):
-            if filter_type is None or filter_type == "numeric":
+            if filter_type is None:
                 data = self._get_numeric_data()
             elif filter_type == "bool":
                 if axis_matters:
@@ -7882,15 +7884,11 @@ Wild         185.0
             return out
 
         if numeric_only is None:
-            values = self.values
+            data = self
+            values = data.values
             try:
                 result = f(values)
 
-                if filter_type == "bool" and is_object_dtype(values) and axis is None:
-                    # work around https://github.com/numpy/numpy/issues/10489
-                    # TODO: combine with hasattr(result, 'dtype') further down
-                    # hard since we don't have `values` down there.
-                    result = np.bool_(result)
             except TypeError:
                 # e.g. in nanops trying to convert strs to float
 
@@ -7916,30 +7914,36 @@ Wild         185.0
 
                 # TODO: why doesnt axis matter here?
                 data = _get_data(axis_matters=False)
-                with np.errstate(all="ignore"):
-                    result = f(data.values)
                 labels = data._get_agg_axis(axis)
+
+                values = data.values
+                with np.errstate(all="ignore"):
+                    result = f(values)
         else:
             if numeric_only:
                 data = _get_data(axis_matters=True)
+                labels = data._get_agg_axis(axis)
 
                 values = data.values
-                labels = data._get_agg_axis(axis)
             else:
-                values = self.values
+                data = self
+                values = data.values
             result = f(values)
 
-        if hasattr(result, "dtype") and is_object_dtype(result.dtype):
+        if filter_type == "bool" and is_object_dtype(values) and axis is None:
+            # work around https://github.com/numpy/numpy/issues/10489
+            # TODO: can we de-duplicate parts of this with the next blocK?
+            result = np.bool_(result)
+        elif hasattr(result, "dtype") and is_object_dtype(result.dtype):
             try:
-                if filter_type is None or filter_type == "numeric":
+                if filter_type is None:
                     result = result.astype(np.float64)
                 elif filter_type == "bool" and notna(result).all():
                     result = result.astype(np.bool_)
             except (ValueError, TypeError):
-
                 # try to coerce to the original dtypes item by item if we can
                 if axis == 0:
-                    result = coerce_to_dtypes(result, self.dtypes)
+                    result = coerce_to_dtypes(result, data.dtypes)
 
         if constructor is not None:
             result = self._constructor_sliced(result, index=labels)
