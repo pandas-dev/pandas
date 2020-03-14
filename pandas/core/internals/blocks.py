@@ -605,7 +605,9 @@ class Block(PandasObject):
 
                 # astype formatting
                 else:
-                    values = self.get_values()
+                    # Because we have neither is_extension nor is_datelike,
+                    #  self.values already has the correct shape
+                    values = self.values
 
             else:
                 values = self.get_values(dtype=dtype)
@@ -663,7 +665,7 @@ class Block(PandasObject):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
-        values = self.get_values()
+        values = self.values
 
         if slicer is not None:
             values = values[:, slicer]

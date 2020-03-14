@@ -1401,11 +1401,45 @@ class DataFrame(NDFrame):
             )
         # GH16122
         into_c = com.standardize_mapping(into)
-        if orient.lower().startswith("d"):
+
+        orient = orient.lower()
+        # GH32515
+        if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
+            "dict",
+            "list",
+            "series",
+            "split",
+            "records",
+            "index",
+        }:
+            warnings.warn(
+                "Using short name for 'orient' is deprecated. Only the "
+                "options: ('dict', list, 'series', 'split', 'records', 'index') "
+                "will be used in a future version. Use one of the above "
+                "to silence this warning.",
+                FutureWarning,
+            )
+
+            if orient.startswith("d"):
+                orient = "dict"
+            elif orient.startswith("l"):
+                orient = "list"
+            elif orient.startswith("sp"):
+                orient = "split"
+            elif orient.startswith("s"):
+                orient = "series"
+            elif orient.startswith("r"):
+                orient = "records"
+            elif orient.startswith("i"):
+                orient = "index"
+
+        if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
-        elif orient.lower().startswith("l"):
+
+        elif orient == "list":
             return into_c((k, v.tolist()) for k, v in self.items())
-        elif orient.lower().startswith("sp"):
+
+        elif orient == "split":
             return into_c(
                 (
                     ("index", self.index.tolist()),
@@ -1419,9 +1453,11 @@ class DataFrame(NDFrame):
                     ),
                 )
             )
-        elif orient.lower().startswith("s"):
+
+        elif orient == "series":
             return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
-        elif orient.lower().startswith("r"):
+
+        elif orient == "records":
             columns = self.columns.tolist()
             rows = (
                 dict(zip(columns, row))
@@ -1431,13 +1467,15 @@ class DataFrame(NDFrame):
                 into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
-        elif orient.lower().startswith("i"):
+
+        elif orient == "index":
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
             return into_c(
                 (t[0], dict(zip(self.columns, t[1:])))
                 for t in self.itertuples(name=None)
             )
+
         else:
             raise ValueError(f"orient '{orient}' not understood")
 
@@ -1773,7 +1811,9 @@ class DataFrame(NDFrame):
             else:
                 ix_vals = [self.index.values]
 
-            arrays = ix_vals + [self[c]._internal_get_values() for c in self.columns]
+            arrays = ix_vals + [
+                np.asarray(self.iloc[:, i]) for i in range(len(self.columns))
+            ]
 
             count = 0
             index_names = list(self.index.names)
@@ -1788,7 +1828,7 @@ class DataFrame(NDFrame):
 
             names = [str(name) for name in itertools.chain(index_names, self.columns)]
         else:
-            arrays = [self[c]._internal_get_values() for c in self.columns]
+            arrays = [np.asarray(self.iloc[:, i]) for i in range(len(self.columns))]
             names = [str(c) for c in self.columns]
             index_names = []
 
@@ -2687,6 +2727,7 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
+                self.loc._ensure_listlike_indexer(key, axis=1)
                 indexer = self.loc._get_listlike_indexer(
                     key, axis=1, raise_missing=False
                 )[1]
