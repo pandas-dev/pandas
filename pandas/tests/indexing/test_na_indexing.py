@@ -7,6 +7,7 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "values, dtype",
     [
+        ([], "object"),
         ([1, 2, 3], "int64"),
         ([1.0, 2.0, 3.0], "float64"),
         (["a", "b", "c"], "object"),
@@ -22,42 +23,43 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "mask", [[True, False, False], [True, True, True], [False, False, False]]
 )
-@pytest.mark.parametrize("box_mask", [True, False])
+@pytest.mark.parametrize("indexer_class", [list, pd.array, pd.Index, pd.Series])
 @pytest.mark.parametrize("frame", [True, False])
-def test_series_mask_boolean(values, dtype, mask, box_mask, frame):
-    ser = pd.Series(values, dtype=dtype, index=["a", "b", "c"])
+def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
+    # In case len(values) < 3
+    index = ["a", "b", "c"][: len(values)]
+    mask = mask[: len(values)]
+
+    obj = pd.Series(values, dtype=dtype, index=index)
     if frame:
-        ser = ser.to_frame()
-    mask = pd.array(mask, dtype="boolean")
-    if box_mask:
-        mask = pd.Series(mask, index=ser.index)
+        if len(values) == 0:
+            # Otherwise obj is an empty DataFrame with shape (0, 1)
+            obj = pd.DataFrame(dtype=dtype)
+        else:
+            obj = obj.to_frame()
 
-    expected = ser[mask.astype("bool")]
+    if indexer_class is pd.array:
+        mask = pd.array(mask, dtype="boolean")
+    elif indexer_class is pd.Series:
+        mask = pd.Series(mask, index=obj.index, dtype="boolean")
+    else:
+        mask = indexer_class(mask)
 
-    result = ser[mask]
+    expected = obj[mask]
+
+    result = obj[mask]
     tm.assert_equal(result, expected)
 
-    if not box_mask:
-        # Series.iloc[Series[bool]] isn't allowed
-        result = ser.iloc[mask]
+    if indexer_class is pd.Series:
+        msg = "iLocation based boolean indexing cannot use an indexable as a mask"
+        with pytest.raises(ValueError, match=msg):
+            result = obj.iloc[mask]
+            tm.assert_equal(result, expected)
+    else:
+        result = obj.iloc[mask]
         tm.assert_equal(result, expected)
 
-    result = ser.loc[mask]
-    tm.assert_equal(result, expected)
-
-    # empty
-    mask = mask[:0]
-    ser = ser.iloc[:0]
-    expected = ser[mask.astype("bool")]
-    result = ser[mask]
-    tm.assert_equal(result, expected)
-
-    if not box_mask:
-        # Series.iloc[Series[bool]] isn't allowed
-        result = ser.iloc[mask]
-        tm.assert_equal(result, expected)
-
-    result = ser.loc[mask]
+    result = obj.loc[mask]
     tm.assert_equal(result, expected)
 
 
