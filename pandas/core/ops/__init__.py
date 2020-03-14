@@ -585,7 +585,7 @@ def _flex_method_SERIES(cls, op, special):
 # DataFrame
 
 
-def _combine_series_frame(left, right, func, axis: int):
+def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     """
     Apply binary operator `func` to self, other using alignment and fill
     conventions determined by the axis argument.
@@ -596,6 +596,7 @@ def _combine_series_frame(left, right, func, axis: int):
     right : Series
     func : binary operator
     axis : {0, 1}
+    str_rep : str
 
     Returns
     -------
@@ -603,7 +604,17 @@ def _combine_series_frame(left, right, func, axis: int):
     """
     # We assume that self.align(other, ...) has already been called
     if axis == 0:
-        new_data = left._combine_match_index(right, func)
+        values = right._values
+        if isinstance(values, np.ndarray):
+            # We can operate block-wise
+            values = values.reshape(-1, 1)
+
+            array_op = get_array_op(func, str_rep=str_rep)
+            bm = left._data.apply(array_op, right=values.T)
+            return type(left)(bm)
+
+        new_data = dispatch_to_series(left, right, func)
+
     else:
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
@@ -791,7 +802,9 @@ def _arith_method_FRAME(cls, op, special):
                 raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, pass_op, axis=axis)
+            return _combine_series_frame(
+                self, other, pass_op, axis=axis, str_rep=str_rep
+            )
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
@@ -826,7 +839,7 @@ def _flex_comp_method_FRAME(cls, op, special):
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, op, axis=axis)
+            return _combine_series_frame(self, other, op, axis=axis, str_rep=str_rep)
         else:
             # in this case we always have `np.ndim(other) == 0`
             new_data = dispatch_to_series(self, other, op, str_rep)

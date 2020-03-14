@@ -906,16 +906,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean
-
-        if isinstance(key, slice):
-            return
-
-        if com.is_bool_indexer(key):
-            return
-
-        if not is_list_like_indexer(key):
-            labels = self.obj._get_axis(axis)
-            labels._convert_scalar_indexer(key, kind="loc")
+        pass
 
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
@@ -1178,15 +1169,6 @@ class _LocIndexer(_LocationIndexer):
 
         if isinstance(key, slice):
             return labels._convert_slice_indexer(key, kind="loc")
-
-        if is_scalar(key):
-            # try to find out correct indexer, if not type correct raise
-            try:
-                key = labels._convert_scalar_indexer(key, kind="loc")
-            except KeyError:
-                # but we will allow setting
-                if not is_setter:
-                    raise
 
         # see if we are positional in nature
         is_int_index = labels.is_integer()
@@ -1673,14 +1655,18 @@ class _iLocIndexer(_LocationIndexer):
                 info_idx = [info_idx]
             labels = item_labels[info_idx]
 
+            # Ensure we have something we can iterate over
+            ilocs = info_idx
+            if isinstance(info_idx, slice):
+                ri = Index(range(len(self.obj.columns)))
+                ilocs = ri[info_idx]
+
+            plane_indexer = indexer[:1]
+            lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+            # lplane_indexer gives the expected length of obj[indexer[0]]
+
             if len(labels) == 1:
                 # We can operate on a single column
-                item = labels[0]
-                idx = indexer[0]
-
-                plane_indexer = tuple([idx])
-                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
-                # lplane_indexer gives the expected length of obj[idx]
 
                 # require that we are setting the right number of values that
                 # we are indexing
@@ -1692,14 +1678,11 @@ class _iLocIndexer(_LocationIndexer):
                         "length than the value"
                     )
 
-            # non-mi
-            else:
-                plane_indexer = indexer[:1]
-                lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+            pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
-            def setter(item, v):
-                ser = self.obj[item]
-                pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
+            def isetter(loc, v):
+                # positional setting on column loc
+                ser = self.obj._ixs(loc, axis=1)
 
                 # perform the equivalent of a setitem on the info axis
                 # as we have a null slice or a slice with full bounds
@@ -1719,7 +1702,7 @@ class _iLocIndexer(_LocationIndexer):
                     ser._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
-                self.obj[item] = ser
+                self.obj._iset_item(loc, ser)
 
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
@@ -1729,8 +1712,10 @@ class _iLocIndexer(_LocationIndexer):
                 if isinstance(value, ABCDataFrame):
                     sub_indexer = list(indexer)
                     multiindex_indexer = isinstance(labels, ABCMultiIndex)
+                    # TODO: we are implicitly assuming value.columns is unique
 
-                    for item in labels:
+                    for loc in ilocs:
+                        item = item_labels[loc]
                         if item in value:
                             sub_indexer[info_axis] = item
                             v = self._align_series(
@@ -1739,7 +1724,7 @@ class _iLocIndexer(_LocationIndexer):
                         else:
                             v = np.nan
 
-                        setter(item, v)
+                        isetter(loc, v)
 
                 # we have an equal len ndarray/convertible to our labels
                 # hasattr first, to avoid coercing to ndarray without reason.
@@ -1750,43 +1735,47 @@ class _iLocIndexer(_LocationIndexer):
                     # note that this coerces the dtype if we are mixed
                     # GH 7551
                     value = np.array(value, dtype=object)
-                    if len(labels) != value.shape[1]:
+                    if len(ilocs) != value.shape[1]:
                         raise ValueError(
                             "Must have equal len keys and value "
                             "when setting with an ndarray"
                         )
 
-                    for i, item in enumerate(labels):
+                    for i, loc in enumerate(ilocs):
+                        # setting with a list, re-coerces
+                        isetter(loc, value[:, i].tolist())
 
-                        # setting with a list, recoerces
-                        setter(item, value[:, i].tolist())
-
-                # we have an equal len list/ndarray
-                elif _can_do_equal_len(
-                    labels, value, plane_indexer, lplane_indexer, self.obj
+                elif (
+                    len(labels) == 1
+                    and lplane_indexer == len(value)
+                    and not is_scalar(plane_indexer[0])
                 ):
-                    setter(labels[0], value)
+                    # we have an equal len list/ndarray
+                    # We only get here with len(labels) == len(ilocs) == 1
+                    isetter(ilocs[0], value)
 
-                # per label values
+                elif lplane_indexer == 0 and len(value) == len(self.obj.index):
+                    # We get here in one case via .loc with a all-False mask
+                    pass
+
                 else:
-
-                    if len(labels) != len(value):
+                    # per-label values
+                    if len(ilocs) != len(value):
                         raise ValueError(
                             "Must have equal len keys and value "
                             "when setting with an iterable"
                         )
 
-                    for item, v in zip(labels, value):
-                        setter(item, v)
+                    for loc, v in zip(ilocs, value):
+                        isetter(loc, v)
             else:
 
-                # scalar
-                for item in labels:
-                    setter(item, value)
+                # scalar value
+                for loc in ilocs:
+                    isetter(loc, value)
 
         else:
             if isinstance(indexer, tuple):
-                indexer = maybe_convert_ix(*indexer)
 
                 # if we are setting on the info axis ONLY
                 # set using those methods to avoid block-splitting
@@ -1803,6 +1792,8 @@ class _iLocIndexer(_LocationIndexer):
                 ):
                     self.obj[item_labels[indexer[info_axis]]] = value
                     return
+
+                indexer = maybe_convert_ix(*indexer)
 
             if isinstance(value, (ABCSeries, dict)):
                 # TODO(EA): ExtensionBlock.setitem this causes issues with
@@ -2070,11 +2061,17 @@ class _AtIndexer(_ScalarAccessIndexer):
         if is_setter:
             return list(key)
 
-        lkey = list(key)
-        for n, (ax, i) in enumerate(zip(self.obj.axes, key)):
-            lkey[n] = ax._convert_scalar_indexer(i, kind="loc")
+        return key
 
-        return tuple(lkey)
+    def __getitem__(self, key):
+        if self.ndim != 1 or not is_scalar(key):
+            # FIXME: is_scalar check is a kludge
+            return super().__getitem__(key)
+
+        # Like Index.get_value, but we do not allow positional fallback
+        obj = self.obj
+        loc = obj.index.get_loc(key)
+        return obj.index._get_values_for_loc(obj, loc, key)
 
 
 @Appender(IndexingMixin.iat.__doc__)
@@ -2317,26 +2314,3 @@ def _maybe_numeric_slice(df, slice_, include_bool=False):
             dtypes.append(bool)
         slice_ = IndexSlice[:, df.select_dtypes(include=dtypes).columns]
     return slice_
-
-
-def _can_do_equal_len(labels, value, plane_indexer, lplane_indexer, obj) -> bool:
-    """
-    Returns
-    -------
-    bool
-        True if we have an equal len settable.
-    """
-    if not len(labels) == 1 or not np.iterable(value) or is_scalar(plane_indexer[0]):
-        return False
-
-    item = labels[0]
-    index = obj[item].index
-
-    values_len = len(value)
-    # equal len list/ndarray
-    if len(index) == values_len:
-        return True
-    elif lplane_indexer == values_len:
-        return True
-
-    return False

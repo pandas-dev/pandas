@@ -412,6 +412,46 @@ class TestTimedeltaMultiplicationDivision:
 
         assert np.timedelta64(60, "h") / td == 0.25
 
+    def test_td_rdiv_na_scalar(self):
+        # GH#31869 None gets cast to NaT
+        td = Timedelta(10, unit="d")
+
+        result = NaT / td
+        assert np.isnan(result)
+
+        result = None / td
+        assert np.isnan(result)
+
+        result = np.timedelta64("NaT") / td
+        assert np.isnan(result)
+
+        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+            np.datetime64("NaT") / td
+
+        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+            np.nan / td
+
+    def test_td_rdiv_ndarray(self):
+        td = Timedelta(10, unit="d")
+
+        arr = np.array([td], dtype=object)
+        result = arr / td
+        expected = np.array([1], dtype=np.float64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.array([None])
+        result = arr / td
+        expected = np.array([np.nan])
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.array([np.nan], dtype=object)
+        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+            arr / td
+
+        arr = np.array([np.nan], dtype=np.float64)
+        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+            arr / td
+
     # ---------------------------------------------------------------
     # Timedelta.__floordiv__
 

@@ -103,7 +103,10 @@ def _cat_compare_op(op):
             mask = (self._codes == -1) | (other_codes == -1)
             if mask.any():
                 # In other series, the leads to False, so do that here too
-                ret[mask] = False
+                if opname == "__ne__":
+                    ret[(self._codes == -1) & (other_codes == -1)] = True
+                else:
+                    ret[mask] = False
             return ret
 
         if is_scalar(other):
@@ -1314,7 +1317,7 @@ class Categorical(ExtensionArray, PandasObject):
             setattr(self, k, v)
 
     @property
-    def T(self):
+    def T(self) -> "Categorical":
         """
         Return transposed numpy array.
         """
@@ -1406,12 +1409,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     notnull = notna
 
-    def put(self, *args, **kwargs):
-        """
-        Replace specific elements in the Categorical with given values.
-        """
-        raise NotImplementedError(("'put' is not yet implemented for Categorical"))
-
     def dropna(self):
         """
         Return the Categorical without null values.
@@ -1491,7 +1488,7 @@ class Categorical(ExtensionArray, PandasObject):
             )
 
     def _values_for_argsort(self):
-        return self._codes.copy()
+        return self._codes
 
     def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
@@ -1725,7 +1722,8 @@ class Categorical(ExtensionArray, PandasObject):
         # pad / bfill
         if method is not None:
 
-            values = self.to_dense().reshape(-1, len(self))
+            # TODO: dispatch when self.categories is EA-dtype
+            values = np.asarray(self).reshape(-1, len(self))
             values = interpolate_2d(values, method, 0, None, value).astype(
                 self.categories.dtype
             )[0]

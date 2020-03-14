@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, RawIOBase, StringIO, TextIOWrapper
+from io import StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -1870,7 +1870,7 @@ class CParserWrapper(ParserBase):
 
             # Handle the file object with universal line mode enabled.
             # We will handle the newline character ourselves later on.
-            if isinstance(src, (BufferedIOBase, RawIOBase)):
+            if hasattr(src, "read") and not hasattr(src, "encoding"):
                 src = TextIOWrapper(src, encoding=encoding, newline="")
 
             kwds["encoding"] = "utf-8"
@@ -2379,19 +2379,21 @@ class PythonParser(ParserBase):
 
             dia = MyDialect
 
-            sniff_sep = True
-
             if sep is not None:
-                sniff_sep = False
                 dia.delimiter = sep
-            # attempt to sniff the delimiter
-            if sniff_sep:
+            else:
+                # attempt to sniff the delimiter from the first valid line,
+                # i.e. no comment line and not in skiprows
                 line = f.readline()
-                while self.skipfunc(self.pos):
+                lines = self._check_comments([[line]])[0]
+                while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
                     line = f.readline()
+                    lines = self._check_comments([[line]])[0]
 
-                line = self._check_comments([line])[0]
+                # since `line` was a string, lines will be a list containing
+                # only a single string
+                line = lines[0]
 
                 self.pos += 1
                 self.line_pos += 1
