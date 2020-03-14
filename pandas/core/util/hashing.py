@@ -2,6 +2,7 @@
 data hash pandas / numpy objects
 """
 import itertools
+from typing import Optional
 
 import numpy as np
 
@@ -58,7 +59,7 @@ def hash_pandas_object(
     obj,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key: str = _default_hash_key,
+    hash_key: Optional[str] = _default_hash_key,
     categorize: bool = True,
 ):
     """
@@ -81,6 +82,9 @@ def hash_pandas_object(
     Series of uint64, same length as the object
     """
     from pandas import Series
+
+    if hash_key is None:
+        hash_key = _default_hash_key
 
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
@@ -265,7 +269,6 @@ def hash_array(
     -------
     1d uint64 numpy array of hash values, same length as the vals
     """
-
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
     dtype = vals.dtype
@@ -291,7 +294,7 @@ def hash_array(
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
     elif issubclass(dtype.type, np.number) and dtype.itemsize <= 8:
-        vals = vals.view("u{}".format(vals.dtype.itemsize)).astype("u8")
+        vals = vals.view(f"u{vals.dtype.itemsize}").astype("u8")
     else:
         # With repeated values, its MUCH faster to categorize object dtypes,
         # then hash and rename categories. We allow skipping the categorization
@@ -336,7 +339,6 @@ def _hash_scalar(
     -------
     1d uint64 numpy array of hash value, of length 1
     """
-
     if isna(val):
         # this is to be consistent with the _hash_categorical implementation
         return np.array([np.iinfo(np.uint64).max], dtype="u8")

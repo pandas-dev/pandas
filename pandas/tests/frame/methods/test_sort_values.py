@@ -458,7 +458,7 @@ class TestDataFrameSortValues:
             }
         )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="invalid na_position: bad_position"):
             df.sort_values(by="c", ascending=False, na_position="bad_position")
 
     @pytest.mark.parametrize("inplace", [True, False])

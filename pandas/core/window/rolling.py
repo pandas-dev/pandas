@@ -149,7 +149,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Split data into blocks & return conformed data.
         """
-
         obj = self._selected_obj
 
         # filter out the on from the object
@@ -172,7 +171,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         subset : object, default None
             subset to act on
         """
-
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
@@ -238,7 +236,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Provide a nice str repr of our rolling object.
         """
-
         attrs_list = (
             f"{attr_name}={getattr(self, attr_name)}"
             for attr_name in self._attributes
@@ -270,8 +267,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         else:
             try:
                 values = ensure_float64(values)
-            except (ValueError, TypeError):
-                raise TypeError(f"cannot handle this type -> {values.dtype}")
+            except (ValueError, TypeError) as err:
+                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -284,7 +281,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Wrap a single result.
         """
-
         if obj is None:
             obj = self._selected_obj
         index = obj.index
@@ -310,7 +306,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         obj : conformed data (may be resampled)
         exclude: list of columns to exclude, default to None
         """
-
         from pandas import Series, concat
 
         final = []
@@ -454,13 +449,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError):
+            except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
                     del block_list[i]
                     continue
                 else:
-                    raise DataError("No numeric types to aggregate")
+                    raise DataError("No numeric types to aggregate") from err
 
             if values.size == 0:
                 results.append(values.copy())
@@ -851,7 +846,6 @@ class Window(_Window):
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
     >>> df
          B
@@ -1021,7 +1015,6 @@ class Window(_Window):
         window : ndarray
             the window, weights
         """
-
         window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
             return com.asarray_tuplesafe(window).astype(float)
@@ -1182,17 +1175,13 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj = self._create_blocks()
-
-        window = self._get_window()
-        window = min(window, len(obj)) if not self.center else window
-
         results = []
         for b in blocks:
             result = b.notna().astype(int)
             result = self._constructor(
                 result,
-                window=window,
-                min_periods=0,
+                window=self._get_window(),
+                min_periods=self.min_periods or 0,
                 center=self.center,
                 axis=self.axis,
                 closed=self.closed,
@@ -1203,7 +1192,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs["apply"] = dedent(
         r"""
-    The %(name)s function's apply function.
+    Apply an arbitrary function to each %(name)s window.
 
     Parameters
     ----------
@@ -1300,13 +1289,14 @@ class _Rolling_and_Expanding(_Rolling):
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         # TODO: Why do we always pass center=False?
-        # name=func for WindowGroupByMixin._apply
+        # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
             center=False,
             floor=0,
             name=func,
             use_numba_cache=engine == "numba",
+            raw=raw,
         )
 
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
@@ -1657,7 +1647,11 @@ class _Rolling_and_Expanding(_Rolling):
             mean = lambda x: x.rolling(
                 window, self.min_periods, center=self.center
             ).mean(**kwargs)
-            count = (X + Y).rolling(window=window, center=self.center).count(**kwargs)
+            count = (
+                (X + Y)
+                .rolling(window=window, min_periods=0, center=self.center)
+                .count(**kwargs)
+            )
             bias_adj = count / (count - ddof)
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
@@ -1781,7 +1775,7 @@ class _Rolling_and_Expanding(_Rolling):
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
-        window = self._get_window(other)
+        window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
         def _get_corr(a, b):
             a = a.rolling(
@@ -1820,8 +1814,7 @@ class Rolling(_Rolling_and_Expanding):
         else:
             raise ValueError(
                 f"invalid on specified as {self.on}, "
-                "must be a column (of DataFrame), an Index "
-                "or None"
+                "must be a column (of DataFrame), an Index or None"
             )
 
     def validate(self):
@@ -1838,9 +1831,8 @@ class Rolling(_Rolling_and_Expanding):
             # we don't allow center
             if self.center:
                 raise NotImplementedError(
-                    "center is not implemented "
-                    "for datetimelike and offset "
-                    "based windows"
+                    "center is not implemented for "
+                    "datetimelike and offset based windows"
                 )
 
             # this will raise ValueError on non-fixed freqs
@@ -1883,12 +1875,11 @@ class Rolling(_Rolling_and_Expanding):
 
         try:
             return to_offset(self.window)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as err:
             raise ValueError(
                 f"passed window {self.window} is not "
-                "compatible with a datetimelike "
-                "index"
-            )
+                "compatible with a datetimelike index"
+            ) from err
 
     _agg_see_also_doc = dedent(
         """

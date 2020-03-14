@@ -46,13 +46,9 @@ def _assert_not_frame_equal(a, b, **kwargs):
     kwargs : dict
         The arguments passed to `tm.assert_frame_equal`.
     """
-    try:
+    msg = "The two DataFrames were equal when they shouldn't have been"
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(a, b, **kwargs)
-        msg = "The two DataFrames were equal when they shouldn't have been"
-
-        pytest.fail(msg=msg)
-    except AssertionError:
-        pass
 
 
 def _assert_not_frame_equal_both(a, b, **kwargs):

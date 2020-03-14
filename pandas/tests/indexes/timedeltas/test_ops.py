@@ -8,26 +8,13 @@ from pandas.core.dtypes.generic import ABCDateOffset
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
-from pandas.tests.base.test_ops import Ops
 
 from pandas.tseries.offsets import Day, Hour
 
 
-class TestTimedeltaIndexOps(Ops):
-    def setup_method(self, method):
-        super().setup_method(method)
-        mask = lambda x: isinstance(x, TimedeltaIndex)
-        self.is_valid_objs = [o for o in self.objs if mask(o)]
-        self.not_valid_objs = []
-
-    def test_ops_properties(self):
-        f = lambda x: isinstance(x, TimedeltaIndex)
-        self.check_ops_properties(TimedeltaIndex._field_ops, f)
-        self.check_ops_properties(TimedeltaIndex._object_ops, f)
-
+class TestTimedeltaIndexOps:
     def test_value_counts_unique(self):
         # GH 7735
-
         idx = timedelta_range("1 days 09:00:00", freq="H", periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
         idx = TimedeltaIndex(np.repeat(idx.values, range(1, len(idx) + 1)))
@@ -126,15 +113,6 @@ class TestTimedeltaIndexOps(Ops):
             ["1 day", "3 day", "5 day", "2 day", "1 day"], name="idx2"
         )
 
-        # TODO(wesm): unused?
-        # exp2 = TimedeltaIndex(['1 day', '1 day', '2 day',
-        #                        '3 day', '5 day'], name='idx2')
-
-        # idx3 = TimedeltaIndex([pd.NaT, '3 minute', '5 minute',
-        #                        '2 minute', pd.NaT], name='idx3')
-        # exp3 = TimedeltaIndex([pd.NaT, pd.NaT, '2 minute', '3 minute',
-        #                        '5 minute'], name='idx3')
-
         for idx, expected in [(idx1, exp1), (idx1, exp1), (idx1, exp1)]:
             ordered = idx.sort_values()
             tm.assert_index_equal(ordered, expected)
@@ -201,9 +179,6 @@ class TestTimedeltaIndexOps(Ops):
         result = pd.TimedeltaIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
-
-    def test_shift(self):
-        pass  # handled in test_arithmetic.py
 
     def test_repeat(self):
         index = pd.timedelta_range("1 days", periods=2, freq="D")

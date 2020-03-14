@@ -234,11 +234,10 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             values = values._data
 
         if not isinstance(values, np.ndarray):
-            msg = (
+            raise ValueError(
                 f"Unexpected type '{type(values).__name__}'. 'values' must be "
                 "a DatetimeArray ndarray, or Series or Index containing one of those."
             )
-            raise ValueError(msg)
         if values.ndim not in [1, 2]:
             raise ValueError("Only 1-dimensional input arrays are supported.")
 
@@ -249,20 +248,18 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             values = values.view(_NS_DTYPE)
 
         if values.dtype != _NS_DTYPE:
-            msg = (
-                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'."
-                f" Got {values.dtype} instead."
+            raise ValueError(
+                "The dtype of 'values' is incorrect. Must be 'datetime64[ns]'. "
+                f"Got {values.dtype} instead."
             )
-            raise ValueError(msg)
 
         dtype = _validate_dt64_dtype(dtype)
 
         if freq == "infer":
-            msg = (
+            raise ValueError(
                 "Frequency inference not allowed in DatetimeArray.__init__. "
                 "Use 'pd.array()' instead."
             )
-            raise ValueError(msg)
 
         if copy:
             values = values.copy()
@@ -286,7 +283,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_NS_DTYPE):
         assert isinstance(values, np.ndarray)
-        if values.dtype == "i8":
+        if values.dtype != _NS_DTYPE:
+            assert values.dtype == "i8"
             values = values.view(_NS_DTYPE)
 
         result = object.__new__(cls)
@@ -546,7 +544,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> np.ndarray:
         if dtype is None and self.tz:
             # The default for tz-aware is object, to preserve tz info
             dtype = object
@@ -589,6 +587,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             if getattr(self.dtype, "tz", None) is None:
                 return self.tz_localize(new_tz)
             result = self.tz_convert(new_tz)
+            if copy:
+                result = result.copy()
             if new_tz is None:
                 # Do we want .astype('datetime64[ns]') to be an ndarray.
                 # The astype in Block._astype expects this to return an
@@ -990,7 +990,7 @@ default 'raise'
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
         objects.
@@ -1265,7 +1265,7 @@ default 'raise'
         "day",
         "D",
         """
-        The month as January=1, December=12.
+        The day of the datetime.
         """,
     )
     hour = _field_accessor(
@@ -1640,7 +1640,7 @@ default 'raise'
         """
         Convert Datetime Array to float64 ndarray of Julian Dates.
         0 Julian date is noon January 1, 4713 BC.
-        http://en.wikipedia.org/wiki/Julian_day
+        https://en.wikipedia.org/wiki/Julian_day
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
@@ -2082,11 +2082,11 @@ def _infer_tz_from_endpoints(start, end, tz):
     """
     try:
         inferred_tz = timezones.infer_tzinfo(start, end)
-    except AssertionError:
+    except AssertionError as err:
         # infer_tzinfo raises AssertionError if passed mismatched timezones
         raise TypeError(
             "Start and end cannot both be tz-aware with different timezones"
-        )
+        ) from err
 
     inferred_tz = timezones.maybe_get_tz(inferred_tz)
     tz = timezones.maybe_get_tz(tz)

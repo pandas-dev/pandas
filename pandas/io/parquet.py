@@ -13,7 +13,6 @@ from pandas.io.common import get_filepath_or_buffer, is_gcs_url, is_s3_url
 
 def get_engine(engine: str) -> "BaseImpl":
     """ return our implementation """
-
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 
@@ -32,8 +31,7 @@ def get_engine(engine: str) -> "BaseImpl":
         raise ImportError(
             "Unable to find a usable engine; "
             "tried using: 'pyarrow', 'fastparquet'.\n"
-            "pyarrow or fastparquet is required for parquet "
-            "support"
+            "pyarrow or fastparquet is required for parquet support"
         )
 
     if engine == "pyarrow":
@@ -52,7 +50,7 @@ class BaseImpl:
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
-        if df.columns.inferred_type not in {"string", "unicode", "empty"}:
+        if df.columns.inferred_type not in {"string", "empty"}:
             raise ValueError("parquet must have string column names")
 
         # index level names must be strings
@@ -86,7 +84,6 @@ class PyArrowImpl(BaseImpl):
         df: DataFrame,
         path,
         compression="snappy",
-        coerce_timestamps="ms",
         index: Optional[bool] = None,
         partition_cols=None,
         **kwargs,
@@ -104,17 +101,12 @@ class PyArrowImpl(BaseImpl):
                 table,
                 path,
                 compression=compression,
-                coerce_timestamps=coerce_timestamps,
                 partition_cols=partition_cols,
                 **kwargs,
             )
         else:
             self.api.parquet.write_table(
-                table,
-                path,
-                compression=compression,
-                coerce_timestamps=coerce_timestamps,
-                **kwargs,
+                table, path, compression=compression, **kwargs,
             )
 
     def read(self, path, columns=None, **kwargs):
@@ -156,8 +148,7 @@ class FastParquetImpl(BaseImpl):
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(
                 "Cannot use both partition_on and "
-                "partition_cols. Use partition_cols for "
-                "partitioning data"
+                "partition_cols. Use partition_cols for partitioning data"
             )
         elif "partition_on" in kwargs:
             partition_cols = kwargs.pop("partition_on")
@@ -305,6 +296,5 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     -------
     DataFrame
     """
-
     impl = get_engine(engine)
     return impl.read(path, columns=columns, **kwargs)

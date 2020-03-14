@@ -339,7 +339,7 @@ class TestDataFrameApply:
         tm.assert_frame_equal(result, float_frame)
 
     def test_apply_reduce_Series(self, float_frame):
-        float_frame.loc[::2, "A"] = np.nan
+        float_frame["A"].iloc[::2] = np.nan
         expected = float_frame.mean(1)
         result = float_frame.apply(np.mean, axis=1)
         tm.assert_series_equal(result, expected)
@@ -702,6 +702,14 @@ class TestDataFrameApply:
             [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
         )
         tm.assert_series_equal(result, expected)
+
+    def test_apply_noreduction_tzaware_object(self):
+        # https://github.com/pandas-dev/pandas/issues/31505
+        df = pd.DataFrame({"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="object")
+        result = df.apply(lambda x: x)
+        tm.assert_frame_equal(result, df)
+        result = df.apply(lambda x: x.copy())
+        tm.assert_frame_equal(result, df)
 
 
 class TestInferOutputShape:

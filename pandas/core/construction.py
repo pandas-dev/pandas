@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
@@ -200,12 +201,12 @@ def array(
 
     >>> pd.array([1, 2, np.nan])
     <IntegerArray>
-    [1, 2, NaN]
+    [1, 2, <NA>]
     Length: 3, dtype: Int64
 
     >>> pd.array(["a", None, "c"])
     <StringArray>
-    ['a', nan, 'c']
+    ['a', <NA>, 'c']
     Length: 3, dtype: string
 
     >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
@@ -334,7 +335,7 @@ def array(
     return result
 
 
-def extract_array(obj, extract_numpy=False):
+def extract_array(obj, extract_numpy: bool = False):
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 

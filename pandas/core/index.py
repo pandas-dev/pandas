@@ -27,4 +27,5 @@ warnings.warn(
     "pandas.core.index is deprecated and will be removed in a future version.  "
     "The public classes are available in the top-level namespace.",
     FutureWarning,
+    stacklevel=2,
 )

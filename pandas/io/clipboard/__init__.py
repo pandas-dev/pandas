@@ -126,7 +126,7 @@ def init_osx_pyobjc_clipboard():
         board.setData_forType_(newData, AppKit.NSStringPboardType)
 
     def paste_osx_pyobjc():
-        "Returns contents of clipboard"
+        """Returns contents of clipboard"""
         board = AppKit.NSPasteboard.generalPasteboard()
         content = board.stringForType_(AppKit.NSStringPboardType)
         return content
@@ -500,7 +500,6 @@ def determine_clipboard():
     Determine the OS/platform and set the copy() and paste() functions
     accordingly.
     """
-
     global Foundation, AppKit, qtpy, PyQt4, PyQt5
 
     # Setup for the CYGWIN platform:

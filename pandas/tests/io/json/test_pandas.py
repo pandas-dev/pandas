@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import datetime
 from datetime import timedelta
 from io import StringIO
 import json
@@ -571,7 +572,6 @@ class TestPandasContainer:
             df_roundtrip,
             check_index_type=True,
             check_column_type=True,
-            check_frame_type=True,
             by_blocks=True,
             check_exact=True,
         )
@@ -809,6 +809,31 @@ class TestPandasContainer:
         json = ts.to_json()
         result = read_json(json, typ="series")
         tm.assert_series_equal(result, ts)
+
+    @pytest.mark.parametrize("date_format", ["epoch", "iso"])
+    @pytest.mark.parametrize("as_object", [True, False])
+    @pytest.mark.parametrize(
+        "date_typ", [datetime.date, datetime.datetime, pd.Timestamp]
+    )
+    def test_date_index_and_values(self, date_format, as_object, date_typ):
+        data = [date_typ(year=2020, month=1, day=1), pd.NaT]
+        if as_object:
+            data.append("a")
+
+        ser = pd.Series(data, index=data)
+        result = ser.to_json(date_format=date_format)
+
+        if date_format == "epoch":
+            expected = '{"1577836800000":1577836800000,"null":null}'
+        else:
+            expected = (
+                '{"2020-01-01T00:00:00.000Z":"2020-01-01T00:00:00.000Z","null":null}'
+            )
+
+        if as_object:
+            expected = expected.replace("}", ',"a":"a"}')
+
+        assert result == expected
 
     @pytest.mark.parametrize(
         "infer_word",
@@ -1614,3 +1639,44 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         with tm.assert_produces_warning(FutureWarning):
             result = read_json(expected.to_json(), numpy=True)
             tm.assert_frame_equal(result, expected)
+
+    def test_frame_int_overflow(self):
+        # GH 30320
+        encoded_json = json.dumps([{"col": "31900441201190696999"}, {"col": "Text"}])
+        expected = DataFrame({"col": ["31900441201190696999", "Text"]})
+        result = read_json(encoded_json)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dataframe,expected",
+        [
+            (
+                pd.DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]}),
+                '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
+                '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}',
+            )
+        ],
+    )
+    def test_json_multiindex(self, dataframe, expected):
+        series = dataframe.stack()
+        result = series.to_json(orient="index")
+        assert result == expected
+
+    def test_to_s3(self, s3_resource):
+        # GH 28375
+        mock_bucket_name, target_file = "pandas-test", "test.json"
+        df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
+        df.to_json(f"s3://{mock_bucket_name}/{target_file}")
+        assert target_file in (
+            obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
+        )
+
+    def test_json_pandas_na(self):
+        # GH 31615
+        result = pd.DataFrame([[pd.NA]]).to_json()
+        assert result == '{"0":{"0":null}}'
+
+    def test_json_pandas_nulls(self, nulls_fixture):
+        # GH 31615
+        result = pd.DataFrame([[nulls_fixture]]).to_json()
+        assert result == '{"0":{"0":null}}'

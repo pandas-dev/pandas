@@ -50,7 +50,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda install pip  # create conda to create a historical artifact for pip & setuptools
+conda install pip conda  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
 
 echo "conda info -a"
@@ -113,6 +113,11 @@ echo
 echo "remove postgres if has been installed with conda"
 echo "we use the one from the CI"
 conda remove postgresql -y --force || true
+
+echo
+echo "remove qt"
+echo "causes problems with the clipboard, we use xsel for that"
+conda remove qt -y --force || true
 
 echo
 echo "conda list pandas"

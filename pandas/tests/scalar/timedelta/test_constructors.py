@@ -239,7 +239,7 @@ def test_iso_constructor(fmt, exp):
     ],
 )
 def test_iso_constructor_raises(fmt):
-    msg = "Invalid ISO 8601 Duration format - {}".format(fmt)
+    msg = f"Invalid ISO 8601 Duration format - {fmt}"
     with pytest.raises(ValueError, match=msg):
         Timedelta(fmt)
 
@@ -274,3 +274,10 @@ def test_td_constructor_on_nanoseconds(constructed_td, conversion):
 def test_td_constructor_value_error():
     with pytest.raises(TypeError):
         Timedelta(nanoseconds="abc")
+
+
+def test_timedelta_constructor_identity():
+    # Test for #30543
+    expected = Timedelta(np.timedelta64(1, "s"))
+    result = Timedelta(expected)
+    assert result is expected

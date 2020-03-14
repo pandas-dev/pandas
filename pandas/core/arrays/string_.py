@@ -1,5 +1,5 @@
 import operator
-from typing import Type
+from typing import TYPE_CHECKING, Type, Union
 
 import numpy as np
 
@@ -15,7 +15,11 @@ from pandas import compat
 from pandas.core import ops
 from pandas.core.arrays import PandasArray
 from pandas.core.construction import extract_array
+from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
+
+if TYPE_CHECKING:
+    import pyarrow  # noqa: F401
 
 
 @register_extension_dtype
@@ -53,19 +57,30 @@ class StringDtype(ExtensionDtype):
     na_value = libmissing.NA
 
     @property
-    def type(self) -> Type:
+    def type(self) -> Type[str]:
         return str
 
     @classmethod
-    def construct_array_type(cls) -> "Type[StringArray]":
+    def construct_array_type(cls) -> Type["StringArray"]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
         return StringArray
 
     def __repr__(self) -> str:
         return "StringDtype"
 
-    def __from_arrow__(self, array):
-        """Construct StringArray from passed pyarrow Array/ChunkedArray"""
-        import pyarrow
+    def __from_arrow__(
+        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
+    ) -> "StringArray":
+        """
+        Construct StringArray from pyarrow Array/ChunkedArray.
+        """
+        import pyarrow  # noqa: F811
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -93,9 +108,6 @@ class StringArray(PandasArray):
        StringArray is considered experimental. The implementation and
        parts of the API may change without warning.
 
-       In particular, the NA value used may change to no longer be
-       ``numpy.nan``.
-
     Parameters
     ----------
     values : array-like
@@ -104,8 +116,11 @@ class StringArray(PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings. This may
-           change without warning in the future.
+           where the elements are Python strings or :attr:`pandas.NA`.
+           This may change without warning in the future. Use
+           :meth:`pandas.array` with ``dtype="string"`` for a stable way of
+           creating a `StringArray` from any sequence.
+
     copy : bool, default False
         Whether to copy the array of data.
 
@@ -119,6 +134,8 @@ class StringArray(PandasArray):
 
     See Also
     --------
+    array
+        The recommended function for creating a StringArray.
     Series.str
         The string methods are available on Series backed by
         a StringArray.
@@ -165,12 +182,10 @@ class StringArray(PandasArray):
     def _validate(self):
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError(
-                "StringArray requires a sequence of strings or missing values."
-            )
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
-                "StringArray requires a sequence of strings. Got "
+                "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
 
@@ -178,12 +193,22 @@ class StringArray(PandasArray):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         if dtype:
             assert dtype == "string"
-        result = super()._from_sequence(scalars, dtype=object, copy=copy)
+
+        result = np.asarray(scalars, dtype="object")
+        if copy and result is scalars:
+            result = result.copy()
+
         # Standardize all missing-like values to NA
         # TODO: it would be nice to do this in _validate / lib.is_string_array
         # We are already doing a scan over the values there.
-        result[result.isna()] = StringDtype.na_value
-        return result
+        na_values = isna(result)
+        if na_values.any():
+            if result is scalars:
+                # force a copy now, if we haven't already
+                result = result.copy()
+            result[na_values] = StringDtype.na_value
+
+        return cls(result)
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
@@ -214,6 +239,7 @@ class StringArray(PandasArray):
             # extract_array doesn't extract PandasArray subclasses
             value = value._ndarray
 
+        key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)
         scalar_value = lib.is_scalar(value)
         if scalar_key and not scalar_value:
@@ -253,7 +279,7 @@ class StringArray(PandasArray):
     def value_counts(self, dropna=False):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna)
+        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
     # Overrride parent because we have different return types.
     @classmethod

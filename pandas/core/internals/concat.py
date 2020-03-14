@@ -48,8 +48,8 @@ def get_mgr_concatenation_plan(mgr, indexers):
 
     if 0 in indexers:
         ax0_indexer = indexers.pop(0)
-        blknos = algos.take_1d(mgr._blknos, ax0_indexer, fill_value=-1)
-        blklocs = algos.take_1d(mgr._blklocs, ax0_indexer, fill_value=-1)
+        blknos = algos.take_1d(mgr.blknos, ax0_indexer, fill_value=-1)
+        blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
         if mgr._is_single_block:
@@ -57,8 +57,8 @@ def get_mgr_concatenation_plan(mgr, indexers):
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
         ax0_indexer = None
-        blknos = mgr._blknos
-        blklocs = mgr._blklocs
+        blknos = mgr.blknos
+        blklocs = mgr.blklocs
 
     plan = []
     for blkno, placements in libinternals.get_blkno_placements(blknos, group=False):
@@ -204,10 +204,9 @@ class JoinUnit:
                     missing_arr.fill(fill_value)
                     return missing_arr
 
-            if not self.indexers:
-                if not self.block._can_consolidate:
-                    # preserve these for validation in concat_compat
-                    return self.block.values
+            if (not self.indexers) and (not self.block._can_consolidate):
+                # preserve these for validation in concat_compat
+                return self.block.values
 
             if self.block.is_bool and not self.block.is_categorical:
                 # External code requested filling/upcasting, bool values must
@@ -350,7 +349,7 @@ def _get_empty_dtype_and_na(join_units):
         dtype = upcast_classes["datetimetz"]
         return dtype[0], tslibs.NaT
     elif "datetime" in upcast_classes:
-        return np.dtype("M8[ns]"), tslibs.iNaT
+        return np.dtype("M8[ns]"), np.datetime64("NaT", "ns")
     elif "timedelta" in upcast_classes:
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
     else:  # pragma
@@ -372,7 +371,7 @@ def _get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def is_uniform_join_units(join_units):
+def is_uniform_join_units(join_units) -> bool:
     """
     Check if the join units consist of blocks of uniform type that can
     be concatenated using Block.concat_same_type instead of the generic
@@ -409,7 +408,6 @@ def _trim_join_unit(join_unit, length):
 
     Extra items that didn't fit are returned as a separate block.
     """
-
     if 0 not in join_unit.indexers:
         extra_indexers = join_unit.indexers
 

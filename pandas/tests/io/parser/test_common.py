@@ -8,7 +8,6 @@ from datetime import datetime
 from io import StringIO
 import os
 import platform
-from tempfile import TemporaryFile
 from urllib.error import URLError
 
 import numpy as np
@@ -958,7 +957,7 @@ def test_nonexistent_path(all_parsers):
     # gh-14086: raise more helpful FileNotFoundError
     # GH#29233 "File foo" instead of "File b'foo'"
     parser = all_parsers
-    path = "{}.csv".format(tm.rands(10))
+    path = f"{tm.rands(10)}.csv"
 
     msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
@@ -1847,16 +1846,15 @@ def test_temporary_file(all_parsers):
     parser = all_parsers
     data = "0 0"
 
-    new_file = TemporaryFile("w+")
-    new_file.write(data)
-    new_file.flush()
-    new_file.seek(0)
+    with tm.ensure_clean(mode="w+", return_filelike=True) as new_file:
+        new_file.write(data)
+        new_file.flush()
+        new_file.seek(0)
 
-    result = parser.read_csv(new_file, sep=r"\s+", header=None)
-    new_file.close()
+        result = parser.read_csv(new_file, sep=r"\s+", header=None)
 
-    expected = DataFrame([[0, 0]])
-    tm.assert_frame_equal(result, expected)
+        expected = DataFrame([[0, 0]])
+        tm.assert_frame_equal(result, expected)
 
 
 def test_internal_eof_byte(all_parsers):
@@ -1874,7 +1872,7 @@ def test_internal_eof_byte_to_file(all_parsers):
     parser = all_parsers
     data = b'c1,c2\r\n"test \x1a    test", test\r\n'
     expected = DataFrame([["test \x1a    test", " test"]], columns=["c1", "c2"])
-    path = "__{}__.csv".format(tm.rands(10))
+    path = f"__{tm.rands(10)}__.csv"
 
     with tm.ensure_clean(path) as path:
         with open(path, "wb") as f:
@@ -2040,6 +2038,17 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
 
         for _ in result:
             pass
+
+
+def test_read_csv_raises_on_header_prefix(all_parsers):
+    # gh-27394
+    parser = all_parsers
+    msg = "Argument prefix must be None if argument header is not None"
+
+    s = StringIO("0,1\n2,3")
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(s, header=0, prefix="_X")
 
 
 def test_read_table_equivalency_to_read_csv(all_parsers):

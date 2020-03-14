@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass,
+    ABCPeriod,
     ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
@@ -169,8 +170,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         self._dtype = PeriodDtype(freq)
 
     @classmethod
-    def _simple_new(cls, values, freq=None, **kwargs):
+    def _simple_new(cls, values: np.ndarray, freq=None, **kwargs):
         # alias for PeriodArray.__init__
+        assert isinstance(values, np.ndarray) and values.dtype == "i8"
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
@@ -279,8 +281,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         return self.dtype.freq
 
-    def __array__(self, dtype=None):
-        # overriding DatetimelikeArray
+    def __array__(self, dtype=None) -> np.ndarray:
+        if dtype == "i8":
+            return self.asi8
+        elif dtype == bool:
+            return ~self._isnan
+
+        # This will raise TypeErorr for non-object dtypes
         return np.array(list(self), dtype=object)
 
     def __arrow_array__(self, type=None):
@@ -297,12 +304,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
                 # ensure we have the same freq
                 if self.freqstr != type.freq:
                     raise TypeError(
-                        "Not supported to convert PeriodArray to array with different"
-                        " 'freq' ({0} vs {1})".format(self.freqstr, type.freq)
+                        "Not supported to convert PeriodArray to array with different "
+                        f"'freq' ({self.freqstr} vs {type.freq})"
                     )
             else:
                 raise TypeError(
-                    "Not supported to convert PeriodArray to '{0}' type".format(type)
+                    f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
         period_type = ArrowPeriodType(self.freqstr)
@@ -622,7 +629,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         -------
         result : PeriodArray
         """
-
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
@@ -959,8 +965,8 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
     if end is not None:
         end = Period(end, freq)
 
-    is_start_per = isinstance(start, Period)
-    is_end_per = isinstance(end, Period)
+    is_start_per = isinstance(start, ABCPeriod)
+    is_end_per = isinstance(end, ABCPeriod)
 
     if is_start_per and is_end_per and start.freq != end.freq:
         raise ValueError("start and end must have same freq")

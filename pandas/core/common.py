@@ -72,18 +72,12 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box(indexer, values, obj, key):
-
-    # if we have multiples coming back, box em
-    if isinstance(values, np.ndarray):
-        return obj[indexer.get_loc(key)]
-
-    # return the value
-    return values
-
-
-def maybe_box_datetimelike(value):
+def maybe_box_datetimelike(value, dtype=None):
     # turn a datetime like into a Timestamp/timedelta as needed
+    if dtype == object:
+        # If we dont have datetime64/timedelta64 dtype, we dont want to
+        #  box datetimelike scalars
+        return value
 
     if isinstance(value, (np.datetime64, datetime)):
         value = tslibs.Timestamp(value)
@@ -121,27 +115,22 @@ def is_bool_indexer(key: Any) -> bool:
 
     See Also
     --------
-    check_bool_array_indexer : Check that `key`
-        is a valid mask for an array, and convert to an ndarray.
+    check_array_indexer : Check that `key` is a valid array to index,
+        and convert to an ndarray.
     """
-    na_msg = "cannot mask with array containing NA / NaN values"
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
         is_array_like(key) and is_extension_array_dtype(key.dtype)
     ):
         if key.dtype == np.object_:
-            key = np.asarray(values_from_object(key))
+            key = np.asarray(key)
 
             if not lib.is_bool_array(key):
+                na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
                 if isna(key).any():
                     raise ValueError(na_msg)
                 return False
             return True
         elif is_bool_dtype(key.dtype):
-            # an ndarray with bool-dtype by definition has no missing values.
-            # So we only need to check for NAs in ExtensionArrays
-            if is_extension_array_dtype(key.dtype):
-                if np.any(key.isna()):
-                    raise ValueError(na_msg)
             return True
     elif isinstance(key, list):
         try:
@@ -166,7 +155,7 @@ def cast_scalar_indexer(val):
     outval : scalar
     """
     # assumes lib.is_scalar(val)
-    if lib.is_float(val) and val == int(val):
+    if lib.is_float(val) and val.is_integer():
         return int(val)
     return val
 
@@ -178,35 +167,35 @@ def not_none(*args):
     return (arg for arg in args if arg is not None)
 
 
-def any_none(*args):
+def any_none(*args) -> bool:
     """
     Returns a boolean indicating if any argument is None.
     """
     return any(arg is None for arg in args)
 
 
-def all_none(*args):
+def all_none(*args) -> bool:
     """
     Returns a boolean indicating if all arguments are None.
     """
     return all(arg is None for arg in args)
 
 
-def any_not_none(*args):
+def any_not_none(*args) -> bool:
     """
     Returns a boolean indicating if any argument is not None.
     """
     return any(arg is not None for arg in args)
 
 
-def all_not_none(*args):
+def all_not_none(*args) -> bool:
     """
     Returns a boolean indicating if all arguments are not None.
     """
     return all(arg is not None for arg in args)
 
 
-def count_not_none(*args):
+def count_not_none(*args) -> int:
     """
     Returns the count of arguments that are not None.
     """
@@ -286,7 +275,7 @@ def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T
     return obj
 
 
-def is_null_slice(obj):
+def is_null_slice(obj) -> bool:
     """
     We have a null slice.
     """
@@ -306,7 +295,7 @@ def is_true_slices(l):
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l):
+def is_full_slice(obj, l) -> bool:
     """
     We have a full length slice.
     """
@@ -343,7 +332,6 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     obj : NDFrame
     **kwargs
     """
-
     if callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
 
@@ -418,7 +406,6 @@ def random_state(state=None):
     -------
     np.random.RandomState
     """
-
     if is_integer(state):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
