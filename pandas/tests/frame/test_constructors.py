@@ -47,15 +47,15 @@ MIXED_INT_DTYPES = [
 class TestDataFrameConstructors:
     def test_series_with_name_not_matching_column(self):
         # GH#9232
-        x = pd.Series(range(5), name=1)
-        y = pd.Series(range(5), name=0)
+        x = Series(range(5), name=1)
+        y = Series(range(5), name=0)
 
-        result = pd.DataFrame(x, columns=[0])
-        expected = pd.DataFrame([], columns=[0])
+        result = DataFrame(x, columns=[0])
+        expected = DataFrame([], columns=[0])
         tm.assert_frame_equal(result, expected)
 
-        result = pd.DataFrame(y, columns=[1])
-        expected = pd.DataFrame([], columns=[1])
+        result = DataFrame(y, columns=[1])
+        expected = DataFrame([], columns=[1])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -126,7 +126,7 @@ class TestDataFrameConstructors:
     def test_constructor_dtype_copy(self):
         orig_df = DataFrame({"col1": [1.0], "col2": [2.0], "col3": [3.0]})
 
-        new_df = pd.DataFrame(orig_df, dtype=float, copy=True)
+        new_df = DataFrame(orig_df, dtype=float, copy=True)
 
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
@@ -220,10 +220,10 @@ class TestDataFrameConstructors:
         index = float_frame.index
 
         df = DataFrame(rec)
-        tm.assert_index_equal(df.columns, pd.Index(rec.dtype.names))
+        tm.assert_index_equal(df.columns, Index(rec.dtype.names))
 
         df2 = DataFrame(rec, index=index)
-        tm.assert_index_equal(df2.columns, pd.Index(rec.dtype.names))
+        tm.assert_index_equal(df2.columns, Index(rec.dtype.names))
         tm.assert_index_equal(df2.index, index)
 
         rng = np.arange(len(rec))[::-1]
@@ -298,7 +298,7 @@ class TestDataFrameConstructors:
 
         tm.assert_series_equal(frame["col1"], datetime_series.rename("col1"))
 
-        exp = pd.Series(
+        exp = Series(
             np.concatenate([[np.nan] * 5, datetime_series_short.values]),
             index=datetime_series.index,
             name="col2",
@@ -325,7 +325,7 @@ class TestDataFrameConstructors:
 
         # Length-one dict micro-optimization
         frame = DataFrame({"A": {"1": 1, "2": 2}})
-        tm.assert_index_equal(frame.index, pd.Index(["1", "2"]))
+        tm.assert_index_equal(frame.index, Index(["1", "2"]))
 
         # empty dict plus index
         idx = Index([0, 1, 2])
@@ -418,8 +418,8 @@ class TestDataFrameConstructors:
 
     def test_constructor_dict_nan_key_and_columns(self):
         # GH 16894
-        result = pd.DataFrame({np.nan: [1, 2], 2: [2, 3]}, columns=[np.nan, 2])
-        expected = pd.DataFrame([[1, 2], [2, 3]], columns=[np.nan, 2])
+        result = DataFrame({np.nan: [1, 2], 2: [2, 3]}, columns=[np.nan, 2])
+        expected = DataFrame([[1, 2], [2, 3]], columns=[np.nan, 2])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_multi_index(self):
@@ -428,29 +428,29 @@ class TestDataFrameConstructors:
         tuples = [(2, 3), (3, 3), (3, 3)]
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
-        assert pd.isna(df).values.ravel().all()
+        assert isna(df).values.ravel().all()
 
         tuples = [(3, 3), (2, 3), (3, 3)]
         mi = MultiIndex.from_tuples(tuples)
         df = DataFrame(index=mi, columns=mi)
-        assert pd.isna(df).values.ravel().all()
+        assert isna(df).values.ravel().all()
 
     def test_constructor_2d_index(self):
         # GH 25416
         # handling of 2d index in construction
-        df = pd.DataFrame([[1]], columns=[[1]], index=[1, 2])
-        expected = pd.DataFrame(
+        df = DataFrame([[1]], columns=[[1]], index=[1, 2])
+        expected = DataFrame(
             [1, 1],
             index=pd.Int64Index([1, 2], dtype="int64"),
-            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+            columns=MultiIndex(levels=[[1]], codes=[[0]]),
         )
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame([[1]], columns=[[1]], index=[[1, 2]])
-        expected = pd.DataFrame(
+        df = DataFrame([[1]], columns=[[1]], index=[[1, 2]])
+        expected = DataFrame(
             [1, 1],
-            index=pd.MultiIndex(levels=[[1, 2]], codes=[[0, 1]]),
-            columns=pd.MultiIndex(levels=[[1]], codes=[[0]]),
+            index=MultiIndex(levels=[[1, 2]], codes=[[0, 1]]),
+            columns=MultiIndex(levels=[[1]], codes=[[0]]),
         )
         tm.assert_frame_equal(df, expected)
 
@@ -471,7 +471,7 @@ class TestDataFrameConstructors:
             DataFrame(
                 np.arange(12).reshape((4, 3)),
                 columns=["foo", "bar", "baz"],
-                index=pd.date_range("2000-01-01", periods=3),
+                index=date_range("2000-01-01", periods=3),
             )
 
         arr = np.array([[4, 5, 6]])
@@ -713,14 +713,12 @@ class TestDataFrameConstructors:
         # PeriodIndex
         a = pd.PeriodIndex(["2012-01", "NaT", "2012-04"], freq="M")
         b = pd.PeriodIndex(["2012-02-01", "2012-03-01", "NaT"], freq="D")
-        df = pd.DataFrame({"a": a, "b": b})
+        df = DataFrame({"a": a, "b": b})
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
 
         # list of periods
-        df = pd.DataFrame(
-            {"a": a.astype(object).tolist(), "b": b.astype(object).tolist()}
-        )
+        df = DataFrame({"a": a.astype(object).tolist(), "b": b.astype(object).tolist()})
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
 
@@ -882,8 +880,8 @@ class TestDataFrameConstructors:
     def test_constructor_maskedarray_hardened(self):
         # Check numpy masked arrays with hard masks -- from GH24574
         mat_hard = ma.masked_all((2, 2), dtype=float).harden_mask()
-        result = pd.DataFrame(mat_hard, columns=["A", "B"], index=[1, 2])
-        expected = pd.DataFrame(
+        result = DataFrame(mat_hard, columns=["A", "B"], index=[1, 2])
+        expected = DataFrame(
             {"A": [np.nan, np.nan], "B": [np.nan, np.nan]},
             columns=["A", "B"],
             index=[1, 2],
@@ -892,8 +890,8 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
         # Check case where mask is hard but no data are masked
         mat_hard = ma.ones((2, 2), dtype=float).harden_mask()
-        result = pd.DataFrame(mat_hard, columns=["A", "B"], index=[1, 2])
-        expected = pd.DataFrame(
+        result = DataFrame(mat_hard, columns=["A", "B"], index=[1, 2])
+        expected = DataFrame(
             {"A": [1.0, 1.0], "B": [1.0, 1.0]},
             columns=["A", "B"],
             index=[1, 2],
@@ -907,8 +905,8 @@ class TestDataFrameConstructors:
             np.ma.zeros(5, dtype=[("date", "<f8"), ("price", "<f8")]), mask=[False] * 5
         )
         data = data.view(mrecords.mrecarray)
-        result = pd.DataFrame(data, dtype=int)
-        expected = pd.DataFrame(np.zeros((5, 2), dtype=int), columns=["date", "price"])
+        result = DataFrame(data, dtype=int)
+        expected = DataFrame(np.zeros((5, 2), dtype=int), columns=["date", "price"])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_mrecarray(self):
@@ -1268,9 +1266,9 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_series_aligned_index(self):
-        series = [pd.Series(i, index=["b", "a", "c"], name=str(i)) for i in range(3)]
-        result = pd.DataFrame(series)
-        expected = pd.DataFrame(
+        series = [Series(i, index=["b", "a", "c"], name=str(i)) for i in range(3)]
+        result = DataFrame(series)
+        expected = DataFrame(
             {"b": [0, 1, 2], "a": [0, 1, 2], "c": [0, 1, 2]},
             columns=["b", "a", "c"],
             index=["0", "1", "2"],
@@ -1497,12 +1495,12 @@ class TestDataFrameConstructors:
         s1 = Series(range(5), name=1)
 
         # matching name and column gives standard frame
-        tm.assert_frame_equal(pd.DataFrame(s0, columns=[0]), s0.to_frame())
-        tm.assert_frame_equal(pd.DataFrame(s1, columns=[1]), s1.to_frame())
+        tm.assert_frame_equal(DataFrame(s0, columns=[0]), s0.to_frame())
+        tm.assert_frame_equal(DataFrame(s1, columns=[1]), s1.to_frame())
 
         # non-matching produces empty frame
-        assert pd.DataFrame(s0, columns=[1]).empty
-        assert pd.DataFrame(s1, columns=[0]).empty
+        assert DataFrame(s0, columns=[1]).empty
+        assert DataFrame(s1, columns=[0]).empty
 
     def test_constructor_Series_differently_indexed(self):
         # name
@@ -1981,7 +1979,7 @@ class TestDataFrameConstructors:
         # TODO(wesm): unused
         frame = DataFrame.from_records(arr)  # noqa
 
-        index = pd.Index(np.arange(len(arr))[::-1])
+        index = Index(np.arange(len(arr))[::-1])
         indexed_frame = DataFrame.from_records(arr, index=index)
         tm.assert_index_equal(indexed_frame.index, index)
 
@@ -2280,7 +2278,7 @@ class TestDataFrameConstructors:
         # empty case
         result = DataFrame.from_records([], columns=["foo", "bar", "baz"])
         assert len(result) == 0
-        tm.assert_index_equal(result.columns, pd.Index(["foo", "bar", "baz"]))
+        tm.assert_index_equal(result.columns, Index(["foo", "bar", "baz"]))
 
         result = DataFrame.from_records([])
         assert len(result) == 0
@@ -2439,20 +2437,20 @@ class TestDataFrameConstructors:
         v = date.today()
         tup = v, v
         result = DataFrame({tup: Series(range(3), index=range(3))}, columns=[tup])
-        expected = DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))
+        expected = DataFrame([0, 1, 2], columns=Index(Series([tup])))
         tm.assert_frame_equal(result, expected)
 
     def test_construct_with_two_categoricalindex_series(self):
         # GH 14600
-        s1 = pd.Series(
+        s1 = Series(
             [39, 6, 4], index=pd.CategoricalIndex(["female", "male", "unknown"])
         )
-        s2 = pd.Series(
+        s2 = Series(
             [2, 152, 2, 242, 150],
             index=pd.CategoricalIndex(["f", "female", "m", "male", "unknown"]),
         )
-        result = pd.DataFrame([s1, s2])
-        expected = pd.DataFrame(
+        result = DataFrame([s1, s2])
+        expected = DataFrame(
             np.array(
                 [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
             ),
@@ -2551,19 +2549,19 @@ class TestDataFrameConstructorWithDatetimeTZ:
             "Nevada": {2001: 2.4, 2002: 2.9},
             "Ohio": {2000: 1.5, 2001: 1.7, 2002: 3.6},
         }
-        result = pd.DataFrame(pop, index=[2001, 2002, 2003], columns=columns)
-        expected = pd.DataFrame(
+        result = DataFrame(pop, index=[2001, 2002, 2003], columns=columns)
+        expected = DataFrame(
             [(2.4, 1.7), (2.9, 3.6), (np.nan, np.nan)],
             columns=columns,
-            index=pd.Index([2001, 2002, 2003]),
+            index=Index([2001, 2002, 2003]),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_from_tzaware_object_array(self):
         # GH#26825 2D object array of tzaware timestamps should not raise
-        dti = pd.date_range("2016-04-05 04:30", periods=3, tz="UTC")
+        dti = date_range("2016-04-05 04:30", periods=3, tz="UTC")
         data = dti._data.astype(object).reshape(1, -1)
-        df = pd.DataFrame(data)
+        df = DataFrame(data)
         assert df.shape == (1, 3)
         assert (df.dtypes == dti.dtype).all()
         assert (df == dti).all().all()
@@ -2602,7 +2600,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
     def test_from_2d_ndarray_with_dtype(self):
         # GH#12513
         array_dim2 = np.arange(10).reshape((5, 2))
-        df = pd.DataFrame(array_dim2, dtype="datetime64[ns, UTC]")
+        df = DataFrame(array_dim2, dtype="datetime64[ns, UTC]")
 
-        expected = pd.DataFrame(array_dim2).astype("datetime64[ns, UTC]")
+        expected = DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
