@@ -8,7 +8,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import NaT, Period, Timedelta, Timestamp, iNaT, lib
-from pandas._typing import Dtype, Scalar
+from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
@@ -1500,3 +1500,75 @@ def nanpercentile(
             return result
     else:
         return np.percentile(values, q, axis=axis, interpolation=interpolation)
+
+
+def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
+    """
+    Cumulative function with skipna support.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minumum.accumulate}
+    skipna : bool
+
+    Returns
+    -------
+    np.ndarray or ExtensionArray
+    """
+    mask_a, mask_b = {
+        np.cumprod: (1.0, np.nan),
+        np.maximum.accumulate: (-np.inf, np.nan),
+        np.cumsum: (0.0, np.nan),
+        np.minimum.accumulate: (np.inf, np.nan),
+    }[accum_func]
+
+    # We will be applying this function to block values
+    if values.dtype.kind in ["m", "M"]:
+        # GH#30460, GH#29058
+        # numpy 1.18 started sorting NaTs at the end instead of beginning,
+        #  so we need to work around to maintain backwards-consistency.
+        orig_dtype = values.dtype
+
+        # We need to define mask before masking NaTs
+        mask = isna(values)
+
+        if accum_func == np.minimum.accumulate:
+            # Note: the accum_func comparison fails as an "is" comparison
+            y = values.view("i8")
+            y[mask] = np.iinfo(np.int64).max
+            changed = True
+        else:
+            y = values
+            changed = False
+
+        result = accum_func(y.view("i8"), axis=0)
+        if skipna:
+            result[mask] = iNaT
+        elif accum_func == np.minimum.accumulate:
+            # Restore NaTs that we masked previously
+            nz = (~np.asarray(mask)).nonzero()[0]
+            if len(nz):
+                # everything up to the first non-na entry stays NaT
+                result[: nz[0]] = iNaT
+
+        if changed:
+            # restore NaT elements
+            y[mask] = iNaT  # TODO: could try/finally for this?
+
+        if isinstance(values, np.ndarray):
+            result = result.view(orig_dtype)
+        else:
+            # DatetimeArray
+            result = type(values)._from_sequence(result, dtype=orig_dtype)
+
+    elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
+        vals = values.copy()
+        mask = isna(vals)
+        vals[mask] = mask_a
+        result = accum_func(vals, axis=0)
+        result[mask] = mask_b
+    else:
+        result = accum_func(values, axis=0)
+
+    return result
