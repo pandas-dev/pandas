@@ -2268,6 +2268,9 @@ Name: Max Speed, dtype: float64
         -----
         For boolean dtypes, this uses :meth:`operator.xor` rather than
         :meth:`operator.sub`.
+        For unsigned integer Series, the results will also be unsigned. The result
+        is consistent with calculating the difference directly, however dtype of
+        the result is always float64.
 
         Examples
         --------
