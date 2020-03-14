@@ -251,11 +251,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = name if name is not no_default else self.name
-
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self._data
 
-        return self._simple_new(values, name=name)
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     def _maybe_convert_timedelta(self, other):
         """
