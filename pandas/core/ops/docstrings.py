@@ -234,6 +234,180 @@ e    NaN
 dtype: float64
 """
 
+_ne_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, np.nan, np.nan, 0], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
+dtype: float64
+>>> b = pd.Series([0, 1, np.nan, 0, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64
+>>> a.ne(b, fill_value=0)
+a     True
+b    False
+c     True
+d    False
+e    False
+f     True
+dtype: bool
+"""
+
+_eq_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, np.nan, np.nan, 0], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
+dtype: float64
+>>> b = pd.Series([0, 1, np.nan, 0, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64
+>>> a.eq(b, fill_value=0)
+a    False
+b     True
+c    False
+d     True
+e     True
+f    False
+dtype: bool
+"""
+
+_lt_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan, 1], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
+dtype: float64
+>>> b = pd.Series([0, 1, 2, np.nan, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64
+>>> a.lt(b, fill_value=0)
+a    False
+b    False
+c     True
+d    False
+e    False
+f     True
+dtype: bool
+"""
+
+_le_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan, 1], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
+dtype: float64
+>>> b = pd.Series([0, 1, 2, np.nan, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64
+>>> a.le(b, fill_value=0)
+a    False
+b     True
+c     True
+d    False
+e    False
+f     True
+dtype: bool
+"""
+
+_gt_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan, 1], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
+dtype: float64
+>>> b = pd.Series([0, 1, 2, np.nan, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64
+>>> a.gt(b, fill_value=0)
+a     True
+b    False
+c    False
+d    False
+e     True
+f    False
+dtype: bool
+"""
+
+_ge_example_SERIES = """
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan, 1], index=['a', 'b', 'c', 'd', 'e'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+e    1.0
+dtype: float64
+>>> b = pd.Series([0, 1, 2, np.nan, 1], index=['a', 'b', 'c', 'd', 'f'])
+>>> b
+a    0.0
+b    1.0
+c    2.0
+d    NaN
+f    1.0
+dtype: float64
+>>> a.ge(b, fill_value=0)
+a     True
+b     True
+c    False
+d    False
+e     True
+f    False
+dtype: bool
+"""
+
 _returns_series = """Series\n    The result of the operation."""
 
 _returns_tuple = """2-Tuple of Series\n    The result of the operation."""
@@ -306,42 +480,42 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "op": "==",
         "desc": "Equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _eq_example_SERIES,
         "series_returns": _returns_series,
     },
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _ne_example_SERIES,
         "series_returns": _returns_series,
     },
     "lt": {
         "op": "<",
         "desc": "Less than",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _lt_example_SERIES,
         "series_returns": _returns_series,
     },
     "le": {
         "op": "<=",
         "desc": "Less than or equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _le_example_SERIES,
         "series_returns": _returns_series,
     },
     "gt": {
         "op": ">",
         "desc": "Greater than",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _gt_example_SERIES,
         "series_returns": _returns_series,
     },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
         "reverse": None,
-        "series_examples": None,
+        "series_examples": _ge_example_SERIES,
         "series_returns": _returns_series,
     },
 }
