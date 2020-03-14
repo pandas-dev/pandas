@@ -391,6 +391,7 @@ class BlockManager(PandasObject):
         BlockManager
         """
         result_blocks = []
+        # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         # filter kwarg is used in replace-* family of methods
         if filter is not None:
@@ -415,11 +416,6 @@ class BlockManager(PandasObject):
                 align_keys = ["new", "mask"]
             else:
                 align_keys = ["mask"]
-        elif f == "fillna":
-            # fillna internally does putmask, maybe it's better to do this
-            # at mgr, not block level?
-            align_copy = False
-            align_keys = ["value"]
         else:
             align_keys = []
 
