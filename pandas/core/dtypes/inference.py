@@ -404,6 +404,7 @@ def is_dataclass(item):
 
     Examples
     --------
+    >>> from dataclasses import dataclass
     >>> @dataclass
     ... class Point:
     ...     x: int
