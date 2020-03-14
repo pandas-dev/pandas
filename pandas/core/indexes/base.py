@@ -531,6 +531,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._constructor(values, **attributes)
             except (TypeError, ValueError):
                 pass
+
+        # Remove tz so Index will try non-DatetimeIndex inference
+        attributes.pop("tz", None)
         return Index(values, **attributes)
 
     def _update_inplace(self, result, **kwargs):

@@ -1031,8 +1031,9 @@ def test_loc_datetimelike_mismatched_dtypes():
     dti = df.index
     tdi = pd.TimedeltaIndex(dti.asi8)  # matching i8 values
 
-    with pytest.raises(TypeError, match="is not convertible to datetime"):
+    msg = r"None of \[TimedeltaIndex.* are in the \[index\]"
+    with pytest.raises(KeyError, match=msg):
         df.loc[tdi]
 
-    with pytest.raises(TypeError, match="is not convertible to datetime"):
+    with pytest.raises(KeyError, match=msg):
         df["a"].loc[tdi]
