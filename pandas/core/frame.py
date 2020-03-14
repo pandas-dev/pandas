@@ -5262,7 +5262,7 @@ Series.differences : Show differences.
 
 Notes
 -----
-NaNs are considered equal to other NaNs.
+Matching NaNs will not appear as a difference.
 
 Examples
 --------
