@@ -440,45 +440,46 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         The name of a Series becomes its index or column name if it is used
         to form a DataFrame. It is also used whenever displaying the Series
-        using the interpreter, and persists through some transformations.
+        using the interpreter.
 
         Returns
         -------
-        Label (int, str or other hashable object).
+        label (hashable object)
+            The name of the Series, also the column name if part of a DataFrame.
 
         See Also
         --------
-        Index.name : Equivalent property for Index object.
+        Series.rename : Sets the Series name when given a scalar input.
+        Index.name : Corresponding Index property.
 
         Examples
         --------
-        >>> s1 = pd.Series([1, 2, 3], dtype=np.int64)
-        >>> s1
-        0    1
-        1    2
-        2    3
-        dtype: int64
-        >>> s1.name = "Numbers"
-        >>> s1
+        The Series name can be set initially when calling the constructor.
+
+        >>> s = pd.Series([1, 2, 3], dtype=np.int64, name='Numbers')
+        >>> s
         0    1
         1    2
         2    3
         Name: Numbers, dtype: int64
-        >>> s2 = s1.copy()
-        >>> s2.name = "More Numbers"
-        >>> pd.concat([s1, s2], axis=1)
-           Numbers  More Numbers
-        0        1             1
-        1        2             2
-        2        3             3
-
-        The name of a Series also persists through some transformations.
-
-        >>> s1.cumsum()
+        >>> s.name = "Integers"
+        >>> s
         0    1
-        1    3
-        2    6
-        Name: Numbers, dtype: int64
+        1    2
+        2    3
+        Name: Integers, dtype: int64
+
+        The name of a Series within a DataFrame is its column name.
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+        ...                   columns=["Odd Numbers", "Even Numbers"])
+        >>> df
+           Odd Numbers  Even Numbers
+        0            1             2
+        1            3             4
+        2            5             6
+        >>> df["Even Numbers"].name
+        'Even Numbers'
         """
         return self._name
 
