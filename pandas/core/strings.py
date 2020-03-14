@@ -572,7 +572,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`.
+    :func:`re.sub`, depending on the regex value.
 
     Parameters
     ----------
@@ -775,6 +775,8 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if x is libmissing.NA:
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:

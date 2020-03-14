@@ -207,7 +207,6 @@ class TestBlock:
         self.cblock = create_block("complex", [7])
         self.oblock = create_block("object", [1, 3])
         self.bool_block = create_block("bool", [5])
-        self.int_block = create_block("int", [6])
 
     def test_constructor(self):
         int32block = create_block("i4", [0])
@@ -309,7 +308,8 @@ class TestBlockManager:
         msg = "Gaps in blk ref_locs"
 
         with pytest.raises(AssertionError, match=msg):
-            BlockManager(blocks, axes)
+            mgr = BlockManager(blocks, axes)
+            mgr._rebuild_blknos_and_blklocs()
 
         blocks[0].mgr_locs = np.array([0])
         blocks[1].mgr_locs = np.array([1])

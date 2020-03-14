@@ -80,7 +80,7 @@ about reStructuredText can be found in:
 * `Quick reStructuredText reference <https://docutils.sourceforge.io/docs/user/rst/quickref.html>`_
 * `Full reStructuredText specification <https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html>`_
 
-Pandas has some helpers for sharing docstrings between related classes, see
+pandas has some helpers for sharing docstrings between related classes, see
 :ref:`docstring.sharing`.
 
 The rest of this document will summarize all the above guides, and will
@@ -932,7 +932,7 @@ plot will be generated automatically when building the documentation.
 Sharing docstrings
 ------------------
 
-Pandas has a system for sharing docstrings, with slight variations, between
+pandas has a system for sharing docstrings, with slight variations, between
 classes. This helps us keep docstrings consistent, while keeping things clear
 for the user reading. It comes at the cost of some complexity when writing.
 
