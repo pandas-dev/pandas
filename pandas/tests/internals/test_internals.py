@@ -540,6 +540,13 @@ class TestBlockManager:
         assert new_mgr.get("g").dtype == np.float64
         assert new_mgr.get("h").dtype == np.float16
 
+    def test_invalid_ea_block(self):
+        with pytest.raises(AssertionError, match="block.size != values.size"):
+            create_mgr("a: category; b: category")
+
+        with pytest.raises(AssertionError, match="block.size != values.size"):
+            create_mgr("a: category2; b: category2")
+
     def test_interleave(self):
 
         # self
@@ -552,13 +559,9 @@ class TestBlockManager:
         # will be converted according the actual dtype of the underlying
         mgr = create_mgr("a: category")
         assert mgr.as_array().dtype == "i8"
-        mgr = create_mgr("a: category; b: category")
-        assert mgr.as_array().dtype == "i8"
         mgr = create_mgr("a: category; b: category2")
         assert mgr.as_array().dtype == "object"
         mgr = create_mgr("a: category2")
-        assert mgr.as_array().dtype == "object"
-        mgr = create_mgr("a: category2; b: category2")
         assert mgr.as_array().dtype == "object"
 
         # combinations
@@ -702,7 +705,7 @@ class TestBlockManager:
             "a:i8;b:f8",  # basic case
             "a:i8;b:f8;c:c8;d:b",  # many types
             "a:i8;e:dt;f:td;g:string",  # more types
-            "a:i8;b:category;c:category2;d:category2",  # categories
+            "a:i8;b:category;c:category2",  # categories
             "c:sparse;d:sparse_na;b:f8",  # sparse
         ],
     )

@@ -1739,6 +1739,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         values = self._maybe_coerce_values(values)
         super().__init__(values, placement, ndim)
 
+        if self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(2DEA): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
+
     def _maybe_coerce_values(self, values):
         """
         Unbox to an extension array.
