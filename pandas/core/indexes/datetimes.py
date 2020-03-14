@@ -7,17 +7,13 @@ import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import fields, parsing, timezones
+from pandas._typing import Label
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
-from pandas.core.arrays.datetimes import (
-    DatetimeArray,
-    tz_to_dtype,
-    validate_tz_from_dtype,
-)
+from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, InvalidIndexError, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
@@ -36,7 +32,20 @@ def _new_DatetimeIndex(cls, d):
     if "data" in d and not isinstance(d["data"], DatetimeIndex):
         # Avoid need to verify integrity by calling simple_new directly
         data = d.pop("data")
-        result = cls._simple_new(data, **d)
+        if not isinstance(data, DatetimeArray):
+            # For backward compat with older pickles, we may need to construct
+            #  a DatetimeArray to adapt to the newer _simple_new signature
+            tz = d.pop("tz")
+            freq = d.pop("freq")
+            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=freq)
+        else:
+            dta = data
+            for key in ["tz", "freq"]:
+                # These are already stored in our DatetimeArray; if they are
+                #  also in the pickle and don't match, we have a problem.
+                if key in d:
+                    assert d.pop(key) == getattr(dta, key)
+        result = cls._simple_new(dta, **d)
     else:
         with warnings.catch_warnings():
             # TODO: If we knew what was going in to **d, we might be able to
@@ -244,34 +253,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return subarr
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
-        """
-        We require the we have a dtype compat for the values
-        if we are passed a non-dtype compat, then coerce using the constructor
-        """
-        if isinstance(values, DatetimeArray):
-            if tz:
-                tz = validate_tz_from_dtype(dtype, tz)
-                dtype = DatetimeTZDtype(tz=tz)
-            elif dtype is None:
-                dtype = _NS_DTYPE
-
-            values = DatetimeArray(values, freq=freq, dtype=dtype)
-            tz = values.tz
-            freq = values.freq
-            values = values._data
-
-        dtype = tz_to_dtype(tz)
-        dtarr = DatetimeArray._simple_new(values, freq=freq, dtype=dtype)
-        assert isinstance(dtarr, DatetimeArray)
+    def _simple_new(cls, values: DatetimeArray, name: Label = None):
+        assert isinstance(values, DatetimeArray), type(values)
 
         result = object.__new__(cls)
-        result._data = dtarr
+        result._data = values
         result.name = name
         result._cache = {}
         result._no_setting_name = False
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = dtarr._data
+        result._index_data = values._data
         result._reset_identity()
         return result
 
