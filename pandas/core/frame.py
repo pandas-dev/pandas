@@ -1773,7 +1773,9 @@ class DataFrame(NDFrame):
             else:
                 ix_vals = [self.index.values]
 
-            arrays = ix_vals + [self[c]._internal_get_values() for c in self.columns]
+            arrays = ix_vals + [
+                np.asarray(self.iloc[:, i]) for i in range(len(self.columns))
+            ]
 
             count = 0
             index_names = list(self.index.names)
@@ -1788,7 +1790,7 @@ class DataFrame(NDFrame):
 
             names = [str(name) for name in itertools.chain(index_names, self.columns)]
         else:
-            arrays = [self[c]._internal_get_values() for c in self.columns]
+            arrays = [np.asarray(self.iloc[:, i]) for i in range(len(self.columns))]
             names = [str(c) for c in self.columns]
             index_names = []
 
