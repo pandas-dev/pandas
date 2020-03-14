@@ -217,7 +217,7 @@ class JoinUnit:
             else:
                 # No dtype upcasting is done here, it will be performed during
                 # concatenation itself.
-                values = self.block.get_values()
+                values = self.block.values
 
         if not self.indexers:
             # If there's no indexing to be done, we want to signal outside
