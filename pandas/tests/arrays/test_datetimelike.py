@@ -65,8 +65,8 @@ class SharedTests:
         #  to the case where one has length-1, which numpy would broadcast
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
-        idx = self.array_cls._simple_new(data, freq="D")
-        arr = self.index_cls(idx)
+        arr = self.array_cls._simple_new(data, freq="D")
+        idx = self.index_cls(arr)
 
         with pytest.raises(ValueError, match="Lengths must match"):
             arr == arr[:1]

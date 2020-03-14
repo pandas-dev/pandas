@@ -363,7 +363,7 @@ class TestDatetimeIndexOps:
         assert not idx.equals(pd.Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.DatetimeIndex._simple_new(idx.asi8, tz="US/Pacific")
+        idx3 = pd.DatetimeIndex(idx.asi8, tz="US/Pacific")
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())
