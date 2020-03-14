@@ -329,7 +329,10 @@ class TestHDFStore:
 
         checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
         checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
+
+        # sleep is necessary to create h5 with different creation time
         time.sleep(1)
+
         checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
         checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
 
