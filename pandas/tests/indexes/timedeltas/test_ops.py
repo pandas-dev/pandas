@@ -136,12 +136,9 @@ class TestTimedeltaIndexOps:
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq is None
 
-    @pytest.mark.parametrize(
-        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
-    )
-    def test_drop_duplicates_metadata(self, freq):
+    def test_drop_duplicates_metadata(self, freq_sample):
         # GH 10115
-        idx = pd.timedelta_range("1 day", periods=10, freq=freq, name="idx")
+        idx = pd.timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -152,9 +149,6 @@ class TestTimedeltaIndexOps:
         tm.assert_index_equal(idx, result)
         assert result.freq is None
 
-    @pytest.mark.parametrize(
-        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
-    )
     @pytest.mark.parametrize(
         "keep, expected, index",
         [
@@ -167,9 +161,9 @@ class TestTimedeltaIndexOps:
             ),
         ],
     )
-    def test_drop_duplicates(self, freq, keep, expected, index):
+    def test_drop_duplicates(self, freq_sample, keep, expected, index):
         # to check Index/Series compat
-        idx = pd.timedelta_range("1 day", periods=10, freq=freq, name="idx")
+        idx = pd.timedelta_range("1 day", periods=10, freq=freq_sample, name="idx")
         idx = idx.append(idx[:5])
 
         tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
@@ -181,15 +175,12 @@ class TestTimedeltaIndexOps:
         result = Series(idx).drop_duplicates(keep=keep)
         tm.assert_series_equal(result, Series(expected, index=index))
 
-    @pytest.mark.parametrize(
-        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
-    )
-    def test_infer_freq(self, freq):
+    def test_infer_freq(self, freq_sample):
         # GH#11018
-        idx = pd.timedelta_range("1", freq=freq, periods=10)
+        idx = pd.timedelta_range("1", freq=freq_sample, periods=10)
         result = pd.TimedeltaIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
-        assert result.freq == freq
+        assert result.freq == freq_sample
 
     def test_repeat(self):
         index = pd.timedelta_range("1 days", periods=2, freq="D")

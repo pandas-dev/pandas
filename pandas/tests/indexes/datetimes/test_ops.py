@@ -259,12 +259,9 @@ class TestDatetimeIndexOps:
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
         assert ordered.freq is None
 
-    @pytest.mark.parametrize(
-        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
-    )
-    def test_drop_duplicates_metadata(self, freq):
+    def test_drop_duplicates_metadata(self, freq_sample):
         # GH 10115
-        idx = pd.date_range("2011-01-01", freq=freq, periods=10, name="idx")
+        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -275,9 +272,6 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(idx, result)
         assert result.freq is None
 
-    @pytest.mark.parametrize(
-        "freq", ["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"]
-    )
     @pytest.mark.parametrize(
         "keep, expected, index",
         [
@@ -290,9 +284,9 @@ class TestDatetimeIndexOps:
             ),
         ],
     )
-    def test_drop_duplicates(self, freq, keep, expected, index):
+    def test_drop_duplicates(self, freq_sample, keep, expected, index):
         # to check Index/Series compat
-        idx = pd.date_range("2011-01-01", freq=freq, periods=10, name="idx")
+        idx = pd.date_range("2011-01-01", freq=freq_sample, periods=10, name="idx")
         idx = idx.append(idx[:5])
 
         tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
@@ -304,36 +298,12 @@ class TestDatetimeIndexOps:
         result = Series(idx).drop_duplicates(keep=keep)
         tm.assert_series_equal(result, Series(expected, index=index))
 
-    @pytest.mark.parametrize(
-        "freq",
-        [
-            "A",
-            "2A",
-            "-2A",
-            "Q",
-            "-1Q",
-            "M",
-            "-1M",
-            "D",
-            "3D",
-            "-3D",
-            "W",
-            "-1W",
-            "H",
-            "2H",
-            "-2H",
-            "T",
-            "2T",
-            "S",
-            "-3S",
-        ],
-    )
-    def test_infer_freq(self, freq):
+    def test_infer_freq(self, freq_sample):
         # GH 11018
-        idx = pd.date_range("2011-01-01 09:00:00", freq=freq, periods=10)
+        idx = pd.date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
         result = pd.DatetimeIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
-        assert result.freq == freq
+        assert result.freq == freq_sample
 
     def test_nat(self, tz_naive_fixture):
         tz = tz_naive_fixture
