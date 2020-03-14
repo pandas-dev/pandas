@@ -59,7 +59,7 @@ class TestIndex(Base):
         # copy to avoid mutation, e.g. setting .name
         return indices_dict[key].copy()
 
-    def create_index(self):
+    def create_index(self) -> Index:
         return Index(list("abcde"))
 
     def test_can_hold_identifiers(self):
@@ -2277,7 +2277,7 @@ class TestMixedIntIndex(Base):
     def indices(self, request):
         return Index(request.param)
 
-    def create_index(self):
+    def create_index(self) -> Index:
         return Index([0, "a", 1, "b", 2, "c"])
 
     def test_argsort(self):
@@ -2457,6 +2457,17 @@ class TestMixedIntIndex(Base):
 
         expected = Index([], dtype=object)
         tm.assert_index_equal(result, expected)
+
+    def test_index_repr_bool_nan(self):
+        # GH32146
+        arr = Index([True, False, np.nan], dtype=object)
+        exp1 = arr.format()
+        out1 = ["True", "False", "NaN"]
+        assert out1 == exp1
+
+        exp2 = repr(arr)
+        out2 = "Index([True, False, nan], dtype='object')"
+        assert out2 == exp2
 
 
 class TestIndexUtils:

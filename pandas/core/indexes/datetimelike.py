@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_period_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
@@ -484,7 +483,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             if is_categorical_dtype(other):
                 # e.g. we have a Categorical holding self.dtype
-                if needs_i8_conversion(other.categories):
+                if is_dtype_equal(other.categories.dtype, self.dtype):
                     other = other._internal_get_values()
 
             if not is_dtype_equal(self.dtype, other.dtype):
@@ -618,25 +617,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
+        cache = self._cache.copy() if values is None else {}
 
         if values is None:
             values = self._data
 
-        if isinstance(values, type(self)):
-            values = values._data
         if isinstance(values, np.ndarray):
             # TODO: We would rather not get here
             values = type(self._data)(values, dtype=self.dtype)
 
-        attributes = self._get_attributes_dict()
-
-        if self.freq is not None:
-            if isinstance(values, (DatetimeArray, TimedeltaArray)):
-                if values.freq is None:
-                    del attributes["freq"]
-
-        attributes["name"] = name
-        return type(self)._simple_new(values, **attributes)
+        result = type(self)._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -778,7 +770,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            result = self._shallow_copy(dates)
+            result._set_freq("infer")
+            # TODO: can we infer that it has self.freq?
+            return result
         else:
             left, right = other, self
 
@@ -790,7 +785,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            result = self._shallow_copy(dates)
+            result._set_freq("infer")
+            # TODO: can we infer that it has self.freq?
+            return result
         else:
             return left
 
