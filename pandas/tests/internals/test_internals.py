@@ -207,7 +207,6 @@ class TestBlock:
         self.cblock = create_block("complex", [7])
         self.oblock = create_block("object", [1, 3])
         self.bool_block = create_block("bool", [5])
-        self.int_block = create_block("int", [6])
 
     def test_constructor(self):
         int32block = create_block("i4", [0])
@@ -540,13 +539,21 @@ class TestBlockManager:
         assert new_mgr.get("g").dtype == np.float64
         assert new_mgr.get("h").dtype == np.float16
 
-    @pytest.mark.parametrize("mgr_string", ["a: {dtype}", "a: {dtype}; b: {dtype}"])
-    @pytest.mark.parametrize(
-        "dtype", ["f8", "i8", "object", "bool", "complex", "M8[ns]", "m8[ns]"]
-    )
-    def test_interleave_dtype(self, mgr_string, dtype):
-        mgr = create_mgr(mgr_string.format(dtype=dtype))
-        assert mgr.as_array().dtype == dtype
+    def test_invalid_ea_block(self):
+        with pytest.raises(AssertionError, match="block.size != values.size"):
+            create_mgr("a: category; b: category")
+
+        with pytest.raises(AssertionError, match="block.size != values.size"):
+            create_mgr("a: category2; b: category2")
+
+    def test_interleave(self):
+
+        # self
+        for dtype in ["f8", "i8", "object", "bool", "complex", "M8[ns]", "m8[ns]"]:
+            mgr = create_mgr(f"a: {dtype}")
+            assert mgr.as_array().dtype == dtype
+            mgr = create_mgr(f"a: {dtype}; b: {dtype}")
+            assert mgr.as_array().dtype == dtype
 
     @pytest.mark.parametrize(
         "mgr_string, dtype",
@@ -573,8 +580,40 @@ class TestBlockManager:
     )
     def test_interleave(self, mgr_string, dtype):
         # will be converted according the actual dtype of the underlying
-        mgr = create_mgr(mgr_string)
-        assert mgr.as_array().dtype == dtype
+        mgr = create_mgr("a: category")
+        assert mgr.as_array().dtype == "i8"
+        mgr = create_mgr("a: category; b: category2")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: category2")
+        assert mgr.as_array().dtype == "object"
+
+        # combinations
+        mgr = create_mgr("a: f8")
+        assert mgr.as_array().dtype == "f8"
+        mgr = create_mgr("a: f8; b: i8")
+        assert mgr.as_array().dtype == "f8"
+        mgr = create_mgr("a: f4; b: i8")
+        assert mgr.as_array().dtype == "f8"
+        mgr = create_mgr("a: f4; b: i8; d: object")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: bool; b: i8")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: complex")
+        assert mgr.as_array().dtype == "complex"
+        mgr = create_mgr("a: f8; b: category")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: M8[ns]; b: category")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: M8[ns]; b: bool")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: M8[ns]; b: i8")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: m8[ns]; b: bool")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: m8[ns]; b: i8")
+        assert mgr.as_array().dtype == "object"
+        mgr = create_mgr("a: M8[ns]; b: m8[ns]")
+        assert mgr.as_array().dtype == "object"
 
     def test_consolidate_ordering_issues(self, mgr):
         mgr.set("f", tm.randn(N))
@@ -688,7 +727,7 @@ class TestBlockManager:
             "a:i8;b:f8",  # basic case
             "a:i8;b:f8;c:c8;d:b",  # many types
             "a:i8;e:dt;f:td;g:string",  # more types
-            "a:i8;b:category;c:category2;d:category2",  # categories
+            "a:i8;b:category;c:category2",  # categories
             "c:sparse;d:sparse_na;b:f8",  # sparse
         ],
     )
