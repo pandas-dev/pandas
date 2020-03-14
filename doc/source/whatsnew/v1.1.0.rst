@@ -168,6 +168,37 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_110.api_breaking.assignment_to_multiple_columns:
+
+Assignment to multiple columns of a DataFrame when some columns do not exist
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Assignment to multiple columns of a :class:`DataFrame` when some of the columns do not exist would previously assign the values to the last column. Now, new columns would be constructed with the right values. (:issue:`13658`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [0, 1, 2], 'b': [3, 4, 5]})
+   df
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [3]: df[['a', 'c']] = 1
+   In [4]: df
+   Out[4]:
+      a  b
+   0  1  1
+   1  1  1
+   2  1  1
+
+*New behavior*:
+
+.. ipython:: python
+
+   df[['a', 'c']] = 1
+   df
+
 .. _whatsnew_110.deprecations:
 
 Deprecations
@@ -175,8 +206,8 @@ Deprecations
 - Lookups on a :class:`Series` with a single-item list containing a slice (e.g. ``ser[[slice(0, 4)]]``) are deprecated, will raise in a future version.  Either convert the list to tuple, or pass the slice directly instead (:issue:`31333`)
 - :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
 - Setting values with ``.loc`` using a positional slice is deprecated and will raise in a future version.  Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
+- :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
 - :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
--
 
 .. ---------------------------------------------------------------------------
 
@@ -336,6 +367,7 @@ Reshaping
 - Bug in :func:`concat` where the resulting indices are not copied when ``copy=True`` (:issue:`29879`)
 - :meth:`Series.append` will now raise a ``TypeError`` when passed a DataFrame or a sequence containing Dataframe (:issue:`31413`)
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
+- Bug in :meth:`DataFrame.apply` where callback was called with :class:`Series` parameter even though ``raw=True`` requested. (:issue:`32423`)
 
 
 Sparse
@@ -357,6 +389,7 @@ Other
   instead of ``TypeError: Can only append a Series if ignore_index=True or if the Series has a name`` (:issue:`30871`)
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 - Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
+- Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
 
 .. ---------------------------------------------------------------------------
 
