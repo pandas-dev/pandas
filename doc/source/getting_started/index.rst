@@ -9,8 +9,6 @@ Getting started
 Installation
 ------------
 
-Before you can use pandas, you’ll need to get it installed.
-
 .. raw:: html
 
     <div class="container">
@@ -23,7 +21,7 @@ Before you can use pandas, you’ll need to get it installed.
                 <div class="card-body">
                     <p class="card-text">
 
-Pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution and can be
+pandas is part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution and can be
 installed with Anaconda or Miniconda:
 
 .. raw:: html
@@ -49,7 +47,7 @@ installed with Anaconda or Miniconda:
                 <div class="card-body">
                     <p class="card-text">
 
-Pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
+pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
 
 .. raw:: html
 
@@ -103,7 +101,7 @@ Intro to pandas
                 <div class="d-flex flex-row tutorial-card-header-1">
                     <div class="d-flex flex-row tutorial-card-header-2">
                         <button class="btn btn-dark btn-sm"></button>
-                        What kind of data does Pandas handle?
+                        What kind of data does pandas handle?
                     </div>
                     <span class="badge gs-badge-link">
 
@@ -117,8 +115,8 @@ Intro to pandas
             <div id="collapseOne" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-When working with tabular data, such as data stored in spreadsheets or databases, Pandas is the right tool for you. Pandas will help you
-to explore, clean and process your data. In Pandas, a data table is called a :class:`DataFrame`.
+When working with tabular data, such as data stored in spreadsheets or databases, pandas is the right tool for you. pandas will help you
+to explore, clean and process your data. In pandas, a data table is called a :class:`DataFrame`.
 
 .. image:: ../_static/schemas/01_table_dataframe.svg
    :align: center
@@ -164,7 +162,7 @@ to explore, clean and process your data. In Pandas, a data table is called a :cl
             <div id="collapseTwo" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). Importing data from each of these
+pandas supports the integration with many file formats or data sources out of the box (csv, excel, sql, json, parquet,…). Importing data from each of these
 data sources is provided by function with the prefix ``read_*``. Similarly, the ``to_*`` methods are used to store data.
 
 .. image:: ../_static/schemas/02_io_readwrite.svg
@@ -212,7 +210,7 @@ data sources is provided by function with the prefix ``read_*``. Similarly, the 
                 <div class="card-body">
 
 Selecting or filtering specific rows and/or columns? Filtering the data on a condition? Methods for slicing, selecting, and extracting the
-data you need are available in Pandas.
+data you need are available in pandas.
 
 .. image:: ../_static/schemas/03_subset_columns_rows.svg
    :align: center
@@ -258,7 +256,7 @@ data you need are available in Pandas.
             <div id="collapseFour" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Pandas provides plotting your data out of the box, using the power of Matplotlib. You can pick the plot type (scatter, bar, boxplot,...)
+pandas provides plotting your data out of the box, using the power of Matplotlib. You can pick the plot type (scatter, bar, boxplot,...)
 corresponding to your data.
 
 .. image:: ../_static/schemas/04_plot_overview.svg
@@ -492,7 +490,7 @@ Multiple tables can be concatenated both column wise as row wise and database-li
             <div id="collapseNine" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Pandas has great support for time series and has an extensive set of tools for working with dates, times, and time-indexed data.
+pandas has great support for time series and has an extensive set of tools for working with dates, times, and time-indexed data.
 
 .. raw:: html
 
@@ -535,7 +533,7 @@ Pandas has great support for time series and has an extensive set of tools for w
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets do not only contain numerical data. Pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
+Data sets do not only contain numerical data. pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
 
 .. raw:: html
 
@@ -568,9 +566,8 @@ Data sets do not only contain numerical data. Pandas provides a wide range of fu
 Coming from...
 --------------
 
-Currently working with other software for data manipulation in a tabular format? You're probably familiar to typical
-data operations and know *what* to do with your tabular data, but lacking the syntax to execute these operations. Get to know
-the pandas syntax by looking for equivalents from the software you already know:
+Are you familiar with other software for manipulating tablular data? Learn
+the pandas-equivalent operations compared to software you already know:
 
 .. raw:: html
 
@@ -580,7 +577,7 @@ the pandas syntax by looking for equivalents from the software you already know:
                 <div class="card text-center intro-card shadow">
                 <img src="../_static/logo_r.svg" class="card-img-top" alt="R project logo" height="72">
                 <div class="card-body flex-fill">
-                    <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>data.frame</code> data structure and multiple packages,
+                    <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>dataframe</code> data structure and multiple packages,
                         such as <a href="https://www.tidyverse.org/">tidyverse</a> use and extend <code>data.frame</code>s for convenient data handling
                         functionalities similar to pandas.</p>
 
@@ -597,7 +594,7 @@ the pandas syntax by looking for equivalents from the software you already know:
                 <div class="card text-center intro-card shadow">
                 <img src="../_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72">
                 <div class="card-body flex-fill">
-                    <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>,...?
+                    <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>, etc.?
                     Most of these SQL manipulations do have equivalents in pandas.</p>
 
 .. container:: custom-button
@@ -615,7 +612,7 @@ the pandas syntax by looking for equivalents from the software you already know:
                     <div class="card-body flex-fill">
                         <p class="card-text">The <code>data set</code> included in the
                             <a href="https://en.wikipedia.org/wiki/Stata">STATA</a> statistical software suite corresponds
-                            to the pandas <code>data.frame</code>. Many of the operations known from STATA have an equivalent
+                            to the pandas <code>dataframe</code>. Many of the operations known from STATA have an equivalent
                             in pandas.</p>
 
 .. container:: custom-button
@@ -632,8 +629,8 @@ the pandas syntax by looking for equivalents from the software you already know:
                     <img src="../_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52">
                     <div class="card-body flex-fill">
                         <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite
-                            also provides the <code>data set</code> corresponding to the pandas <code>data.frame</code>.
-                            Also vectorized operations, filtering, string processing operations,... from SAS have similar
+                            also provides the <code>data set</code> corresponding to the pandas <code>dataframe</code>.
+                            Also SAS vectorized operations, filtering, string processing operations, and more have similar
                             functions in pandas.</p>
 
 .. container:: custom-button
@@ -648,11 +645,16 @@ the pandas syntax by looking for equivalents from the software you already know:
         </div>
     </div>
 
-Community tutorials
--------------------
+Tutorials
+---------
+
+For a quick overview of pandas functionality, see :ref:`10 Minutes to pandas<10min>`.
+
+You can also reference the pandas `cheat sheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_
+for a succinct guide for manipulating data with pandas.
 
 The community produces a wide variety of tutorials available online. Some of the
-material is enlisted in the community contributed :ref:`tutorials`.
+material is enlisted in the community contributed :ref:`communitytutorials`.
 
 
 .. If you update this toctree, also update the manual toctree in the
@@ -664,9 +666,6 @@ material is enlisted in the community contributed :ref:`tutorials`.
 
     install
     overview
-    10min
     intro_tutorials/index
-    basics
-    dsintro
     comparison/index
     tutorials

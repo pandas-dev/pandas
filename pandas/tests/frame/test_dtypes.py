@@ -505,7 +505,7 @@ class TestDataFrameDataTypes:
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_astype_from_datetimelike_to_objectt(self, dtype, unit):
+    def test_astype_from_datetimelike_to_object(self, dtype, unit):
         # tests astype to object dtype
         # gh-19223 / gh-12425
         dtype = f"{dtype}[{unit}]"
