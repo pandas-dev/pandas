@@ -1193,6 +1193,8 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
         char_count = (self->word_starts[word_deletions - 1] +
                       strlen(self->words[word_deletions - 1]) + 1);
     } else {
+        /* if word_deletions == 0 (i.e. this case) then char_count must
+         * be 0 too, as no data needs to be skipped */
         char_count = 0;
     }
 
