@@ -30,7 +30,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, iNaT, lib
+from pandas._libs import Timestamp, lib
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -10106,8 +10106,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="minimum",
             accum_func=np.minimum.accumulate,
             accum_func_name="min",
-            mask_a=np.inf,
-            mask_b=np.nan,
             examples=_cummin_examples,
         )
         cls.cumsum = _make_cum_function(
@@ -10119,8 +10117,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="sum",
             accum_func=np.cumsum,
             accum_func_name="sum",
-            mask_a=0.0,
-            mask_b=np.nan,
             examples=_cumsum_examples,
         )
         cls.cumprod = _make_cum_function(
@@ -10132,8 +10128,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="product",
             accum_func=np.cumprod,
             accum_func_name="prod",
-            mask_a=1.0,
-            mask_b=np.nan,
             examples=_cumprod_examples,
         )
         cls.cummax = _make_cum_function(
@@ -10145,8 +10139,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="maximum",
             accum_func=np.maximum.accumulate,
             accum_func_name="max",
-            mask_a=-np.inf,
-            mask_b=np.nan,
             examples=_cummax_examples,
         )
 
@@ -11186,8 +11178,6 @@ def _make_cum_function(
     desc: str,
     accum_func: Callable,
     accum_func_name: str,
-    mask_a: float,
-    mask_b: float,
     examples: str,
 ) -> Callable:
     @Substitution(
@@ -11209,61 +11199,15 @@ def _make_cum_function(
         if axis == 1:
             return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
 
-        def na_accum_func(blk_values):
-            # We will be applying this function to block values
-            if blk_values.dtype.kind in ["m", "M"]:
-                # GH#30460, GH#29058
-                # numpy 1.18 started sorting NaTs at the end instead of beginning,
-                #  so we need to work around to maintain backwards-consistency.
-                orig_dtype = blk_values.dtype
+        def block_accum_func(blk_values):
+            values = blk_values.T if hasattr(blk_values, "T") else blk_values
 
-                # We need to define mask before masking NaTs
-                mask = isna(blk_values)
+            result = nanops.na_accum_func(values, accum_func, skipna=skipna)
 
-                if accum_func == np.minimum.accumulate:
-                    # Note: the accum_func comparison fails as an "is" comparison
-                    y = blk_values.view("i8")
-                    y[mask] = np.iinfo(np.int64).max
-                    changed = True
-                else:
-                    y = blk_values
-                    changed = False
+            result = result.T if hasattr(result, "T") else result
+            return result
 
-                result = accum_func(y.view("i8"), axis)
-                if skipna:
-                    np.putmask(result, mask, iNaT)
-                elif accum_func == np.minimum.accumulate:
-                    # Restore NaTs that we masked previously
-                    nz = (~np.asarray(mask)).nonzero()[0]
-                    if len(nz):
-                        # everything up to the first non-na entry stays NaT
-                        result[: nz[0]] = iNaT
-
-                if changed:
-                    # restore NaT elements
-                    y[mask] = iNaT  # TODO: could try/finally for this?
-
-                if isinstance(blk_values, np.ndarray):
-                    result = result.view(orig_dtype)
-                else:
-                    # DatetimeArray
-                    result = type(blk_values)._from_sequence(result, dtype=orig_dtype)
-
-            elif skipna and not issubclass(
-                blk_values.dtype.type, (np.integer, np.bool_)
-            ):
-                vals = blk_values.copy().T
-                mask = isna(vals)
-                np.putmask(vals, mask, mask_a)
-                result = accum_func(vals, axis)
-                np.putmask(result, mask, mask_b)
-            else:
-                result = accum_func(blk_values.T, axis)
-
-            # transpose back for ndarray, not for EA
-            return result.T if hasattr(result, "T") else result
-
-        result = self._data.apply(na_accum_func)
+        result = self._data.apply(block_accum_func)
 
         d = self._construct_axes_dict()
         d["copy"] = False
