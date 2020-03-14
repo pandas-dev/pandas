@@ -96,6 +96,22 @@ class TestSparseArray:
         with pytest.raises(ValueError, match="Cannot convert"):
             SparseArray([0, 1, np.nan], dtype=dtype)
 
+    def test_constructor_warns_when_losing_timezone(self):
+        # GH#32501 warn when losing timezone inforamtion
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+        expected = SparseArray(np.asarray(dti, dtype="datetime64[ns]"))
+
+        with tm.assert_produces_warning(UserWarning):
+            result = SparseArray(dti)
+
+        tm.assert_sp_array_equal(result, expected)
+
+        with tm.assert_produces_warning(UserWarning):
+            result = SparseArray(pd.Series(dti))
+
+        tm.assert_sp_array_equal(result, expected)
+
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # XXX: Behavior change: specifying SparseIndex no longer changes the
