@@ -1015,3 +1015,24 @@ def test_loc_slice_disallows_positional():
     with tm.assert_produces_warning(FutureWarning):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
+
+
+def test_loc_datetimelike_mismatched_dtypes():
+    # GH#32650 dont mix and match datetime/timedelta/period dtypes
+
+    df = pd.DataFrame(
+        np.random.randn(5, 3),
+        columns=["a", "b", "c"],
+        index=pd.date_range("2012", freq="H", periods=5),
+    )
+    # create dataframe with non-unique DatetimeIndex
+    df = df.iloc[[0, 2, 2, 3]].copy()
+
+    dti = df.index
+    tdi = pd.TimedeltaIndex(dti.asi8)  # matching i8 values
+
+    with pytest.raises(TypeError, match="is not convertible to datetime"):
+        df.loc[tdi]
+
+    with pytest.raises(TypeError, match="is not convertible to datetime"):
+        df["a"].loc[tdi]
