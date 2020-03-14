@@ -215,6 +215,63 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "columns,box,expected",
+        [
+            (
+                ["A", "B", "C", "D"],
+                7,
+                pd.DataFrame(
+                    [[7, 7, 7, 7], [7, 7, 7, 7], [7, 7, 7, 7]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "D"],
+                [7, 8],
+                pd.DataFrame(
+                    [[1, 2, 7, 8], [3, 4, 7, 8], [5, 6, 7, 8]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "B", "C"],
+                np.array([7, 8, 9], dtype=np.int64),
+                pd.DataFrame(
+                    [[7, 8, 9], [7, 8, 9], [7, 8, 9]], columns=["A", "B", "C"]
+                ),
+            ),
+            (
+                ["B", "C", "D"],
+                [[7, 8, 9], [10, 11, 12], [13, 14, 15]],
+                pd.DataFrame(
+                    [[1, 7, 8, 9], [3, 10, 11, 12], [5, 13, 14, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "A", "D"],
+                np.array([[7, 8, 9], [10, 11, 12], [13, 14, 15]], dtype=np.int64),
+                pd.DataFrame(
+                    [[8, 2, 7, 9], [11, 4, 10, 12], [14, 6, 13, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "C"],
+                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                pd.DataFrame(
+                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
+                ),
+            ),
+        ],
+    )
+    def test_setitem_list_missing_columns(self, columns, box, expected):
+        # GH 29334
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df[columns] = box
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
@@ -458,13 +515,6 @@ class TestDataFrameIndexing:
         series = float_frame["A"]
         float_frame["col6"] = series
         tm.assert_series_equal(series, float_frame["col6"], check_names=False)
-
-        msg = (
-            r"\"None of \[Float64Index\(\[.*dtype='float64'\)\] are in the "
-            r"\[columns\]\""
-        )
-        with pytest.raises(KeyError, match=msg):
-            float_frame[np.random.randn(len(float_frame) + 1)] = 1
 
         # set ndarray
         arr = np.random.randn(len(float_frame))
