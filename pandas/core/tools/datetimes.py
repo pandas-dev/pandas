@@ -323,15 +323,13 @@ def _convert_listlike_datetimes(
         # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
         # because it expects an ndarray argument
         if isinstance(arg, IntegerArray):
-            # Explicitly pass NaT mask to array_with_unit_to_datetime
-            mask = arg.isna()
-            arg = arg._ndarray_values
+            result = arg.astype(f"datetime64[{unit}]")
+            tz_parsed = None
         else:
-            mask = None
 
-        result, tz_parsed = tslib.array_with_unit_to_datetime(
-            arg, mask, unit, errors=errors
-        )
+            result, tz_parsed = tslib.array_with_unit_to_datetime(
+                arg, unit, errors=errors
+            )
 
         if errors == "ignore":
             from pandas import Index
