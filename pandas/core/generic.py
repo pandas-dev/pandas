@@ -6089,6 +6089,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     value = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
+                    value = value.reindex(self.index, copy=False)
+                    value = value._values
                 elif not is_list_like(value):
                     pass
                 else:
