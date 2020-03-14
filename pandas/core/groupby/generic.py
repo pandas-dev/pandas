@@ -1203,7 +1203,7 @@ class DataFrameGroupBy(GroupBy):
             # We'd prefer it return an empty dataframe.
             return DataFrame()
 
-        if isinstance(v, DataFrame):
+        elif isinstance(v, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
         if len(self.grouper.groupings) > 1:
