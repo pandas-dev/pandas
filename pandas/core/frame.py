@@ -5335,10 +5335,13 @@ Keep all original indices and data
     )
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
-        self, other: "DataFrame", axis=1, keep_shape=False, keep_equal=False
+        self, other: "DataFrame", align_axis=1, keep_shape=False, keep_equal=False
     ) -> "DataFrame":
         return super().differences(
-            other=other, axis=axis, keep_shape=keep_shape, keep_equal=keep_equal
+            other=other,
+            align_axis=align_axis,
+            keep_shape=keep_shape,
+            keep_equal=keep_equal,
         )
 
     def combine(

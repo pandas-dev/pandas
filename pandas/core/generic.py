@@ -8169,12 +8169,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         other : %(klass)s
             Object to compare with.
 
-        axis : {0 or 'index', 1 or 'columns'}, default 1
-            Determine how the differences are stacked.
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
+            Determine which axis to align the comparison on.
 
             * 0, or 'index' : Resulting differences are stacked vertically
                 with rows drawn alternately from self and other.
-            * 1, or 'columns' : Resulting differences are stacked horizontally
+            * 1, or 'columns' : Resulting differences are aligned horizontally
                 with columns drawn alternately from self and other.
 
         keep_shape : bool, default False
@@ -8187,7 +8187,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
 
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
-    def differences(self, other, axis=1, keep_shape=False, keep_equal=False):
+    def differences(self, other, align_axis=1, keep_shape=False, keep_equal=False):
         from pandas.core.reshape.concat import concat
 
         mask = ~((self == other) | (self.isna() & other.isna()))
@@ -8207,19 +8207,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self = self[mask]
                 other = other[mask]
 
-        if axis in (1, "columns"):  # This is needed for Series
-            axis = 1
+        if align_axis in (1, "columns"):  # This is needed for Series
+            align_axis = 1
         else:
-            axis = self._get_axis_number(axis)
+            align_axis = self._get_axis_number(align_axis)
 
-        diff = concat([self, other], axis=axis, keys=keys)
+        diff = concat([self, other], axis=align_axis, keys=keys)
 
-        if axis >= self.ndim:
+        if align_axis >= self.ndim:
             # No need to reorganize data if stacking on new axis
             # This currently applies for stacking two Series on columns
             return diff
 
-        ax = diff._get_axis(axis)
+        ax = diff._get_axis(align_axis)
         ax_names = np.array(ax.names)
 
         # set index names to positions to avoid confusion
@@ -8228,18 +8228,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # bring self-other to inner level
         order = list(range(1, ax.nlevels)) + [0]
         if isinstance(diff, ABCDataFrame):
-            diff = diff.reorder_levels(order, axis=axis)
+            diff = diff.reorder_levels(order, axis=align_axis)
         else:
             diff = diff.reorder_levels(order)
 
         # restore the index names in order
-        diff._get_axis(axis=axis).names = ax_names[order]
+        diff._get_axis(axis=align_axis).names = ax_names[order]
 
         # reorder axis to keep things organized
         indices = (
-            np.arange(diff.shape[axis]).reshape([2, diff.shape[axis] // 2]).T.flatten()
+            np.arange(diff.shape[align_axis])
+            .reshape([2, diff.shape[align_axis] // 2])
+            .T.flatten()
         )
-        diff = diff.take(indices, axis=axis)
+        diff = diff.take(indices, axis=align_axis)
 
         return diff
 

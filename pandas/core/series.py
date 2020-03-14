@@ -2594,7 +2594,7 @@ DataFrame.differences : Show differences.
 
 Notes
 -----
-NaNs are considered equal to other NaNs.
+Matching NaNs will not appear as a difference.
 
 Examples
 --------
@@ -2640,10 +2640,13 @@ Keep all original indices and data
     )
     @Appender(generic._shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
-        self, other: "Series", axis=1, keep_shape=False, keep_equal=False
+        self, other: "Series", align_axis=1, keep_shape=False, keep_equal=False
     ) -> FrameOrSeries:
         return super().differences(
-            other=other, axis=axis, keep_shape=keep_shape, keep_equal=keep_equal
+            other=other,
+            align_axis=align_axis,
+            keep_shape=keep_shape,
+            keep_equal=keep_equal,
         )
 
     def combine(self, other, func, fill_value=None) -> "Series":
