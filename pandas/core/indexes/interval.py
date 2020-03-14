@@ -409,7 +409,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
-            new_values = self.values.astype(dtype, copy=copy)
+            new_values = self._values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values)
         return Index.astype(self, dtype, copy=copy)
@@ -887,7 +887,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
-        values = np.where(cond, self.values, other)
+        values = np.where(cond, self._values, other)
         result = IntervalArray(values)
         return self._shallow_copy(result)
 
