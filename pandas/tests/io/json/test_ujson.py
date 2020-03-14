@@ -48,6 +48,18 @@ def numpy(request):
     return request.param
 
 
+def get_int32_compat_dtype(numpy, orient):
+    # See GH#32527
+    dtype = np.int64
+    if not ((numpy is None or orient == "index") or (numpy is True and orient is None)):
+        if compat.is_platform_windows():
+            dtype = np.int32
+        else:
+            dtype = np.intp
+
+    return dtype
+
+
 class TestUltraJSONTests:
     @pytest.mark.skipif(
         compat.is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
@@ -833,13 +845,20 @@ class TestPandasJSONTests:
         if orient == "records" and numpy:
             pytest.skip("Not idiomatic pandas")
 
+        dtype = get_int32_compat_dtype(numpy, orient)
+
         df = DataFrame(
-            [[1, 2, 3], [4, 5, 6]], index=["a", "b"], columns=["x", "y", "z"]
+            [[1, 2, 3], [4, 5, 6]],
+            index=["a", "b"],
+            columns=["x", "y", "z"],
+            dtype=dtype,
         )
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        assert (df.dtypes == dtype).all()
 
         output = ujson.decode(ujson.encode(df, **encode_kwargs), **decode_kwargs)
+        assert (df.dtypes == dtype).all()
 
         # Ensure proper DataFrame initialization.
         if orient == "split":
@@ -857,7 +876,8 @@ class TestPandasJSONTests:
         elif orient == "index":
             df = df.transpose()
 
-        tm.assert_frame_equal(output, df, check_dtype=False)
+        assert (df.dtypes == dtype).all()
+        tm.assert_frame_equal(output, df)
 
     def test_dataframe_nested(self, orient):
         df = DataFrame(
@@ -897,14 +917,20 @@ class TestPandasJSONTests:
         tm.assert_frame_equal(output, df)
 
     def test_series(self, orient, numpy):
+        dtype = get_int32_compat_dtype(numpy, orient)
         s = Series(
-            [10, 20, 30, 40, 50, 60], name="series", index=[6, 7, 8, 9, 10, 15]
+            [10, 20, 30, 40, 50, 60],
+            name="series",
+            index=[6, 7, 8, 9, 10, 15],
+            dtype=dtype,
         ).sort_values()
+        assert s.dtype == dtype
 
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
 
         output = ujson.decode(ujson.encode(s, **encode_kwargs), **decode_kwargs)
+        assert s.dtype == dtype
 
         if orient == "split":
             dec = _clean_dict(output)
@@ -920,7 +946,8 @@ class TestPandasJSONTests:
             s.name = None
             s.index = [0, 1, 2, 3, 4, 5]
 
-        tm.assert_series_equal(output, s, check_dtype=False)
+        assert s.dtype == dtype
+        tm.assert_series_equal(output, s)
 
     def test_series_nested(self, orient):
         s = Series(

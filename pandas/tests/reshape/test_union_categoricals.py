@@ -41,7 +41,7 @@ class TestUnionCategoricals:
             for box in [Categorical, CategoricalIndex, Series]:
                 result = union_categoricals([box(Categorical(a)), box(Categorical(b))])
                 expected = Categorical(combined)
-                tm.assert_categorical_equal(result, expected, check_category_order=True)
+                tm.assert_categorical_equal(result, expected)
 
         # new categories ordered by appearance
         s = Categorical(["x", "y", "z"])
