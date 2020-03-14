@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, lib
 from pandas._libs.tslib import iNaT
+from pandas._typing import AnyArrayLike
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -45,10 +46,14 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCIndexClass,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
@@ -384,7 +389,7 @@ def unique(values):
 unique1d = unique
 
 
-def isin(comps, values) -> np.ndarray:
+def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     """
     Compute the isin boolean array.
 
@@ -409,15 +414,14 @@ def isin(comps, values) -> np.ndarray:
             f"to isin(), you passed a [{type(values).__name__}]"
         )
 
-    if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
+    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
+    comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        return comps._values.isin(values)
-
-    comps = com.values_from_object(comps)
+        return comps.isin(values)  # type: ignore
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
