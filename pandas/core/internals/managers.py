@@ -193,8 +193,10 @@ class BlockManager(PandasObject):
         # preserve dtype if possible
         if self.ndim == 1:
             assert isinstance(self, SingleBlockManager)  # for mypy
-            arr = np.array([], dtype=self.array_dtype)
-            blocks = [make_block(arr, placement=slice(0, 0), ndim=1)]
+            blk = self.blocks[0]
+            arr = blk.values[:0]
+            nb = blk.make_block_same_class(arr, placement=slice(0, 0), ndim=1)
+            blocks = [nb]
         else:
             blocks = []
         return type(self).from_blocks(blocks, axes)
@@ -389,6 +391,7 @@ class BlockManager(PandasObject):
         BlockManager
         """
         result_blocks = []
+        # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         # filter kwarg is used in replace-* family of methods
         if filter is not None:
@@ -413,11 +416,6 @@ class BlockManager(PandasObject):
                 align_keys = ["new", "mask"]
             else:
                 align_keys = ["mask"]
-        elif f == "fillna":
-            # fillna internally does putmask, maybe it's better to do this
-            # at mgr, not block level?
-            align_copy = False
-            align_keys = ["value"]
         else:
             align_keys = []
 
@@ -1584,10 +1582,6 @@ class SingleBlockManager(BlockManager):
     @property
     def dtype(self) -> DtypeObj:
         return self._block.dtype
-
-    @property
-    def array_dtype(self) -> DtypeObj:
-        return self._block.array_dtype
 
     def get_dtype_counts(self):
         return {self.dtype.name: 1}

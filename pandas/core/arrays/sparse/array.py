@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer,
     is_object_dtype,
@@ -42,7 +43,7 @@ from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import sanitize_array
+from pandas.core.construction import extract_array, sanitize_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
 import pandas.core.ops as ops
@@ -312,7 +313,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             dtype = dtype.subtype
 
         if index is not None and not is_scalar(data):
-            raise Exception("must only pass scalars with an index ")
+            raise Exception("must only pass scalars with an index")
 
         if is_scalar(data):
             if index is not None:
@@ -367,6 +368,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             sparse_index = data._sparse_index
             sparse_values = np.asarray(data.sp_values, dtype=dtype)
         elif sparse_index is None:
+            data = extract_array(data, extract_numpy=True)
+            if not isinstance(data, np.ndarray):
+                # EA
+                if is_datetime64tz_dtype(data.dtype):
+                    warnings.warn(
+                        f"Creating SparseArray from {data.dtype} data "
+                        "loses timezone information.  Cast to object before "
+                        "sparse to retain timezone information.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    data = np.asarray(data, dtype="datetime64[ns]")
+                data = np.asarray(data)
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value, dtype=dtype
             )
@@ -1497,7 +1511,7 @@ SparseArray._add_comparison_ops()
 SparseArray._add_unary_ops()
 
 
-def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
+def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy=False):
     """
     Convert ndarray to sparse format
 
@@ -1513,7 +1527,7 @@ def make_sparse(arr, kind="block", fill_value=None, dtype=None, copy=False):
     -------
     (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
-    arr = com.values_from_object(arr)
+    assert isinstance(arr, np.ndarray)
 
     if arr.ndim > 1:
         raise TypeError("expected dimension <= 1 data")
