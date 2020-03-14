@@ -311,7 +311,7 @@ class TestHDFStore:
                     h.update(chunk)
             return h.digest()
 
-        def create_h5_and_return_checksum():
+        def create_h5_and_return_checksum(track_times):
             with ensure_clean_path(setup_path) as path:
                 df = pd.DataFrame({"a": [1]})
 
@@ -322,16 +322,22 @@ class TestHDFStore:
                     format='table',
                     data_columns=True,
                     index=None,
-                    track_times=False,
+                    track_times=track_times,
                 )
                 hdf.close()
                 return checksum(path)
 
-        checksum_0 = create_h5_and_return_checksum()
+        checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
         time.sleep(1)
-        checksum_1 = create_h5_and_return_checksum()
+        checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
 
-        assert checksum_0 == checksum_1
+        # checksums are the same if track_time = False
+        assert checksum_0_tt_false == checksum_1_tt_false
+
+        # checksums are NOT same if track_time = True
+        assert checksum_0_tt_true != checksum_1_tt_true
 
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
