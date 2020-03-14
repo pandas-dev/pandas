@@ -5295,7 +5295,7 @@ Examples
 3    b   NaN   4.0
 4    a   5.0   5.0
 
-Stack the differences on columns
+Align the differences on columns
 
 >>> df.differences(df2)
   col1       col3
@@ -5305,7 +5305,7 @@ Stack the differences on columns
 
 Stack the differences on rows
 
->>> df.differences(df2, axis=0)
+>>> df.differences(df2, align_axis=0)
         col1  col3
 0 self     a   NaN
   other    c   NaN

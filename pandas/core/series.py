@@ -2602,7 +2602,7 @@ Examples
 >>> s1 = pd.Series(["a", "b", "c", "d", "e"])
 >>> s2 = pd.Series(["a", "a", "c", "b", "e"])
 
-Stack the differences on columns
+Align the differences on columns
 
 >>> s1.differences(s2)
   self other
@@ -2611,7 +2611,7 @@ Stack the differences on columns
 
 Stack the differences on indices
 
->>> s1.differences(s2, axis=0)
+>>> s1.differences(s2, align_axis=0)
 1  self     b
    other    a
 3  self     d
