@@ -3039,6 +3039,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index_label: Optional[Union[bool_t, str, Sequence[Label]]] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
+        errors: str = "strict",
         compression: Optional[Union[str, Mapping[str, str]]] = "infer",
         quoting: Optional[int] = None,
         quotechar: str = '"',
@@ -3092,6 +3093,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for easier importing in R.
         mode : str
             Python write mode, default 'w'.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
         encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'.
@@ -3179,6 +3184,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             line_terminator=line_terminator,
             sep=sep,
             encoding=encoding,
+            errors=errors,
             compression=compression,
             quoting=quoting,
             na_rep=na_rep,

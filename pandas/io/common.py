@@ -349,6 +349,7 @@ def get_handle(
     path_or_buf,
     mode: str,
     encoding=None,
+    errors=None,
     compression: Optional[Union[str, Mapping[str, Any]]] = None,
     memory_map: bool = False,
     is_text: bool = True,
@@ -475,7 +476,7 @@ def get_handle(
     elif is_path:
         if encoding:
             # Encoding
-            f = open(path_or_buf, mode, encoding=encoding, newline="")
+            f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
         elif is_text:
             # No explicit encoding
             f = open(path_or_buf, mode, errors="replace", newline="")
@@ -488,7 +489,7 @@ def get_handle(
     if is_text and (compression or isinstance(f, need_text_wrapping)):
         from io import TextIOWrapper
 
-        g = TextIOWrapper(f, encoding=encoding, newline="")
+        g = TextIOWrapper(f, encoding=encoding, errors=errors, newline="")
         if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)
         f = g
