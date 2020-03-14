@@ -11,7 +11,6 @@ from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -255,14 +254,6 @@ class Block(PandasObject):
             new_mgr_locs = libinternals.BlockPlacement(new_mgr_locs)
 
         self._mgr_locs = new_mgr_locs
-
-    @property
-    def array_dtype(self) -> DtypeObj:
-        """
-        the dtype to return if I want to construct this block as an
-        array
-        """
-        return self.dtype
 
     def make_block(self, values, placement=None) -> "Block":
         """
@@ -2920,14 +2911,6 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
-
-    @property
-    def array_dtype(self):
-        """
-        the dtype to return if I want to construct this block as an
-        array
-        """
-        return np.object_
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime
