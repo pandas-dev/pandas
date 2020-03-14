@@ -26,6 +26,7 @@ class TestDataFrameToRecords:
         assert expected == result
 
     def test_to_records_dt64tz_column(self):
+        # GH#32535 dont less tz in to_records
         df = DataFrame({"A": date_range("2012-01-01", "2012-01-02", tz="US/Eastern")})
 
         result = df.to_records()
