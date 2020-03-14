@@ -1026,6 +1026,14 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_retains_tz(self):
+        dti = date_range("2016-01-01", periods=3, tz="Europe/Amsterdam")
+        df = DataFrame({"A": np.random.randn(3), "B": np.random.randn(3), "C": dti})
+        result = df.pivot_table(index=["B", "C"], dropna=False)
+
+        # check tz retention
+        assert result.index.levels[1].equals(dti)
+
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
 
