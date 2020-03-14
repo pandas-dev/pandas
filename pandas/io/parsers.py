@@ -2279,7 +2279,7 @@ class PythonParser(ParserBase):
                 self.num_original_columns,
                 self.unnamed_cols,
             ) = self._infer_columns()
-        except EmptyDataError:
+        except (TypeError, ValueError):
             self.close()
             raise
 

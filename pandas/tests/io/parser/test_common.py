@@ -2085,6 +2085,9 @@ def test_integer_precision(all_parsers):
 @td.skip_if_no("psutil")
 def test_file_descriptor_leak(all_parsers):
     # GH 31488
+    # Please note that using tm.ensure_clean does not work in combination
+    # with td.check_file_leaks as tm.ensure_clean closes the file
+    # thereby preventing the leak check to trigger
     import psutil
 
     proc = psutil.Process()
