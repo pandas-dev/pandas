@@ -64,6 +64,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :class:`Styler` may now render CSS more efficiently where multiple cells have the same styling (:issue:`30876`)
+- :meth:`Styler.highlight_null` now accepts ``subset`` argument (:issue:`31345`)
 - When writing directly to a sqlite connection :func:`to_sql` now supports the ``multi`` method (:issue:`29921`)
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
@@ -88,9 +89,9 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
   Previously a ``AttributeError`` was raised (:issue:`31126`)
-- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std`` and :meth:`~DataFrameGroupby.var``)
+- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std` and :meth:`~DataFrameGroupby.var`)
   now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
-  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median``) (:issue:`31485`)
+  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median`) (:issue:`31485`)
 - :meth:`DataFrame.at` and :meth:`Series.at` will raise a ``TypeError`` instead of a ``ValueError`` if an incompatible key is passed, and ``KeyError`` if a missing key is passed, matching the behavior of ``.loc[]`` (:issue:`31722`)
 - Passing an integer dtype other than ``int64`` to ``np.array(period_index, dtype=...)`` will now raise ``TypeError`` instead of incorrectly using ``int64`` (:issue:`32255`)
 -
@@ -187,7 +188,9 @@ Performance improvements
 - Performance improvement in :class:`Timedelta` constructor (:issue:`30543`)
 - Performance improvement in :class:`Timestamp` constructor (:issue:`30543`)
 - Performance improvement in flex arithmetic ops between :class:`DataFrame` and :class:`Series` with ``axis=0`` (:issue:`31296`)
--
+- The internal index method :meth:`~Index._shallow_copy` now copies cached attributes over to the new index,
+  avoiding creating these again on the new index. This can speed up many operations that depend on creating copies of
+  existing indexes (:issue:`28584`, :issue:`32640`, :issue:`32669`)
 
 .. ---------------------------------------------------------------------------
 
@@ -262,7 +265,7 @@ Indexing
 - Bug in :meth:`Series.xs` incorrectly returning ``Timestamp`` instead of ``datetime64`` in some object-dtype cases (:issue:`31630`)
 - Bug in :meth:`DataFrame.iat` incorrectly returning ``Timestamp`` instead of ``datetime`` in some object-dtype cases (:issue:`32809`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` when indexing with an integer key on a object-dtype :class:`Index` that is not all-integers (:issue:`31905`)
--
+- Bug in :meth:`DataFrame.iloc.__setitem__` on a :class:`DataFrame` with duplicate columns incorrectly setting values for all matching columns (:issue:`15686`, :issue:`22036`)
 
 Missing
 ^^^^^^^
@@ -302,6 +305,7 @@ I/O
   timestamps with ``version="2.0"`` (:issue:`31652`).
 - Bug in :meth:`read_csv` was raising `TypeError` when `sep=None` was used in combination with `comment` keyword (:issue:`31396`)
 - Bug in :class:`HDFStore` that caused it to set to ``int64`` the dtype of a ``datetime64`` column when reading a DataFrame in Python 3 from fixed format written in Python 2 (:issue:`31750`)
+- Bug in :meth:`read_excel` where a UTF-8 string with a high surrogate would cause a segmentation violation (:issue:`23809`)
 
 
 Plotting
