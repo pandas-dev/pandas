@@ -3093,13 +3093,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for easier importing in R.
         mode : str
             Python write mode, default 'w'.
+        encoding : str, optional
+            A string representing the encoding to use in the output file,
+            defaults to 'utf-8'.
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
-        encoding : str, optional
-            A string representing the encoding to use in the output file,
-            defaults to 'utf-8'.
         compression : str or dict, default 'infer'
             If str, represents compression mode. If dict, value at 'method' is
             the compression mode. Compression mode may be any of the following
