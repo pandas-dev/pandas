@@ -296,6 +296,43 @@ class TestHDFStore:
             assert set(store.keys()) == expected
             assert set(store) == expected
 
+    def test_no_track_times(self, setup_path):
+
+        # GH 32682
+        # enables to set track_times (see `pytables` `create_table` documentation)
+
+        import hashlib
+        import time
+
+        def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
+            h = hash_factory()
+            with open(filename, 'rb') as f:
+                for chunk in iter(lambda: f.read(chunk_num_blocks * h.block_size), b''):
+                    h.update(chunk)
+            return h.digest()
+
+        def create_h5_and_return_checksum():
+            with ensure_clean_path(setup_path) as path:
+                df = pd.DataFrame({"a": [1]})
+
+                hdf = pd.HDFStore(path, mode="w")
+                hdf.put(
+                    "table",
+                    df,
+                    format='table',
+                    data_columns=True,
+                    index=None,
+                    track_times=False,
+                )
+                hdf.close()
+                return checksum(path)
+
+        checksum_0 = create_h5_and_return_checksum()
+        time.sleep(1)
+        checksum_1 = create_h5_and_return_checksum()
+
+        assert checksum_0 == checksum_1
+
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
         # GH 20523

@@ -984,6 +984,7 @@ class HDFStore:
         data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         """
         Store object in HDFStore.
@@ -1027,6 +1028,7 @@ class HDFStore:
             data_columns=data_columns,
             encoding=encoding,
             errors=errors,
+            track_times=track_times,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):
@@ -1626,6 +1628,7 @@ class HDFStore:
         data_columns=None,
         encoding=None,
         errors: str = "strict",
+        track_times: bool = True,
     ):
         group = self.get_node(key)
 
@@ -1688,6 +1691,7 @@ class HDFStore:
             dropna=dropna,
             nan_rep=nan_rep,
             data_columns=data_columns,
+            track_times=track_times,
         )
 
         if isinstance(s, Table) and index:
@@ -4106,6 +4110,7 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
+        track_times=True,
     ):
 
         if not append and self.is_exists:
@@ -4138,7 +4143,7 @@ class AppendableTable(Table):
             table.set_attrs()
 
             # create the table
-            table._handle.create_table(table.group, **options)
+            table._handle.create_table(table.group, track_times=track_times, **options)
 
         # update my info
         table.attrs.info = table.info
