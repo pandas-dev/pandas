@@ -276,6 +276,7 @@ class MultiIndex(Index):
             raise ValueError("Must pass non-zero number of levels/codes")
 
         result = object.__new__(MultiIndex)
+        result._cache = {}
 
         # we've already validated levels and codes, so shortcut here
         result._set_levels(levels, copy=copy, validate=False)
@@ -991,7 +992,13 @@ class MultiIndex(Index):
             # discards freq
             kwargs.pop("freq", None)
             return MultiIndex.from_tuples(values, names=names, **kwargs)
-        return self.copy(**kwargs)
+
+        result = self.copy(**kwargs)
+        result._cache = self._cache.copy()
+        # GH32669
+        if "levels" in result._cache:
+            del result._cache["levels"]
+        return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
         # On equal MultiIndexes the difference is empty.
