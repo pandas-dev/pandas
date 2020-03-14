@@ -8,7 +8,7 @@ from pandas._libs import index as libindex
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, IntervalIndex, Series
+from pandas import Categorical, IntervalIndex
 import pandas._testing as tm
 from pandas.core.indexes.api import CategoricalIndex, Index
 
@@ -365,36 +365,39 @@ class TestCategoricalIndex(Base):
         assert idx.is_unique is True
         assert idx.has_duplicates is False
 
-
     @pytest.mark.parametrize(
         "data, categories, expected",
         [
-            ([1, 1, 1], [1, 2, 3], 
+            ([1, 1, 1], [1, 2, 3],
                 {
                     "first" : np.array([False, True, True]),
                     "last" : np.array([True, True, False]),
                     False : np.array([True, True, True]),
-                }),
+                }
+            ),
             ([1, 1, 1], list("abc"),
                 {
                     "first" : np.array([False, True, True]),
                     "last" : np.array([True, True, False]),
                     False : np.array([True, True, True]),
-                }),
+                }
+            ),
             ([2, "a", "b"], list('abc'),
                 {
                     "first" : np.zeros(shape=(3), dtype=np.bool),
                     "last" : np.zeros(shape=(3), dtype=np.bool),
                     False : np.zeros(shape=(3), dtype=np.bool),
-                }),
+                }
+            ),
             (list("abb"), list('abc'),
                 {
                     "first" : np.array([False, False, True]),
                     "last" : np.array([False, True, False]),
                     False : np.array([False, True, True]),
-                }),
+                }
+            ),
         ],
-    )  
+    )
     def test_drop_duplicates(self, data, categories, expected):
 
         idx = CategoricalIndex(data, categories=categories, name="foo")
@@ -402,7 +405,7 @@ class TestCategoricalIndex(Base):
             tm.assert_numpy_array_equal(idx.duplicated(keep=keep), e)
             e = idx[~e]
             result = idx.drop_duplicates(keep=keep)
-            tm.assert_index_equal(result, e)           
+            tm.assert_index_equal(result, e)
 
     @pytest.mark.parametrize(
         "data, categories, expected_data, expected_categories",
@@ -412,7 +415,7 @@ class TestCategoricalIndex(Base):
             ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan], [1, 2]),
             ([2, "a", "b"], list("abc"), [np.nan, "a", "b"], ["a", "b"]),
         ],
-    )   
+    )
     def test_unique(self, data, categories, expected_data, expected_categories):
 
         idx = CategoricalIndex(data, categories=categories)
