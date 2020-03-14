@@ -1402,7 +1402,6 @@ class DataFrame(NDFrame):
         # GH16122
         into_c = com.standardize_mapping(into)
 
-        contains_upper = any(x.isupper() for x in orient)
         orient = orient.lower()
         # GH32515
         if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
