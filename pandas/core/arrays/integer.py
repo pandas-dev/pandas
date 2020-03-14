@@ -13,6 +13,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -469,6 +470,8 @@ class IntegerArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = dict(na_value=np.nan)
+        elif is_datetime64_dtype(dtype):
+            kwargs = dict(na_value=np.datetime64("NaT"))
         else:
             kwargs = {}
 

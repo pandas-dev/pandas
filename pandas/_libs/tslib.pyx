@@ -14,7 +14,7 @@ PyDateTime_IMPORT
 
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray
+from numpy cimport float64_t, int64_t, ndarray, uint8_t
 import numpy as np
 cnp.import_array()
 
@@ -351,7 +351,6 @@ def format_array_from_datetime(
 
 def array_with_unit_to_datetime(
     ndarray values,
-    ndarray mask,
     object unit,
     str errors='coerce'
 ):
@@ -373,8 +372,6 @@ def array_with_unit_to_datetime(
     ----------
     values : ndarray of object
          Date-like objects to convert.
-    mask : boolean ndarray
-         Not-a-time mask for non-nullable integer types conversion, can be None.
     unit : object
          Time unit to use during conversion.
     errors : str, default 'raise'
@@ -395,6 +392,7 @@ def array_with_unit_to_datetime(
         bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
+        ndarray mask
         object tz = None
 
     assert is_ignore or is_coerce or is_raise
@@ -404,9 +402,6 @@ def array_with_unit_to_datetime(
             result = values.astype('M8[ns]')
         else:
             result, tz = array_to_datetime(values.astype(object), errors=errors)
-        if mask is not None:
-            iresult = result.view('i8')
-            iresult[mask] = NPY_NAT
         return result, tz
 
     m = cast_from_unit(None, unit)
@@ -419,9 +414,8 @@ def array_with_unit_to_datetime(
         if values.dtype.kind == "i":
             # Note: this condition makes the casting="same_kind" redundant
             iresult = values.astype('i8', casting='same_kind', copy=False)
-            # If no mask, fill mask by comparing to NPY_NAT constant
-            if mask is None:
-                mask = iresult == NPY_NAT
+            # fill by comparing to NPY_NAT constant
+            mask = iresult == NPY_NAT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
             need_to_iterate = False
