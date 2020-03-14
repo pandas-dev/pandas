@@ -9,7 +9,6 @@ from typing import Dict, FrozenSet, List, Optional, Union
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -86,15 +85,6 @@ class PandasObject(DirNamesMixin):
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
         return super().__sizeof__()
-
-    def _ensure_type(self: T, obj) -> T:
-        """
-        Ensure that an object has same type as self.
-
-        Used by type checkers.
-        """
-        assert isinstance(obj, type(self)), type(obj)
-        return obj
 
 
 class NoNewAttributesMixin:
@@ -1473,41 +1463,49 @@ class IndexOpsMixin:
 
         Examples
         --------
-        >>> x = pd.Series([1, 2, 3])
-        >>> x
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser
         0    1
         1    2
         2    3
         dtype: int64
 
-        >>> x.searchsorted(4)
+        >>> ser.searchsorted(4)
         3
 
-        >>> x.searchsorted([0, 4])
+        >>> ser.searchsorted([0, 4])
         array([0, 3])
 
-        >>> x.searchsorted([1, 3], side='left')
+        >>> ser.searchsorted([1, 3], side='left')
         array([0, 2])
 
-        >>> x.searchsorted([1, 3], side='right')
+        >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread',
-                                'cheese', 'milk'], ordered=True)
+        >>> ser = pd.Categorical(
+        ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
+        ... )
+        >>> ser
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
-        >>> x.searchsorted('bread')
+        >>> ser.searchsorted('bread')
         1
 
-        >>> x.searchsorted(['bread'], side='right')
+        >>> ser.searchsorted(['bread'], side='right')
         array([3])
 
         If the values are not monotonically sorted, wrong locations
         may be returned:
 
-        >>> x = pd.Series([2, 1, 3])
-        >>> x.searchsorted(1)
+        >>> ser = pd.Series([2, 1, 3])
+        >>> ser
+        0    2
+        1    1
+        2    3
+        dtype: int64
+
+        >>> ser.searchsorted(1)  # doctest: +SKIP
         0  # wrong result, correct would be 1
         """
 

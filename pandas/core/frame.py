@@ -77,6 +77,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
+    is_datetime64_any_dtype,
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -88,6 +89,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_named_tuple,
     is_object_dtype,
+    is_period_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -2443,7 +2445,9 @@ class DataFrame(NDFrame):
 
         return result.__finalize__(self)
 
-    T = property(transpose)
+    @property
+    def T(self) -> "DataFrame":
+        return self.transpose()
 
     # ----------------------------------------------------------------------
     # Indexing Methods
@@ -2705,6 +2709,20 @@ class DataFrame(NDFrame):
         self._check_inplace_setting(value)
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
+
+    def _iset_item(self, loc: int, value):
+        self._ensure_valid_index(value)
+
+        # technically _sanitize_column expects a label, not a position,
+        #  but the behavior is the same as long as we pass broadcast=False
+        value = self._sanitize_column(loc, value, broadcast=False)
+        NDFrame._iset_item(self, loc, value)
+
+        # check if we are modifying a copy
+        # try to set first as we want an invalid
+        # value exception to occur first
+        if len(self):
+            self._check_setitem_copy()
 
     def _set_item(self, key, value):
         """
@@ -3619,7 +3637,7 @@ class DataFrame(NDFrame):
         # Pop these, since the values are in `kwargs` under different names
         kwargs.pop("axis", None)
         kwargs.pop("labels", None)
-        return self._ensure_type(super().reindex(**kwargs))
+        return super().reindex(**kwargs)
 
     def drop(
         self,
@@ -3937,8 +3955,8 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs["shift"] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "DataFrame":
-        return self._ensure_type(
-            super().shift(periods=periods, freq=freq, axis=axis, fill_value=fill_value)
+        return super().shift(
+            periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
 
     def set_index(
@@ -5212,20 +5230,6 @@ class DataFrame(NDFrame):
 
         return new_data
 
-    def _combine_match_index(self, other: Series, func):
-        # at this point we have `self.index.equals(other.index)`
-
-        if ops.should_series_dispatch(self, other, func):
-            # operate column-wise; avoid costly object-casting in `.values`
-            new_data = ops.dispatch_to_series(self, other, func)
-        else:
-            # fastpath --> operate directly on values
-            other_vals = other.values.reshape(-1, 1)
-            with np.errstate(all="ignore"):
-                new_data = func(self.values, other_vals)
-            new_data = dispatch_fill_zeros(func, self.values, other_vals, new_data)
-        return new_data
-
     def _construct_result(self, result) -> "DataFrame":
         """
         Wrap the result of an arithmetic, comparison, or logical operation.
@@ -5899,7 +5903,8 @@ Wild         185.0
             If dict is passed, the key is column to aggregate and value
             is function or list of functions.
         fill_value : scalar, default None
-            Value to replace missing values with.
+            Value to replace missing values with (in the resulting pivot table,
+            after aggregation).
         margins : bool, default False
             Add all row / columns (e.g. for subtotal / grand totals).
         dropna : bool, default True
@@ -7803,11 +7808,15 @@ Wild         185.0
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
 
-        dtype_is_dt = self.dtypes.apply(lambda x: x.kind == "M")
+        assert filter_type is None or filter_type == "bool", filter_type
+
+        dtype_is_dt = self.dtypes.apply(
+            lambda x: is_datetime64_any_dtype(x) or is_period_dtype(x)
+        )
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
             warnings.warn(
                 "DataFrame.mean and DataFrame.median with numeric_only=None "
-                "will include datetime64 and datetime64tz columns in a "
+                "will include datetime64, datetime64tz, and PeriodDtype columns in a "
                 "future version.",
                 FutureWarning,
                 stacklevel=3,
@@ -7828,7 +7837,7 @@ Wild         185.0
             return op(x, axis=axis, skipna=skipna, **kwds)
 
         def _get_data(axis_matters):
-            if filter_type is None or filter_type == "numeric":
+            if filter_type is None:
                 data = self._get_numeric_data()
             elif filter_type == "bool":
                 if axis_matters:
@@ -7868,18 +7877,18 @@ Wild         185.0
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
             out = df._constructor_sliced(res, index=range(len(res)), dtype=out_dtype)
             out.index = df.columns
+            if axis == 0 and df.dtypes.apply(needs_i8_conversion).any():
+                # FIXME: needs_i8_conversion check is kludge, not sure
+                #  why it is necessary in this case and this case alone
+                out[:] = coerce_to_dtypes(out.values, df.dtypes)
             return out
 
         if numeric_only is None:
-            values = self.values
+            data = self
+            values = data.values
             try:
                 result = f(values)
 
-                if filter_type == "bool" and is_object_dtype(values) and axis is None:
-                    # work around https://github.com/numpy/numpy/issues/10489
-                    # TODO: combine with hasattr(result, 'dtype') further down
-                    # hard since we don't have `values` down there.
-                    result = np.bool_(result)
             except TypeError:
                 # e.g. in nanops trying to convert strs to float
 
@@ -7905,30 +7914,36 @@ Wild         185.0
 
                 # TODO: why doesnt axis matter here?
                 data = _get_data(axis_matters=False)
-                with np.errstate(all="ignore"):
-                    result = f(data.values)
                 labels = data._get_agg_axis(axis)
+
+                values = data.values
+                with np.errstate(all="ignore"):
+                    result = f(values)
         else:
             if numeric_only:
                 data = _get_data(axis_matters=True)
+                labels = data._get_agg_axis(axis)
 
                 values = data.values
-                labels = data._get_agg_axis(axis)
             else:
-                values = self.values
+                data = self
+                values = data.values
             result = f(values)
 
-        if hasattr(result, "dtype") and is_object_dtype(result.dtype):
+        if filter_type == "bool" and is_object_dtype(values) and axis is None:
+            # work around https://github.com/numpy/numpy/issues/10489
+            # TODO: can we de-duplicate parts of this with the next blocK?
+            result = np.bool_(result)
+        elif hasattr(result, "dtype") and is_object_dtype(result.dtype):
             try:
-                if filter_type is None or filter_type == "numeric":
+                if filter_type is None:
                     result = result.astype(np.float64)
                 elif filter_type == "bool" and notna(result).all():
                     result = result.astype(np.bool_)
             except (ValueError, TypeError):
-
                 # try to coerce to the original dtypes item by item if we can
                 if axis == 0:
-                    result = coerce_to_dtypes(result, self.dtypes)
+                    result = coerce_to_dtypes(result, data.dtypes)
 
         if constructor is not None:
             result = self._constructor_sliced(result, index=labels)
@@ -8043,6 +8058,35 @@ Wild         185.0
         Notes
         -----
         This method is the DataFrame version of ``ndarray.argmax``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emissions': [37.2, 19.66, 1712]},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the maximum value in each column.
+
+        >>> df.idxmax()
+        consumption     Wheat Products
+        co2_emissions             Beef
+        dtype: object
+
+        To return the index for the maximum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmax(axis="columns")
+        Pork              co2_emissions
+        Wheat Products     consumption
+        Beef              co2_emissions
+        dtype: object
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmax(self.values, axis=axis, skipna=skipna)
@@ -8370,14 +8414,12 @@ Wild         185.0
             from pandas.core.reshape.concat import concat
 
             values = collections.defaultdict(list, values)
-            return self._ensure_type(
-                concat(
-                    (
-                        self.iloc[:, [i]].isin(values[col])
-                        for i, col in enumerate(self.columns)
-                    ),
-                    axis=1,
-                )
+            return concat(
+                (
+                    self.iloc[:, [i]].isin(values[col])
+                    for i, col in enumerate(self.columns)
+                ),
+                axis=1,
             )
         elif isinstance(values, Series):
             if not values.index.is_unique:
