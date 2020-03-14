@@ -7,6 +7,7 @@ import pytest
 
 from pandas._libs import lib
 
+import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, isna, notna
 import pandas._testing as tm
 import pandas.core.strings as strings
@@ -206,6 +207,9 @@ class TestStringMethods:
         # one instance of parametrized fixture
         box = index_or_series
         inferred_dtype, values = any_skipna_inferred_dtype
+
+        if dtype == "category" and len(values) and values[1] is pd.NA:
+            pytest.xfail(reason="Categorical does not yet support pd.NA")
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
 
@@ -1152,6 +1156,18 @@ class TestStringMethods:
         )
         assert isinstance(rs, Series)
         tm.assert_series_equal(rs, xp)
+
+    def test_repeat_with_null(self):
+        # GH: 31632
+        values = Series(["a", None], dtype="string")
+        result = values.str.repeat([3, 4])
+        exp = Series(["aaa", None], dtype="string")
+        tm.assert_series_equal(result, exp)
+
+        values = Series(["a", "b"], dtype="string")
+        result = values.str.repeat([3, None])
+        exp = Series(["aaa", None], dtype="string")
+        tm.assert_series_equal(result, exp)
 
     def test_match(self):
         # New match behavior introduced in 0.13
@@ -3392,8 +3408,8 @@ class TestStringMethods:
         encodeBase = Series(["a", "b", "a\x9d"])
 
         msg = (
-            r"'charmap' codec can't encode character '\\x9d' in position 1:"
-            " character maps to <undefined>"
+            r"'charmap' codec can't encode character '\\x9d' in position 1: "
+            "character maps to <undefined>"
         )
         with pytest.raises(UnicodeEncodeError, match=msg):
             encodeBase.str.encode("cp1252")
@@ -3406,8 +3422,8 @@ class TestStringMethods:
         decodeBase = Series([b"a", b"b", b"a\x9d"])
 
         msg = (
-            "'charmap' codec can't decode byte 0x9d in position 1:"
-            " character maps to <undefined>"
+            "'charmap' codec can't decode byte 0x9d in position 1: "
+            "character maps to <undefined>"
         )
         with pytest.raises(UnicodeDecodeError, match=msg):
             decodeBase.str.decode("cp1252")
@@ -3521,7 +3537,7 @@ def test_string_array(any_string_method):
 
     if isinstance(expected, Series):
         if expected.dtype == "object" and lib.is_string_array(
-            expected.values, skipna=True
+            expected.dropna().values,
         ):
             assert result.dtype == "string"
             result = result.astype(object)
@@ -3573,3 +3589,18 @@ def test_string_array_boolean_array(method, expected):
     result = getattr(s.str, method)()
     expected = Series(expected, dtype="boolean")
     tm.assert_series_equal(result, expected)
+
+
+def test_string_array_extract():
+    # https://github.com/pandas-dev/pandas/issues/30969
+    # Only expand=False & multiple groups was failing
+    a = Series(["a1", "b2", "cc"], dtype="string")
+    b = Series(["a1", "b2", "cc"], dtype="object")
+    pat = r"(\w)(\d)"
+
+    result = a.str.extract(pat, expand=False)
+    expected = b.str.extract(pat, expand=False)
+    assert all(result.dtypes == "string")
+
+    result = result.astype(object)
+    tm.assert_equal(result, expected)

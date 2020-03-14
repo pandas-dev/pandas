@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from operator import attrgetter
 
@@ -28,6 +28,25 @@ class TestDatetimeIndex:
             dt_cls([pd.NaT, pd.Timestamp("2011-01-01")], freq="D")
         with pytest.raises(ValueError, match=msg):
             dt_cls([pd.NaT, pd.Timestamp("2011-01-01").value], freq="D")
+
+    # TODO: better place for tests shared by DTI/TDI?
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.date_range("2016-01-01", periods=5, tz="US/Pacific"),
+            pd.timedelta_range("1 Day", periods=5),
+        ],
+    )
+    def test_shallow_copy_inherits_array_freq(self, index):
+        # If we pass a DTA/TDA to shallow_copy and dont specify a freq,
+        #  we should inherit the array's freq, not our own.
+        array = index._data
+
+        arr = array[[0, 3, 2, 4, 1]]
+        assert arr.freq is None
+
+        result = index._shallow_copy(arr)
+        assert result.freq is None
 
     def test_categorical_preserves_tz(self):
         # GH#18664 retain tz when going DTI-->Categorical-->DTI
@@ -528,15 +547,15 @@ class TestDatetimeIndex:
 
         # non-conforming
         msg = (
-            "Inferred frequency None from passed values does not conform"
-            " to passed frequency D"
+            "Inferred frequency None from passed values does not conform "
+            "to passed frequency D"
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"], freq="D")
 
         msg = (
-            "Of the four parameters: start, end, periods, and freq, exactly"
-            " three must be specified"
+            "Of the four parameters: start, end, periods, and freq, exactly "
+            "three must be specified"
         )
         with pytest.raises(ValueError, match=msg):
             date_range(start="2011-01-01", freq="b")
@@ -625,8 +644,8 @@ class TestDatetimeIndex:
         )
 
         msg = (
-            "cannot supply both a tz and a timezone-naive dtype"
-            r" \(i\.e\. datetime64\[ns\]\)"
+            "cannot supply both a tz and a timezone-naive dtype "
+            r"\(i\.e\. datetime64\[ns\]\)"
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns]")
@@ -931,3 +950,104 @@ class TestTimeSeries:
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+
+    def test_pass_datetimeindex_to_index(self):
+        # Bugs in #1396
+        rng = date_range("1/1/2000", "3/1/2000")
+        idx = Index(rng, dtype=object)
+
+        expected = Index(rng.to_pydatetime(), dtype=object)
+
+        tm.assert_numpy_array_equal(idx.values, expected.values)
+
+
+def test_timestamp_constructor_invalid_fold_raise():
+    # Test for #25057
+    # Valid fold values are only [None, 0, 1]
+    msg = "Valid values for the fold argument are None, 0, or 1."
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(123, fold=2)
+
+
+def test_timestamp_constructor_pytz_fold_raise():
+    # Test for #25057
+    # pytz doesn't support fold. Check that we raise
+    # if fold is passed with pytz
+    msg = "pytz timezones do not support fold. Please use dateutil timezones."
+    tz = pytz.timezone("Europe/London")
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(datetime(2019, 10, 27, 0, 30, 0, 0), tz=tz, fold=0)
+
+
+@pytest.mark.parametrize("fold", [0, 1])
+@pytest.mark.parametrize(
+    "ts_input",
+    [
+        1572136200000000000,
+        1572136200000000000.0,
+        np.datetime64(1572136200000000000, "ns"),
+        "2019-10-27 01:30:00+01:00",
+        datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc),
+    ],
+)
+def test_timestamp_constructor_fold_conflict(ts_input, fold):
+    # Test for #25057
+    # Check that we raise on fold conflict
+    msg = (
+        "Cannot pass fold with possibly unambiguous input: int, float, "
+        "numpy.datetime64, str, or timezone-aware datetime-like. "
+        "Pass naive datetime-like or build Timestamp from components."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timestamp(ts_input=ts_input, fold=fold)
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London", None])
+@pytest.mark.parametrize("fold", [0, 1])
+def test_timestamp_constructor_retain_fold(tz, fold):
+    # Test for #25057
+    # Check that we retain fold
+    ts = pd.Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=tz, fold=fold)
+    result = ts.fold
+    expected = fold
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+@pytest.mark.parametrize(
+    "ts_input,fold_out",
+    [
+        (1572136200000000000, 0),
+        (1572139800000000000, 1),
+        ("2019-10-27 01:30:00+01:00", 0),
+        ("2019-10-27 01:30:00+00:00", 1),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 0),
+        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), 1),
+    ],
+)
+def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
+    # Test for #25057
+    # Check that we infer fold correctly based on timestamps since utc
+    # or strings
+    ts = pd.Timestamp(ts_input, tz=tz)
+    result = ts.fold
+    expected = fold_out
+    assert result == expected
+
+
+@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
+@pytest.mark.parametrize(
+    "ts_input,fold,value_out",
+    [
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000000),
+        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000000),
+    ],
+)
+def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_out):
+    # Test for #25057
+    # Check that we adjust value for fold correctly
+    # based on timestamps since utc
+    ts = pd.Timestamp(ts_input, tz=tz, fold=fold)
+    result = ts.value
+    expected = value_out
+    assert result == expected

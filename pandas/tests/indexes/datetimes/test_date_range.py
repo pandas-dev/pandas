@@ -759,17 +759,6 @@ class TestBusinessDateRange:
         with pytest.raises(TypeError, match=msg):
             bdate_range(START, END, periods=10, freq=None)
 
-    def test_naive_aware_conflicts(self):
-        naive = bdate_range(START, END, freq=BDay(), tz=None)
-        aware = bdate_range(START, END, freq=BDay(), tz="Asia/Hong_Kong")
-
-        msg = "tz-naive.*tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            naive.join(aware)
-
-        with pytest.raises(TypeError, match=msg):
-            aware.join(naive)
-
     def test_misc(self):
         end = datetime(2009, 5, 13)
         dr = bdate_range(end=end, periods=20)
@@ -945,3 +934,19 @@ class TestCustomDateRange:
         result = pd.date_range(start=start, end=end, periods=2, closed="left")
         expected = DatetimeIndex([start])
         tm.assert_index_equal(result, expected)
+
+
+def test_date_range_with_custom_holidays():
+    # GH 30593
+    freq = pd.offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
+    result = pd.date_range(start="2020-11-25 15:00", periods=4, freq=freq)
+    expected = pd.DatetimeIndex(
+        [
+            "2020-11-25 15:00:00",
+            "2020-11-25 16:00:00",
+            "2020-11-27 15:00:00",
+            "2020-11-27 16:00:00",
+        ],
+        freq=freq,
+    )
+    tm.assert_index_equal(result, expected)

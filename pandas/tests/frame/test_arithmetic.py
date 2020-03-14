@@ -4,6 +4,7 @@ import operator
 
 import numpy as np
 import pytest
+import pytz
 
 import pandas as pd
 import pandas._testing as tm
@@ -332,6 +333,40 @@ class TestFrameFlexComparisons:
 
 
 class TestFrameFlexArithmetic:
+    def test_floordiv_axis0(self):
+        # make sure we df.floordiv(ser, axis=0) matches column-wise result
+        arr = np.arange(3)
+        ser = pd.Series(arr)
+        df = pd.DataFrame({"A": ser, "B": ser})
+
+        result = df.floordiv(ser, axis=0)
+
+        expected = pd.DataFrame({col: df[col] // ser for col in df.columns})
+
+        tm.assert_frame_equal(result, expected)
+
+        result2 = df.floordiv(ser.values, axis=0)
+        tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize("opname", ["floordiv", "pow"])
+    def test_floordiv_axis0_numexpr_path(self, opname):
+        # case that goes through numexpr and has to fall back to masked_arith_op
+        op = getattr(operator, opname)
+
+        arr = np.arange(10 ** 6).reshape(100, -1)
+        df = pd.DataFrame(arr)
+        df["C"] = 1.0
+
+        ser = df[0]
+        result = getattr(df, opname)(ser, axis=0)
+
+        expected = pd.DataFrame({col: op(df[col], ser) for col in df.columns})
+        tm.assert_frame_equal(result, expected)
+
+        result2 = getattr(df, opname)(ser.values, axis=0)
+        tm.assert_frame_equal(result2, expected)
+
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)
@@ -696,6 +731,25 @@ class TestFrameArithmetic:
         expected = pd.DataFrame([[getattr(n, op)(num) for n in data]], columns=ind)
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_with_frame_reindex(self):
+        # GH#31623
+        df = pd.DataFrame(
+            {
+                "foo": [pd.Timestamp("2019"), pd.Timestamp("2020")],
+                "bar": [pd.Timestamp("2018"), pd.Timestamp("2021")],
+            },
+            columns=["foo", "bar"],
+        )
+        df2 = df[["foo"]]
+
+        result = df - df2
+
+        expected = pd.DataFrame(
+            {"foo": [pd.Timedelta(0), pd.Timedelta(0)], "bar": [np.nan, np.nan]},
+            columns=["bar", "foo"],
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
@@ -726,3 +780,46 @@ def test_zero_len_frame_with_series_corner_cases():
     result = df + ser
     expected = df
     tm.assert_frame_equal(result, expected)
+
+
+def test_frame_single_columns_object_sum_axis_1():
+    # GH 13758
+    data = {
+        "One": pd.Series(["A", 1.2, np.nan]),
+    }
+    df = pd.DataFrame(data)
+    result = df.sum(axis=1)
+    expected = pd.Series(["A", 1.2, 0])
+    tm.assert_series_equal(result, expected)
+
+
+# -------------------------------------------------------------------
+# Unsorted
+#  These arithmetic tests were previously in other files, eventually
+#  should be parametrized and put into tests.arithmetic
+
+
+class TestFrameArithmeticUnsorted:
+    def test_frame_add_tz_mismatch_converts_to_utc(self):
+        rng = pd.date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
+        df = pd.DataFrame(np.random.randn(len(rng)), index=rng, columns=["a"])
+
+        df_moscow = df.tz_convert("Europe/Moscow")
+        result = df + df_moscow
+        assert result.index.tz is pytz.utc
+
+        result = df_moscow + df
+        assert result.index.tz is pytz.utc
+
+    def test_align_frame(self):
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
+        ts = pd.DataFrame(np.random.randn(len(rng), 3), index=rng)
+
+        result = ts + ts[::2]
+        expected = ts + ts
+        expected.values[1::2] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+        half = ts[::2]
+        result = ts + half.take(np.random.permutation(len(half)))
+        tm.assert_frame_equal(result, expected)

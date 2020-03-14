@@ -472,8 +472,19 @@ class TestStyler:
 
         result = s._translate()["cellstyle"]
         expected = [
-            {"props": [["color", " red"]], "selector": "row0_col0"},
-            {"props": [["", ""]], "selector": "row1_col0"},
+            {"props": [("color", " red")], "selectors": ["row0_col0"]},
+            {"props": [("", "")], "selectors": ["row1_col0"]},
+        ]
+        assert result == expected
+
+    def test_duplicate(self):
+        df = pd.DataFrame({"A": [1, 0]})
+        s = df.style
+        s.ctx = {(0, 0): ["color: red"], (1, 0): ["color: red"]}
+
+        result = s._translate()["cellstyle"]
+        expected = [
+            {"props": [("color", " red")], "selectors": ["row0_col0", "row1_col0"]}
         ]
         assert result == expected
 
@@ -530,20 +541,17 @@ class TestStyler:
             (1, 0): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (1, 2): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (2, 0): [
                 "width: 10em",
@@ -572,8 +580,7 @@ class TestStyler:
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
-                "background: linear-gradient(90deg,#d65f5f 50.0%,"
-                " transparent 50.0%)",
+                "background: linear-gradient(90deg,#d65f5f 50.0%, transparent 50.0%)",
             ],
             (0, 2): [
                 "width: 10em",
@@ -1082,6 +1089,23 @@ class TestStyler:
         df = pd.DataFrame({"A": [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
         expected = {(0, 0): [""], (1, 0): ["background-color: red"]}
+        assert result == expected
+
+    def test_highlight_null_subset(self):
+        # GH 31345
+        df = pd.DataFrame({"A": [0, np.nan], "B": [0, np.nan]})
+        result = (
+            df.style.highlight_null(null_color="red", subset=["A"])
+            .highlight_null(null_color="green", subset=["B"])
+            ._compute()
+            .ctx
+        )
+        expected = {
+            (0, 0): [""],
+            (1, 0): ["background-color: red"],
+            (0, 1): [""],
+            (1, 1): ["background-color: green"],
+        }
         assert result == expected
 
     def test_nonunique_raises(self):

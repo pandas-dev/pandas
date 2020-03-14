@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -16,8 +18,8 @@ def test_singleton():
 
 
 def test_repr():
-    assert repr(NA) == "NA"
-    assert str(NA) == "NA"
+    assert repr(NA) == "<NA>"
+    assert str(NA) == "<NA>"
 
 
 def test_truthiness():
@@ -96,19 +98,7 @@ def test_pow_special(value, asarray):
 
 
 @pytest.mark.parametrize(
-    "value",
-    [
-        1,
-        1.0,
-        -1,
-        -1.0,
-        True,
-        np.bool_(True),
-        np.int_(1),
-        np.float_(1),
-        np.int_(-1),
-        np.float_(-1),
-    ],
+    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float_(1)],
 )
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_special(value, asarray):
@@ -123,6 +113,21 @@ def test_rpow_special(value, asarray):
         assert isinstance(result, type(value))
 
     assert result == value
+
+
+@pytest.mark.parametrize(
+    "value", [-1, -1.0, np.int_(-1), np.float_(-1)],
+)
+@pytest.mark.parametrize("asarray", [True, False])
+def test_rpow_minus_one(value, asarray):
+    if asarray:
+        value = np.array([value])
+    result = value ** pd.NA
+
+    if asarray:
+        result = result[0]
+
+    assert pd.isna(result)
 
 
 def test_unary_ops():
@@ -264,3 +269,26 @@ def test_integer_hash_collision_set():
     assert len(result) == 2
     assert NA in result
     assert hash(NA) in result
+
+
+def test_pickle_roundtrip():
+    # https://github.com/pandas-dev/pandas/issues/31847
+    result = pickle.loads(pickle.dumps(pd.NA))
+    assert result is pd.NA
+
+
+def test_pickle_roundtrip_pandas():
+    result = tm.round_trip_pickle(pd.NA)
+    assert result is pd.NA
+
+
+@pytest.mark.parametrize(
+    "values, dtype", [([1, 2, pd.NA], "Int64"), (["A", "B", pd.NA], "string")]
+)
+@pytest.mark.parametrize("as_frame", [True, False])
+def test_pickle_roundtrip_containers(as_frame, values, dtype):
+    s = pd.Series(pd.array(values, dtype=dtype))
+    if as_frame:
+        s = s.to_frame(name="A")
+    result = tm.round_trip_pickle(s)
+    tm.assert_equal(result, s)

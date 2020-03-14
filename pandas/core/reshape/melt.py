@@ -51,9 +51,8 @@ def melt(
             missing = Index(com.flatten(id_vars)).difference(cols)
             if not missing.empty:
                 raise KeyError(
-                    "The following 'id_vars' are not present"
-                    " in the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    "The following 'id_vars' are not present "
+                    f"in the DataFrame: {list(missing)}"
                 )
     else:
         id_vars = []
@@ -73,9 +72,8 @@ def melt(
             missing = Index(com.flatten(value_vars)).difference(cols)
             if not missing.empty:
                 raise KeyError(
-                    "The following 'value_vars' are not present in"
-                    " the DataFrame: {missing}"
-                    "".format(missing=list(missing))
+                    "The following 'value_vars' are not present in "
+                    f"the DataFrame: {list(missing)}"
                 )
         frame = frame.loc[:, id_vars + value_vars]
     else:
@@ -90,9 +88,7 @@ def melt(
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
-                var_name = [
-                    "variable_{i}".format(i=i) for i in range(len(frame.columns.names))
-                ]
+                var_name = [f"variable_{i}" for i in range(len(frame.columns.names))]
         else:
             var_name = [
                 frame.columns.name if frame.columns.name is not None else "variable"
@@ -419,9 +415,7 @@ def wide_to_long(
     """
 
     def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:
-        regex = r"^{stub}{sep}{suffix}$".format(
-            stub=re.escape(stub), sep=re.escape(sep), suffix=suffix
-        )
+        regex = fr"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]
 

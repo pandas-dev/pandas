@@ -239,6 +239,15 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
+    def test_repr_deprecation_negative_int(self):
+        # FIXME: remove in future version after deprecation cycle
+        # Non-regression test for:
+        # https://github.com/pandas-dev/pandas/issues/31532
+        width = get_option("display.max_colwidth")
+        with tm.assert_produces_warning(FutureWarning):
+            set_option("display.max_colwidth", -1)
+        set_option("display.max_colwidth", width)
+
     def test_repr_chop_threshold(self):
         df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
         pd.reset_option("display.chop_threshold")  # default None
@@ -296,7 +305,7 @@ class TestDataFrameFormatting:
         assert printing.pprint_thing({1}) == "{1}"
 
     def test_repr_is_valid_construction_code(self):
-        # for the case of Index, where the repr is traditional rather then
+        # for the case of Index, where the repr is traditional rather than
         # stylized
         idx = Index(["a", "b"])
         res = eval("pd." + repr(idx))
@@ -2659,14 +2668,14 @@ class TestSeriesFormatting:
             assert exp == res
             res = repr(test_sers["asc"])
             exp = (
-                "0         a\n1        ab\n      ...  \n4     abcde\n5"
-                "    abcdef\ndtype: object"
+                "0         a\n1        ab\n      ...  \n4     abcde\n5    "
+                "abcdef\ndtype: object"
             )
             assert exp == res
             res = repr(test_sers["desc"])
             exp = (
-                "5    abcdef\n4     abcde\n      ...  \n1        ab\n0"
-                "         a\ndtype: object"
+                "5    abcdef\n4     abcde\n      ...  \n1        ab\n0         "
+                "a\ndtype: object"
             )
             assert exp == res
 

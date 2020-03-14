@@ -2,9 +2,12 @@ from cpython.object cimport (
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
-from cpython.datetime cimport (datetime,
+from cpython.datetime cimport (datetime, timedelta,
                                PyDateTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
+
+from cpython.version cimport PY_MINOR_VERSION
+
 PyDateTime_IMPORT
 
 import numpy as np
@@ -18,6 +21,9 @@ cimport pandas._libs.tslibs.util as util
 from pandas._libs.tslibs.util cimport (
     get_nat, is_integer_object, is_float_object, is_datetime64_object,
     is_timedelta64_object)
+
+from pandas._libs.missing cimport C_NA
+
 
 # ----------------------------------------------------------------------
 # Constants
@@ -272,13 +278,6 @@ cdef class _NaT(datetime):
     def __long__(self):
         return NPY_NAT
 
-    def total_seconds(self):
-        """
-        Total duration of timedelta in seconds (to ns precision).
-        """
-        # GH#10939
-        return np.nan
-
     @property
     def is_leap_year(self):
         return False
@@ -322,7 +321,7 @@ class NaTType(_NaT):
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat
-        # http://bugs.python.org/issue28730
+        # https://bugs.python.org/issue28730
         # now __reduce_ex__ is defined and higher priority than __reduce__
         return self.__reduce__()
 
@@ -382,6 +381,7 @@ class NaTType(_NaT):
     # nan methods
     weekday = _make_nan_func('weekday', datetime.weekday.__doc__)
     isoweekday = _make_nan_func('isoweekday', datetime.isoweekday.__doc__)
+    total_seconds = _make_nan_func('total_seconds', timedelta.total_seconds.__doc__)
     month_name = _make_nan_func('month_name',  # noqa:E128
         """
         Return the month name of the Timestamp with specified locale.
@@ -426,6 +426,10 @@ class NaTType(_NaT):
     toordinal = _make_error_func('toordinal', datetime)
     tzname = _make_error_func('tzname', datetime)
     utcoffset = _make_error_func('utcoffset', datetime)
+
+    # "fromisocalendar" was introduced in 3.8
+    if PY_MINOR_VERSION >= 8:
+        fromisocalendar = _make_error_func('fromisocalendar', datetime)
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
@@ -760,8 +764,10 @@ NaT = c_NaT        # Python-visible
 # ----------------------------------------------------------------------
 
 cdef inline bint checknull_with_nat(object val):
-    """ utility to check if a value is a nat or not """
-    return val is None or util.is_nan(val) or val is c_NaT
+    """
+    Utility to check if a value is a nat or not.
+    """
+    return val is None or util.is_nan(val) or val is c_NaT or val is C_NA
 
 
 cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):

@@ -218,13 +218,13 @@ class PeriodConverter(dates.DateConverter):
         if isinstance(values, valid_types) or is_integer(values) or is_float(values):
             return get_datevalue(values, axis.freq)
         elif isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq)._ndarray_values
+            return values.asfreq(axis.freq).asi8
         elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         elif lib.infer_dtype(values, skipna=False) == "period":
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> PeriodIndex
-            return PeriodIndex(values, freq=axis.freq)._ndarray_values
+            return PeriodIndex(values, freq=axis.freq).asi8
         elif isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -421,8 +421,7 @@ class MilliSecondLocator(dates.DateLocator):
         if estimate > self.MAXTICKS * 2:
             raise RuntimeError(
                 "MillisecondLocator estimated to generate "
-                f"{estimate:d} ticks from {dmin} to {dmax}: "
-                "exceeds Locator.MAXTICKS"
+                f"{estimate:d} ticks from {dmin} to {dmax}: exceeds Locator.MAXTICKS"
                 f"* 2 ({self.MAXTICKS * 2:d}) "
             )
 
@@ -608,7 +607,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(
         span, dtype=[("val", np.int64), ("maj", bool), ("min", bool), ("fmt", "|S20")]
     )
-    info["val"][:] = dates_._ndarray_values
+    info["val"][:] = dates_.asi8
     info["fmt"][:] = ""
     info["maj"][[0, -1]] = True
     # .. and set some shortcuts
@@ -982,8 +981,7 @@ class TimeSeries_DateLocator(Locator):
         self.finder = get_finder(freq)
 
     def _get_default_locs(self, vmin, vmax):
-        "Returns the default locations of ticks."
-
+        """Returns the default locations of ticks."""
         if self.plot_obj.date_axis_info is None:
             self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
 
@@ -994,7 +992,7 @@ class TimeSeries_DateLocator(Locator):
         return np.compress(locator["maj"], locator["val"])
 
     def __call__(self):
-        "Return the locations of the ticks."
+        """Return the locations of the ticks."""
         # axis calls Locator.set_axis inside set_m<xxxx>_formatter
 
         vi = tuple(self.axis.get_view_interval())
@@ -1063,8 +1061,7 @@ class TimeSeries_DateFormatter(Formatter):
         self.finder = get_finder(freq)
 
     def _set_default_format(self, vmin, vmax):
-        "Returns the default ticks spacing."
-
+        """Returns the default ticks spacing."""
         if self.plot_obj.date_axis_info is None:
             self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
         info = self.plot_obj.date_axis_info
@@ -1077,7 +1074,7 @@ class TimeSeries_DateFormatter(Formatter):
         return self.formatdict
 
     def set_locs(self, locs):
-        "Sets the locations of the ticks"
+        """Sets the locations of the ticks"""
         # don't actually use the locs. This is just needed to work with
         # matplotlib. Force to use vmin, vmax
 

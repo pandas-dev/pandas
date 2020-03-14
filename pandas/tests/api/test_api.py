@@ -1,4 +1,8 @@
+import subprocess
+import sys
 from typing import List
+
+import pytest
 
 import pandas as pd
 from pandas import api, compat
@@ -42,7 +46,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules: List[str] = []
+    deprecated_modules: List[str] = ["np", "datetime"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -89,15 +93,17 @@ class TestPDApi(Base):
         "UInt64Dtype",
         "NamedAgg",
     ]
-    if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame", "SparseArray"])
-        deprecated_modules.extend(["np", "datetime"])
 
     # these are already deprecated; awaiting removal
     deprecated_classes: List[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future: List[str] = []
+    deprecated_classes_in_future: List[str] = ["SparseArray"]
+
+    if not compat.PY37:
+        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
+        # deprecated_modules.extend(["np", "datetime"])
+        # deprecated_classes_in_future.extend(["SparseArray"])
 
     # external modules exposed in pandas namespace
     modules: List[str] = []
@@ -192,6 +198,7 @@ class TestPDApi(Base):
         "_np_version_under1p16",
         "_np_version_under1p17",
         "_np_version_under1p18",
+        "_is_numpy_dev",
         "_testing",
         "_tslib",
         "_typing",
@@ -200,44 +207,46 @@ class TestPDApi(Base):
 
     def test_api(self):
 
-        self.check(
-            pd,
+        checkthese = (
             self.lib
             + self.misc
             + self.modules
-            + self.deprecated_modules
             + self.classes
-            + self.deprecated_classes
-            + self.deprecated_classes_in_future
             + self.funcs
             + self.funcs_option
             + self.funcs_read
             + self.funcs_json
             + self.funcs_to
-            + self.deprecated_funcs_in_future
-            + self.deprecated_funcs
-            + self.private_modules,
-            self.ignored,
+            + self.private_modules
         )
+        if not compat.PY37:
+            checkthese.extend(
+                self.deprecated_modules
+                + self.deprecated_classes
+                + self.deprecated_classes_in_future
+                + self.deprecated_funcs_in_future
+                + self.deprecated_funcs
+            )
+        self.check(pd, checkthese, self.ignored)
 
     def test_depr(self):
-        deprecated = (
+        deprecated_list = (
             self.deprecated_modules
             + self.deprecated_classes
             + self.deprecated_classes_in_future
             + self.deprecated_funcs
             + self.deprecated_funcs_in_future
         )
-        for depr in deprecated:
+        for depr in deprecated_list:
             with tm.assert_produces_warning(FutureWarning):
-                if compat.PY37:
-                    getattr(pd, depr)
-                elif depr == "datetime":
-                    deprecated = getattr(pd, "__Datetime")
-                    deprecated().__getattr__(dir(pd.datetime)[-1])
-                else:
-                    deprecated = getattr(pd, depr)
-                    deprecated.__getattr__(dir(deprecated)[-1])
+                deprecated = getattr(pd, depr)
+                if not compat.PY37:
+                    if depr == "datetime":
+                        deprecated.__getattr__(dir(pd.datetime.datetime)[-1])
+                    elif depr == "SparseArray":
+                        deprecated([])
+                    else:
+                        deprecated.__getattr__(dir(deprecated)[-1])
 
 
 def test_datetime():
@@ -247,6 +256,16 @@ def test_datetime():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
         assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+
+        assert isinstance(pd.datetime(2015, 1, 2, 0, 0), pd.datetime)
+
+
+def test_sparsearray():
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        assert isinstance(pd.array([1, 2, 3], dtype="Sparse"), pd.SparseArray)
 
 
 def test_np():
@@ -270,16 +289,7 @@ class TestTesting(Base):
         "assert_frame_equal",
         "assert_series_equal",
         "assert_index_equal",
-        "assert_equal",
-        "assert_almost_equal",
-        "assert_categorical_equal",
-        "assert_datetime_array_equal",
         "assert_extension_array_equal",
-        "assert_interval_array_equal",
-        "assert_numpy_array_equal",
-        "assert_period_array_equal",
-        "assert_sp_array_equal",
-        "assert_timedelta_array_equal",
     ]
 
     def test_testing(self):
@@ -288,14 +298,35 @@ class TestTesting(Base):
         self.check(testing, self.funcs)
 
     def test_util_testing_deprecated(self):
-        s = pd.Series([], dtype="object")
-        with tm.assert_produces_warning(FutureWarning) as m:
-            import pandas.util.testing as tm2
-
-            tm2.assert_series_equal(s, s)
-
-        assert "pandas.testing.assert_series_equal" in str(m[0].message)
+        # avoid cache state affecting the test
+        sys.modules.pop("pandas.util.testing", None)
 
         with tm.assert_produces_warning(FutureWarning) as m:
-            tm2.DataFrame
-        assert "removed" in str(m[0].message)
+            import pandas.util.testing  # noqa: F401
+
+        assert "pandas.util.testing is deprecated" in str(m[0].message)
+        assert "pandas.testing instead" in str(m[0].message)
+
+    def test_util_testing_deprecated_direct(self):
+        # avoid cache state affecting the test
+        sys.modules.pop("pandas.util.testing", None)
+        with tm.assert_produces_warning(FutureWarning) as m:
+            from pandas.util.testing import assert_series_equal  # noqa: F401
+
+        assert "pandas.util.testing is deprecated" in str(m[0].message)
+        assert "pandas.testing instead" in str(m[0].message)
+
+    def test_util_in_top_level(self):
+        # in a subprocess to avoid import caching issues
+        out = subprocess.check_output(
+            [
+                sys.executable,
+                "-c",
+                "import pandas; pandas.util.testing.assert_series_equal",
+            ],
+            stderr=subprocess.STDOUT,
+        ).decode()
+        assert "pandas.util.testing is deprecated" in out
+
+        with pytest.raises(AttributeError, match="foo"):
+            pd.util.foo

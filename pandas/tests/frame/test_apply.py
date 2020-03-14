@@ -235,7 +235,14 @@ class TestDataFrameApply:
         with pytest.raises(ValueError):
             df.apply(lambda x: Series([1, 2]), axis=1, result_type="broadcast")
 
-    def test_apply_raw(self, float_frame):
+    def test_apply_raw(self, float_frame, mixed_type_frame):
+        def _assert_raw(x):
+            assert isinstance(x, np.ndarray)
+            assert x.ndim == 1
+
+        float_frame.apply(_assert_raw, raw=True)
+        float_frame.apply(_assert_raw, axis=1, raw=True)
+
         result0 = float_frame.apply(np.mean, raw=True)
         result1 = float_frame.apply(np.mean, axis=1, raw=True)
 
@@ -249,6 +256,10 @@ class TestDataFrameApply:
         result = float_frame.apply(lambda x: x * 2, raw=True)
         expected = float_frame * 2
         tm.assert_frame_equal(result, expected)
+
+        # Mixed dtype (GH-32423)
+        mixed_type_frame.apply(_assert_raw, raw=True)
+        mixed_type_frame.apply(_assert_raw, axis=1, raw=True)
 
     def test_apply_axis1(self, float_frame):
         d = float_frame.index[0]
@@ -339,7 +350,7 @@ class TestDataFrameApply:
         tm.assert_frame_equal(result, float_frame)
 
     def test_apply_reduce_Series(self, float_frame):
-        float_frame.loc[::2, "A"] = np.nan
+        float_frame["A"].iloc[::2] = np.nan
         expected = float_frame.mean(1)
         result = float_frame.apply(np.mean, axis=1)
         tm.assert_series_equal(result, expected)
@@ -690,6 +701,26 @@ class TestDataFrameApply:
         result = df.agg(["min"])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_apply_nested_result_axis_1(self):
+        # GH 13820
+        def apply_list(row):
+            return [2 * row["A"], 2 * row["C"], 2 * row["B"]]
+
+        df = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCD"))
+        result = df.apply(apply_list, axis=1)
+        expected = Series(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_apply_noreduction_tzaware_object(self):
+        # https://github.com/pandas-dev/pandas/issues/31505
+        df = pd.DataFrame({"foo": [pd.Timestamp("2020", tz="UTC")]}, dtype="object")
+        result = df.apply(lambda x: x)
+        tm.assert_frame_equal(result, df)
+        result = df.apply(lambda x: x.copy())
+        tm.assert_frame_equal(result, df)
 
 
 class TestInferOutputShape:

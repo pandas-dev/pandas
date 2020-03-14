@@ -49,8 +49,7 @@ def read_sas(
     if format is None:
         buffer_error_msg = (
             "If this is a buffer object rather "
-            "than a string name, you must specify "
-            "a format string"
+            "than a string name, you must specify a format string"
         )
         filepath_or_buffer = stringify_path(filepath_or_buffer)
         if not isinstance(filepath_or_buffer, str):

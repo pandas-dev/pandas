@@ -11,6 +11,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
 import bz2
+import datetime
 import glob
 import gzip
 import os
@@ -22,6 +23,7 @@ import zipfile
 import pytest
 
 from pandas.compat import _get_lzma_file, _import_lzma, is_platform_little_endian
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Index
@@ -58,9 +60,7 @@ def compare_element(result, expected, typ, version=None):
             assert result == expected
             assert result.freq == expected.freq
     else:
-        comparator = getattr(
-            tm, "assert_{typ}_equal".format(typ=typ), tm.assert_almost_equal
-        )
+        comparator = getattr(tm, f"assert_{typ}_equal", tm.assert_almost_equal)
         comparator(result, expected)
 
 
@@ -75,7 +75,7 @@ def compare(data, vf, version):
 
             # use a specific comparator
             # if available
-            comparator = "compare_{typ}_{dt}".format(typ=typ, dt=dt)
+            comparator = f"compare_{typ}_{dt}"
 
             comparator = m.get(comparator, m["compare_element"])
             comparator(result, expected, typ, version)
@@ -196,6 +196,7 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
+@pytest.mark.xfail(reason="GitHub issue #31310", strict=False)
 def test_legacy_sparse_warning(datapath):
     """
 
@@ -231,7 +232,7 @@ def test_legacy_sparse_warning(datapath):
 
 @pytest.fixture
 def get_random_path():
-    return "__{}__.pickle".format(tm.rands(10))
+    return f"__{tm.rands(10)}__.pickle"
 
 
 class TestCompression:
@@ -259,7 +260,7 @@ class TestCompression:
         elif compression == "xz":
             f = _get_lzma_file(lzma)(dest_path, "w")
         else:
-            msg = "Unrecognized compression type: {}".format(compression)
+            msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
 
         if compression != "zip":
@@ -381,12 +382,131 @@ class TestProtocol:
             tm.assert_frame_equal(df, df2)
 
 
-def test_unicode_decode_error():
+@pytest.mark.parametrize(
+    ["pickle_file", "excols"],
+    [
+        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        (
+            "test_mi_py27.pkl",
+            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
+        ),
+    ],
+)
+def test_unicode_decode_error(datapath, pickle_file, excols):
     # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645
-    path = os.path.join(os.path.dirname(__file__), "data", "pickle", "test_py27.pkl")
+    #  UnicodeDecodeError, see GH#28645 and GH#31988
+    path = datapath("io", "data", "pickle", pickle_file)
     df = pd.read_pickle(path)
 
     # just test the columns are correct since the values are random
-    excols = pd.Index(["a", "b", "c"])
     tm.assert_index_equal(df.columns, excols)
+
+
+# ---------------------
+# tests for buffer I/O
+# ---------------------
+
+
+def test_pickle_buffer_roundtrip():
+    with tm.ensure_clean() as path:
+        df = tm.makeDataFrame()
+        with open(path, "wb") as fh:
+            df.to_pickle(fh)
+        with open(path, "rb") as fh:
+            result = pd.read_pickle(fh)
+        tm.assert_frame_equal(df, result)
+
+
+# ---------------------
+# tests for URL I/O
+# ---------------------
+
+
+@pytest.mark.parametrize(
+    "mockurl", ["http://url.com", "ftp://test.com", "http://gzip.com"]
+)
+def test_pickle_generalurl_read(monkeypatch, mockurl):
+    def python_pickler(obj, path):
+        with open(path, "wb") as fh:
+            pickle.dump(obj, fh, protocol=-1)
+
+    class MockReadResponse:
+        def __init__(self, path):
+            self.file = open(path, "rb")
+            if "gzip" in path:
+                self.headers = {"Content-Encoding": "gzip"}
+            else:
+                self.headers = {"Content-Encoding": None}
+
+        def read(self):
+            return self.file.read()
+
+        def close(self):
+            return self.file.close()
+
+    with tm.ensure_clean() as path:
+
+        def mock_urlopen_read(*args, **kwargs):
+            return MockReadResponse(path)
+
+        df = tm.makeDataFrame()
+        python_pickler(df, path)
+        monkeypatch.setattr("urllib.request.urlopen", mock_urlopen_read)
+        result = pd.read_pickle(mockurl)
+        tm.assert_frame_equal(df, result)
+
+
+@td.skip_if_no("gcsfs")
+@pytest.mark.parametrize("mockurl", ["gs://gcs.com", "gcs://gcs.com"])
+def test_pickle_gcsurl_roundtrip(monkeypatch, mockurl):
+    with tm.ensure_clean() as path:
+
+        class MockGCSFileSystem:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def open(self, *args):
+                mode = args[1] or None
+                f = open(path, mode)
+                return f
+
+        monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
+        df = tm.makeDataFrame()
+        df.to_pickle(mockurl)
+        result = pd.read_pickle(mockurl)
+        tm.assert_frame_equal(df, result)
+
+
+@td.skip_if_no("s3fs")
+@pytest.mark.parametrize("mockurl", ["s3://s3.com", "s3n://s3.com", "s3a://s3.com"])
+def test_pickle_s3url_roundtrip(monkeypatch, mockurl):
+    with tm.ensure_clean() as path:
+
+        class MockS3FileSystem:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def open(self, *args):
+                mode = args[1] or None
+                f = open(path, mode)
+                return f
+
+        monkeypatch.setattr("s3fs.S3FileSystem", MockS3FileSystem)
+        df = tm.makeDataFrame()
+        df.to_pickle(mockurl)
+        result = pd.read_pickle(mockurl)
+        tm.assert_frame_equal(df, result)
+
+
+class MyTz(datetime.tzinfo):
+    def __init__(self):
+        pass
+
+
+def test_read_pickle_with_subclass():
+    # GH 12163
+    expected = pd.Series(dtype=object), MyTz()
+    result = tm.round_trip_pickle(expected)
+
+    tm.assert_series_equal(result[0], expected[0])
+    assert isinstance(result[1], MyTz)

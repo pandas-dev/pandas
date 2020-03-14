@@ -2,11 +2,12 @@ import operator
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
 import pandas as pd
-from pandas import Series
+from pandas import Series, date_range
 import pandas._testing as tm
 
 
@@ -47,6 +48,22 @@ class TestSeriesFlexArithmetic:
             expected = alt(other, series)
             tm.assert_almost_equal(result, expected)
 
+    def test_flex_method_subclass_metadata_preservation(self, all_arithmetic_operators):
+        # GH 13208
+        class MySeries(Series):
+            _metadata = ["x"]
+
+            @property
+            def _constructor(self):
+                return MySeries
+
+        opname = all_arithmetic_operators
+        op = getattr(Series, opname)
+        m = MySeries([1, 2, 3], name="test")
+        m.x = 42
+        result = op(m, 1)
+        assert result.x == 42
+
 
 class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
@@ -57,7 +74,7 @@ class TestSeriesArithmetic:
 
         result = ts + ts[::2]
         expected = ts + ts
-        expected[1::2] = np.nan
+        expected.iloc[1::2] = np.nan
         tm.assert_series_equal(result, expected)
 
         result = ts + _permute(ts[::2])
@@ -187,3 +204,67 @@ class TestSeriesComparison:
             ser = Series(cidx).rename(names[1])
             result = op(ser, cidx)
             assert result.name == names[2]
+
+
+# ------------------------------------------------------------------
+# Unsorted
+#  These arithmetic tests were previously in other files, eventually
+#  should be parametrized and put into tests.arithmetic
+
+
+class TestTimeSeriesArithmetic:
+    # TODO: De-duplicate with test below
+    def test_series_add_tz_mismatch_converts_to_utc_duplicate(self):
+        rng = date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
+        ser = Series(np.random.randn(len(rng)), index=rng)
+
+        ts_moscow = ser.tz_convert("Europe/Moscow")
+
+        result = ser + ts_moscow
+        assert result.index.tz is pytz.utc
+
+        result = ts_moscow + ser
+        assert result.index.tz is pytz.utc
+
+    def test_series_add_tz_mismatch_converts_to_utc(self):
+        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
+
+        perm = np.random.permutation(100)[:90]
+        ser1 = Series(
+            np.random.randn(90), index=rng.take(perm).tz_convert("US/Eastern")
+        )
+
+        perm = np.random.permutation(100)[:90]
+        ser2 = Series(
+            np.random.randn(90), index=rng.take(perm).tz_convert("Europe/Berlin")
+        )
+
+        result = ser1 + ser2
+
+        uts1 = ser1.tz_convert("utc")
+        uts2 = ser2.tz_convert("utc")
+        expected = uts1 + uts2
+
+        assert result.index.tz == pytz.UTC
+        tm.assert_series_equal(result, expected)
+
+    def test_series_add_aware_naive_raises(self):
+        rng = date_range("1/1/2011", periods=10, freq="H")
+        ser = Series(np.random.randn(len(rng)), index=rng)
+
+        ser_utc = ser.tz_localize("utc")
+
+        with pytest.raises(Exception):
+            ser + ser_utc
+
+        with pytest.raises(Exception):
+            ser_utc + ser
+
+    def test_datetime_understood(self):
+        # Ensures it doesn't fail to create the right series
+        # reported in issue#16726
+        series = pd.Series(pd.date_range("2012-01-01", periods=3))
+        offset = pd.offsets.DateOffset(days=6)
+        result = series - offset
+        expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
+        tm.assert_series_equal(result, expected)

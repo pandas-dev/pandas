@@ -336,6 +336,80 @@ class TestDataFrameReshape:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_unstack_tuplename_in_multiindex(self):
+        # GH 19966
+        idx = pd.MultiIndex.from_product(
+            [["a", "b", "c"], [1, 2, 3]], names=[("A", "a"), ("B", "b")]
+        )
+        df = pd.DataFrame({"d": [1] * 9, "e": [2] * 9}, index=idx)
+        result = df.unstack(("A", "a"))
+
+        expected = pd.DataFrame(
+            [[1, 1, 1, 2, 2, 2], [1, 1, 1, 2, 2, 2], [1, 1, 1, 2, 2, 2]],
+            columns=pd.MultiIndex.from_tuples(
+                [
+                    ("d", "a"),
+                    ("d", "b"),
+                    ("d", "c"),
+                    ("e", "a"),
+                    ("e", "b"),
+                    ("e", "c"),
+                ],
+                names=[None, ("A", "a")],
+            ),
+            index=pd.Index([1, 2, 3], name=("B", "b")),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "unstack_idx, expected_values, expected_index, expected_columns",
+        [
+            (
+                ("A", "a"),
+                [[1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2], [1, 1, 2, 2]],
+                pd.MultiIndex.from_tuples(
+                    [(1, 3), (1, 4), (2, 3), (2, 4)], names=["B", "C"]
+                ),
+                pd.MultiIndex.from_tuples(
+                    [("d", "a"), ("d", "b"), ("e", "a"), ("e", "b")],
+                    names=[None, ("A", "a")],
+                ),
+            ),
+            (
+                (("A", "a"), "B"),
+                [[1, 1, 1, 1, 2, 2, 2, 2], [1, 1, 1, 1, 2, 2, 2, 2]],
+                pd.Index([3, 4], name="C"),
+                pd.MultiIndex.from_tuples(
+                    [
+                        ("d", "a", 1),
+                        ("d", "a", 2),
+                        ("d", "b", 1),
+                        ("d", "b", 2),
+                        ("e", "a", 1),
+                        ("e", "a", 2),
+                        ("e", "b", 1),
+                        ("e", "b", 2),
+                    ],
+                    names=[None, ("A", "a"), "B"],
+                ),
+            ),
+        ],
+    )
+    def test_unstack_mixed_type_name_in_multiindex(
+        self, unstack_idx, expected_values, expected_index, expected_columns
+    ):
+        # GH 19966
+        idx = pd.MultiIndex.from_product(
+            [["a", "b"], [1, 2], [3, 4]], names=[("A", "a"), "B", "C"]
+        )
+        df = pd.DataFrame({"d": [1] * 8, "e": [2] * 8}, index=idx)
+        result = df.unstack(unstack_idx)
+
+        expected = pd.DataFrame(
+            expected_values, columns=expected_columns, index=expected_index,
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_unstack_preserve_dtypes(self):
         # Checks fix for #11847
         df = pd.DataFrame(
@@ -424,8 +498,8 @@ class TestDataFrameReshape:
         # When mixed types are passed and the ints are not level
         # names, raise
         msg = (
-            "level should contain all level names or all level numbers, not"
-            " a mixture of the two"
+            "level should contain all level names or all level numbers, not "
+            "a mixture of the two"
         )
         with pytest.raises(ValueError, match=msg):
             df2.stack(level=["animal", 0])
@@ -691,7 +765,9 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_nan_index(self):  # GH7466
-        cast = lambda val: "{0:1}".format("" if val != val else val)
+        def cast(val):
+            val_str = "" if val != val else val
+            return f"{val_str:1}"
 
         def verify(df):
             mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
@@ -1128,3 +1204,34 @@ def test_stack_timezone_aware_values():
         ),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_unstacking_multi_index_df():
+    # see gh-30740
+    df = DataFrame(
+        {
+            "name": ["Alice", "Bob"],
+            "score": [9.5, 8],
+            "employed": [False, True],
+            "kids": [0, 0],
+            "gender": ["female", "male"],
+        }
+    )
+    df = df.set_index(["name", "employed", "kids", "gender"])
+    df = df.unstack(["gender"], fill_value=0)
+    expected = df.unstack("employed", fill_value=0).unstack("kids", fill_value=0)
+    result = df.unstack(["employed", "kids"], fill_value=0)
+    expected = DataFrame(
+        [[9.5, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 8.0]],
+        index=Index(["Alice", "Bob"], name="name"),
+        columns=MultiIndex.from_tuples(
+            [
+                ("score", "female", False, 0),
+                ("score", "female", True, 0),
+                ("score", "male", False, 0),
+                ("score", "male", True, 0),
+            ],
+            names=[None, "gender", "employed", "kids"],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)

@@ -1,4 +1,5 @@
-"""An interface for extending pandas with custom arrays.
+"""
+An interface for extending pandas with custom arrays.
 
 .. warning::
 
@@ -10,6 +11,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -175,6 +177,9 @@ class ExtensionArray:
        types present.
 
     See :ref:`extending.extension.ufunc` for more.
+
+    By default, ExtensionArrays are not hashable.  Immutable subclasses may
+    override this behavior.
     """
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
@@ -209,7 +214,8 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        """Construct a new ExtensionArray from a sequence of strings.
+        """
+        Construct a new ExtensionArray from a sequence of strings.
 
         .. versionadded:: 0.24.0
 
@@ -350,6 +356,39 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
+    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
+        """
+        Convert to a NumPy ndarray.
+
+        .. versionadded:: 1.0.0
+
+        This is similar to :meth:`numpy.asarray`, but may provide additional control
+        over how the conversion is done.
+
+        Parameters
+        ----------
+        dtype : str or numpy.dtype, optional
+            The dtype to pass to :meth:`numpy.asarray`.
+        copy : bool, default False
+            Whether to ensure that the returned value is a not a view on
+            another array. Note that ``copy=False`` does not *ensure* that
+            ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
+            a copy is made, even if not strictly necessary.
+        na_value : Any, optional
+            The value to use for missing values. The default value depends
+            on `dtype` and the type of the array.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        result = np.asarray(self, dtype=dtype)
+        if copy or na_value is not lib.no_default:
+            result = result.copy()
+        if na_value is not lib.no_default:
+            result[self.isna()] = na_value
+        return result
+
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
@@ -367,6 +406,13 @@ class ExtensionArray:
         Return a tuple of the array dimensions.
         """
         return (len(self),)
+
+    @property
+    def size(self) -> int:
+        """
+        The number of elements in the array.
+        """
+        return np.prod(self.shape)
 
     @property
     def ndim(self) -> int:
@@ -924,7 +970,8 @@ class ExtensionArray:
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], Optional[str]]:
-        """Formatting function for scalar values.
+        """
+        Formatting function for scalar values.
 
         This is used in the default '__repr__'. The returned formatting
         function receives instances of your scalar type.
@@ -1038,6 +1085,9 @@ class ExtensionArray:
         TypeError : subclass does not define reductions
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
+
+    def __hash__(self):
+        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
 
 
 class ExtensionOpsMixin:

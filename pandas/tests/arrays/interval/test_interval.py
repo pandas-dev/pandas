@@ -1,22 +1,16 @@
-import operator
-
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_list_like
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
-    Categorical,
     Index,
     Interval,
     IntervalIndex,
-    Period,
-    Series,
     Timedelta,
     Timestamp,
     date_range,
-    period_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -41,18 +35,6 @@ def left_right_dtypes(request):
     Fixture for building an IntervalArray from various dtypes
     """
     return request.param
-
-
-def create_categorical_intervals(left, right, closed="right"):
-    return Categorical(IntervalIndex.from_arrays(left, right, closed))
-
-
-def create_series_intervals(left, right, closed="right"):
-    return Series(IntervalArray.from_arrays(left, right, closed))
-
-
-def create_series_categorical_intervals(left, right, closed="right"):
-    return Series(Categorical(IntervalIndex.from_arrays(left, right, closed)))
 
 
 class TestAttributes:
@@ -99,6 +81,24 @@ class TestMethods:
         with pytest.raises(ValueError, match=match):
             ser.where([True, False, True], other=other)
 
+    def test_shift(self):
+        # https://github.com/pandas-dev/pandas/issues/31495
+        a = IntervalArray.from_breaks([1, 2, 3])
+        result = a.shift()
+        # int -> float
+        expected = IntervalArray.from_tuples([(np.nan, np.nan), (1.0, 2.0)])
+        tm.assert_interval_array_equal(result, expected)
+
+    def test_shift_datetime(self):
+        a = IntervalArray.from_breaks(pd.date_range("2000", periods=4))
+        result = a.shift(2)
+        expected = a.take([-1, -1, 0], allow_fill=True)
+        tm.assert_interval_array_equal(result, expected)
+
+        result = a.shift(-1)
+        expected = a.take([1, 2, -1], allow_fill=True)
+        tm.assert_interval_array_equal(result, expected)
+
 
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):
@@ -113,221 +113,6 @@ class TestSetitem:
         tm.assert_extension_array_equal(result, expected)
 
 
-class TestComparison:
-    @pytest.fixture(params=[operator.eq, operator.ne])
-    def op(self, request):
-        return request.param
-
-    @pytest.fixture
-    def array(self, left_right_dtypes):
-        """
-        Fixture to generate an IntervalArray of various dtypes containing NA if possible
-        """
-        left, right = left_right_dtypes
-        if left.dtype != "int64":
-            left, right = left.insert(4, np.nan), right.insert(4, np.nan)
-        else:
-            left, right = left.insert(4, 10), right.insert(4, 20)
-        return IntervalArray.from_arrays(left, right)
-
-    @pytest.fixture(
-        params=[
-            IntervalArray.from_arrays,
-            IntervalIndex.from_arrays,
-            create_categorical_intervals,
-            create_series_intervals,
-            create_series_categorical_intervals,
-        ],
-        ids=[
-            "IntervalArray",
-            "IntervalIndex",
-            "Categorical[Interval]",
-            "Series[Interval]",
-            "Series[Categorical[Interval]]",
-        ],
-    )
-    def interval_constructor(self, request):
-        """
-        Fixture for all pandas native interval constructors.
-        To be used as the LHS of IntervalArray comparisons.
-        """
-        return request.param
-
-    def elementwise_comparison(self, op, array, other):
-        """
-        Helper that performs elementwise comparisions between `array` and `other`
-        """
-        other = other if is_list_like(other) else [other] * len(array)
-        return np.array([op(x, y) for x, y in zip(array, other)])
-
-    def test_compare_scalar_interval(self, op, array):
-        # matches first interval
-        other = array[0]
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-        # matches on a single endpoint but not both
-        other = Interval(array.left[0], array.right[1])
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_compare_scalar_interval_mixed_closed(self, op, closed, other_closed):
-        array = IntervalArray.from_arrays(range(2), range(1, 3), closed=closed)
-        other = Interval(0, 1, closed=other_closed)
-
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_compare_scalar_na(self, op, array, nulls_fixture):
-        result = op(array, nulls_fixture)
-        expected = self.elementwise_comparison(op, array, nulls_fixture)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "other",
-        [
-            0,
-            1.0,
-            True,
-            "foo",
-            Timestamp("2017-01-01"),
-            Timestamp("2017-01-01", tz="US/Eastern"),
-            Timedelta("0 days"),
-            Period("2017-01-01", "D"),
-        ],
-    )
-    def test_compare_scalar_other(self, op, array, other):
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_compare_list_like_interval(
-        self, op, array, interval_constructor,
-    ):
-        # same endpoints
-        other = interval_constructor(array.left, array.right)
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-        # different endpoints
-        other = interval_constructor(array.left[::-1], array.right[::-1])
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-        # all nan endpoints
-        other = interval_constructor([np.nan] * 4, [np.nan] * 4)
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_compare_list_like_interval_mixed_closed(
-        self, op, interval_constructor, closed, other_closed
-    ):
-        array = IntervalArray.from_arrays(range(2), range(1, 3), closed=closed)
-        other = interval_constructor(range(2), range(1, 3), closed=other_closed)
-
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "other",
-        [
-            (
-                Interval(0, 1),
-                Interval(Timedelta("1 day"), Timedelta("2 days")),
-                Interval(4, 5, "both"),
-                Interval(10, 20, "neither"),
-            ),
-            (0, 1.5, Timestamp("20170103"), np.nan),
-            (
-                Timestamp("20170102", tz="US/Eastern"),
-                Timedelta("2 days"),
-                "baz",
-                pd.NaT,
-            ),
-        ],
-    )
-    def test_compare_list_like_object(self, op, array, other):
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_compare_list_like_nan(self, op, array, nulls_fixture):
-        other = [nulls_fixture] * 4
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "other",
-        [
-            np.arange(4, dtype="int64"),
-            np.arange(4, dtype="float64"),
-            date_range("2017-01-01", periods=4),
-            date_range("2017-01-01", periods=4, tz="US/Eastern"),
-            timedelta_range("0 days", periods=4),
-            period_range("2017-01-01", periods=4, freq="D"),
-            Categorical(list("abab")),
-            Categorical(date_range("2017-01-01", periods=4)),
-            pd.array(list("abcd")),
-            pd.array(["foo", 3.14, None, object()]),
-        ],
-        ids=lambda x: str(x.dtype),
-    )
-    def test_compare_list_like_other(self, op, array, other):
-        result = op(array, other)
-        expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize("length", [1, 3, 5])
-    @pytest.mark.parametrize("other_constructor", [IntervalArray, list])
-    def test_compare_length_mismatch_errors(self, op, other_constructor, length):
-        array = IntervalArray.from_arrays(range(4), range(1, 5))
-        other = other_constructor([Interval(0, 1)] * length)
-        with pytest.raises(ValueError, match="Lengths must match to compare"):
-            op(array, other)
-
-    @pytest.mark.parametrize(
-        "constructor, expected_type, assert_func",
-        [
-            (IntervalIndex, np.array, tm.assert_numpy_array_equal),
-            (Series, Series, tm.assert_series_equal),
-        ],
-    )
-    def test_index_series_compat(self, op, constructor, expected_type, assert_func):
-        # IntervalIndex/Series that rely on IntervalArray for comparisons
-        breaks = range(4)
-        index = constructor(IntervalIndex.from_breaks(breaks))
-
-        # scalar comparisons
-        other = index[0]
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
-
-        other = breaks[0]
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
-
-        # list-like comparisons
-        other = IntervalArray.from_breaks(breaks)
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
-
-        other = [index[0], breaks[0], "foo"]
-        result = op(index, other)
-        expected = expected_type(self.elementwise_comparison(op, index, other))
-        assert_func(result, expected)
-
-
 def test_repr():
     # GH 25022
     arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
@@ -338,3 +123,110 @@ def test_repr():
         "Length: 2, closed: right, dtype: interval[int64]"
     )
     assert result == expected
+
+
+# ----------------------------------------------------------------------------
+# Arrow interaction
+
+
+pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+
+
+@pyarrow_skip
+def test_arrow_extension_type():
+    import pyarrow as pa
+    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+
+    p1 = ArrowIntervalType(pa.int64(), "left")
+    p2 = ArrowIntervalType(pa.int64(), "left")
+    p3 = ArrowIntervalType(pa.int64(), "right")
+
+    assert p1.closed == "left"
+    assert p1 == p2
+    assert not p1 == p3
+    assert hash(p1) == hash(p2)
+    assert not hash(p1) == hash(p3)
+
+
+@pyarrow_skip
+def test_arrow_array():
+    import pyarrow as pa
+    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+
+    intervals = pd.interval_range(1, 5, freq=1).array
+
+    result = pa.array(intervals)
+    assert isinstance(result.type, ArrowIntervalType)
+    assert result.type.closed == intervals.closed
+    assert result.type.subtype == pa.int64()
+    assert result.storage.field("left").equals(pa.array([1, 2, 3, 4], type="int64"))
+    assert result.storage.field("right").equals(pa.array([2, 3, 4, 5], type="int64"))
+
+    expected = pa.array([{"left": i, "right": i + 1} for i in range(1, 5)])
+    assert result.storage.equals(expected)
+
+    # convert to its storage type
+    result = pa.array(intervals, type=expected.type)
+    assert result.equals(expected)
+
+    # unsupported conversions
+    with pytest.raises(TypeError, match="Not supported to convert IntervalArray"):
+        pa.array(intervals, type="float64")
+
+    with pytest.raises(TypeError, match="different 'subtype'"):
+        pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))
+
+
+@pyarrow_skip
+def test_arrow_array_missing():
+    import pyarrow as pa
+    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+
+    arr = IntervalArray.from_breaks([0, 1, 2, 3])
+    arr[1] = None
+
+    result = pa.array(arr)
+    assert isinstance(result.type, ArrowIntervalType)
+    assert result.type.closed == arr.closed
+    assert result.type.subtype == pa.float64()
+
+    # fields have missing values (not NaN)
+    left = pa.array([0.0, None, 2.0], type="float64")
+    right = pa.array([1.0, None, 3.0], type="float64")
+    assert result.storage.field("left").equals(left)
+    assert result.storage.field("right").equals(right)
+
+    # structarray itself also has missing values on the array level
+    vals = [
+        {"left": 0.0, "right": 1.0},
+        {"left": None, "right": None},
+        {"left": 2.0, "right": 3.0},
+    ]
+    expected = pa.StructArray.from_pandas(vals, mask=np.array([False, True, False]))
+    assert result.storage.equals(expected)
+
+
+@pyarrow_skip
+@pytest.mark.parametrize(
+    "breaks",
+    [[0, 1, 2, 3], pd.date_range("2017", periods=4, freq="D")],
+    ids=["int", "datetime64[ns]"],
+)
+def test_arrow_table_roundtrip(breaks):
+    import pyarrow as pa
+    from pandas.core.arrays._arrow_utils import ArrowIntervalType
+
+    arr = IntervalArray.from_breaks(breaks)
+    arr[1] = None
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    assert isinstance(table.field("a").type, ArrowIntervalType)
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.IntervalDtype)
+    tm.assert_frame_equal(result, df)
+
+    table2 = pa.concat_tables([table, table])
+    result = table2.to_pandas()
+    expected = pd.concat([df, df], ignore_index=True)
+    tm.assert_frame_equal(result, expected)

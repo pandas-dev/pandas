@@ -23,7 +23,7 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
 
 from pandas.io.pickle import read_pickle
@@ -79,17 +79,6 @@ class WeekDay:
     FRI = 4
     SAT = 5
     SUN = 6
-
-
-####
-# Misc function tests
-####
-
-
-def test_to_M8():
-    valb = datetime(2007, 10, 1)
-    valu = _to_M8(valb)
-    assert isinstance(valu, np.datetime64)
 
 
 #####
@@ -2792,8 +2781,8 @@ class TestCustomBusinessDay(Base):
 
     def test_apply_corner(self):
         msg = (
-            "Only know how to combine trading day with datetime, datetime64"
-            " or timedelta"
+            "Only know how to combine trading day "
+            "with datetime, datetime64 or timedelta"
         )
         with pytest.raises(ApplyTypeError, match=msg):
             CDay().apply(BMonthEnd())

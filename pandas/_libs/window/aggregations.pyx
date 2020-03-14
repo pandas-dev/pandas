@@ -56,8 +56,9 @@ cdef:
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
-cdef inline bint is_monotonic_start_end_bounds(ndarray[int64_t, ndim=1] start,
-                                               ndarray[int64_t, ndim=1] end):
+cdef bint is_monotonic_start_end_bounds(
+    ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
+):
     return is_monotonic(start, False)[0] and is_monotonic(end, False)[0]
 
 # Cython implementations of rolling sum, mean, variance, skewness,
@@ -90,8 +91,12 @@ cdef inline bint is_monotonic_start_end_bounds(ndarray[int64_t, ndim=1] start,
 # this is only an impl for index not None, IOW, freq aware
 
 
-def roll_count(ndarray[float64_t] values, ndarray[int64_t] start, ndarray[int64_t] end,
-               int64_t minp):
+def roll_count(
+    ndarray[float64_t] values,
+    ndarray[int64_t] start,
+    ndarray[int64_t] end,
+    int64_t minp,
+):
     cdef:
         float64_t val, count_x = 0.0
         int64_t s, e, nobs, N = len(values)
@@ -1008,7 +1013,7 @@ def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
                    ndarray[int64_t] end, int64_t minp, int64_t win):
     """
-    Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
+    Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
     Parameters
     ----------
@@ -1025,7 +1030,7 @@ def roll_min_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
 def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
                       ndarray[int64_t] end, int64_t minp):
     """
-    Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
+    Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
     Parameters
     ----------
@@ -1871,8 +1876,7 @@ def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
         bint is_observation
 
     if <Py_ssize_t>len(input_y) != N:
-        raise ValueError(f"arrays are of different lengths "
-                         f"({N} and {len(input_y)})")
+        raise ValueError(f"arrays are of different lengths ({N} and {len(input_y)})")
 
     output = np.empty(N, dtype=float)
     if N == 0:

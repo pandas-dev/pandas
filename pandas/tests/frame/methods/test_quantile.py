@@ -75,7 +75,8 @@ class TestDataFrameQuantile:
         tm.assert_series_equal(result, expected)
 
         # must raise
-        with pytest.raises(TypeError):
+        msg = "'<' not supported between instances of 'Timestamp' and 'float'"
+        with pytest.raises(TypeError, match=msg):
             df.quantile(0.5, axis=1, numeric_only=False)
 
     def test_quantile_axis_parameter(self):
@@ -103,8 +104,8 @@ class TestDataFrameQuantile:
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis=-1)
         msg = (
-            "No axis named column for object type"
-            " <class 'pandas.core.frame.DataFrame'>"
+            "No axis named column for object type "
+            "<class 'pandas.core.frame.DataFrame'>"
         )
         with pytest.raises(ValueError, match=msg):
             df.quantile(0.1, axis="column")

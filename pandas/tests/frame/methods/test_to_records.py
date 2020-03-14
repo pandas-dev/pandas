@@ -3,7 +3,14 @@ from collections import abc
 import numpy as np
 import pytest
 
-from pandas import CategoricalDtype, DataFrame, MultiIndex, Series, date_range
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -17,6 +24,17 @@ class TestDataFrameToRecords:
         expected = df.index.values[0]
         result = df.to_records()["index"][0]
         assert expected == result
+
+    def test_to_records_dt64tz_column(self):
+        # GH#32535 dont less tz in to_records
+        df = DataFrame({"A": date_range("2012-01-01", "2012-01-02", tz="US/Eastern")})
+
+        result = df.to_records()
+
+        assert result.dtype["A"] == object
+        val = result[0][1]
+        assert isinstance(val, Timestamp)
+        assert val == df.loc[0, "A"]
 
     def test_to_records_with_multindex(self):
         # GH#3189
@@ -235,7 +253,7 @@ class TestDataFrameToRecords:
             # Check that bad types raise
             (
                 dict(index=False, column_dtypes={"A": "int32", "B": "foo"}),
-                (TypeError, 'data type "foo" not understood'),
+                (TypeError, "data type [\"']foo[\"'] not understood"),
             ),
         ],
     )
@@ -326,7 +344,7 @@ class TestDataFrameToRecords:
             def __getitem__(self, key):
                 return self.d.__getitem__(key)
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return key in self.d
 
             def keys(self):

@@ -19,6 +19,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.arrays import SparseArray
 from pandas.conftest import (
     ALL_EA_INT_DTYPES,
     ALL_INT_DTYPES,
@@ -155,7 +156,6 @@ def get_is_dtype_funcs():
     begin with 'is_' and end with 'dtype'
 
     """
-
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
     return [getattr(com, fname) for fname in fnames]
 
@@ -182,7 +182,7 @@ def test_is_object():
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
 )
 def test_is_sparse(check_scipy):
-    assert com.is_sparse(pd.arrays.SparseArray([1, 2, 3]))
+    assert com.is_sparse(SparseArray([1, 2, 3]))
 
     assert not com.is_sparse(np.array([1, 2, 3]))
 
@@ -198,7 +198,7 @@ def test_is_scipy_sparse():
 
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
 
-    assert not com.is_scipy_sparse(pd.arrays.SparseArray([1, 2, 3]))
+    assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 
 
 def test_is_categorical():
@@ -279,18 +279,6 @@ def test_is_string_dtype():
     assert com.is_string_dtype(np.array(["a", "b"]))
     assert com.is_string_dtype(pd.StringDtype())
     assert com.is_string_dtype(pd.array(["a", "b"], dtype="string"))
-
-
-def test_is_period_arraylike():
-    assert not com.is_period_arraylike([1, 2, 3])
-    assert not com.is_period_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
-def test_is_datetime_arraylike():
-    assert not com.is_datetime_arraylike([1, 2, 3])
-    assert not com.is_datetime_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
 
 
 integer_dtypes: List = []
@@ -576,7 +564,7 @@ def test_is_extension_type(check_scipy):
     cat = pd.Categorical([1, 2, 3])
     assert com.is_extension_type(cat)
     assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(pd.arrays.SparseArray([1, 2, 3]))
+    assert com.is_extension_type(SparseArray([1, 2, 3]))
     assert com.is_extension_type(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
@@ -605,7 +593,7 @@ def test_is_extension_array_dtype(check_scipy):
     cat = pd.Categorical([1, 2, 3])
     assert com.is_extension_array_dtype(cat)
     assert com.is_extension_array_dtype(pd.Series(cat))
-    assert com.is_extension_array_dtype(pd.arrays.SparseArray([1, 2, 3]))
+    assert com.is_extension_array_dtype(SparseArray([1, 2, 3]))
     assert com.is_extension_array_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
@@ -667,12 +655,15 @@ def test__get_dtype(input_param, result):
         (None, "Cannot deduce dtype from null object"),
         (1, "data type not understood"),
         (1.2, "data type not understood"),
-        ("random string", 'data type "random string" not understood'),
+        # numpy dev changed from double-quotes to single quotes
+        ("random string", "data type [\"']random string[\"'] not understood"),
         (pd.DataFrame([1, 2]), "data type not understood"),
     ],
 )
 def test__get_dtype_fails(input_param, expected_error_message):
     # python objects
+    # 2020-02-02 npdev changed error message
+    expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
         com._get_dtype(input_param)
 

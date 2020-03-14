@@ -2,10 +2,14 @@ from pathlib import Path
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
     AnyStr,
+    Callable,
     Collection,
     Dict,
+    Hashable,
     List,
+    Mapping,
     Optional,
     TypeVar,
     Union,
@@ -41,6 +45,7 @@ Scalar = Union[PythonScalar, PandasScalar]
 # other
 
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
@@ -56,9 +61,14 @@ FrameOrSeriesUnion = Union["DataFrame", "Series"]
 FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
+Label = Optional[Hashable]
+Level = Union[Label, int]
 Ordered = Optional[bool]
-JSONSerializable = Union[PythonScalar, List, Dict]
+JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
+
+# For functions like rename that convert one label to another
+Renamer = Union[Mapping[Label, Any], Callable[[Label], Label]]
 
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")

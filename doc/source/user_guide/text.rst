@@ -87,8 +87,9 @@ l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
 
    .. ipython:: python
 
-      s.astype(object).str.count("a")
-      s.astype(object).dropna().str.count("a")
+      s2 = pd.Series(["a", None, "b"], dtype="object")
+      s2.str.count("a")
+      s2.dropna().str.count("a")
 
    When NA values are present, the output dtype is float64. Similarly for
    methods returning boolean values.
@@ -188,11 +189,10 @@ and replacing any remaining whitespaces with underscores:
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
 
+.. _text.split:
 
 Splitting and replacing strings
 -------------------------------
-
-.. _text.split:
 
 Methods like ``split`` return a Series of lists:
 

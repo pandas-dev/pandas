@@ -4,7 +4,6 @@ from typing import Dict, Optional
 import warnings
 
 import numpy as np
-from pytz import AmbiguousTimeError
 
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import Timedelta, Timestamp
@@ -20,7 +19,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
-    is_period_arraylike,
+    is_period_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
@@ -141,8 +140,8 @@ def to_offset(freq) -> Optional[DateOffset]:
                         delta = offset
                     else:
                         delta = delta + offset
-        except ValueError:
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except ValueError as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     else:
         delta = None
@@ -173,8 +172,8 @@ def to_offset(freq) -> Optional[DateOffset]:
                     delta = offset
                 else:
                     delta = delta + offset
-        except (ValueError, TypeError):
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
+        except (ValueError, TypeError) as err:
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq)) from err
 
     if delta is None:
         raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
@@ -223,9 +222,9 @@ def _get_offset(name: str) -> DateOffset:
             # handles case where there's no suffix (and will TypeError if too
             # many '-')
             offset = klass._from_name(*split[1:])
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name)) from err
         # cache
         _offset_map[name] = offset
 
@@ -244,15 +243,20 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
     Parameters
     ----------
     index : DatetimeIndex or TimedeltaIndex
-      if passed a Series will use the values of the series (NOT THE INDEX).
+      If passed a Series will use the values of the series (NOT THE INDEX).
     warn : bool, default True
 
     Returns
     -------
     str or None
-        None if no discernible frequency
-        TypeError if the index is not datetime-like
-        ValueError if there are less than three values.
+        None if no discernible frequency.
+
+    Raises
+    ------
+    TypeError
+        If the index is not datetime-like.
+    ValueError
+        If there are fewer than three values.
     """
     import pandas as pd
 
@@ -270,7 +274,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = values
 
     inferer: _FrequencyInferer
-    if is_period_arraylike(index):
+    if is_period_dtype(index):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
@@ -288,10 +292,7 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         index = index.values
 
     if not isinstance(index, pd.DatetimeIndex):
-        try:
-            index = pd.DatetimeIndex(index)
-        except AmbiguousTimeError:
-            index = pd.DatetimeIndex(index.asi8)
+        index = pd.DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
@@ -334,7 +335,7 @@ class _FrequencyInferer:
         return len(self.deltas) == 1
 
     @cache_readonly
-    def is_unique_asi8(self):
+    def is_unique_asi8(self) -> bool:
         return len(self.deltas_asi8) == 1
 
     def get_freq(self) -> Optional[str]:
@@ -490,6 +491,7 @@ class _FrequencyInferer:
         )
 
     def _get_wom_rule(self) -> Optional[str]:
+        # FIXME: dont leave commented-out
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():

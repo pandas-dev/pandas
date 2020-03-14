@@ -1496,7 +1496,7 @@ def test_groupby_reindex_inside_function():
 
     def agg_before(hour, func, fix=False):
         """
-            Run an aggregate func on the subset of data.
+        Run an aggregate func on the subset of data.
         """
 
         def _func(data):
@@ -1952,6 +1952,13 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
+def test_ffill_missing_arguments():
+    # GH 14955
+    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
+    with pytest.raises(ValueError, match="Must specify a fill"):
+        df.groupby("b").fillna()
+
+
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -2030,3 +2037,23 @@ def test_groupby_list_level():
     expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
     result = expected.groupby(level=[0]).mean()
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "max_seq_items, expected",
+    [
+        (5, "{0: [0], 1: [1], 2: [2], 3: [3], 4: [4]}"),
+        (4, "{0: [0], 1: [1], 2: [2], 3: [3], ...}"),
+    ],
+)
+def test_groups_repr_truncates(max_seq_items, expected):
+    # GH 1135
+    df = pd.DataFrame(np.random.randn(5, 1))
+    df["a"] = df.index
+
+    with pd.option_context("display.max_seq_items", max_seq_items):
+        result = df.groupby("a").groups.__repr__()
+        assert result == expected
+
+        result = df.groupby(np.array(df.a)).groups.__repr__()
+        assert result == expected

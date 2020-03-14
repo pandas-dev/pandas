@@ -120,8 +120,10 @@ class SAS7BDATReader(abc.Iterator):
         return np.asarray(self._column_data_offsets, dtype=np.int64)
 
     def column_types(self):
-        """Returns a numpy character array of the column types:
-           s (string) or d (double)"""
+        """
+        Returns a numpy character array of the column types:
+           s (string) or d (double)
+        """
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
     def close(self):
@@ -459,8 +461,7 @@ class SAS7BDATReader(abc.Iterator):
         if self.col_count_p1 + self.col_count_p2 != self.column_count:
             print(
                 f"Warning: column count mismatch ({self.col_count_p1} + "
-                f"{self.col_count_p2} != "
-                f"{self.column_count})\n"
+                f"{self.col_count_p2} != {self.column_count})\n"
             )
 
     # Unknown purpose
@@ -672,8 +673,7 @@ class SAS7BDATReader(abc.Iterator):
             self.close()
             msg = (
                 "failed to read complete page from file (read "
-                f"{len(self._cached_page):d} of "
-                f"{self._page_length:d} bytes)"
+                f"{len(self._cached_page):d} of {self._page_length:d} bytes)"
             )
             raise ValueError(msg)
 

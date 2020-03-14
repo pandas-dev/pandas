@@ -74,19 +74,15 @@ class TestCategoricalIndex:
             df.loc["d"] = 10
 
         msg = (
-            "cannot insert an item into a CategoricalIndex that is not"
-            " already an existing category"
+            "cannot insert an item into a CategoricalIndex that is not "
+            "already an existing category"
         )
         with pytest.raises(TypeError, match=msg):
             df.loc["d", "A"] = 10
         with pytest.raises(TypeError, match=msg):
             df.loc["d", "C"] = 10
 
-        msg = (
-            r"cannot do label indexing on <class 'pandas\.core\.indexes\.category"
-            r"\.CategoricalIndex'> with these indexers \[1\] of <class 'int'>"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^1$"):
             df.loc[1]
 
     def test_getitem_scalar(self):
@@ -365,8 +361,9 @@ class TestCategoricalIndex:
         # not all labels in the categories
         with pytest.raises(
             KeyError,
-            match="'a list-indexer must only include values that are in the"
-            " categories'",
+            match=(
+                "'a list-indexer must only include values that are in the categories'"
+            ),
         ):
             self.df2.loc[["a", "d"]]
 

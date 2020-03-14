@@ -25,6 +25,7 @@ from pandas.compat.numpy import (
     _np_version_under1p16,
     _np_version_under1p17,
     _np_version_under1p18,
+    _is_numpy_dev,
 )
 
 try:
@@ -35,9 +36,8 @@ except ImportError as e:  # pragma: no cover
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --inplace --force' to build "
-        "the C extensions first."
-    )
+        "'python setup.py build_ext --inplace --force' to build the C extensions first."
+    ) from e
 
 from pandas._config import (
     get_option,
@@ -198,8 +198,7 @@ if pandas.compat.PY37:
 
             warnings.warn(
                 "The Panel class is removed from pandas. Accessing it "
-                "from the top-level namespace will also be removed in "
-                "the next version",
+                "from the top-level namespace will also be removed in the next version",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -238,8 +237,7 @@ if pandas.compat.PY37:
         elif name in {"SparseSeries", "SparseDataFrame"}:
             warnings.warn(
                 f"The {name} class is removed from pandas. Accessing it from "
-                "the top-level namespace will also be removed in the next "
-                "version",
+                "the top-level namespace will also be removed in the next version",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -292,18 +290,32 @@ else:
 
             try:
                 return getattr(self.np, item)
-            except AttributeError:
-                raise AttributeError(f"module numpy has no attribute {item}")
+            except AttributeError as err:
+                raise AttributeError(f"module numpy has no attribute {item}") from err
 
     np = __numpy()
 
-    class __Datetime:
-        def __init__(self):
-            from datetime import datetime as dt
+    class __Datetime(type):
 
-            self.datetime = dt
+        from datetime import datetime as dt
 
-        def __getattr__(self, item):
+        datetime = dt
+
+        def __getattr__(cls, item):
+            cls.emit_warning()
+
+            try:
+                return getattr(cls.datetime, item)
+            except AttributeError as err:
+                raise AttributeError(
+                    f"module datetime has no attribute {item}"
+                ) from err
+
+        def __instancecheck__(cls, other):
+            return isinstance(other, cls.datetime)
+
+    class __DatetimeSub(metaclass=__Datetime):
+        def emit_warning(dummy=0):
             import warnings
 
             warnings.warn(
@@ -311,18 +323,45 @@ else:
                 "and will be removed from pandas in a future version. "
                 "Import from datetime instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
 
-            try:
-                return getattr(self.datetime, item)
-            except AttributeError:
-                raise AttributeError(f"module datetime has no attribute {item}")
+        def __new__(cls, *args, **kwargs):
+            cls.emit_warning()
+            from datetime import datetime as dt
 
-    datetime = __Datetime().datetime
+            return dt(*args, **kwargs)
 
-    class SparseArray:
-        pass
+    datetime = __DatetimeSub
+
+    class __SparseArray(type):
+
+        from pandas.core.arrays.sparse import SparseArray as sa
+
+        SparseArray = sa
+
+        def __instancecheck__(cls, other):
+            return isinstance(other, cls.SparseArray)
+
+    class __SparseArraySub(metaclass=__SparseArray):
+        def emit_warning(dummy=0):
+            import warnings
+
+            warnings.warn(
+                "The pandas.SparseArray class is deprecated "
+                "and will be removed from pandas in a future version. "
+                "Use pandas.arrays.SparseArray instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
+        def __new__(cls, *args, **kwargs):
+            cls.emit_warning()
+            from pandas.core.arrays.sparse import SparseArray as sa
+
+            return sa(*args, **kwargs)
+
+    SparseArray = __SparseArraySub
 
 
 # module level doc-string

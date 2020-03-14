@@ -10,10 +10,13 @@ cnp.import_array()
 
 cimport pandas._libs.util as util
 
-from pandas._libs.tslibs.np_datetime cimport (
-    get_timedelta64_value, get_datetime64_value)
+
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat, c_NaT as NaT, is_null_datetimelike)
+    c_NaT as NaT,
+    checknull_with_nat,
+    is_null_datetimelike,
+)
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
 from pandas.compat import is_platform_32bit
@@ -44,7 +47,7 @@ cpdef bint checknull(object val):
 
     Returns
     -------
-    result : bool
+    bool
 
     Notes
     -----
@@ -223,7 +226,7 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
 
     Returns
     -------
-    result : ndarray (dtype=np.bool_)
+    ndarray (dtype=np.bool_)
 
     Notes
     -----
@@ -248,17 +251,11 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
 
 
 def isposinf_scalar(val: object) -> bool:
-    if util.is_float_object(val) and val == INF:
-        return True
-    else:
-        return False
+    return util.is_float_object(val) and val == INF
 
 
 def isneginf_scalar(val: object) -> bool:
-    if util.is_float_object(val) and val == NEGINF:
-        return True
-    else:
-        return False
+    return util.is_float_object(val) and val == NEGINF
 
 
 cdef inline bint is_null_datetime64(v):
@@ -354,10 +351,7 @@ class NAType(C_NAType):
         return NAType._instance
 
     def __repr__(self) -> str:
-        return "NA"
-
-    def __str__(self) -> str:
-        return "NA"
+        return "<NA>"
 
     def __bool__(self):
         raise TypeError("boolean value of NA is ambiguous")
@@ -366,6 +360,9 @@ class NAType(C_NAType):
         # GH 30013: Ensure hash is large enough to avoid hash collisions with integers
         exponent = 31 if is_32bit else 61
         return 2 ** exponent - 1
+
+    def __reduce__(self):
+        return "NA"
 
     # Binary arithmetic and comparison ops -> propagate
 
@@ -420,13 +417,12 @@ class NAType(C_NAType):
         if other is C_NA:
             return NA
         elif isinstance(other, (numbers.Number, np.bool_)):
-            if other == 1 or other == -1:
+            if other == 1:
                 return other
             else:
                 return NA
         elif isinstance(other, np.ndarray):
-            return np.where((other == 1) | (other == -1), other, NA)
-
+            return np.where(other == 1, other, NA)
         return NotImplemented
 
     # Logical ops using Kleene logic
@@ -436,8 +432,7 @@ class NAType(C_NAType):
             return False
         elif other is True or other is C_NA:
             return NA
-        else:
-            return NotImplemented
+        return NotImplemented
 
     __rand__ = __and__
 
@@ -446,8 +441,7 @@ class NAType(C_NAType):
             return True
         elif other is False or other is C_NA:
             return NA
-        else:
-            return NotImplemented
+        return NotImplemented
 
     __ror__ = __or__
 

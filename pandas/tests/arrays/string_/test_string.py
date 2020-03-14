@@ -9,14 +9,16 @@ import pandas as pd
 import pandas._testing as tm
 
 
-def test_repr_with_NA():
-    a = pd.array(["a", pd.NA, "b"], dtype="string")
-    for obj in [a, pd.Series(a), pd.DataFrame({"a": a})]:
-        assert "NA" in repr(obj) and "NaN" not in repr(obj)
-        assert "NA" in str(obj) and "NaN" not in str(obj)
-        if hasattr(obj, "_repr_html_"):
-            html_repr = obj._repr_html_()
-            assert "NA" in html_repr and "NaN" not in html_repr
+def test_repr():
+    df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype="string")})
+    expected = "      A\n0     a\n1  <NA>\n2     b"
+    assert repr(df) == expected
+
+    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
+    assert repr(df.A) == expected
+
+    expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
+    assert repr(df.A.array) == expected
 
 
 def test_none_to_nan():
@@ -192,6 +194,25 @@ def test_constructor_raises():
     with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.StringArray(np.array([]))
 
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", np.nan], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", None], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", pd.NaT], dtype=object))
+
+
+@pytest.mark.parametrize("copy", [True, False])
+def test_from_sequence_no_mutate(copy):
+    a = np.array(["a", np.nan], dtype=object)
+    original = a.copy()
+    result = pd.arrays.StringArray._from_sequence(a, copy=copy)
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
+    tm.assert_extension_array_equal(result, expected)
+    tm.assert_numpy_array_equal(a, original)
+
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
@@ -237,3 +258,14 @@ def test_arrow_roundtrip():
     tm.assert_frame_equal(result, df)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is pd.NA
+
+
+def test_value_counts_na():
+    arr = pd.array(["a", "b", "a", pd.NA], dtype="string")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    tm.assert_series_equal(result, expected)

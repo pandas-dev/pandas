@@ -123,6 +123,13 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
+        pytest.param(
+            "fromisocalendar",
+            marks=pytest.mark.skipif(
+                not compat.PY38,
+                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
+            ),
+        ),
         "isocalendar",
         "strftime",
         "strptime",
@@ -297,6 +304,8 @@ def test_overlap_public_nat_methods(klass, expected):
     # "fromisoformat" was introduced in 3.7
     if klass is Timestamp and not compat.PY37:
         expected.remove("fromisoformat")
+
+    # "fromisocalendar" was introduced in 3.8
     if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
 

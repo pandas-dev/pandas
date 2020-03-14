@@ -20,34 +20,29 @@ from pandas._libs.tslibs.period import (
     period_asfreq_arr,
 )
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
-import pandas.compat as compat
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
     ensure_object,
     is_datetime64_dtype,
     is_float_dtype,
-    is_list_like,
-    is_object_dtype,
     is_period_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass,
+    ABCPeriod,
     ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core import ops
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
-from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.ops.invalid import invalid_comparison
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
@@ -62,82 +57,6 @@ def _field_accessor(name, alias, docstring=None):
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
-
-
-def _period_array_cmp(cls, op):
-    """
-    Wrap comparison operations to convert Period-like to PeriodDtype
-    """
-    opname = f"__{op.__name__}__"
-    nat_result = opname == "__ne__"
-
-    @unpack_zerodim_and_defer(opname)
-    def wrapper(self, other):
-        ordinal_op = getattr(self.asi8, opname)
-
-        if is_list_like(other) and len(other) != len(self):
-            raise ValueError("Lengths must match")
-
-        if isinstance(other, str):
-            try:
-                other = self._scalar_from_string(other)
-            except ValueError:
-                # string that can't be parsed as Period
-                return invalid_comparison(self, other, op)
-        elif isinstance(other, int):
-            # TODO: sure we want to allow this?  we dont for DTA/TDA
-            #  2 tests rely on this
-            other = Period(other, freq=self.freq)
-            result = ordinal_op(other.ordinal)
-
-        if isinstance(other, Period):
-            self._check_compatible_with(other)
-
-            result = ordinal_op(other.ordinal)
-
-        elif other is NaT:
-            result = np.empty(len(self.asi8), dtype=bool)
-            result.fill(nat_result)
-
-        elif not is_list_like(other):
-            return invalid_comparison(self, other, op)
-
-        else:
-            if isinstance(other, list):
-                # TODO: could use pd.Index to do inference?
-                other = np.array(other)
-
-            if not isinstance(other, (np.ndarray, cls)):
-                return invalid_comparison(self, other, op)
-
-            if is_object_dtype(other):
-                with np.errstate(all="ignore"):
-                    result = ops.comp_method_OBJECT_ARRAY(
-                        op, self.astype(object), other
-                    )
-                o_mask = isna(other)
-
-            elif not is_period_dtype(other):
-                # e.g. is_timedelta64_dtype(other)
-                return invalid_comparison(self, other, op)
-
-            else:
-                assert isinstance(other, cls), type(other)
-
-                self._check_compatible_with(other)
-
-                result = ordinal_op(other.asi8)
-                o_mask = other._isnan
-
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self._hasnans:
-            result[self._isnan] = nat_result
-
-        return result
-
-    return compat.set_function_name(wrapper, opname, cls)
 
 
 class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
@@ -195,6 +114,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
     _scalar_type = Period
+    _recognized_scalars = (Period,)
+    _is_recognized_dtype = is_period_dtype
 
     # Names others delegate to us
     _other_ops: List[str] = []
@@ -249,8 +170,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         self._dtype = PeriodDtype(freq)
 
     @classmethod
-    def _simple_new(cls, values, freq=None, **kwargs):
+    def _simple_new(cls, values: np.ndarray, freq=None, **kwargs):
         # alias for PeriodArray.__init__
+        assert isinstance(values, np.ndarray) and values.dtype == "i8"
         return cls(values, freq=freq, **kwargs)
 
     @classmethod
@@ -338,7 +260,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other):
+    def _check_compatible_with(self, other, setitem: bool = False):
         if other is NaT:
             return
         if self.freqstr != other.freqstr:
@@ -359,9 +281,40 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         """
         return self.dtype.freq
 
-    def __array__(self, dtype=None):
-        # overriding DatetimelikeArray
+    def __array__(self, dtype=None) -> np.ndarray:
+        if dtype == "i8":
+            return self.asi8
+        elif dtype == bool:
+            return ~self._isnan
+
+        # This will raise TypeErorr for non-object dtypes
         return np.array(list(self), dtype=object)
+
+    def __arrow_array__(self, type=None):
+        """
+        Convert myself into a pyarrow Array.
+        """
+        import pyarrow
+        from pandas.core.arrays._arrow_utils import ArrowPeriodType
+
+        if type is not None:
+            if pyarrow.types.is_integer(type):
+                return pyarrow.array(self._data, mask=self.isna(), type=type)
+            elif isinstance(type, ArrowPeriodType):
+                # ensure we have the same freq
+                if self.freqstr != type.freq:
+                    raise TypeError(
+                        "Not supported to convert PeriodArray to array with different "
+                        f"'freq' ({self.freqstr} vs {type.freq})"
+                    )
+            else:
+                raise TypeError(
+                    f"Not supported to convert PeriodArray to '{type}' type"
+                )
+
+        period_type = ArrowPeriodType(self.freqstr)
+        storage_array = pyarrow.array(self._data, mask=self.isna(), type="int64")
+        return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -508,17 +461,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
 
-    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
-    def _validate_fill_value(self, fill_value):
-        if isna(fill_value):
-            fill_value = iNaT
-        elif isinstance(fill_value, Period):
-            self._check_compatible_with(fill_value)
-            fill_value = fill_value.ordinal
-        else:
-            raise ValueError(f"'fill_value' should be a Period. Got '{fill_value}'.")
-        return fill_value
-
     def _values_for_argsort(self):
         return self._data
 
@@ -653,7 +595,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
-    _create_comparison_method = classmethod(_period_array_cmp)
 
     def _sub_datelike(self, other):
         assert other is not NaT
@@ -688,7 +629,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         -------
         result : PeriodArray
         """
-
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
@@ -824,9 +764,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         raise raise_on_incompatible(self, other)
 
 
-PeriodArray._add_comparison_ops()
-
-
 def raise_on_incompatible(left, right):
     """
     Helper function to render a consistent error message when raising
@@ -838,7 +775,7 @@ def raise_on_incompatible(left, right):
     right : None, DateOffset, Period, ndarray, or timedelta-like
 
     Returns
-    ------
+    -------
     IncompatibleFrequency
         Exception to be raised by the caller.
     """
@@ -1028,8 +965,8 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
     if end is not None:
         end = Period(end, freq)
 
-    is_start_per = isinstance(start, Period)
-    is_end_per = isinstance(end, Period)
+    is_start_per = isinstance(start, ABCPeriod)
+    is_end_per = isinstance(end, ABCPeriod)
 
     if is_start_per and is_end_per and start.freq != end.freq:
         raise ValueError("start and end must have same freq")

@@ -22,7 +22,10 @@ from pandas._libs.tslibs.util cimport is_integer_object
 
 from pandas._libs.tslibs.ccalendar import MONTHS, DAYS
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month, dayofweek
-from pandas._libs.tslibs.conversion cimport pydt_to_i8, localize_pydatetime
+from pandas._libs.tslibs.conversion cimport (
+    convert_datetime_to_tsobject,
+    localize_pydatetime,
+)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct)
@@ -111,7 +114,18 @@ def apply_index_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
     def wrapper(self, other):
-        result = func(self, other)
+
+        is_index = getattr(other, "_typ", "") == "datetimeindex"
+
+        # operate on DatetimeArray
+        arr = other._data if is_index else other
+
+        result = func(self, arr)
+
+        if is_index:
+            # Wrap DatetimeArray result back to DatetimeIndex
+            result = type(other)._simple_new(result, name=other.name)
+
         if self.normalize:
             result = result.to_period('D').to_timestamp()
         return result
@@ -216,7 +230,7 @@ def _get_calendar(weekmask, holidays, calendar):
         holidays = holidays + calendar.holidays().tolist()
     except AttributeError:
         pass
-    holidays = [_to_dt64(dt, dtype='datetime64[D]') for dt in holidays]
+    holidays = [_to_dt64D(dt) for dt in holidays]
     holidays = tuple(sorted(holidays))
 
     kwargs = {'weekmask': weekmask}
@@ -227,19 +241,22 @@ def _get_calendar(weekmask, holidays, calendar):
     return busdaycalendar, holidays
 
 
-def _to_dt64(dt, dtype='datetime64'):
+def _to_dt64D(dt):
     # Currently
     # > np.datetime64(dt.datetime(2013,5,1),dtype='datetime64[D]')
     # numpy.datetime64('2013-05-01T02:00:00.000000+0200')
     # Thus astype is needed to cast datetime to datetime64[D]
     if getattr(dt, 'tzinfo', None) is not None:
-        i8 = pydt_to_i8(dt)
+        # Get the nanosecond timestamp,
+        #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
+        nanos = getattr(dt, "nanosecond", 0)
+        i8 = convert_datetime_to_tsobject(dt, tz=None, nanos=nanos).value
         dt = tz_convert_single(i8, UTC, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
-    if dt.dtype.name != dtype:
-        dt = dt.astype(dtype)
+    if dt.dtype.name != "datetime64[D]":
+        dt = dt.astype("datetime64[D]")
     return dt
 
 

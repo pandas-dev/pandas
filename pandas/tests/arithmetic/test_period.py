@@ -127,13 +127,44 @@ class TestPeriodArrayLikeComparisons:
 class TestPeriodIndexComparisons:
     # TODO: parameterize over boxes
 
-    @pytest.mark.parametrize("other", ["2017", 2017])
+    @pytest.mark.parametrize("other", ["2017", pd.Period("2017", freq="D")])
     def test_eq(self, other):
         idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
         expected = np.array([True, True, False])
         result = idx == other
 
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            2017,
+            [2017, 2017, 2017],
+            np.array([2017, 2017, 2017]),
+            np.array([2017, 2017, 2017], dtype=object),
+            pd.Index([2017, 2017, 2017]),
+        ],
+    )
+    def test_eq_integer_disallowed(self, other):
+        # match Period semantics by not treating integers as Periods
+
+        idx = PeriodIndex(["2017", "2017", "2018"], freq="D")
+        expected = np.array([False, False, False])
+        result = idx == other
+
+        tm.assert_numpy_array_equal(result, expected)
+        msg = (
+            r"(:?Invalid comparison between dtype=period\[D\] and .*)"
+            r"|(:?Cannot compare type Period with type .*)"
+        )
+        with pytest.raises(TypeError, match=msg):
+            idx < other
+        with pytest.raises(TypeError, match=msg):
+            idx > other
+        with pytest.raises(TypeError, match=msg):
+            idx <= other
+        with pytest.raises(TypeError, match=msg):
+            idx >= other
 
     def test_pi_cmp_period(self):
         idx = period_range("2007-01", periods=20, freq="M")
@@ -559,10 +590,11 @@ class TestPeriodIndexArithmetic:
         # a set operation (union).  This has since been changed to
         # raise a TypeError. See GH#14164 and GH#13077 for historical
         # reference.
-        with pytest.raises(TypeError):
+        msg = r"unsupported operand type\(s\) for \+: .* and .*"
+        with pytest.raises(TypeError, match=msg):
             rng + other
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             rng += other
 
     def test_pi_sub_isub_pi(self):
@@ -597,7 +629,8 @@ class TestPeriodIndexArithmetic:
         # TODO: parametrize over boxes for other?
 
         rng = tm.box_expected(rng, box_with_array)
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input has different freq=[HD] from PeriodArray\(freq=[DH]\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             rng - other
 
     @pytest.mark.parametrize("n", [1, 2, 3, 4])
@@ -649,7 +682,8 @@ class TestPeriodIndexArithmetic:
         dti = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
         pi = dti.to_period("D")
         pi = tm.box_expected(pi, box_with_array)
-        with pytest.raises(TypeError):
+        msg = r"unsupported operand type\(s\) for [+-]: .* and .*"
+        with pytest.raises(TypeError, match=msg):
             op(pi, other)
 
     @pytest.mark.parametrize(
@@ -672,13 +706,18 @@ class TestPeriodIndexArithmetic:
         rng = pd.period_range("1/1/2000", freq="D", periods=3)
         rng = tm.box_expected(rng, box_with_array)
 
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?cannot add PeriodArray and .*)"
+            r"|(:?cannot subtract .* from (:?a\s)?.*)"
+            r"|(:?unsupported operand type\(s\) for \+: .* and .*)"
+        )
+        with pytest.raises(TypeError, match=msg):
             rng + other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other + rng
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             rng - other
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             other - rng
 
     # -----------------------------------------------------------------
@@ -689,14 +728,16 @@ class TestPeriodIndexArithmetic:
         tdi = pd.TimedeltaIndex(["-1 Day", "-1 Day", "-1 Day"])
         tdarr = tdi.values
 
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input has different freq=None from PeriodArray\(freq=Q-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             rng + tdarr
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             tdarr + rng
 
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             rng - tdarr
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract PeriodArray from timedelta64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
     def test_pi_add_sub_td64_array_tick(self):
@@ -723,10 +764,11 @@ class TestPeriodIndexArithmetic:
         result = rng - tdarr
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract .* from .*"
+        with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             tdi - rng
 
     # -----------------------------------------------------------------
@@ -755,10 +797,11 @@ class TestPeriodIndexArithmetic:
         unanchored = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
         # addition/subtraction ops with incompatible offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input cannot be converted to Period\(freq=Q-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 pi + unanchored
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 unanchored + pi
 
@@ -783,10 +826,11 @@ class TestPeriodIndexArithmetic:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(IncompatibleFrequency):
+        msg = r"Input has different freq=-1M from Period\(freq=Q-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 pi - anchored
-        with pytest.raises(IncompatibleFrequency):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - pi
 
@@ -896,7 +940,8 @@ class TestPeriodIndexArithmetic:
         expected = pd.PeriodIndex([pd.Period("2014Q1"), pd.Period("NaT")])
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = r"bad operand type for unary -: 'PeriodArray'"
+        with pytest.raises(TypeError, match=msg):
             other - pi
 
     # ---------------------------------------------------------------
@@ -924,7 +969,11 @@ class TestPeriodIndexArithmetic:
         result = rng - other
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?bad operand type for unary -: 'PeriodArray')"
+            r"|(:?cannot subtract PeriodArray from timedelta64\[[hD]\])"
+        )
+        with pytest.raises(TypeError, match=msg):
             other - rng
 
     @pytest.mark.parametrize("freqstr", ["5ns", "5us", "5ms", "5s", "5T", "5h", "5d"])
@@ -946,8 +995,11 @@ class TestPeriodIndexArithmetic:
         expected = pd.period_range(rng[0] - other, periods=6, freq=freqstr)
         result = rng - other
         tm.assert_index_equal(result, expected)
-
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?bad operand type for unary -: 'PeriodArray')"
+            r"|(:?cannot subtract PeriodArray from timedelta64\[[hD]\])"
+        )
+        with pytest.raises(TypeError, match=msg):
             other - rng
 
     def test_pi_add_iadd_timedeltalike_daily(self, three_days):
@@ -1082,7 +1134,8 @@ class TestPeriodIndexArithmetic:
         tm.assert_equal(result, expected)
         result = obj - other
         tm.assert_equal(result, expected)
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract .* from .*"
+        with pytest.raises(TypeError, match=msg):
             other - obj
 
     @pytest.mark.parametrize(
@@ -1105,7 +1158,8 @@ class TestPeriodIndexArithmetic:
         tm.assert_equal(result, expected)
         result = obj - other
         tm.assert_equal(result, expected)
-        with pytest.raises(TypeError):
+        msg = r"cannot subtract .* from .*"
+        with pytest.raises(TypeError, match=msg):
             other - obj
 
     # ---------------------------------------------------------------

@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
+import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import ArrayLike, Dtype
 from pandas.util._decorators import Appender
@@ -35,7 +36,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -78,7 +78,7 @@ def cat_core(list_of_columns: List, sep: str):
         return np.sum(arr_of_cols, axis=0)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    arr_with_sep = np.asarray(list_with_sep)
+    arr_with_sep = np.asarray(list_with_sep, dtype=object)
     return np.sum(arr_with_sep, axis=0)
 
 
@@ -118,12 +118,15 @@ def cat_safe(list_of_columns: List, sep: str):
     return result
 
 
-def _na_map(f, arr, na_result=np.nan, dtype=object):
-    # should really _check_ for NA
+def _na_map(f, arr, na_result=None, dtype=object):
     if is_extension_array_dtype(arr.dtype):
+        if na_result is None:
+            na_result = libmissing.NA
         # just StringDtype
         arr = extract_array(arr)
         return _map_stringarray(f, arr, na_value=na_result, dtype=dtype)
+    if na_result is None:
+        na_result = np.nan
     return _map_object(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
 
 
@@ -345,7 +348,6 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     Examples
     --------
-
     Returning a Series of booleans using only a literal pattern.
 
     >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
@@ -438,8 +440,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
         if regex.groups > 0:
             warnings.warn(
-                "This pattern has match groups. To actually get the"
-                " groups, use str.extract.",
+                "This pattern has match groups. To actually get the "
+                "groups, use str.extract.",
                 UserWarning,
                 stacklevel=3,
             )
@@ -570,7 +572,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`.
+    :func:`re.sub`, depending on the regex value.
 
     Parameters
     ----------
@@ -683,7 +685,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     2    NaN
     dtype: object
     """
-
     # Check whether repl is valid (GH 13438, GH 15055)
     if not (isinstance(repl, str) or callable(repl)):
         raise TypeError("repl must be a string or callable")
@@ -774,13 +775,15 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if x is libmissing.NA:
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:
                 return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
 
@@ -880,11 +883,12 @@ def _str_extract_noexpand(arr, pat, flags=0):
         if arr.empty:
             result = DataFrame(columns=columns, dtype=object)
         else:
+            dtype = _result_dtype(arr)
             result = DataFrame(
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,
-                dtype=object,
+                dtype=dtype,
             )
     return result, name
 
@@ -1080,7 +1084,6 @@ def str_extractall(arr, pat, flags=0):
     B 0          b     1
     C 0        NaN     1
     """
-
     regex = re.compile(pat, flags=flags)
     # the regex must contain capture groups.
     if regex.groups == 0:
@@ -1271,7 +1274,6 @@ def str_findall(arr, pat, flags=0):
 
     Examples
     --------
-
     >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
 
     The search for the pattern 'Monkey' returns one match:
@@ -1353,7 +1355,6 @@ def str_find(arr, sub, start=0, end=None, side="left"):
     Series or Index
         Indexes where substring is found.
     """
-
     if not isinstance(sub, str):
         msg = f"expected a string object, not {type(sub).__name__}"
         raise TypeError(msg)
@@ -1741,7 +1742,6 @@ def str_wrap(arr, width, **kwargs):
 
     Examples
     --------
-
     >>> s = pd.Series(['line to be wrapped', 'another line to be wrapped'])
     >>> s.str.wrap(12)
     0             line to be\nwrapped
@@ -1925,7 +1925,6 @@ def forbid_nonstring_types(forbidden, name=None):
     TypeError
         If the inferred type of the underlying data is in `forbidden`.
     """
-
     # deal with None
     forbidden = [] if forbidden is None else forbidden
 
@@ -2008,7 +2007,7 @@ def _pat_wrapper(
 
 
 def copy(source):
-    "Copy a docstring from another source function (if present)"
+    """Copy a docstring from another source function (if present)"""
 
     def do_copy(target):
         if source.__doc__:
@@ -2427,12 +2426,12 @@ class StringMethods(NoNewAttributesMixin):
         try:
             # turn anything in "others" into lists of Series
             others = self._get_series_list(others)
-        except ValueError:  # do not catch TypeError raised by _get_series_list
+        except ValueError as err:  # do not catch TypeError raised by _get_series_list
             raise ValueError(
                 "If `others` contains arrays or lists (or other "
                 "list-likes without an index), these must all be "
                 "of the same length as the calling Series/Index."
-            )
+            ) from err
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):

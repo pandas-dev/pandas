@@ -318,8 +318,7 @@ def hist_series(
         if "figure" in kwds:
             raise ValueError(
                 "Cannot pass 'figure' when using the "
-                "'by' argument, since a new 'Figure' instance "
-                "will be created"
+                "'by' argument, since a new 'Figure' instance will be created"
             )
         axes = _grouped_hist(
             self,

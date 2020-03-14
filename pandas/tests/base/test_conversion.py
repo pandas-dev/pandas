@@ -303,7 +303,8 @@ def test_array(array, attr, index_or_series):
 
 def test_array_multiindex_raises():
     idx = pd.MultiIndex.from_product([["A"], ["a", "b"]])
-    with pytest.raises(ValueError, match="MultiIndex"):
+    msg = "MultiIndex has no single backing array"
+    with pytest.raises(ValueError, match=msg):
         idx.array
 
 
@@ -404,3 +405,36 @@ def test_to_numpy_dtype(as_series):
     result = obj.to_numpy(dtype="M8[ns]")
     expected = np.array(["2000-01-01T05", "2001-01-01T05"], dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype, na_value, expected",
+    [
+        ([1, 2, None], "float64", 0, [1.0, 2.0, 0.0]),
+        (
+            [pd.Timestamp("2000"), pd.Timestamp("2000"), pd.NaT],
+            None,
+            pd.Timestamp("2000"),
+            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+        ),
+    ],
+)
+@pytest.mark.parametrize("container", [pd.Series, pd.Index])  # type: ignore
+def test_to_numpy_na_value_numpy_dtype(container, values, dtype, na_value, expected):
+    s = container(values)
+    result = s.to_numpy(dtype=dtype, na_value=na_value)
+    expected = np.array(expected)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_kwargs_raises():
+    # numpy
+    s = pd.Series([1, 2, 3])
+    msg = r"to_numpy\(\) got an unexpected keyword argument 'foo'"
+    with pytest.raises(TypeError, match=msg):
+        s.to_numpy(foo=True)
+
+    # extension
+    s = pd.Series([1, 2, 3], dtype="Int64")
+    with pytest.raises(TypeError, match=msg):
+        s.to_numpy(foo=True)

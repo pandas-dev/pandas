@@ -7,6 +7,7 @@ import pytz
 import pandas as pd
 from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
 import pandas._testing as tm
+from pandas.core.indexes.base import InvalidIndexError
 
 from pandas.tseries.offsets import BDay, CDay
 
@@ -86,7 +87,9 @@ class TestGetItem:
 
     def test_dti_business_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END)
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
@@ -110,12 +113,22 @@ class TestGetItem:
 
     def test_dti_custom_getitem_matplotlib_hackaround(self):
         rng = pd.bdate_range(START, END, freq="C")
-        values = rng[:, None]
+        with tm.assert_produces_warning(DeprecationWarning):
+            # GH#30588 multi-dimensional indexing deprecated
+            values = rng[:, None]
         expected = rng.values[:, None]
         tm.assert_numpy_array_equal(values, expected)
 
 
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        dti = date_range("20130101", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = DatetimeIndex([dti[0], dti[1], dti[0]], freq=None, name="idx")
+
+        result = dti.where(cond, dti[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_other(self):
         # other is ndarray or Index
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -132,8 +145,31 @@ class TestWhere:
 
         i2 = i.copy()
         i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
-        result = i.where(notna(i2), i2.values)
+        result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
+
+    def test_where_invalid_dtypes(self):
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+
+        i2 = dti.copy()
+        i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-naive ndarray to tzaware DTI
+            dti.where(notna(i2), i2.values)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            # passing tz-aware DTI to tznaive DTI
+            dti.tz_localize(None).where(notna(i2), i2)
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+
+        with pytest.raises(TypeError, match="Where requires matching dtype"):
+            dti.where(notna(i2), i2.asi8)
 
     def test_where_tz(self):
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -316,8 +352,130 @@ class TestTake:
             idx.take(np.array([1, -5]))
 
 
+class TestGetLoc:
+    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    def test_get_loc_method_exact_match(self, method):
+        idx = pd.date_range("2000-01-01", periods=3)
+        assert idx.get_loc(idx[1], method) == 1
+        assert idx.get_loc(idx[1].to_pydatetime(), method) == 1
+        assert idx.get_loc(str(idx[1]), method) == 1
+
+        if method is not None:
+            assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
+
+    def test_get_loc(self):
+        idx = pd.date_range("2000-01-01", periods=3)
+
+        assert idx.get_loc("2000-01-01", method="nearest") == 0
+        assert idx.get_loc("2000-01-01T12", method="nearest") == 1
+
+        assert idx.get_loc("2000-01-01T12", method="nearest", tolerance="1 day") == 1
+        assert (
+            idx.get_loc("2000-01-01T12", method="nearest", tolerance=pd.Timedelta("1D"))
+            == 1
+        )
+        assert (
+            idx.get_loc(
+                "2000-01-01T12", method="nearest", tolerance=np.timedelta64(1, "D")
+            )
+            == 1
+        )
+        assert (
+            idx.get_loc("2000-01-01T12", method="nearest", tolerance=timedelta(1)) == 1
+        )
+        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
+            idx.get_loc("2000-01-01T12", method="nearest", tolerance="foo")
+        with pytest.raises(KeyError, match="'2000-01-01T03'"):
+            idx.get_loc("2000-01-01T03", method="nearest", tolerance="2 hours")
+        with pytest.raises(
+            ValueError, match="tolerance size must match target index size"
+        ):
+            idx.get_loc(
+                "2000-01-01",
+                method="nearest",
+                tolerance=[
+                    pd.Timedelta("1day").to_timedelta64(),
+                    pd.Timedelta("1day").to_timedelta64(),
+                ],
+            )
+
+        assert idx.get_loc("2000", method="nearest") == slice(0, 3)
+        assert idx.get_loc("2000-01", method="nearest") == slice(0, 3)
+
+        assert idx.get_loc("1999", method="nearest") == 0
+        assert idx.get_loc("2001", method="nearest") == 2
+
+        with pytest.raises(KeyError, match="'1999'"):
+            idx.get_loc("1999", method="pad")
+        with pytest.raises(KeyError, match="'2001'"):
+            idx.get_loc("2001", method="backfill")
+
+        with pytest.raises(KeyError, match="'foobar'"):
+            idx.get_loc("foobar")
+        with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
+            idx.get_loc(slice(2))
+
+        idx = pd.to_datetime(["2000-01-01", "2000-01-04"])
+        assert idx.get_loc("2000-01-02", method="nearest") == 0
+        assert idx.get_loc("2000-01-03", method="nearest") == 1
+        assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
+
+        # time indexing
+        idx = pd.date_range("2000-01-01", periods=24, freq="H")
+        tm.assert_numpy_array_equal(
+            idx.get_loc(time(12)), np.array([12]), check_dtype=False
+        )
+        tm.assert_numpy_array_equal(
+            idx.get_loc(time(12, 30)), np.array([]), check_dtype=False
+        )
+        with pytest.raises(NotImplementedError):
+            idx.get_loc(time(12, 30), method="pad")
+
+    def test_get_loc_tz_aware(self):
+        # https://github.com/pandas-dev/pandas/issues/32140
+        dti = pd.date_range(
+            pd.Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
+            pd.Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
+            freq="5s",
+        )
+        key = pd.Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
+        result = dti.get_loc(key, method="nearest")
+        assert result == 7433
+
+    def test_get_loc_nat(self):
+        # GH#20464
+        index = DatetimeIndex(["1/3/2000", "NaT"])
+        assert index.get_loc(pd.NaT) == 1
+
+        assert index.get_loc(None) == 1
+
+        assert index.get_loc(np.nan) == 1
+
+        assert index.get_loc(pd.NA) == 1
+
+        assert index.get_loc(np.datetime64("NaT")) == 1
+
+        with pytest.raises(KeyError, match="NaT"):
+            index.get_loc(np.timedelta64("NaT"))
+
+    @pytest.mark.parametrize("key", [pd.Timedelta(0), pd.Timedelta(1), timedelta(0)])
+    def test_get_loc_timedelta_invalid_key(self, key):
+        # GH#20464
+        dti = pd.date_range("1970-01-01", periods=10)
+        with pytest.raises(TypeError):
+            dti.get_loc(key)
+
+    def test_get_loc_reasonable_key_error(self):
+        # GH#1062
+        index = DatetimeIndex(["1/3/2000"])
+        with pytest.raises(KeyError, match="2000"):
+            index.get_loc("1/1/2000")
+
+
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("null", [None, np.nan, pd.NaT])
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.datetime64("NaT"), pd.NaT, pd.NA]
+    )
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
@@ -325,6 +483,12 @@ class TestDatetimeIndex:
         expected = pd.DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
         res = idx.insert(0, null)
         tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
+    def test_insert_invalid_na(self, tz):
+        idx = pd.DatetimeIndex(["2017-01-01"], tz=tz)
+        with pytest.raises(TypeError, match="incompatible label"):
+            idx.insert(0, np.timedelta64("NaT"))
 
     def test_insert(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"], name="idx")
@@ -403,9 +567,9 @@ class TestDatetimeIndex:
 
         # see gh-7299
         idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, pd.Timestamp("2000-01-04"))
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, datetime(2000, 1, 4))
         with pytest.raises(ValueError):
             idx.insert(3, pd.Timestamp("2000-01-04", tz="US/Eastern"))
@@ -582,83 +746,26 @@ class TestDatetimeIndex:
             assert result.freq == expected.freq
             assert result.tz == expected.tz
 
-    def test_get_loc(self):
-        idx = pd.date_range("2000-01-01", periods=3)
+    def test_get_value(self):
+        # specifically make sure we have test for np.datetime64 key
+        dti = pd.date_range("2016-01-01", periods=3)
 
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].to_pydatetime(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
+        arr = np.arange(6, 9)
+        ser = pd.Series(arr, index=dti)
 
-            if method is not None:
-                assert (
-                    idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
-                )
+        key = dti[1]
 
-        assert idx.get_loc("2000-01-01", method="nearest") == 0
-        assert idx.get_loc("2000-01-01T12", method="nearest") == 1
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            dti.get_value(arr, key)
 
-        assert idx.get_loc("2000-01-01T12", method="nearest", tolerance="1 day") == 1
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=pd.Timedelta("1D"))
-            == 1
-        )
-        assert (
-            idx.get_loc(
-                "2000-01-01T12", method="nearest", tolerance=np.timedelta64(1, "D")
-            )
-            == 1
-        )
-        assert (
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance=timedelta(1)) == 1
-        )
-        with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
-            idx.get_loc("2000-01-01T12", method="nearest", tolerance="foo")
-        with pytest.raises(KeyError, match="'2000-01-01T03'"):
-            idx.get_loc("2000-01-01T03", method="nearest", tolerance="2 hours")
-        with pytest.raises(
-            ValueError, match="tolerance size must match target index size"
-        ):
-            idx.get_loc(
-                "2000-01-01",
-                method="nearest",
-                tolerance=[
-                    pd.Timedelta("1day").to_timedelta64(),
-                    pd.Timedelta("1day").to_timedelta64(),
-                ],
-            )
+        result = dti.get_value(ser, key)
+        assert result == 7
 
-        assert idx.get_loc("2000", method="nearest") == slice(0, 3)
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 3)
+        result = dti.get_value(ser, key.to_pydatetime())
+        assert result == 7
 
-        assert idx.get_loc("1999", method="nearest") == 0
-        assert idx.get_loc("2001", method="nearest") == 2
-
-        with pytest.raises(KeyError, match="'1999'"):
-            idx.get_loc("1999", method="pad")
-        with pytest.raises(KeyError, match="'2001'"):
-            idx.get_loc("2001", method="backfill")
-
-        with pytest.raises(KeyError, match="'foobar'"):
-            idx.get_loc("foobar")
-        with pytest.raises(TypeError):
-            idx.get_loc(slice(2))
-
-        idx = pd.to_datetime(["2000-01-01", "2000-01-04"])
-        assert idx.get_loc("2000-01-02", method="nearest") == 0
-        assert idx.get_loc("2000-01-03", method="nearest") == 1
-        assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
-
-        # time indexing
-        idx = pd.date_range("2000-01-01", periods=24, freq="H")
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12)), np.array([12]), check_dtype=False
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12, 30)), np.array([]), check_dtype=False
-        )
-        with pytest.raises(NotImplementedError):
-            idx.get_loc(time(12, 30), method="pad")
+        result = dti.get_value(ser, key.to_datetime64())
+        assert result == 7
 
     def test_get_indexer(self):
         idx = pd.date_range("2000-01-01", periods=3)
@@ -699,21 +806,3 @@ class TestDatetimeIndex:
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
         with pytest.raises(ValueError):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
-
-    def test_reasonable_key_error(self):
-        # GH#1062
-        index = DatetimeIndex(["1/3/2000"])
-        with pytest.raises(KeyError, match="2000"):
-            index.get_loc("1/1/2000")
-
-    @pytest.mark.parametrize("key", [pd.Timedelta(0), pd.Timedelta(1), timedelta(0)])
-    def test_timedelta_invalid_key(self, key):
-        # GH#20464
-        dti = pd.date_range("1970-01-01", periods=10)
-        with pytest.raises(TypeError):
-            dti.get_loc(key)
-
-    def test_get_loc_nat(self):
-        # GH#20464
-        index = DatetimeIndex(["1/3/2000", "NaT"])
-        assert index.get_loc(pd.NaT) == 1
