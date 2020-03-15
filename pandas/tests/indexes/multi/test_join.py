@@ -103,3 +103,21 @@ def test_join_multi_wrong_order():
     tm.assert_index_equal(midx1, join_idx)
     assert lidx is None
     tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+
+@pytest.mark.parametrize(
+    ("data", "func"), [("2020-03-15", pd.to_datetime), ("1d", pd.to_timedelta)]
+)
+def test_join_mixed_index_datetime_string(data, func, join_type):
+    # GH 26558
+    # Joining multiindex with mixed datetime and string level
+    mi1 = pd.MultiIndex.from_tuples([(data,)])
+    mi2 = pd.MultiIndex.from_tuples([(func(data),)])
+
+    _, indexer_left, indexer_right = mi1.join(mi2, how=join_type, return_indexers=True)
+    assert indexer_left is None
+    assert indexer_right is None
+
+    _, indexer_left, indexer_right = mi2.join(mi1, how=join_type, return_indexers=True)
+    assert indexer_left is None
+    assert indexer_right is None
