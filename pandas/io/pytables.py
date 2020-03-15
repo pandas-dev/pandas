@@ -609,7 +609,7 @@ class HDFStore:
                 n._v_pathname for n in self._handle.walk_nodes("/", classname="Table")
             ]
         raise ValueError(
-            f"`include` should be either 'pandas' or 'native' but is [{include}]"
+            f"`include` should be either 'pandas' or 'native' but is '{include}'"
         )
 
     def __iter__(self):

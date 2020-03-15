@@ -363,6 +363,14 @@ class TestHDFStore:
                 assert set(store.keys(include="native")) == expected
                 assert set(store.keys(include="pandas")) == set()
 
+    def test_keys_illegal_include_keyword_value(self, setup_path):
+        with ensure_clean_store(setup_path) as store:
+            with pytest.raises(
+                ValueError,
+                match="`include` should be either 'pandas' or 'native' but is 'illegal'",
+            ):
+                store.keys(include="illegal")
+
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
         # GH 20523
