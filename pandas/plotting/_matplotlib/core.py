@@ -278,10 +278,11 @@ class MPLPlot:
                 for col in cols
             }
 
-        for col, val in iter_data.items():
-            if not keep_index:
-                val = val.values
-            yield col, val
+        for col, values in iter_data.items():
+            if keep_index is True:
+                yield col, values
+            else:
+                yield col, values.values
 
     @property
     def nseries(self):
