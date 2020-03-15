@@ -1,6 +1,7 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for object dtype
+import datetime
 from decimal import Decimal
 import operator
 
@@ -328,3 +329,48 @@ class TestArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             np.array([True, pd.Timestamp.now()]) - index
+
+
+class MyIndex(pd.Index):
+    # Simple index subclass that tracks ops calls.
+
+    _calls: int
+
+    @classmethod
+    def _simple_new(cls, values, name=None, dtype=None):
+        result = object.__new__(cls)
+        result._data = values
+        result._index_data = values
+        result._name = name
+        result._calls = 0
+
+        return result._reset_identity()
+
+    def __add__(self, other):
+        self._calls += 1
+        return self._simple_new(self._index_data)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        [datetime.timedelta(1), datetime.timedelta(2)],
+        [datetime.datetime(2000, 1, 1), datetime.datetime(2000, 1, 2)],
+        [pd.Period("2000"), pd.Period("2001")],
+        ["a", "b"],
+    ],
+    ids=["timedelta", "datetime", "period", "object"],
+)
+def test_index_ops_defer_to_unknown_subclasses(other):
+    # https://github.com/pandas-dev/pandas/issues/31109
+    values = np.array(
+        [datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)], dtype=object
+    )
+    a = MyIndex._simple_new(values)
+    other = pd.Index(other)
+    result = other + a
+    assert isinstance(result, MyIndex)
+    assert a._calls == 1

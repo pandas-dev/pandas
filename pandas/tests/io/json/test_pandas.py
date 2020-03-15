@@ -572,7 +572,6 @@ class TestPandasContainer:
             df_roundtrip,
             check_index_type=True,
             check_column_type=True,
-            check_frame_type=True,
             by_blocks=True,
             check_exact=True,
         )
@@ -1647,3 +1646,37 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame({"col": ["31900441201190696999", "Text"]})
         result = read_json(encoded_json)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dataframe,expected",
+        [
+            (
+                pd.DataFrame({"x": [1, 2, 3], "y": ["a", "b", "c"]}),
+                '{"(0, \'x\')":1,"(0, \'y\')":"a","(1, \'x\')":2,'
+                '"(1, \'y\')":"b","(2, \'x\')":3,"(2, \'y\')":"c"}',
+            )
+        ],
+    )
+    def test_json_multiindex(self, dataframe, expected):
+        series = dataframe.stack()
+        result = series.to_json(orient="index")
+        assert result == expected
+
+    def test_to_s3(self, s3_resource):
+        # GH 28375
+        mock_bucket_name, target_file = "pandas-test", "test.json"
+        df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
+        df.to_json(f"s3://{mock_bucket_name}/{target_file}")
+        assert target_file in (
+            obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
+        )
+
+    def test_json_pandas_na(self):
+        # GH 31615
+        result = pd.DataFrame([[pd.NA]]).to_json()
+        assert result == '{"0":{"0":null}}'
+
+    def test_json_pandas_nulls(self, nulls_fixture):
+        # GH 31615
+        result = pd.DataFrame([[nulls_fixture]]).to_json()
+        assert result == '{"0":{"0":null}}'

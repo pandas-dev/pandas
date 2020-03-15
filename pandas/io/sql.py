@@ -120,7 +120,6 @@ def _parse_date_columns(data_frame, parse_dates):
 
 def _wrap_result(data, columns, index_col=None, coerce_float=True, parse_dates=None):
     """Wrap result set of query in a DataFrame."""
-
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
 
     frame = _parse_date_columns(frame, parse_dates)
@@ -228,7 +227,6 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
-
     con = _engine_builder(con)
     if not _is_sqlalchemy_connectable(con):
         raise NotImplementedError(
@@ -240,8 +238,8 @@ def read_sql_table(
     meta = MetaData(con, schema=schema)
     try:
         meta.reflect(only=[table_name], views=True)
-    except sqlalchemy.exc.InvalidRequestError:
-        raise ValueError(f"Table {table_name} not found")
+    except sqlalchemy.exc.InvalidRequestError as err:
+        raise ValueError(f"Table {table_name} not found") from err
 
     pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
@@ -284,7 +282,7 @@ def read_sql_query(
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    index_col : str or list of strings, optional, default: None
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
@@ -358,13 +356,13 @@ def read_sql(
     sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
     con : SQLAlchemy connectable (engine/connection) or database str URI
-        or DBAPI2 connection (fallback mode)'
+        or DBAPI2 connection (fallback mode).
 
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
         for engine disposal and connection closure for the SQLAlchemy connectable. See
-        `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_
-    index_col : str or list of strings, optional, default: None
+        `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
+    index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
@@ -655,7 +653,8 @@ class SQLTable(PandasObject):
             self._execute_create()
 
     def _execute_insert(self, conn, keys, data_iter):
-        """Execute SQL statement inserting data
+        """
+        Execute SQL statement inserting data
 
         Parameters
         ----------
@@ -669,7 +668,8 @@ class SQLTable(PandasObject):
         conn.execute(self.table.insert(), data)
 
     def _execute_insert_multi(self, conn, keys, data_iter):
-        """Alternative to _execute_insert for DBs support multivalue INSERT.
+        """
+        Alternative to _execute_insert for DBs support multivalue INSERT.
 
         Note: multi-value insert is usually faster for analytics DBs
         and tables containing a few columns
@@ -685,7 +685,7 @@ class SQLTable(PandasObject):
             try:
                 temp.reset_index(inplace=True)
             except ValueError as err:
-                raise ValueError(f"duplicate name in index/columns: {err}")
+                raise ValueError(f"duplicate name in index/columns: {err}") from err
         else:
             temp = self.frame
 
@@ -705,8 +705,16 @@ class SQLTable(PandasObject):
                 else:
                     # convert to microsecond resolution for datetime.datetime
                     d = b.values.astype("M8[us]").astype(object)
+            elif b.is_timedelta:
+                # numpy converts this to an object array of integers,
+                #  whereas b.astype(object).values would convert to
+                #  object array of Timedeltas
+                d = b.values.astype(object)
             else:
-                d = np.array(b.get_values(), dtype=object)
+                # TODO(2DEA): astype-first can be avoided with 2D EAs
+                # astype on the block instead of values to ensure we
+                #  get the right shape
+                d = b.astype(object).values
 
             # replace NaN with None
             if b._can_hold_na:
@@ -758,7 +766,6 @@ class SQLTable(PandasObject):
         self, result, chunksize, columns, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set."""
-
         while True:
             data = result.fetchmany(chunksize)
             if not data:
@@ -1095,7 +1102,8 @@ class SQLDatabase(PandasSQL):
         schema=None,
         chunksize=None,
     ):
-        """Read SQL database table into a DataFrame.
+        """
+        Read SQL database table into a DataFrame.
 
         Parameters
         ----------
@@ -1149,7 +1157,6 @@ class SQLDatabase(PandasSQL):
         result, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set"""
-
         while True:
             data = result.fetchmany(chunksize)
             if not data:
@@ -1172,7 +1179,8 @@ class SQLDatabase(PandasSQL):
         params=None,
         chunksize=None,
     ):
-        """Read SQL query into a DataFrame.
+        """
+        Read SQL query into a DataFrame.
 
         Parameters
         ----------
@@ -1387,8 +1395,8 @@ _SQL_TYPES = {
 def _get_unicode_name(name):
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
-    except UnicodeError:
-        raise ValueError(f"Cannot convert identifier to UTF-8: '{name}'")
+    except UnicodeError as err:
+        raise ValueError(f"Cannot convert identifier to UTF-8: '{name}'") from err
     return uname
 
 
@@ -1440,7 +1448,7 @@ class SQLiteTable(SQLTable):
             for stmt in self.table:
                 conn.execute(stmt)
 
-    def insert_statement(self):
+    def insert_statement(self, *, num_rows):
         names = list(map(str, self.frame.columns))
         wld = "?"  # wildcard char
         escape = _get_valid_sqlite_name
@@ -1451,15 +1459,22 @@ class SQLiteTable(SQLTable):
 
         bracketed_names = [escape(column) for column in names]
         col_names = ",".join(bracketed_names)
-        wildcards = ",".join([wld] * len(names))
+
+        row_wildcards = ",".join([wld] * len(names))
+        wildcards = ",".join(f"({row_wildcards})" for _ in range(num_rows))
         insert_statement = (
-            f"INSERT INTO {escape(self.name)} ({col_names}) VALUES ({wildcards})"
+            f"INSERT INTO {escape(self.name)} ({col_names}) VALUES {wildcards}"
         )
         return insert_statement
 
     def _execute_insert(self, conn, keys, data_iter):
         data_list = list(data_iter)
-        conn.executemany(self.insert_statement(), data_list)
+        conn.executemany(self.insert_statement(num_rows=1), data_list)
+
+    def _execute_insert_multi(self, conn, keys, data_iter):
+        data_list = list(data_iter)
+        flattened_data = [x for row in data_list for x in row]
+        conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
 
     def _create_table_setup(self):
         """
@@ -1599,7 +1614,6 @@ class SQLiteDatabase(PandasSQL):
         cursor, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
     ):
         """Return generator through chunked result set"""
-
         while True:
             data = cursor.fetchmany(chunksize)
             if type(data) == tuple:
@@ -1774,6 +1788,5 @@ def get_schema(frame, name, keys=None, con=None, dtype=None):
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
     """
-
     pandas_sql = pandasSQL_builder(con=con)
     return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)

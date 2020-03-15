@@ -12,8 +12,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs.lib import values_from_object
-
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
@@ -123,26 +121,19 @@ def _evaluate_numexpr(op, op_str, a, b):
 
 
 def _where_standard(cond, a, b):
-    return np.where(
-        values_from_object(cond), values_from_object(a), values_from_object(b)
-    )
+    # Caller is responsible for calling values_from_object if necessary
+    return np.where(cond, a, b)
 
 
 def _where_numexpr(cond, a, b):
+    # Caller is responsible for calling values_from_object if necessary
     result = None
 
     if _can_use_numexpr(None, "where", a, b, "where"):
-        cond_value = getattr(cond, "values", cond)
-        a_value = getattr(a, "values", a)
-        b_value = getattr(b, "values", b)
 
         result = ne.evaluate(
             "where(cond_value, a_value, b_value)",
-            local_dict={
-                "cond_value": cond_value,
-                "a_value": a_value,
-                "b_value": b_value,
-            },
+            local_dict={"cond_value": cond, "a_value": a, "b_value": b},
             casting="safe",
         )
 

@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCIndexClass,
+    ABCPeriod,
     ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
@@ -281,7 +282,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return self.dtype.freq
 
     def __array__(self, dtype=None) -> np.ndarray:
-        # overriding DatetimelikeArray
+        if dtype == "i8":
+            return self.asi8
+        elif dtype == bool:
+            return ~self._isnan
+
+        # This will raise TypeErorr for non-object dtypes
         return np.array(list(self), dtype=object)
 
     def __arrow_array__(self, type=None):
@@ -623,7 +629,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         -------
         result : PeriodArray
         """
-
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
@@ -960,8 +965,8 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
     if end is not None:
         end = Period(end, freq)
 
-    is_start_per = isinstance(start, Period)
-    is_end_per = isinstance(end, Period)
+    is_start_per = isinstance(start, ABCPeriod)
+    is_end_per = isinstance(end, ABCPeriod)
 
     if is_start_per and is_end_per and start.freq != end.freq:
         raise ValueError("start and end must have same freq")

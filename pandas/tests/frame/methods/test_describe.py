@@ -86,7 +86,7 @@ class TestDataFrameDescribe:
 
     def test_describe_categorical(self):
         df = DataFrame({"value": np.random.randint(0, 10000, 100)})
-        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=["value"], ascending=True)

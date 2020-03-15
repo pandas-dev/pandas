@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import BufferedIOBase, StringIO, TextIOWrapper
+from io import StringIO, TextIOWrapper
 import re
 import sys
 from textwrap import fill
@@ -89,7 +89,7 @@ Parameters
 ----------
 filepath_or_buffer : str, path object or file-like object
     Any valid string path is acceptable. The string could be a URL. Valid
-    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
@@ -353,7 +353,7 @@ DataFrame or TextParser
 
 See Also
 --------
-to_csv : Write DataFrame to a comma-separated values (csv) file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
@@ -407,7 +407,6 @@ def _validate_names(names):
     ValueError
         If names are not unique.
     """
-
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
@@ -705,7 +704,6 @@ def read_fwf(
     infer_nrows=100,
     **kwds,
 ):
-
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -754,14 +752,13 @@ def read_fwf(
 
     See Also
     --------
-    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
 
     Examples
     --------
     >>> pd.read_fwf('data.csv')  # doctest: +SKIP
     """
-
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -817,8 +814,10 @@ class TextFileReader(abc.Iterator):
             ):
                 try:
                     dialect_val = getattr(dialect, param)
-                except AttributeError:
-                    raise ValueError(f"Invalid dialect {kwds['dialect']} provided")
+                except AttributeError as err:
+                    raise ValueError(
+                        f"Invalid dialect {kwds['dialect']} provided"
+                    ) from err
                 parser_default = _parser_defaults[param]
                 provided = kwds.get(param, parser_default)
 
@@ -1253,7 +1252,6 @@ def _validate_skipfooter_arg(skipfooter):
     ------
     ValueError : 'skipfooter' was not a non-negative integer.
     """
-
     if not is_integer(skipfooter):
         raise ValueError("skipfooter must be an integer")
 
@@ -1399,17 +1397,21 @@ class ParserBase:
                         "index_col must only contain row numbers "
                         "when specifying a multi-index header"
                     )
-
-        # GH 16338
-        elif self.header is not None and not is_integer(self.header):
-            raise ValueError("header must be integer or list of integers")
-
-        # GH 27779
-        elif self.header is not None and self.header < 0:
-            raise ValueError(
-                "Passing negative integer to header is invalid. "
-                "For no header, use header=None instead"
-            )
+        elif self.header is not None:
+            # GH 27394
+            if self.prefix is not None:
+                raise ValueError(
+                    "Argument prefix must be None if argument header is not None"
+                )
+            # GH 16338
+            elif not is_integer(self.header):
+                raise ValueError("header must be integer or list of integers")
+            # GH 27779
+            elif self.header < 0:
+                raise ValueError(
+                    "Passing negative integer to header is invalid. "
+                    "For no header, use header=None instead"
+                )
 
         self._name_processed = False
 
@@ -1453,8 +1455,10 @@ class ParserBase:
     def _extract_multi_indexer_columns(
         self, header, index_names, col_names, passed_names=False
     ):
-        """ extract and return the names, index_names, col_names
-            header is a list-of-lists returned from the parsers """
+        """
+        extract and return the names, index_names, col_names
+        header is a list-of-lists returned from the parsers
+        """
         if len(header) < 2:
             return header[0], index_names, col_names, passed_names
 
@@ -1488,11 +1492,10 @@ class ParserBase:
         # level, then our header was too long.
         for n in range(len(columns[0])):
             if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
+                header = ",".join(str(x) for x in self.header)
                 raise ParserError(
-                    "Passed header=[{header}] are too many rows for this "
-                    "multi_index of columns".format(
-                        header=",".join(str(x) for x in self.header)
-                    )
+                    f"Passed header=[{header}] are too many rows "
+                    "for this multi_index of columns"
                 )
 
         # Clean the column names (if we have an index_col).
@@ -1791,7 +1794,6 @@ class ParserBase:
         -------
         converted : ndarray
         """
-
         if is_categorical_dtype(cast_type):
             known_cats = (
                 isinstance(cast_type, CategoricalDtype)
@@ -1816,19 +1818,19 @@ class ParserBase:
             array_type = cast_type.construct_array_type()
             try:
                 return array_type._from_sequence_of_strings(values, dtype=cast_type)
-            except NotImplementedError:
+            except NotImplementedError as err:
                 raise NotImplementedError(
                     f"Extension Array: {array_type} must implement "
                     "_from_sequence_of_strings in order to be used in parser methods"
-                )
+                ) from err
 
         else:
             try:
                 values = astype_nansafe(values, cast_type, copy=True, skipna=True)
-            except ValueError:
+            except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
-                )
+                ) from err
         return values
 
     def _do_date_conversions(self, names, data):
@@ -1868,7 +1870,7 @@ class CParserWrapper(ParserBase):
 
             # Handle the file object with universal line mode enabled.
             # We will handle the newline character ourselves later on.
-            if isinstance(src, BufferedIOBase):
+            if hasattr(src, "read") and not hasattr(src, "encoding"):
                 src = TextIOWrapper(src, encoding=encoding, newline="")
 
             kwds["encoding"] = "utf-8"
@@ -2271,11 +2273,15 @@ class PythonParser(ParserBase):
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices = None
-        (
-            self.columns,
-            self.num_original_columns,
-            self.unnamed_cols,
-        ) = self._infer_columns()
+        try:
+            (
+                self.columns,
+                self.num_original_columns,
+                self.unnamed_cols,
+            ) = self._infer_columns()
+        except (TypeError, ValueError):
+            self.close()
+            raise
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
@@ -2377,19 +2383,21 @@ class PythonParser(ParserBase):
 
             dia = MyDialect
 
-            sniff_sep = True
-
             if sep is not None:
-                sniff_sep = False
                 dia.delimiter = sep
-            # attempt to sniff the delimiter
-            if sniff_sep:
+            else:
+                # attempt to sniff the delimiter from the first valid line,
+                # i.e. no comment line and not in skiprows
                 line = f.readline()
-                while self.skipfunc(self.pos):
+                lines = self._check_comments([[line]])[0]
+                while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
                     line = f.readline()
+                    lines = self._check_comments([[line]])[0]
 
-                line = self._check_comments([line])[0]
+                # since `line` was a string, lines will be a list containing
+                # only a single string
+                line = lines[0]
 
                 self.pos += 1
                 self.line_pos += 1
@@ -2484,7 +2492,7 @@ class PythonParser(ParserBase):
     def _convert_data(self, data):
         # apply converters
         def _clean_mapping(mapping):
-            "converts col numbers to names"
+            """converts col numbers to names"""
             clean = {}
             for col, v in mapping.items():
                 if isinstance(col, int) and col not in self.orig_names:
@@ -2552,12 +2560,12 @@ class PythonParser(ParserBase):
                     while self.line_pos <= hr:
                         line = self._next_line()
 
-                except StopIteration:
+                except StopIteration as err:
                     if self.line_pos < hr:
                         raise ValueError(
                             f"Passed header={hr} but only {self.line_pos + 1} lines in "
                             "file"
-                        )
+                        ) from err
 
                     # We have an empty file, so check
                     # if columns are provided. That will
@@ -2569,7 +2577,7 @@ class PythonParser(ParserBase):
                         return columns, num_original_columns, unnamed_cols
 
                     if not self.names:
-                        raise EmptyDataError("No columns to parse from file")
+                        raise EmptyDataError("No columns to parse from file") from err
 
                     line = self.names[:]
 
@@ -2650,9 +2658,9 @@ class PythonParser(ParserBase):
             try:
                 line = self._buffered_line()
 
-            except StopIteration:
+            except StopIteration as err:
                 if not names:
-                    raise EmptyDataError("No columns to parse from file")
+                    raise EmptyDataError("No columns to parse from file") from err
 
                 line = names[:]
 
@@ -2859,7 +2867,6 @@ class PythonParser(ParserBase):
                   Because this row number is displayed, we 1-index,
                   even though we 0-index internally.
         """
-
         if self.error_bad_lines:
             raise ParserError(msg)
         elif self.warn_bad_lines:
@@ -2878,7 +2885,6 @@ class PythonParser(ParserBase):
         ----------
         row_num : The row number of the line being parsed.
         """
-
         try:
             return next(self.data)
         except csv.Error as e:
@@ -2938,7 +2944,6 @@ class PythonParser(ParserBase):
         filtered_lines : array-like
             The same array of lines with the "empty" ones removed.
         """
-
         ret = []
         for l in lines:
             # Remove empty lines and lines with only one whitespace value
@@ -3510,7 +3515,6 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
         1) na_values : the string NaN values for that column.
         2) na_fvalues : the float NaN values for that column.
     """
-
     if isinstance(na_values, dict):
         if col in na_values:
             return na_values[col], na_fvalues[col]
@@ -3609,8 +3613,8 @@ class FixedWidthReader(abc.Iterator):
 
     def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = "".join(r"\{}".format(x) for x in self.delimiter)
-        pattern = re.compile("([^{}]+)".format(delimiters))
+        delimiters = "".join(fr"\{x}" for x in self.delimiter)
+        pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")

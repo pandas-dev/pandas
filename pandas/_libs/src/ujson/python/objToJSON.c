@@ -53,6 +53,7 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
+static PyTypeObject *cls_na;
 PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
@@ -127,7 +128,6 @@ typedef struct __PyObjectEncoder {
     // pass-through to encode numpy data directly
     int npyType;
     void *npyValue;
-    TypeContext basicTypeContext;
 
     int datetimeIso;
     NPY_DATETIMEUNIT datetimeUnit;
@@ -150,6 +150,7 @@ int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 void *initObjToJSON(void) {
     PyObject *mod_pandas;
     PyObject *mod_nattype;
+    PyObject *mod_natype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
     type_decimal =
         (PyTypeObject *)PyObject_GetAttrString(mod_decimal, "Decimal");
@@ -175,8 +176,16 @@ void *initObjToJSON(void) {
         Py_DECREF(mod_nattype);
     }
 
+    mod_natype = PyImport_ImportModule("pandas._libs.missing");
+    if (mod_natype) {
+        cls_na = (PyTypeObject *)PyObject_GetAttrString(mod_natype, "NAType");
+        Py_DECREF(mod_natype);
+    }
+
     /* Initialise numpy API */
     import_array();
+    // GH 31463
+    return NULL;
 }
 
 static TypeContext *createTypeContext(void) {
@@ -228,9 +237,9 @@ static PyObject *get_values(PyObject *obj) {
         }
     }
 
-    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values")) {
+    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values_for_json")) {
         PRINTMARK();
-        values = PyObject_CallMethod(obj, "get_block_values", NULL);
+        values = PyObject_CallMethod(obj, "get_block_values_for_json", NULL);
 
         if (values == NULL) {
             // Clear so we can subsequently try another method
@@ -925,15 +934,15 @@ char *Tuple_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
 }
 
 //=============================================================================
-// Iterator iteration functions
+// Set iteration functions
 // itemValue is borrowed reference, no ref counting
 //=============================================================================
-void Iter_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void Set_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     GET_TC(tc)->itemValue = NULL;
     GET_TC(tc)->iterator = PyObject_GetIter(obj);
 }
 
-int Iter_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+int Set_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObject *item;
 
     if (GET_TC(tc)->itemValue) {
@@ -951,7 +960,7 @@ int Iter_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return 1;
 }
 
-void Iter_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+void Set_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     if (GET_TC(tc)->itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);
         GET_TC(tc)->itemValue = NULL;
@@ -963,11 +972,11 @@ void Iter_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     }
 }
 
-JSOBJ Iter_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+JSOBJ Set_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *Iter_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
+char *Set_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
                        size_t *Py_UNUSED(outLen)) {
     return NULL;
 }
@@ -1788,6 +1797,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                      "%R (0d array) is not JSON serializable at the moment",
                      obj);
         goto INVALID;
+    } else if (PyObject_TypeCheck(obj, cls_na)) {
+        PRINTMARK();
+        tc->type = JT_NULL;
+        return;
     }
 
 ISITERABLE:
@@ -2040,11 +2053,11 @@ ISITERABLE:
     } else if (PyAnySet_Check(obj)) {
         PRINTMARK();
         tc->type = JT_ARRAY;
-        pc->iterBegin = Iter_iterBegin;
-        pc->iterEnd = Iter_iterEnd;
-        pc->iterNext = Iter_iterNext;
-        pc->iterGetValue = Iter_iterGetValue;
-        pc->iterGetName = Iter_iterGetName;
+        pc->iterBegin = Set_iterBegin;
+        pc->iterEnd = Set_iterEnd;
+        pc->iterNext = Set_iterNext;
+        pc->iterGetValue = Set_iterGetValue;
+        pc->iterGetName = Set_iterGetName;
         return;
     }
 
@@ -2115,10 +2128,7 @@ void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 
         PyObject_Free(GET_TC(tc)->cStr);
         GET_TC(tc)->cStr = NULL;
-        if (tc->prv !=
-            &(((PyObjectEncoder *)tc->encoder)->basicTypeContext)) { // NOLINT
-            PyObject_Free(tc->prv);
-        }
+        PyObject_Free(tc->prv);
         tc->prv = NULL;
     }
 }
@@ -2216,16 +2226,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     pyEncoder.datetimeUnit = NPY_FR_ms;
     pyEncoder.outputFormat = COLUMNS;
     pyEncoder.defaultHandler = 0;
-    pyEncoder.basicTypeContext.newObj = NULL;
-    pyEncoder.basicTypeContext.dictObj = NULL;
-    pyEncoder.basicTypeContext.itemValue = NULL;
-    pyEncoder.basicTypeContext.itemName = NULL;
-    pyEncoder.basicTypeContext.attrList = NULL;
-    pyEncoder.basicTypeContext.iterator = NULL;
-    pyEncoder.basicTypeContext.cStr = NULL;
-    pyEncoder.basicTypeContext.npyarr = NULL;
-    pyEncoder.basicTypeContext.rowLabels = NULL;
-    pyEncoder.basicTypeContext.columnLabels = NULL;
 
     PRINTMARK();
 

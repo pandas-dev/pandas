@@ -1,7 +1,7 @@
 .. _whatsnew_100:
 
-What's new in 1.0.0 (??)
-------------------------
+What's new in 1.0.0 (January 29, 2020)
+--------------------------------------
 
 These are the changes in pandas 1.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -36,6 +36,43 @@ See :ref:`policies.version` for more.
 
 Enhancements
 ~~~~~~~~~~~~
+
+.. _whatsnew_100.numba_rolling_apply:
+
+Using Numba in ``rolling.apply`` and ``expanding.apply``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` and :meth:`~core.window.expanding.Expanding.apply`
+that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
+Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
+the data set is larger (1 million rows or greater). For more details, see
+:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
+
+.. _whatsnew_100.custom_window:
+
+Defining custom windows for rolling operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to define how
+window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
+method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
+indices used for each window during the rolling aggregation. For more details and example usage, see
+the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
+
+.. _whatsnew_100.to_markdown:
+
+Converting to Markdown
+^^^^^^^^^^^^^^^^^^^^^^
+
+We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:`11052`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=['a', 'a', 'b'])
+   print(df.to_markdown())
+
+Experimental new features
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _whatsnew_100.NA:
 
@@ -187,55 +224,22 @@ This is especially useful after reading in data using readers such as :func:`rea
 and :func:`read_excel`.
 See :ref:`here <missing_data.NA.conversion>` for a description.
 
-.. _whatsnew_100.numba_rolling_apply:
-
-Using Numba in ``rolling.apply`` and ``expanding.apply``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We've added an ``engine`` keyword to :meth:`~core.window.rolling.Rolling.apply` and :meth:`~core.window.expanding.Expanding.apply`
-that allows the user to execute the routine using `Numba <https://numba.pydata.org/>`__ instead of Cython.
-Using the Numba engine can yield significant performance gains if the apply function can operate on numpy arrays and
-the data set is larger (1 million rows or greater). For more details, see
-:ref:`rolling apply documentation <stats.rolling_apply>` (:issue:`28987`, :issue:`30936`)
-
-.. _whatsnew_100.custom_window:
-
-Defining custom windows for rolling operations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We've added a :func:`pandas.api.indexers.BaseIndexer` class that allows users to define how
-window bounds are created during ``rolling`` operations. Users can define their own ``get_window_bounds``
-method on a :func:`pandas.api.indexers.BaseIndexer` subclass that will generate the start and end
-indices used for each window during the rolling aggregation. For more details and example usage, see
-the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
-
-.. _whatsnew_100.to_markdown:
-
-Converting to Markdown
-^^^^^^^^^^^^^^^^^^^^^^
-
-We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:`11052`)
-
-.. ipython:: python
-
-   df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=['a', 'a', 'b'])
-   print(df.to_markdown())
 
 .. _whatsnew_100.enhancements.other:
 
 Other enhancements
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 - :meth:`DataFrame.to_string` added the ``max_colwidth`` parameter to control when wide columns are truncated (:issue:`9784`)
 - Added the ``na_value`` argument to :meth:`Series.to_numpy`, :meth:`Index.to_numpy` and :meth:`DataFrame.to_numpy` to control the value used for missing data (:issue:`30322`)
 - :meth:`MultiIndex.from_product` infers level names from inputs if not explicitly provided (:issue:`27292`)
 - :meth:`DataFrame.to_latex` now accepts ``caption`` and ``label`` arguments (:issue:`25436`)
-- The :ref:`integer dtype <integer_na>` with support for missing values and the
-  new :ref:`string dtype <text.types>` can now be converted to ``pyarrow`` (>=
-  0.15.0), which means that it is supported in writing to the Parquet file
-  format when using the ``pyarrow`` engine. It is currently not yet supported
-  when converting back to pandas, so it will become an integer or float
-  (depending on the presence of missing data) or object dtype column. (:issue:`28368`)
+- DataFrames with :ref:`nullable integer <integer_na>`, the :ref:`new string dtype <text.types>`
+  and period data type can now be converted to ``pyarrow`` (>=0.15.0), which means that it is
+  supported in writing to the Parquet file format when using the ``pyarrow`` engine (:issue:`28368`).
+  Full roundtrip to parquet (writing and reading back in with :meth:`~DataFrame.to_parquet` / :func:`read_parquet`)
+  is supported starting with pyarrow >= 0.16 (:issue:`20612`).
+- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue:`30270`)
 - :meth:`DataFrame.to_json` now accepts an ``indent`` integer argument to enable pretty printing of JSON output (:issue:`12004`)
 - :meth:`read_stata` can read Stata 119 dta files. (:issue:`28250`)
 - Implemented :meth:`pandas.core.window.Window.var` and :meth:`pandas.core.window.Window.std` functions (:issue:`26597`)
@@ -243,13 +247,9 @@ Other enhancements
 - Added ``encoding`` argument to :func:`DataFrame.to_html` for non-ascii text (:issue:`28663`)
 - :meth:`Styler.background_gradient` now accepts ``vmin`` and ``vmax`` arguments (:issue:`12145`)
 - :meth:`Styler.format` added the ``na_rep`` parameter to help format the missing values (:issue:`21527`, :issue:`28358`)
-- Roundtripping DataFrames with nullable integer, string and period data types to parquet
-  (:meth:`~DataFrame.to_parquet` / :func:`read_parquet`) using the `'pyarrow'` engine
-  now preserve those data types with pyarrow >= 1.0.0 (:issue:`20612`).
 - :func:`read_excel` now can read binary Excel (``.xlsb``) files by passing ``engine='pyxlsb'``. For more details and example usage, see the :ref:`Binary Excel files documentation <io.xlsb>`. Closes :issue:`8540`.
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
-- :func:`to_parquet` now appropriately handles the ``schema`` argument for user defined schemas in the pyarrow engine. (:issue:`30270`)
 - DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
@@ -261,13 +261,6 @@ Other enhancements
 - :meth:`DataFrame.to_pickle` and :func:`read_pickle` now accept URL (:issue:`30163`)
 
 
-Build Changes
-^^^^^^^^^^^^^
-
-Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
-cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
-a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
-source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
 
 .. ---------------------------------------------------------------------------
 
@@ -312,7 +305,7 @@ To update, use ``MultiIndex.set_names``, which returns a new ``MultiIndex``.
 New repr for :class:`~pandas.arrays.IntervalArray`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
+:class:`pandas.arrays.IntervalArray` adopts a new ``__repr__`` in accordance with other array classes (:issue:`25022`)
 
 *pandas 0.25.x*
 
@@ -333,52 +326,62 @@ New repr for :class:`~pandas.arrays.IntervalArray`
 ``DataFrame.rename`` now only accepts one positional argument
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :meth:`DataFrame.rename` would previously accept positional arguments that would lead
-  to ambiguous or undefined behavior. From pandas 1.0, only the very first argument, which
-  maps labels to their new names along the default axis, is allowed to be passed by position
-  (:issue:`29136`).
+:meth:`DataFrame.rename` would previously accept positional arguments that would lead
+to ambiguous or undefined behavior. From pandas 1.0, only the very first argument, which
+maps labels to their new names along the default axis, is allowed to be passed by position
+(:issue:`29136`).
+
+.. ipython:: python
+   :suppress:
+
+   df = pd.DataFrame([[1]])
 
 *pandas 0.25.x*
 
-.. code-block:: ipython
+.. code-block:: python
 
-   In [1]: df = pd.DataFrame([[1]])
-   In [2]: df.rename({0: 1}, {0: 2})
+   >>> df = pd.DataFrame([[1]])
+   >>> df.rename({0: 1}, {0: 2})
    FutureWarning: ...Use named arguments to resolve ambiguity...
-   Out[2]:
       2
    1  1
 
 *pandas 1.0.0*
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: python
 
-   df.rename({0: 1}, {0: 2})
+   >>> df.rename({0: 1}, {0: 2})
+   Traceback (most recent call last):
+   ...
+   TypeError: rename() takes from 1 to 2 positional arguments but 3 were given
 
 Note that errors will now be raised when conflicting or potentially ambiguous arguments are provided.
 
 *pandas 0.25.x*
 
-.. code-block:: ipython
+.. code-block:: python
 
-   In [1]: df.rename({0: 1}, index={0: 2})
-   Out[1]:
+   >>> df.rename({0: 1}, index={0: 2})
       0
    1  1
 
-   In [2]: df.rename(mapper={0: 1}, index={0: 2})
-   Out[2]:
+   >>> df.rename(mapper={0: 1}, index={0: 2})
       0
    2  1
 
 *pandas 1.0.0*
 
-.. ipython:: python
-   :okexcept:
+.. code-block:: python
 
-   df.rename({0: 1}, index={0: 2})
-   df.rename(mapper={0: 1}, index={0: 2})
+   >>> df.rename({0: 1}, index={0: 2})
+   Traceback (most recent call last):
+   ...
+   TypeError: Cannot specify both 'mapper' and any of 'index' or 'columns'
+
+   >>> df.rename(mapper={0: 1}, index={0: 2})
+   Traceback (most recent call last):
+   ...
+   TypeError: Cannot specify both 'mapper' and any of 'index' or 'columns'
 
 You can still change the axis along which the first positional argument is applied by
 supplying the ``axis`` keyword argument.
@@ -398,7 +401,7 @@ keywords.
 Extended verbose info output for :class:`~pandas.DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :meth:`DataFrame.info` now shows line numbers for the columns summary (:issue:`17304`)
+:meth:`DataFrame.info` now shows line numbers for the columns summary (:issue:`17304`)
 
 *pandas 0.25.x*
 
@@ -620,6 +623,54 @@ consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
    DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
    Series([], dtype: float64)
 
+Result dtype inference changes for resample operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The rules for the result dtype in :meth:`DataFrame.resample` aggregations have changed for extension types (:issue:`31359`).
+Previously, pandas would attempt to convert the result back to the original dtype, falling back to the usual
+inference rules if that was not possible. Now, pandas will only return a result of the original dtype if the
+scalar values in the result are instances of the extension dtype's scalar type.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": ['a', 'b']}, dtype='category',
+                     index=pd.date_range('2000', periods=2))
+   df
+
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> df.resample("2D").agg(lambda x: 'a').A.dtype
+   CategoricalDtype(categories=['a', 'b'], ordered=False)
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   df.resample("2D").agg(lambda x: 'a').A.dtype
+
+This fixes an inconsistency between ``resample`` and ``groupby``.
+This also fixes a potential bug, where the **values** of the result might change
+depending on how the results are cast back to the original dtype.
+
+*pandas 0.25.x*
+
+.. code-block:: python
+
+   >>> df.resample("2D").agg(lambda x: 'c')
+
+        A
+   0  NaN
+
+*pandas 1.0.0*
+
+.. ipython:: python
+
+   df.resample("2D").agg(lambda x: 'c')
+
+
 .. _whatsnew_100.api_breaking.python:
 
 Increased minimum version for Python
@@ -695,18 +746,26 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+Build Changes
+^^^^^^^^^^^^^
+
+Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
+a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
+source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
+
+
 .. _whatsnew_100.api.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
 
-- Bumped the minimum supported version of ``s3fs`` from 0.0.8 to 0.3.0 (:issue:`28616`)
 - :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
 - In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
   To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
-- The returned dtype of ::func:`pd.unique` now matches the input dtype. (:issue:`27874`)
+- The returned dtype of :func:`unique` now matches the input dtype. (:issue:`27874`)
 - Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).
   Now, pandas custom formatters will only be applied to plots created by pandas, through :meth:`~DataFrame.plot`.
   Previously, pandas' formatters would be applied to all plots created *after* a :meth:`~DataFrame.plot`.
@@ -752,7 +811,7 @@ Deprecations
 - The deprecated internal attributes ``_start``, ``_stop`` and ``_step`` of :class:`RangeIndex` now raise a ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`26581`)
 - The ``pandas.util.testing`` module has been deprecated. Use the public API in ``pandas.testing`` documented at :ref:`api.general.testing` (:issue:`16232`).
 - ``pandas.SparseArray`` has been deprecated.  Use ``pandas.arrays.SparseArray`` (:class:`arrays.SparseArray`) instead. (:issue:`30642`)
-- The parameter ``is_copy`` of :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
+- The parameter ``is_copy`` of :meth:`Series.take` and :meth:`DataFrame.take` has been deprecated and will be removed in a future version. (:issue:`27357`)
 - Support for multi-dimensional indexing (e.g. ``index[:, None]``) on a :class:`Index` is deprecated and will be removed in a future version, convert to a numpy array before indexing instead (:issue:`30588`)
 - The ``pandas.np`` submodule is now deprecated. Import numpy directly instead (:issue:`30296`)
 - The ``pandas.datetime`` class is now deprecated. Import from ``datetime`` instead (:issue:`30610`)
@@ -1048,7 +1107,6 @@ Numeric
 - Bug in :meth:`DataFrame.round` where a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`IntervalIndex` columns would incorrectly raise a ``TypeError`` (:issue:`30063`)
 - Bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` when there are duplicated indices (:issue:`30463`)
 - Bug in :class:`DataFrame` cumulative operations (e.g. cumsum, cummax) incorrect casting to object-dtype (:issue:`19296`)
-- Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
 - Bug in :class:`~DataFrame.diff` losing the dtype for extension types (:issue:`30889`)
 - Bug in :class:`DataFrame.diff` raising an ``IndexError`` when one of the columns was a nullable integer dtype (:issue:`30967`)
 
@@ -1086,6 +1144,7 @@ Indexing
 - Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with non-string categories didn't work (:issue:`17569`, :issue:`30225`)
 - :meth:`Index.get_indexer_non_unique` could fail with ``TypeError`` in some cases, such as when searching for ints in a string index (:issue:`28257`)
 - Bug in :meth:`Float64Index.get_loc` incorrectly raising ``TypeError`` instead of ``KeyError`` (:issue:`29189`)
+- Bug in :meth:`DataFrame.loc` with incorrect dtype when setting Categorical value in 1-row DataFrame (:issue:`25495`)
 - :meth:`MultiIndex.get_loc` can't find missing values when input includes missing values (:issue:`19132`)
 - Bug in :meth:`Series.__setitem__` incorrectly assigning values with boolean indexer when the length of new data matches the number of ``True`` values and new data is not a ``Series`` or an ``np.array`` (:issue:`30567`)
 - Bug in indexing with a :class:`PeriodIndex` incorrectly accepting integers representing years, use e.g. ``ser.loc["2007"]`` instead of ``ser.loc[2007]`` (:issue:`30763`)
@@ -1165,6 +1224,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
 - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
 - Bug in :meth:`GroupBy.pct_change` and :meth:`core.groupby.SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
+- Bug in :meth:`Rolling.count` and :meth:`Expanding.count` argument where ``min_periods`` was ignored (:issue:`26996`)
 
 Reshaping
 ^^^^^^^^^
@@ -1199,8 +1259,6 @@ ExtensionArray
 - Bug in :class:`arrays.PandasArray` when setting a scalar string (:issue:`28118`, :issue:`28150`).
 - Bug where nullable integers could not be compared to strings (:issue:`28930`)
 - Bug where :class:`DataFrame` constructor raised ``ValueError`` with list-like data and ``dtype`` specified (:issue:`30280`)
-- Bug in dtype being lost in ``__invert__``  (``~`` operator) for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
-
 
 Other
 ^^^^^
@@ -1232,4 +1290,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.25.3..v1.0.0rc0
+.. contributors:: v0.25.3..v1.0.0

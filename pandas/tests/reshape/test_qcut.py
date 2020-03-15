@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Categorical,
     DatetimeIndex,
@@ -286,3 +287,14 @@ def test_qcut_bool_coercion_to_int(bins, box, compare):
     expected = qcut(data_expected, bins, duplicates="drop")
     result = qcut(data_result, bins, duplicates="drop")
     compare(result, expected)
+
+
+@pytest.mark.parametrize("q", [2, 5, 10])
+def test_qcut_nullable_integer(q, any_nullable_int_dtype):
+    arr = pd.array(np.arange(100), dtype=any_nullable_int_dtype)
+    arr[::2] = pd.NA
+
+    result = qcut(arr, q)
+    expected = qcut(arr.astype(float), q)
+
+    tm.assert_categorical_equal(result, expected)

@@ -72,7 +72,7 @@ _common_see_also = """
 
 _apply_docs = dict(
     template="""
-    Apply function `func`  group-wise and combine the results together.
+    Apply function `func` group-wise and combine the results together.
 
     The function passed to `apply` must take a {input} as its first
     argument and return a DataFrame, Series or scalar. `apply` will
@@ -482,13 +482,13 @@ class _GroupBy(PandasObject, SelectionMixin):
                 try:
                     # If the original grouper was a tuple
                     return [self.indices[name] for name in names]
-                except KeyError:
+                except KeyError as err:
                     # turns out it wasn't a tuple
                     msg = (
                         "must supply a same-length tuple to get_group "
                         "with multiple grouping keys"
                     )
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
 
             converters = [get_converter(s) for s in index_sample]
             names = (tuple(f(n) for f, n in zip(converters, name)) for name in names)
@@ -685,7 +685,7 @@ b  2""",
         if not len(inds):
             raise KeyError(name)
 
-        return obj.take(inds, axis=self.axis)
+        return obj._take_with_is_copy(inds, axis=self.axis)
 
     def __iter__(self):
         """
@@ -813,9 +813,10 @@ b  2""",
                 # datetime64tz is handled correctly in agg_series,
                 #  so is excluded here.
 
-                # return the same type (Series) as our caller
-                cls = dtype.construct_array_type()
-                result = try_cast_to_ea(cls, result, dtype=dtype)
+                if len(result) and isinstance(result[0], dtype.type):
+                    cls = dtype.construct_array_type()
+                    result = try_cast_to_ea(cls, result, dtype=dtype)
+
             elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 
@@ -922,17 +923,10 @@ b  2""",
 
             try:
                 # if this function is invalid for this dtype, we will ignore it.
-                func(obj[:0])
+                result, counts = self.grouper.agg_series(obj, f)
             except TypeError:
                 continue
-            except AssertionError:
-                raise
-            except Exception:
-                # Our function depends on having a non-empty argument
-                #  See test_groupby_agg_err_catching
-                pass
 
-            result, counts = self.grouper.agg_series(obj, f)
             assert result is not None
             key = base.OutputKey(label=name, position=idx)
             output[key] = self._try_cast(result, obj, numeric_only=True)
@@ -1173,15 +1167,20 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Count of values within each group.
         """
-
         # defined here for API doc
         raise NotImplementedError
 
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def mean(self, *args, **kwargs):
+    def mean(self, numeric_only: bool = True):
         """
         Compute mean of groups, excluding missing values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default True
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
 
         Returns
         -------
@@ -1221,18 +1220,25 @@ class GroupBy(_GroupBy):
         2    4.0
         Name: B, dtype: float64
         """
-        nv.validate_groupby_func("mean", args, kwargs, ["numeric_only"])
         return self._cython_agg_general(
-            "mean", alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs
+            "mean",
+            alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
+            numeric_only=numeric_only,
         )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def median(self, **kwargs):
+    def median(self, numeric_only=True):
         """
         Compute median of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Parameters
+        ----------
+        numeric_only : bool, default True
+            Include only float, int, boolean columns. If None, will attempt to use
+            everything, then use only numeric data.
 
         Returns
         -------
@@ -1241,13 +1247,13 @@ class GroupBy(_GroupBy):
         """
         return self._cython_agg_general(
             "median",
-            alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
-            **kwargs,
+            alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
+            numeric_only=numeric_only,
         )
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def std(self, ddof: int = 1, *args, **kwargs):
+    def std(self, ddof: int = 1):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -1263,14 +1269,12 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-
         # TODO: implement at Cython level?
-        nv.validate_groupby_func("std", args, kwargs)
-        return np.sqrt(self.var(ddof=ddof, **kwargs))
+        return np.sqrt(self.var(ddof=ddof))
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def var(self, ddof: int = 1, *args, **kwargs):
+    def var(self, ddof: int = 1):
         """
         Compute variance of groups, excluding missing values.
 
@@ -1286,15 +1290,14 @@ class GroupBy(_GroupBy):
         Series or DataFrame
             Variance of values within each group.
         """
-        nv.validate_groupby_func("var", args, kwargs)
         if ddof == 1:
             return self._cython_agg_general(
-                "var", alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs), **kwargs
+                "var", alt=lambda x, axis: Series(x).var(ddof=ddof)
             )
         else:
-            f = lambda x: x.var(ddof=ddof, **kwargs)
+            func = lambda x: x.var(ddof=ddof)
             with _group_selection_context(self):
-                return self._python_agg_general(f)
+                return self._python_agg_general(func)
 
     @Substitution(name="groupby")
     @Appender(_common_see_also)
@@ -1350,30 +1353,41 @@ class GroupBy(_GroupBy):
             _local_template = """
             Compute %(f)s of group values.
 
+            Parameters
+            ----------
+            numeric_only : bool, default %(no)s
+                Include only float, int, boolean columns. If None, will attempt to use
+                everything, then use only numeric data.
+            min_count : int, default %(mc)s
+                The required number of valid values to perform the operation. If fewer
+                than ``min_count`` non-NA values are present the result will be NA.
+
             Returns
             -------
             Series or DataFrame
                 Computed %(f)s of values within each group.
             """
 
-            @Substitution(name="groupby", f=name)
+            @Substitution(name="groupby", f=name, no=numeric_only, mc=min_count)
             @Appender(_common_see_also)
             @Appender(_local_template)
-            def f(self, **kwargs):
-                if "numeric_only" not in kwargs:
-                    kwargs["numeric_only"] = numeric_only
-                if "min_count" not in kwargs:
-                    kwargs["min_count"] = min_count
-
+            def func(self, numeric_only=numeric_only, min_count=min_count):
                 self._set_group_selection()
 
                 # try a cython aggregation if we can
                 try:
-                    return self._cython_agg_general(alias, alt=npfunc, **kwargs)
+                    return self._cython_agg_general(
+                        how=alias,
+                        alt=npfunc,
+                        numeric_only=numeric_only,
+                        min_count=min_count,
+                    )
                 except DataError:
                     pass
                 except NotImplementedError as err:
-                    if "function is not implemented for this dtype" in str(err):
+                    if "function is not implemented for this dtype" in str(
+                        err
+                    ) or "category dtype not supported" in str(err):
                         # raised in _get_cython_function, in some cases can
                         #  be trimmed by implementing cython funcs for more dtypes
                         pass
@@ -1384,9 +1398,9 @@ class GroupBy(_GroupBy):
                 result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
                 return result
 
-            set_function_name(f, name, cls)
+            set_function_name(func, name, cls)
 
-            return f
+            return func
 
         def first_compat(x, axis=0):
             def first(x):
@@ -1426,7 +1440,7 @@ class GroupBy(_GroupBy):
     @Appender(_common_see_also)
     def ohlc(self) -> DataFrame:
         """
-        Compute sum of values, excluding missing values.
+        Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
 
@@ -1435,7 +1449,6 @@ class GroupBy(_GroupBy):
         DataFrame
             Open, high, low and close values within each group.
         """
-
         return self._apply_to_column_groupbys(lambda x: x._cython_agg_general("ohlc"))
 
     @Appender(DataFrame.describe.__doc__)
@@ -1741,7 +1754,6 @@ class GroupBy(_GroupBy):
         1  1  2.0
         4  2  5.0
         """
-
         valid_containers = (set, list, tuple)
         if not isinstance(n, (valid_containers, int)):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
@@ -1976,7 +1988,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({"A": list("aaabba")})
         >>> df
            A
@@ -2011,7 +2022,6 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
         """
-
         with _group_selection_context(self):
             index = self._selected_obj.index
             result = Series(self.grouper.group_info[0], index)
@@ -2044,7 +2054,6 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-
         >>> df = pd.DataFrame([['a'], ['a'], ['a'], ['b'], ['b'], ['a']],
         ...                   columns=['A'])
         >>> df
@@ -2072,7 +2081,6 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
         """
-
         with _group_selection_context(self):
             index = self._selected_obj.index
             cumcounts = self._cumcount_array(ascending=ascending)
@@ -2304,18 +2312,22 @@ class GroupBy(_GroupBy):
             return self._wrap_transformed_output(output)
 
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         """
         Shift each group by periods observations.
+
+        If freq is passed, the index will be increased using the periods and the freq.
 
         Parameters
         ----------
         periods : int, default 1
             Number of periods to shift.
-        freq : frequency string
+        freq : str, optional
+            Frequency string.
         axis : axis to shift, default 0
+            Shift direction.
         fill_value : optional
+            The scalar value to use for newly introduced missing values.
 
             .. versionadded:: 0.24.0
 
@@ -2323,8 +2335,13 @@ class GroupBy(_GroupBy):
         -------
         Series or DataFrame
             Object shifted within each group.
-        """
 
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        tshift : Shift the time index, using the index’s frequency
+            if available.
+        """
         if freq is not None or axis != 0 or not isna(fill_value):
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 

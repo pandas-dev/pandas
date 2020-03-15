@@ -638,7 +638,8 @@ cdef class TextReader:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')
 
-            if self.encoding and isinstance(source, io.BufferedIOBase):
+            if (self.encoding and hasattr(source, "read") and
+                    not hasattr(source, "encoding")):
                 source = io.TextIOWrapper(
                     source, self.encoding.decode('utf-8'), newline='')
 
@@ -701,7 +702,7 @@ cdef class TextReader:
             char *word
             object name, old_name
             int status
-            uint64_t hr, data_line
+            uint64_t hr, data_line = 0
             char *errors = "strict"
             StringPath path = _string_path(self.c_encoding)
 

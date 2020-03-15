@@ -685,25 +685,6 @@ class TestDataFrameOperators:
         with pytest.raises(ValueError, match=msg1d):
             result = df == tup
 
-    def test_combine_generic(self, float_frame):
-        df1 = float_frame
-        df2 = float_frame.loc[float_frame.index[:-5], ["A", "B", "C"]]
-
-        combined = df1.combine(df2, np.add)
-        combined2 = df2.combine(df1, np.add)
-        assert combined["D"].isna().all()
-        assert combined2["D"].isna().all()
-
-        chunk = combined.loc[combined.index[:-5], ["A", "B", "C"]]
-        chunk2 = combined2.loc[combined2.index[:-5], ["A", "B", "C"]]
-
-        exp = (
-            float_frame.loc[float_frame.index[:-5], ["A", "B", "C"]].reindex_like(chunk)
-            * 2
-        )
-        tm.assert_frame_equal(chunk, exp)
-        tm.assert_frame_equal(chunk2, exp)
-
     def test_inplace_ops_alignment(self):
 
         # inplace ops / ops alignment
@@ -840,8 +821,8 @@ class TestDataFrameOperators:
             df["a"] = [True, False, True]
 
         df_copy = df.copy()
-        iop = "__i{}__".format(op)
-        op = "__{}__".format(op)
+        iop = f"__i{op}__"
+        op = f"__{op}__"
 
         # no id change and value is correct
         getattr(df, iop)(operand)
@@ -864,10 +845,10 @@ class TestDataFrameOperators:
         ]:
 
             tm.assert_series_equal(
-                align(df, val, "index"), Series([1, 2, 3], index=df.index)
+                align(df, val, "index")[1], Series([1, 2, 3], index=df.index)
             )
             tm.assert_series_equal(
-                align(df, val, "columns"), Series([1, 2, 3], index=df.columns)
+                align(df, val, "columns")[1], Series([1, 2, 3], index=df.columns)
             )
 
         # length mismatch
@@ -882,10 +863,11 @@ class TestDataFrameOperators:
 
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         tm.assert_frame_equal(
-            align(df, val, "index"), DataFrame(val, index=df.index, columns=df.columns)
+            align(df, val, "index")[1],
+            DataFrame(val, index=df.index, columns=df.columns),
         )
         tm.assert_frame_equal(
-            align(df, val, "columns"),
+            align(df, val, "columns")[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
 

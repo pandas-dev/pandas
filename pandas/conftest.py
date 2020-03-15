@@ -17,6 +17,7 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.indexes.api import Index, MultiIndex
 
 hypothesis.settings.register_profile(
     "ci",
@@ -106,8 +107,8 @@ axis_frame = axis
 @pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
 def axis_series(request):
     """
-     Fixture for returning the axis numbers of a Series.
-     """
+    Fixture for returning the axis numbers of a Series.
+    """
     return request.param
 
 
@@ -118,7 +119,6 @@ def ip():
 
     Will raise a skip if IPython is not installed.
     """
-
     pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
 
@@ -425,6 +425,15 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=["first", "last", False])
+def keep(request):
+    """
+    Valid values for the 'keep' parameter used in
+    .duplicated or .drop_duplicates
+    """
+    return request.param
+
+
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
@@ -441,7 +450,7 @@ def other_closed(request):
     return request.param
 
 
-@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN")])
+@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA])
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -679,7 +688,6 @@ def any_nullable_int_dtype(request):
     * 'UInt64'
     * 'Int64'
     """
-
     return request.param
 
 
@@ -744,6 +752,7 @@ def any_numpy_dtype(request):
 # categoricals are handled separately
 _any_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
+    ("string", ["a", pd.NA, "c"]),
     ("bytes", [b"a", np.nan, b"c"]),
     ("empty", [np.nan, np.nan, np.nan]),
     ("empty", []),
@@ -754,6 +763,7 @@ _any_skipna_inferred_dtype = [
     ("mixed-integer-float", [1, np.nan, 2.0]),
     ("decimal", [Decimal(1), np.nan, Decimal(2)]),
     ("boolean", [True, np.nan, False]),
+    ("boolean", [True, pd.NA, False]),
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
     ("datetime", [pd.Timestamp("20130101"), np.nan, pd.Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
@@ -869,6 +879,16 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 
 
 @pytest.fixture
+def datetime_series():
+    """
+    Fixture for Series of floats with DatetimeIndex
+    """
+    s = tm.makeTimeSeries()
+    s.name = "ts"
+    return s
+
+
+@pytest.fixture
 def float_frame():
     """
     Fixture for DataFrame of floats with index of unique strings
@@ -943,3 +963,130 @@ def non_mapping_dict_subclass():
             return self._data.__len__()
 
     return TestNonDictMapping
+
+
+def _gen_mi():
+    # a MultiIndex used to test the general functionality of this object
+
+    # See Also: tests.multi.conftest.idx
+    major_axis = Index(["foo", "bar", "baz", "qux"])
+    minor_axis = Index(["one", "two"])
+
+    major_codes = np.array([0, 0, 1, 2, 3, 3])
+    minor_codes = np.array([0, 1, 0, 1, 0, 1])
+    index_names = ["first", "second"]
+    mi = MultiIndex(
+        levels=[major_axis, minor_axis],
+        codes=[major_codes, minor_codes],
+        names=index_names,
+        verify_integrity=False,
+    )
+    return mi
+
+
+indices_dict = {
+    "unicode": tm.makeUnicodeIndex(100),
+    "string": tm.makeStringIndex(100),
+    "datetime": tm.makeDateIndex(100),
+    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
+    "period": tm.makePeriodIndex(100),
+    "timedelta": tm.makeTimedeltaIndex(100),
+    "int": tm.makeIntIndex(100),
+    "uint": tm.makeUIntIndex(100),
+    "range": tm.makeRangeIndex(100),
+    "float": tm.makeFloatIndex(100),
+    "bool": tm.makeBoolIndex(10),
+    "categorical": tm.makeCategoricalIndex(100),
+    "interval": tm.makeIntervalIndex(100),
+    "empty": Index([]),
+    "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "multi": _gen_mi(),
+    "repeats": Index([0, 0, 1, 1, 2, 2]),
+}
+
+
+@pytest.fixture(params=indices_dict.keys())
+def indices(request):
+    """
+    Fixture for many "simple" kinds of indices.
+
+    These indices are unlikely to cover corner cases, e.g.
+        - no names
+        - no NaTs/NaNs
+        - no values near implementation bounds
+        - ...
+    """
+    # copy to avoid mutation, e.g. setting .name
+    return indices_dict[request.param].copy()
+
+
+def _create_series(index):
+    """ Helper for the _series dict """
+    size = len(index)
+    data = np.random.randn(size)
+    return pd.Series(data, index=index, name="a")
+
+
+_series = {
+    f"series-with-{index_id}-index": _create_series(index)
+    for index_id, index in indices_dict.items()
+}
+
+
+@pytest.fixture
+def series_with_simple_index(indices):
+    """
+    Fixture for tests on series with changing types of indices.
+    """
+    return _create_series(indices)
+
+
+_narrow_dtypes = [
+    np.float16,
+    np.float32,
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+]
+_narrow_series = {
+    f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
+    for dtype in _narrow_dtypes
+}
+
+
+@pytest.fixture(params=_narrow_series.keys())
+def narrow_series(request):
+    """
+    Fixture for Series with low precision data types
+    """
+    # copy to avoid mutation, e.g. setting .name
+    return _narrow_series[request.param].copy()
+
+
+_index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
+
+
+@pytest.fixture(params=_index_or_series_objs.keys())
+def index_or_series_obj(request):
+    """
+    Fixture for tests on indexes, series and series with a narrow dtype
+    copy to avoid mutation, e.g. setting .name
+    """
+    return _index_or_series_objs[request.param].copy(deep=True)
+
+
+@pytest.fixture
+def multiindex_year_month_day_dataframe_random_data():
+    """
+    DataFrame with 3 level MultiIndex (year, month, day) covering
+    first 100 business days from 2000-01-01 with random data
+    """
+    tdf = tm.makeTimeDataFrame(100)
+    ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
+    # use Int64Index, to make sure things work
+    ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels], inplace=True)
+    ymd.index.set_names(["year", "month", "day"], inplace=True)
+    return ymd

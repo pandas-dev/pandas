@@ -65,8 +65,8 @@ class SharedTests:
         #  to the case where one has length-1, which numpy would broadcast
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
-        idx = self.array_cls._simple_new(data, freq="D")
-        arr = self.index_cls(idx)
+        arr = self.array_cls._simple_new(data, freq="D")
+        idx = self.index_cls(arr)
 
         with pytest.raises(ValueError, match="Lengths must match"):
             arr == arr[:1]
@@ -239,6 +239,23 @@ class SharedTests:
         expected = arr - pd.Timedelta(days=1)
         arr -= pd.Timedelta(days=1)
         tm.assert_equal(arr, expected)
+
+    def test_shift_fill_int_deprecated(self):
+        # GH#31971
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = self.array_cls(data, freq="D")
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = arr.shift(1, fill_value=1)
+
+        expected = arr.copy()
+        if self.array_cls is PeriodArray:
+            fill_val = PeriodArray._scalar_type._from_ordinal(1, freq=arr.freq)
+        else:
+            fill_val = arr._scalar_type(1)
+        expected[0] = fill_val
+        expected[1:] = arr[:-1]
+        tm.assert_equal(result, expected)
 
 
 class TestDatetimeArray(SharedTests):
@@ -463,7 +480,7 @@ class TestDatetimeArray(SharedTests):
         else:
             other = arr.tz_localize(None)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match="to_concat must have the same"):
             arr._concat_same_type([arr, other])
 
     def test_concat_same_type_different_freq(self):
@@ -687,10 +704,10 @@ class TestPeriodArray(SharedTests):
         result = np.asarray(arr, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-        # to other dtypes
-        with pytest.raises(TypeError):
-            np.asarray(arr, dtype="int64")
+        result = np.asarray(arr, dtype="int64")
+        tm.assert_numpy_array_equal(result, arr.asi8)
 
+        # to other dtypes
         with pytest.raises(TypeError):
             np.asarray(arr, dtype="float64")
 

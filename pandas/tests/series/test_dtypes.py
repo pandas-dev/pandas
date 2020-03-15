@@ -261,7 +261,7 @@ class TestSeriesDtypes:
 
         value = np.random.RandomState(0).randint(0, 10000, 100)
         df = DataFrame({"value": value})
-        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
         df = df.sort_values(by=["value"], ascending=True)
@@ -296,18 +296,18 @@ class TestSeriesDtypes:
         # array conversion
         tm.assert_almost_equal(np.array(s), np.array(s.values))
 
-        # valid conversion
-        for valid in [
-            lambda x: x.astype("category"),
-            lambda x: x.astype(CategoricalDtype()),
-            lambda x: x.astype("object").astype("category"),
-            lambda x: x.astype("object").astype(CategoricalDtype()),
-        ]:
+        tm.assert_series_equal(s.astype("category"), s)
+        tm.assert_series_equal(s.astype(CategoricalDtype()), s)
 
-            result = valid(s)
-            # compare series values
-            # internal .categories can't be compared because it is sorted
-            tm.assert_series_equal(result, s, check_categorical=False)
+        roundtrip_expected = s.cat.set_categories(
+            s.cat.categories.sort_values()
+        ).cat.remove_unused_categories()
+        tm.assert_series_equal(
+            s.astype("object").astype("category"), roundtrip_expected
+        )
+        tm.assert_series_equal(
+            s.astype("object").astype(CategoricalDtype()), roundtrip_expected
+        )
 
         # invalid conversion (these are NOT a dtype)
         msg = (
@@ -384,9 +384,9 @@ class TestSeriesDtypes:
         s = Series(data)
 
         msg = (
-            r"The '{dtype}' dtype has no unit\. "
-            r"Please pass in '{dtype}\[ns\]' instead."
-        ).format(dtype=dtype.__name__)
+            fr"The '{dtype.__name__}' dtype has no unit\. "
+            fr"Please pass in '{dtype.__name__}\[ns\]' instead."
+        )
         with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 

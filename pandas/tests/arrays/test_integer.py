@@ -330,26 +330,37 @@ class TestArithmeticOps(BaseOpsUtil):
         opa = getattr(data, op)
 
         # invalid scalars
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?can only perform ops with numeric values)"
+            r"|(:?IntegerArray cannot perform the operation mod)"
+        )
+        with pytest.raises(TypeError, match=msg):
             ops("foo")
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ops(pd.Timestamp("20180101"))
 
         # invalid array-likes
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ops(pd.Series("foo", index=s.index))
 
         if op != "__rpow__":
             # TODO(extension)
             # rpow with a datetimelike coerces the integer array incorrectly
-            with pytest.raises(TypeError):
+            msg = (
+                "can only perform ops with numeric values|"
+                "cannot perform .* with this index type: DatetimeArray|"
+                "Addition/subtraction of integers and integer-arrays "
+                "with DatetimeArray is no longer supported. *"
+            )
+            with pytest.raises(TypeError, match=msg):
                 ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
         # 2d
         result = opa(pd.DataFrame({"A": s}))
         assert result is NotImplemented
 
-        with pytest.raises(NotImplementedError):
+        msg = r"can only perform ops with 1-d structures"
+        with pytest.raises(NotImplementedError, match=msg):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
     @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
@@ -589,7 +600,8 @@ class TestCasting:
 
         # coerce to same numpy_dtype - mixed
         s = pd.Series(mixed)
-        with pytest.raises(ValueError):
+        msg = r"cannot convert to .*-dtype NumPy array with missing values.*"
+        with pytest.raises(ValueError, match=msg):
             s.astype(all_data.dtype.numpy_dtype)
 
         # coerce to object
@@ -620,6 +632,15 @@ class TestCasting:
         result = s.astype(dtype)
         expected = pd.Series([1, 2, 3, None], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_astype_dt64(self):
+        # GH#32435
+        arr = pd.array([1, 2, 3, pd.NA]) * 10 ** 9
+
+        result = arr.astype("datetime64[ns]")
+
+        expected = np.array([1, 2, 3, "NaT"], dtype="M8[s]").astype("M8[ns]")
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_construct_cast_invalid(self, dtype):
 
@@ -730,16 +751,17 @@ def test_integer_array_constructor():
     expected = integer_array([1, 2, 3, np.nan], dtype="int64")
     tm.assert_extension_array_equal(result, expected)
 
-    with pytest.raises(TypeError):
+    msg = r".* should be .* numpy array. Use the 'integer_array' function instead"
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values.tolist(), mask)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values, mask.tolist())
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values.astype(float), mask)
-
-    with pytest.raises(TypeError):
+    msg = r"__init__\(\) missing 1 required positional argument: 'mask'"
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values)
 
 
@@ -805,7 +827,11 @@ def test_integer_Series_iter_return_native(data):
 )
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
-    with pytest.raises(TypeError):
+    msg = (
+        r"(:?.* cannot be converted to an IntegerDtype)"
+        r"|(:?values must be a 1D list-like)"
+    )
+    with pytest.raises(TypeError, match=msg):
         integer_array(values)
 
 
@@ -1020,7 +1046,8 @@ def test_ufuncs_binary_int(ufunc):
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
 def test_ufunc_reduce_raises(values):
     a = integer_array(values)
-    with pytest.raises(NotImplementedError):
+    msg = r"The 'reduce' method is not supported."
+    with pytest.raises(NotImplementedError, match=msg):
         np.add.reduce(a)
 
 
@@ -1036,9 +1063,9 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_roundtrip(data):
-    # roundtrip possible from arrow 1.0.0
+    # roundtrip possible from arrow 0.16.0
     import pyarrow as pa
 
     df = pd.DataFrame({"a": data})
@@ -1046,6 +1073,19 @@ def test_arrow_roundtrip(data):
     assert table.field("a").type == str(data.dtype.numpy_dtype)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_arrow_from_arrow_uint():
+    # https://github.com/pandas-dev/pandas/issues/31896
+    # possible mismatch in types
+    import pyarrow as pa
+
+    dtype = pd.UInt32Dtype()
+    result = dtype.__from_arrow__(pa.array([1, 2, 3, 4, None], type="int64"))
+    expected = pd.array([1, 2, 3, 4, None], dtype="UInt32")
+
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1077,6 +1117,23 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=True)
     expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
     tm.assert_series_equal(result, expected)
+
+
+def test_array_setitem_nullable_boolean_mask():
+    # GH 31446
+    ser = pd.Series([1, 2], dtype="Int64")
+    result = ser.where(ser > 1)
+    expected = pd.Series([pd.NA, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_array_setitem():
+    # GH 31446
+    arr = pd.Series([1, 2], dtype="Int64").array
+    arr[arr > 1] = 1
+
+    expected = pd.array([1, 1], dtype="Int64")
+    tm.assert_extension_array_equal(arr, expected)
 
 
 # TODO(jreback) - these need testing / are broken
