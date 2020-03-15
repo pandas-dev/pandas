@@ -823,3 +823,13 @@ class TestFrameArithmeticUnsorted:
         half = ts[::2]
         result = ts + half.take(np.random.permutation(len(half)))
         tm.assert_frame_equal(result, expected)
+
+
+def test_pow_with_realignment():
+    # GH#32685 pow has special semantics for operating with null values
+    left = pd.DataFrame({"A": [0, 1, 2]})
+    right = pd.DataFrame(index=[0, 1, 2])
+
+    result = left ** right
+    expected = pd.DataFrame({"A": [np.nan, 1.0, np.nan]})
+    tm.assert_frame_equal(result, expected)
