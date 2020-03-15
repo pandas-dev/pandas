@@ -9,7 +9,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Dtype, Scalar, T
+from pandas._typing import Dtype, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
