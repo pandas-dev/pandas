@@ -395,6 +395,12 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="-3M")
 
+        msg = "Frequency must be positive, because it represents span: 0M"
+        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=False
+        ):
+            Period("2011-01", freq="0M")
+
     def test_period_cons_combined(self):
         p = [
             (
