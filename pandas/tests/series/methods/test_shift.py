@@ -263,3 +263,13 @@ class TestShift:
 
         tm.assert_index_equal(s.values.categories, sp1.values.categories)
         tm.assert_index_equal(s.values.categories, sn2.values.categories)
+
+    def test_shift_dt64values_int_fill_deprecated(self):
+        # GH#31971
+        ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.shift(1, fill_value=0)
+
+        expected = pd.Series([pd.Timestamp(0), ser[0]])
+        tm.assert_series_equal(result, expected)
