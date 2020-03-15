@@ -1,9 +1,11 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for datetime64 and datetime64tz dtypes
+import contextlib
 from datetime import datetime, timedelta
 from itertools import product, starmap
 import operator
+from typing import Iterator
 import warnings
 
 import numpy as np
@@ -12,6 +14,7 @@ import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
+from pandas.compat import PY37
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
@@ -1259,7 +1262,7 @@ class TestDatetime64DateOffsetArithmetic:
         ],
     )
     @pytest.mark.parametrize("normalize", [True, False])
-    @pytest.mark.parametrize("n", [5])
+    @pytest.mark.parametrize("n", [0, 5])
     def test_dt64arr_add_sub_DateOffsets(
         self, box_with_array, n, normalize, cls_and_kwargs
     ):
@@ -1300,7 +1303,23 @@ class TestDatetime64DateOffsetArithmetic:
 
         offset_cls = getattr(pd.offsets, cls_name)
 
-        with warnings.catch_warnings(record=True):
+        if PY37:
+            null_cm = contextlib.nullcontext()
+        else:
+
+            @contextlib.contextmanager
+            def _nullcontext() -> Iterator[None]:
+                """Workaround, as nullcontext was implemented in Python 3.7."""
+                yield None
+
+            null_cm = _nullcontext()
+
+        if n != 0 or cls_name in ["Week"]:
+            extra_cm = null_cm
+        else:
+            extra_cm = tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+
+        with warnings.catch_warnings(record=True), extra_cm:
             # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
             # applied to Series or DatetimeIndex
             # we aren't testing that here, so ignore.
