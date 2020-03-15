@@ -82,11 +82,7 @@ class TestCategoricalIndex:
         with pytest.raises(TypeError, match=msg):
             df.loc["d", "C"] = 10
 
-        msg = (
-            "cannot do label indexing on CategoricalIndex with these "
-            r"indexers \[1\] of type int"
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(KeyError, match="^1$"):
             df.loc[1]
 
     def test_getitem_scalar(self):

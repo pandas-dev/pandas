@@ -28,7 +28,6 @@ class Generic:
         if value is specified use that if its a scalar
         if value is an array, repeat it as needed
         """
-
         if isinstance(shape, int):
             shape = tuple([shape] * self._ndim)
         if value is not None:
@@ -160,26 +159,13 @@ class Generic:
 
         o = self._construct(shape=4, value=9, dtype=np.int64)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._data = o._data.downcast()
         self._compare(result, o)
-
-        o = self._construct(shape=4, value=9.0)
-        expected = o.astype(np.int64)
-        result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
-        self._compare(result, expected)
 
         o = self._construct(shape=4, value=9.5)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._data = o._data.downcast()
         self._compare(result, o)
-
-        # are close
-        o = self._construct(shape=4, value=9.000000000005)
-        result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
-        expected = o.astype(np.int64)
-        self._compare(result, expected)
 
     def test_constructor_compound_dtypes(self):
         # see gh-5191
@@ -188,8 +174,10 @@ class Generic:
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        msg = "compound dtypes are not implemented"
-        f"in the {self._typ.__name__} constructor"
+        msg = (
+            "compound dtypes are not implemented "
+            f"in the {self._typ.__name__} constructor"
+        )
 
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
@@ -258,39 +246,31 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    def test_head_tail(self):
+    @pytest.mark.parametrize("index", tm.all_index_generator(10))
+    def test_head_tail(self, index):
         # GH5370
 
         o = self._construct(shape=10)
 
-        # check all index types
-        for index in [
-            tm.makeFloatIndex,
-            tm.makeIntIndex,
-            tm.makeStringIndex,
-            tm.makeUnicodeIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
-        ]:
-            axis = o._get_axis_name(0)
-            setattr(o, axis, index(len(getattr(o, axis))))
+        axis = o._get_axis_name(0)
+        setattr(o, axis, index)
 
-            o.head()
+        o.head()
 
-            self._compare(o.head(), o.iloc[:5])
-            self._compare(o.tail(), o.iloc[-5:])
+        self._compare(o.head(), o.iloc[:5])
+        self._compare(o.tail(), o.iloc[-5:])
 
-            # 0-len
-            self._compare(o.head(0), o.iloc[0:0])
-            self._compare(o.tail(0), o.iloc[0:0])
+        # 0-len
+        self._compare(o.head(0), o.iloc[0:0])
+        self._compare(o.tail(0), o.iloc[0:0])
 
-            # bounded
-            self._compare(o.head(len(o) + 1), o)
-            self._compare(o.tail(len(o) + 1), o)
+        # bounded
+        self._compare(o.head(len(o) + 1), o)
+        self._compare(o.tail(len(o) + 1), o)
 
-            # neg index
-            self._compare(o.head(-3), o.head(7))
-            self._compare(o.tail(-3), o.tail(7))
+        # neg index
+        self._compare(o.head(-3), o.head(7))
+        self._compare(o.tail(-3), o.tail(7))
 
     def test_sample(self):
         # Fixes issue: 2419
@@ -469,16 +449,16 @@ class Generic:
         with pytest.raises(TypeError, match=errmsg):
             obj.any(epic=starwars)  # logical_function
 
-    def test_api_compat(self):
+    @pytest.mark.parametrize("func", ["sum", "cumsum", "any", "var"])
+    def test_api_compat(self, func):
 
         # GH 12021
         # compat for __name__, __qualname__
 
         obj = self._construct(5)
-        for func in ["sum", "cumsum", "any", "var"]:
-            f = getattr(obj, func)
-            assert f.__name__ == func
-            assert f.__qualname__.endswith(func)
+        f = getattr(obj, func)
+        assert f.__name__ == func
+        assert f.__qualname__.endswith(func)
 
     def test_stat_non_defaults_args(self):
         obj = self._construct(5)
@@ -511,19 +491,17 @@ class Generic:
         self._compare(big.truncate(before=0, after=3e6), big)
         self._compare(big.truncate(before=-1, after=2e6), big)
 
-    def test_copy_and_deepcopy(self):
+    @pytest.mark.parametrize(
+        "func",
+        [copy, deepcopy, lambda x: x.copy(deep=False), lambda x: x.copy(deep=True)],
+    )
+    @pytest.mark.parametrize("shape", [0, 1, 2])
+    def test_copy_and_deepcopy(self, shape, func):
         # GH 15444
-        for shape in [0, 1, 2]:
-            obj = self._construct(shape)
-            for func in [
-                copy,
-                deepcopy,
-                lambda x: x.copy(deep=False),
-                lambda x: x.copy(deep=True),
-            ]:
-                obj_copy = func(obj)
-                assert obj_copy is not obj
-                self._compare(obj_copy, obj)
+        obj = self._construct(shape)
+        obj_copy = func(obj)
+        assert obj_copy is not obj
+        self._compare(obj_copy, obj)
 
     @pytest.mark.parametrize(
         "periods,fill_method,limit,exp",

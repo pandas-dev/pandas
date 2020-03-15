@@ -80,7 +80,7 @@ about reStructuredText can be found in:
 * `Quick reStructuredText reference <https://docutils.sourceforge.io/docs/user/rst/quickref.html>`_
 * `Full reStructuredText specification <https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html>`_
 
-Pandas has some helpers for sharing docstrings between related classes, see
+pandas has some helpers for sharing docstrings between related classes, see
 :ref:`docstring.sharing`.
 
 The rest of this document will summarize all the above guides, and will
@@ -932,38 +932,36 @@ plot will be generated automatically when building the documentation.
 Sharing docstrings
 ------------------
 
-Pandas has a system for sharing docstrings, with slight variations, between
+pandas has a system for sharing docstrings, with slight variations, between
 classes. This helps us keep docstrings consistent, while keeping things clear
 for the user reading. It comes at the cost of some complexity when writing.
 
 Each shared docstring will have a base template with variables, like
-``%(klass)s``. The variables filled in later on using the ``Substitution``
-decorator. Finally, docstrings can be appended to with the ``Appender``
-decorator.
+``{klass}``. The variables filled in later on using the ``doc`` decorator.
+Finally, docstrings can also be appended to with the ``doc`` decorator.
 
 In this example, we'll create a parent docstring normally (this is like
 ``pandas.core.generic.NDFrame``. Then we'll have two children (like
 ``pandas.core.series.Series`` and ``pandas.core.frame.DataFrame``). We'll
-substitute the children's class names in this docstring.
+substitute the class names in this docstring.
 
 .. code-block:: python
 
    class Parent:
+       @doc(klass="Parent")
        def my_function(self):
-           """Apply my function to %(klass)s."""
+           """Apply my function to {klass}."""
            ...
 
 
    class ChildA(Parent):
-       @Substitution(klass="ChildA")
-       @Appender(Parent.my_function.__doc__)
+       @doc(Parent.my_function, klass="ChildA")
        def my_function(self):
            ...
 
 
    class ChildB(Parent):
-       @Substitution(klass="ChildB")
-       @Appender(Parent.my_function.__doc__)
+       @doc(Parent.my_function, klass="ChildB")
        def my_function(self):
            ...
 
@@ -972,18 +970,16 @@ The resulting docstrings are
 .. code-block:: python
 
    >>> print(Parent.my_function.__doc__)
-   Apply my function to %(klass)s.
+   Apply my function to Parent.
    >>> print(ChildA.my_function.__doc__)
    Apply my function to ChildA.
    >>> print(ChildB.my_function.__doc__)
    Apply my function to ChildB.
 
-Notice two things:
+Notice:
 
 1. We "append" the parent docstring to the children docstrings, which are
    initially empty.
-2. Python decorators are applied inside out. So the order is Append then
-   Substitution, even though Substitution comes first in the file.
 
 Our files will often contain a module-level ``_shared_doc_kwargs`` with some
 common substitution values (things like ``klass``, ``axes``, etc).
@@ -992,14 +988,13 @@ You can substitute and append in one shot with something like
 
 .. code-block:: python
 
-   @Appender(template % _shared_doc_kwargs)
+   @doc(template, **_shared_doc_kwargs)
    def my_function(self):
        ...
 
 where ``template`` may come from a module-level ``_shared_docs`` dictionary
 mapping function names to docstrings. Wherever possible, we prefer using
-``Appender`` and ``Substitution``, since the docstring-writing processes is
-slightly closer to normal.
+``doc``, since the docstring-writing processes is slightly closer to normal.
 
 See ``pandas.core.generic.NDFrame.fillna`` for an example template, and
 ``pandas.core.series.Series.fillna`` and ``pandas.core.generic.frame.fillna``

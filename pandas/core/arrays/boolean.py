@@ -488,7 +488,6 @@ class BooleanArray(BaseMaskedArray):
 
         Examples
         --------
-
         The result indicates whether any element is True (and by default
         skips NAs):
 
@@ -557,7 +556,6 @@ class BooleanArray(BaseMaskedArray):
 
         Examples
         --------
-
         The result indicates whether any element is True (and by default
         skips NAs):
 

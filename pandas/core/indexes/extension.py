@@ -6,6 +6,7 @@ from typing import List
 import numpy as np
 
 from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -39,7 +40,6 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     -------
     attribute, method, property, or cache_readonly
     """
-
     attr = getattr(delegate, name)
 
     if isinstance(attr, property):
@@ -225,9 +225,15 @@ class ExtensionIndex(Index):
 
     # ---------------------------------------------------------------------
 
+    def __array__(self, dtype=None) -> np.ndarray:
+        return np.asarray(self._data, dtype=dtype)
+
     @property
     def _ndarray_values(self) -> np.ndarray:
         return self._data._ndarray_values
+
+    def _get_engine_target(self) -> np.ndarray:
+        return self._data._values_for_argsort()
 
     @Appender(Index.dropna.__doc__)
     def dropna(self, how="any"):
@@ -242,6 +248,10 @@ class ExtensionIndex(Index):
         nv.validate_repeat(tuple(), dict(axis=axis))
         result = self._data.repeat(repeats, axis=axis)
         return self._shallow_copy(result)
+
+    def insert(self, loc: int, item):
+        # ExtensionIndex subclasses must override Index.insert
+        raise AbstractMethodError(self)
 
     def _concat_same_dtype(self, to_concat, name):
         arr = type(self._data)._concat_same_type(to_concat)

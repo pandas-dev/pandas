@@ -308,7 +308,7 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
 
     if errors in (None, "raise"):
         index = int(multiple_elts)
-        msg = "Integer out of range. at position {index}".format(index=index)
+        msg = f"Integer out of range. at position {index}"
 
         with pytest.raises(ValueError, match=msg):
             to_numeric(arr, **kwargs)
@@ -627,3 +627,13 @@ def test_non_coerce_uint64_conflict(errors, exp):
     else:
         result = to_numeric(ser, errors=errors)
         tm.assert_series_equal(result, ser)
+
+
+def test_failure_to_convert_uint64_string_to_NaN():
+    # GH 32394
+    result = to_numeric("uint64", errors="coerce")
+    assert np.isnan(result)
+
+    ser = Series([32, 64, np.nan])
+    result = to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
+    tm.assert_series_equal(result, ser)

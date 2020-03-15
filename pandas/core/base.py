@@ -9,11 +9,10 @@ from typing import Dict, FrozenSet, List, Optional, Union
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -86,15 +85,6 @@ class PandasObject(DirNamesMixin):
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
         return super().__sizeof__()
-
-    def _ensure_type(self: T, obj) -> T:
-        """
-        Ensure that an object has same type as self.
-
-        Used by type checkers.
-        """
-        assert isinstance(obj, type(self)), type(obj)
-        return obj
 
 
 class NoNewAttributesMixin:
@@ -458,7 +448,7 @@ class SelectionMixin:
                 # return a MI Series
                 try:
                     result = concat(result)
-                except TypeError:
+                except TypeError as err:
                     # we want to give a nice error here if
                     # we have non-same sized objects, so
                     # we don't automatically broadcast
@@ -467,7 +457,7 @@ class SelectionMixin:
                         "cannot perform both aggregation "
                         "and transformation operations "
                         "simultaneously"
-                    )
+                    ) from err
 
                 return result, True
 
@@ -553,7 +543,7 @@ class SelectionMixin:
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
-        except TypeError:
+        except TypeError as err:
 
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -562,7 +552,9 @@ class SelectionMixin:
 
             result = Series(results, index=keys, name=self.name)
             if is_nested_object(result):
-                raise ValueError("cannot combine transform and aggregation operations")
+                raise ValueError(
+                    "cannot combine transform and aggregation operations"
+                ) from err
             return result
 
     def _get_cython_func(self, arg: str) -> Optional[str]:
@@ -925,24 +917,57 @@ class IndexOpsMixin:
         nv.validate_max(args, kwargs)
         return nanops.nanmax(self._values, skipna=skipna)
 
+    @doc(op="max", oppose="min", value="largest")
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Return an ndarray of the maximum argument indexer.
+        Return int position of the {value} value in the Series.
+
+        If the {op}imum is achieved in multiple locations,
+        the first row position is returned.
 
         Parameters
         ----------
-        axis : {None}
+        axis : {{None}}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
-        numpy.ndarray
-            Indices of the maximum values.
+        int
+            Row position of the {op}imum value.
 
         See Also
         --------
-        numpy.ndarray.argmax
+        Series.arg{op} : Return position of the {op}imum value.
+        Series.arg{oppose} : Return position of the {oppose}imum value.
+        numpy.ndarray.arg{op} : Equivalent method for numpy arrays.
+        Series.idxmax : Return index label of the maximum values.
+        Series.idxmin : Return index label of the minimum values.
+
+        Examples
+        --------
+        Consider dataset containing cereal calories
+
+        >>> s = pd.Series({{'Corn Flakes': 100.0, 'Almond Delight': 110.0,
+        ...                'Cinnamon Toast Crunch': 120.0, 'Cocoa Puff': 110.0}})
+        >>> s
+        Corn Flakes              100.0
+        Almond Delight           110.0
+        Cinnamon Toast Crunch    120.0
+        Cocoa Puff               110.0
+        dtype: float64
+
+        >>> s.argmax()
+        2
+        >>> s.argmin()
+        0
+
+        The maximum cereal calories is the third element and
+        the minimum cereal calories is the first element,
+        since series is zero-indexed.
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
@@ -989,24 +1014,8 @@ class IndexOpsMixin:
         nv.validate_min(args, kwargs)
         return nanops.nanmin(self._values, skipna=skipna)
 
+    @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return a ndarray of the minimum argument indexer.
-
-        Parameters
-        ----------
-        axis : {None}
-            Dummy argument for consistency with Series.
-        skipna : bool, default True
-
-        Returns
-        -------
-        numpy.ndarray
-
-        See Also
-        --------
-        numpy.ndarray.argmin
-        """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
@@ -1025,7 +1034,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.tolist
+        numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
+            nested list of Python scalars.
         """
         if not isinstance(self._values, np.ndarray):
             # check for ndarray instead of dtype to catch DTA/TDA
@@ -1196,6 +1206,7 @@ class IndexOpsMixin:
         --------
         Series.count: Number of non-NA elements in a Series.
         DataFrame.count: Number of non-NA elements in a DataFrame.
+        DataFrame.value_counts: Equivalent method on DataFrames.
 
         Examples
         --------
@@ -1371,7 +1382,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
 
         Notes
         -----
@@ -1386,7 +1398,8 @@ class IndexOpsMixin:
             v += lib.memory_usage_of_objects(self.array)
         return v
 
-    @Substitution(
+    @doc(
+        algorithms.factorize,
         values="",
         order="",
         size_hint="",
@@ -1398,7 +1411,6 @@ class IndexOpsMixin:
             """
         ),
     )
-    @Appender(algorithms._shared_docs["factorize"])
     def factorize(self, sort=False, na_sentinel=-1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
@@ -1442,8 +1454,8 @@ class IndexOpsMixin:
 
         See Also
         --------
-        sort_values
-        numpy.searchsorted
+        sort_values : Sort by the values along either axis.
+        numpy.searchsorted : Similar method from NumPy.
 
         Notes
         -----
@@ -1451,41 +1463,49 @@ class IndexOpsMixin:
 
         Examples
         --------
-        >>> x = pd.Series([1, 2, 3])
-        >>> x
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser
         0    1
         1    2
         2    3
         dtype: int64
 
-        >>> x.searchsorted(4)
+        >>> ser.searchsorted(4)
         3
 
-        >>> x.searchsorted([0, 4])
+        >>> ser.searchsorted([0, 4])
         array([0, 3])
 
-        >>> x.searchsorted([1, 3], side='left')
+        >>> ser.searchsorted([1, 3], side='left')
         array([0, 2])
 
-        >>> x.searchsorted([1, 3], side='right')
+        >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread',
-                                'cheese', 'milk'], ordered=True)
+        >>> ser = pd.Categorical(
+        ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
+        ... )
+        >>> ser
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
-        >>> x.searchsorted('bread')
+        >>> ser.searchsorted('bread')
         1
 
-        >>> x.searchsorted(['bread'], side='right')
+        >>> ser.searchsorted(['bread'], side='right')
         array([3])
 
         If the values are not monotonically sorted, wrong locations
         may be returned:
 
-        >>> x = pd.Series([2, 1, 3])
-        >>> x.searchsorted(1)
+        >>> ser = pd.Series([2, 1, 3])
+        >>> ser
+        0    2
+        1    1
+        2    3
+        dtype: int64
+
+        >>> ser.searchsorted(1)  # doctest: +SKIP
         0  # wrong result, correct would be 1
         """
 

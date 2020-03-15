@@ -8,17 +8,7 @@ from datetime import date, tzinfo
 import itertools
 import os
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Hashable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -27,7 +17,7 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries
+from pandas._typing import ArrayLike, FrameOrSeries, Label
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
@@ -114,7 +104,6 @@ def _ensure_term(where, scope_level: int):
     that are passed
     create the terms here with a frame_level=2 (we are 2 levels down)
     """
-
     # only consider list/tuple here as an ndarray is automatically a coordinate
     # list
     level = scope_level + 1
@@ -246,7 +235,6 @@ def to_hdf(
     encoding: str = "UTF-8",
 ):
     """ store this object, close it if we opened it """
-
     if append:
         f = lambda store: store.append(
             key,
@@ -362,7 +350,6 @@ def read_hdf(
     >>> df.to_hdf('./store.h5', 'data')
     >>> reread = pd.read_hdf('./store.h5')
     """
-
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
             f"mode {mode} is not allowed while performing a read. "
@@ -685,7 +672,7 @@ class HDFStore:
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == "r" and "Unable to open/create file" in str(err):
-                raise IOError(str(err))
+                raise IOError(str(err)) from err
             raise
 
     def close(self):
@@ -903,7 +890,6 @@ class HDFStore:
         raises TypeError if keys is not a list or tuple
         raises ValueError if the tables are not ALL THE SAME DIMENSIONS
         """
-
         # default to single select
         where = _ensure_term(where, scope_level=1)
         if isinstance(keys, (list, tuple)) and len(keys) == 1:
@@ -1073,14 +1059,14 @@ class HDFStore:
         except AssertionError:
             # surface any assertion errors for e.g. debugging
             raise
-        except Exception:
+        except Exception as err:
             # In tests we get here with ClosedFileError, TypeError, and
             #  _table_mod.NoSuchNodeError.  TODO: Catch only these?
 
             if where is not None:
                 raise ValueError(
                     "trying to remove a node with a non-None where clause!"
-                )
+                ) from err
 
             # we are actually trying to remove a node (with children)
             node = self.get_node(key)
@@ -1303,7 +1289,6 @@ class HDFStore:
         ------
         TypeError: raises if the node is not a table
         """
-
         # version requirements
         _tables()
         s = self.get_storer(key)
@@ -1523,12 +1508,11 @@ class HDFStore:
 
     def _validate_format(self, format: str) -> str:
         """ validate / deprecate formats """
-
         # validate
         try:
             format = _FORMAT_MAP[format.lower()]
-        except KeyError:
-            raise TypeError(f"invalid HDFStore format specified [{format}]")
+        except KeyError as err:
+            raise TypeError(f"invalid HDFStore format specified [{format}]") from err
 
         return format
 
@@ -1541,7 +1525,6 @@ class HDFStore:
         errors: str = "strict",
     ) -> Union["GenericFixed", "Table"]:
         """ return a suitable class to operate """
-
         cls: Union[Type["GenericFixed"], Type["Table"]]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
@@ -1586,8 +1569,8 @@ class HDFStore:
             _STORER_MAP = {"series": SeriesFixed, "frame": FrameFixed}
             try:
                 cls = _STORER_MAP[pt]
-            except KeyError:
-                raise error("_STORER_MAP")
+            except KeyError as err:
+                raise error("_STORER_MAP") from err
             return cls(self, group, encoding=encoding, errors=errors)
 
         # existing node (and must be a table)
@@ -1621,8 +1604,8 @@ class HDFStore:
         }
         try:
             cls = _TABLE_MAP[tt]
-        except KeyError:
-            raise error("_TABLE_MAP")
+        except KeyError as err:
+            raise error("_TABLE_MAP") from err
 
         return cls(self, group, encoding=encoding, errors=errors)
 
@@ -1837,7 +1820,6 @@ class IndexCol:
 
     Parameters
     ----------
-
     axis   : axis which I reference
     values : the ndarray like converted values
     kind   : a string description of this type
@@ -2027,7 +2009,6 @@ class IndexCol:
 
     def validate_col(self, itemsize=None):
         """ validate this column: return the compared against itemsize """
-
         # validate this column for string truncation (or reset to the max size)
         if _ensure_decoded(self.kind) == "string":
             c = self.col
@@ -2059,7 +2040,6 @@ class IndexCol:
         set/update the info for this indexable with the key/value
         if there is a conflict raise/warn as needed
         """
-
         for key in self._info_fields:
 
             value = getattr(self, key, None)
@@ -2151,7 +2131,6 @@ class DataCol(IndexCol):
 
     Parameters
     ----------
-
     data   : the actual data
     cname  : the column name in the table to hold the data (typically
                 values)
@@ -2242,7 +2221,6 @@ class DataCol(IndexCol):
         """
         Get an appropriately typed and shaped pytables.Col object for values.
         """
-
         dtype = values.dtype
         itemsize = dtype.itemsize
 
@@ -2608,7 +2586,6 @@ class Fixed:
         infer the axes of my storer
         return a boolean indicating if we have a valid storer or not
         """
-
         s = self.storable
         if s is None:
             return False
@@ -2824,7 +2801,7 @@ class GenericFixed(Fixed):
 
         levels = []
         codes = []
-        names: List[Optional[Hashable]] = []
+        names: List[Label] = []
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
@@ -2894,7 +2871,6 @@ class GenericFixed(Fixed):
 
     def write_array_empty(self, key: str, value: ArrayLike):
         """ write a 0-len array """
-
         # ugly hack for length 0 axes
         arr = np.empty((1,) * value.ndim)
         self._handle.create_array(self.group, key, arr)
@@ -2990,7 +2966,7 @@ class SeriesFixed(GenericFixed):
     pandas_kind = "series"
     attributes = ["name"]
 
-    name: Optional[Hashable]
+    name: Label
 
     @property
     def shape(self):
@@ -3095,9 +3071,8 @@ class BlockManagerFixed(GenericFixed):
 
         self.attrs.ndim = data.ndim
         for i, ax in enumerate(data.axes):
-            if i == 0:
-                if not ax.is_unique:
-                    raise ValueError("Columns index has to be unique for fixed format")
+            if i == 0 and (not ax.is_unique):
+                raise ValueError("Columns index has to be unique for fixed format")
             self.write_index(f"axis{i}", ax)
 
         # Supporting mixed-type DataFrame objects...nontrivial
@@ -3239,7 +3214,8 @@ class Table(Fixed):
         return isinstance(self.levels, list)
 
     def validate_multiindex(self, obj):
-        """validate that we can store the multi-index; reset and return the
+        """
+        validate that we can store the multi-index; reset and return the
         new object
         """
         levels = [
@@ -3247,10 +3223,10 @@ class Table(Fixed):
         ]
         try:
             return obj.reset_index(), levels
-        except ValueError:
+        except ValueError as err:
             raise ValueError(
                 "duplicate names/columns in the multi-index when storing as a table"
-            )
+            ) from err
 
     @property
     def nrows_expected(self) -> int:
@@ -3304,7 +3280,6 @@ class Table(Fixed):
 
     def queryables(self) -> Dict[str, Any]:
         """ return a dict of the kinds allowable columns for this object """
-
         # mypy doesn't recognize DataFrame._AXIS_NAMES, so we re-write it here
         axis_names = {0: "index", 1: "columns"}
 
@@ -3391,7 +3366,8 @@ class Table(Fixed):
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
-        """validate the min_itemsize doesn't contain items that are not in the
+        """
+        validate the min_itemsize doesn't contain items that are not in the
         axes this needs data_columns to be defined
         """
         if min_itemsize is None:
@@ -3513,7 +3489,6 @@ class Table(Fixed):
         Cannot index Time64Col or ComplexCol.
         Pytables must be >= 3.0.
         """
-
         if not self.infer_axes():
             return
         if columns is False:
@@ -3580,7 +3555,6 @@ class Table(Fixed):
         -------
         List[Tuple[index_values, column_values]]
         """
-
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         values = selection.select()
@@ -3605,10 +3579,10 @@ class Table(Fixed):
         return obj
 
     def validate_data_columns(self, data_columns, min_itemsize, non_index_axes):
-        """take the input data_columns and min_itemize and create a data
+        """
+        take the input data_columns and min_itemize and create a data
         columns spec
         """
-
         if not len(non_index_axes):
             return []
 
@@ -3675,7 +3649,6 @@ class Table(Fixed):
         min_itemsize: Dict[str, int] or None, default None
             The min itemsize for a column in bytes.
         """
-
         if not isinstance(obj, DataFrame):
             group = self.group._v_name
             raise TypeError(
@@ -3801,11 +3774,11 @@ class Table(Fixed):
             if table_exists and validate:
                 try:
                     existing_col = self.values_axes[i]
-                except (IndexError, KeyError):
+                except (IndexError, KeyError) as err:
                     raise ValueError(
                         f"Incompatible appended table [{blocks}]"
                         f"with existing table [{self.values_axes}]"
-                    )
+                    ) from err
             else:
                 existing_col = None
 
@@ -3916,12 +3889,12 @@ class Table(Fixed):
                     b, b_items = by_items.pop(items)
                     new_blocks.append(b)
                     new_blk_items.append(b_items)
-                except (IndexError, KeyError):
+                except (IndexError, KeyError) as err:
                     jitems = ",".join(pprint_thing(item) for item in items)
                     raise ValueError(
                         f"cannot match existing table structure for [{jitems}] "
                         "on appending data"
-                    )
+                    ) from err
             blocks = new_blocks
             blk_items = new_blk_items
 
@@ -3929,7 +3902,6 @@ class Table(Fixed):
 
     def process_axes(self, obj, selection: "Selection", columns=None):
         """ process axes filters """
-
         # make a copy to avoid side effects
         if columns is not None:
             columns = list(columns)
@@ -3994,7 +3966,6 @@ class Table(Fixed):
         expectedrows: Optional[int],
     ) -> Dict[str, Any]:
         """ create the description of the table from the axes & values """
-
         # provided expected rows if its passed
         if expectedrows is None:
             expectedrows = max(self.nrows_expected, 10000)
@@ -4021,10 +3992,10 @@ class Table(Fixed):
     def read_coordinates(
         self, where=None, start: Optional[int] = None, stop: Optional[int] = None,
     ):
-        """select coordinates (row numbers) from a table; return the
+        """
+        select coordinates (row numbers) from a table; return the
         coordinates object
         """
-
         # validate the version
         self.validate_version(where)
 
@@ -4051,10 +4022,10 @@ class Table(Fixed):
         start: Optional[int] = None,
         stop: Optional[int] = None,
     ):
-        """return a single column from the table, generally only indexables
+        """
+        return a single column from the table, generally only indexables
         are interesting
         """
-
         # validate the version
         self.validate_version()
 
@@ -4186,7 +4157,6 @@ class AppendableTable(Table):
         """
         we form the data into a 2-d including indexes,values,mask write chunk-by-chunk
         """
-
         names = self.dtype.names
         nrows = self.nrows_expected
 
@@ -4230,7 +4200,7 @@ class AppendableTable(Table):
             chunksize = 100000
 
         rows = np.empty(min(chunksize, nrows), dtype=self.dtype)
-        chunks = int(nrows / chunksize) + 1
+        chunks = nrows // chunksize + 1
         for i in range(chunks):
             start_i = i * chunksize
             end_i = min((i + 1) * chunksize, nrows)
@@ -4259,7 +4229,6 @@ class AppendableTable(Table):
         mask : an array of the masks
         values : an array of the values
         """
-
         # 0 len
         for v in values:
             if not np.prod(v.shape):
@@ -4854,7 +4823,6 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     -------
     np.ndarray[fixed-length-string]
     """
-
     # encode if needed
     if len(data):
         data = (
@@ -5083,7 +5051,7 @@ class Selection:
         q = self.table.queryables()
         try:
             return PyTablesExpr(where, queryables=q, encoding=self.table.encoding)
-        except NameError:
+        except NameError as err:
             # raise a nice message, suggesting that the user should use
             # data_columns
             qkeys = ",".join(q.keys())
@@ -5095,7 +5063,7 @@ class Selection:
                 "            an axis (e.g. 'index' or 'columns'), or a "
                 "data_column\n"
                 f"            The currently defined references are: {qkeys}\n"
-            )
+            ) from err
 
     def select(self):
         """

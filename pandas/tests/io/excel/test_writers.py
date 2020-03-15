@@ -41,7 +41,7 @@ def set_engine(engine, ext):
     which engine should be used to write Excel files. After executing
     the test it rolls back said change to the global option.
     """
-    option_name = "io.excel.{ext}.writer".format(ext=ext.strip("."))
+    option_name = f"io.excel.{ext.strip('.')}.writer"
     prev_engine = get_option(option_name)
     set_option(option_name, engine)
     yield
@@ -452,7 +452,7 @@ class TestExcelWriter:
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, "test1", index_col=0).astype(np_type)
 
-        tm.assert_frame_equal(df, recons, check_dtype=False)
+        tm.assert_frame_equal(df, recons)
 
     @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
     def test_bool_types(self, np_type, path):
@@ -564,7 +564,7 @@ class TestExcelWriter:
 
         reader = ExcelFile(path)
         recons = pd.read_excel(reader, "test1", index_col=[0, 1])
-        tm.assert_frame_equal(df, recons, check_less_precise=True)
+        tm.assert_frame_equal(df, recons)
 
     def test_excel_roundtrip_indexname(self, merge_cells, path):
         df = DataFrame(np.random.randn(10, 4))
@@ -1206,7 +1206,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path="foo.{ext}".format(ext=ext))
+        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_path_local_path(self, engine, ext):
@@ -1214,7 +1214,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path="foo.{ext}".format(ext=ext))
+        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, merge_cells, path):
