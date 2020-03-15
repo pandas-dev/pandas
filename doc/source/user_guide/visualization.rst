@@ -1432,6 +1432,7 @@ Asymmetrical error bars are also supported, however raw error values must be pro
 Here is an example of one way to easily plot group means with standard deviations from the raw data.
 
 .. ipython:: python
+   :okwarning:
 
    # Generate the data
    ix3 = pd.MultiIndex.from_arrays([

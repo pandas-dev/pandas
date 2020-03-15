@@ -1357,6 +1357,9 @@ class BarPlot(MPLPlot):
 
         if isinstance(self.data.index, ABCMultiIndex):
             # No real handling for MultiIndex yet
+            warnings.warn(
+                "Bar plot with a MultiIndex is not supported.", UserWarning,
+            )
             self.ax_index = np.arange(len(data))
         else:
             self.ax_index = self.data.index
