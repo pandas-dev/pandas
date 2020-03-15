@@ -1553,10 +1553,6 @@ class SingleBlockManager(BlockManager):
         return self.blocks[0]
 
     @property
-    def _values(self):
-        return self._block.values
-
-    @property
     def _blknos(self):
         """ compat with BlockManager """
         return None

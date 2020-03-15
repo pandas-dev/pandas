@@ -2271,7 +2271,7 @@ class GroupBy(_GroupBy):
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
-            values = obj._data._values
+            values = obj._data._block.values
 
             if aggregate:
                 result_sz = ngroups
