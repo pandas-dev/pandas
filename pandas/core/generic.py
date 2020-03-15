@@ -6,6 +6,7 @@ import json
 import operator
 import pickle
 import re
+from string import Template
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -8577,16 +8578,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
 
-        msg = "Boolean array expected for the condition, not {dtype}"
+        msg = "Boolean array expected for the condition, not "
 
         if not isinstance(cond, ABCDataFrame):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
-                raise ValueError(msg.format(dtype=cond.dtype))
+                raise ValueError(msg + f"{cond.dtype}")
         elif not cond.empty:
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
-                    raise ValueError(msg.format(dtype=dt))
+                    raise ValueError(msg + f"{dt}")
 
         cond = -cond if inplace else cond
 
@@ -10929,9 +10930,8 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs[
-    "stat_func_example"
-] = """
+_shared_docs["stat_func_example"] = Template(
+    """
 
 Examples
 --------
@@ -10948,24 +10948,25 @@ cold     fish      0
          spider    8
 Name: legs, dtype: int64
 
->>> s.{stat_func}()
-{default_output}
+>>> s.$stat_func()
+$default_output
 
-{verb} using level names, as well as indices.
+$verb using level names, as well as indices.
 
->>> s.{stat_func}(level='blooded')
+>>> s.$stat_func(level='blooded')
 blooded
-warm    {level_output_0}
-cold    {level_output_1}
+warm    $level_output_0
+cold    $level_output_1
 Name: legs, dtype: int64
 
->>> s.{stat_func}(level=0)
+>>> s.$stat_func(level=0)
 blooded
-warm    {level_output_0}
-cold    {level_output_1}
+warm    $level_output_0
+cold    $level_output_1
 Name: legs, dtype: int64"""
+)
 
-_sum_examples = _shared_docs["stat_func_example"].format(
+_sum_examples = _shared_docs["stat_func_example"].substitute(
     stat_func="sum", verb="Sum", default_output=14, level_output_0=6, level_output_1=8
 )
 
@@ -10991,11 +10992,11 @@ empty series identically.
 >>> pd.Series([np.nan]).sum(min_count=1)
 nan"""
 
-_max_examples = _shared_docs["stat_func_example"].format(
+_max_examples = _shared_docs["stat_func_example"].substitute(
     stat_func="max", verb="Max", default_output=8, level_output_0=4, level_output_1=8
 )
 
-_min_examples = _shared_docs["stat_func_example"].format(
+_min_examples = _shared_docs["stat_func_example"].substitute(
     stat_func="min", verb="Min", default_output=0, level_output_0=2, level_output_1=0
 )
 
