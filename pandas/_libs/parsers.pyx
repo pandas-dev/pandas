@@ -236,14 +236,14 @@ cdef extern from "parser/tokenizer.h":
 
 
 cdef extern from "parser/io.h":
-    void *new_mmap(char *fname)
+    void *new_mmap(char *fname) except NULL
     int del_mmap(void *src)
     void* buffer_mmap_bytes(void *source, size_t nbytes,
                             size_t *bytes_read, int *status)
 
     void *new_file_source(char *fname, size_t buffer_size) except NULL
 
-    void *new_rd_source(object obj)
+    void *new_rd_source(object obj) except NULL
 
     int del_file_source(void *src)
     int del_rd_source(void *src)
