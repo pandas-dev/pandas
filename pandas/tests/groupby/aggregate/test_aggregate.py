@@ -252,7 +252,6 @@ def test_agg_multiple_functions_maintain_order(df):
 
 def test_agg_multiple_functions_same_name(df):
     # GH 30880
-    np.random.seed(1)
     df = tm.makeTimeDataFrame()
     result = df.resample("3D").agg(
         {"A": [functools.partial(np.std, ddof=0), functools.partial(np.std, ddof=1)]}
