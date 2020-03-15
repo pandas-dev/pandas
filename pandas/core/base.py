@@ -207,8 +207,15 @@ class SelectionMixin:
         if self._selection is not None and isinstance(self.obj, ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
-        if len(self.exclusions) > 0:
-            return self.obj.drop(self.exclusions, axis=1)
+        if not isinstance(self.obj, ABCDataFrame):
+            return self.obj
+
+        # there may be elements in self.exclusions that are no longer
+        # in obj, see GH 32468
+        exclusions = self.exclusions.intersection(self.obj.columns)
+
+        if len(exclusions) > 0:
+            return self.obj.drop(exclusions, axis=1)
         else:
             return self.obj
 
