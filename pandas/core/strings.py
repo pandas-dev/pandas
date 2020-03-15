@@ -446,7 +446,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
                 stacklevel=3,
             )
 
-        f = lambda x: bool(regex.search(x))
+        f = lambda x: regex.search(x) is not None
     else:
         if case:
             f = lambda x: pat in x
@@ -775,6 +775,8 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if x is libmissing.NA:
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:
@@ -816,7 +818,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     regex = re.compile(pat, flags=flags)
 
     dtype = bool
-    f = lambda x: bool(regex.match(x))
+    f = lambda x: regex.match(x) is not None
 
     return _na_map(f, arr, na, dtype=dtype)
 
