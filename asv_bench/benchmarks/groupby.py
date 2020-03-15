@@ -583,7 +583,7 @@ class Transform:
         self.df4["jim"] = self.df4["joe"]
 
     def time_transform_lambda_max(self):
-        self.df.groupby(level="lev1").transform(lambda x: max(x))
+        self.df.groupby(level="lev1").transform(max)
 
     def time_transform_ufunc_max(self):
         self.df.groupby(level="lev1").transform(np.max)
