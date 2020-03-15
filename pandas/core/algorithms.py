@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, lib
 from pandas._libs.tslib import iNaT
+from pandas._typing import AnyArrayLike
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -45,10 +46,14 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCIndexClass,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
-import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
@@ -313,8 +318,8 @@ def unique(values):
 
     See Also
     --------
-    Index.unique
-    Series.unique
+    Index.unique : Return unique values from an Index.
+    Series.unique : Return unique values of Series object.
 
     Examples
     --------
@@ -384,7 +389,7 @@ def unique(values):
 unique1d = unique
 
 
-def isin(comps, values) -> np.ndarray:
+def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     """
     Compute the isin boolean array.
 
@@ -409,15 +414,14 @@ def isin(comps, values) -> np.ndarray:
             f"to isin(), you passed a [{type(values).__name__}]"
         )
 
-    if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
+    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
+    comps = extract_array(comps, extract_numpy=True)
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        return comps._values.isin(values)
-
-    comps = com.values_from_object(comps)
+        return comps.isin(values)  # type: ignore
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -686,8 +690,8 @@ def value_counts(
         values = Series(values)
         try:
             ii = cut(values, bins, include_lowest=True)
-        except TypeError:
-            raise TypeError("bins argument only works with numeric data.")
+        except TypeError as err:
+            raise TypeError("bins argument only works with numeric data.") from err
 
         # count, remove nulls (from the index), and but the bins
         result = ii.value_counts(dropna=dropna)
@@ -1515,7 +1519,7 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
 
     See Also
     --------
-    numpy.take
+    numpy.take : Take elements from an array along an axis.
 
     Examples
     --------
@@ -2021,9 +2025,7 @@ def safe_sort(
         )
     codes = ensure_platform_int(np.asarray(codes))
 
-    from pandas import Index
-
-    if not assume_unique and not Index(values).is_unique:
+    if not assume_unique and not len(unique(values)) == len(values):
         raise ValueError("values should be unique if codes is not None")
 
     if sorter is None:

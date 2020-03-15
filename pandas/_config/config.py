@@ -213,8 +213,8 @@ class DictWrapper:
         prefix += key
         try:
             v = object.__getattribute__(self, "d")[key]
-        except KeyError:
-            raise OptionError("No such option")
+        except KeyError as err:
+            raise OptionError("No such option") from err
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:

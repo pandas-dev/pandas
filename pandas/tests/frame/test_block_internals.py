@@ -478,7 +478,7 @@ class TestDataFrameBlockInternals:
         length = len(float_string_frame)
         float_string_frame["J"] = "1."
         float_string_frame["K"] = "1"
-        float_string_frame.loc[0:5, ["J", "K"]] = "garbled"
+        float_string_frame.loc[float_string_frame.index[0:5], ["J", "K"]] = "garbled"
         converted = float_string_frame._convert(datetime=True, numeric=True)
         assert converted["H"].dtype == "float64"
         assert converted["I"].dtype == "int64"

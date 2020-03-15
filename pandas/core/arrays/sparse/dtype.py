@@ -217,8 +217,8 @@ class SparseDtype(ExtensionDtype):
         if string.startswith("Sparse"):
             try:
                 sub_type, has_fill_value = cls._parse_subtype(string)
-            except ValueError:
-                raise TypeError(msg)
+            except ValueError as err:
+                raise TypeError(msg) from err
             else:
                 result = SparseDtype(sub_type)
                 msg = (

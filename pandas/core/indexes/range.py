@@ -141,7 +141,7 @@ class RangeIndex(Int64Index):
 
         result._range = values
         result.name = name
-
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -168,7 +168,7 @@ class RangeIndex(Int64Index):
         return self._cached_data
 
     @cache_readonly
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
 
     def _get_data_as_items(self):
@@ -349,8 +349,8 @@ class RangeIndex(Int64Index):
                 new_key = int(key)
                 try:
                     return self._range.index(new_key)
-                except ValueError:
-                    raise KeyError(key)
+                except ValueError as err:
+                    raise KeyError(key) from err
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
@@ -391,7 +391,9 @@ class RangeIndex(Int64Index):
         name = self.name if name is no_default else name
 
         if values is None:
-            return self._simple_new(self._range, name=name)
+            result = self._simple_new(self._range, name=name)
+            result._cache = self._cache.copy()
+            return result
         else:
             return Int64Index._simple_new(values, name=name)
 
@@ -695,10 +697,10 @@ class RangeIndex(Int64Index):
             new_key = int(key)
             try:
                 return self._range[new_key]
-            except IndexError:
+            except IndexError as err:
                 raise IndexError(
                     f"index {key} is out of bounds for axis 0 with size {len(self)}"
-                )
+                ) from err
         elif is_scalar(key):
             raise IndexError(
                 "only integers, slices (`:`), "

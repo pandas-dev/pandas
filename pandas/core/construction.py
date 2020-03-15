@@ -4,6 +4,8 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+
+from collections import abc
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
 
 import numpy as np
@@ -200,12 +202,12 @@ def array(
 
     >>> pd.array([1, 2, np.nan])
     <IntegerArray>
-    [1, 2, NaN]
+    [1, 2, <NA>]
     Length: 3, dtype: Int64
 
     >>> pd.array(["a", None, "c"])
     <StringArray>
-    ['a', nan, 'c']
+    ['a', <NA>, 'c']
     Length: 3, dtype: string
 
     >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
@@ -445,6 +447,8 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
+    elif isinstance(data, abc.Set):
+        raise TypeError("Set type is unordered")
     else:
         subarr = _try_cast(data, dtype, copy, raise_cast_failure)
 

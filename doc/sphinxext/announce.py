@@ -122,14 +122,15 @@ def build_string(revision_range, heading="Contributors"):
     components["uline"] = "=" * len(components["heading"])
     components["authors"] = "* " + "\n* ".join(components["authors"])
 
+    # Don't change this to an fstring. It breaks the formatting.
     tpl = textwrap.dedent(
-        f"""\
-    {components['heading']}
-    {components['uline']}
+        """\
+    {heading}
+    {uline}
 
-    {components['author_message']}
-    {components['authors']}"""
-    )
+    {author_message}
+    {authors}"""
+    ).format(**components)
     return tpl
 
 
