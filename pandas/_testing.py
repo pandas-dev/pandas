@@ -1150,8 +1150,11 @@ def assert_series_equal(
             raise AssertionError("check_exact may only be used with numeric Series")
 
         assert_numpy_array_equal(
-            left._values, right._values, check_dtype=check_dtype, obj=str(obj),
-            index = left.index._internal_get_values()
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            obj=str(obj),
+            index=left.index._internal_get_values(),
         )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
