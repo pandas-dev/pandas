@@ -395,7 +395,6 @@ Other
 - Bug in :class:`DataFrame` when initiating a frame with lists and assign ``columns`` with nested list for ``MultiIndex`` (:issue:`32173`)
 - Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
 
-
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_110.contributors:

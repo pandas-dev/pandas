@@ -3,6 +3,7 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
+from typing import Optional, Union, Iterable
 
 import numpy as np
 import numpy.ma as ma
@@ -596,15 +597,26 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
     return content, columns
 
 
-def _validate_or_indexify_columns(content, columns):
+def _validate_or_indexify_columns(content: list, columns: Union[Iterable, None]) -> Iterable:
     """If columns is None, make numbers as column names; If not None, validate if
     columns are valid in length.
 
-    Raises:
-        1. When content is not composed of list of lists, and if length of columns
+    Parameters
+    ----------
+    content: list of processed data records
+    columns: Iterable or None
+
+    Returns
+    -------
+    columns: If columns is Iterable, return as is; If columns is None, assign
+    positional column index value as columns.
+
+    Raises
+    ------
+    1. When content is not composed of list of lists, and if length of columns
         is not equal to length of content.
-        2. When content is list of lists, but length of each sub-list is not equal
-        3. When content is list of lists, but length of sub-list is not equal to
+    2. When content is list of lists, but length of each sub-list is not equal
+    3. When content is list of lists, but length of sub-list is not equal to
         length of content
     """
     if columns is None:
