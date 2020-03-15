@@ -3281,13 +3281,11 @@ class Index(IndexOpsMixin, PandasObject):
         target = _ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
-            attrs = self._get_attributes_dict()
-            attrs.pop("freq", None)  # don't preserve freq
             if isinstance(self, ABCRangeIndex):
                 values = range(0)
             else:
                 values = self._data[:0]  # appropriately-dtyped empty array
-            target = self._simple_new(values, **attrs)
+            target = self._simple_new(values, name=self.name)
         else:
             target = ensure_index(target)
 
@@ -5197,9 +5195,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        _self = np.asarray(self)
-        item = self._coerce_scalar_to_index(item)._ndarray_values
-        idx = np.concatenate((_self[:loc], item, _self[loc:]))
+        # Note: this method is overriden by all ExtensionIndex subclasses,
+        #  so self is never backed by an EA.
+        arr = np.asarray(self)
+        item = self._coerce_scalar_to_index(item)._values
+        idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return self._shallow_copy_with_infer(idx)
 
     def drop(self, labels, errors: str_t = "raise"):
