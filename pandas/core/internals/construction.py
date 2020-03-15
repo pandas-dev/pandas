@@ -3,7 +3,7 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
-from typing import Iterable, Union
+from typing import Iterable, Optional, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -598,7 +598,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 
 def _validate_or_indexify_columns(
-    content: list, columns: Union[Iterable, None]
+    content: list, columns: Union[list, None]
 ) -> Iterable:
     """If columns is None, make numbers as column names; If not None, validate if
     columns are valid in length.
@@ -653,8 +653,21 @@ def _validate_or_indexify_columns(
     return columns
 
 
-def _convert_object_array(content, coerce_float=False, dtype=None):
+def _convert_object_array(
+    content: list, coerce_float: bool = False, dtype: Optional[np.dtype] = None
+) -> list:
+    """Internal function ot convert object array.
 
+    Parameters
+    ----------
+    content: list of processed data records
+    coerce_float: bool, to coerce floats or not, default is False
+    dtype: np.dtype, default is None
+
+    Returns
+    -------
+    arrays: list of converted arrays
+    """
     # provide soft conversion of object dtypes
     def convert(arr):
         if dtype != object and dtype != np.object:
