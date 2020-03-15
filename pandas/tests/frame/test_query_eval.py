@@ -1186,7 +1186,7 @@ class TestDataFrameQueryBacktickQuoting:
         def func(*_):
             return 1
 
-        funcs = [func]
+        funcs = [func]  # noqa
 
         df.eval("@func()")
 
