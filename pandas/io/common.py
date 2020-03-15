@@ -365,6 +365,10 @@ def get_handle(
         Mode to open path_or_buf with.
     encoding : str or None
         Encoding to use.
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
     compression : str or dict, default None
         If string, specifies compression mode. If dict, value at key 'method'
         specifies compression mode. Compression mode must be one of {'infer',
