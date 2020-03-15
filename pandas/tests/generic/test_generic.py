@@ -645,27 +645,27 @@ class TestNDFrame:
             df.sample(1, weights=s4)
 
     @pytest.mark.parametrize(
-        "func,arg",
+        "func_str,arg",
         [
-            (np.array, [2, 3, 1, 0]),
+            ("np.array", [2, 3, 1, 0]),
             pytest.param(
-                np.random.MT19937,
+                "np.random.MT19937",
                 3,
                 marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
             ),
             pytest.param(
-                np.random.PCG64,
+                "np.random.PCG64",
                 11,
                 marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
             ),
         ],
     )
-    def test_sample_random_state(self, func, arg):
+    def test_sample_random_state(self, func_str, arg):
         # GH32503
         df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
         tm.assert_frame_equal(
-            df.sample(n=3, random_state=com.random_state(func(arg))),
-            df.sample(n=3, random_state=func(arg)),
+            df.sample(n=3, random_state=com.random_state(eval(func_str)(arg))),
+            df.sample(n=3, random_state=eval(func_str)(arg)),
         )
 
     def test_squeeze(self):
