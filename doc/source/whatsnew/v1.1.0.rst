@@ -247,6 +247,7 @@ Datetimelike
 - Bug in :class:`Timestamp` where constructing :class:`Timestamp` with dateutil timezone less than 128 nanoseconds before daylight saving time switch from winter to summer would result in nonexistent time (:issue:`31043`)
 - Bug in :meth:`Period.to_timestamp`, :meth:`Period.start_time` with microsecond frequency returning a timestamp one nanosecond earlier than the correct time (:issue:`31475`)
 - :class:`Timestamp` raising confusing error message when year, month or day is missing (:issue:`31200`)
+- Bug in :class:`DatetimeIndex` constructor incorrectly accepting ``bool``-dtyped inputs (:issue:`32668`)
 
 Timedelta
 ^^^^^^^^^

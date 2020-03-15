@@ -89,11 +89,26 @@ class TestDatetimeArrayConstructor:
         with pytest.raises(ValueError, match="list"):
             DatetimeArray([1, 2, 3])
 
-    def test_other_type_raises(self):
+    def test_bool_dtype_raises(self):
+        arr = np.array([1, 2, 3], dtype="bool")
+
         with pytest.raises(
             ValueError, match="The dtype of 'values' is incorrect.*bool"
         ):
-            DatetimeArray(np.array([1, 2, 3], dtype="bool"))
+            DatetimeArray(arr)
+
+        msg = r"dtype bool cannot be converted to datetime64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray._from_sequence(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            sequence_to_dt64ns(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.DatetimeIndex(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.to_datetime(arr)
 
     def test_incorrect_dtype_raises(self):
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):

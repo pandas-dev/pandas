@@ -359,7 +359,18 @@ def _convert_listlike_datetimes(
     # warn if passing timedelta64, raise for PeriodDtype
     # NB: this must come after unit transformation
     orig_arg = arg
-    arg, _ = maybe_convert_dtype(arg, copy=False)
+    try:
+        arg, _ = maybe_convert_dtype(arg, copy=False)
+    except TypeError:
+        if errors == "coerce":
+            result = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
+            return DatetimeIndex(result, name=name)
+        elif errors == "ignore":
+            from pandas import Index
+
+            result = Index(arg, name=name)
+            return result
+        raise
 
     arg = ensure_object(arg)
     require_iso8601 = False

@@ -2666,9 +2666,9 @@ Name: Max Speed, dtype: float64
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if is_categorical_dtype(self.values):
+        if is_categorical_dtype(self.dtype):
             pass
-        elif is_extension_array_dtype(self.values):
+        elif is_extension_array_dtype(self.dtype):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
             new_values = try_cast_to_ea(self._values, new_values)
