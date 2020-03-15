@@ -601,7 +601,7 @@ z
     @pytest.mark.parametrize("errors", ["surrogatepass", "ignore", "replace"])
     def test_to_csv_errors(self, errors):
         # GH 22610
-        data = ['\ud800foo']
+        data = ["\ud800foo"]
         ser = pd.Series(data, index=pd.Index(data))
         with tm.ensure_clean("test.csv") as path:
             ser.to_csv(path, errors=errors)
