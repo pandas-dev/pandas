@@ -303,6 +303,8 @@ class TestHDFStore:
 
         import hashlib
         import time
+        import tables
+        from packaging.version import Version
 
         def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
             h = hash_factory()
@@ -315,32 +317,39 @@ class TestHDFStore:
             with ensure_clean_path(setup_path) as path:
                 df = pd.DataFrame({"a": [1]})
 
-                hdf = pd.HDFStore(path, mode="w")
-                hdf.put(
-                    "table",
-                    df,
-                    format="table",
-                    data_columns=True,
-                    index=None,
-                    track_times=track_times,
-                )
-                hdf.close()
+                with pd.HDFStore(path, mode="w") as hdf:
+                    hdf.put(
+                        "table",
+                        df,
+                        format="table",
+                        data_columns=True,
+                        index=None,
+                        track_times=track_times,
+                    )
+
                 return checksum(path)
 
-        checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
-        checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
+        if Version(tables.__version__) < Version("3.4.3"):
+            with pytest.raises(
+                ValueError,
+                match="You cannot set track_times with table version < 3.4.3",
+            ):
+                create_h5_and_return_checksum(track_times=False)
+        else:
+            checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
+            checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
 
-        # sleep is necessary to create h5 with different creation time
-        time.sleep(1)
+            # sleep is necessary to create h5 with different creation time
+            time.sleep(1)
 
-        checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
-        checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
+            checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
+            checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
 
-        # checksums are the same if track_time = False
-        assert checksum_0_tt_false == checksum_1_tt_false
+            # checksums are the same if track_time = False
+            assert checksum_0_tt_false == checksum_1_tt_false
 
-        # checksums are NOT same if track_time = True
-        assert checksum_0_tt_true != checksum_1_tt_true
+            # checksums are NOT same if track_time = True
+            assert checksum_0_tt_true != checksum_1_tt_true
 
     def test_keys_ignore_hdf_softlink(self, setup_path):
 

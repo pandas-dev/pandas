@@ -984,7 +984,7 @@ class HDFStore:
         data_columns: Optional[List[str]] = None,
         encoding=None,
         errors: str = "strict",
-        track_times: bool = True,
+        track_times: Optional[bool] = None,
     ):
         """
         Store object in HDFStore.
@@ -1628,7 +1628,7 @@ class HDFStore:
         data_columns=None,
         encoding=None,
         errors: str = "strict",
-        track_times: bool = True,
+        track_times: Optional[bool] = None,
     ):
         group = self.get_node(key)
 
@@ -4110,7 +4110,7 @@ class AppendableTable(Table):
         dropna=False,
         nan_rep=None,
         data_columns=None,
-        track_times=True,
+        track_times=None,
     ):
 
         if not append and self.is_exists:
@@ -4142,8 +4142,19 @@ class AppendableTable(Table):
             # set the table attributes
             table.set_attrs()
 
+            if track_times is not None:
+                from tables import __version__ as tables_version
+                from packaging.version import Version
+
+                if Version(tables_version) >= Version("3.4.3"):
+                    options["track_times"] = track_times
+                else:
+                    raise ValueError(
+                        "You cannot set track_times with table version < 3.4.3"
+                    )
+
             # create the table
-            table._handle.create_table(table.group, track_times=track_times, **options)
+            table._handle.create_table(table.group, **options)
 
         # update my info
         table.attrs.info = table.info
