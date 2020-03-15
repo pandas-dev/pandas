@@ -358,10 +358,10 @@ class TestHDFStore:
                 h5file.create_table(group, "table2", Table2, "Table 2")
                 h5file.create_table(group, "table3", Table3, "Table 3")
             with HDFStore(path) as store:
-                assert len(store.keys(kind="tables")) == 3
+                assert len(store.keys(include="native")) == 3
                 expected = {"/group/table1", "/group/table2", "/group/table3"}
-                assert set(store.keys(kind="tables")) == expected
-                assert set(store.keys(kind="pandas")) == set()
+                assert set(store.keys(include="native")) == expected
+                assert set(store.keys(include="pandas")) == set()
 
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
