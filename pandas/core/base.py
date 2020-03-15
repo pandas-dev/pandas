@@ -211,7 +211,7 @@ class SelectionMixin:
             return self.obj
 
         # there may be elements in self.exclusions that are no longer
-        # in obj, see GH 32468
+        # in self.obj, see GH 32468
         exclusions = self.exclusions.intersection(self.obj.columns)
         return self.obj.drop(exclusions, axis=1)
 
