@@ -570,108 +570,6 @@ class TestIndexOps(Ops):
         tm.assert_numpy_array_equal(result_codes, expected_codes)
         tm.assert_index_equal(result_uniques, expected_uniques)
 
-    def test_duplicated_drop_duplicates_index(self):
-        # GH 4060
-        for original in self.objs:
-            if isinstance(original, Index):
-
-                # special case
-                if original.is_boolean():
-                    result = original.drop_duplicates()
-                    expected = Index([False, True], name="a")
-                    tm.assert_index_equal(result, expected)
-                    continue
-
-                # original doesn't have duplicates
-                expected = np.array([False] * len(original), dtype=bool)
-                duplicated = original.duplicated()
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                result = original.drop_duplicates()
-                tm.assert_index_equal(result, original)
-                assert result is not original
-
-                # has_duplicates
-                assert not original.has_duplicates
-
-                # create repeated values, 3rd and 5th values are duplicated
-                idx = original[list(range(len(original))) + [5, 3]]
-                expected = np.array([False] * len(original) + [True, True], dtype=bool)
-                duplicated = idx.duplicated()
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                tm.assert_index_equal(idx.drop_duplicates(), original)
-
-                base = [False] * len(idx)
-                base[3] = True
-                base[5] = True
-                expected = np.array(base)
-
-                duplicated = idx.duplicated(keep="last")
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                result = idx.drop_duplicates(keep="last")
-                tm.assert_index_equal(result, idx[~expected])
-
-                base = [False] * len(original) + [True, True]
-                base[3] = True
-                base[5] = True
-                expected = np.array(base)
-
-                duplicated = idx.duplicated(keep=False)
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                result = idx.drop_duplicates(keep=False)
-                tm.assert_index_equal(result, idx[~expected])
-
-                with pytest.raises(
-                    TypeError,
-                    match=r"drop_duplicates\(\) got an unexpected keyword argument",
-                ):
-                    idx.drop_duplicates(inplace=True)
-
-            else:
-                expected = Series(
-                    [False] * len(original), index=original.index, name="a"
-                )
-                tm.assert_series_equal(original.duplicated(), expected)
-                result = original.drop_duplicates()
-                tm.assert_series_equal(result, original)
-                assert result is not original
-
-                idx = original.index[list(range(len(original))) + [5, 3]]
-                values = original._values[list(range(len(original))) + [5, 3]]
-                s = Series(values, index=idx, name="a")
-
-                expected = Series(
-                    [False] * len(original) + [True, True], index=idx, name="a"
-                )
-                tm.assert_series_equal(s.duplicated(), expected)
-                tm.assert_series_equal(s.drop_duplicates(), original)
-
-                base = [False] * len(idx)
-                base[3] = True
-                base[5] = True
-                expected = Series(base, index=idx, name="a")
-
-                tm.assert_series_equal(s.duplicated(keep="last"), expected)
-                tm.assert_series_equal(
-                    s.drop_duplicates(keep="last"), s[~np.array(base)]
-                )
-
-                base = [False] * len(original) + [True, True]
-                base[3] = True
-                base[5] = True
-                expected = Series(base, index=idx, name="a")
-
-                tm.assert_series_equal(s.duplicated(keep=False), expected)
-                tm.assert_series_equal(
-                    s.drop_duplicates(keep=False), s[~np.array(base)]
-                )
-
-                s.drop_duplicates(inplace=True)
-                tm.assert_series_equal(s, original)
-
     def test_drop_duplicates_series_vs_dataframe(self):
         # GH 14192
         df = pd.DataFrame(
@@ -833,23 +731,6 @@ class TestIndexOps(Ops):
         msg = "single positional indexer is out-of-bounds"
         with pytest.raises(IndexError, match=msg):
             series.iloc[size]
-
-    @pytest.mark.parametrize("indexer_klass", [list, pd.Index])
-    @pytest.mark.parametrize(
-        "indexer",
-        [
-            [True] * 10,
-            [False] * 10,
-            [True, False, True, True, False, False, True, True, False, True],
-        ],
-    )
-    def test_bool_indexing(self, indexer_klass, indexer):
-        # GH 22533
-        for idx in self.indexes:
-            exp_idx = [i for i in range(len(indexer)) if indexer[i]]
-            tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
-            s = pd.Series(idx)
-            tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
 
     def test_get_indexer_non_unique_dtype_mismatch(self):
         # GH 25459

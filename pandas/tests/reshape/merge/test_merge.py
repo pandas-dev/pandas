@@ -2077,8 +2077,7 @@ def test_merge_equal_cat_dtypes(cat_dtype, reverse):
         }
     ).set_index("foo")
 
-    # Categorical is unordered, so don't check ordering.
-    tm.assert_frame_equal(result, expected, check_categorical=False)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_equal_cat_dtypes2():
@@ -2100,8 +2099,7 @@ def test_merge_equal_cat_dtypes2():
         {"left": [1, 2], "right": [3, 2], "foo": Series(["a", "b"]).astype(cat_dtype)}
     ).set_index("foo")
 
-    # Categorical is unordered, so don't check ordering.
-    tm.assert_frame_equal(result, expected, check_categorical=False)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_on_cat_and_ext_array():
