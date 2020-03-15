@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_categorical_dtype,
-    is_datetime64tz_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_integer,
@@ -2667,10 +2666,7 @@ Name: Max Speed, dtype: float64
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        new_values = np.asarray(new_values)
-        if is_categorical_dtype(self.dtype) or is_datetime64tz_dtype(self.dtype):
-            # if we let dt64tz through, try_cast_to_ea would incorrectly
-            #  allow bool through
+        if is_categorical_dtype(self.dtype):
             pass
         elif is_extension_array_dtype(self.dtype):
             # TODO: can we do this for only SparseDtype?
