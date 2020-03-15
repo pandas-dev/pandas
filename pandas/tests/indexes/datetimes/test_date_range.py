@@ -20,6 +20,7 @@ from pandas.tseries.offsets import (
     BDay,
     CDay,
     DateOffset,
+    MonthEnd,
     generate_range,
     prefix_mapping,
 )
@@ -428,13 +429,21 @@ class TestDateRanges:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_error_with_zero_monthends(self):
+        msg = r"Offset <0 \* MonthEnds> did not increment date"
+        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=False
+        ):
+            date_range("1/1/2000", "1/1/2001", freq=MonthEnd(0))
+
     def test_range_bug(self):
         # GH #770
         offset = DateOffset(months=3)
         result = date_range("2011-1-1", "2012-1-31", freq=offset)
 
         start = datetime(2011, 1, 1)
-        expected = DatetimeIndex([start + i * offset if i else start for i in range(5)])
+
+        expected = DatetimeIndex([start] + [start + i * offset for i in range(1, 5)])
         tm.assert_index_equal(result, expected)
 
     def test_range_tz_pytz(self):
