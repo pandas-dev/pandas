@@ -29,19 +29,19 @@ class HistPlot(LinePlot):
         # where subplots are created based on by argument
         if is_integer(self.bins):
             if self.by is None:
-                self.bins = self._caculcate_bins(self.data)
+                self.bins = self._calculate_bins(self.data)
 
             else:
                 grouped = self.data.groupby(self.by)[self.columns]
                 bins_list = []
                 for key, group in grouped:
-                    bins_list.append(self._caculcate_bins(group))
+                    bins_list.append(self._calculate_bins(group))
                 self.bins = bins_list
 
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
 
-    def _caculcate_bins(self, data: ABCDataFrame) -> np.array:
+    def _calculate_bins(self, data: ABCDataFrame) -> np.array:
         """Calculate bins given data"""
 
         values = data._convert(datetime=True)._get_numeric_data()
