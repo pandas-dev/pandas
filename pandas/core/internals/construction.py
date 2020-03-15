@@ -3,7 +3,7 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np
 import numpy.ma as ma
@@ -512,7 +512,9 @@ def to_arrays(data, columns, coerce_float=False, dtype=None):
         return _list_to_arrays(data, columns, coerce_float=coerce_float, dtype=dtype)
 
 
-def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_to_arrays(
+    data, columns, coerce_float=False, dtype=None
+) -> Tuple[list, Iterable]:
     if len(data) > 0 and isinstance(data[0], tuple):
         content = list(lib.to_object_array_tuples(data).T)
     else:
@@ -527,7 +529,9 @@ def _list_to_arrays(data, columns, coerce_float=False, dtype=None):
     return result, columns
 
 
-def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_of_series_to_arrays(
+    data, columns, coerce_float=False, dtype=None
+) -> Tuple[list, Iterable]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -560,7 +564,9 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
         return values.T, columns
 
 
-def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
+def _list_of_dict_to_arrays(
+    data, columns, coerce_float=False, dtype=None
+) -> Tuple[list, Iterable]:
     """
     Convert list of dicts to numpy arrays
 
