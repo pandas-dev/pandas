@@ -392,6 +392,18 @@ class TestPeriodIndex:
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2011-01"], freq="-1M")
 
+        msg = "Frequency must be positive, because it represents span: 0M"
+        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=False
+        ):
+            PeriodIndex(["2011-01"], freq="0M")
+
+        msg = "Frequency must be positive, because it represents span: 0M"
+        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=False
+        ):
+            period_range("2011-01", periods=3, freq="0M")
+
     @pytest.mark.parametrize("freq", ["A", "M", "D", "T", "S"])
     @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
     def test_constructor_freq_mult_dti_compat(self, mult, freq):
