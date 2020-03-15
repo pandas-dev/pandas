@@ -1317,7 +1317,7 @@ class Categorical(ExtensionArray, PandasObject):
             setattr(self, k, v)
 
     @property
-    def T(self):
+    def T(self) -> "Categorical":
         """
         Return transposed numpy array.
         """
@@ -1488,7 +1488,7 @@ class Categorical(ExtensionArray, PandasObject):
             )
 
     def _values_for_argsort(self):
-        return self._codes.copy()
+        return self._codes
 
     def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
@@ -1733,12 +1733,17 @@ class Categorical(ExtensionArray, PandasObject):
 
             # If value is a dict or a Series (a dict value has already
             # been converted to a Series)
-            if isinstance(value, ABCSeries):
-                if not value[~value.isin(self.categories)].isna().all():
+            if isinstance(value, (np.ndarray, Categorical, ABCSeries)):
+                # We get ndarray or Categorical if called via Series.fillna,
+                #  where it will unwrap another aligned Series before getting here
+
+                mask = ~algorithms.isin(value, self.categories)
+                if not isna(value[mask]).all():
                     raise ValueError("fill value must be in categories")
 
                 values_codes = _get_codes_for_values(value, self.categories)
                 indexer = np.where(codes == -1)
+                codes = codes.copy()
                 codes[indexer] = values_codes[indexer]
 
             # If value is not a dict or Series it should be a scalar
