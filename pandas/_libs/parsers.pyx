@@ -241,7 +241,7 @@ cdef extern from "parser/io.h":
     void* buffer_mmap_bytes(void *source, size_t nbytes,
                             size_t *bytes_read, int *status)
 
-    void *new_file_source(char *fname, size_t buffer_size)
+    void *new_file_source(char *fname, size_t buffer_size) except NULL
 
     void *new_rd_source(object obj)
 
@@ -667,16 +667,6 @@ cdef class TextReader:
                 ptr = new_file_source(source, self.parser.chunksize)
                 self.parser.cb_io = &buffer_file_bytes
                 self.parser.cb_cleanup = &del_file_source
-
-            if ptr == NULL:
-                if not os.path.exists(source):
-
-                    raise FileNotFoundError(
-                        ENOENT,
-                        f'File {usource} does not exist',
-                        usource)
-                raise IOError('Initializing from file failed')
-
             self.parser.source = ptr
 
         elif hasattr(source, 'read'):
