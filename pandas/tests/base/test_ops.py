@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 import pandas as pd
 from pandas import (
@@ -311,9 +312,10 @@ class TestIndexOps(Ops):
         if isinstance(obj, pd.MultiIndex):
             expected.index = pd.Index(expected.index)
 
-        # sort_index to avoid switched order when values share the same count
-        result = result.sort_index()
-        expected = expected.sort_index()
+        # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
+        if obj.duplicated().any():
+            result = result.sort_index()
+            expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
@@ -344,13 +346,26 @@ class TestIndexOps(Ops):
         expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
         expected.index = expected.index.astype(obj.dtype)
 
-        tm.assert_series_equal(obj.value_counts(), expected)
+        result = obj.value_counts()
+        if obj.duplicated().any():
+            # TODO:
+            #  Order of entries with the same count is inconsistent on CI (gh-32449)
+            expected = expected.sort_index()
+            result = result.sort_index()
+        tm.assert_series_equal(result, expected)
 
         # can't use expected[null_obj] = 3 as
         # IntervalIndex doesn't allow assignment
         new_entry = pd.Series({np.nan: 3}, dtype=np.int64)
         expected = expected.append(new_entry)
-        tm.assert_series_equal(obj.value_counts(dropna=False), expected)
+
+        result = obj.value_counts(dropna=False)
+        if obj.duplicated().any():
+            # TODO:
+            #  Order of entries with the same count is inconsistent on CI (gh-32449)
+            expected = expected.sort_index()
+            result = result.sort_index()
+        tm.assert_series_equal(result, expected)
 
     def test_value_counts_inferred(self, index_or_series):
         klass = index_or_series
@@ -533,168 +548,27 @@ class TestIndexOps(Ops):
         result2 = td2.value_counts()
         tm.assert_series_equal(result2, expected_s)
 
-    def test_factorize(self):
-        for orig in self.objs:
-            o = orig.copy()
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize(self, index_or_series_obj, sort):
+        obj = index_or_series_obj
+        result_codes, result_uniques = obj.factorize(sort=sort)
 
-            if isinstance(o, Index) and o.is_boolean():
-                exp_arr = np.array([0, 1] + [0] * 8, dtype=np.intp)
-                exp_uniques = o
-                exp_uniques = Index([False, True])
-            else:
-                exp_arr = np.array(range(len(o)), dtype=np.intp)
-                exp_uniques = o
-            codes, uniques = o.factorize()
+        constructor = pd.Index
+        if isinstance(obj, pd.MultiIndex):
+            constructor = pd.MultiIndex.from_tuples
+        expected_uniques = constructor(obj.unique())
 
-            tm.assert_numpy_array_equal(codes, exp_arr)
-            if isinstance(o, Series):
-                tm.assert_index_equal(uniques, Index(orig), check_names=False)
-            else:
-                # factorize explicitly resets name
-                tm.assert_index_equal(uniques, exp_uniques, check_names=False)
+        if sort:
+            expected_uniques = expected_uniques.sort_values()
 
-    def test_factorize_repeated(self):
-        for orig in self.objs:
-            o = orig.copy()
+        # construct an integer ndarray so that
+        # `expected_uniques.take(expected_codes)` is equal to `obj`
+        expected_uniques_list = list(expected_uniques)
+        expected_codes = [expected_uniques_list.index(val) for val in obj]
+        expected_codes = np.asarray(expected_codes, dtype=np.intp)
 
-            # don't test boolean
-            if isinstance(o, Index) and o.is_boolean():
-                continue
-
-            # sort by value, and create duplicates
-            if isinstance(o, Series):
-                o = o.sort_values()
-                n = o.iloc[5:].append(o)
-            else:
-                indexer = o.argsort()
-                o = o.take(indexer)
-                n = o[5:].append(o)
-
-            exp_arr = np.array(
-                [5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp
-            )
-            codes, uniques = n.factorize(sort=True)
-
-            tm.assert_numpy_array_equal(codes, exp_arr)
-            if isinstance(o, Series):
-                tm.assert_index_equal(
-                    uniques, Index(orig).sort_values(), check_names=False
-                )
-            else:
-                tm.assert_index_equal(uniques, o, check_names=False)
-
-            exp_arr = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4], np.intp)
-            codes, uniques = n.factorize(sort=False)
-            tm.assert_numpy_array_equal(codes, exp_arr)
-
-            if isinstance(o, Series):
-                expected = Index(o.iloc[5:10].append(o.iloc[:5]))
-                tm.assert_index_equal(uniques, expected, check_names=False)
-            else:
-                expected = o[5:10].append(o[:5])
-                tm.assert_index_equal(uniques, expected, check_names=False)
-
-    def test_duplicated_drop_duplicates_index(self):
-        # GH 4060
-        for original in self.objs:
-            if isinstance(original, Index):
-
-                # special case
-                if original.is_boolean():
-                    result = original.drop_duplicates()
-                    expected = Index([False, True], name="a")
-                    tm.assert_index_equal(result, expected)
-                    continue
-
-                # original doesn't have duplicates
-                expected = np.array([False] * len(original), dtype=bool)
-                duplicated = original.duplicated()
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                result = original.drop_duplicates()
-                tm.assert_index_equal(result, original)
-                assert result is not original
-
-                # has_duplicates
-                assert not original.has_duplicates
-
-                # create repeated values, 3rd and 5th values are duplicated
-                idx = original[list(range(len(original))) + [5, 3]]
-                expected = np.array([False] * len(original) + [True, True], dtype=bool)
-                duplicated = idx.duplicated()
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                tm.assert_index_equal(idx.drop_duplicates(), original)
-
-                base = [False] * len(idx)
-                base[3] = True
-                base[5] = True
-                expected = np.array(base)
-
-                duplicated = idx.duplicated(keep="last")
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                result = idx.drop_duplicates(keep="last")
-                tm.assert_index_equal(result, idx[~expected])
-
-                base = [False] * len(original) + [True, True]
-                base[3] = True
-                base[5] = True
-                expected = np.array(base)
-
-                duplicated = idx.duplicated(keep=False)
-                tm.assert_numpy_array_equal(duplicated, expected)
-                assert duplicated.dtype == bool
-                result = idx.drop_duplicates(keep=False)
-                tm.assert_index_equal(result, idx[~expected])
-
-                with pytest.raises(
-                    TypeError,
-                    match=r"drop_duplicates\(\) got an unexpected keyword argument",
-                ):
-                    idx.drop_duplicates(inplace=True)
-
-            else:
-                expected = Series(
-                    [False] * len(original), index=original.index, name="a"
-                )
-                tm.assert_series_equal(original.duplicated(), expected)
-                result = original.drop_duplicates()
-                tm.assert_series_equal(result, original)
-                assert result is not original
-
-                idx = original.index[list(range(len(original))) + [5, 3]]
-                values = original._values[list(range(len(original))) + [5, 3]]
-                s = Series(values, index=idx, name="a")
-
-                expected = Series(
-                    [False] * len(original) + [True, True], index=idx, name="a"
-                )
-                tm.assert_series_equal(s.duplicated(), expected)
-                tm.assert_series_equal(s.drop_duplicates(), original)
-
-                base = [False] * len(idx)
-                base[3] = True
-                base[5] = True
-                expected = Series(base, index=idx, name="a")
-
-                tm.assert_series_equal(s.duplicated(keep="last"), expected)
-                tm.assert_series_equal(
-                    s.drop_duplicates(keep="last"), s[~np.array(base)]
-                )
-
-                base = [False] * len(original) + [True, True]
-                base[3] = True
-                base[5] = True
-                expected = Series(base, index=idx, name="a")
-
-                tm.assert_series_equal(s.duplicated(keep=False), expected)
-                tm.assert_series_equal(
-                    s.drop_duplicates(keep=False), s[~np.array(base)]
-                )
-
-                s.drop_duplicates(inplace=True)
-                tm.assert_series_equal(s, original)
+        tm.assert_numpy_array_equal(result_codes, expected_codes)
+        tm.assert_index_equal(result_uniques, expected_uniques)
 
     def test_drop_duplicates_series_vs_dataframe(self):
         # GH 14192
@@ -719,58 +593,65 @@ class TestIndexOps(Ops):
                 dropped_series = df[column].drop_duplicates(keep=keep)
                 tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
 
-    def test_fillna(self):
+    def test_fillna(self, index_or_series_obj):
         # # GH 11343
         # though Index.fillna and Series.fillna has separate impl,
         # test here to confirm these works as the same
 
-        for orig in self.objs:
+        obj = index_or_series_obj
+        if isinstance(obj, ABCMultiIndex):
+            pytest.skip("MultiIndex doesn't support isna")
 
-            o = orig.copy()
-            values = o.values
+        # values will not be changed
+        fill_value = obj.values[0] if len(obj) > 0 else 0
+        result = obj.fillna(fill_value)
+        if isinstance(obj, Index):
+            tm.assert_index_equal(obj, result)
+        else:
+            tm.assert_series_equal(obj, result)
 
-            # values will not be changed
-            result = o.fillna(o.astype(object).values[0])
-            if isinstance(o, Index):
-                tm.assert_index_equal(o, result)
-            else:
-                tm.assert_series_equal(o, result)
-            # check shallow_copied
-            assert o is not result
+        # check shallow_copied
+        if isinstance(obj, Series) and len(obj) == 0:
+            # TODO: GH-32543
+            pytest.xfail("Shallow copy for empty Series is bugged")
+        assert obj is not result
 
-        for null_obj in [np.nan, None]:
-            for orig in self.objs:
-                o = orig.copy()
-                klass = type(o)
+    @pytest.mark.parametrize("null_obj", [np.nan, None])
+    def test_fillna_null(self, null_obj, index_or_series_obj):
+        # # GH 11343
+        # though Index.fillna and Series.fillna has separate impl,
+        # test here to confirm these works as the same
+        obj = index_or_series_obj
+        klass = type(obj)
 
-                if not allow_na_ops(o):
-                    continue
+        if not allow_na_ops(obj):
+            pytest.skip(f"{klass} doesn't allow for NA operations")
+        elif len(obj) < 1:
+            pytest.skip("Test doesn't make sense on empty data")
+        elif isinstance(obj, ABCMultiIndex):
+            pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-                if needs_i8_conversion(o):
+        values = obj.values
+        fill_value = values[0]
+        expected = values.copy()
+        if needs_i8_conversion(obj):
+            values[0:2] = iNaT
+            expected[0:2] = fill_value
+        else:
+            values[0:2] = null_obj
+            expected[0:2] = fill_value
 
-                    values = o.astype(object).values
-                    fill_value = values[0]
-                    values[0:2] = pd.NaT
-                else:
-                    values = o.values.copy()
-                    fill_value = o.values[0]
-                    values[0:2] = null_obj
+        expected = klass(expected)
+        obj = klass(values)
 
-                expected = [fill_value] * 2 + list(values[2:])
+        result = obj.fillna(fill_value)
+        if isinstance(obj, Index):
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_series_equal(result, expected)
 
-                expected = klass(expected, dtype=orig.dtype)
-                o = klass(values)
-
-                # check values has the same dtype as the original
-                assert o.dtype == orig.dtype
-
-                result = o.fillna(fill_value)
-                if isinstance(o, Index):
-                    tm.assert_index_equal(result, expected)
-                else:
-                    tm.assert_series_equal(result, expected)
-                # check shallow_copied
-                assert o is not result
+        # check shallow_copied
+        assert obj is not result
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage(self, index_or_series_obj):
@@ -850,23 +731,6 @@ class TestIndexOps(Ops):
         msg = "single positional indexer is out-of-bounds"
         with pytest.raises(IndexError, match=msg):
             series.iloc[size]
-
-    @pytest.mark.parametrize("indexer_klass", [list, pd.Index])
-    @pytest.mark.parametrize(
-        "indexer",
-        [
-            [True] * 10,
-            [False] * 10,
-            [True, False, True, True, False, False, True, True, False, True],
-        ],
-    )
-    def test_bool_indexing(self, indexer_klass, indexer):
-        # GH 22533
-        for idx in self.indexes:
-            exp_idx = [i for i in range(len(indexer)) if indexer[i]]
-            tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
-            s = pd.Series(idx)
-            tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
 
     def test_get_indexer_non_unique_dtype_mismatch(self):
         # GH 25459

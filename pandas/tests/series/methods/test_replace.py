@@ -294,7 +294,7 @@ class TestSeriesReplace:
         s = pd.Series(categorical)
         result = s.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric)
-        tm.assert_series_equal(expected, result, check_dtype=False)
+        tm.assert_series_equal(expected, result)
 
     def test_replace_categorical_single(self):
         # GH 26988
