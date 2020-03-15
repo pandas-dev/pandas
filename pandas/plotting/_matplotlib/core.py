@@ -442,8 +442,6 @@ class MPLPlot:
 
         # GH15079 reconstruct data if by is defined
         if self.by is not None:
-
-            # Set subplots to True if self.by is defined
             self.subplots = True
             data = self._transform_grouped_data(data)
 
