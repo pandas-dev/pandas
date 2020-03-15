@@ -795,3 +795,27 @@ class TestIndexing:
         tm.assert_frame_equal(df, df.loc[list(idx)])
         tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
         tm.assert_frame_equal(df, df.loc[list(idx)])
+
+
+class TestAsOfLocs:
+    def test_asof_locs_mismatched_type(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        pi2 = dti.to_period("H")
+
+        mask = np.array([0, 1, 0], dtype=bool)
+
+        msg = "must be DatetimeIndex or PeriodIndex"
+        with pytest.raises(TypeError, match=msg):
+            pi.asof_locs(pd.Int64Index(pi.asi8), mask)
+
+        with pytest.raises(TypeError, match=msg):
+            pi.asof_locs(pd.Float64Index(pi.asi8), mask)
+
+        with pytest.raises(TypeError, match=msg):
+            # TimedeltaIndex
+            pi.asof_locs(dti - dti, mask)
+
+        msg = "Input has different freq=H"
+        with pytest.raises(libperiod.IncompatibleFrequency, match=msg):
+            pi.asof_locs(pi2, mask)

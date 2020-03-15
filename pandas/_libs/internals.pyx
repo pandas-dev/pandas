@@ -1,4 +1,5 @@
 import cython
+from collections import defaultdict
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -7,7 +8,9 @@ cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
-from numpy cimport int64_t
+cimport numpy as cnp
+from numpy cimport NPY_INT64, int64_t
+cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
@@ -105,7 +108,9 @@ cdef class BlockPlacement:
             Py_ssize_t start, stop, end, _
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
-            self._as_array = np.arange(start, stop, step, dtype=np.int64)
+            # NOTE: this is the C-optimized equivalent of
+            #  np.arange(start, stop, step, dtype=np.int64)
+            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
             self._has_array = True
         return self._as_array
 
@@ -369,8 +374,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
         Py_ssize_t i, start, stop, n, diff
 
         object blkno
-        list group_order
-        dict group_dict
+        object group_dict = defaultdict(list)
         int64_t[:] res_view
 
     n = blknos.shape[0]
@@ -391,28 +395,16 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         yield cur_blkno, slice(start, n)
     else:
-        group_order = []
-        group_dict = {}
-
         for i in range(1, n):
             if blknos[i] != cur_blkno:
-                if cur_blkno not in group_dict:
-                    group_order.append(cur_blkno)
-                    group_dict[cur_blkno] = [(start, i)]
-                else:
-                    group_dict[cur_blkno].append((start, i))
+                group_dict[cur_blkno].append((start, i))
 
                 start = i
                 cur_blkno = blknos[i]
 
-        if cur_blkno not in group_dict:
-            group_order.append(cur_blkno)
-            group_dict[cur_blkno] = [(start, n)]
-        else:
-            group_dict[cur_blkno].append((start, n))
+        group_dict[cur_blkno].append((start, n))
 
-        for blkno in group_order:
-            slices = group_dict[blkno]
+        for blkno, slices in group_dict.items():
             if len(slices) == 1:
                 yield blkno, slice(slices[0][0], slices[0][1])
             else:

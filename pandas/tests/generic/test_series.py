@@ -237,9 +237,7 @@ class TestToXArray:
         assert isinstance(result, DataArray)
 
         # idempotency
-        tm.assert_series_equal(
-            result.to_series(), s, check_index_type=False, check_categorical=True
-        )
+        tm.assert_series_equal(result.to_series(), s, check_index_type=False)
 
     @td.skip_if_no("xarray", min_version="0.7.0")
     def test_to_xarray(self):
