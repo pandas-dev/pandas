@@ -15,6 +15,7 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
+import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 import pandas._testing as tm
@@ -2079,3 +2080,16 @@ def test_integer_precision(all_parsers):
     result = parser.read_csv(StringIO(s), header=None)[4]
     expected = Series([4321583677327450765, 4321113141090630389], name=4)
     tm.assert_series_equal(result, expected)
+
+
+def test_file_descriptor_leak(all_parsers):
+    # GH 31488
+
+    parser = all_parsers
+    with tm.ensure_clean() as path:
+
+        def test():
+            with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+                parser.read_csv(path)
+
+        td.check_file_leaks(test)()
