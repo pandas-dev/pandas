@@ -2367,8 +2367,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         nan_rep=None,
         dropna: Optional[bool_t] = None,
         data_columns: Optional[Union[bool_t, List[str]]] = None,
-        errors: str = "strict",
+        data_columns: Optional[List[str]] = None,
         encoding: str = "UTF-8",
+        errors: str = "strict",
     ) -> None:
         """
         Write the contained data to an HDF5 file using HDFStore.
@@ -2420,11 +2421,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed"
+        encoding : str, default "UTF-8"
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
-        encoding : str, default "UTF-8"
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : Any, optional
