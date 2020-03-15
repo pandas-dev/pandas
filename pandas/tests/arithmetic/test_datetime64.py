@@ -1314,7 +1314,7 @@ class TestDatetime64DateOffsetArithmetic:
 
             null_cm = _nullcontext()
 
-        if n != 0 or cls_name in ["Week"]:
+        if n != 0 or cls_name in ["Week"]:  # we allow Week(0) (xref GH31185)
             extra_cm = null_cm
         else:
             extra_cm = tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
