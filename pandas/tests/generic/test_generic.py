@@ -644,23 +644,29 @@ class TestNDFrame:
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
 
-        # Check that random_state arguments are processed correctly
+    @pytest.mark.parametrize(
+        "func,arg",
+        [
+            (np.array, [2, 3, 1, 0]),
+            pytest.param(
+                np.random.MT19937,
+                3,
+                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+            ),
+            pytest.param(
+                np.random.PCG64,
+                11,
+                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+            ),
+        ],
+    )
+    def test_sample_random_state(self, func, arg):
+        # GH32503
         df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
-        seed_arr = np.random.randint(4, size=10)
         tm.assert_frame_equal(
-            df.sample(n=3, random_state=com.random_state(seed_arr)),
-            df.sample(n=3, random_state=seed_arr),
+            df.sample(n=3, random_state=com.random_state(func(arg))),
+            df.sample(n=3, random_state=func(arg)),
         )
-
-        if not _np_version_under1p17:
-            tm.assert_frame_equal(
-                df.sample(n=3, random_state=com.random_state(np.random.MT19937(3))),
-                df.sample(n=3, random_state=np.random.MT19937(3)),
-            )
-            tm.assert_frame_equal(
-                df.sample(n=3, random_state=com.random_state(np.random.PCG64(11))),
-                df.sample(n=3, random_state=np.random.PCG64(11)),
-            )
 
     def test_squeeze(self):
         # noop
