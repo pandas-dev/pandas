@@ -92,6 +92,9 @@ cpdef assert_almost_equal(a, b,
     index : str, default None
         Specify shared index of objects being compared, internally used to
         show appropriate assertion message
+
+        .. versionadded:: 1.1.0
+
     """
     cdef:
         int decimal

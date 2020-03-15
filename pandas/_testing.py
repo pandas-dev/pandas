@@ -908,9 +908,6 @@ def raise_assert_detail(obj, message, left, right, diff=None, index=None):
     elif is_categorical_dtype(right):
         right = repr(right)
 
-    if isinstance(index, np.ndarray):
-        index = pprint_thing(index)
-
     msg += f"""
 [left]:  {left}
 [right]: {right}"""
