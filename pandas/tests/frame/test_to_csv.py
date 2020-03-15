@@ -250,9 +250,7 @@ class TestDataFrameToCSV:
             df.to_csv(pth, chunksize=chunksize)
 
             recons = self.read_csv(pth)._convert(datetime=True, coerce=True)
-            tm.assert_frame_equal(
-                df, recons, check_names=False, check_less_precise=True
-            )
+            tm.assert_frame_equal(df, recons, check_names=False)
 
     @pytest.mark.slow
     def test_to_csv_moar(self):
@@ -354,9 +352,7 @@ class TestDataFrameToCSV:
                     recons.columns = np.array(recons.columns, dtype=c_dtype)
                     df.columns = np.array(df.columns, dtype=c_dtype)
 
-            tm.assert_frame_equal(
-                df, recons, check_names=False, check_less_precise=True
-            )
+            tm.assert_frame_equal(df, recons, check_names=False)
 
         N = 100
         chunksize = 1000
@@ -761,7 +757,7 @@ class TestDataFrameToCSV:
         )
 
         # add in some nans
-        df_float.loc[30:50, 1:3] = np.nan
+        df_float.iloc[30:50, 1:3] = np.nan
 
         # ## this is a bug in read_csv right now ####
         # df_dt.loc[30:50,1:3] = np.nan

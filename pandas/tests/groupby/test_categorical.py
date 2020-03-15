@@ -1262,6 +1262,9 @@ def test_series_groupby_on_2_categoricals_unobserved(
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
 
+    if reduction_func == "corrwith":  # GH 32293
+        pytest.xfail("TODO: implemented SeriesGroupBy.corrwith")
+
     df = pd.DataFrame(
         {
             "cat_1": pd.Categorical(list("AABB"), categories=list("ABCD")),
