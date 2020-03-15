@@ -28,6 +28,9 @@ ABCDatetimeIndex = create_pandas_abc_type(
 ABCTimedeltaIndex = create_pandas_abc_type(
     "ABCTimedeltaIndex", "_typ", ("timedeltaindex",)
 )
+ABCDatetimeTimedeltaMixin = create_pandas_abc_type(
+    "ABCDatetimeTimedeltaMixin", "_typ", ("datetimeindex", "timedeltaindex",)
+)
 ABCPeriodIndex = create_pandas_abc_type("ABCPeriodIndex", "_typ", ("periodindex",))
 ABCCategoricalIndex = create_pandas_abc_type(
     "ABCCategoricalIndex", "_typ", ("categoricalindex",)

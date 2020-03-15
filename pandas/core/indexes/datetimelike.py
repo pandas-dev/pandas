@@ -830,13 +830,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         See Index.join
         """
-        if self._is_convertible_to_index_for_join(other):
-            try:
-                other = type(self)(other)
-            except (TypeError, ValueError):
-                pass
-
-        this, other = self._maybe_utc_convert(other)
+        this, other = self._prepare_for_join(other)
         return Index.join(
             this,
             other,
@@ -845,6 +839,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             return_indexers=return_indexers,
             sort=sort,
         )
+
+    def _prepare_for_join(self, other):
+        if self._is_convertible_to_index_for_join(other):
+            try:
+                other = type(self)(other)
+            except (TypeError, ValueError):
+                pass
+
+        this, other = self._maybe_utc_convert(other)
+        return this, other
 
     def _maybe_utc_convert(self, other):
         this = self

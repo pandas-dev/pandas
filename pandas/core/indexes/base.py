@@ -54,6 +54,7 @@ from pandas.core.dtypes.generic import (
     ABCCategorical,
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCDatetimeTimedeltaMixin,
     ABCIntervalIndex,
     ABCMultiIndex,
     ABCPandasArray,
@@ -3408,7 +3409,16 @@ class Index(IndexOpsMixin, PandasObject):
 
             # have the same levels/names so a simple join
             if self.names == other.names:
-                pass
+                # For datetimelike levels, we maybe convert the corresponding level
+                for i, (left, right) in enumerate(zip(self.levels, other.levels)):
+                    if isinstance(left, ABCDatetimeTimedeltaMixin):
+                        left, right = left._prepare_for_join(right)
+                        self = self.set_levels(left, i)
+                        other = other.set_levels(right, i)
+                    elif isinstance(right, ABCDatetimeTimedeltaMixin):
+                        right, left = right._prepare_for_join(left)
+                        self = self.set_levels(left, i)
+                        other = other.set_levels(right, i)
             else:
                 return self._join_multi(other, how=how, return_indexers=return_indexers)
 
