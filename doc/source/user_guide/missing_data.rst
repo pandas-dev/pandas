@@ -12,10 +12,10 @@ pandas.
 .. note::
 
     The choice of using ``NaN`` internally to denote missing data was largely
-    for simplicity and performance reasons. It differs from the MaskedArray
-    approach of, for example, :mod:`scikits.timeseries`. We are hopeful that
-    NumPy will soon be able to provide a native NA type solution (similar to R)
-    performant enough to be used in pandas.
+    for simplicity and performance reasons.
+    Starting from pandas 1.0, some optional data types start experimenting
+    with a native ``NA`` scalar using a mask-based approach. See
+    :ref:`here <missing_data.NA>` for more.
 
 See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 
@@ -110,7 +110,7 @@ pandas objects provide compatibility between ``NaT`` and ``NaN``.
 .. _missing.inserting:
 
 Inserting missing data
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 You can insert missing values by simply assigning to containers. The
 actual missing value used will be chosen based on the dtype.
@@ -135,9 +135,10 @@ For object containers, pandas will use the value given:
    s.loc[1] = np.nan
    s
 
+.. _missing_data.calculations:
 
 Calculations with missing data
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Missing values propagate naturally through arithmetic operations between pandas
 objects.
@@ -189,7 +190,7 @@ The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
    pd.Series([np.nan]).sum()
 
-   pd.Series([]).sum()
+   pd.Series([], dtype="float64").sum()
 
 The product of an empty or all-NA Series or column of a DataFrame is 1.
 
@@ -197,7 +198,7 @@ The product of an empty or all-NA Series or column of a DataFrame is 1.
 
    pd.Series([np.nan]).prod()
 
-   pd.Series([]).prod()
+   pd.Series([], dtype="float64").prod()
 
 
 NA values in GroupBy
@@ -466,9 +467,9 @@ at the new values.
    interp_s = ser.reindex(new_index).interpolate(method='pchip')
    interp_s[49:51]
 
-.. _scipy: http://www.scipy.org
-.. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _scipy: https://www.scipy.org
+.. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
+.. _guide: https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
 .. _missing_data.interp_limits:
 
@@ -771,3 +772,200 @@ the ``dtype="Int64"``.
    s
 
 See :ref:`integer_na` for more.
+
+
+.. _missing_data.NA:
+
+Experimental ``NA`` scalar to denote missing values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental: the behaviour of ``pd.NA`` can still change without warning.
+
+.. versionadded:: 1.0.0
+
+Starting from pandas 1.0, an experimental ``pd.NA`` value (singleton) is
+available to represent scalar missing values. At this moment, it is used in
+the nullable :doc:`integer <integer_na>`, boolean and
+:ref:`dedicated string <text.types>` data types as the missing value indicator.
+
+The goal of ``pd.NA`` is provide a "missing" indicator that can be used
+consistently across data types (instead of ``np.nan``, ``None`` or ``pd.NaT``
+depending on the data type).
+
+For example, when having missing values in a Series with the nullable integer
+dtype, it will use ``pd.NA``:
+
+.. ipython:: python
+
+    s = pd.Series([1, 2, None], dtype="Int64")
+    s
+    s[2]
+    s[2] is pd.NA
+
+Currently, pandas does not yet use those data types by default (when creating
+a DataFrame or Series, or when reading in data), so you need to specify
+the dtype explicitly.  An easy way to convert to those dtypes is explained
+:ref:`here <missing_data.NA.conversion>`.
+
+Propagation in arithmetic and comparison operations
+---------------------------------------------------
+
+In general, missing values *propagate* in operations involving ``pd.NA``. When
+one of the operands is unknown, the outcome of the operation is also unknown.
+
+For example, ``pd.NA`` propagates in arithmetic operations, similarly to
+``np.nan``:
+
+.. ipython:: python
+
+   pd.NA + 1
+   "a" * pd.NA
+
+There are a few special cases when the result is known, even when one of the
+operands is ``NA``.
+
+.. ipython:: python
+
+   pd.NA ** 0
+   1 ** pd.NA
+
+In equality and comparison operations, ``pd.NA`` also propagates. This deviates
+from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
+return ``False``.
+
+.. ipython:: python
+
+   pd.NA == 1
+   pd.NA == pd.NA
+   pd.NA < 2.5
+
+To check if a value is equal to ``pd.NA``, the :func:`isna` function can be
+used:
+
+.. ipython:: python
+
+   pd.isna(pd.NA)
+
+An exception on this basic propagation rule are *reductions* (such as the
+mean or the minimum), where pandas defaults to skipping missing values. See
+:ref:`above <missing_data.calculations>` for more.
+
+Logical operations
+------------------
+
+For logical operations, ``pd.NA`` follows the rules of the
+`three-valued logic <https://en.wikipedia.org/wiki/Three-valued_logic>`__ (or
+*Kleene logic*, similarly to R, SQL and Julia). This logic means to only
+propagate missing values when it is logically required.
+
+For example, for the logical "or" operation (``|``), if one of the operands
+is ``True``, we already know the result will be ``True``, regardless of the
+other value (so regardless the missing value would be ``True`` or ``False``).
+In this case, ``pd.NA`` does not propagate:
+
+.. ipython:: python
+
+   True | False
+   True | pd.NA
+   pd.NA | True
+
+On the other hand, if one of the operands is ``False``, the result depends
+on the value of the other operand. Therefore, in this case ``pd.NA``
+propagates:
+
+.. ipython:: python
+
+   False | True
+   False | False
+   False | pd.NA
+
+The behaviour of the logical "and" operation (``&``) can be derived using
+similar logic (where now ``pd.NA`` will not propagate if one of the operands
+is already ``False``):
+
+.. ipython:: python
+
+   False & True
+   False & False
+   False & pd.NA
+
+.. ipython:: python
+
+   True & True
+   True & False
+   True & pd.NA
+
+
+``NA`` in a boolean context
+---------------------------
+
+Since the actual value of an NA is unknown, it is ambiguous to convert NA
+to a boolean value. The following raises an error:
+
+.. ipython:: python
+   :okexcept:
+
+   bool(pd.NA)
+
+This also means that ``pd.NA`` cannot be used in a context where it is
+evaluated to a boolean, such as ``if condition: ...`` where ``condition`` can
+potentially be ``pd.NA``. In such cases, :func:`isna` can be used to check
+for ``pd.NA`` or ``condition`` being ``pd.NA`` can be avoided, for example by
+filling missing values beforehand.
+
+A similar situation occurs when using Series or DataFrame objects in ``if``
+statements, see :ref:`gotchas.truth`.
+
+NumPy ufuncs
+------------
+
+:attr:`pandas.NA` implements NumPy's ``__array_ufunc__`` protocol. Most ufuncs
+work with ``NA``, and generally return ``NA``:
+
+.. ipython:: python
+
+   np.log(pd.NA)
+   np.add(pd.NA, 1)
+
+.. warning::
+
+   Currently, ufuncs involving an ndarray and ``NA`` will return an
+   object-dtype filled with NA values.
+
+   .. ipython:: python
+
+      a = np.array([1, 2, 3])
+      np.greater(a, pd.NA)
+
+   The return type here may change to return a different array type
+   in the future.
+
+See :ref:`dsintro.numpy_interop` for more on ufuncs.
+
+.. _missing_data.NA.conversion:
+
+Conversion
+----------
+
+If you have a DataFrame or Series using traditional types that have missing data
+represented using ``np.nan``, there are convenience methods
+:meth:`~Series.convert_dtypes` in Series and :meth:`~DataFrame.convert_dtypes`
+in DataFrame that can convert data to use the newer dtypes for integers, strings and
+booleans listed :ref:`here <basics.dtypes>`. This is especially helpful after reading
+in data sets when letting the readers such as :meth:`read_csv` and :meth:`read_excel`
+infer default dtypes.
+
+In this example, while the dtypes of all columns are changed, we show the results for
+the first 10 columns.
+
+.. ipython:: python
+
+   bb = pd.read_csv('data/baseball.csv', index_col='id')
+   bb[bb.columns[:10]].dtypes
+
+.. ipython:: python
+
+   bbn = bb.convert_dtypes()
+   bbn[bbn.columns[:10]].dtypes

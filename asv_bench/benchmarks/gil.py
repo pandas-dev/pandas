@@ -2,7 +2,8 @@ import numpy as np
 
 from pandas import DataFrame, Series, date_range, factorize, read_csv
 from pandas.core.algorithms import take_1d
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 try:
     from pandas import (
@@ -24,7 +25,7 @@ try:
 except ImportError:
     from pandas import algos
 try:
-    from pandas.util.testing import test_parallel
+    from pandas._testing import test_parallel
 
     have_real_test_parallel = True
 except ImportError:
@@ -37,7 +38,7 @@ except ImportError:
         return wrapper
 
 
-from .pandas_vb_common import BaseIO  # noqa: E402 isort:skip
+from .pandas_vb_common import BaseIO  # isort:skip
 
 
 class ParallelGroupbyMethods:
@@ -250,13 +251,11 @@ class ParallelReadCSV(BaseIO):
                 np.random.randn(rows, cols), index=date_range("1/1/2000", periods=rows)
             ),
             "object": DataFrame(
-                "foo",
-                index=range(rows),
-                columns=["object%03d".format(i) for i in range(5)],
+                "foo", index=range(rows), columns=["object%03d" for _ in range(5)]
             ),
         }
 
-        self.fname = "__test_{}__.csv".format(dtype)
+        self.fname = f"__test_{dtype}__.csv"
         df = data[dtype]
         df.to_csv(self.fname)
 

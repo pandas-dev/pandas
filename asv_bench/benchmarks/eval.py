@@ -27,7 +27,7 @@ class Eval:
 
     def time_and(self, engine, threads):
         pd.eval(
-            "(self.df > 0) & (self.df2 > 0) & " "(self.df3 > 0) & (self.df4 > 0)",
+            "(self.df > 0) & (self.df2 > 0) & (self.df3 > 0) & (self.df4 > 0)",
             engine=engine,
         )
 

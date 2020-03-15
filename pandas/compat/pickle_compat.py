@@ -4,9 +4,13 @@ Support pre-0.12 series pickle compatibility.
 
 import copy
 import pickle as pkl
-import sys
+from typing import TYPE_CHECKING, Optional
+import warnings
 
 from pandas import Index
+
+if TYPE_CHECKING:
+    from pandas import Series, DataFrame
 
 
 def load_reduce(self):
@@ -20,14 +24,14 @@ def load_reduce(self):
     try:
         stack[-1] = func(*args)
         return
-    except Exception as e:
+    except TypeError as err:
 
         # If we have a deprecated function,
         # try to replace and try again.
 
         msg = "_reconstruct: First argument must be a sub-type of ndarray"
 
-        if msg in str(e):
+        if msg in str(err):
             try:
                 cls = args[0]
                 stack[-1] = object.__new__(cls)
@@ -35,44 +39,58 @@ def load_reduce(self):
             except TypeError:
                 pass
 
-        # try to re-encode the arguments
-        if getattr(self, "encoding", None) is not None:
-            args = tuple(
-                arg.encode(self.encoding) if isinstance(arg, str) else arg
-                for arg in args
-            )
-            try:
-                stack[-1] = func(*args)
-                return
-            except TypeError:
-                pass
-
-        # unknown exception, re-raise
-        if getattr(self, "is_verbose", None):
-            print(sys.exc_info())
-            print(func, args)
         raise
+
+
+_sparse_msg = """\
+
+Loading a saved '{cls}' as a {new} with sparse values.
+'{cls}' is now removed. You should re-save this dataset in its new format.
+"""
+
+
+class _LoadSparseSeries:
+    # To load a SparseSeries as a Series[Sparse]
+
+    # https://github.com/python/mypy/issues/1020
+    # error: Incompatible return type for "__new__" (returns "Series", but must return
+    # a subtype of "_LoadSparseSeries")
+    def __new__(cls) -> "Series":  # type: ignore
+        from pandas import Series
+
+        warnings.warn(
+            _sparse_msg.format(cls="SparseSeries", new="Series"),
+            FutureWarning,
+            stacklevel=6,
+        )
+
+        return Series(dtype=object)
+
+
+class _LoadSparseFrame:
+    # To load a SparseDataFrame as a DataFrame[Sparse]
+
+    # https://github.com/python/mypy/issues/1020
+    # error: Incompatible return type for "__new__" (returns "DataFrame", but must
+    # return a subtype of "_LoadSparseFrame")
+    def __new__(cls) -> "DataFrame":  # type: ignore
+        from pandas import DataFrame
+
+        warnings.warn(
+            _sparse_msg.format(cls="SparseDataFrame", new="DataFrame"),
+            FutureWarning,
+            stacklevel=6,
+        )
+
+        return DataFrame()
 
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
     ("pandas.core.sparse.array", "SparseArray"): ("pandas.core.arrays", "SparseArray"),
     # 15477
-    #
-    # TODO: When FrozenNDArray is removed, add
-    # the following lines for compat:
-    #
-    # ('pandas.core.base', 'FrozenNDArray'):
-    #     ('numpy', 'ndarray'),
-    # ('pandas.core.indexes.frozen', 'FrozenNDArray'):
-    #     ('numpy', 'ndarray'),
-    #
-    # Afterwards, remove the current entry
-    # for `pandas.core.base.FrozenNDArray`.
-    ("pandas.core.base", "FrozenNDArray"): (
-        "pandas.core.indexes.frozen",
-        "FrozenNDArray",
-    ),
+    ("pandas.core.base", "FrozenNDArray"): ("numpy", "ndarray"),
+    ("pandas.core.indexes.frozen", "FrozenNDArray"): ("numpy", "ndarray"),
     ("pandas.core.base", "FrozenList"): ("pandas.core.indexes.frozen", "FrozenList"),
     # 10890
     ("pandas.core.series", "TimeSeries"): ("pandas.core.series", "Series"),
@@ -101,12 +119,12 @@ _class_locations_map = {
         "SparseArray",
     ),
     ("pandas.sparse.series", "SparseSeries"): (
-        "pandas.core.sparse.series",
-        "SparseSeries",
+        "pandas.compat.pickle_compat",
+        "_LoadSparseSeries",
     ),
     ("pandas.sparse.frame", "SparseDataFrame"): (
         "pandas.core.sparse.frame",
-        "SparseDataFrame",
+        "_LoadSparseFrame",
     ),
     ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
     ("pandas.indexes.base", "Index"): ("pandas.core.indexes.base", "Index"),
@@ -139,13 +157,21 @@ _class_locations_map = {
         "pandas.core.indexes.numeric",
         "Float64Index",
     ),
+    ("pandas.core.sparse.series", "SparseSeries"): (
+        "pandas.compat.pickle_compat",
+        "_LoadSparseSeries",
+    ),
+    ("pandas.core.sparse.frame", "SparseDataFrame"): (
+        "pandas.compat.pickle_compat",
+        "_LoadSparseFrame",
+    ),
 }
 
 
 # our Unpickler sub-class to override methods and some dispatcher
-# functions for compat
+# functions for compat and uses a non-public class of the pickle module.
 
-
+# error: Name 'pkl._Unpickler' is not defined
 class Unpickler(pkl._Unpickler):  # type: ignore
     def find_class(self, module, name):
         # override superclass
@@ -193,8 +219,9 @@ except (AttributeError, KeyError):
     pass
 
 
-def load(fh, encoding=None, is_verbose=False):
-    """load a pickle, with a provided encoding
+def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
+    """
+    Load a pickle, with a provided encoding,
 
     Parameters
     ----------
@@ -202,7 +229,6 @@ def load(fh, encoding=None, is_verbose=False):
     encoding : an optional encoding
     is_verbose : show exception output
     """
-
     try:
         fh.seek(0)
         if encoding is not None:

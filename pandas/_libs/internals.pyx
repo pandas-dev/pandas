@@ -1,20 +1,16 @@
 import cython
+from collections import defaultdict
 from cython import Py_ssize_t
 
-from cpython.object cimport PyObject
+from cpython.slice cimport PySlice_GetIndicesEx
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
-from numpy cimport int64_t
-
-cdef extern from "compat_helper.h":
-    cdef int slice_get_indices(PyObject* s, Py_ssize_t length,
-                               Py_ssize_t *start, Py_ssize_t *stop,
-                               Py_ssize_t *step,
-                               Py_ssize_t *slicelength) except -1
-
+cimport numpy as cnp
+from numpy cimport NPY_INT64, int64_t
+cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
@@ -53,7 +49,7 @@ cdef class BlockPlacement:
             self._as_array = arr
             self._has_array = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -61,12 +57,12 @@ cdef class BlockPlacement:
         else:
             v = self._as_array
 
-        return '%s(%r)' % (self.__class__.__name__, v)
+        return f'{type(self).__name__}({v})'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
         if s is not None:
@@ -85,7 +81,7 @@ cdef class BlockPlacement:
             return iter(self._as_array)
 
     @property
-    def as_slice(self):
+    def as_slice(self) -> slice:
         cdef:
             slice s = self._ensure_has_slice()
         if s is None:
@@ -103,7 +99,7 @@ cdef class BlockPlacement:
             return self._as_array
 
     def isin(self, arr):
-        from pandas.core.index import Int64Index
+        from pandas.core.indexes.api import Int64Index
         return Int64Index(self.as_array, copy=False).isin(arr)
 
     @property
@@ -112,13 +108,14 @@ cdef class BlockPlacement:
             Py_ssize_t start, stop, end, _
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
-            self._as_array = np.arange(start, stop, step,
-                                       dtype=np.int64)
+            # NOTE: this is the C-optimized equivalent of
+            #  np.arange(start, stop, step, dtype=np.int64)
+            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
             self._has_array = True
         return self._as_array
 
     @property
-    def is_slice_like(self):
+    def is_slice_like(self) -> bool:
         cdef:
             slice s = self._ensure_has_slice()
         return s is not None
@@ -250,7 +247,6 @@ cpdef Py_ssize_t slice_len(
     - if ``s.step < 0``, ``s.start`` is not ``None``
 
     Otherwise, the result is unreliable.
-
     """
     cdef:
         Py_ssize_t start, stop, step, length
@@ -258,8 +254,8 @@ cpdef Py_ssize_t slice_len(
     if slc is None:
         raise TypeError("slc must be slice")
 
-    slice_get_indices(<PyObject *>slc, objlen,
-                      &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen,
+                         &start, &stop, &step, &length)
 
     return length
 
@@ -270,7 +266,6 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
 
     If `objlen` is not specified, slice must be bounded, otherwise the result
     will be wrong.
-
     """
     cdef:
         Py_ssize_t start, stop, step, length
@@ -278,13 +273,13 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    slice_get_indices(<PyObject *>slc, objlen,
-                      &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen,
+                         &start, &stop, &step, &length)
 
     return start, stop, step, length
 
 
-def slice_getitem(slice slc not None, ind):
+cdef slice_getitem(slice slc, ind):
     cdef:
         Py_ssize_t s_start, s_stop, s_step, s_len
         Py_ssize_t ind_start, ind_stop, ind_step, ind_len
@@ -292,8 +287,7 @@ def slice_getitem(slice slc not None, ind):
     s_start, s_stop, s_step, s_len = slice_get_indices_ex(slc)
 
     if isinstance(ind, slice):
-        ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind,
-                                                                      s_len)
+        ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind, s_len)
 
         if ind_step > 0 and ind_len == s_len:
             # short-cut for no-op slice
@@ -319,7 +313,7 @@ def slice_getitem(slice slc not None, ind):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef slice indexer_as_slice(int64_t[:] vals):
+cdef slice indexer_as_slice(int64_t[:] vals):
     cdef:
         Py_ssize_t i, n, start, stop
         int64_t d
@@ -372,7 +366,6 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     Returns
     -------
     iter : iterator of (int, slice or array)
-
     """
     # There's blkno in this function's name because it's used in block &
     # blockno handling.
@@ -381,8 +374,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
         Py_ssize_t i, start, stop, n, diff
 
         object blkno
-        list group_order
-        dict group_dict
+        object group_dict = defaultdict(list)
         int64_t[:] res_view
 
     n = blknos.shape[0]
@@ -403,28 +395,16 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         yield cur_blkno, slice(start, n)
     else:
-        group_order = []
-        group_dict = {}
-
         for i in range(1, n):
             if blknos[i] != cur_blkno:
-                if cur_blkno not in group_dict:
-                    group_order.append(cur_blkno)
-                    group_dict[cur_blkno] = [(start, i)]
-                else:
-                    group_dict[cur_blkno].append((start, i))
+                group_dict[cur_blkno].append((start, i))
 
                 start = i
                 cur_blkno = blknos[i]
 
-        if cur_blkno not in group_dict:
-            group_order.append(cur_blkno)
-            group_dict[cur_blkno] = [(start, n)]
-        else:
-            group_dict[cur_blkno].append((start, n))
+        group_dict[cur_blkno].append((start, n))
 
-        for blkno in group_order:
-            slices = group_dict[blkno]
+        for blkno, slices in group_dict.items():
             if len(slices) == 1:
                 yield blkno, slice(slices[0][0], slices[0][1])
             else:
@@ -441,24 +421,19 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                 yield blkno, result
 
 
-def get_blkno_placements(blknos, blk_count, group=True):
+def get_blkno_placements(blknos, group: bool = True):
     """
-
     Parameters
     ----------
     blknos : array of int64
-    blk_count : int
-    group : bool
+    group : bool, default True
 
     Returns
     -------
     iterator
         yield (BlockPlacement, blkno)
-
     """
-
     blknos = ensure_int64(blknos)
 
-    # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)

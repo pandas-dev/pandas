@@ -18,6 +18,8 @@ Working with options
    set_option
    option_context
 
+.. _api.general.testing:
+
 Testing functions
 -----------------
 .. autosummary::
@@ -26,6 +28,7 @@ Testing functions
    testing.assert_frame_equal
    testing.assert_series_equal
    testing.assert_index_equal
+   testing.assert_extension_array_equal
 
 Exceptions and warnings
 -----------------------
@@ -97,13 +100,11 @@ Scalar introspection
     api.types.is_bool
     api.types.is_categorical
     api.types.is_complex
-    api.types.is_datetimetz
     api.types.is_float
     api.types.is_hashable
     api.types.is_integer
     api.types.is_interval
     api.types.is_number
-    api.types.is_period
     api.types.is_re
     api.types.is_re_compilable
     api.types.is_scalar

@@ -4,9 +4,8 @@ import numpy as np
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.indexes.timedeltas import timedelta_range
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def test_asfreq_bug():
@@ -16,7 +15,7 @@ def test_asfreq_bug():
         data=[1, np.nan, np.nan, 3],
         index=timedelta_range("0 day", periods=4, freq="1T"),
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_resample_with_nat():
@@ -27,7 +26,7 @@ def test_resample_with_nat():
         {"value": [2.5, np.nan, 5.0]},
         index=timedelta_range("0 day", periods=3, freq="1S"),
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_resample_as_freq_with_subperiod():
@@ -53,11 +52,11 @@ def test_resample_with_timedeltas():
     )
     result = df.resample("30T").sum()
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     s = df["A"]
     result = s.resample("30T").sum()
-    assert_series_equal(result, expected["A"])
+    tm.assert_series_equal(result, expected["A"])
 
 
 def test_resample_single_period_timedelta():
@@ -67,7 +66,7 @@ def test_resample_single_period_timedelta():
     expected = Series(
         [1, 5, 4], index=pd.timedelta_range("1 day", freq="2s", periods=3)
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_resample_timedelta_idempotency():
@@ -77,7 +76,7 @@ def test_resample_timedelta_idempotency():
     series = Series(range(9), index=index)
     result = series.resample("10L").mean()
     expected = series
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_resample_base_with_timedeltaindex():
@@ -106,7 +105,7 @@ def test_resample_categorical_data_with_timedeltaindex():
         index=pd.to_timedelta([0, 10], unit="s"),
     )
     expected = expected.reindex(["Group_obj", "Group"], axis=1)
-    expected["Group"] = expected["Group_obj"].astype("category")
+    expected["Group"] = expected["Group_obj"]
     tm.assert_frame_equal(result, expected)
 
 

@@ -19,9 +19,9 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.reshape.tile as tmod
-import pandas.util.testing as tm
 
 
 def test_simple():
@@ -585,3 +585,43 @@ def test_timedelta_cut_roundtrip():
         ["0 days 23:57:07.200000", "2 days 00:00:00", "3 days 00:00:00"]
     )
     tm.assert_index_equal(result_bins, expected_bins)
+
+
+@pytest.mark.parametrize("bins", [6, 7])
+@pytest.mark.parametrize(
+    "box, compare",
+    [
+        (Series, tm.assert_series_equal),
+        (np.array, tm.assert_categorical_equal),
+        (list, tm.assert_equal),
+    ],
+)
+def test_cut_bool_coercion_to_int(bins, box, compare):
+    # issue 20303
+    data_expected = box([0, 1, 1, 0, 1] * 10)
+    data_result = box([False, True, True, False, True] * 10)
+    expected = cut(data_expected, bins, duplicates="drop")
+    result = cut(data_result, bins, duplicates="drop")
+    compare(result, expected)
+
+
+@pytest.mark.parametrize("labels", ["foo", 1, True])
+def test_cut_incorrect_labels(labels):
+    # GH 13318
+    values = range(5)
+    msg = "Bin labels must either be False, None or passed in as a list-like argument"
+    with pytest.raises(ValueError, match=msg):
+        cut(values, 4, labels=labels)
+
+
+@pytest.mark.parametrize("bins", [3, [0, 5, 15]])
+@pytest.mark.parametrize("right", [True, False])
+@pytest.mark.parametrize("include_lowest", [True, False])
+def test_cut_nullable_integer(bins, right, include_lowest):
+    a = np.random.randint(0, 10, size=50).astype(float)
+    a[::2] = np.nan
+    result = cut(
+        pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
+    )
+    expected = cut(a, bins, right=right, include_lowest=include_lowest)
+    tm.assert_categorical_equal(result, expected)

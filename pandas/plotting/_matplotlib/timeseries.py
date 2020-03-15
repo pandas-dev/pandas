@@ -1,7 +1,6 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
 import functools
-import warnings
 
 import numpy as np
 
@@ -31,48 +30,6 @@ from pandas.tseries.offsets import DateOffset
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
-
-
-def tsplot(series, plotf, ax=None, **kwargs):
-    """
-    Plots a Series on the given Matplotlib axes or the current axes
-
-    Parameters
-    ----------
-    axes : Axes
-    series : Series
-
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
-
-
-    .. deprecated:: 0.23.0
-       Use Series.plot() instead
-    """
-    import matplotlib.pyplot as plt
-
-    warnings.warn(
-        "'tsplot' is deprecated and will be removed in a "
-        "future version. Please use Series.plot() instead.",
-        FutureWarning,
-        stacklevel=2,
-    )
-
-    # Used inferred freq is possible, need a test case for inferred
-    if ax is None:
-        ax = plt.gca()
-
-    freq, series = _maybe_resample(series, ax, kwargs)
-
-    # Set ax with freq info
-    _decorate_axes(ax, freq, kwargs)
-    ax._plot_data.append((series, plotf, kwargs))
-    lines = plotf(ax, series.index._mpl_repr(), series.values, **kwargs)
-
-    # set date formatter, locators and rescale limits
-    format_dateaxis(ax, ax.freq, series.index)
-    return lines
 
 
 def _maybe_resample(series, ax, kwargs):
@@ -294,7 +251,7 @@ def _maybe_convert_index(ax, data):
         freq = frequencies.get_period_alias(freq)
 
         if isinstance(data.index, ABCDatetimeIndex):
-            data = data.to_period(freq=freq)
+            data = data.tz_localize(None).to_period(freq=freq)
         elif isinstance(data.index, ABCPeriodIndex):
             data.index = data.index.asfreq(freq=freq)
     return data
@@ -305,7 +262,8 @@ def _maybe_convert_index(ax, data):
 
 
 def _format_coord(freq, t, y):
-    return "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y)
+    time_period = Period(ordinal=int(t), freq=freq)
+    return f"t = {time_period}  y = {y:8f}"
 
 
 def format_dateaxis(subplot, freq, index):

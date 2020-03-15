@@ -5,8 +5,8 @@ from pandas._libs.tslib import iNaT
 
 import pandas as pd
 from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-import pandas.util.testing as tm
 
 
 def test_fillna(idx):
@@ -42,9 +42,9 @@ def test_fillna(idx):
                 values[1] = np.nan
 
             if isinstance(index, PeriodIndex):
-                idx = index.__class__(values, freq=index.freq)
+                idx = type(index)(values, freq=index.freq)
             else:
-                idx = index.__class__(values)
+                idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -101,7 +101,7 @@ def test_nulls(idx):
         idx.isna()
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="isna is not defined for MultiIndex")
 def test_hasnans_isnans(idx):
     # GH 11343, added tests for hasnans / isnans
     index = idx.copy()
@@ -115,7 +115,7 @@ def test_hasnans_isnans(idx):
     values = index.values
     values[1] = np.nan
 
-    index = idx.__class__(values)
+    index = type(idx)(values)
 
     expected = np.array([False] * len(index), dtype=bool)
     expected[1] = True
@@ -141,3 +141,13 @@ def test_nan_stays_float():
     assert pd.isna(df0.index.get_level_values(1)).all()
     # the following failed in 0.14.1
     assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
+
+
+def test_tuples_have_na():
+    index = MultiIndex(
+        levels=[[1, 0], [0, 1, 2, 3]],
+        codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
+    )
+
+    assert pd.isna(index[4][0])
+    assert pd.isna(index.values[4][0])

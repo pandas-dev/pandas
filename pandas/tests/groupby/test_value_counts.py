@@ -9,8 +9,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, date_range
-from pandas.util import testing as tm
+from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
+import pandas._testing as tm
 
 
 # our starting frame
@@ -47,34 +47,63 @@ for seed_nans in [True, False]:
         keys = "1st", "2nd", ["1st", "2nd"]
         for k, b in product(keys, bins):
             binned.append((df, k, b, n, m))
-            ids.append("{}-{}-{}".format(k, n, m))
+            ids.append(f"{k}-{n}-{m}")
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
-def test_series_groupby_value_counts(df, keys, bins, n, m):
+@pytest.mark.parametrize("isort", [True, False])
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("ascending", [True, False])
+@pytest.mark.parametrize("dropna", [True, False])
+def test_series_groupby_value_counts(
+    df, keys, bins, n, m, isort, normalize, sort, ascending, dropna
+):
     def rebuild_index(df):
         arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
         df.index = MultiIndex.from_arrays(arr, names=df.index.names)
         return df
 
-    for isort, normalize, sort, ascending, dropna in product((False, True), repeat=5):
+    kwargs = dict(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna, bins=bins
+    )
 
-        kwargs = dict(
-            normalize=normalize,
-            sort=sort,
-            ascending=ascending,
-            dropna=dropna,
-            bins=bins,
-        )
+    gr = df.groupby(keys, sort=isort)
+    left = gr["3rd"].value_counts(**kwargs)
 
-        gr = df.groupby(keys, sort=isort)
-        left = gr["3rd"].value_counts(**kwargs)
+    gr = df.groupby(keys, sort=isort)
+    right = gr["3rd"].apply(Series.value_counts, **kwargs)
+    right.index.names = right.index.names[:-1] + ["3rd"]
 
-        gr = df.groupby(keys, sort=isort)
-        right = gr["3rd"].apply(Series.value_counts, **kwargs)
-        right.index.names = right.index.names[:-1] + ["3rd"]
+    # have to sort on index because of unstable sort on values
+    left, right = map(rebuild_index, (left, right))  # xref GH9212
+    tm.assert_series_equal(left.sort_index(), right.sort_index())
 
-        # have to sort on index because of unstable sort on values
-        left, right = map(rebuild_index, (left, right))  # xref GH9212
-        tm.assert_series_equal(left.sort_index(), right.sort_index())
+
+def test_series_groupby_value_counts_with_grouper():
+    # GH28479
+    df = DataFrame(
+        {
+            "Timestamp": [
+                1565083561,
+                1565083561 + 86400,
+                1565083561 + 86500,
+                1565083561 + 86400 * 2,
+                1565083561 + 86400 * 3,
+                1565083561 + 86500 * 3,
+                1565083561 + 86400 * 4,
+            ],
+            "Food": ["apple", "apple", "banana", "banana", "orange", "orange", "pear"],
+        }
+    ).drop([3])
+
+    df["Datetime"] = to_datetime(df["Timestamp"].apply(lambda t: str(t)), unit="s")
+    dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
+
+    # have to sort on index because of unstable sort on values xref GH9212
+    result = dfg["Food"].value_counts().sort_index()
+    expected = dfg["Food"].apply(Series.value_counts).sort_index()
+    expected.index.names = result.index.names
+
+    tm.assert_series_equal(result, expected)

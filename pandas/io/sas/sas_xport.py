@@ -7,7 +7,7 @@ The file format is defined here:
 
 https://support.sas.com/techsup/technote/ts140.pdf
 """
-
+from collections import abc
 from datetime import datetime
 from io import BytesIO
 import struct
@@ -19,7 +19,7 @@ from pandas.util._decorators import Appender
 
 import pandas as pd
 
-from pandas.io.common import BaseIterator, get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
@@ -79,12 +79,12 @@ iterator : boolean, default False
     Return XportReader object for reading file incrementally."""
 
 
-_read_sas_doc = """Read a SAS file into a DataFrame.
+_read_sas_doc = f"""Read a SAS file into a DataFrame.
 
-%(_base_params_doc)s
-%(_format_params_doc)s
-%(_params2_doc)s
-%(_iterator_doc)s
+{_base_params_doc}
+{_format_params_doc}
+{_params2_doc}
+{_iterator_doc}
 
 Returns
 -------
@@ -102,19 +102,13 @@ Read a Xport file in 10,000 line chunks:
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
-""" % {
-    "_base_params_doc": _base_params_doc,
-    "_format_params_doc": _format_params_doc,
-    "_params2_doc": _params2_doc,
-    "_iterator_doc": _iterator_doc,
-}
+"""
 
-
-_xport_reader_doc = """\
+_xport_reader_doc = f"""\
 Class for reading SAS Xport files.
 
-%(_base_params_doc)s
-%(_params2_doc)s
+{_base_params_doc}
+{_params2_doc}
 
 Attributes
 ----------
@@ -122,11 +116,7 @@ member_info : list
     Contains information about the file
 fields : list
     Contains information about the variables in the file
-""" % {
-    "_base_params_doc": _base_params_doc,
-    "_params2_doc": _params2_doc,
-}
-
+"""
 
 _read_method_doc = """\
 Read observations from SAS Xport file, returning as data frame.
@@ -143,7 +133,7 @@ A DataFrame.
 """
 
 
-def _parse_date(datestr):
+def _parse_date(datestr: str) -> datetime:
     """ Given a date in xport format, return Python date. """
     try:
         # e.g. "16FEB11:10:07:55"
@@ -152,11 +142,11 @@ def _parse_date(datestr):
         return pd.NaT
 
 
-def _split_line(s, parts):
+def _split_line(s: str, parts):
     """
     Parameters
     ----------
-    s: string
+    s: str
         Fixed-length string to split
     parts: list of (name, length) pairs
         Used to break up string, name '_' will be filtered from output.
@@ -185,7 +175,7 @@ def _handle_truncated_float_vec(vec, nbytes):
 
     if nbytes != 8:
         vec1 = np.zeros(len(vec), np.dtype("S8"))
-        dtype = np.dtype("S%d,S%d" % (nbytes, 8 - nbytes))
+        dtype = np.dtype(f"S{nbytes},S{8 - nbytes}")
         vec2 = vec1.view(dtype=dtype)
         vec2["f0"] = vec
         return vec2
@@ -198,7 +188,6 @@ def _parse_float_vec(vec):
     Parse a vector of float values representing IBM 8 byte floats into
     native 8 byte floats.
     """
-
     dtype = np.dtype(">u4,>u4")
     vec1 = vec.view(dtype=dtype)
     xport1 = vec1["f0"]
@@ -251,7 +240,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(BaseIterator):
+class XportReader(abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(
@@ -367,8 +356,8 @@ class XportReader(BaseIterator):
             fl = field["field_length"]
             if field["ntype"] == "numeric" and ((fl < 2) or (fl > 8)):
                 self.close()
-                msg = "Floating field width {0} is not between 2 and 8."
-                raise TypeError(msg.format(fl))
+                msg = f"Floating field width {fl} is not between 2 and 8."
+                raise TypeError(msg)
 
             for k, v in field.items():
                 try:
@@ -402,7 +391,7 @@ class XportReader(BaseIterator):
     def __next__(self):
         return self.read(nrows=self._chunksize or 1)
 
-    def _record_count(self):
+    def _record_count(self) -> int:
         """
         Get number of records in file.
 
@@ -411,7 +400,6 @@ class XportReader(BaseIterator):
 
         Side effect: returns file position to record_start.
         """
-
         self.filepath_or_buffer.seek(0, 2)
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
@@ -482,7 +470,7 @@ class XportReader(BaseIterator):
 
         df = pd.DataFrame(index=range(read_lines))
         for j, x in enumerate(self.columns):
-            vec = data["s%d" % j]
+            vec = data["s" + str(j)]
             ntype = self.fields[j]["ntype"]
             if ntype == "numeric":
                 vec = _handle_truncated_float_vec(vec, self.fields[j]["field_length"])

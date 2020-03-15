@@ -3,7 +3,8 @@ from typing import Optional, Sequence, Union
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.api.types import is_list_like
+from pandas.core.dtypes.inference import is_list_like
+
 from pandas.core.api import DataFrame
 
 
@@ -19,8 +20,8 @@ def read_spss(
 
     Parameters
     ----------
-    path : string or Path
-        File path
+    path : str or Path
+        File path.
     usecols : list-like, optional
         Return a subset of the columns. If None, return all columns.
     convert_categoricals : bool, default is True

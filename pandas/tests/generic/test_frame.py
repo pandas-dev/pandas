@@ -9,12 +9,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
-import pandas.util.testing as tm
-from pandas.util.testing import (
-    assert_almost_equal,
-    assert_frame_equal,
-    assert_series_equal,
-)
+import pandas._testing as tm
 
 from .test_generic import Generic
 
@@ -28,7 +23,7 @@ except ImportError:
 
 class TestDataFrame(Generic):
     _typ = DataFrame
-    _comparator = lambda self, x, y: assert_frame_equal(x, y)
+    _comparator = lambda self, x, y: tm.assert_frame_equal(x, y)
 
     def test_rename_mi(self):
         df = DataFrame(
@@ -37,19 +32,20 @@ class TestDataFrame(Generic):
         )
         df.rename(str.lower)
 
-    def test_set_axis_name(self):
+    @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
+    def test_set_axis_name(self, func):
         df = pd.DataFrame([[1, 2], [3, 4]])
-        funcs = ["_set_axis_name", "rename_axis"]
-        for func in funcs:
-            result = methodcaller(func, "foo")(df)
-            assert df.index.name is None
-            assert result.index.name == "foo"
 
-            result = methodcaller(func, "cols", axis=1)(df)
-            assert df.columns.name is None
-            assert result.columns.name == "cols"
+        result = methodcaller(func, "foo")(df)
+        assert df.index.name is None
+        assert result.index.name == "foo"
 
-    def test_set_axis_name_mi(self):
+        result = methodcaller(func, "cols", axis=1)(df)
+        assert df.columns.name is None
+        assert result.columns.name == "cols"
+
+    @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
+    def test_set_axis_name_mi(self, func):
         df = DataFrame(
             np.empty((3, 3)),
             index=MultiIndex.from_tuples([("A", x) for x in list("aBc")]),
@@ -57,15 +53,14 @@ class TestDataFrame(Generic):
         )
 
         level_names = ["L1", "L2"]
-        funcs = ["_set_axis_name", "rename_axis"]
-        for func in funcs:
-            result = methodcaller(func, level_names)(df)
-            assert result.index.names == level_names
-            assert result.columns.names == [None, None]
 
-            result = methodcaller(func, level_names, axis=1)(df)
-            assert result.columns.names == ["L1", "L2"]
-            assert result.index.names == [None, None]
+        result = methodcaller(func, level_names)(df)
+        assert result.index.names == level_names
+        assert result.columns.names == [None, None]
+
+        result = methodcaller(func, level_names, axis=1)(df)
+        assert result.columns.names == ["L1", "L2"]
+        assert result.index.names == [None, None]
 
     def test_nonzero_single_element(self):
 
@@ -77,9 +72,10 @@ class TestDataFrame(Generic):
         assert not df.bool()
 
         df = DataFrame([[False, False]])
-        with pytest.raises(ValueError):
+        msg = "The truth value of a DataFrame is ambiguous"
+        with pytest.raises(ValueError, match=msg):
             df.bool()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bool(df)
 
     def test_get_numeric_data_preserve_dtype(self):
@@ -165,7 +161,7 @@ class TestDataFrame(Generic):
 
         # reset
         DataFrame._metadata = _metadata
-        DataFrame.__finalize__ = _finalize
+        DataFrame.__finalize__ = _finalize  # FIXME: use monkeypatch
 
     def test_set_attribute(self):
         # Test for consistent setattr behavior when an attribute and a column
@@ -177,31 +173,82 @@ class TestDataFrame(Generic):
         df.y = 5
 
         assert df.y == 5
-        assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
+        tm.assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
 
+    def test_deepcopy_empty(self):
+        # This test covers empty frame copying with non-empty column sets
+        # as reported in issue GH15370
+        empty_frame = DataFrame(data=[], index=[], columns=["A"])
+        empty_frame_copy = deepcopy(empty_frame)
+
+        self._compare(empty_frame_copy, empty_frame)
+
+
+# formerly in Generic but only test DataFrame
+class TestDataFrame2:
+    @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
+    def test_validate_bool_args(self, value):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+        msg = 'For argument "inplace" expected type bool, received type'
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df).rename_axis(
+                mapper={"a": "x", "b": "y"}, axis=1, inplace=value
+            )
+
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df).drop("a", axis=1, inplace=value)
+
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df)._consolidate(inplace=value)
+
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df).fillna(value=0, inplace=value)
+
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df).replace(to_replace=1, value=7, inplace=value)
+
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df).interpolate(inplace=value)
+
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df)._where(cond=df.a > 2, inplace=value)
+
+        with pytest.raises(ValueError, match=msg):
+            super(DataFrame, df).mask(cond=df.a > 2, inplace=value)
+
+    def test_unexpected_keyword(self):
+        # GH8597
+        df = DataFrame(np.random.randn(5, 2), columns=["jim", "joe"])
+        ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
+        ts = df["joe"].copy()
+        ts[2] = np.nan
+
+        msg = "unexpected keyword"
+        with pytest.raises(TypeError, match=msg):
+            df.drop("joe", axis=1, in_place=True)
+
+        with pytest.raises(TypeError, match=msg):
+            df.reindex([1, 0], inplace=True)
+
+        with pytest.raises(TypeError, match=msg):
+            ca.fillna(0, inplace=True)
+
+        with pytest.raises(TypeError, match=msg):
+            ts.fillna(0, in_place=True)
+
+
+class TestToXArray:
     @pytest.mark.skipif(
         not _XARRAY_INSTALLED
         or _XARRAY_INSTALLED
         and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
         reason="xarray >= 0.10.0 required",
     )
-    @pytest.mark.parametrize(
-        "index",
-        [
-            "FloatIndex",
-            "IntIndex",
-            "StringIndex",
-            "UnicodeIndex",
-            "DateIndex",
-            "PeriodIndex",
-            "CategoricalIndex",
-            "TimedeltaIndex",
-        ],
-    )
+    @pytest.mark.parametrize("index", tm.all_index_generator(3))
     def test_to_xarray_index_types(self, index):
         from xarray import Dataset
 
-        index = getattr(tm, "make{}".format(index))
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -215,29 +262,24 @@ class TestDataFrame(Generic):
             }
         )
 
-        df.index = index(3)
+        df.index = index
         df.index.name = "foo"
         df.columns.name = "bar"
         result = df.to_xarray()
         assert result.dims["foo"] == 3
         assert len(result.coords) == 1
         assert len(result.data_vars) == 8
-        assert_almost_equal(list(result.coords.keys()), ["foo"])
+        tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
         assert isinstance(result, Dataset)
 
         # idempotency
-        # categoricals are not preserved
-        # datetimes w/tz are not preserved
+        # datetimes w/tz are preserved
         # column names are lost
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
-        expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
-        assert_frame_equal(
-            result.to_dataframe(),
-            expected,
-            check_index_type=False,
-            check_categorical=False,
+        tm.assert_frame_equal(
+            result.to_dataframe(), expected,
         )
 
     @td.skip_if_no("xarray", min_version="0.7.0")
@@ -270,20 +312,11 @@ class TestDataFrame(Generic):
         assert result.dims["two"] == 3
         assert len(result.coords) == 2
         assert len(result.data_vars) == 8
-        assert_almost_equal(list(result.coords.keys()), ["one", "two"])
+        tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
         assert isinstance(result, Dataset)
 
         result = result.to_dataframe()
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
-        expected["h"] = expected["h"].astype("datetime64[ns]")
         expected.columns.name = None
-        assert_frame_equal(result, expected, check_index_type=False)
-
-    def test_deepcopy_empty(self):
-        # This test covers empty frame copying with non-empty column sets
-        # as reported in issue GH15370
-        empty_frame = DataFrame(data=[], index=[], columns=["A"])
-        empty_frame_copy = deepcopy(empty_frame)
-
-        self._compare(empty_frame_copy, empty_frame)
+        tm.assert_frame_equal(result, expected, check_index_type=False)

@@ -7,10 +7,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+from pandas._libs.parsers import STR_NA_VALUES
 
-import pandas.io.common as com
+from pandas import DataFrame, Index, MultiIndex
+import pandas._testing as tm
 
 
 def test_string_nas(all_parsers):
@@ -89,6 +89,7 @@ def test_default_na_values(all_parsers):
         "N/A",
         "n/a",
         "NA",
+        "<NA>",
         "#NA",
         "NULL",
         "null",
@@ -99,7 +100,7 @@ def test_default_na_values(all_parsers):
         "#N/A N/A",
         "",
     }
-    assert _NA_VALUES == com._NA_VALUES
+    assert _NA_VALUES == STR_NA_VALUES
 
     parser = all_parsers
     nv = len(_NA_VALUES)
@@ -110,10 +111,11 @@ def test_default_na_values(all_parsers):
         elif i > 0:
             buf = "".join([","] * i)
 
-        buf = "{0}{1}".format(buf, v)
+        buf = f"{buf}{v}"
 
         if i < nv - 1:
-            buf = "{0}{1}".format(buf, "".join([","] * (nv - i - 1)))
+            joined = "".join([","] * (nv - i - 1))
+            buf = f"{buf}{joined}"
 
         return buf
 
@@ -536,3 +538,31 @@ def test_cast_NA_to_bool_raises_error(all_parsers, data, na_values):
             dtype={"a": "bool"},
             na_values=na_values,
         )
+
+
+def test_str_nan_dropped(all_parsers):
+    # see gh-21131
+    parser = all_parsers
+
+    data = """File: small.csv,,
+10010010233,0123,654
+foo,,bar
+01001000155,4530,898"""
+
+    result = parser.read_csv(
+        StringIO(data),
+        header=None,
+        names=["col1", "col2", "col3"],
+        dtype={"col1": str, "col2": str, "col3": str},
+    ).dropna()
+
+    expected = DataFrame(
+        {
+            "col1": ["10010010233", "01001000155"],
+            "col2": ["0123", "4530"],
+            "col3": ["654", "898"],
+        },
+        index=[1, 3],
+    )
+
+    tm.assert_frame_equal(result, expected)

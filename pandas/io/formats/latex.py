@@ -11,8 +11,8 @@ from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
 class LatexFormatter(TableFormatter):
-    """ Used to render a DataFrame to a LaTeX tabular/longtable environment
-    output.
+    """
+    Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 
     Parameters
     ----------
@@ -56,13 +56,12 @@ class LatexFormatter(TableFormatter):
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
         """
-
         # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = "Empty {name}\nColumns: {col}\nIndex: {idx}".format(
-                name=type(self.frame).__name__,
-                col=self.frame.columns,
-                idx=self.frame.index,
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {self.frame.columns}\n"
+                f"Index: {self.frame.index}"
             )
             strcols = [[info_line]]
         else:
@@ -106,18 +105,18 @@ class LatexFormatter(TableFormatter):
             # Get rid of old multiindex column and add new ones
             strcols = out + strcols[1:]
 
-        column_format = self.column_format
-        if column_format is None:
+        if self.column_format is None:
             dtypes = self.frame.dtypes._values
             column_format = "".join(map(get_col_type, dtypes))
             if self.fmt.index:
                 index_format = "l" * self.frame.index.nlevels
                 column_format = index_format + column_format
-        elif not isinstance(column_format, str):  # pragma: no cover
+        elif not isinstance(self.column_format, str):  # pragma: no cover
             raise AssertionError(
-                "column_format must be str or unicode, "
-                "not {typ}".format(typ=type(column_format))
+                f"column_format must be str or unicode, not {type(column_format)}"
             )
+        else:
+            column_format = self.column_format
 
         if self.longtable:
             self._write_longtable_begin(buf, column_format)
@@ -132,7 +131,7 @@ class LatexFormatter(TableFormatter):
         if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
         strrows = list(zip(*strcols))
-        self.clinebuf = []  # type: List[List[int]]
+        self.clinebuf: List[List[int]] = []
 
         for i, row in enumerate(strrows):
             if i == nlevels and self.fmt.header:
@@ -141,8 +140,8 @@ class LatexFormatter(TableFormatter):
                     buf.write("\\endhead\n")
                     buf.write("\\midrule\n")
                     buf.write(
-                        "\\multicolumn{{{n}}}{{r}}{{{{Continued on next "
-                        "page}}}} \\\\\n".format(n=len(row))
+                        f"\\multicolumn{{{len(row)}}}{{r}}"
+                        "{{Continued on next page}} \\\\\n"
                     )
                     buf.write("\\midrule\n")
                     buf.write("\\endfoot\n\n")
@@ -172,7 +171,7 @@ class LatexFormatter(TableFormatter):
             if self.bold_rows and self.fmt.index:
                 # bold row labels
                 crow = [
-                    "\\textbf{{{x}}}".format(x=x)
+                    f"\\textbf{{{x}}}"
                     if j < ilevels and x.strip() not in ["", "{}"]
                     else x
                     for j, x in enumerate(crow)
@@ -211,9 +210,8 @@ class LatexFormatter(TableFormatter):
             # write multicolumn if needed
             if ncol > 1:
                 row2.append(
-                    "\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}".format(
-                        ncol=ncol, fmt=self.multicolumn_format, txt=coltext.strip()
-                    )
+                    f"\\multicolumn{{{ncol:d}}}{{{self.multicolumn_format}}}"
+                    f"{{{coltext.strip()}}}"
                 )
             # don't modify where not needed
             else:
@@ -256,24 +254,22 @@ class LatexFormatter(TableFormatter):
                         break
                 if nrow > 1:
                     # overwrite non-multirow entry
-                    row[j] = "\\multirow{{{nrow:d}}}{{*}}{{{row:s}}}".format(
-                        nrow=nrow, row=row[j].strip()
-                    )
+                    row[j] = f"\\multirow{{{nrow:d}}}{{*}}{{{row[j].strip()}}}"
                     # save when to end the current block with \cline
                     self.clinebuf.append([i + nrow - 1, j + 1])
         return row
 
     def _print_cline(self, buf: IO[str], i: int, icol: int) -> None:
         """
-        Print clines after multirow-blocks are finished
+        Print clines after multirow-blocks are finished.
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write("\\cline{{{cl:d}-{icol:d}}}\n".format(cl=cl[1], icol=icol))
+                buf.write(f"\\cline{{{cl[1]:d}-{icol:d}}}\n")
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
-    def _write_tabular_begin(self, buf, column_format):
+    def _write_tabular_begin(self, buf, column_format: str):
         """
         Write the beginning of a tabular environment or
         nested table/tabular environments including caption and label.
@@ -283,30 +279,29 @@ class LatexFormatter(TableFormatter):
         buf : string or file handle
             File path or object. If not specified, the result is returned as
             a string.
-        column_format : str, default None
+        column_format : str
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
-
         """
         if self.caption is not None or self.label is not None:
             # then write output in a nested table/tabular environment
             if self.caption is None:
                 caption_ = ""
             else:
-                caption_ = "\n\\caption{{{}}}".format(self.caption)
+                caption_ = f"\n\\caption{{{self.caption}}}"
 
             if self.label is None:
                 label_ = ""
             else:
-                label_ = "\n\\label{{{}}}".format(self.label)
+                label_ = f"\n\\label{{{self.label}}}"
 
-            buf.write("\\begin{{table}}\n\\centering{}{}\n".format(caption_, label_))
+            buf.write(f"\\begin{{table}}\n\\centering{caption_}{label_}\n")
         else:
             # then write output only in a tabular environment
             pass
 
-        buf.write("\\begin{{tabular}}{{{fmt}}}\n".format(fmt=column_format))
+        buf.write(f"\\begin{{tabular}}{{{column_format}}}\n")
 
     def _write_tabular_end(self, buf):
         """
@@ -327,7 +322,7 @@ class LatexFormatter(TableFormatter):
         else:
             pass
 
-    def _write_longtable_begin(self, buf, column_format):
+    def _write_longtable_begin(self, buf, column_format: str):
         """
         Write the beginning of a longtable environment including caption and
         label if provided by user.
@@ -337,24 +332,23 @@ class LatexFormatter(TableFormatter):
         buf : string or file handle
             File path or object. If not specified, the result is returned as
             a string.
-        column_format : str, default None
+        column_format : str
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl'
             for 3 columns
-
         """
-        buf.write("\\begin{{longtable}}{{{fmt}}}\n".format(fmt=column_format))
+        buf.write(f"\\begin{{longtable}}{{{column_format}}}\n")
 
         if self.caption is not None or self.label is not None:
             if self.caption is None:
                 pass
             else:
-                buf.write("\\caption{{{}}}".format(self.caption))
+                buf.write(f"\\caption{{{self.caption}}}")
 
             if self.label is None:
                 pass
             else:
-                buf.write("\\label{{{}}}".format(self.label))
+                buf.write(f"\\label{{{self.label}}}")
 
             # a double-backslash is required at the end of the line
             # as discussed here:

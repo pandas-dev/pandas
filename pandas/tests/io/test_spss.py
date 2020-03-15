@@ -2,14 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 pyreadstat = pytest.importorskip("pyreadstat")
 
 
 def test_spss_labelled_num(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
-    fname = datapath("io", "data", "labelled-num.sav")
+    fname = datapath("io", "data", "spss", "labelled-num.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"VAR00002": "This is one"}, index=[0])
@@ -23,7 +23,7 @@ def test_spss_labelled_num(datapath):
 
 def test_spss_labelled_num_na(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
-    fname = datapath("io", "data", "labelled-num-na.sav")
+    fname = datapath("io", "data", "spss", "labelled-num-na.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"VAR00002": ["This is one", None]})
@@ -37,7 +37,7 @@ def test_spss_labelled_num_na(datapath):
 
 def test_spss_labelled_str(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
-    fname = datapath("io", "data", "labelled-str.sav")
+    fname = datapath("io", "data", "spss", "labelled-str.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame({"gender": ["Male", "Female"]})
@@ -51,7 +51,7 @@ def test_spss_labelled_str(datapath):
 
 def test_spss_umlauts(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
-    fname = datapath("io", "data", "umlauts.sav")
+    fname = datapath("io", "data", "spss", "umlauts.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
     expected = pd.DataFrame(
@@ -67,7 +67,7 @@ def test_spss_umlauts(datapath):
 
 def test_spss_usecols(datapath):
     # usecols must be list-like
-    fname = datapath("io", "data", "labelled-num.sav")
+    fname = datapath("io", "data", "spss", "labelled-num.sav")
 
     with pytest.raises(TypeError, match="usecols must be list-like."):
         pd.read_spss(fname, usecols="VAR00002")

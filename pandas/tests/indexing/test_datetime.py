@@ -1,11 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from dateutil import tz
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 class TestDatetimeIndex:
@@ -242,11 +243,8 @@ class TestDatetimeIndex:
             Timestamp("2011-01-02"),
             Timestamp("2011-01-03"),
         ]
-        exp = Series(
-            [np.nan, 0.2, np.nan], index=pd.DatetimeIndex(keys, name="idx"), name="s"
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            tm.assert_series_equal(ser.loc[keys], exp, check_index_type=True)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[keys]
 
     def test_series_partial_set_period(self):
         # GH 11497
@@ -273,12 +271,8 @@ class TestDatetimeIndex:
             pd.Period("2011-01-02", freq="D"),
             pd.Period("2011-01-03", freq="D"),
         ]
-        exp = Series(
-            [np.nan, 0.2, np.nan], index=pd.PeriodIndex(keys, name="idx"), name="s"
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = ser.loc[keys]
-        tm.assert_series_equal(result, exp)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            ser.loc[keys]
 
     def test_nanosecond_getitem_setitem_with_tz(self):
         # GH 11679
@@ -355,4 +349,24 @@ class TestDatetimeIndex:
         result = ser.loc[: ix[-2]]
         expected = ser.iloc[:-1]
 
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "slice_, positions",
+        [
+            [slice(date(2018, 1, 1), None), [0, 1, 2]],
+            [slice(date(2019, 1, 2), None), [2]],
+            [slice(date(2020, 1, 1), None), []],
+            [slice(None, date(2020, 1, 1)), [0, 1, 2]],
+            [slice(None, date(2019, 1, 1)), [0]],
+        ],
+    )
+    def test_getitem_slice_date(self, slice_, positions):
+        # https://github.com/pandas-dev/pandas/issues/31501
+        s = pd.Series(
+            [0, 1, 2],
+            pd.DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
+        )
+        result = s[slice_]
+        expected = s.take(positions)
         tm.assert_series_equal(result, expected)

@@ -5,9 +5,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
-import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Timestamp, date_range, offsets
+import pandas._testing as tm
 
 randn = np.random.randn
 
@@ -20,6 +19,24 @@ class TestDatetimeIndex:
         index = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
         unpickled = tm.round_trip_pickle(index)
         tm.assert_index_equal(index, unpickled)
+
+    def test_pickle(self):
+
+        # GH#4606
+        p = tm.round_trip_pickle(NaT)
+        assert p is NaT
+
+        idx = pd.to_datetime(["2013-01-01", NaT, "2014-01-06"])
+        idx_p = tm.round_trip_pickle(idx)
+        assert idx_p[0] == idx[0]
+        assert idx_p[1] is NaT
+        assert idx_p[2] == idx[2]
+
+        # GH#11002
+        # don't infer freq
+        idx = date_range("1750-1-1", "2050-1-1", freq="7D")
+        idx_p = tm.round_trip_pickle(idx)
+        tm.assert_index_equal(idx, idx_p)
 
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
@@ -90,7 +107,7 @@ class TestDatetimeIndex:
     def test_hash_error(self):
         index = date_range("20010101", periods=10)
         with pytest.raises(
-            TypeError, match=("unhashable type: {0.__name__!r}".format(type(index)))
+            TypeError, match=f"unhashable type: '{type(index).__name__}'"
         ):
             hash(index)
 
@@ -101,15 +118,12 @@ class TestDatetimeIndex:
         df = DataFrame(np.arange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
-    def test_append_join_nondatetimeindex(self):
+    def test_append_nondatetimeindex(self):
         rng = date_range("1/1/2000", periods=10)
         idx = Index(["a", "b", "c", "d"])
 
         result = rng.append(idx)
         assert isinstance(result[0], Timestamp)
-
-        # it works
-        rng.join(idx, how="outer")
 
     def test_map(self):
         rng = date_range("1/1/2000", periods=10)
@@ -189,25 +203,6 @@ class TestDatetimeIndex:
         result = df.T["1/3/2000"]
         assert result.name == df.index[2]
 
-    def test_get_duplicates(self):
-        idx = DatetimeIndex(
-            [
-                "2000-01-01",
-                "2000-01-02",
-                "2000-01-02",
-                "2000-01-03",
-                "2000-01-03",
-                "2000-01-04",
-            ]
-        )
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Deprecated - see GH20239
-            result = idx.get_duplicates()
-
-        ex = DatetimeIndex(["2000-01-02", "2000-01-03"])
-        tm.assert_index_equal(result, ex)
-
     def test_argmin_argmax(self):
         idx = DatetimeIndex(["2000-01-04", "2000-01-01", "2000-01-02"])
         assert idx.argmin() == 1
@@ -262,28 +257,9 @@ class TestDatetimeIndex:
         result = index.isin(list(index))
         assert result.all()
 
-        assert_almost_equal(
+        tm.assert_almost_equal(
             index.isin([index[2], 5]), np.array([False, False, True, False])
         )
-
-    def test_does_not_convert_mixed_integer(self):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args, **kwargs: randn(),
-            r_idx_type="i",
-            c_idx_type="dt",
-        )
-        cols = df.columns.join(df.index, how="outer")
-        joined = cols.join(df.columns)
-        assert cols.dtype == np.dtype("O")
-        assert cols.dtype == joined.dtype
-        tm.assert_numpy_array_equal(cols.values, joined.values)
-
-    def test_join_self(self, join_type):
-        index = date_range("1/1/2000", periods=10)
-        joined = index.join(index, how=join_type)
-        assert index is joined
 
     def assert_index_parameters(self, index):
         assert index.freq == "40960N"
@@ -301,20 +277,6 @@ class TestDatetimeIndex:
 
         new_index = pd.date_range(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
-
-    def test_join_with_period_index(self, join_type):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args: np.random.randint(2),
-            c_idx_type="p",
-            r_idx_type="dt",
-        )
-        s = df.iloc[:5, 0]
-
-        expected = df.columns.astype("O").join(s.index, how=join_type)
-        result = df.columns.join(s.index, how=join_type)
-        tm.assert_index_equal(expected, result)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(
@@ -413,15 +375,13 @@ class TestDatetimeIndex:
         # This shouldn't produce a warning.
         idx = pd.date_range("2000", periods=2)
         # M8[ns] by default
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx)
+        result = np.asarray(idx)
 
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         tm.assert_numpy_array_equal(result, expected)
 
         # optionally, object
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx, dtype=object)
+        result = np.asarray(idx, dtype=object)
 
         expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
@@ -430,15 +390,12 @@ class TestDatetimeIndex:
         tz = "US/Central"
         idx = pd.date_range("2000", periods=2, tz=tz)
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
-        # We warn by default and return an ndarray[M8[ns]]
-        with tm.assert_produces_warning(FutureWarning):
-            result = np.asarray(idx)
+        result = np.asarray(idx, dtype="datetime64[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
         # Old behavior with no warning
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx, dtype="M8[ns]")
+        result = np.asarray(idx, dtype="M8[ns]")
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -446,7 +403,25 @@ class TestDatetimeIndex:
         expected = np.array(
             [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
         )
-        with tm.assert_produces_warning(None):
-            result = np.asarray(idx, dtype=object)
+        result = np.asarray(idx, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_frame_datetime_tz(self):
+        # GH 25809
+        idx = date_range(start="2019-01-01", end="2019-01-30", freq="D", tz="UTC")
+        result = idx.to_frame()
+        expected = DataFrame(idx, index=idx)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("name", [None, "name"])
+    def test_index_map(self, name):
+        # see GH20990
+        count = 6
+        index = pd.date_range("2018-01-01", periods=count, freq="M", name=name).map(
+            lambda x: (x.year, x.month)
+        )
+        exp_index = pd.MultiIndex.from_product(
+            ((2018,), range(1, 7)), names=[name, name]
+        )
+        tm.assert_index_equal(index, exp_index)

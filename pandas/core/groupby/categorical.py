@@ -8,7 +8,7 @@ from pandas.core.arrays.categorical import (
 )
 
 
-def recode_for_groupby(c, sort, observed):
+def recode_for_groupby(c: Categorical, sort: bool, observed: bool):
     """
     Code the categories to ensure we can groupby for categoricals.
 
@@ -41,7 +41,6 @@ def recode_for_groupby(c, sort, observed):
     Categorical or None
         If we are observed, return the original categorical, otherwise None
     """
-
     # we only care about observed values
     if observed:
         unique_codes = unique1d(c.codes)
@@ -74,7 +73,7 @@ def recode_for_groupby(c, sort, observed):
     return c.reorder_categories(cat.categories), None
 
 
-def recode_from_groupby(c, sort, ci):
+def recode_from_groupby(c: Categorical, sort: bool, ci):
     """
     Reverse the codes_to_groupby to account for sort / observed.
 
@@ -90,7 +89,6 @@ def recode_from_groupby(c, sort, ci):
     -------
     CategoricalIndex
     """
-
     # we re-order to the original category orderings
     if sort:
         return ci.set_categories(c.categories)

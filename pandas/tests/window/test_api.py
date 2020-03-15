@@ -1,6 +1,4 @@
 from collections import OrderedDict
-import warnings
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -9,9 +7,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, concat
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.tests.window.common import Base
-import pandas.util.testing as tm
 
 
 class TestApi(Base):
@@ -82,7 +80,6 @@ class TestApi(Base):
         a_sum = r["A"].sum()
         b_mean = r["B"].mean()
         b_std = r["B"].std()
-        b_sum = r["B"].sum()
 
         result = r.aggregate([np.mean, np.std])
         expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
@@ -104,26 +101,18 @@ class TestApi(Base):
         expected.columns = ["mean", "sum"]
         tm.assert_frame_equal(result, expected)
 
-        with catch_warnings(record=True):
+        msg = "nested renamer is not supported"
+        with pytest.raises(SpecificationError, match=msg):
             # using a dict with renaming
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r.aggregate({"A": {"mean": "mean", "sum": "sum"}})
-        expected = concat([a_mean, a_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "sum")])
-        tm.assert_frame_equal(result, expected, check_like=True)
+            r.aggregate({"A": {"mean": "mean", "sum": "sum"}})
 
-        with catch_warnings(record=True):
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r.aggregate(
+        with pytest.raises(SpecificationError, match=msg):
+            r.aggregate(
                 {
                     "A": {"mean": "mean", "sum": "sum"},
                     "B": {"mean2": "mean", "sum2": "sum"},
                 }
             )
-        expected = concat([a_mean, a_sum, b_mean, b_sum], axis=1)
-        exp_cols = [("A", "mean"), ("A", "sum"), ("B", "mean2"), ("B", "sum2")]
-        expected.columns = pd.MultiIndex.from_tuples(exp_cols)
-        tm.assert_frame_equal(result, expected, check_like=True)
 
         result = r.aggregate({"A": ["mean", "std"], "B": ["mean", "std"]})
         expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
@@ -168,7 +157,7 @@ class TestApi(Base):
         df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
         r = df.rolling(window=3)
 
-        msg = r"cannot perform renaming for (r1|r2) with a nested dictionary"
+        msg = "nested renamer is not supported"
         with pytest.raises(SpecificationError, match=msg):
             r.aggregate({"r1": {"A": ["mean", "sum"]}, "r2": {"B": ["mean", "sum"]}})
 
@@ -178,25 +167,13 @@ class TestApi(Base):
         expected.columns = pd.MultiIndex.from_tuples(
             [("ra", "mean"), ("ra", "std"), ("rb", "mean"), ("rb", "std")]
         )
-        with catch_warnings(record=True):
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r[["A", "B"]].agg(
+        with pytest.raises(SpecificationError, match=msg):
+            r[["A", "B"]].agg(
                 {"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}}
             )
-        tm.assert_frame_equal(result, expected, check_like=True)
 
-        with catch_warnings(record=True):
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
-        expected.columns = pd.MultiIndex.from_tuples(
-            [
-                ("A", "ra", "mean"),
-                ("A", "ra", "std"),
-                ("B", "rb", "mean"),
-                ("B", "rb", "std"),
-            ]
-        )
-        tm.assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(SpecificationError, match=msg):
+            r.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
 
     def test_count_nonnumeric_types(self):
         # GH12541
@@ -260,10 +237,10 @@ class TestApi(Base):
             columns=cols,
         )
 
-        result = df.rolling(window=2).count()
+        result = df.rolling(window=2, min_periods=0).count()
         tm.assert_frame_equal(result, expected)
 
-        result = df.rolling(1).count()
+        result = df.rolling(1, min_periods=0).count()
         expected = df.notna().astype(float)
         tm.assert_frame_equal(result, expected)
 

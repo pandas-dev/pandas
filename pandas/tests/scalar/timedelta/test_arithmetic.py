@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp
+from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, offsets
+import pandas._testing as tm
 from pandas.core import ops
-import pandas.util.testing as tm
 
 
 class TestTimedeltaAdditionSubtraction:
@@ -28,7 +28,7 @@ class TestTimedeltaAdditionSubtraction:
             timedelta(seconds=10),
             np.timedelta64(10, "s"),
             np.timedelta64(10000000000, "ns"),
-            pd.offsets.Second(10),
+            offsets.Second(10),
         ],
     )
     def test_td_add_sub_ten_seconds(self, ten_seconds):
@@ -50,7 +50,7 @@ class TestTimedeltaAdditionSubtraction:
             Timedelta("1 days, 00:00:10"),
             timedelta(days=1, seconds=10),
             np.timedelta64(1, "D") + np.timedelta64(10, "s"),
-            pd.offsets.Day() + pd.offsets.Second(10),
+            offsets.Day() + offsets.Second(10),
         ],
     )
     def test_td_add_sub_one_day_ten_seconds(self, one_day_ten_secs):
@@ -114,7 +114,7 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_offset(self, op):
         td = Timedelta(10, unit="d")
 
-        result = op(td, pd.offsets.Hour(6))
+        result = op(td, offsets.Hour(6))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=10, hours=6)
 
@@ -167,7 +167,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_sub_offset(self):
         td = Timedelta(10, unit="d")
-        result = td - pd.offsets.Hour(1)
+        result = td - offsets.Hour(1)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(239, unit="h")
 
@@ -192,7 +192,7 @@ class TestTimedeltaAdditionSubtraction:
         assert result is NaT
 
     def test_td_rsub_offset(self):
-        result = pd.offsets.Hour(1) - Timedelta(10, unit="d")
+        result = offsets.Hour(1) - Timedelta(10, unit="d")
         assert isinstance(result, Timedelta)
         assert result == Timedelta(-239, unit="h")
 
@@ -240,6 +240,57 @@ class TestTimedeltaAdditionSubtraction:
         exp = np.array([now + Timedelta("1D"), Timedelta("2D")])
         res = op(arr, Timedelta("1D"))
         tm.assert_numpy_array_equal(res, exp)
+
+    # TODO: moved from index tests following #24365, may need de-duplication
+    def test_ops_ndarray(self):
+        td = Timedelta("1 day")
+
+        # timedelta, timedelta
+        other = pd.to_timedelta(["1 day"]).values
+        expected = pd.to_timedelta(["2 days"]).values
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+        msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            td + np.array([1])
+        msg = r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'"
+        with pytest.raises(TypeError, match=msg):
+            np.array([1]) + td
+
+        expected = pd.to_timedelta(["0 days"]).values
+        tm.assert_numpy_array_equal(td - other, expected)
+        tm.assert_numpy_array_equal(-other + td, expected)
+        msg = r"unsupported operand type\(s\) for -: 'Timedelta' and 'int'"
+        with pytest.raises(TypeError, match=msg):
+            td - np.array([1])
+        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timedelta'"
+        with pytest.raises(TypeError, match=msg):
+            np.array([1]) - td
+
+        expected = pd.to_timedelta(["2 days"]).values
+        tm.assert_numpy_array_equal(td * np.array([2]), expected)
+        tm.assert_numpy_array_equal(np.array([2]) * td, expected)
+        msg = (
+            "ufunc '?multiply'? cannot use operands with types "
+            r"dtype\('<m8\[ns\]'\) and dtype\('<m8\[ns\]'\)"
+        )
+        with pytest.raises(TypeError, match=msg):
+            td * other
+        with pytest.raises(TypeError, match=msg):
+            other * td
+
+        tm.assert_numpy_array_equal(td / other, np.array([1], dtype=np.float64))
+        tm.assert_numpy_array_equal(other / td, np.array([1], dtype=np.float64))
+
+        # timedelta, datetime
+        other = pd.to_datetime(["2000-01-01"]).values
+        expected = pd.to_datetime(["2000-01-02"]).values
+        tm.assert_numpy_array_equal(td + other, expected)
+        tm.assert_numpy_array_equal(other + td, expected)
+
+        expected = pd.to_datetime(["1999-12-31"]).values
+        tm.assert_numpy_array_equal(-td + other, expected)
+        tm.assert_numpy_array_equal(other - td, expected)
 
 
 class TestTimedeltaMultiplicationDivision:
@@ -306,7 +357,7 @@ class TestTimedeltaMultiplicationDivision:
         # GH#19738
         td = Timedelta(10, unit="d")
 
-        result = td / pd.offsets.Hour(1)
+        result = td / offsets.Hour(1)
         assert result == 240
 
         assert td / td == 1
@@ -326,7 +377,21 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
 
-    @pytest.mark.parametrize("nan", [np.nan, np.float64("NaN"), float("nan")])
+    @pytest.mark.parametrize(
+        "nan",
+        [
+            np.nan,
+            pytest.param(
+                np.float64("NaN"),
+                marks=pytest.mark.xfail(
+                    _is_numpy_dev,
+                    reason="https://github.com/pandas-dev/pandas/issues/31992",
+                    strict=False,
+                ),
+            ),
+            float("nan"),
+        ],
+    )
     def test_td_div_nan(self, nan):
         # np.float64('NaN') has a 'dtype' attr, avoid treating as array
         td = Timedelta(10, unit="d")
@@ -342,10 +407,50 @@ class TestTimedeltaMultiplicationDivision:
     def test_td_rdiv_timedeltalike_scalar(self):
         # GH#19738
         td = Timedelta(10, unit="d")
-        result = pd.offsets.Hour(1) / td
+        result = offsets.Hour(1) / td
         assert result == 1 / 240.0
 
         assert np.timedelta64(60, "h") / td == 0.25
+
+    def test_td_rdiv_na_scalar(self):
+        # GH#31869 None gets cast to NaT
+        td = Timedelta(10, unit="d")
+
+        result = NaT / td
+        assert np.isnan(result)
+
+        result = None / td
+        assert np.isnan(result)
+
+        result = np.timedelta64("NaT") / td
+        assert np.isnan(result)
+
+        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+            np.datetime64("NaT") / td
+
+        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+            np.nan / td
+
+    def test_td_rdiv_ndarray(self):
+        td = Timedelta(10, unit="d")
+
+        arr = np.array([td], dtype=object)
+        result = arr / td
+        expected = np.array([1], dtype=np.float64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.array([None])
+        result = arr / td
+        expected = np.array([np.nan])
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.array([np.nan], dtype=object)
+        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+            arr / td
+
+        arr = np.array([np.nan], dtype=np.float64)
+        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+            arr / td
 
     # ---------------------------------------------------------------
     # Timedelta.__floordiv__
@@ -370,8 +475,8 @@ class TestTimedeltaMultiplicationDivision:
     def test_td_floordiv_offsets(self):
         # GH#19738
         td = Timedelta(hours=3, minutes=4)
-        assert td // pd.offsets.Hour(1) == 3
-        assert td // pd.offsets.Minute(2) == 92
+        assert td // offsets.Hour(1) == 3
+        assert td // offsets.Minute(2) == 92
 
     def test_td_floordiv_invalid_scalar(self):
         # GH#18846
@@ -441,13 +546,13 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_rfloordiv_offsets(self):
         # GH#19738
-        assert pd.offsets.Hour(1) // Timedelta(minutes=25) == 2
+        assert offsets.Hour(1) // Timedelta(minutes=25) == 2
 
     def test_td_rfloordiv_invalid_scalar(self):
         # GH#18846
         td = Timedelta(hours=3, minutes=3)
 
-        dt64 = np.datetime64("2016-01-01", dtype="datetime64[us]")
+        dt64 = np.datetime64("2016-01-01", "us")
         with pytest.raises(TypeError):
             td.__rfloordiv__(dt64)
 
@@ -463,8 +568,8 @@ class TestTimedeltaMultiplicationDivision:
             td.__rfloordiv__(np.float64(2.0))
         with pytest.raises(TypeError):
             td.__rfloordiv__(np.uint8(9))
-        with tm.assert_produces_warning(FutureWarning):
-            # GH-19761: Change to TypeError.
+        with pytest.raises(TypeError, match="Invalid dtype"):
+            # deprecated GH#19761, enforced GH#29797
             td.__rfloordiv__(np.int32(2.0))
 
     def test_td_rfloordiv_timedeltalike_array(self):
@@ -490,7 +595,9 @@ class TestTimedeltaMultiplicationDivision:
         ser = pd.Series([1], dtype=np.int64)
         res = td.__rfloordiv__(ser)
         assert res is NotImplemented
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+
+        with pytest.raises(TypeError, match="Invalid dtype"):
+            # Deprecated GH#19761, enforced GH#29797
             # TODO: GH-19761. Change to TypeError.
             ser // td
 
@@ -532,7 +639,7 @@ class TestTimedeltaMultiplicationDivision:
         # GH#19365
         td = Timedelta(hours=37)
 
-        result = td % pd.offsets.Hour(5)
+        result = td % offsets.Hour(5)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(hours=2)
 
@@ -633,7 +740,7 @@ class TestTimedeltaMultiplicationDivision:
         # GH#19365
         td = Timedelta(days=2, hours=6)
 
-        result = divmod(td, pd.offsets.Hour(-4))
+        result = divmod(td, offsets.Hour(-4))
         assert result[0] == -14
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(hours=-2)
@@ -653,7 +760,7 @@ class TestTimedeltaMultiplicationDivision:
         assert result[1] == Timedelta(hours=6)
 
     def test_rdivmod_offset(self):
-        result = divmod(pd.offsets.Hour(54), Timedelta(hours=-4))
+        result = divmod(offsets.Hour(54), Timedelta(hours=-4))
         assert result[0] == -14
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(hours=-2)

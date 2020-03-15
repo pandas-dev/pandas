@@ -1,34 +1,36 @@
 """
 datetimelike delegation
 """
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetime_arraylike,
     is_integer_dtype,
     is_list_like,
-    is_period_arraylike,
+    is_period_dtype,
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.algorithms import take_1d
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
+if TYPE_CHECKING:
+    from pandas import Series  # noqa:F401
+
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
-    def __init__(self, data, orig):
+    def __init__(self, data: "Series", orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
         self._parent = data
@@ -47,16 +49,11 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
-        else:
-            if is_period_arraylike(data):
-                # TODO: use to_period_array
-                return PeriodArray(data, copy=False)
-            if is_datetime_arraylike(data):
-                return DatetimeIndex(data, copy=False, name=self.name)
+        elif is_period_dtype(data):
+            return PeriodArray(data, copy=False)
 
         raise TypeError(
-            "cannot convert an object of type {0} to a "
-            "datetimelike index".format(type(data))
+            f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
     def _delegate_property_get(self, name):
@@ -75,9 +72,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         result = np.asarray(result)
 
-        # blow up if we operate on categories
         if self.orig is not None:
-            result = take_1d(result, self.orig.cat.codes)
             index = self.orig.index
         else:
             index = self._parent.index
@@ -95,9 +90,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
         raise ValueError(
-            "modifications to a property of a datetimelike "
-            "object are not supported. Change values on the "
-            "original."
+            "modifications to a property of a datetimelike object are not supported. "
+            "Change values on the original."
         )
 
     def _delegate_method(self, name, *args, **kwargs):
@@ -143,7 +137,7 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pydatetime(self):
+    def to_pydatetime(self) -> np.ndarray:
         """
         Return the data as an array of native Python datetime objects.
 
@@ -215,7 +209,7 @@ class TimedeltaProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
-    def to_pytimedelta(self):
+    def to_pytimedelta(self) -> np.ndarray:
         """
         Return an array of native `datetime.timedelta` objects.
 
@@ -226,7 +220,7 @@ class TimedeltaProperties(Properties):
 
         Returns
         -------
-        a : numpy.ndarray
+        numpy.ndarray
             Array of 1D containing data with `datetime.timedelta` type.
 
         See Also
@@ -277,7 +271,7 @@ class TimedeltaProperties(Properties):
         2     0      0        0        2             0             0            0
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
-        """  # noqa: E501
+        """
         return self._get_values().components.set_index(self._parent.index)
 
     @property
@@ -309,7 +303,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data):
+    def __new__(cls, data: "Series"):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
@@ -318,13 +312,17 @@ class CombinedDatetimelikeProperties(
 
         if not isinstance(data, ABCSeries):
             raise TypeError(
-                "cannot convert an object of type {0} to a "
-                "datetimelike index".format(type(data))
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
         orig = data if is_categorical_dtype(data) else None
         if orig is not None:
-            data = Series(orig.values.categories, name=orig.name, copy=False)
+            data = Series(
+                orig.array,
+                name=orig.name,
+                copy=False,
+                dtype=orig.values.categories.dtype,
+            )
 
         if is_datetime64_dtype(data.dtype):
             return DatetimeProperties(data, orig)
@@ -332,9 +330,7 @@ class CombinedDatetimelikeProperties(
             return DatetimeProperties(data, orig)
         elif is_timedelta64_dtype(data.dtype):
             return TimedeltaProperties(data, orig)
-        elif is_period_arraylike(data):
+        elif is_period_dtype(data):
             return PeriodProperties(data, orig)
-        elif is_datetime_arraylike(data):
-            return DatetimeProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")

@@ -2,9 +2,11 @@ from datetime import timezone
 
 # dateutil compat
 from dateutil.tz import (
-    tzutc as _dateutil_tzutc,
+    tzfile as _dateutil_tzfile,
     tzlocal as _dateutil_tzlocal,
-    tzfile as _dateutil_tzfile)
+    tzutc as _dateutil_tzutc,
+)
+
 
 from dateutil.tz import gettz as dateutil_gettz
 
@@ -103,7 +105,9 @@ cpdef inline object maybe_get_tz(object tz):
 
 
 def _p_tz_cache_key(tz):
-    """ Python interface for cache function to facilitate testing."""
+    """
+    Python interface for cache function to facilitate testing.
+    """
     return tz_cache_key(tz)
 
 
@@ -120,7 +124,7 @@ cdef inline object tz_cache_key(object tz):
     dateutil timezones.
 
     Notes
-    =====
+    -----
     This cannot just be the hash of a timezone object. Unfortunately, the
     hashes of two dateutil tz objects which represent the same timezone are
     not equal (even though the tz objects will compare equal and represent
@@ -196,7 +200,7 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
     arr = np.empty(sz, dtype='i8')
 
     for i in range(sz):
-        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000000
+        arr[i] = int(transinfo[i][0].total_seconds()) * 1_000_000_000
 
     return arr
 
@@ -217,7 +221,7 @@ cdef object get_dst_info(object tz):
     if cache_key is None:
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
         # psycopg2.tz.FixedOffsetTimezone
-        num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
+        num = int(get_utcoffset(tz, None).total_seconds()) * 1_000_000_000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
                 None)
@@ -226,11 +230,8 @@ cdef object get_dst_info(object tz):
         if treat_tz_as_pytz(tz):
             trans = np.array(tz._utc_transition_times, dtype='M8[ns]')
             trans = trans.view('i8')
-            try:
-                if tz._utc_transition_times[0].year == 1:
-                    trans[0] = NPY_NAT + 1
-            except Exception:
-                pass
+            if tz._utc_transition_times[0].year == 1:
+                trans[0] = NPY_NAT + 1
             deltas = unbox_utcoffsets(tz._transition_info)
             typ = 'pytz'
 
@@ -283,8 +284,8 @@ def infer_tzinfo(start, end):
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
-            msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
-            raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
+            raise AssertionError(f'Inputs must both have the same timezone, '
+                                 f'{tz} != {end.tzinfo}')
     elif start is not None:
         tz = start.tzinfo
     elif end is not None:
@@ -316,7 +317,7 @@ cpdef bint tz_compare(object start, object end):
 
     Returns:
     -------
-    compare : bint
+    bool
 
     """
     # GH 18523

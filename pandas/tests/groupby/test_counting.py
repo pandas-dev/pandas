@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+import pandas._testing as tm
 
 
 class TestCounting:
@@ -15,18 +15,18 @@ class TestCounting:
 
         expected = Series([0, 1, 2, 0, 3])
 
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
+        tm.assert_series_equal(expected, g.cumcount())
+        tm.assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_empty(self):
         ge = DataFrame().groupby(level=0)
-        se = Series().groupby(level=0)
+        se = Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float
         e = Series(dtype="int64")
 
-        assert_series_equal(e, ge.cumcount())
-        assert_series_equal(e, se.cumcount())
+        tm.assert_series_equal(e, ge.cumcount())
+        tm.assert_series_equal(e, se.cumcount())
 
     def test_cumcount_dupe_index(self):
         df = DataFrame(
@@ -37,8 +37,8 @@ class TestCounting:
 
         expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
 
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
+        tm.assert_series_equal(expected, g.cumcount())
+        tm.assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_mi(self):
         mi = MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
@@ -48,8 +48,8 @@ class TestCounting:
 
         expected = Series([0, 1, 2, 0, 3], index=mi)
 
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
+        tm.assert_series_equal(expected, g.cumcount())
+        tm.assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_groupby_not_col(self):
         df = DataFrame(
@@ -60,8 +60,8 @@ class TestCounting:
 
         expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
 
-        assert_series_equal(expected, g.cumcount())
-        assert_series_equal(expected, sg.cumcount())
+        tm.assert_series_equal(expected, g.cumcount())
+        tm.assert_series_equal(expected, sg.cumcount())
 
     def test_ngroup(self):
         df = DataFrame({"A": list("aaaba")})
@@ -70,8 +70,8 @@ class TestCounting:
 
         expected = Series([0, 0, 0, 1, 0])
 
-        assert_series_equal(expected, g.ngroup())
-        assert_series_equal(expected, sg.ngroup())
+        tm.assert_series_equal(expected, g.ngroup())
+        tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_distinct(self):
         df = DataFrame({"A": list("abcde")})
@@ -80,8 +80,8 @@ class TestCounting:
 
         expected = Series(range(5), dtype="int64")
 
-        assert_series_equal(expected, g.ngroup())
-        assert_series_equal(expected, sg.ngroup())
+        tm.assert_series_equal(expected, g.ngroup())
+        tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_one_group(self):
         df = DataFrame({"A": [0] * 5})
@@ -90,24 +90,24 @@ class TestCounting:
 
         expected = Series([0] * 5)
 
-        assert_series_equal(expected, g.ngroup())
-        assert_series_equal(expected, sg.ngroup())
+        tm.assert_series_equal(expected, g.ngroup())
+        tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_empty(self):
         ge = DataFrame().groupby(level=0)
-        se = Series().groupby(level=0)
+        se = Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float
         e = Series(dtype="int64")
 
-        assert_series_equal(e, ge.ngroup())
-        assert_series_equal(e, se.ngroup())
+        tm.assert_series_equal(e, ge.ngroup())
+        tm.assert_series_equal(e, se.ngroup())
 
     def test_ngroup_series_matches_frame(self):
         df = DataFrame({"A": list("aaaba")})
         s = Series(list("aaaba"))
 
-        assert_series_equal(df.groupby(s).ngroup(), s.groupby(s).ngroup())
+        tm.assert_series_equal(df.groupby(s).ngroup(), s.groupby(s).ngroup())
 
     def test_ngroup_dupe_index(self):
         df = DataFrame({"A": list("aaaba")}, index=[0] * 5)
@@ -116,8 +116,8 @@ class TestCounting:
 
         expected = Series([0, 0, 0, 1, 0], index=[0] * 5)
 
-        assert_series_equal(expected, g.ngroup())
-        assert_series_equal(expected, sg.ngroup())
+        tm.assert_series_equal(expected, g.ngroup())
+        tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_mi(self):
         mi = MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
@@ -126,8 +126,8 @@ class TestCounting:
         sg = g.A
         expected = Series([0, 0, 0, 1, 0], index=mi)
 
-        assert_series_equal(expected, g.ngroup())
-        assert_series_equal(expected, sg.ngroup())
+        tm.assert_series_equal(expected, g.ngroup())
+        tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_groupby_not_col(self):
         df = DataFrame({"A": list("aaaba")}, index=[0] * 5)
@@ -136,8 +136,8 @@ class TestCounting:
 
         expected = Series([0, 0, 0, 1, 0], index=[0] * 5)
 
-        assert_series_equal(expected, g.ngroup())
-        assert_series_equal(expected, sg.ngroup())
+        tm.assert_series_equal(expected, g.ngroup())
+        tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_descending(self):
         df = DataFrame(["a", "a", "b", "a", "b"], columns=["A"])
@@ -146,9 +146,9 @@ class TestCounting:
         ascending = Series([0, 0, 1, 0, 1])
         descending = Series([1, 1, 0, 1, 0])
 
-        assert_series_equal(descending, (g.ngroups - 1) - ascending)
-        assert_series_equal(ascending, g.ngroup(ascending=True))
-        assert_series_equal(descending, g.ngroup(ascending=False))
+        tm.assert_series_equal(descending, (g.ngroups - 1) - ascending)
+        tm.assert_series_equal(ascending, g.ngroup(ascending=True))
+        tm.assert_series_equal(descending, g.ngroup(ascending=False))
 
     def test_ngroup_matches_cumcount(self):
         # verify one manually-worked out case works
@@ -162,8 +162,8 @@ class TestCounting:
         expected_ngroup = Series([0, 1, 2, 0, 3])
         expected_cumcount = Series([0, 0, 0, 1, 0])
 
-        assert_series_equal(g_ngroup, expected_ngroup)
-        assert_series_equal(g_cumcount, expected_cumcount)
+        tm.assert_series_equal(g_ngroup, expected_ngroup)
+        tm.assert_series_equal(g_cumcount, expected_cumcount)
 
     def test_ngroup_cumcount_pair(self):
         # brute force comparison for all small series
@@ -175,8 +175,8 @@ class TestCounting:
             ngroupd = [order.index(val) for val in p]
             cumcounted = [p[:i].count(val) for i, val in enumerate(p)]
 
-            assert_series_equal(g.ngroup(), Series(ngroupd))
-            assert_series_equal(g.cumcount(), Series(cumcounted))
+            tm.assert_series_equal(g.ngroup(), Series(ngroupd))
+            tm.assert_series_equal(g.cumcount(), Series(cumcounted))
 
     def test_ngroup_respects_groupby_order(self):
         np.random.seed(0)
@@ -191,17 +191,14 @@ class TestCounting:
                 for j, ind in enumerate(group.index):
                     df.loc[ind, "group_index"] = j
 
-            assert_series_equal(Series(df["group_id"].values), g.ngroup())
-            assert_series_equal(Series(df["group_index"].values), g.cumcount())
+            tm.assert_series_equal(Series(df["group_id"].values), g.ngroup())
+            tm.assert_series_equal(Series(df["group_index"].values), g.cumcount())
 
     @pytest.mark.parametrize(
         "datetimelike",
         [
-            [
-                Timestamp("2016-05-{i:02d} 20:09:25+00:00".format(i=i))
-                for i in range(1, 4)
-            ],
-            [Timestamp("2016-05-{i:02d} 20:09:25".format(i=i)) for i in range(1, 4)],
+            [Timestamp(f"2016-05-{i:02d} 20:09:25+00:00") for i in range(1, 4)],
+            [Timestamp(f"2016-05-{i:02d} 20:09:25") for i in range(1, 4)],
             [Timedelta(x, unit="h") for x in range(1, 4)],
             [Period(freq="2W", year=2017, month=x) for x in range(1, 4)],
         ],
@@ -214,7 +211,7 @@ class TestCounting:
         res = df.groupby("x").count()
         expected = DataFrame({"y": [2, 1]}, index=["a", "b"])
         expected.index.name = "x"
-        assert_frame_equal(expected, res)
+        tm.assert_frame_equal(expected, res)
 
     def test_count_with_only_nans_in_first_group(self):
         # GH21956
@@ -222,4 +219,4 @@ class TestCounting:
         result = df.groupby(["A", "B"]).C.count()
         mi = MultiIndex(levels=[[], ["a", "b"]], codes=[[], []], names=["A", "B"])
         expected = Series([], index=mi, dtype=np.int64, name="C")
-        assert_series_equal(result, expected, check_index_type=False)
+        tm.assert_series_equal(result, expected, check_index_type=False)

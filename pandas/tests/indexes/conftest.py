@@ -1,51 +1,18 @@
-import numpy as np
 import pytest
 
-import pandas as pd
-from pandas.core.indexes.api import Index, MultiIndex
-import pandas.util.testing as tm
 
-indices_list = [
-    tm.makeUnicodeIndex(100),
-    tm.makeStringIndex(100),
-    tm.makeDateIndex(100),
-    tm.makePeriodIndex(100),
-    tm.makeTimedeltaIndex(100),
-    tm.makeIntIndex(100),
-    tm.makeUIntIndex(100),
-    tm.makeRangeIndex(100),
-    tm.makeFloatIndex(100),
-    Index([True, False]),
-    tm.makeCategoricalIndex(100),
-    tm.makeIntervalIndex(100),
-    Index([]),
-    MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
-    Index([0, 0, 1, 1, 2, 2]),
-]
+@pytest.fixture(params=[None, False])
+def sort(request):
+    """
+    Valid values for the 'sort' parameter used in the Index
+    setops methods (intersection, union, etc.)
 
+    Caution:
+        Don't confuse this one with the "sort" fixture used
+        for DataFrame.append or concat. That one has
+        parameters [True, False].
 
-@pytest.fixture(params=indices_list, ids=lambda x: type(x).__name__)
-def indices(request):
-    return request.param
-
-
-@pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
-def one(request):
-    # zero-dim integer array behaves like an integer
-    return request.param
-
-
-zeros = [
-    box([0] * 5, dtype=dtype)
-    for box in [pd.Index, np.array]
-    for dtype in [np.int64, np.uint64, np.float64]
-]
-zeros.extend([np.array(0, dtype=dtype) for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0])
-
-
-@pytest.fixture(params=zeros)
-def zero(request):
-    # For testing division by (or of) zero for Index with length 5, this
-    # gives several scalar-zeros and length-5 vector-zeros
+        We can't combine them as sort=True is not permitted
+        in in the Index setops methods.
+    """
     return request.param

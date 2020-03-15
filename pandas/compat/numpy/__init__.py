@@ -12,16 +12,15 @@ _np_version_under1p14 = _nlv < LooseVersion("1.14")
 _np_version_under1p15 = _nlv < LooseVersion("1.15")
 _np_version_under1p16 = _nlv < LooseVersion("1.16")
 _np_version_under1p17 = _nlv < LooseVersion("1.17")
+_np_version_under1p18 = _nlv < LooseVersion("1.18")
 _is_numpy_dev = ".dev" in str(_nlv)
 
 
 if _nlv < "1.13.3":
     raise ImportError(
-        "this version of pandas is incompatible with "
-        "numpy < 1.13.3\n"
-        "your numpy version is {0}.\n"
-        "Please upgrade numpy to >= 1.13.3 to use "
-        "this pandas version".format(_np_version)
+        "this version of pandas is incompatible with numpy < 1.13.3\n"
+        f"your numpy version is {_np_version}.\n"
+        "Please upgrade numpy to >= 1.13.3 to use this pandas version"
     )
 
 

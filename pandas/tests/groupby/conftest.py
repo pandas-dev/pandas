@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex
-from pandas.core.groupby.base import reduction_kernels
-from pandas.util import testing as tm
+import pandas._testing as tm
+from pandas.core.groupby.base import reduction_kernels, transformation_kernels
 
 
 @pytest.fixture
@@ -107,6 +107,19 @@ def three_group():
 
 @pytest.fixture(params=sorted(reduction_kernels))
 def reduction_func(request):
-    """yields the string names of all groupby reduction functions, one at a time.
     """
+    yields the string names of all groupby reduction functions, one at a time.
+    """
+    return request.param
+
+
+@pytest.fixture(params=sorted(transformation_kernels))
+def transformation_func(request):
+    """yields the string names of all groupby transformation functions."""
+    return request.param
+
+
+@pytest.fixture(params=sorted(reduction_kernels) + sorted(transformation_kernels))
+def groupby_func(request):
+    """yields both aggregation and transformation functions."""
     return request.param

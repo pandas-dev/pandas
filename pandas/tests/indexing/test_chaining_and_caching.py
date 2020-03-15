@@ -3,8 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range, option_context
-from pandas.core import common as com
-from pandas.util import testing as tm
+import pandas._testing as tm
+import pandas.core.common as com
 
 
 class TestCaching:
@@ -273,7 +273,7 @@ class TestChaining:
         str(df)
 
         # from SO:
-        # http://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
+        # https://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
         df = DataFrame(np.arange(0, 9), columns=["count"])
         df["group"] = "b"
 
@@ -346,28 +346,24 @@ class TestChaining:
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from
         # 0.12
-        def check(result, expected):
-            tm.assert_numpy_array_equal(result, expected)
-            assert isinstance(result, np.ndarray)
 
         df = DataFrame({"A": 5 * [np.zeros(3)], "B": 5 * [np.ones(3)]})
         expected = df["A"].iloc[2]
         result = df.loc[2, "A"]
-        check(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
         result2 = df.iloc[2]["A"]
-        check(result2, expected)
+        tm.assert_numpy_array_equal(result2, expected)
         result3 = df["A"].loc[2]
-        check(result3, expected)
+        tm.assert_numpy_array_equal(result3, expected)
         result4 = df["A"].iloc[2]
-        check(result4, expected)
+        tm.assert_numpy_array_equal(result4, expected)
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
         df = tm.makeDataFrame()
         df["A"]  # cache series
-        df.ix["Hello Friend"] = df.ix[0]
+        df.loc["Hello Friend"] = df.iloc[0]
         assert "Hello Friend" in df["A"].index
         assert "Hello Friend" in df["B"].index
 
@@ -393,14 +389,3 @@ class TestChaining:
         tm.assert_frame_equal(df, expected)
         expected = Series([0, 0, 0, 2, 0], name="f")
         tm.assert_series_equal(df.f, expected)
-
-    def test_deprecate_is_copy(self):
-        # GH18801
-        df = DataFrame({"A": [1, 2, 3]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # getter
-            df.is_copy
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # setter
-            df.is_copy = "test deprecated is_copy"

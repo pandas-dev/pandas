@@ -34,6 +34,7 @@ def _make_flex_doc(op_name, typ):
             op_name=op_name,
             equiv=equiv,
             reverse=op_desc["reverse"],
+            series_returns=op_desc["series_returns"],
         )
         if op_desc["series_examples"]:
             doc = doc_no_examples + op_desc["series_examples"]
@@ -233,25 +234,32 @@ e    NaN
 dtype: float64
 """
 
-_op_descriptions = {
+_returns_series = """Series\n    The result of the operation."""
+
+_returns_tuple = """2-Tuple of Series\n    The result of the operation."""
+
+_op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
     # Arithmetic Operators
     "add": {
         "op": "+",
         "desc": "Addition",
         "reverse": "radd",
         "series_examples": _add_example_SERIES,
+        "series_returns": _returns_series,
     },
     "sub": {
         "op": "-",
         "desc": "Subtraction",
         "reverse": "rsub",
         "series_examples": _sub_example_SERIES,
+        "series_returns": _returns_series,
     },
     "mul": {
         "op": "*",
         "desc": "Multiplication",
         "reverse": "rmul",
         "series_examples": _mul_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "mod": {
@@ -259,12 +267,14 @@ _op_descriptions = {
         "desc": "Modulo",
         "reverse": "rmod",
         "series_examples": _mod_example_SERIES,
+        "series_returns": _returns_series,
     },
     "pow": {
         "op": "**",
         "desc": "Exponential power",
         "reverse": "rpow",
         "series_examples": _pow_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "truediv": {
@@ -272,6 +282,7 @@ _op_descriptions = {
         "desc": "Floating division",
         "reverse": "rtruediv",
         "series_examples": _div_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "floordiv": {
@@ -279,6 +290,7 @@ _op_descriptions = {
         "desc": "Integer division",
         "reverse": "rfloordiv",
         "series_examples": _floordiv_example_SERIES,
+        "series_returns": _returns_series,
         "df_examples": None,
     },
     "divmod": {
@@ -286,31 +298,53 @@ _op_descriptions = {
         "desc": "Integer division and modulo",
         "reverse": "rdivmod",
         "series_examples": None,
+        "series_returns": _returns_tuple,
         "df_examples": None,
     },
     # Comparison Operators
-    "eq": {"op": "==", "desc": "Equal to", "reverse": None, "series_examples": None},
+    "eq": {
+        "op": "==",
+        "desc": "Equal to",
+        "reverse": None,
+        "series_examples": None,
+        "series_returns": _returns_series,
+    },
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
         "reverse": None,
         "series_examples": None,
+        "series_returns": _returns_series,
     },
-    "lt": {"op": "<", "desc": "Less than", "reverse": None, "series_examples": None},
+    "lt": {
+        "op": "<",
+        "desc": "Less than",
+        "reverse": None,
+        "series_examples": None,
+        "series_returns": _returns_series,
+    },
     "le": {
         "op": "<=",
         "desc": "Less than or equal to",
         "reverse": None,
         "series_examples": None,
+        "series_returns": _returns_series,
     },
-    "gt": {"op": ">", "desc": "Greater than", "reverse": None, "series_examples": None},
+    "gt": {
+        "op": ">",
+        "desc": "Greater than",
+        "reverse": None,
+        "series_examples": None,
+        "series_returns": _returns_series,
+    },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
         "reverse": None,
         "series_examples": None,
+        "series_returns": _returns_series,
     },
-}  # type: Dict[str, Dict[str, Optional[str]]]
+}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
@@ -339,8 +373,7 @@ level : int or name
 
 Returns
 -------
-Series
-    The result of the operation.
+{series_returns}
 
 See Also
 --------
@@ -387,7 +420,7 @@ Parameters
 ----------
 other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
-axis :  {{0 or 'index', 1 or 'columns'}}
+axis : {{0 or 'index', 1 or 'columns'}}
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns'). For Series input, axis to match Series index on.
 level : int or label
@@ -541,7 +574,7 @@ Parameters
 ----------
 other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
-axis :  {{0 or 'index', 1 or 'columns'}}, default 'columns'
+axis : {{0 or 'index', 1 or 'columns'}}, default 'columns'
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns').
 level : int or label

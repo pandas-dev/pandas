@@ -15,12 +15,12 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _is_numpy_dev,
     concat,
     date_range,
 )
+import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
-from pandas.util import testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def assert_fp_equal(a, b):
@@ -54,7 +54,7 @@ def test_transform():
         .mean()
     )
     result = df.groupby(key).transform(lambda x: x - x.mean()).groupby(key).mean()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     def demean(arr):
         return arr - arr.mean()
@@ -67,7 +67,7 @@ def test_transform():
     key = ["one", "two", "one", "two", "one"]
     result = people.groupby(key).transform(demean).groupby(key).mean()
     expected = people.groupby(key).apply(demean).groupby(key).mean()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # GH 8430
     df = tm.makeTimeDataFrame()
@@ -91,10 +91,10 @@ def test_transform_fast():
     expected = pd.Series(values, index=df.index, name="val")
 
     result = grp.transform(np.mean)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     result = grp.transform("mean")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # GH 12737
     df = pd.DataFrame(
@@ -118,18 +118,18 @@ def test_transform_fast():
         {"f": [1.1, 2.1, 2.1, 4.5], "d": dates, "i": [1, 2, 2, 4]},
         columns=["f", "i", "d"],
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # selection
     result = df.groupby("grouping")[["f", "i"]].transform("first")
     expected = expected[["f", "i"]]
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # dup columns
     df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["g", "a", "a"])
     result = df.groupby("g").transform("first")
     expected = df.drop("g", axis=1)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_broadcast(tsframe, ts):
@@ -179,26 +179,26 @@ def test_transform_axis(tsframe):
     grouped = ts.groupby(lambda x: x.weekday())
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     ts = ts.T
     grouped = ts.groupby(lambda x: x.weekday(), axis=1)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # non-monotonic
     ts = tso.iloc[[1, 0] + list(range(2, len(base)))]
     grouped = ts.groupby(lambda x: x.weekday())
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: x - x.mean())
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     ts = ts.T
     grouped = ts.groupby(lambda x: x.weekday(), axis=1)
     result = ts - grouped.transform("mean")
     expected = grouped.apply(lambda x: (x.T - x.mean(1)).T)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_dtype():
@@ -207,7 +207,7 @@ def test_transform_dtype():
     df = DataFrame([[1, 3], [2, 3]])
     result = df.groupby(1).transform("mean")
     expected = DataFrame([[1.5], [1.5]])
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_bug():
@@ -216,7 +216,7 @@ def test_transform_bug():
     df = DataFrame(dict(A=Timestamp("20130101"), B=np.arange(5)))
     result = df.groupby("A")["B"].transform(lambda x: x.rank(ascending=False))
     expected = Series(np.arange(5, 0, step=-1), name="B")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform_numeric_to_boolean():
@@ -226,11 +226,11 @@ def test_transform_numeric_to_boolean():
 
     df = pd.DataFrame({"A": [1.1, 2.2], "B": [1, 2]})
     result = df.groupby("B").A.transform(lambda x: True)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
     result = df.groupby("B").A.transform(lambda x: True)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform_datetime_to_timedelta():
@@ -245,11 +245,11 @@ def test_transform_datetime_to_timedelta():
         df.groupby("A")["A"].transform(lambda x: x.max() - x.min() + base_time)
         - base_time
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # this does date math and causes the transform to return timedelta
     result = df.groupby("A")["A"].transform(lambda x: x.max() - x.min())
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform_datetime_to_numeric():
@@ -261,7 +261,7 @@ def test_transform_datetime_to_numeric():
     )
 
     expected = Series([-0.5, 0.5], name="b")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     # convert dt to int
     df = DataFrame({"a": 1, "b": date_range("2015-01-01", periods=2, freq="D")})
@@ -270,7 +270,7 @@ def test_transform_datetime_to_numeric():
     )
 
     expected = Series([0, 1], name="b")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform_casting():
@@ -315,17 +315,45 @@ def test_dispatch_transform(tsframe):
     filled = grouped.fillna(method="pad")
     fillit = lambda x: x.fillna(method="pad")
     expected = df.groupby(lambda x: x.month).transform(fillit)
-    assert_frame_equal(filled, expected)
+    tm.assert_frame_equal(filled, expected)
+
+
+def test_transform_transformation_func(transformation_func):
+    # GH 30918
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
+            "B": [1, 2, np.nan, 3, 3, np.nan, 4],
+        }
+    )
+
+    if transformation_func in ["pad", "backfill", "tshift", "cumcount"]:
+        # These transformation functions are not yet covered in this test
+        pytest.xfail("See GH 31269")
+    elif _is_numpy_dev and transformation_func in ["cummin"]:
+        pytest.xfail("https://github.com/pandas-dev/pandas/issues/31992")
+    elif transformation_func == "fillna":
+        test_op = lambda x: x.transform("fillna", value=0)
+        mock_op = lambda x: x.fillna(value=0)
+    else:
+        test_op = lambda x: x.transform(transformation_func)
+        mock_op = lambda x: getattr(x, transformation_func)()
+
+    result = test_op(df.groupby("A"))
+    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
+    expected = concat([mock_op(g) for g in groups])
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_select_columns(df):
     f = lambda x: x.mean()
-    result = df.groupby("A")["C", "D"].transform(f)
+    result = df.groupby("A")[["C", "D"]].transform(f)
 
     selection = df[["C", "D"]]
     expected = selection.groupby(df["A"]).transform(f)
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_exclude_nuisance(df):
@@ -339,17 +367,17 @@ def test_transform_exclude_nuisance(df):
     expected = DataFrame(expected)
     result = df.groupby("A").transform(np.mean)
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_function_aliases(df):
     result = df.groupby("A").transform("mean")
     expected = df.groupby("A").transform(np.mean)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
     expected = df.groupby("A")["C"].transform(np.mean)
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_fast_transform_date():
@@ -365,7 +393,7 @@ def test_series_fast_transform_date():
         pd.Timestamp("2014-1-4"),
     ]
     expected = pd.Series(dates, name="d")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform_length():
@@ -383,7 +411,7 @@ def test_transform_length():
         df.groupby("col1")["col2"].transform(nsum),
     ]
     for result in results:
-        assert_series_equal(result, expected, check_names=False)
+        tm.assert_series_equal(result, expected, check_names=False)
 
 
 def test_transform_coercion():
@@ -396,7 +424,7 @@ def test_transform_coercion():
 
     expected = g.transform(np.mean)
     result = g.transform(lambda x: np.mean(x))
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_transform_with_int():
@@ -417,14 +445,14 @@ def test_groupby_transform_with_int():
     expected = DataFrame(
         dict(B=np.nan, C=Series([-1, 0, 1, -1, 0, 1], dtype="float64"))
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # int case
     df = DataFrame(dict(A=[1, 1, 1, 2, 2, 2], B=1, C=[1, 2, 3, 1, 2, 3], D="foo"))
     with np.errstate(all="ignore"):
         result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
     expected = DataFrame(dict(B=np.nan, C=[-1, 0, 1, -1, 0, 1]))
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # int that needs float conversion
     s = Series([2, 3, 4, 10, 5, -1])
@@ -437,12 +465,12 @@ def test_groupby_transform_with_int():
     s2 = s.iloc[3:6]
     s2 = (s2 - s2.mean()) / s2.std()
     expected = DataFrame(dict(B=np.nan, C=concat([s1, s2])))
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # int downcasting
     result = df.groupby("A").transform(lambda x: x * 2 / 2)
     expected = DataFrame(dict(B=1, C=[2, 3, 4, 10, 5, -1]))
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_transform_with_nan_group():
@@ -452,7 +480,7 @@ def test_groupby_transform_with_nan_group():
     expected = pd.Series(
         [1.0, 1.0, 2.0, 3.0, np.nan, 6.0, 6.0, 9.0, 9.0, 9.0], name="a"
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform_mixed_type():
@@ -479,7 +507,7 @@ def test_transform_mixed_type():
     with pd.option_context("mode.chained_assignment", None):
         for key, group in grouped:
             res = f(group)
-            assert_frame_equal(res, result.loc[key])
+            tm.assert_frame_equal(res, result.loc[key])
 
 
 def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
@@ -495,7 +523,6 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     dtype : type
         The specified dtype of the data.
     """
-
     is_datetimelike = False
 
     data = np.array([[1], [2], [3], [4]], dtype=dtype)
@@ -766,9 +793,12 @@ def test_transform_with_non_scalar_group():
     ],
 )
 @pytest.mark.parametrize("agg_func", ["count", "rank", "size"])
-def test_transform_numeric_ret(cols, exp, comp_func, agg_func):
+def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
     if agg_func == "size" and isinstance(cols, list):
-        pytest.xfail("'size' transformation not supported with NDFrameGroupy")
+        # https://github.com/pytest-dev/pytest/issues/6300
+        # workaround to xfail fixture/param permutations
+        reason = "'size' transformation not supported with NDFrameGroupy"
+        request.node.add_marker(pytest.mark.xfail(reason=reason))
 
     # GH 19200
     df = pd.DataFrame(
@@ -838,11 +868,11 @@ def test_group_fill_methods(
     if as_series:
         result = getattr(df.groupby("key")["val"], fill_method)(limit=limit)
         exp = Series(_exp_vals, name="val")
-        assert_series_equal(result, exp)
+        tm.assert_series_equal(result, exp)
     else:
         result = getattr(df.groupby("key"), fill_method)(limit=limit)
         exp = DataFrame({"val": _exp_vals})
-        assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, exp)
 
 
 @pytest.mark.parametrize("fill_method", ["ffill", "bfill"])
@@ -875,27 +905,19 @@ def test_pad_stable_sorting(fill_method):
         ),
     ],
 )
-@pytest.mark.parametrize(
-    "periods,fill_method,limit",
-    [
-        (1, "ffill", None),
-        (1, "ffill", 1),
-        (1, "bfill", None),
-        (1, "bfill", 1),
-        (-1, "ffill", None),
-        (-1, "ffill", 1),
-        (-1, "bfill", None),
-        (-1, "bfill", 1),
-    ],
-)
+@pytest.mark.parametrize("periods", [1, -1])
+@pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
+@pytest.mark.parametrize("limit", [None, 1])
 def test_pct_change(test_series, freq, periods, fill_method, limit):
-    # GH  21200, 21621
+    # GH  21200, 21621, 30463
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
     key_v = np.repeat(keys, len(vals))
     df = DataFrame({"key": key_v, "vals": vals * 2})
 
-    df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
+    df_g = df
+    if fill_method is not None:
+        df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
     grp = df_g.groupby(df.key)
 
     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1
@@ -910,6 +932,41 @@ def test_pct_change(test_series, freq, periods, fill_method, limit):
             periods=periods, fill_method=fill_method, limit=limit, freq=freq
         )
         tm.assert_frame_equal(result, expected.to_frame("vals"))
+
+
+@pytest.mark.parametrize(
+    "func, expected_status",
+    [
+        ("ffill", ["shrt", "shrt", "lng", np.nan, "shrt", "ntrl", "ntrl"]),
+        ("bfill", ["shrt", "lng", "lng", "shrt", "shrt", "ntrl", np.nan]),
+    ],
+)
+def test_ffill_bfill_non_unique_multilevel(func, expected_status):
+    # GH 19437
+    date = pd.to_datetime(
+        [
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-01",
+            "2018-01-02",
+            "2018-01-01",
+            "2018-01-02",
+        ]
+    )
+    symbol = ["MSFT", "MSFT", "MSFT", "AAPL", "AAPL", "TSLA", "TSLA"]
+    status = ["shrt", np.nan, "lng", np.nan, "shrt", "ntrl", np.nan]
+
+    df = DataFrame({"date": date, "symbol": symbol, "status": status})
+    df = df.set_index(["date", "symbol"])
+    result = getattr(df.groupby("symbol")["status"], func)()
+
+    index = MultiIndex.from_tuples(
+        tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
+    )
+    expected = Series(expected_status, index=index, name="status")
+
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
@@ -933,9 +990,7 @@ def test_groupby_transform_rename():
         if isinstance(x, pd.Series):
             return result
 
-        result = result.rename(
-            columns={c: "{}_demeaned".format(c) for c in result.columns}
-        )
+        result = result.rename(columns={c: "{c}_demeaned" for c in result.columns})
 
         return result
 
@@ -989,7 +1044,7 @@ def test_transform_absent_categories(func):
     df = DataFrame(dict(x=Categorical(x_vals, x_cats), y=y))
     result = getattr(df.y.groupby(df.x), func)()
     expected = df.y
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("func", ["ffill", "bfill", "shift"])
@@ -1000,7 +1055,7 @@ def test_ffill_not_in_axis(func, key, val):
     result = getattr(df.groupby(**{key: val}), func)()
     expected = df
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_transform_invalid_name_raises():
@@ -1038,8 +1093,10 @@ def test_transform_agg_by_name(reduction_func, obj):
         pytest.xfail("TODO: g.transform('ngroup') doesn't work")
     if func == "size":  # GH#27469
         pytest.xfail("TODO: g.transform('size') doesn't work")
+    if func == "corrwith" and isinstance(obj, Series):  # GH#32293
+        pytest.xfail("TODO: implement SeriesGroupBy.corrwith")
 
-    args = {"nth": [0], "quantile": [0.5]}.get(func, [])
+    args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
 
     result = g.transform(func, *args)
 
@@ -1073,4 +1130,71 @@ def test_transform_lambda_with_datetimetz():
         ],
         name="time",
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
+
+
+def test_transform_fastpath_raises():
+    # GH#29631 case where fastpath defined in groupby.generic _choose_path
+    #  raises, but slow_path does not
+
+    df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, -1, 1, 2]})
+    gb = df.groupby("A")
+
+    def func(grp):
+        # we want a function such that func(frame) fails but func.apply(frame)
+        #  works
+        if grp.ndim == 2:
+            # Ensure that fast_path fails
+            raise NotImplementedError("Don't cross the streams")
+        return grp * 2
+
+    # Check that the fastpath raises, see _transform_general
+    obj = gb._obj_with_exclusions
+    gen = gb.grouper.get_iterator(obj, axis=gb.axis)
+    fast_path, slow_path = gb._define_paths(func)
+    _, group = next(gen)
+
+    with pytest.raises(NotImplementedError, match="Don't cross the streams"):
+        fast_path(group)
+
+    result = gb.transform(func)
+
+    expected = pd.DataFrame([2, -2, 2, 4], columns=["B"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_lambda_indexing():
+    # GH 7883
+    df = pd.DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "flux", "foo", "flux"],
+            "B": ["one", "one", "two", "three", "two", "six", "five", "three"],
+            "C": range(8),
+            "D": range(8),
+            "E": range(8),
+        }
+    )
+    df = df.set_index(["A", "B"])
+    df = df.sort_index()
+    result = df.groupby(level="A").transform(lambda x: x.iloc[-1])
+    expected = DataFrame(
+        {
+            "C": [3, 3, 7, 7, 4, 4, 4, 4],
+            "D": [3, 3, 7, 7, 4, 4, 4, 4],
+            "E": [3, 3, 7, 7, 4, 4, 4, 4],
+        },
+        index=MultiIndex.from_tuples(
+            [
+                ("bar", "one"),
+                ("bar", "three"),
+                ("flux", "six"),
+                ("flux", "three"),
+                ("foo", "five"),
+                ("foo", "one"),
+                ("foo", "two"),
+                ("foo", "two"),
+            ],
+            names=["A", "B"],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)

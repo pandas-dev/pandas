@@ -1,49 +1,11 @@
-import datetime
+"""
+Timedelta benchmarks with non-tslibs dependencies.  See
+benchmarks.tslibs.timedelta for benchmarks that rely only on tslibs.
+"""
 
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timedelta,
-    Timestamp,
-    timedelta_range,
-    to_timedelta,
-)
-
-
-class TimedeltaConstructor:
-    def time_from_int(self):
-        Timedelta(123456789)
-
-    def time_from_unit(self):
-        Timedelta(1, unit="d")
-
-    def time_from_components(self):
-        Timedelta(
-            days=1,
-            hours=2,
-            minutes=3,
-            seconds=4,
-            milliseconds=5,
-            microseconds=6,
-            nanoseconds=7,
-        )
-
-    def time_from_datetime_timedelta(self):
-        Timedelta(datetime.timedelta(days=1, seconds=1))
-
-    def time_from_np_timedelta(self):
-        Timedelta(np.timedelta64(1, "ms"))
-
-    def time_from_string(self):
-        Timedelta("1 days")
-
-    def time_from_iso_format(self):
-        Timedelta("P4DT12H30M5S")
-
-    def time_from_missing(self):
-        Timedelta("nat")
+from pandas import DataFrame, Series, timedelta_range, to_timedelta
 
 
 class ToTimedelta:
@@ -52,8 +14,8 @@ class ToTimedelta:
         self.str_days = []
         self.str_seconds = []
         for i in self.ints:
-            self.str_days.append("{0} days".format(i))
-            self.str_seconds.append("00:00:{0:02d}".format(i))
+            self.str_days.append(f"{i} days")
+            self.str_seconds.append(f"00:00:{i:02d}")
 
     def time_convert_int(self):
         to_timedelta(self.ints, unit="s")
@@ -72,38 +34,11 @@ class ToTimedeltaErrors:
 
     def setup(self, errors):
         ints = np.random.randint(0, 60, size=10000)
-        self.arr = ["{0} days".format(i) for i in ints]
+        self.arr = [f"{i} days" for i in ints]
         self.arr[-1] = "apple"
 
     def time_convert(self, errors):
         to_timedelta(self.arr, errors=errors)
-
-
-class TimedeltaOps:
-    def setup(self):
-        self.td = to_timedelta(np.arange(1000000))
-        self.ts = Timestamp("2000")
-
-    def time_add_td_ts(self):
-        self.td + self.ts
-
-
-class TimedeltaProperties:
-    def setup_cache(self):
-        td = Timedelta(days=365, minutes=35, seconds=25, milliseconds=35)
-        return td
-
-    def time_timedelta_days(self, td):
-        td.days
-
-    def time_timedelta_seconds(self, td):
-        td.seconds
-
-    def time_timedelta_microseconds(self, td):
-        td.microseconds
-
-    def time_timedelta_nanoseconds(self, td):
-        td.nanoseconds
 
 
 class DatetimeAccessor:
@@ -137,9 +72,6 @@ class TimedeltaIndexing:
 
     def time_get_loc(self):
         self.index.get_loc(self.timedelta)
-
-    def time_shape(self):
-        self.index.shape
 
     def time_shallow_copy(self):
         self.index._shallow_copy()

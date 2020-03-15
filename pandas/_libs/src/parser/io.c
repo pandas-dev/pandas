@@ -9,7 +9,6 @@ The full license is in the LICENSE file, distributed with this software.
 
 #include "io.h"
 
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -17,7 +16,7 @@ The full license is in the LICENSE file, distributed with this software.
 #define O_BINARY 0
 #endif  // O_BINARY
 
-#if PY_VERSION_HEX >= 0x03060000 && defined(_WIN32)
+#ifdef _WIN32
 #define USE_WIN_UTF16
 #include <Windows.h>
 #endif

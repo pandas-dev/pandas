@@ -6,7 +6,115 @@
 Working with text data
 ======================
 
+.. _text.types:
+
+Text Data Types
+---------------
+
+.. versionadded:: 1.0.0
+
+There are two ways to store text data in pandas:
+
+1. ``object`` -dtype NumPy array.
+2. :class:`StringDtype` extension type.
+
+We recommend using :class:`StringDtype` to store text data.
+
+Prior to pandas 1.0, ``object`` dtype was the only option. This was unfortunate
+for many reasons:
+
+1. You can accidentally store a *mixture* of strings and non-strings in an
+   ``object`` dtype array. It's better to have a dedicated dtype.
+2. ``object`` dtype breaks dtype-specific operations like :meth:`DataFrame.select_dtypes`.
+   There isn't a clear way to select *just* text while excluding non-text
+   but still object-dtype columns.
+3. When reading code, the contents of an ``object`` dtype array is less clear
+   than ``'string'``.
+
+Currently, the performance of ``object`` dtype arrays of strings and
+:class:`arrays.StringArray` are about the same. We expect future enhancements
+to significantly increase the performance and lower the memory overhead of
+:class:`~arrays.StringArray`.
+
+.. warning::
+
+   ``StringArray`` is currently considered experimental. The implementation
+   and parts of the API may change without warning.
+
+For backwards-compatibility, ``object`` dtype remains the default type we
+infer a list of strings to
+
+.. ipython:: python
+
+   pd.Series(['a', 'b', 'c'])
+
+To explicitly request ``string`` dtype, specify the ``dtype``
+
+.. ipython:: python
+
+   pd.Series(['a', 'b', 'c'], dtype="string")
+   pd.Series(['a', 'b', 'c'], dtype=pd.StringDtype())
+
+Or ``astype`` after the ``Series`` or ``DataFrame`` is created
+
+.. ipython:: python
+
+   s = pd.Series(['a', 'b', 'c'])
+   s
+   s.astype("string")
+
+.. _text.differences:
+
+Behavior differences
+^^^^^^^^^^^^^^^^^^^^
+
+These are places where the behavior of ``StringDtype`` objects differ from
+``object`` dtype
+
+l. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
+   that return **numeric** output will always return a nullable integer dtype,
+   rather than either int or float dtype, depending on the presence of NA values.
+   Methods returning **boolean** output will return a nullable boolean dtype.
+
+   .. ipython:: python
+
+      s = pd.Series(["a", None, "b"], dtype="string")
+      s
+      s.str.count("a")
+      s.dropna().str.count("a")
+
+   Both outputs are ``Int64`` dtype. Compare that with object-dtype
+
+   .. ipython:: python
+
+      s2 = pd.Series(["a", None, "b"], dtype="object")
+      s2.str.count("a")
+      s2.dropna().str.count("a")
+
+   When NA values are present, the output dtype is float64. Similarly for
+   methods returning boolean values.
+
+   .. ipython:: python
+
+      s.str.isdigit()
+      s.str.match("a")
+
+2. Some string methods, like :meth:`Series.str.decode` are not available
+   on ``StringArray`` because ``StringArray`` only holds strings, not
+   bytes.
+3. In comparison operations, :class:`arrays.StringArray` and ``Series`` backed
+   by a ``StringArray`` will return an object with :class:`BooleanDtype`,
+   rather than a ``bool`` dtype object. Missing values in a ``StringArray``
+   will propagate in comparison operations, rather than always comparing
+   unequal like :attr:`numpy.nan`.
+
+Everything else that follows in the rest of this document applies equally to
+``string`` and ``object`` dtype.
+
 .. _text.string_methods:
+
+String Methods
+--------------
 
 Series and Index are equipped with a set of string processing methods
 that make it easy to operate on each element of the array. Perhaps most
@@ -16,7 +124,8 @@ the equivalent (scalar) built-in string methods:
 
 .. ipython:: python
 
-   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'],
+                 dtype="string")
    s.str.lower()
    s.str.upper()
    s.str.len()
@@ -80,17 +189,16 @@ and replacing any remaining whitespaces with underscores:
     Generally speaking, the ``.str`` accessor is intended to work only on strings. With very few
     exceptions, other uses are not supported, and may be disabled at a later point.
 
+.. _text.split:
 
 Splitting and replacing strings
 -------------------------------
-
-.. _text.split:
 
 Methods like ``split`` return a Series of lists:
 
 .. ipython:: python
 
-   s2 = pd.Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'])
+   s2 = pd.Series(['a_b_c', 'c_d_e', np.nan, 'f_g_h'], dtype="string")
    s2.str.split('_')
 
 Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
@@ -105,6 +213,9 @@ It is easy to expand this to return a DataFrame using ``expand``.
 .. ipython:: python
 
    s2.str.split('_', expand=True)
+
+When original ``Series`` has :class:`StringDtype`, the output columns will all
+be :class:`StringDtype` as well.
 
 It is also possible to limit the number of splits:
 
@@ -125,7 +236,8 @@ i.e., from the end of the string to the beginning of the string:
 .. ipython:: python
 
    s3 = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca',
-                  '', np.nan, 'CABA', 'dog', 'cat'])
+                   '', np.nan, 'CABA', 'dog', 'cat'],
+                  dtype="string")
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
@@ -136,7 +248,7 @@ following code will cause trouble because of the regular expression meaning of
 .. ipython:: python
 
    # Consider the following badly formatted financial data
-   dollars = pd.Series(['12', '-$10', '$10,000'])
+   dollars = pd.Series(['12', '-$10', '$10,000'], dtype="string")
 
    # This does what you'd naively expect:
    dollars.str.replace('$', '')
@@ -160,8 +272,6 @@ and ``repl`` must be strings:
     dollars.str.replace(r'-\$', '-')
     dollars.str.replace('-$', '-', regex=False)
 
-.. versionadded:: 0.20.0
-
 The ``replace`` method can also take a callable as replacement. It is called
 on every ``pat`` using :func:`re.sub`. The callable should expect one
 positional argument (a regex object) and return a string.
@@ -174,7 +284,8 @@ positional argument (a regex object) and return a string.
    def repl(m):
        return m.group(0)[::-1]
 
-   pd.Series(['foo 123', 'bar baz', np.nan]).str.replace(pat, repl)
+   pd.Series(['foo 123', 'bar baz', np.nan],
+             dtype="string").str.replace(pat, repl)
 
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
@@ -182,9 +293,8 @@ positional argument (a regex object) and return a string.
    def repl(m):
        return m.group('two').swapcase()
 
-   pd.Series(['Foo Bar Baz', np.nan]).str.replace(pat, repl)
-
-.. versionadded:: 0.20.0
+   pd.Series(['Foo Bar Baz', np.nan],
+             dtype="string").str.replace(pat, repl)
 
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the
@@ -221,7 +331,7 @@ The content of a ``Series`` (or ``Index``) can be concatenated:
 
 .. ipython:: python
 
-    s = pd.Series(['a', 'b', 'c', 'd'])
+    s = pd.Series(['a', 'b', 'c', 'd'], dtype="string")
     s.str.cat(sep=',')
 
 If not specified, the keyword ``sep`` for the separator defaults to the empty string, ``sep=''``:
@@ -234,7 +344,7 @@ By default, missing values are ignored. Using ``na_rep``, they can be given a re
 
 .. ipython:: python
 
-    t = pd.Series(['a', 'b', np.nan, 'd'])
+    t = pd.Series(['a', 'b', np.nan, 'd'], dtype="string")
     t.str.cat(sep=',')
     t.str.cat(sep=',', na_rep='-')
 
@@ -279,7 +389,8 @@ the ``join``-keyword.
 .. ipython:: python
    :okwarning:
 
-   u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
+   u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2],
+                 dtype="string")
    s
    u
    s.str.cat(u)
@@ -295,7 +406,8 @@ In particular, alignment also means that the different lengths do not need to co
 
 .. ipython:: python
 
-    v = pd.Series(['z', 'a', 'b', 'd', 'e'], index=[-1, 0, 1, 3, 4])
+    v = pd.Series(['z', 'a', 'b', 'd', 'e'], index=[-1, 0, 1, 3, 4],
+                  dtype="string")
     s
     v
     s.str.cat(v, join='left', na_rep='-')
@@ -351,7 +463,8 @@ of the string, the result will be a ``NaN``.
 .. ipython:: python
 
    s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan,
-                  'CABA', 'dog', 'cat'])
+                  'CABA', 'dog', 'cat'],
+                 dtype="string")
 
    s.str[0]
    s.str[1]
@@ -382,7 +495,8 @@ DataFrame with one column per group.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'([ab])(\d)', expand=False)
+   pd.Series(['a1', 'b2', 'c3'],
+             dtype="string").str.extract(r'([ab])(\d)', expand=False)
 
 Elements that do not match return a row filled with ``NaN``. Thus, a
 Series of messy strings can be "converted" into a like-indexed Series
@@ -395,14 +509,16 @@ Named groups like
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'(?P<letter>[ab])(?P<digit>\d)',
-                                             expand=False)
+   pd.Series(['a1', 'b2', 'c3'],
+             dtype="string").str.extract(r'(?P<letter>[ab])(?P<digit>\d)',
+                                         expand=False)
 
 and optional groups like
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', '3']).str.extract(r'([ab])?(\d)', expand=False)
+   pd.Series(['a1', 'b2', '3'],
+             dtype="string").str.extract(r'([ab])?(\d)', expand=False)
 
 can also be used. Note that any capture group names in the regular
 expression will be used for column names; otherwise capture group
@@ -413,20 +529,23 @@ with one column if ``expand=True``.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=True)
+   pd.Series(['a1', 'b2', 'c3'],
+             dtype="string").str.extract(r'[ab](\d)', expand=True)
 
 It returns a Series if ``expand=False``.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=False)
+   pd.Series(['a1', 'b2', 'c3'],
+             dtype="string").str.extract(r'[ab](\d)', expand=False)
 
 Calling on an ``Index`` with a regex with exactly one capture group
 returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
-   s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"])
+   s = pd.Series(["a1", "b2", "c3"], ["A11", "B22", "C33"],
+                 dtype="string")
    s
    s.index.str.extract("(?P<letter>[a-zA-Z])", expand=True)
 
@@ -471,7 +590,8 @@ Unlike ``extract`` (which returns only the first match),
 
 .. ipython:: python
 
-   s = pd.Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
+   s = pd.Series(["a1a2", "b1", "c1"], index=["A", "B", "C"],
+                 dtype="string")
    s
    two_groups = '(?P<letter>[a-z])(?P<digit>[0-9])'
    s.str.extract(two_groups, expand=True)
@@ -489,7 +609,7 @@ When each subject string in the Series has exactly one match,
 
 .. ipython:: python
 
-   s = pd.Series(['a3', 'b3', 'c2'])
+   s = pd.Series(['a3', 'b3', 'c2'], dtype="string")
    s
 
 then ``extractall(pat).xs(0, level='match')`` gives the same result as
@@ -510,7 +630,7 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
 
    pd.Index(["a1a2", "b1", "c1"]).str.extractall(two_groups)
 
-   pd.Series(["a1a2", "b1", "c1"]).str.extractall(two_groups)
+   pd.Series(["a1a2", "b1", "c1"], dtype="string").str.extractall(two_groups)
 
 
 Testing for Strings that match or contain a pattern
@@ -521,13 +641,15 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r'[0-9][a-z]'
-   pd.Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
+   pd.Series(['1', '2', '3a', '3b', '03c'],
+             dtype="string").str.contains(pattern)
 
 Or whether elements match a pattern:
 
 .. ipython:: python
 
-   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern)
+   pd.Series(['1', '2', '3a', '3b', '03c'],
+             dtype="string").str.match(pattern)
 
 The distinction between ``match`` and ``contains`` is strictness: ``match``
 relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
@@ -537,7 +659,8 @@ an extra ``na`` argument so missing values can be considered True or False:
 
 .. ipython:: python
 
-   s4 = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s4 = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'],
+                  dtype="string")
    s4.str.contains('A', na=False)
 
 .. _text.indicator:
@@ -550,7 +673,7 @@ For example if they are separated by a ``'|'``:
 
 .. ipython:: python
 
-    s = pd.Series(['a', 'a|b', np.nan, 'a|c'])
+    s = pd.Series(['a', 'a|b', np.nan, 'a|c'], dtype="string")
     s.str.get_dummies(sep='|')
 
 String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.

@@ -9,6 +9,7 @@ import itertools
 import pprint
 import struct
 import sys
+from typing import List
 
 import numpy as np
 
@@ -16,9 +17,9 @@ from pandas._libs.tslibs import Timestamp
 from pandas.compat.chainmap import DeepChainMap
 
 
-def _ensure_scope(
-    level, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-):
+def ensure_scope(
+    level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
+) -> "Scope":
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,
@@ -29,8 +30,9 @@ def _ensure_scope(
     )
 
 
-def _replacer(x):
-    """Replace a number with its hexadecimal representation. Used to tag
+def _replacer(x) -> str:
+    """
+    Replace a number with its hexadecimal representation. Used to tag
     temporary variables with their calling scope's id.
     """
     # get the hex repr of the binary char and remove 0x and pad by pad_size
@@ -44,11 +46,11 @@ def _replacer(x):
     return hex(hexin)
 
 
-def _raw_hex_id(obj):
+def _raw_hex_id(obj) -> str:
     """Return the padded hexadecimal id of ``obj``."""
     # interpret as a pointer since that's what really what id returns
     packed = struct.pack("@P", id(obj))
-    return "".join(map(_replacer, packed))
+    return "".join(_replacer(x) for x in packed)
 
 
 _DEFAULT_GLOBALS = {
@@ -63,7 +65,7 @@ _DEFAULT_GLOBALS = {
 }
 
 
-def _get_pretty_string(obj):
+def _get_pretty_string(obj) -> str:
     """
     Return a prettier version of obj.
 
@@ -74,7 +76,7 @@ def _get_pretty_string(obj):
 
     Returns
     -------
-    s : str
+    str
         Pretty print object repr
     """
     sio = StringIO()
@@ -119,7 +121,7 @@ class Scope:
             self.scope.update(local_dict.scope)
             if local_dict.target is not None:
                 self.target = local_dict.target
-            self.update(local_dict.level)
+            self._update(local_dict.level)
 
         frame = sys._getframe(self.level)
 
@@ -139,17 +141,16 @@ class Scope:
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        unicode_str = "{name}(scope={scope_keys}, resolvers={res_keys})"
-        return unicode_str.format(
-            name=type(self).__name__, scope_keys=scope_keys, res_keys=res_keys
-        )
+        unicode_str = f"{type(self).__name__}(scope={scope_keys}, resolvers={res_keys})"
+        return unicode_str
 
     @property
-    def has_resolvers(self):
-        """Return whether we have any extra scope.
+    def has_resolvers(self) -> bool:
+        """
+        Return whether we have any extra scope.
 
         For example, DataFrames pass Their columns as resolvers during calls to
         ``DataFrame.eval()`` and ``DataFrame.query()``.
@@ -160,7 +161,7 @@ class Scope:
         """
         return bool(len(self.resolvers))
 
-    def resolve(self, key, is_local):
+    def resolve(self, key: str, is_local: bool):
         """
         Resolve a variable name in a possibly local context.
 
@@ -196,13 +197,13 @@ class Scope:
                 # these are created when parsing indexing expressions
                 # e.g., df[df > 0]
                 return self.temps[key]
-            except KeyError:
+            except KeyError as err:
                 # runtime import because ops imports from scope
                 from pandas.core.computation.ops import UndefinedVariableError
 
-                raise UndefinedVariableError(key, is_local)
+                raise UndefinedVariableError(key, is_local) from err
 
-    def swapkey(self, old_key, new_key, new_value=None):
+    def swapkey(self, old_key: str, new_key: str, new_value=None):
         """
         Replace a variable name, with a potentially new value.
 
@@ -227,7 +228,7 @@ class Scope:
                 mapping[new_key] = new_value
                 return
 
-    def _get_vars(self, stack, scopes):
+    def _get_vars(self, stack, scopes: List[str]):
         """
         Get specifically scoped variables from a list of stack frames.
 
@@ -250,13 +251,13 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def update(self, level):
+    def _update(self, level: int):
         """
         Update the current scope by going back `level` levels.
 
         Parameters
         ----------
-        level : int or None, optional, default None
+        level : int
         """
         sl = level + 1
 
@@ -270,7 +271,7 @@ class Scope:
         finally:
             del stack[:], stack
 
-    def add_tmp(self, value):
+    def add_tmp(self, value) -> str:
         """
         Add a temporary variable to the scope.
 
@@ -281,12 +282,10 @@ class Scope:
 
         Returns
         -------
-        name : basestring
+        str
             The name of the temporary variable created.
         """
-        name = "{name}_{num}_{hex_id}".format(
-            name=type(value).__name__, num=self.ntemps, hex_id=_raw_hex_id(self)
-        )
+        name = f"{type(value).__name__}_{self.ntemps}_{_raw_hex_id(self)}"
 
         # add to inner most scope
         assert name not in self.temps
@@ -297,7 +296,7 @@ class Scope:
         return name
 
     @property
-    def ntemps(self):
+    def ntemps(self) -> int:
         """The number of temporary variables in this scope"""
         return len(self.temps)
 

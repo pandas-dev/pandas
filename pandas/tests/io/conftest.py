@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
@@ -27,7 +27,8 @@ def salaries_table(datapath):
 
 @pytest.fixture
 def s3_resource(tips_file, jsonl_file):
-    """Fixture for mocking S3 interaction.
+    """
+    Fixture for mocking S3 interaction.
 
     The primary bucket name is "pandas-test". The following datasets
     are loaded.
@@ -40,7 +41,7 @@ def s3_resource(tips_file, jsonl_file):
     A private bucket "cant_get_it" is also created. The boto3 s3 resource
     is yielded by the fixture.
     """
-    pytest.importorskip("s3fs")
+    s3fs = pytest.importorskip("s3fs")
     boto3 = pytest.importorskip("boto3")
 
     with tm.ensure_safe_environment_variables():
@@ -77,6 +78,7 @@ def s3_resource(tips_file, jsonl_file):
 
             conn.create_bucket(Bucket="cant_get_it", ACL="private")
             add_tips_files("cant_get_it")
+            s3fs.S3FileSystem.clear_instance_cache()
             yield conn
         finally:
             s3.stop()

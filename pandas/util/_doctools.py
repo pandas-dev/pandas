@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 import numpy as np
 
 import pandas as pd
@@ -9,24 +11,27 @@ class TablePlotter:
     Used in merging.rst
     """
 
-    def __init__(self, cell_width=0.37, cell_height=0.25, font_size=7.5):
+    def __init__(
+        self,
+        cell_width: float = 0.37,
+        cell_height: float = 0.25,
+        font_size: float = 7.5,
+    ):
         self.cell_width = cell_width
         self.cell_height = cell_height
         self.font_size = font_size
 
-    def _shape(self, df):
+    def _shape(self, df: pd.DataFrame) -> Tuple[int, int]:
         """
         Calculate table chape considering index levels.
         """
-
         row, col = df.shape
         return row + df.columns.nlevels, col + df.index.nlevels
 
-    def _get_cells(self, left, right, vertical):
+    def _get_cells(self, left, right, vertical) -> Tuple[int, int]:
         """
         Calculate appropriate figure size based on left and right data.
         """
-
         if vertical:
             # calculate required number of cells
             vcells = max(sum(self._shape(l)[0] for l in left), self._shape(right)[0])
@@ -36,7 +41,7 @@ class TablePlotter:
             hcells = sum([self._shape(l)[1] for l in left] + [self._shape(right)[1]])
         return hcells, vcells
 
-    def plot(self, left, right, labels=None, vertical=True):
+    def plot(self, left, right, labels=None, vertical: bool = True):
         """
         Plot left / right DataFrames in specified layout.
 
@@ -45,7 +50,7 @@ class TablePlotter:
         left : list of DataFrames before operation is applied
         right : DataFrame of operation result
         labels : list of str to be drawn as titles of left DataFrames
-        vertical : bool
+        vertical : bool, default True
             If True, use vertical layout. If False, use horizontal layout.
         """
         import matplotlib.pyplot as plt
@@ -96,7 +101,9 @@ class TablePlotter:
         return fig
 
     def _conv(self, data):
-        """Convert each input to appropriate for table outplot"""
+        """
+        Convert each input to appropriate for table outplot.
+        """
         if isinstance(data, pd.Series):
             if data.name is None:
                 data = data.to_frame(name="")
@@ -113,7 +120,7 @@ class TablePlotter:
             data.insert(0, "Index", data.index)
         else:
             for i in range(idx_nlevels):
-                data.insert(i, "Index{0}".format(i), data.index._get_level_values(i))
+                data.insert(i, f"Index{i}", data.index._get_level_values(i))
 
         col_nlevels = data.columns.nlevels
         if col_nlevels > 1:
@@ -127,7 +134,7 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title, height=None):
+    def _make_table(self, ax, df, title: str, height: Optional[float] = None):
         if df is None:
             ax.set_visible(False)
             return

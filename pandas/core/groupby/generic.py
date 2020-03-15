@@ -5,20 +5,32 @@ classes that hold the groupby interfaces (and some implementations).
 These are user facing as the result of the ``df.groupby(...)`` operations,
 which here returns a DataFrameGroupBy object.
 """
-from collections import OrderedDict, abc, namedtuple
+from collections import abc, namedtuple
 import copy
-import functools
 from functools import partial
 from textwrap import dedent
 import typing
-from typing import Any, Callable, FrozenSet, Iterator, Sequence, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Mapping,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timestamp, lib
-from pandas.compat import PY36
-from pandas.errors import AbstractMethodError
+from pandas._typing import FrameOrSeries
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import (
@@ -30,21 +42,24 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
-    is_datetimelike,
-    is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
-    is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
+from pandas.core.dtypes.missing import isna, notna
 
-from pandas._typing import FrameOrSeries
+from pandas.core.aggregation import (
+    is_multi_agg_with_relabel,
+    maybe_mangle_lambdas,
+    normalize_keyword_aggregation,
+)
 import pandas.core.algorithms as algorithms
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
+from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import ABCDataFrame, ABCSeries, NDFrame, _shared_docs
 from pandas.core.groupby import base
@@ -52,15 +67,18 @@ from pandas.core.groupby.groupby import (
     GroupBy,
     _apply_docs,
     _transform_template,
-    groupby,
+    get_groupby,
 )
-from pandas.core.index import Index, MultiIndex, _all_indexes_same
+from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
-from pandas.core.sparse.frame import SparseDataFrame
 
 from pandas.plotting import boxplot_frame_groupby
+
+if TYPE_CHECKING:
+    from pandas.core.internals import Block
+
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
@@ -71,696 +89,71 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = typing.TypeVar("ScalarResult")
 
 
-def whitelist_method_generator(
-    base_class: Type[GroupBy], klass: Type[FrameOrSeries], whitelist: FrozenSet[str]
-) -> Iterator[str]:
+def generate_property(name: str, klass: Type[FrameOrSeries]):
     """
-    Yields all GroupBy member defs for DataFrame/Series names in whitelist.
+    Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
 
     Parameters
     ----------
-    base_class : Groupby class
-        base class
+    name : str
+    klass : {DataFrame, Series}
+
+    Returns
+    -------
+    property
+    """
+
+    def prop(self):
+        return self._make_wrapper(name)
+
+    parent_method = getattr(klass, name)
+    prop.__doc__ = parent_method.__doc__ or ""
+    prop.__name__ = name
+    return property(prop)
+
+
+def pin_whitelisted_properties(klass: Type[FrameOrSeries], whitelist: FrozenSet[str]):
+    """
+    Create GroupBy member defs for DataFrame/Series names in a whitelist.
+
+    Parameters
+    ----------
     klass : DataFrame or Series class
         class where members are defined.
-    whitelist : frozenset
+    whitelist : frozenset[str]
         Set of names of klass methods to be constructed
 
     Returns
     -------
-    The generator yields a sequence of strings, each suitable for exec'ing,
-    that define implementations of the named methods for DataFrameGroupBy
-    or SeriesGroupBy.
+    class decorator
 
+    Notes
+    -----
     Since we don't want to override methods explicitly defined in the
     base class, any such name is skipped.
     """
-    property_wrapper_template = """@property
-def %(name)s(self) :
-    \"""%(doc)s\"""
-    return self.__getattr__('%(name)s')"""
 
-    for name in whitelist:
-        # don't override anything that was explicitly defined
-        # in the base class
-        if hasattr(base_class, name):
-            continue
-        # ugly, but we need the name string itself in the method.
-        f = getattr(klass, name)
-        doc = f.__doc__
-        doc = doc if type(doc) == str else ""
-        wrapper_template = property_wrapper_template
-        params = {"name": name, "doc": doc}
-        yield wrapper_template % params
-
-
-class NDFrameGroupBy(GroupBy):
-    def _iterate_slices(self):
-        if self.axis == 0:
-            # kludge
-            if self._selection is None:
-                slice_axis = self.obj.columns
-            else:
-                slice_axis = self._selection_list
-            slicer = lambda x: self.obj[x]
-        else:
-            slice_axis = self.obj.index
-            slicer = self.obj.xs
-
-        for val in slice_axis:
-            if val in self.exclusions:
-                continue
-            yield val, slicer(val)
-
-    def _cython_agg_general(self, how, alt=None, numeric_only=True, min_count=-1):
-        new_items, new_blocks = self._cython_agg_blocks(
-            how, alt=alt, numeric_only=numeric_only, min_count=min_count
-        )
-        return self._wrap_agged_blocks(new_items, new_blocks)
-
-    _block_agg_axis = 0
-
-    def _cython_agg_blocks(self, how, alt=None, numeric_only=True, min_count=-1):
-        # TODO: the actual managing of mgr_locs is a PITA
-        # here, it should happen via BlockManager.combine
-
-        data, agg_axis = self._get_data_to_aggregate()
-
-        if numeric_only:
-            data = data.get_numeric_data(copy=False)
-
-        new_blocks = []
-        new_items = []
-        deleted_items = []
-        no_result = object()
-        for block in data.blocks:
-            # Avoid inheriting result from earlier in the loop
-            result = no_result
-            locs = block.mgr_locs.as_array
-            try:
-                result, _ = self.grouper.aggregate(
-                    block.values, how, axis=agg_axis, min_count=min_count
-                )
-            except NotImplementedError:
-                # generally if we have numeric_only=False
-                # and non-applicable functions
-                # try to python agg
-
-                if alt is None:
-                    # we cannot perform the operation
-                    # in an alternate way, exclude the block
-                    deleted_items.append(locs)
-                    continue
-
-                # call our grouper again with only this block
-                obj = self.obj[data.items[locs]]
-                s = groupby(obj, self.grouper)
-                try:
-                    result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                except TypeError:
-                    # we may have an exception in trying to aggregate
-                    # continue and exclude the block
-                    deleted_items.append(locs)
-                    continue
-            finally:
-                if result is not no_result:
-                    # see if we can cast the block back to the original dtype
-                    result = maybe_downcast_numeric(result, block.dtype)
-                    newb = block.make_block(result)
-
-            new_items.append(locs)
-            new_blocks.append(newb)
-
-        if len(new_blocks) == 0:
-            raise DataError("No numeric types to aggregate")
-
-        # reset the locs in the blocks to correspond to our
-        # current ordering
-        indexer = np.concatenate(new_items)
-        new_items = data.items.take(np.sort(indexer))
-
-        if len(deleted_items):
-
-            # we need to adjust the indexer to account for the
-            # items we have removed
-            # really should be done in internals :<
-
-            deleted = np.concatenate(deleted_items)
-            ai = np.arange(len(data))
-            mask = np.zeros(len(data))
-            mask[deleted] = 1
-            indexer = (ai - mask.cumsum())[indexer]
-
-        offset = 0
-        for b in new_blocks:
-            loc = len(b.mgr_locs)
-            b.mgr_locs = indexer[offset : (offset + loc)]
-            offset += loc
-
-        return new_items, new_blocks
-
-    def aggregate(self, func, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
-
-        relabeling = func is None and _is_multi_agg_with_relabel(**kwargs)
-        if relabeling:
-            func, columns, order = _normalize_keyword_aggregation(kwargs)
-
-            kwargs = {}
-        elif func is None:
-            # nicer error message
-            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
-
-        func = _maybe_mangle_lambdas(func)
-
-        result, how = self._aggregate(func, _level=_level, *args, **kwargs)
-        if how is None:
-            return result
-
-        if result is None:
-
-            # grouper specific aggregations
-            if self.grouper.nkeys > 1:
-                return self._python_agg_general(func, *args, **kwargs)
-            elif args or kwargs:
-                result = self._aggregate_generic(func, *args, **kwargs)
-            else:
-
-                # try to treat as if we are passing a list
-                try:
-                    result = self._aggregate_multiple_funcs(
-                        [func], _level=_level, _axis=self.axis
-                    )
-                except Exception:
-                    result = self._aggregate_generic(func)
-                else:
-                    result.columns = Index(
-                        result.columns.levels[0], name=self._selected_obj.columns.name
-                    )
-
-                    if isinstance(self.obj, SparseDataFrame):
-                        # Backwards compat for groupby.agg() with sparse
-                        # values. concat no longer converts DataFrame[Sparse]
-                        # to SparseDataFrame, so we do it here.
-                        result = SparseDataFrame(result._data)
-
-        if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
-            result.index = np.arange(len(result))
-
-        if relabeling:
-
-            # used reordered index of columns
-            result = result.iloc[:, order]
-            result.columns = columns
-
-        return result._convert(datetime=True)
-
-    agg = aggregate
-
-    def _aggregate_generic(self, func, *args, **kwargs):
-        if self.grouper.nkeys != 1:
-            raise AssertionError("Number of keys must be 1")
-
-        axis = self.axis
-        obj = self._obj_with_exclusions
-
-        result = OrderedDict()
-        if axis != obj._info_axis_number:
-            try:
-                for name, data in self:
-                    result[name] = self._try_cast(func(data, *args, **kwargs), data)
-            except Exception:
-                return self._aggregate_item_by_item(func, *args, **kwargs)
-        else:
-            for name in self.indices:
-                try:
-                    data = self.get_group(name, obj=obj)
-                    result[name] = self._try_cast(func(data, *args, **kwargs), data)
-                except Exception:
-                    wrapper = lambda x: func(x, *args, **kwargs)
-                    result[name] = data.apply(wrapper, axis=axis)
-
-        return self._wrap_generic_output(result, obj)
-
-    def _wrap_aggregated_output(self, output, names=None):
-        raise AbstractMethodError(self)
-
-    def _aggregate_item_by_item(self, func, *args, **kwargs):
-        # only for axis==0
-
-        obj = self._obj_with_exclusions
-        result = OrderedDict()
-        cannot_agg = []
-        errors = None
-        for item in obj:
-            data = obj[item]
-            colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
-
-            try:
-                cast = self._transform_should_cast(func)
-
-                result[item] = colg.aggregate(func, *args, **kwargs)
-                if cast:
-                    result[item] = self._try_cast(result[item], data)
-
-            except ValueError as err:
-                if "Must produce aggregated value" in str(err):
-                    # raised in _aggregate_named, handle at higher level
-                    #  see test_apply_with_mutated_index
-                    raise
-                cannot_agg.append(item)
-                continue
-            except TypeError as e:
-                cannot_agg.append(item)
-                errors = e
+    def pinner(cls):
+        for name in whitelist:
+            if hasattr(cls, name):
+                # don't override anything that was explicitly defined
+                #  in the base class
                 continue
 
-        result_columns = obj.columns
-        if cannot_agg:
-            result_columns = result_columns.drop(cannot_agg)
+            prop = generate_property(name, klass)
+            setattr(cls, name, prop)
 
-            # GH6337
-            if not len(result_columns) and errors is not None:
-                raise errors
+        return cls
 
-        return DataFrame(result, columns=result_columns)
+    return pinner
 
-    def _decide_output_index(self, output, labels):
-        if len(output) == len(labels):
-            output_keys = labels
-        else:
-            output_keys = sorted(output)
-            try:
-                output_keys.sort()
-            except TypeError:
-                pass
 
-            if isinstance(labels, MultiIndex):
-                output_keys = MultiIndex.from_tuples(output_keys, names=labels.names)
-
-        return output_keys
-
-    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
-        if len(keys) == 0:
-            return DataFrame(index=keys)
-
-        key_names = self.grouper.names
-
-        # GH12824.
-        def first_not_none(values):
-            try:
-                return next(com.not_none(*values))
-            except StopIteration:
-                return None
-
-        v = first_not_none(values)
-
-        if v is None:
-            # GH9684. If all values are None, then this will throw an error.
-            # We'd prefer it return an empty dataframe.
-            return DataFrame()
-        elif isinstance(v, DataFrame):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-        elif self.grouper.groupings is not None:
-            if len(self.grouper.groupings) > 1:
-                key_index = self.grouper.result_index
-
-            else:
-                ping = self.grouper.groupings[0]
-                if len(keys) == ping.ngroups:
-                    key_index = ping.group_index
-                    key_index.name = key_names[0]
-
-                    key_lookup = Index(keys)
-                    indexer = key_lookup.get_indexer(key_index)
-
-                    # reorder the values
-                    values = [values[i] for i in indexer]
-                else:
-
-                    key_index = Index(keys, name=key_names[0])
-
-                # don't use the key indexer
-                if not self.as_index:
-                    key_index = None
-
-            # make Nones an empty object
-            v = first_not_none(values)
-            if v is None:
-                return DataFrame()
-            elif isinstance(v, NDFrame):
-                values = [
-                    x if x is not None else v._constructor(**v._construct_axes_dict())
-                    for x in values
-                ]
-
-            v = values[0]
-
-            if isinstance(v, (np.ndarray, Index, Series)):
-                if isinstance(v, Series):
-                    applied_index = self._selected_obj._get_axis(self.axis)
-                    all_indexed_same = _all_indexes_same([x.index for x in values])
-                    singular_series = len(values) == 1 and applied_index.nlevels == 1
-
-                    # GH3596
-                    # provide a reduction (Frame -> Series) if groups are
-                    # unique
-                    if self.squeeze:
-                        # assign the name to this series
-                        if singular_series:
-                            values[0].name = keys[0]
-
-                            # GH2893
-                            # we have series in the values array, we want to
-                            # produce a series:
-                            # if any of the sub-series are not indexed the same
-                            # OR we don't have a multi-index and we have only a
-                            # single values
-                            return self._concat_objects(
-                                keys, values, not_indexed_same=not_indexed_same
-                            )
-
-                        # still a series
-                        # path added as of GH 5545
-                        elif all_indexed_same:
-                            from pandas.core.reshape.concat import concat
-
-                            return concat(values)
-
-                    if not all_indexed_same:
-                        # GH 8467
-                        return self._concat_objects(keys, values, not_indexed_same=True)
-
-                try:
-                    if self.axis == 0:
-                        # GH6124 if the list of Series have a consistent name,
-                        # then propagate that name to the result.
-                        index = v.index.copy()
-                        if index.name is None:
-                            # Only propagate the series name to the result
-                            # if all series have a consistent name.  If the
-                            # series do not have a consistent name, do
-                            # nothing.
-                            names = {v.name for v in values}
-                            if len(names) == 1:
-                                index.name = list(names)[0]
-
-                        # normally use vstack as its faster than concat
-                        # and if we have mi-columns
-                        if (
-                            isinstance(v.index, MultiIndex)
-                            or key_index is None
-                            or isinstance(key_index, MultiIndex)
-                        ):
-                            stacked_values = np.vstack([np.asarray(v) for v in values])
-                            result = DataFrame(
-                                stacked_values, index=key_index, columns=index
-                            )
-                        else:
-                            # GH5788 instead of stacking; concat gets the
-                            # dtypes correct
-                            from pandas.core.reshape.concat import concat
-
-                            result = concat(
-                                values,
-                                keys=key_index,
-                                names=key_index.names,
-                                axis=self.axis,
-                            ).unstack()
-                            result.columns = index
-                    else:
-                        stacked_values = np.vstack([np.asarray(v) for v in values])
-                        result = DataFrame(
-                            stacked_values.T, index=v.index, columns=key_index
-                        )
-
-                except (ValueError, AttributeError):
-                    # GH1738: values is list of arrays of unequal lengths fall
-                    # through to the outer else caluse
-                    return Series(values, index=key_index, name=self._selection_name)
-
-                # if we have date/time like in the original, then coerce dates
-                # as we are stacking can easily have object dtypes here
-                so = self._selected_obj
-                if so.ndim == 2 and so.dtypes.apply(is_datetimelike).any():
-                    result = _recast_datetimelike_result(result)
-                else:
-                    result = result._convert(datetime=True)
-
-                return self._reindex_output(result)
-
-            # values are not series or array-like but scalars
-            else:
-                # only coerce dates if we find at least 1 datetime
-                coerce = any(isinstance(x, Timestamp) for x in values)
-                # self._selection_name not passed through to Series as the
-                # result should not take the name of original selection
-                # of columns
-                return Series(values, index=key_index)._convert(
-                    datetime=True, coerce=coerce
-                )
-
-        else:
-            # Handle cases like BinGrouper
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
-
-    def _transform_general(self, func, *args, **kwargs):
-        from pandas.core.reshape.concat import concat
-
-        applied = []
-        obj = self._obj_with_exclusions
-        gen = self.grouper.get_iterator(obj, axis=self.axis)
-        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
-
-        path = None
-        for name, group in gen:
-            object.__setattr__(group, "name", name)
-
-            if path is None:
-                # Try slow path and fast path.
-                try:
-                    path, res = self._choose_path(fast_path, slow_path, group)
-                except TypeError:
-                    return self._transform_item_by_item(obj, fast_path)
-                except ValueError:
-                    msg = "transform must return a scalar value for each group"
-                    raise ValueError(msg)
-            else:
-                res = path(group)
-
-            if isinstance(res, Series):
-
-                # we need to broadcast across the
-                # other dimension; this will preserve dtypes
-                # GH14457
-                if not np.prod(group.shape):
-                    continue
-                elif res.index.is_(obj.index):
-                    r = concat([res] * len(group.columns), axis=1)
-                    r.columns = group.columns
-                    r.index = group.index
-                else:
-                    r = DataFrame(
-                        np.concatenate([res.values] * len(group.index)).reshape(
-                            group.shape
-                        ),
-                        columns=group.columns,
-                        index=group.index,
-                    )
-
-                applied.append(r)
-            else:
-                applied.append(res)
-
-        concat_index = obj.columns if self.axis == 0 else obj.index
-        other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
-        concatenated = concat(applied, axis=self.axis, verify_integrity=False)
-        concatenated = concatenated.reindex(concat_index, axis=other_axis, copy=False)
-        return self._set_result_index_ordered(concatenated)
-
-    @Substitution(klass="DataFrame", selected="")
-    @Appender(_transform_template)
-    def transform(self, func, *args, **kwargs):
-
-        # optimized transforms
-        func = self._get_cython_func(func) or func
-
-        if isinstance(func, str):
-            if not (func in base.transform_kernel_whitelist):
-                msg = "'{func}' is not a valid function name for transform(name)"
-                raise ValueError(msg.format(func=func))
-            if func in base.cythonized_kernels:
-                # cythonized transformation or canned "reduction+broadcast"
-                return getattr(self, func)(*args, **kwargs)
-            else:
-                # If func is a reduction, we need to broadcast the
-                # result to the whole group. Compute func result
-                # and deal with possible broadcasting below.
-                result = getattr(self, func)(*args, **kwargs)
-        else:
-            return self._transform_general(func, *args, **kwargs)
-
-        # a reduction transform
-        if not isinstance(result, DataFrame):
-            return self._transform_general(func, *args, **kwargs)
-
-        obj = self._obj_with_exclusions
-
-        # nuisance columns
-        if not result.columns.equals(obj.columns):
-            return self._transform_general(func, *args, **kwargs)
-
-        return self._transform_fast(result, obj, func)
-
-    def _transform_fast(self, result, obj, func_nm):
-        """
-        Fast transform path for aggregations
-        """
-        # if there were groups with no observations (Categorical only?)
-        # try casting data to original dtype
-        cast = self._transform_should_cast(func_nm)
-
-        # for each col, reshape to to size of original frame
-        # by take operation
-        ids, _, ngroup = self.grouper.group_info
-        output = []
-        for i, _ in enumerate(result.columns):
-            res = algorithms.take_1d(result.iloc[:, i].values, ids)
-            if cast:
-                res = self._try_cast(res, obj.iloc[:, i])
-            output.append(res)
-
-        return DataFrame._from_arrays(output, columns=result.columns, index=obj.index)
-
-    def _define_paths(self, func, *args, **kwargs):
-        if isinstance(func, str):
-            fast_path = lambda group: getattr(group, func)(*args, **kwargs)
-            slow_path = lambda group: group.apply(
-                lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis
-            )
-        else:
-            fast_path = lambda group: func(group, *args, **kwargs)
-            slow_path = lambda group: group.apply(
-                lambda x: func(x, *args, **kwargs), axis=self.axis
-            )
-        return fast_path, slow_path
-
-    def _choose_path(self, fast_path, slow_path, group):
-        path = slow_path
-        res = slow_path(group)
-
-        # if we make it here, test if we can use the fast path
-        try:
-            res_fast = fast_path(group)
-        except Exception:
-            # Hard to know ex-ante what exceptions `fast_path` might raise
-            return path, res
-
-        # verify fast path does not change columns (and names), otherwise
-        # its results cannot be joined with those of the slow path
-        if not isinstance(res_fast, DataFrame):
-            return path, res
-
-        if not res_fast.columns.equals(group.columns):
-            return path, res
-
-        if res_fast.equals(res):
-            path = fast_path
-
-        return path, res
-
-    def _transform_item_by_item(self, obj, wrapper):
-        # iterate through columns
-        output = {}
-        inds = []
-        for i, col in enumerate(obj):
-            try:
-                output[col] = self[col].transform(wrapper)
-                inds.append(i)
-            except Exception:
-                pass
-
-        if len(output) == 0:
-            raise TypeError("Transform function invalid for data types")
-
-        columns = obj.columns
-        if len(output) < len(obj.columns):
-            columns = columns.take(inds)
-
-        return DataFrame(output, index=obj.index, columns=columns)
-
-    def filter(self, func, dropna=True, *args, **kwargs):
-        """
-        Return a copy of a DataFrame excluding elements from groups that
-        do not satisfy the boolean criterion specified by func.
-
-        Parameters
-        ----------
-        f : function
-            Function to apply to each subframe. Should return True or False.
-        dropna : Drop groups that do not pass the filter. True by default;
-            if False, groups that evaluate False are filled with NaNs.
-
-        Returns
-        -------
-        filtered : DataFrame
-
-        Notes
-        -----
-        Each subframe is endowed the attribute 'name' in case you need to know
-        which group you are working on.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-        ...                           'foo', 'bar'],
-        ...                    'B' : [1, 2, 3, 4, 5, 6],
-        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
-        >>> grouped = df.groupby('A')
-        >>> grouped.filter(lambda x: x['B'].mean() > 3.)
-             A  B    C
-        1  bar  2  5.0
-        3  bar  4  1.0
-        5  bar  6  9.0
-        """
-
-        indices = []
-
-        obj = self._selected_obj
-        gen = self.grouper.get_iterator(obj, axis=self.axis)
-
-        for name, group in gen:
-            object.__setattr__(group, "name", name)
-
-            res = func(group, *args, **kwargs)
-
-            try:
-                res = res.squeeze()
-            except AttributeError:  # allow e.g., scalars and frames to pass
-                pass
-
-            # interpret the result of the filter
-            if is_bool(res) or (is_scalar(res) and isna(res)):
-                if res and notna(res):
-                    indices.append(self._get_index(name))
-            else:
-                # non scalars aren't allowed
-                raise TypeError(
-                    "filter function returned a %s, "
-                    "but expected a scalar bool" % type(res).__name__
-                )
-
-        return self._apply_filter(indices, dropna)
-
-
+@pin_whitelisted_properties(Series, base.series_apply_whitelist)
 class SeriesGroupBy(GroupBy):
-    #
-    # Make class defs of attributes on SeriesGroupBy whitelist
-
     _apply_whitelist = base.series_apply_whitelist
-    for _def_str in whitelist_method_generator(GroupBy, Series, _apply_whitelist):
-        exec(_def_str)
+
+    def _iterate_slices(self) -> Iterable[Series]:
+        yield self._selected_obj
 
     @property
     def _selection_name(self):
@@ -842,17 +235,12 @@ class SeriesGroupBy(GroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        _level = kwargs.pop("_level", None)
 
         relabeling = func is None
         columns = None
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         if relabeling:
             columns = list(kwargs)
-            if not PY36:
-                # sort for 3.5 and earlier
-                columns = list(sorted(columns))
-
             func = [kwargs[col] for col in columns]
             kwargs = {}
             if not columns:
@@ -861,11 +249,11 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func, str):
             return getattr(self, func)(*args, **kwargs)
 
-        if isinstance(func, abc.Iterable):
+        elif isinstance(func, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
-            func = _maybe_mangle_lambdas(func)
-            ret = self._aggregate_multiple_funcs(func, (_level or 0) + 1)
+            func = maybe_mangle_lambdas(func)
+            ret = self._aggregate_multiple_funcs(func)
             if relabeling:
                 ret.columns = columns
         else:
@@ -878,17 +266,20 @@ class SeriesGroupBy(GroupBy):
 
             try:
                 return self._python_agg_general(func, *args, **kwargs)
-            except Exception:
+            except (ValueError, KeyError):
+                # TODO: KeyError is raised in _python_agg_general,
+                #  see see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
             index = Index(sorted(result), name=self.grouper.names[0])
-            ret = Series(result, index=index)
+            ret = create_series_with_explicit_dtype(
+                result, index=index, dtype_if_empty=object
+            )
 
         if not self.as_index:  # pragma: no cover
             print("Warning, ignoring as_index=True")
 
-        # _level handled at higher
-        if not _level and isinstance(ret, dict):
+        if isinstance(ret, dict):
             from pandas import concat
 
             ret = concat(ret, axis=1)
@@ -896,23 +287,14 @@ class SeriesGroupBy(GroupBy):
 
     agg = aggregate
 
-    def _aggregate_multiple_funcs(self, arg, _level):
+    def _aggregate_multiple_funcs(self, arg):
         if isinstance(arg, dict):
 
             # show the deprecation, but only if we
             # have not shown a higher level one
             # GH 15931
-            if isinstance(self._selected_obj, Series) and _level <= 1:
-                msg = dedent(
-                    """\
-                using a dict on a Series for aggregation
-                is deprecated and will be removed in a future version. Use \
-                named aggregation instead.
-
-                    >>> grouper.agg(name_1=func_1, name_2=func_2)
-                """
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=3)
+            if isinstance(self._selected_obj, Series):
+                raise SpecificationError("nested renamer is not supported")
 
             columns = list(arg.keys())
             arg = arg.items()
@@ -929,14 +311,9 @@ class SeriesGroupBy(GroupBy):
 
             arg = zip(columns, arg)
 
-        results = OrderedDict()
+        results = {}
         for name, func in arg:
             obj = self
-            if name in results:
-                raise SpecificationError(
-                    "Function names must be unique, found multiple named "
-                    "{}".format(name)
-                )
 
             # reset the cache so that we
             # only include the named selection
@@ -948,38 +325,102 @@ class SeriesGroupBy(GroupBy):
 
         if any(isinstance(x, DataFrame) for x in results.values()):
             # let higher level handle
-            if _level:
-                return results
+            return results
 
         return DataFrame(results, columns=columns)
 
-    def _wrap_output(self, output, index, names=None):
-        """ common agg/transform wrapping logic """
-        output = output[self._selection_name]
+    def _wrap_series_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]], index: Index
+    ) -> Union[Series, DataFrame]:
+        """
+        Wraps the output of a SeriesGroupBy operation into the expected result.
 
-        if names is not None:
-            return DataFrame(output, index=index, columns=names)
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+            Data to wrap.
+        index : pd.Index
+            Index to apply to the output.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Notes
+        -----
+        In the vast majority of cases output and columns will only contain one
+        element. The exception is operations that expand dimensions, like ohlc.
+        """
+        indexed_output = {key.position: val for key, val in output.items()}
+        columns = Index(key.label for key in output)
+
+        result: Union[Series, DataFrame]
+        if len(output) > 1:
+            result = DataFrame(indexed_output, index=index)
+            result.columns = columns
         else:
-            name = self._selection_name
-            if name is None:
-                name = self._selected_obj.name
-            return Series(output, index=index, name=name)
+            result = Series(indexed_output[0], index=index, name=columns[0])
 
-    def _wrap_aggregated_output(self, output, names=None):
-        result = self._wrap_output(
-            output=output, index=self.grouper.result_index, names=names
+        return result
+
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> Union[Series, DataFrame]:
+        """
+        Wraps the output of a SeriesGroupBy aggregation into the expected result.
+
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+            Data to wrap.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Notes
+        -----
+        In the vast majority of cases output will only contain one element.
+        The exception is operations that expand dimensions, like ohlc.
+        """
+        result = self._wrap_series_output(
+            output=output, index=self.grouper.result_index
         )
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None):
-        return self._wrap_output(output=output, index=self.obj.index, names=names)
+    def _wrap_transformed_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> Series:
+        """
+        Wraps the output of a SeriesGroupBy aggregation into the expected result.
+
+        Parameters
+        ----------
+        output : dict[base.OutputKey, Union[Series, np.ndarray]]
+            Dict with a sole key of 0 and a value of the result values.
+
+        Returns
+        -------
+        Series
+
+        Notes
+        -----
+        output should always contain one element. It is specified as a dict
+        for consistency with DataFrame methods and _wrap_aggregated_output.
+        """
+        assert len(output) == 1
+        result = self._wrap_series_output(output=output, index=self.obj.index)
+
+        # No transformations increase the ndim of the result
+        assert isinstance(result, Series)
+        return result
 
     def _wrap_applied_output(self, keys, values, not_indexed_same=False):
         if len(keys) == 0:
             # GH #6265
-            return Series([], name=self._selection_name, index=keys)
+            return Series([], name=self._selection_name, index=keys, dtype=np.float64)
 
-        def _get_index():
+        def _get_index() -> Index:
             if self.grouper.nkeys > 1:
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
@@ -1007,14 +448,14 @@ class SeriesGroupBy(GroupBy):
             return self._reindex_output(result)
 
     def _aggregate_named(self, func, *args, **kwargs):
-        result = OrderedDict()
+        result = {}
 
         for name, group in self:
             group.name = name
             output = func(group, *args, **kwargs)
             if isinstance(output, (Series, Index, np.ndarray)):
                 raise ValueError("Must produce aggregated value")
-            result[name] = self._try_cast(output, group)
+            result[name] = output
 
         return result
 
@@ -1023,35 +464,39 @@ class SeriesGroupBy(GroupBy):
     def transform(self, func, *args, **kwargs):
         func = self._get_cython_func(func) or func
 
-        if isinstance(func, str):
-            if not (func in base.transform_kernel_whitelist):
-                msg = "'{func}' is not a valid function name for transform(name)"
-                raise ValueError(msg.format(func=func))
-            if func in base.cythonized_kernels:
-                # cythonized transform or canned "agg+broadcast"
-                return getattr(self, func)(*args, **kwargs)
-            else:
-                # If func is a reduction, we need to broadcast the
-                # result to the whole group. Compute func result
-                # and deal with possible broadcasting below.
-                return self._transform_fast(
-                    lambda: getattr(self, func)(*args, **kwargs), func
-                )
+        if not isinstance(func, str):
+            return self._transform_general(func, *args, **kwargs)
 
-        # reg transform
-        klass = self._selected_obj.__class__
+        elif func not in base.transform_kernel_whitelist:
+            msg = f"'{func}' is not a valid function name for transform(name)"
+            raise ValueError(msg)
+        elif func in base.cythonized_kernels:
+            # cythonized transform or canned "agg+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+
+        # If func is a reduction, we need to broadcast the
+        # result to the whole group. Compute func result
+        # and deal with possible broadcasting below.
+        result = getattr(self, func)(*args, **kwargs)
+        return self._transform_fast(result, func)
+
+    def _transform_general(self, func, *args, **kwargs):
+        """
+        Transform with a non-str `func`.
+        """
+        klass = type(self._selected_obj)
+
         results = []
-        wrapper = lambda x: func(x, *args, **kwargs)
         for name, group in self:
             object.__setattr__(group, "name", name)
-            res = wrapper(group)
+            res = func(group, *args, **kwargs)
 
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
 
             indexer = self._get_index(name)
-            s = klass(res, indexer)
-            results.append(s)
+            ser = klass(res, indexer)
+            results.append(ser)
 
         # check for empty "results" to avoid concat ValueError
         if results:
@@ -1059,10 +504,10 @@ class SeriesGroupBy(GroupBy):
 
             result = concat(results).sort_index()
         else:
-            result = Series()
+            result = Series(dtype=np.float64)
 
         # we will only try to coerce the result type if
-        # we have a numeric dtype, as these are *always* udfs
+        # we have a numeric dtype, as these are *always* user-defined funcs
         # the cython take a different path (and casting)
         dtype = self._selected_obj.dtype
         if is_numeric_dtype(dtype):
@@ -1072,22 +517,19 @@ class SeriesGroupBy(GroupBy):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, func, func_nm):
+    def _transform_fast(self, result, func_nm: str) -> Series:
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
         """
-        if isinstance(func, str):
-            func = getattr(self, func)
-
         ids, _, ngroup = self.grouper.group_info
         cast = self._transform_should_cast(func_nm)
-        out = algorithms.take_1d(func()._values, ids)
+        out = algorithms.take_1d(result._values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
-    def filter(self, func, dropna=True, *args, **kwargs):  # noqa
+    def filter(self, func, dropna=True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
         do not satisfy the boolean criterion specified by func.
@@ -1122,7 +564,7 @@ class SeriesGroupBy(GroupBy):
             wrapper = lambda x: func(x, *args, **kwargs)
 
         # Interpret np.nan as False.
-        def true_and_notna(x, *args, **kwargs):
+        def true_and_notna(x, *args, **kwargs) -> bool:
             b = wrapper(x, *args, **kwargs)
             return b and notna(b)
 
@@ -1130,15 +572,13 @@ class SeriesGroupBy(GroupBy):
             indices = [
                 self._get_index(name) for name, group in self if true_and_notna(group)
             ]
-        except ValueError:
-            raise TypeError("the filter must return a boolean result")
-        except TypeError:
-            raise TypeError("the filter must return a boolean result")
+        except (ValueError, TypeError) as err:
+            raise TypeError("the filter must return a boolean result") from err
 
         filtered = self._apply_filter(indices, dropna)
         return filtered
 
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True) -> Series:
         """
         Return number of unique elements in the group.
 
@@ -1149,32 +589,20 @@ class SeriesGroupBy(GroupBy):
         """
         ids, _, _ = self.grouper.group_info
 
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
-        # GH 27951
-        # temporary fix while we wait for NumPy bug 12629 to be fixed
-        val[isna(val)] = np.datetime64("NaT")
-
-        try:
-            sorter = np.lexsort((val, ids))
-        except TypeError:  # catches object dtypes
-            msg = "val.dtype must be object, got {}".format(val.dtype)
-            assert val.dtype == object, msg
-            val, _ = algorithms.factorize(val, sort=False)
-            sorter = np.lexsort((val, ids))
-            _isna = lambda a: a == -1
-        else:
-            _isna = isna
-
-        ids, val = ids[sorter], val[sorter]
+        codes, _ = algorithms.factorize(val, sort=False)
+        sorter = np.lexsort((codes, ids))
+        codes = codes[sorter]
+        ids = ids[sorter]
 
         # group boundaries are where group ids change
         # unique observations are where sorted values change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
-        inc = np.r_[1, val[1:] != val[:-1]]
+        inc = np.r_[1, codes[1:] != codes[:-1]]
 
         # 1st item of each group is a new unique observation
-        mask = _isna(val)
+        mask = codes == -1
         if dropna:
             inc[idx] = 1
             inc[mask] = 0
@@ -1200,7 +628,8 @@ class SeriesGroupBy(GroupBy):
             res, out = np.zeros(len(ri), dtype=out.dtype), res
             res[ids[idx]] = out
 
-        return Series(res, index=ri, name=self._selection_name)
+        result = Series(res, index=ri, name=self._selection_name)
+        return self._reindex_output(result, fill_value=0)
 
     @Appender(Series.describe.__doc__)
     def describe(self, **kwargs):
@@ -1228,7 +657,7 @@ class SeriesGroupBy(GroupBy):
             )
 
         ids, _, _ = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -1266,16 +695,17 @@ class SeriesGroupBy(GroupBy):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        labels = list(map(rep, self.grouper.recons_labels)) + [llab(lab, inc)]
+        codes = self.grouper.reconstructed_codes
+        codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
         levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
         names = self.grouper.names + [self._selection_name]
 
         if dropna:
-            mask = labels[-1] != -1
+            mask = codes[-1] != -1
             if mask.all():
                 dropna = False
             else:
-                out, labels = out[mask], [label[mask] for label in labels]
+                out, codes = out[mask], [level_codes[mask] for level_codes in codes]
 
         if normalize:
             out = out.astype("float")
@@ -1291,11 +721,11 @@ class SeriesGroupBy(GroupBy):
         if sort and bins is None:
             cat = ids[inc][mask] if dropna else ids[inc]
             sorter = np.lexsort((out if ascending else -out, cat))
-            out, labels[-1] = out[sorter], labels[-1][sorter]
+            out, codes[-1] = out[sorter], codes[-1][sorter]
 
         if bins is None:
             mi = MultiIndex(
-                levels=levels, codes=labels, names=names, verify_integrity=False
+                levels=levels, codes=codes, names=names, verify_integrity=False
             )
 
             if is_integer_dtype(out):
@@ -1305,14 +735,14 @@ class SeriesGroupBy(GroupBy):
         # for compat. with libgroupby.value_counts need to ensure every
         # bin is present at every index level, null filled with zeros
         diff = np.zeros(len(out), dtype="bool")
-        for lab in labels[:-1]:
-            diff |= np.r_[True, lab[1:] != lab[:-1]]
+        for level_codes in codes[:-1]:
+            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
         ncat, nbin = diff.sum(), len(levels[-1])
 
         left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
 
-        right = [diff.cumsum() - 1, labels[-1]]
+        right = [diff.cumsum() - 1, codes[-1]]
 
         _, idx = _get_join_indexers(left, right, sort=False, how="left")
         out = np.where(idx != -1, out[idx], 0)
@@ -1322,7 +752,10 @@ class SeriesGroupBy(GroupBy):
             out, left[-1] = out[sorter], left[-1][sorter]
 
         # build the multi-index w/ full levels
-        codes = list(map(lambda lab: np.repeat(lab[diff], nbin), labels[:-1]))
+        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+            return np.repeat(lev_codes[diff], nbin)
+
+        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
         codes.append(left[-1])
 
         mi = MultiIndex(levels=levels, codes=codes, names=names, verify_integrity=False)
@@ -1331,7 +764,7 @@ class SeriesGroupBy(GroupBy):
             out = ensure_int64(out)
         return Series(out, index=mi, name=self._selection_name)
 
-    def count(self):
+    def count(self) -> Series:
         """
         Compute count of group, excluding missing values.
 
@@ -1341,19 +774,20 @@ class SeriesGroupBy(GroupBy):
             Count of values within each group.
         """
         ids, _, ngroups = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
         minlength = ngroups or 0
         out = np.bincount(ids[mask], minlength=minlength)
 
-        return Series(
+        result = Series(
             out,
             index=self.grouper.result_index,
             name=self._selection_name,
             dtype="int64",
         )
+        return self._reindex_output(result, fill_value=0)
 
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
@@ -1368,23 +802,20 @@ class SeriesGroupBy(GroupBy):
                     periods=periods, fill_method=fill_method, limit=limit, freq=freq
                 )
             )
+        if fill_method is None:  # GH30463
+            fill_method = "pad"
+            limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.labels)
+        fill_grp = filled.groupby(self.grouper.codes)
         shifted = fill_grp.shift(periods=periods, freq=freq)
 
         return (filled / shifted) - 1
 
 
-class DataFrameGroupBy(NDFrameGroupBy):
+@pin_whitelisted_properties(DataFrame, base.dataframe_apply_whitelist)
+class DataFrameGroupBy(GroupBy):
 
     _apply_whitelist = base.dataframe_apply_whitelist
-
-    #
-    # Make class defs of attributes on DataFrameGroupBy whitelist.
-    for _def_str in whitelist_method_generator(GroupBy, DataFrame, _apply_whitelist):
-        exec(_def_str)
-
-    _block_agg_axis = 1
 
     _agg_see_also_doc = dedent(
         """
@@ -1477,11 +908,701 @@ class DataFrameGroupBy(NDFrameGroupBy):
     )
     @Appender(_shared_docs["aggregate"])
     def aggregate(self, func=None, *args, **kwargs):
-        return super().aggregate(func, *args, **kwargs)
+
+        relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
+        if relabeling:
+            func, columns, order = normalize_keyword_aggregation(kwargs)
+
+            kwargs = {}
+        elif isinstance(func, list) and len(func) > len(set(func)):
+
+            # GH 28426 will raise error if duplicated function names are used and
+            # there is no reassigned name
+            raise SpecificationError(
+                "Function names must be unique if there is no new column "
+                "names assigned"
+            )
+        elif func is None:
+            # nicer error message
+            raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
+
+        func = maybe_mangle_lambdas(func)
+
+        result, how = self._aggregate(func, *args, **kwargs)
+        if how is None:
+            return result
+
+        if result is None:
+
+            # grouper specific aggregations
+            if self.grouper.nkeys > 1:
+                return self._python_agg_general(func, *args, **kwargs)
+            elif args or kwargs:
+                result = self._aggregate_frame(func, *args, **kwargs)
+
+            elif self.axis == 1:
+                # _aggregate_multiple_funcs does not allow self.axis == 1
+                result = self._aggregate_frame(func)
+
+            else:
+
+                # try to treat as if we are passing a list
+                try:
+                    result = self._aggregate_multiple_funcs([func], _axis=self.axis)
+                except ValueError as err:
+                    if "no results" not in str(err):
+                        # raised directly by _aggregate_multiple_funcs
+                        raise
+                    result = self._aggregate_frame(func)
+                else:
+                    # select everything except for the last level, which is the one
+                    # containing the name of the function(s), see GH 32040
+                    result.columns = result.columns.rename(
+                        [self._selected_obj.columns.name] * result.columns.nlevels
+                    ).droplevel(-1)
+
+        if not self.as_index:
+            self._insert_inaxis_grouper_inplace(result)
+            result.index = np.arange(len(result))
+
+        if relabeling:
+
+            # used reordered index of columns
+            result = result.iloc[:, order]
+            result.columns = columns
+
+        return result._convert(datetime=True)
 
     agg = aggregate
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _iterate_slices(self) -> Iterable[Series]:
+        obj = self._selected_obj
+        if self.axis == 1:
+            obj = obj.T
+
+        if isinstance(obj, Series) and obj.name not in self.exclusions:
+            # Occurs when doing DataFrameGroupBy(...)["X"]
+            yield obj
+        else:
+            for label, values in obj.items():
+                if label in self.exclusions:
+                    continue
+
+                yield values
+
+    def _cython_agg_general(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ) -> DataFrame:
+        agg_blocks, agg_items = self._cython_agg_blocks(
+            how, alt=alt, numeric_only=numeric_only, min_count=min_count
+        )
+        return self._wrap_agged_blocks(agg_blocks, items=agg_items)
+
+    def _cython_agg_blocks(
+        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+    ) -> "Tuple[List[Block], Index]":
+        # TODO: the actual managing of mgr_locs is a PITA
+        # here, it should happen via BlockManager.combine
+
+        data: BlockManager = self._get_data_to_aggregate()
+
+        if numeric_only:
+            data = data.get_numeric_data(copy=False)
+
+        agg_blocks: List[Block] = []
+        new_items: List[np.ndarray] = []
+        deleted_items: List[np.ndarray] = []
+        # Some object-dtype blocks might be split into List[Block[T], Block[U]]
+        split_items: List[np.ndarray] = []
+        split_frames: List[DataFrame] = []
+
+        no_result = object()
+        for block in data.blocks:
+            # Avoid inheriting result from earlier in the loop
+            result = no_result
+            locs = block.mgr_locs.as_array
+            try:
+                result, _ = self.grouper.aggregate(
+                    block.values, how, axis=1, min_count=min_count
+                )
+            except NotImplementedError:
+                # generally if we have numeric_only=False
+                # and non-applicable functions
+                # try to python agg
+
+                if alt is None:
+                    # we cannot perform the operation
+                    # in an alternate way, exclude the block
+                    assert how == "ohlc"
+                    deleted_items.append(locs)
+                    continue
+
+                # call our grouper again with only this block
+                obj = self.obj[data.items[locs]]
+                if obj.shape[1] == 1:
+                    # Avoid call to self.values that can occur in DataFrame
+                    #  reductions; see GH#28949
+                    obj = obj.iloc[:, 0]
+
+                s = get_groupby(obj, self.grouper)
+                try:
+                    result = s.aggregate(lambda x: alt(x, axis=self.axis))
+                except TypeError:
+                    # we may have an exception in trying to aggregate
+                    # continue and exclude the block
+                    deleted_items.append(locs)
+                    continue
+                else:
+                    result = cast(DataFrame, result)
+                    # unwrap DataFrame to get array
+                    if len(result._data.blocks) != 1:
+                        # We've split an object block! Everything we've assumed
+                        # about a single block input returning a single block output
+                        # is a lie. To keep the code-path for the typical non-split case
+                        # clean, we choose to clean up this mess later on.
+                        split_items.append(locs)
+                        split_frames.append(result)
+                        continue
+
+                    assert len(result._data.blocks) == 1
+                    result = result._data.blocks[0].values
+                    if isinstance(result, np.ndarray) and result.ndim == 1:
+                        result = result.reshape(1, -1)
+
+            assert not isinstance(result, DataFrame)
+
+            if result is not no_result:
+                # see if we can cast the block back to the original dtype
+                result = maybe_downcast_numeric(result, block.dtype)
+
+                if block.is_extension and isinstance(result, np.ndarray):
+                    # e.g. block.values was an IntegerArray
+                    # (1, N) case can occur if block.values was Categorical
+                    #  and result is ndarray[object]
+                    assert result.ndim == 1 or result.shape[0] == 1
+                    try:
+                        # Cast back if feasible
+                        result = type(block.values)._from_sequence(
+                            result.ravel(), dtype=block.values.dtype
+                        )
+                    except (ValueError, TypeError):
+                        # reshape to be valid for non-Extension Block
+                        result = result.reshape(1, -1)
+
+                agg_block: Block = block.make_block(result)
+
+            new_items.append(locs)
+            agg_blocks.append(agg_block)
+
+        if not (agg_blocks or split_frames):
+            raise DataError("No numeric types to aggregate")
+
+        if split_items:
+            # Clean up the mess left over from split blocks.
+            for locs, result in zip(split_items, split_frames):
+                assert len(locs) == result.shape[1]
+                for i, loc in enumerate(locs):
+                    new_items.append(np.array([loc], dtype=locs.dtype))
+                    agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])
+
+        # reset the locs in the blocks to correspond to our
+        # current ordering
+        indexer = np.concatenate(new_items)
+        agg_items = data.items.take(np.sort(indexer))
+
+        if deleted_items:
+
+            # we need to adjust the indexer to account for the
+            # items we have removed
+            # really should be done in internals :<
+
+            deleted = np.concatenate(deleted_items)
+            ai = np.arange(len(data))
+            mask = np.zeros(len(data))
+            mask[deleted] = 1
+            indexer = (ai - mask.cumsum())[indexer]
+
+        offset = 0
+        for blk in agg_blocks:
+            loc = len(blk.mgr_locs)
+            blk.mgr_locs = indexer[offset : (offset + loc)]
+            offset += loc
+
+        return agg_blocks, agg_items
+
+    def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
+        if self.grouper.nkeys != 1:
+            raise AssertionError("Number of keys must be 1")
+
+        axis = self.axis
+        obj = self._obj_with_exclusions
+
+        result: Dict[Union[int, str], Union[NDFrame, np.ndarray]] = {}
+        if axis != obj._info_axis_number:
+            for name, data in self:
+                fres = func(data, *args, **kwargs)
+                result[name] = fres
+        else:
+            for name in self.indices:
+                data = self.get_group(name, obj=obj)
+                fres = func(data, *args, **kwargs)
+                result[name] = fres
+
+        return self._wrap_frame_output(result, obj)
+
+    def _aggregate_item_by_item(self, func, *args, **kwargs) -> DataFrame:
+        # only for axis==0
+
+        obj = self._obj_with_exclusions
+        result: Dict[Union[int, str], NDFrame] = {}
+        cannot_agg = []
+        for item in obj:
+            data = obj[item]
+            colg = SeriesGroupBy(data, selection=item, grouper=self.grouper)
+
+            cast = self._transform_should_cast(func)
+            try:
+                result[item] = colg.aggregate(func, *args, **kwargs)
+
+            except ValueError as err:
+                if "Must produce aggregated value" in str(err):
+                    # raised in _aggregate_named, handle at higher level
+                    #  see test_apply_with_mutated_index
+                    raise
+                # otherwise we get here from an AttributeError in _make_wrapper
+                cannot_agg.append(item)
+                continue
+
+            else:
+                if cast:
+                    result[item] = self._try_cast(result[item], data)
+
+        result_columns = obj.columns
+        if cannot_agg:
+            result_columns = result_columns.drop(cannot_agg)
+
+        return DataFrame(result, columns=result_columns)
+
+    def _wrap_applied_output(self, keys, values, not_indexed_same=False):
+        if len(keys) == 0:
+            return DataFrame(index=keys)
+
+        key_names = self.grouper.names
+
+        # GH12824.
+        def first_not_none(values):
+            try:
+                return next(com.not_none(*values))
+            except StopIteration:
+                return None
+
+        v = first_not_none(values)
+
+        if v is None:
+            # GH9684. If all values are None, then this will throw an error.
+            # We'd prefer it return an empty dataframe.
+            return DataFrame()
+        elif isinstance(v, DataFrame):
+            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+        elif self.grouper.groupings is not None:
+            if len(self.grouper.groupings) > 1:
+                key_index = self.grouper.result_index
+
+            else:
+                ping = self.grouper.groupings[0]
+                if len(keys) == ping.ngroups:
+                    key_index = ping.group_index
+                    key_index.name = key_names[0]
+
+                    key_lookup = Index(keys)
+                    indexer = key_lookup.get_indexer(key_index)
+
+                    # reorder the values
+                    values = [values[i] for i in indexer]
+                else:
+
+                    key_index = Index(keys, name=key_names[0])
+
+                # don't use the key indexer
+                if not self.as_index:
+                    key_index = None
+
+            # make Nones an empty object
+            v = first_not_none(values)
+            if v is None:
+                return DataFrame()
+            elif isinstance(v, NDFrame):
+
+                # this is to silence a DeprecationWarning
+                # TODO: Remove when default dtype of empty Series is object
+                kwargs = v._construct_axes_dict()
+                if v._constructor is Series:
+                    backup = create_series_with_explicit_dtype(
+                        **kwargs, dtype_if_empty=object
+                    )
+                else:
+                    backup = v._constructor(**kwargs)
+
+                values = [x if (x is not None) else backup for x in values]
+
+            v = values[0]
+
+            if isinstance(v, (np.ndarray, Index, Series)):
+                if isinstance(v, Series):
+                    applied_index = self._selected_obj._get_axis(self.axis)
+                    all_indexed_same = all_indexes_same([x.index for x in values])
+                    singular_series = len(values) == 1 and applied_index.nlevels == 1
+
+                    # GH3596
+                    # provide a reduction (Frame -> Series) if groups are
+                    # unique
+                    if self.squeeze:
+                        # assign the name to this series
+                        if singular_series:
+                            values[0].name = keys[0]
+
+                            # GH2893
+                            # we have series in the values array, we want to
+                            # produce a series:
+                            # if any of the sub-series are not indexed the same
+                            # OR we don't have a multi-index and we have only a
+                            # single values
+                            return self._concat_objects(
+                                keys, values, not_indexed_same=not_indexed_same
+                            )
+
+                        # still a series
+                        # path added as of GH 5545
+                        elif all_indexed_same:
+                            from pandas.core.reshape.concat import concat
+
+                            return concat(values)
+
+                    if not all_indexed_same:
+                        # GH 8467
+                        return self._concat_objects(keys, values, not_indexed_same=True)
+
+                if self.axis == 0 and isinstance(v, ABCSeries):
+                    # GH6124 if the list of Series have a consistent name,
+                    # then propagate that name to the result.
+                    index = v.index.copy()
+                    if index.name is None:
+                        # Only propagate the series name to the result
+                        # if all series have a consistent name.  If the
+                        # series do not have a consistent name, do
+                        # nothing.
+                        names = {v.name for v in values}
+                        if len(names) == 1:
+                            index.name = list(names)[0]
+
+                    # normally use vstack as its faster than concat
+                    # and if we have mi-columns
+                    if (
+                        isinstance(v.index, MultiIndex)
+                        or key_index is None
+                        or isinstance(key_index, MultiIndex)
+                    ):
+                        stacked_values = np.vstack([np.asarray(v) for v in values])
+                        result = DataFrame(
+                            stacked_values, index=key_index, columns=index
+                        )
+                    else:
+                        # GH5788 instead of stacking; concat gets the
+                        # dtypes correct
+                        from pandas.core.reshape.concat import concat
+
+                        result = concat(
+                            values,
+                            keys=key_index,
+                            names=key_index.names,
+                            axis=self.axis,
+                        ).unstack()
+                        result.columns = index
+                elif isinstance(v, ABCSeries):
+                    stacked_values = np.vstack([np.asarray(v) for v in values])
+                    result = DataFrame(
+                        stacked_values.T, index=v.index, columns=key_index
+                    )
+                else:
+                    # GH#1738: values is list of arrays of unequal lengths
+                    #  fall through to the outer else clause
+                    # TODO: sure this is right?  we used to do this
+                    #  after raising AttributeError above
+                    return Series(values, index=key_index, name=self._selection_name)
+
+                # if we have date/time like in the original, then coerce dates
+                # as we are stacking can easily have object dtypes here
+                so = self._selected_obj
+                if so.ndim == 2 and so.dtypes.apply(needs_i8_conversion).any():
+                    result = _recast_datetimelike_result(result)
+                else:
+                    result = result._convert(datetime=True)
+
+                return self._reindex_output(result)
+
+            # values are not series or array-like but scalars
+            else:
+                # only coerce dates if we find at least 1 datetime
+                should_coerce = any(isinstance(x, Timestamp) for x in values)
+                # self._selection_name not passed through to Series as the
+                # result should not take the name of original selection
+                # of columns
+                return Series(values, index=key_index)._convert(
+                    datetime=True, coerce=should_coerce
+                )
+
+        else:
+            # Handle cases like BinGrouper
+            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+
+    def _transform_general(self, func, *args, **kwargs):
+        from pandas.core.reshape.concat import concat
+
+        applied = []
+        obj = self._obj_with_exclusions
+        gen = self.grouper.get_iterator(obj, axis=self.axis)
+        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
+
+        path = None
+        for name, group in gen:
+            object.__setattr__(group, "name", name)
+
+            if path is None:
+                # Try slow path and fast path.
+                try:
+                    path, res = self._choose_path(fast_path, slow_path, group)
+                except TypeError:
+                    return self._transform_item_by_item(obj, fast_path)
+                except ValueError as err:
+                    msg = "transform must return a scalar value for each group"
+                    raise ValueError(msg) from err
+            else:
+                res = path(group)
+
+            if isinstance(res, Series):
+
+                # we need to broadcast across the
+                # other dimension; this will preserve dtypes
+                # GH14457
+                if not np.prod(group.shape):
+                    continue
+                elif res.index.is_(obj.index):
+                    r = concat([res] * len(group.columns), axis=1)
+                    r.columns = group.columns
+                    r.index = group.index
+                else:
+                    r = DataFrame(
+                        np.concatenate([res.values] * len(group.index)).reshape(
+                            group.shape
+                        ),
+                        columns=group.columns,
+                        index=group.index,
+                    )
+
+                applied.append(r)
+            else:
+                applied.append(res)
+
+        concat_index = obj.columns if self.axis == 0 else obj.index
+        other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
+        concatenated = concat(applied, axis=self.axis, verify_integrity=False)
+        concatenated = concatenated.reindex(concat_index, axis=other_axis, copy=False)
+        return self._set_result_index_ordered(concatenated)
+
+    @Substitution(klass="DataFrame", selected="")
+    @Appender(_transform_template)
+    def transform(self, func, *args, **kwargs):
+
+        # optimized transforms
+        func = self._get_cython_func(func) or func
+
+        if not isinstance(func, str):
+            return self._transform_general(func, *args, **kwargs)
+
+        elif func not in base.transform_kernel_whitelist:
+            msg = f"'{func}' is not a valid function name for transform(name)"
+            raise ValueError(msg)
+        elif func in base.cythonized_kernels:
+            # cythonized transformation or canned "reduction+broadcast"
+            return getattr(self, func)(*args, **kwargs)
+
+        # GH 30918
+        # Use _transform_fast only when we know func is an aggregation
+        if func in base.reduction_kernels:
+            # If func is a reduction, we need to broadcast the
+            # result to the whole group. Compute func result
+            # and deal with possible broadcasting below.
+            result = getattr(self, func)(*args, **kwargs)
+
+            if isinstance(result, DataFrame) and result.columns.equals(
+                self._obj_with_exclusions.columns
+            ):
+                return self._transform_fast(result, func)
+
+        return self._transform_general(func, *args, **kwargs)
+
+    def _transform_fast(self, result: DataFrame, func_nm: str) -> DataFrame:
+        """
+        Fast transform path for aggregations
+        """
+        # if there were groups with no observations (Categorical only?)
+        # try casting data to original dtype
+        cast = self._transform_should_cast(func_nm)
+
+        obj = self._obj_with_exclusions
+
+        # for each col, reshape to to size of original frame
+        # by take operation
+        ids, _, ngroup = self.grouper.group_info
+        output = []
+        for i, _ in enumerate(result.columns):
+            res = algorithms.take_1d(result.iloc[:, i].values, ids)
+            # TODO: we have no test cases that get here with EA dtypes;
+            #  try_cast may not be needed if EAs never get here
+            if cast:
+                res = self._try_cast(res, obj.iloc[:, i])
+            output.append(res)
+
+        return DataFrame._from_arrays(output, columns=result.columns, index=obj.index)
+
+    def _define_paths(self, func, *args, **kwargs):
+        if isinstance(func, str):
+            fast_path = lambda group: getattr(group, func)(*args, **kwargs)
+            slow_path = lambda group: group.apply(
+                lambda x: getattr(x, func)(*args, **kwargs), axis=self.axis
+            )
+        else:
+            fast_path = lambda group: func(group, *args, **kwargs)
+            slow_path = lambda group: group.apply(
+                lambda x: func(x, *args, **kwargs), axis=self.axis
+            )
+        return fast_path, slow_path
+
+    def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
+        path = slow_path
+        res = slow_path(group)
+
+        # if we make it here, test if we can use the fast path
+        try:
+            res_fast = fast_path(group)
+        except AssertionError:
+            raise
+        except Exception:
+            # GH#29631 For user-defined function, we cant predict what may be
+            #  raised; see test_transform.test_transform_fastpath_raises
+            return path, res
+
+        # verify fast path does not change columns (and names), otherwise
+        # its results cannot be joined with those of the slow path
+        if not isinstance(res_fast, DataFrame):
+            return path, res
+
+        if not res_fast.columns.equals(group.columns):
+            return path, res
+
+        if res_fast.equals(res):
+            path = fast_path
+
+        return path, res
+
+    def _transform_item_by_item(self, obj: DataFrame, wrapper) -> DataFrame:
+        # iterate through columns
+        output = {}
+        inds = []
+        for i, col in enumerate(obj):
+            try:
+                output[col] = self[col].transform(wrapper)
+            except TypeError:
+                # e.g. trying to call nanmean with string values
+                pass
+            else:
+                inds.append(i)
+
+        if len(output) == 0:
+            raise TypeError("Transform function invalid for data types")
+
+        columns = obj.columns
+        if len(output) < len(obj.columns):
+            columns = columns.take(inds)
+
+        return DataFrame(output, index=obj.index, columns=columns)
+
+    def filter(self, func, dropna=True, *args, **kwargs):
+        """
+        Return a copy of a DataFrame excluding elements from groups that
+        do not satisfy the boolean criterion specified by func.
+
+        Parameters
+        ----------
+        f : function
+            Function to apply to each subframe. Should return True or False.
+        dropna : Drop groups that do not pass the filter. True by default;
+            If False, groups that evaluate False are filled with NaNs.
+
+        Returns
+        -------
+        filtered : DataFrame
+
+        Notes
+        -----
+        Each subframe is endowed the attribute 'name' in case you need to know
+        which group you are working on.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
+        ...                           'foo', 'bar'],
+        ...                    'B' : [1, 2, 3, 4, 5, 6],
+        ...                    'C' : [2.0, 5., 8., 1., 2., 9.]})
+        >>> grouped = df.groupby('A')
+        >>> grouped.filter(lambda x: x['B'].mean() > 3.)
+             A  B    C
+        1  bar  2  5.0
+        3  bar  4  1.0
+        5  bar  6  9.0
+        """
+        indices = []
+
+        obj = self._selected_obj
+        gen = self.grouper.get_iterator(obj, axis=self.axis)
+
+        for name, group in gen:
+            object.__setattr__(group, "name", name)
+
+            res = func(group, *args, **kwargs)
+
+            try:
+                res = res.squeeze()
+            except AttributeError:  # allow e.g., scalars and frames to pass
+                pass
+
+            # interpret the result of the filter
+            if is_bool(res) or (is_scalar(res) and isna(res)):
+                if res and notna(res):
+                    indices.append(self._get_index(name))
+            else:
+                # non scalars aren't allowed
+                raise TypeError(
+                    f"filter function returned a {type(res).__name__}, "
+                    "but expected a scalar bool"
+                )
+
+        return self._apply_filter(indices, dropna)
+
+    def __getitem__(self, key):
+        # per GH 23566
+        if isinstance(key, tuple) and len(key) > 1:
+            # if len == 1, then it becomes a SeriesGroupBy and this is actually
+            # valid syntax, so don't raise warning
+            warnings.warn(
+                "Indexing with multiple keys (implicitly converted to a tuple "
+                "of keys) will be deprecated, use a list instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        return super().__getitem__(key)
+
+    def _gotitem(self, key, ndim: int, subset=None):
         """
         sub-classes to define
         return a sliced object
@@ -1494,7 +1615,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
         subset : object, default None
             subset to act on
         """
-
         if ndim == 2:
             if subset is None:
                 subset = self.obj
@@ -1516,7 +1636,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         raise AssertionError("invalid ndim for _gotitem")
 
-    def _wrap_generic_output(self, result, obj):
+    def _wrap_frame_output(self, result, obj) -> DataFrame:
         result_index = self.grouper.levels[0]
 
         if self.axis == 0:
@@ -1524,12 +1644,12 @@ class DataFrameGroupBy(NDFrameGroupBy):
         else:
             return DataFrame(result, index=obj.index, columns=result_index)
 
-    def _get_data_to_aggregate(self):
+    def _get_data_to_aggregate(self) -> BlockManager:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._data, 1
+            return obj.T._data
         else:
-            return obj._data, 1
+            return obj._data
 
     def _insert_inaxis_grouper_inplace(self, result):
         # zip in reverse so we can always insert at loc 0
@@ -1548,39 +1668,74 @@ class DataFrameGroupBy(NDFrameGroupBy):
             if in_axis:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(self, output, names=None):
-        agg_axis = 0 if self.axis == 1 else 1
-        agg_labels = self._obj_with_exclusions._get_axis(agg_axis)
+    def _wrap_aggregated_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> DataFrame:
+        """
+        Wraps the output of DataFrameGroupBy aggregations into the expected result.
 
-        output_keys = self._decide_output_index(output, agg_labels)
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+           Data to wrap.
+
+        Returns
+        -------
+        DataFrame
+        """
+        indexed_output = {key.position: val for key, val in output.items()}
+        columns = Index(key.label for key in output)
+
+        result = DataFrame(indexed_output)
+        result.columns = columns
 
         if not self.as_index:
-            result = DataFrame(output, columns=output_keys)
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            result = DataFrame(output, index=index, columns=output_keys)
+            result.index = index
 
         if self.axis == 1:
             result = result.T
 
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _wrap_transformed_output(self, output, names=None):
-        return DataFrame(output, index=self.obj.index)
+    def _wrap_transformed_output(
+        self, output: Mapping[base.OutputKey, Union[Series, np.ndarray]]
+    ) -> DataFrame:
+        """
+        Wraps the output of DataFrameGroupBy transformations into the expected result.
 
-    def _wrap_agged_blocks(self, items, blocks):
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
+            Data to wrap.
+
+        Returns
+        -------
+        DataFrame
+        """
+        indexed_output = {key.position: val for key, val in output.items()}
+        columns = Index(key.label for key in output)
+
+        result = DataFrame(indexed_output)
+        result.columns = columns
+        result.index = self.obj.index
+
+        return result
+
+    def _wrap_agged_blocks(self, blocks: "Sequence[Block]", items: Index) -> DataFrame:
         if not self.as_index:
             index = np.arange(blocks[0].values.shape[-1])
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
         else:
             index = self.grouper.result_index
-            mgr = BlockManager(blocks, [items, index])
+            mgr = BlockManager(blocks, axes=[items, index])
             result = DataFrame(mgr)
 
         if self.axis == 1:
@@ -1615,31 +1770,29 @@ class DataFrameGroupBy(NDFrameGroupBy):
         DataFrame
             Count of values within each group.
         """
-        data, _ = self._get_data_to_aggregate()
+        data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        val = (
-            (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
-            for blk in data.blocks
+        # TODO(2DEA): reshape would not be necessary with 2D EAs
+        vals = ((mask & ~isna(blk.values).reshape(blk.shape)) for blk in data.blocks)
+        locs = (blk.mgr_locs for blk in data.blocks)
+
+        counted = (
+            lib.count_level_2d(x, labels=ids, max_bin=ngroups, axis=1) for x in vals
         )
-        loc = (blk.mgr_locs for blk in data.blocks)
+        blocks = [make_block(val, placement=loc) for val, loc in zip(counted, locs)]
 
-        counter = partial(lib.count_level_2d, labels=ids, max_bin=ngroups, axis=1)
-        blk = map(make_block, map(counter, val), loc)
+        return self._wrap_agged_blocks(blocks, items=data.items)
 
-        return self._wrap_agged_blocks(data.items, list(blk))
-
-    def nunique(self, dropna=True):
+    def nunique(self, dropna: bool = True):
         """
         Return DataFrame with number of distinct observations per group for
         each column.
 
-        .. versionadded:: 0.20.0
-
         Parameters
         ----------
-        dropna : boolean, default True
+        dropna : bool, default True
             Don't include NaN in the counts.
 
         Returns
@@ -1677,7 +1830,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
         4   ham       5      x
         5   ham       5      y
         """
-
         obj = self._selected_obj
 
         def groupby_series(obj, col=None):
@@ -1688,207 +1840,30 @@ class DataFrameGroupBy(NDFrameGroupBy):
         if isinstance(obj, Series):
             results = groupby_series(obj)
         else:
+            # TODO: this is duplicative of how GroupBy naturally works
+            # Try to consolidate with normal wrapping functions
             from pandas.core.reshape.concat import concat
 
-            results = [groupby_series(obj[col], col) for col in obj.columns]
+            axis_number = obj._get_axis_number(self.axis)
+            other_axis = int(not axis_number)
+            if axis_number == 0:
+                iter_func = obj.items
+            else:
+                iter_func = obj.iterrows
+
+            results = [groupby_series(content, label) for label, content in iter_func()]
             results = concat(results, axis=1)
-            results.columns.names = obj.columns.names
+
+            if axis_number == 1:
+                results = results.T
+
+            results._get_axis(other_axis).names = obj._get_axis(other_axis).names
 
         if not self.as_index:
             results.index = ibase.default_index(len(results))
         return results
 
     boxplot = boxplot_frame_groupby
-
-
-def _is_multi_agg_with_relabel(**kwargs):
-    """
-    Check whether kwargs passed to .agg look like multi-agg with relabeling.
-
-    Parameters
-    ----------
-    **kwargs : dict
-
-    Returns
-    -------
-    bool
-
-    Examples
-    --------
-    >>> _is_multi_agg_with_relabel(a='max')
-    False
-    >>> _is_multi_agg_with_relabel(a_max=('a', 'max'),
-    ...                            a_min=('a', 'min'))
-    True
-    >>> _is_multi_agg_with_relabel()
-    False
-    """
-    return all(isinstance(v, tuple) and len(v) == 2 for v in kwargs.values()) and kwargs
-
-
-def _normalize_keyword_aggregation(kwargs):
-    """
-    Normalize user-provided "named aggregation" kwargs.
-
-    Transforms from the new ``Dict[str, NamedAgg]`` style kwargs
-    to the old OrderedDict[str, List[scalar]]].
-
-    Parameters
-    ----------
-    kwargs : dict
-
-    Returns
-    -------
-    aggspec : dict
-        The transformed kwargs.
-    columns : List[str]
-        The user-provided keys.
-    col_idx_order : List[int]
-        List of columns indices.
-
-    Examples
-    --------
-    >>> _normalize_keyword_aggregation({'output': ('input', 'sum')})
-    (OrderedDict([('input', ['sum'])]), ('output',), [('input', 'sum')])
-    """
-    if not PY36:
-        kwargs = OrderedDict(sorted(kwargs.items()))
-
-    # Normalize the aggregation functions as Dict[column, List[func]],
-    # process normally, then fixup the names.
-    # TODO(Py35): When we drop python 3.5, change this to
-    # defaultdict(list)
-    # TODO: aggspec type: typing.OrderedDict[str, List[AggScalar]]
-    # May be hitting https://github.com/python/mypy/issues/5958
-    # saying it doesn't have an attribute __name__
-    aggspec = OrderedDict()
-    order = []
-    columns, pairs = list(zip(*kwargs.items()))
-
-    for name, (column, aggfunc) in zip(columns, pairs):
-        if column in aggspec:
-            aggspec[column].append(aggfunc)
-        else:
-            aggspec[column] = [aggfunc]
-        order.append((column, com.get_callable_name(aggfunc) or aggfunc))
-
-    # uniquify aggfunc name if duplicated in order list
-    uniquified_order = _make_unique(order)
-
-    # GH 25719, due to aggspec will change the order of assigned columns in aggregation
-    # uniquified_aggspec will store uniquified order list and will compare it with order
-    # based on index
-    aggspec_order = [
-        (column, com.get_callable_name(aggfunc) or aggfunc)
-        for column, aggfuncs in aggspec.items()
-        for aggfunc in aggfuncs
-    ]
-    uniquified_aggspec = _make_unique(aggspec_order)
-
-    # get the new indice of columns by comparison
-    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
-    return aggspec, columns, col_idx_order
-
-
-def _make_unique(seq):
-    """Uniquify aggfunc name of the pairs in the order list
-
-    Examples:
-    --------
-    >>> _make_unique([('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')])
-    [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
-    """
-    return [
-        (pair[0], "_".join([pair[1], str(seq[:i].count(pair))]))
-        if seq.count(pair) > 1
-        else pair
-        for i, pair in enumerate(seq)
-    ]
-
-
-# TODO: Can't use, because mypy doesn't like us setting __name__
-#   error: "partial[Any]" has no attribute "__name__"
-# the type is:
-#   typing.Sequence[Callable[..., ScalarResult]]
-#     -> typing.Sequence[Callable[..., ScalarResult]]:
-
-
-def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
-    """
-    Possibly mangle a list of aggfuncs.
-
-    Parameters
-    ----------
-    aggfuncs : Sequence
-
-    Returns
-    -------
-    mangled: list-like
-        A new AggSpec sequence, where lambdas have been converted
-        to have unique names.
-
-    Notes
-    -----
-    If just one aggfunc is passed, the name will not be mangled.
-    """
-    if len(aggfuncs) <= 1:
-        # don't mangle for .agg([lambda x: .])
-        return aggfuncs
-    i = 0
-    mangled_aggfuncs = []
-    for aggfunc in aggfuncs:
-        if com.get_callable_name(aggfunc) == "<lambda>":
-            aggfunc = functools.partial(aggfunc)
-            aggfunc.__name__ = "<lambda_{}>".format(i)
-            i += 1
-        mangled_aggfuncs.append(aggfunc)
-
-    return mangled_aggfuncs
-
-
-def _maybe_mangle_lambdas(agg_spec: Any) -> Any:
-    """
-    Make new lambdas with unique names.
-
-    Parameters
-    ----------
-    agg_spec : Any
-        An argument to NDFrameGroupBy.agg.
-        Non-dict-like `agg_spec` are pass through as is.
-        For dict-like `agg_spec` a new spec is returned
-        with name-mangled lambdas.
-
-    Returns
-    -------
-    mangled : Any
-        Same type as the input.
-
-    Examples
-    --------
-    >>> _maybe_mangle_lambdas('sum')
-    'sum'
-
-    >>> _maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
-    [<function __main__.<lambda_0>,
-     <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
-    """
-    is_dict = is_dict_like(agg_spec)
-    if not (is_dict or is_list_like(agg_spec)):
-        return agg_spec
-    mangled_aggspec = type(agg_spec)()  # dict or OrderdDict
-
-    if is_dict:
-        for key, aggfuncs in agg_spec.items():
-            if is_list_like(aggfuncs) and not is_dict_like(aggfuncs):
-                mangled_aggfuncs = _managle_lambda_list(aggfuncs)
-            else:
-                mangled_aggfuncs = aggfuncs
-
-            mangled_aggspec[key] = mangled_aggfuncs
-    else:
-        mangled_aggspec = _managle_lambda_list(agg_spec)
-
-    return mangled_aggspec
 
 
 def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
@@ -1912,7 +1887,9 @@ def _recast_datetimelike_result(result: DataFrame) -> DataFrame:
     result = result.copy()
 
     obj_cols = [
-        idx for idx in range(len(result.columns)) if is_object_dtype(result.dtypes[idx])
+        idx
+        for idx in range(len(result.columns))
+        if is_object_dtype(result.dtypes.iloc[idx])
     ]
 
     # See GH#26285

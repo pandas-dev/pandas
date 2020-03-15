@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from pytz import utc
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries.holiday import (
     MO,
@@ -238,7 +238,7 @@ def test_get_calendar():
         rules = []
 
     calendar = get_calendar("TestCalendar")
-    assert TestCalendar == calendar.__class__
+    assert TestCalendar == type(calendar)
 
 
 def test_factory():

@@ -3,8 +3,16 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - beautifulsoup4
+  - python=3.6.*
+
+  # tools
   - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - hypothesis>=3.58.0
+
+  # pandas dependencies
+  - beautifulsoup4
   - html5lib
   - lxml
   - matplotlib
@@ -16,7 +24,6 @@ dependencies:
   - pymysql
   - pytables
   - python-dateutil
-  - python=3.6.*
   - pytz
   - s3fs
   - scipy
@@ -24,9 +31,4 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  # universal
-  - pytest>=5.0.0
-  - pytest-xdist>=1.29.0
-  - pytest-mock
   - moto
-  - hypothesis>=3.58.0

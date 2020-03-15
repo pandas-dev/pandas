@@ -2,7 +2,7 @@ import pytest
 
 import pandas.core.dtypes.concat as _concat
 
-from pandas import DatetimeIndex, Index, Period, PeriodIndex, Series, TimedeltaIndex
+from pandas import DatetimeIndex, Period, PeriodIndex, Series, TimedeltaIndex
 
 
 @pytest.mark.parametrize(
@@ -40,9 +40,8 @@ from pandas import DatetimeIndex, Index, Period, PeriodIndex, Series, TimedeltaI
         ),
     ],
 )
-@pytest.mark.parametrize("klass", [Index, Series])
-def test_get_dtype_kinds(klass, to_concat, expected):
-    to_concat_klass = [klass(c) for c in to_concat]
+def test_get_dtype_kinds(index_or_series, to_concat, expected):
+    to_concat_klass = [index_or_series(c) for c in to_concat]
     result = _concat.get_dtype_kinds(to_concat_klass)
     assert result == set(expected)
 

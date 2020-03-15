@@ -64,6 +64,15 @@ class BaseConstructorsTests(BaseExtensionTests):
         result = pd.Series(list(data), dtype=str(dtype))
         self.assert_series_equal(result, expected)
 
+        # gh-30280
+
+        expected = pd.DataFrame(data).astype(dtype)
+        result = pd.DataFrame(list(data), dtype=dtype)
+        self.assert_frame_equal(result, expected)
+
+        result = pd.DataFrame(list(data), dtype=str(dtype))
+        self.assert_frame_equal(result, expected)
+
     def test_pandas_array(self, data):
         # pd.array(extension_array) should be idempotent...
         result = pd.array(data)

@@ -1,9 +1,10 @@
 from textwrap import dedent
+from typing import Dict, Optional
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.window.common import _doc_template, _GroupByMixin, _shared_docs
+from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
 from pandas.core.window.rolling import _Rolling_and_Expanding
 
 
@@ -36,7 +37,6 @@ class Expanding(_Rolling_and_Expanding):
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
          B
     0  0.0
@@ -148,8 +148,23 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=None, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
+    def apply(
+        self,
+        func,
+        raw: bool = False,
+        engine: str = "cython",
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        args=None,
+        kwargs=None,
+    ):
+        return super().apply(
+            func,
+            raw=raw,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sum"])
@@ -181,13 +196,13 @@ class Expanding(_Rolling_and_Expanding):
     def median(self, **kwargs):
         return super().median(**kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["var"])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
@@ -209,10 +224,9 @@ class Expanding(_Rolling_and_Expanding):
 
     >>> arr = [1, 2, 3, 4, 999]
     >>> import scipy.stats
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
     -1.200000
-    >>> print(fmt.format(scipy.stats.kurtosis(arr, bias=False)))
+    >>> print(f"{scipy.stats.kurtosis(arr, bias=False):.6f}")
     4.999874
     >>> s = pd.Series(arr)
     >>> s.expanding(4).kurt()
@@ -250,7 +264,7 @@ class Expanding(_Rolling_and_Expanding):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
-class ExpandingGroupby(_GroupByMixin, Expanding):
+class ExpandingGroupby(WindowGroupByMixin, Expanding):
     """
     Provide a expanding groupby implementation.
     """

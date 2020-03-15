@@ -69,8 +69,7 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
         kwargs["engine"] = "python"
     elif len(sep) > 1 and kwargs.get("engine") == "c":
         warnings.warn(
-            "read_clipboard with regex separator does not work"
-            " properly with c engine"
+            "read_clipboard with regex separator does not work properly with c engine"
         )
 
     return read_csv(StringIO(text), sep=sep, **kwargs)
@@ -131,7 +130,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
 
     if isinstance(obj, ABCDataFrame):
         # str(df) has various unhelpful defaults, like truncation
-        with option_context("display.max_colwidth", 999999):
+        with option_context("display.max_colwidth", None):
             objstr = obj.to_string(**kwargs)
     else:
         objstr = str(obj)

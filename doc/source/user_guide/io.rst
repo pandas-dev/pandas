@@ -3,15 +3,6 @@
 .. currentmodule:: pandas
 
 
-{{ header }}
-
-.. ipython:: python
-   :suppress:
-
-   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
-                         index=['x', 'y', 'z'])
-
-
 ===============================
 IO tools (text, CSV, HDF5, ...)
 ===============================
@@ -32,25 +23,25 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
-    binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
+    ;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
+    binary;`ORC Format <//https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
     binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
     SQL;`SQL <https://en.wikipedia.org/wiki/SQL>`__;:ref:`read_sql<io.sql>`;:ref:`to_sql<io.sql>`
-    SQL;`Google Big Query <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
+    SQL;`Google BigQuery <https://en.wikipedia.org/wiki/BigQuery>`__;:ref:`read_gbq<io.bigquery>`;:ref:`to_gbq<io.bigquery>`
 
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
 .. note::
    For examples that use the ``StringIO`` class, make sure you import it
-   according to your Python version, i.e. ``from StringIO import StringIO`` for
-   Python 2 and ``from io import StringIO`` for Python 3.
+   with ``from io import StringIO`` for Python 3.
 
 .. _io.read_csv_table:
 
@@ -137,7 +128,8 @@ usecols : list-like or callable, default ``None``
 
   .. ipython:: python
 
-     from io import StringIO, BytesIO
+     import pandas as pd
+     from io import StringIO
      data = ('col1,col2,col3\n'
              'a,b,1\n'
              'a,b,2\n'
@@ -163,9 +155,6 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use `str` or `object` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-
-  .. versionadded:: 0.20.0 support for the Python parser.
-
 engine : {``'c'``, ``'python'``}
   Parser engine to use. The C engine is faster while the Python engine is
   currently more feature-complete.
@@ -363,6 +352,7 @@ columns:
 
 .. ipython:: python
 
+    import numpy as np
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
             '5,6,7,8\n'
@@ -417,10 +407,6 @@ However, if you wanted for all the data to be coerced, no matter the type, then
 using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
 worth trying.
 
-  .. versionadded:: 0.20.0 support for the Python parser.
-
-     The ``dtype`` option is supported by the 'python' engine.
-
 .. note::
    In some cases, reading in abnormal data with columns containing mixed dtypes
    will result in an inconsistent dataset. If you rely on pandas to infer the
@@ -447,7 +433,6 @@ worth trying.
    :suppress:
 
    import os
-
    os.remove('foo.csv')
 
 .. _io.categorical:
@@ -616,8 +601,6 @@ Filtering columns (``usecols``)
 The ``usecols`` argument allows you to select any subset of the columns in a
 file, either using the column names, position numbers or a callable:
 
-.. versionadded:: 0.20.0 support for callable `usecols` arguments
-
 .. ipython:: python
 
     data = 'a,b,c,d\n1,2,3,foo\n4,5,6,bar\n7,8,9,baz'
@@ -757,6 +740,7 @@ result in byte strings being decoded to unicode in the result:
 
 .. ipython:: python
 
+   from io import BytesIO
    data = (b'word,length\n'
            b'Tr\xc3\xa4umen,7\n'
            b'Gr\xc3\xbc\xc3\x9fe,5')
@@ -925,16 +909,6 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
-
-
-.. note::
-
-   When passing a dict as the `parse_dates` argument, the order of
-   the columns prepended is not guaranteed, because `dict` objects do not impose
-   an ordering on their keys. On Python 2.7+ you may use `collections.OrderedDict`
-   instead of a regular `dict` if this matters to you. Because of this, when using a
-   dict for 'parse_dates' in conjunction with the `index_col` argument, it's best to
-   specify `index_col` as a column label rather then as an index on the resulting frame.
 
 
 Date parsing functions
@@ -1168,7 +1142,7 @@ To completely override the default values that are recognized as missing, specif
 .. _io.navaluesconst:
 
 The default ``NaN`` recognized values are ``['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A', 'N/A',
-'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
+'n/a', 'NA', '<NA>', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', '']``.
 
 Let us consider some examples:
 
@@ -1447,8 +1421,6 @@ is whitespace).
    df = pd.read_fwf('bar.csv', header=None, index_col=0)
    df
 
-.. versionadded:: 0.20.0
-
 ``read_fwf`` supports the ``dtype`` parameter for specifying the types of
 parsed columns to be different from the inferred type.
 
@@ -1536,7 +1508,7 @@ rows will skip the intervening rows.
 
 .. ipython:: python
 
-   from pandas.util.testing import makeCustomDataframe as mkdf
+   from pandas._testing import makeCustomDataframe as mkdf
    df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
    df.to_csv('mi.csv')
    print(open('mi.csv').read())
@@ -2083,6 +2055,8 @@ The Numpy parameter
 +++++++++++++++++++
 
 .. note::
+  This param has been deprecated as of version 1.0.0 and will raise a ``FutureWarning``.
+
   This supports numeric data only. Index and columns labels may be non-numeric, e.g. strings, dates etc.
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
@@ -2105,6 +2079,7 @@ data:
    %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
+   :okwarning:
 
    %timeit pd.read_json(jsonfloats, numpy=True)
 
@@ -2119,6 +2094,7 @@ The speedup is less noticeable for smaller datasets:
    %timeit pd.read_json(jsonfloats)
 
 .. ipython:: python
+   :okwarning:
 
    %timeit pd.read_json(jsonfloats, numpy=True)
 
@@ -2153,27 +2129,26 @@ into a flat table.
 
 .. ipython:: python
 
-   from pandas.io.json import json_normalize
    data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
            {'name': {'given': 'Mose', 'family': 'Regner'}},
            {'id': 2, 'name': 'Faye Raker'}]
-   json_normalize(data)
+   pd.json_normalize(data)
 
 .. ipython:: python
 
    data = [{'state': 'Florida',
             'shortname': 'FL',
             'info': {'governor': 'Rick Scott'},
-            'counties': [{'name': 'Dade', 'population': 12345},
-                         {'name': 'Broward', 'population': 40000},
-                         {'name': 'Palm Beach', 'population': 60000}]},
+            'county': [{'name': 'Dade', 'population': 12345},
+                       {'name': 'Broward', 'population': 40000},
+                       {'name': 'Palm Beach', 'population': 60000}]},
            {'state': 'Ohio',
             'shortname': 'OH',
             'info': {'governor': 'John Kasich'},
-            'counties': [{'name': 'Summit', 'population': 1234},
-                         {'name': 'Cuyahoga', 'population': 1337}]}]
+            'county': [{'name': 'Summit', 'population': 1234},
+                       {'name': 'Cuyahoga', 'population': 1337}]}]
 
-   json_normalize(data, 'counties', ['state', 'shortname', ['info', 'governor']])
+   pd.json_normalize(data, 'county', ['state', 'shortname', ['info', 'governor']])
 
 The max_level parameter provides more control over which level to end normalization.
 With max_level=1 the following snippet normalizes until 1st nesting level of the provided dict.
@@ -2186,7 +2161,7 @@ With max_level=1 the following snippet normalizes until 1st nesting level of the
                                       'Name': 'Name001'}},
              'Image': {'a': 'b'}
              }]
-    json_normalize(data, max_level=1)
+    pd.json_normalize(data, max_level=1)
 
 .. _io.jsonl:
 
@@ -2220,8 +2195,6 @@ For line-delimited json files, pandas can also return an iterator which reads in
 
 Table schema
 ''''''''''''
-
-.. versionadded:: 0.20.0
 
 `Table Schema`_ is a spec for describing tabular datasets as a JSON
 object. The JSON includes information on the field names, types, and
@@ -2469,7 +2442,7 @@ Specify a number of rows to skip:
 
    dfs = pd.read_html(url, skiprows=0)
 
-Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
+Specify a number of rows to skip using a list (``range`` works
 as well):
 
 .. code-block:: python
@@ -2649,7 +2622,7 @@ that contain URLs.
 
    url_df = pd.DataFrame({
        'name': ['Python', 'Pandas'],
-       'url': ['https://www.python.org/', 'http://pandas.pydata.org']})
+       'url': ['https://www.python.org/', 'https://pandas.pydata.org']})
    print(url_df.to_html(render_links=True))
 
 .. ipython:: python
@@ -2784,7 +2757,8 @@ Excel files
 
 The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
 files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``.
+can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3071,8 +3045,6 @@ missing data to recover integer dtype:
 Dtype specifications
 ++++++++++++++++++++
 
-.. versionadded:: 0.20
-
 As an alternative to converters, the type for an entire column can
 be specified using the `dtype` keyword, which takes a dictionary
 mapping column names to types.  To interpret data with
@@ -3141,11 +3113,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 .. code-block:: python
 
-   # Safe import for either Python 2.x or 3.x
-   try:
-       from io import BytesIO
-   except ImportError:
-       from cStringIO import StringIO as BytesIO
+   from io import BytesIO
 
    bio = BytesIO()
 
@@ -3247,6 +3215,30 @@ OpenDocument spreadsheets match what can be done for `Excel files`_ using
    Currently pandas only supports *reading* OpenDocument spreadsheets. Writing
    is not implemented.
 
+.. _io.xlsb:
+
+Binary Excel (.xlsb) files
+--------------------------
+
+.. versionadded:: 1.0.0
+
+The :func:`~pandas.read_excel` method can also read binary Excel files
+using the ``pyxlsb`` module. The semantics and features for reading
+binary Excel files mostly match what can be done for `Excel files`_ using
+``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
+in files and will return floats instead.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel('path_to_file.xlsb', engine='pyxlsb')
+
+.. note::
+
+   Currently pandas only supports *reading* binary Excel files. Writing
+   is not implemented.
+
+
 .. _io.clipboard:
 
 Clipboard
@@ -3345,8 +3337,6 @@ any pickled pandas object (or any other pickled object) from file:
 Compressed pickle files
 '''''''''''''''''''''''
 
-.. versionadded:: 0.20.0
-
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
 and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
 The ``zip`` file format only supports reading and must contain only one data file
@@ -3405,87 +3395,19 @@ The default is to 'infer':
 msgpack
 -------
 
-pandas supports the ``msgpack`` format for
-object serialization. This is a lightweight portable binary format, similar
-to binary JSON, that is highly space efficient, and provides good performance
-both on the writing (serialization), and reading (deserialization).
+pandas support for ``msgpack`` has been removed in version 1.0.0.  It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
 
-.. warning::
+Example pyarrow usage:
 
-   The msgpack format is deprecated as of 0.25 and will be removed in a future version.
-   It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
+.. code-block:: python
 
-.. warning::
+    >>> import pandas as pd
+    >>> import pyarrow as pa
+    >>> df = pd.DataFrame({'A': [1, 2, 3]})
+    >>> context = pa.default_serialization_context()
+    >>> df_bytestring = context.serialize(df).to_buffer().to_pybytes()
 
-   :func:`read_msgpack` is only guaranteed backwards compatible back to pandas version 0.20.3
-
-.. ipython:: python
-   :okwarning:
-
-   df = pd.DataFrame(np.random.rand(5, 2), columns=list('AB'))
-   df.to_msgpack('foo.msg')
-   pd.read_msgpack('foo.msg')
-   s = pd.Series(np.random.rand(5), index=pd.date_range('20130101', periods=5))
-
-You can pass a list of objects and you will receive them back on deserialization.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.to_msgpack('foo.msg', df, 'foo', np.array([1, 2, 3]), s)
-   pd.read_msgpack('foo.msg')
-
-You can pass ``iterator=True`` to iterate over the unpacked results:
-
-.. ipython:: python
-   :okwarning:
-
-   for o in pd.read_msgpack('foo.msg', iterator=True):
-       print(o)
-
-You can pass ``append=True`` to the writer to append to an existing pack:
-
-.. ipython:: python
-   :okwarning:
-
-   df.to_msgpack('foo.msg', append=True)
-   pd.read_msgpack('foo.msg')
-
-Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
-``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
-can pack arbitrary collections of Python lists, dicts, scalars, while intermixing
-pandas objects.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.to_msgpack('foo2.msg', {'dict': [{'df': df}, {'string': 'foo'},
-                                       {'scalar': 1.}, {'s': s}]})
-   pd.read_msgpack('foo2.msg')
-
-.. ipython:: python
-   :suppress:
-   :okexcept:
-
-   os.remove('foo.msg')
-   os.remove('foo2.msg')
-
-Read/write API
-''''''''''''''
-
-Msgpacks can also be read from and written to strings.
-
-.. ipython:: python
-   :okwarning:
-
-   df.to_msgpack()
-
-Furthermore you can concatenate the strings to produce a list of the original objects.
-
-.. ipython:: python
-   :okwarning:
-
-   pd.read_msgpack(df.to_msgpack() + s.to_msgpack())
+For documentation on pyarrow, see `here <https://arrow.apache.org/docs/python/index.html>`__.
 
 .. _io.hdf5:
 
@@ -3811,6 +3733,8 @@ storing/selecting from homogeneous index ``DataFrames``.
         # the levels are automatically included as data columns
         store.select('df_mi', 'foo=bar')
 
+.. note::
+   The ``index`` keyword is reserved and cannot be use as a level name.
 
 .. _io.hdf5-query:
 
@@ -3829,6 +3753,7 @@ A query is specified using the ``Term`` class under the hood, as a boolean expre
 
 * ``index`` and ``columns`` are supported indexers of ``DataFrames``.
 * if ``data_columns`` are specified, these can be used as additional indexers.
+* level name in a MultiIndex, with default name  ``level_0``, ``level_1``, … if not provided.
 
 Valid comparison operators are:
 
@@ -3890,7 +3815,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df', 'index == %s' % string)
+      store.select('df', f'index == {string}')
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -3947,7 +3872,7 @@ space. These are in terms of the total number of rows in a table.
 
 .. _io.hdf5-timedelta:
 
-Using timedelta64[ns]
+Query timedelta64[ns]
 +++++++++++++++++++++
 
 You can store and query using the ``timedelta64[ns]`` type. Terms can be
@@ -3965,6 +3890,37 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
    dftd
    store.append('dftd', dftd, data_columns=True)
    store.select('dftd', "C<'-3.5D'")
+
+.. _io.query_multi:
+
+Query MultiIndex
+++++++++++++++++
+
+Selecting from a ``MultiIndex`` can be achieved by using the name of the level.
+
+.. ipython:: python
+
+   df_mi.index.names
+   store.select('df_mi', "foo=baz and bar=two")
+
+If the ``MultiIndex`` levels names are ``None``, the levels are automatically made available via
+the ``level_n`` keyword with ``n`` the level of the ``MultiIndex`` you want to select from.
+
+.. ipython:: python
+
+   index = pd.MultiIndex(
+       levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+   )
+   df_mi_2 = pd.DataFrame(np.random.randn(10, 3),
+                          index=index, columns=["A", "B", "C"])
+   df_mi_2
+
+   store.append("df_mi_2", df_mi_2)
+
+   # the levels are automatically included as data columns with keyword level_n
+   store.select("df_mi_2", "level_0=foo and level_1=two")
+
 
 Indexing
 ++++++++
@@ -4274,48 +4230,49 @@ Compression
 all kinds of stores, not just tables. Two parameters are used to
 control compression: ``complevel`` and ``complib``.
 
-``complevel`` specifies if and how hard data is to be compressed.
-              ``complevel=0`` and ``complevel=None`` disables
-              compression and ``0<complevel<10`` enables compression.
+* ``complevel`` specifies if and how hard data is to be compressed.
+  ``complevel=0`` and ``complevel=None`` disables compression and
+  ``0<complevel<10`` enables compression.
 
-``complib`` specifies which compression library to use. If nothing is
-            specified the default library ``zlib`` is used. A
-            compression library usually optimizes for either good
-            compression rates or speed and the results will depend on
-            the type of data. Which type of
-            compression to choose depends on your specific needs and
-            data. The list of supported compression libraries:
+* ``complib`` specifies which compression library to use.
+  If nothing is  specified the default library ``zlib`` is used. A
+  compression library usually optimizes for either good compression rates
+  or speed and the results will depend on the type of data. Which type of
+  compression to choose depends on your specific needs and data. The list
+  of supported compression libraries:
 
-             - `zlib <https://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
-             - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
-             - `bzip2 <http://bzip.org/>`_: Good compression rates.
-             - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
+  - `zlib <https://zlib.net/>`_: The default compression library.
+    A classic in terms of compression, achieves good compression
+    rates but is somewhat slow.
+  - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast
+    compression and decompression.
+  - `bzip2 <http://bzip.org/>`_: Good compression rates.
+  - `blosc <https://www.blosc.org/>`_: Fast compression and
+    decompression.
 
-             .. versionadded:: 0.20.2
+    Support for alternative blosc compressors:
 
-                Support for alternative blosc compressors:
+    - `blosc:blosclz <https://www.blosc.org/>`_ This is the
+      default compressor for ``blosc``
+    - `blosc:lz4
+      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      A compact, very popular and fast compressor.
+    - `blosc:lz4hc
+      <https://fastcompression.blogspot.dk/p/lz4.html>`_:
+      A tweaked version of LZ4, produces better
+      compression ratios at the expense of speed.
+    - `blosc:snappy <https://google.github.io/snappy/>`_:
+      A popular compressor used in many places.
+    - `blosc:zlib <https://zlib.net/>`_: A classic;
+      somewhat slower than the previous ones, but
+      achieving better compression ratios.
+    - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
+      extremely well balanced codec; it provides the best
+      compression ratios among the others above, and at
+      reasonably fast speed.
 
-                - `blosc:blosclz <http://www.blosc.org/>`_ This is the
-                  default compressor for ``blosc``
-                - `blosc:lz4
-                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
-                  A compact, very popular and fast compressor.
-                - `blosc:lz4hc
-                  <https://fastcompression.blogspot.dk/p/lz4.html>`_:
-                  A tweaked version of LZ4, produces better
-                  compression ratios at the expense of speed.
-                - `blosc:snappy <https://google.github.io/snappy/>`_:
-                  A popular compressor used in many places.
-                - `blosc:zlib <https://zlib.net/>`_: A classic;
-                  somewhat slower than the previous ones, but
-                  achieving better compression ratios.
-                - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
-                  extremely well balanced codec; it provides the best
-                  compression ratios among the others above, and at
-                  reasonably fast speed.
-
-             If ``complib`` is defined as something other than the
-             listed libraries a ``ValueError`` exception is issued.
+  If ``complib`` is defined as something other than the listed libraries a
+  ``ValueError`` exception is issued.
 
 .. note::
 
@@ -4619,8 +4576,6 @@ Performance
 Feather
 -------
 
-.. versionadded:: 0.20.0
-
 Feather provides binary columnar serialization for data frames. It is designed to make reading and writing data
 frames efficient, and to make sharing data across data analysis languages easy.
 
@@ -4642,6 +4597,14 @@ Several caveats.
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
+   :suppress:
+
+   import warnings
+   # This can be removed once building with pyarrow >=0.15.0
+   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
+
+
+.. ipython:: python
 
    df = pd.DataFrame({'a': list('abc'),
                       'b': list(range(1, 4)),
@@ -4659,14 +4622,12 @@ See the `Full Documentation <https://github.com/wesm/feather>`__.
 Write to a feather file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_feather('example.feather')
 
 Read from a feather file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_feather('example.feather')
    result
@@ -4702,9 +4663,13 @@ Several caveats.
   indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
-* Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
-* Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
-  on an attempt at serialization.
+* In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
+* The ``pyarrow`` engine preserves the ``ordered`` flag of categorical dtypes with string types. ``fastparquet`` does not preserve the ``ordered`` flag.
+* Non supported types include ``Interval`` and actual Python object types. These will raise a helpful error message
+  on an attempt at serialization. ``Period`` type is supported with pyarrow >= 0.16.0.
+* The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
+  type (requiring pyarrow >= 0.16.0, and requiring the extension type to implement the needed protocols,
+  see the :ref:`extension types documentation <extending.extension.arrow>`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
@@ -4726,7 +4691,9 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
                       'd': np.arange(4.0, 7.0, dtype='float64'),
                       'e': [True, False, True],
                       'f': pd.date_range('20130101', periods=3),
-                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern')})
+                      'g': pd.date_range('20130101', periods=3, tz='US/Eastern'),
+                      'h': pd.Categorical(list('abc')),
+                      'i': pd.Categorical(list('abc'), ordered=True)})
 
    df
    df.dtypes
@@ -4742,7 +4709,6 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
    result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
@@ -4752,7 +4718,6 @@ Read from a parquet file.
 Read only certain columns of a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet('example_fp.parquet',
                             engine='fastparquet', columns=['a', 'b'])
@@ -4775,7 +4740,6 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', engine='pyarrow')
@@ -4792,7 +4756,6 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
-   :okwarning:
 
     df.to_parquet('test.parquet', index=False)
 
@@ -4817,13 +4780,12 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
-    :okwarning:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
-    df.to_parquet(fname='test', engine='pyarrow',
+    df.to_parquet(path='test', engine='pyarrow',
                   partition_cols=['a'], compression=None)
 
-The `fname` specifies the parent directory to which data will be saved.
+The `path` specifies the parent directory to which data will be saved.
 The `partition_cols` are the column names by which the dataset will be partitioned.
 Columns are partitioned in the order they are given. The partition splits are
 determined by the unique values in the partition columns.
@@ -4845,8 +4807,19 @@ The above example creates a partitioned dataset that may look like:
    from shutil import rmtree
    try:
        rmtree('test')
-   except Exception:
+   except OSError:
        pass
+
+.. _io.orc:
+
+ORC
+---
+
+.. versionadded:: 1.0.0
+
+Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <//https://orc.apache.org/>`__ is a binary columnar serialization
+for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
+ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
 .. _io.sql:
 
@@ -4874,7 +4847,6 @@ See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategi
 The key functions are:
 
 .. autosummary::
-    :toctree: ../reference/api/
 
     read_sql_table
     read_sql_query
@@ -5034,7 +5006,7 @@ Possible values are:
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
   For more information check the SQLAlchemy `documention
-  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+  <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on
   specific backend dialect features.
@@ -5564,7 +5536,7 @@ Performance considerations
 --------------------------
 
 This is an informal comparison of various IO methods, using pandas
-0.20.3. Timings are machine dependent and small differences should be
+0.24.2. Timings are machine dependent and small differences should be
 ignored.
 
 .. code-block:: ipython
@@ -5585,11 +5557,18 @@ Given the next test set:
 
 .. code-block:: python
 
-   from numpy.random import randn
+
+
+   import numpy as np
+
+   import os
 
    sz = 1000000
-   df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
+   sz = 1000000
+   np.random.seed(42)
+   df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
    def test_sql_write(df):
        if os.path.exists('test.sql'):
@@ -5598,151 +5577,149 @@ Given the next test set:
        df.to_sql(name='test_table', con=sql_db)
        sql_db.close()
 
-
    def test_sql_read():
        sql_db = sqlite3.connect('test.sql')
        pd.read_sql_query("select * from test_table", sql_db)
        sql_db.close()
 
-
    def test_hdf_fixed_write(df):
        df.to_hdf('test_fixed.hdf', 'test', mode='w')
-
 
    def test_hdf_fixed_read():
        pd.read_hdf('test_fixed.hdf', 'test')
 
-
    def test_hdf_fixed_write_compress(df):
        df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
-
 
    def test_hdf_fixed_read_compress():
        pd.read_hdf('test_fixed_compress.hdf', 'test')
 
-
    def test_hdf_table_write(df):
        df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
 
-
    def test_hdf_table_read():
        pd.read_hdf('test_table.hdf', 'test')
-
 
    def test_hdf_table_write_compress(df):
        df.to_hdf('test_table_compress.hdf', 'test', mode='w',
                  complib='blosc', format='table')
 
-
    def test_hdf_table_read_compress():
        pd.read_hdf('test_table_compress.hdf', 'test')
-
 
    def test_csv_write(df):
        df.to_csv('test.csv', mode='w')
 
-
    def test_csv_read():
        pd.read_csv('test.csv', index_col=0)
-
 
    def test_feather_write(df):
        df.to_feather('test.feather')
 
-
    def test_feather_read():
        pd.read_feather('test.feather')
-
 
    def test_pickle_write(df):
        df.to_pickle('test.pkl')
 
-
    def test_pickle_read():
        pd.read_pickle('test.pkl')
-
 
    def test_pickle_write_compress(df):
        df.to_pickle('test.pkl.compress', compression='xz')
 
-
    def test_pickle_read_compress():
        pd.read_pickle('test.pkl.compress', compression='xz')
 
-When writing, the top-three functions in terms of speed are are
-``test_pickle_write``, ``test_feather_write`` and ``test_hdf_fixed_write_compress``.
+   def test_parquet_write(df):
+       df.to_parquet('test.parquet')
+
+   def test_parquet_read():
+       pd.read_parquet('test.parquet')
+
+When writing, the top-three functions in terms of speed are ``test_feather_write``, ``test_hdf_fixed_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython
 
-   In [14]: %timeit test_sql_write(df)
-   2.37 s ± 36.6 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [4]: %timeit test_sql_write(df)
+   3.29 s ± 43.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [15]: %timeit test_hdf_fixed_write(df)
-   194 ms ± 65.9 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [5]: %timeit test_hdf_fixed_write(df)
+   19.4 ms ± 560 µs per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [26]: %timeit test_hdf_fixed_write_compress(df)
-   119 ms ± 2.15 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [6]: %timeit test_hdf_fixed_write_compress(df)
+   19.6 ms ± 308 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [16]: %timeit test_hdf_table_write(df)
-   623 ms ± 125 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [7]: %timeit test_hdf_table_write(df)
+   449 ms ± 5.61 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [27]: %timeit test_hdf_table_write_compress(df)
-   563 ms ± 23.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [8]: %timeit test_hdf_table_write_compress(df)
+   448 ms ± 11.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [17]: %timeit test_csv_write(df)
-   3.13 s ± 49.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [9]: %timeit test_csv_write(df)
+   3.66 s ± 26.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [30]: %timeit test_feather_write(df)
-   103 ms ± 5.88 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [10]: %timeit test_feather_write(df)
+   9.75 ms ± 117 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
-   In [31]: %timeit test_pickle_write(df)
-   109 ms ± 3.72 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [11]: %timeit test_pickle_write(df)
+   30.1 ms ± 229 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [32]: %timeit test_pickle_write_compress(df)
-   3.33 s ± 55.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [12]: %timeit test_pickle_write_compress(df)
+   4.29 s ± 15.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+   In [13]: %timeit test_parquet_write(df)
+   67.6 ms ± 706 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
 When reading, the top three are ``test_feather_read``, ``test_pickle_read`` and
 ``test_hdf_fixed_read``.
 
+
 .. code-block:: ipython
 
-   In [18]: %timeit test_sql_read()
-   1.35 s ± 14.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [14]: %timeit test_sql_read()
+   1.77 s ± 17.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [19]: %timeit test_hdf_fixed_read()
-   14.3 ms ± 438 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+   In [15]: %timeit test_hdf_fixed_read()
+   19.4 ms ± 436 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [28]: %timeit test_hdf_fixed_read_compress()
-   23.5 ms ± 672 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [16]: %timeit test_hdf_fixed_read_compress()
+   19.5 ms ± 222 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [20]: %timeit test_hdf_table_read()
-   35.4 ms ± 314 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [17]: %timeit test_hdf_table_read()
+   38.6 ms ± 857 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [29]: %timeit test_hdf_table_read_compress()
-   42.6 ms ± 2.1 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+   In [18]: %timeit test_hdf_table_read_compress()
+   38.8 ms ± 1.49 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
 
-   In [22]: %timeit test_csv_read()
-   516 ms ± 27.1 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [19]: %timeit test_csv_read()
+   452 ms ± 9.04 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-   In [33]: %timeit test_feather_read()
-   4.06 ms ± 115 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+   In [20]: %timeit test_feather_read()
+   12.4 ms ± 99.7 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
-   In [34]: %timeit test_pickle_read()
-   6.5 ms ± 172 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+   In [21]: %timeit test_pickle_read()
+   18.4 ms ± 191 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
-   In [35]: %timeit test_pickle_read_compress()
-   588 ms ± 3.57 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+   In [22]: %timeit test_pickle_read_compress()
+   915 ms ± 7.48 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
+   In [23]: %timeit test_parquet_read()
+   24.4 ms ± 146 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+
+For this test case ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the least space on disk.
 Space on disk (in bytes)
 
 .. code-block:: none
 
-    34816000 Aug 21 18:00 test.sql
-    24009240 Aug 21 18:00 test_fixed.hdf
-     7919610 Aug 21 18:00 test_fixed_compress.hdf
-    24458892 Aug 21 18:00 test_table.hdf
-     8657116 Aug 21 18:00 test_table_compress.hdf
-    28520770 Aug 21 18:00 test.csv
-    16000248 Aug 21 18:00 test.feather
-    16000848 Aug 21 18:00 test.pkl
-     7554108 Aug 21 18:00 test.pkl.compress
+    29519500 Oct 10 06:45 test.csv
+    16000248 Oct 10 06:45 test.feather
+    8281983  Oct 10 06:49 test.parquet
+    16000857 Oct 10 06:47 test.pkl
+    7552144  Oct 10 06:48 test.pkl.compress
+    34816000 Oct 10 06:42 test.sql
+    24009288 Oct 10 06:43 test_fixed.hdf
+    24009288 Oct 10 06:43 test_fixed_compress.hdf
+    24458940 Oct 10 06:44 test_table.hdf
+    24458940 Oct 10 06:44 test_table_compress.hdf

@@ -6,7 +6,7 @@ import pytest
 from pandas._libs import hashtable
 
 from pandas import DatetimeIndex, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("names", [None, ["first", "second"]])
@@ -251,15 +251,12 @@ def test_duplicated_large(keep):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_get_duplicates():
+def test_duplicated2():
+    # TODO: more informative test name
     # GH5873
     for a in [101, 102]:
         mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
         assert not mi.has_duplicates
-
-        with tm.assert_produces_warning(FutureWarning):
-            # Deprecated - see GH20239
-            assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
 
         tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
 
@@ -274,10 +271,32 @@ def test_get_duplicates():
             assert len(mi) == (n + 1) * (m + 1)
             assert not mi.has_duplicates
 
-            with tm.assert_produces_warning(FutureWarning):
-                # Deprecated - see GH20239
-                assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
-
             tm.assert_numpy_array_equal(
                 mi.duplicated(), np.zeros(len(mi), dtype="bool")
             )
+
+
+def test_duplicated_drop_duplicates():
+    # GH#4060
+    idx = MultiIndex.from_arrays(([1, 2, 3, 1, 2, 3], [1, 1, 1, 1, 2, 2]))
+
+    expected = np.array([False, False, False, True, False, False], dtype=bool)
+    duplicated = idx.duplicated()
+    tm.assert_numpy_array_equal(duplicated, expected)
+    assert duplicated.dtype == bool
+    expected = MultiIndex.from_arrays(([1, 2, 3, 2, 3], [1, 1, 1, 2, 2]))
+    tm.assert_index_equal(idx.drop_duplicates(), expected)
+
+    expected = np.array([True, False, False, False, False, False])
+    duplicated = idx.duplicated(keep="last")
+    tm.assert_numpy_array_equal(duplicated, expected)
+    assert duplicated.dtype == bool
+    expected = MultiIndex.from_arrays(([2, 3, 1, 2, 3], [1, 1, 1, 2, 2]))
+    tm.assert_index_equal(idx.drop_duplicates(keep="last"), expected)
+
+    expected = np.array([True, False, False, True, False, False])
+    duplicated = idx.duplicated(keep=False)
+    tm.assert_numpy_array_equal(duplicated, expected)
+    assert duplicated.dtype == bool
+    expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
+    tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)

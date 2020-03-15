@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
-pytest.importorskip("pyarrow", minversion="0.10.0")
+pytest.importorskip("pyarrow", minversion="0.13.0")
 
 from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
 

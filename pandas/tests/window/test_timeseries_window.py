@@ -1,8 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, Timestamp, date_range, to_datetime
-import pandas.util.testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    to_datetime,
+)
+import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
 
@@ -105,8 +113,16 @@ class TestRollingTS:
         assert df.index.is_monotonic
         df.rolling("2s").sum()
 
-        # non-monotonic
-        df.index = reversed(df.index.tolist())
+    def test_non_monotonic_on(self):
+        # GH 19248
+        df = DataFrame(
+            {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
+        )
+        df = df.set_index("A")
+        non_monotonic_index = df.index.to_list()
+        non_monotonic_index[0] = non_monotonic_index[3]
+        df.index = non_monotonic_index
+
         assert not df.index.is_monotonic
 
         with pytest.raises(ValueError):
@@ -519,25 +535,36 @@ class TestRollingTS:
         expected["B"] = [0.0, 1, 2, 3, 4]
         tm.assert_frame_equal(result, expected)
 
-    def test_ragged_apply(self, raw):
+    @pytest.mark.parametrize(
+        "freq, op, result_data",
+        [
+            ("ms", "min", [0.0] * 10),
+            ("ms", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("ms", "max", [0.0] * 9 + [2.0]),
+            ("s", "min", [0.0] * 10),
+            ("s", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("s", "max", [0.0] * 9 + [2.0]),
+            ("min", "min", [0.0] * 10),
+            ("min", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("min", "max", [0.0] * 9 + [2.0]),
+            ("h", "min", [0.0] * 10),
+            ("h", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("h", "max", [0.0] * 9 + [2.0]),
+            ("D", "min", [0.0] * 10),
+            ("D", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("D", "max", [0.0] * 9 + [2.0]),
+        ],
+    )
+    def test_freqs_ops(self, freq, op, result_data):
+        # GH 21096
+        index = date_range(start="2018-1-1 01:00:00", freq=f"1{freq}", periods=10)
+        s = Series(data=0, index=index)
+        s.iloc[1] = np.nan
+        s.iloc[-1] = 2
+        result = getattr(s.rolling(window=f"10{freq}"), op)()
+        expected = Series(data=result_data, index=index)
 
-        df = self.ragged
-
-        f = lambda x: 1
-        result = df.rolling(window="1s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
-        result = df.rolling(window="2s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
-        result = df.rolling(window="5s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_all(self):
 
@@ -565,16 +592,6 @@ class TestRollingTS:
 
         result = r.quantile(0.5)
         expected = er.quantile(0.5)
-        tm.assert_frame_equal(result, expected)
-
-    def test_all_apply(self, raw):
-
-        df = self.regular * 2
-        er = df.rolling(window=1)
-        r = df.rolling(window="1s")
-
-        result = r.apply(lambda x: 1, raw=raw)
-        expected = er.apply(lambda x: 1, raw=raw)
         tm.assert_frame_equal(result, expected)
 
     def test_all2(self):
@@ -690,3 +707,39 @@ class TestRollingTS:
 
         expected2 = ss.rolling(3, min_periods=1).cov()
         tm.assert_series_equal(result, expected2)
+
+    def test_rolling_on_decreasing_index(self):
+        # GH-19248, GH-32385
+        index = [
+            Timestamp("20190101 09:00:30"),
+            Timestamp("20190101 09:00:27"),
+            Timestamp("20190101 09:00:20"),
+            Timestamp("20190101 09:00:18"),
+            Timestamp("20190101 09:00:10"),
+        ]
+
+        df = DataFrame({"column": [3, 4, 4, 5, 6]}, index=index)
+        result = df.rolling("5s").min()
+        expected = DataFrame({"column": [3.0, 3.0, 4.0, 4.0, 6.0]}, index=index)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_on_empty(self):
+        # GH-32385
+        df = DataFrame({"column": []}, index=[])
+        result = df.rolling("5s").min()
+        expected = DataFrame({"column": []}, index=[])
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_on_multi_index_level(self):
+        # GH-15584
+        df = DataFrame(
+            {"column": range(6)},
+            index=MultiIndex.from_product(
+                [date_range("20190101", periods=3), range(2)], names=["date", "seq"]
+            ),
+        )
+        result = df.rolling("10d", on=df.index.get_level_values("date")).sum()
+        expected = DataFrame(
+            {"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index
+        )
+        tm.assert_frame_equal(result, expected)

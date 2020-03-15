@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.errors import PerformanceWarning
 
-from pandas import DateOffset, Series, Timestamp, date_range
+from pandas import DateOffset, DatetimeIndex, Series, Timestamp, concat, date_range
 
 from pandas.tseries.offsets import Day, Easter
 
@@ -183,19 +183,19 @@ class Holiday:
         assert days_of_week is None or type(days_of_week) == tuple
         self.days_of_week = days_of_week
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         info = ""
         if self.year is not None:
-            info += "year={year}, ".format(year=self.year)
-        info += "month={mon}, day={day}, ".format(mon=self.month, day=self.day)
+            info += f"year={self.year}, "
+        info += f"month={self.month}, day={self.day}, "
 
         if self.offset is not None:
-            info += "offset={offset}".format(offset=self.offset)
+            info += f"offset={self.offset}"
 
         if self.observance is not None:
-            info += "observance={obs}".format(obs=self.observance)
+            info += f"observance={self.observance}"
 
-        repr = "Holiday: {name} ({info})".format(name=self.name, info=info)
+        repr = f"Holiday: {self.name} ({info})"
         return repr
 
     def dates(self, start_date, end_date, return_name=False):
@@ -344,9 +344,9 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     Abstract interface to create holidays following certain rules.
     """
 
-    rules = []  # type: List[Holiday]
+    rules: List[Holiday] = []
     start_date = Timestamp(datetime(1970, 1, 1))
-    end_date = Timestamp(datetime(2030, 12, 31))
+    end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
 
     def __init__(self, name=None, rules=None):
@@ -363,7 +363,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         super().__init__()
         if name is None:
-            name = self.__class__.__name__
+            name = type(self).__name__
         self.name = name
 
         if rules is not None:
@@ -394,8 +394,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         """
         if self.rules is None:
             raise Exception(
-                "Holiday Calendar {name} does not have any "
-                "rules specified".format(name=self.name)
+                f"Holiday Calendar {self.name} does not have any rules specified"
             )
 
         if start is None:
@@ -407,17 +406,14 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         start = Timestamp(start)
         end = Timestamp(end)
 
-        holidays = None
         # If we don't have a cache or the dates are outside the prior cache, we
         # get them again
         if self._cache is None or start < self._cache[0] or end > self._cache[1]:
-            for rule in self.rules:
-                rule_holidays = rule.dates(start, end, return_name=True)
-
-                if holidays is None:
-                    holidays = rule_holidays
-                else:
-                    holidays = holidays.append(rule_holidays)
+            holidays = [rule.dates(start, end, return_name=True) for rule in self.rules]
+            if holidays:
+                holidays = concat(holidays)
+            else:
+                holidays = Series(index=DatetimeIndex([]), dtype=object)
 
             self._cache = (start, end, holidays.sort_index())
 

@@ -3,11 +3,19 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - python=3.6.*
+
+  # tools
+  - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - hypothesis>=3.58.0
+
+  # pandas dependencies
   - beautifulsoup4
   - blosc=1.14.3
   - python-blosc
-  - cython>=0.29.13
-  - fastparquet=0.2.1
+  - fastparquet=0.3.2
   - gcsfs=0.2.2
   - html5lib
   - ipython
@@ -24,19 +32,11 @@ dependencies:
   - pymysql=0.7.11
   - pytables
   - python-dateutil
-  - python=3.6.*
   - pytz
-  - s3fs=0.0.8
+  - s3fs=0.3.0
   - scipy
   - sqlalchemy=1.1.4
   - xarray=0.10
   - xlrd
   - xlsxwriter
   - xlwt
-  # universal
-  - pytest>=5.0.1
-  - pytest-xdist>=1.29.0
-  - pytest-mock
-  - pip
-  - pip:
-    - hypothesis>=3.58.0

@@ -1,11 +1,9 @@
-from itertools import product
-
 import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
+import pandas._testing as tm
 import pandas.core.common as com
-from pandas.util import testing as tm
 
 
 @pytest.fixture
@@ -159,10 +157,8 @@ def test_xs_setting_with_copy_error_multiple(four_level_index_dataframe):
 def test_xs_integer_key():
     # see gh-2107
     dates = range(20111201, 20111205)
-    ids = "abcde"
-    index = MultiIndex.from_tuples(
-        [x for x in product(dates, ids)], names=["date", "secid"]
-    )
+    ids = list("abcde")
+    index = MultiIndex.from_product([dates, ids], names=["date", "secid"])
     df = DataFrame(np.random.randn(len(index), 3), index, ["X", "Y", "Z"])
 
     result = df.xs(20111201, level="date")
@@ -211,7 +207,7 @@ def test_xs_level_series_ymd(multiindex_year_month_day_dataframe_random_data):
 
 
 def test_xs_level_series_slice_not_implemented(
-    multiindex_year_month_day_dataframe_random_data
+    multiindex_year_month_day_dataframe_random_data,
 ):
     # this test is not explicitly testing .xs functionality
     # TODO: move to another module or refactor

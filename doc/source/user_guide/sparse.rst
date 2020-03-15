@@ -6,12 +6,6 @@
 Sparse data structures
 **********************
 
-.. note::
-
-   ``SparseSeries`` and ``SparseDataFrame`` have been deprecated. Their purpose
-   is served equally well by a :class:`Series` or :class:`DataFrame` with
-   sparse values. See :ref:`sparse.migration` for tips on migrating.
-
 Pandas provides data structures for efficiently storing sparse data.
 These are not necessarily sparse in the typical "mostly 0". Rather, you can view these
 objects as being "compressed" where any data matching a specific value (``NaN`` / missing value, though any value
@@ -21,7 +15,7 @@ can be chosen, including 0) is omitted. The compressed values are not actually s
 
    arr = np.random.randn(10)
    arr[2:-2] = np.nan
-   ts = pd.Series(pd.SparseArray(arr))
+   ts = pd.Series(pd.arrays.SparseArray(arr))
    ts
 
 Notice the dtype, ``Sparse[float64, nan]``. The ``nan`` means that elements in the
@@ -57,7 +51,7 @@ identical to their dense counterparts.
 SparseArray
 -----------
 
-:class:`SparseArray` is a :class:`~pandas.api.extensions.ExtensionArray`
+:class:`arrays.SparseArray` is a :class:`~pandas.api.extensions.ExtensionArray`
 for storing an array of sparse values (see :ref:`basics.dtypes` for more
 on extension arrays). It is a 1-dimensional ndarray-like object storing
 only values distinct from the ``fill_value``:
@@ -67,7 +61,7 @@ only values distinct from the ``fill_value``:
    arr = np.random.randn(10)
    arr[2:5] = np.nan
    arr[7:8] = np.nan
-   sparr = pd.SparseArray(arr)
+   sparr = pd.arrays.SparseArray(arr)
    sparr
 
 A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.asarray`
@@ -150,7 +144,7 @@ to ``SparseArray`` and get a ``SparseArray`` as a result.
 
 .. ipython:: python
 
-   arr = pd.SparseArray([1., np.nan, np.nan, -2., np.nan])
+   arr = pd.arrays.SparseArray([1., np.nan, np.nan, -2., np.nan])
    np.abs(arr)
 
 
@@ -159,7 +153,7 @@ the correct dense result.
 
 .. ipython:: python
 
-   arr = pd.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
+   arr = pd.arrays.SparseArray([1., -1, -1, -2., -1], fill_value=-1)
    np.abs(arr)
    np.abs(arr).to_dense()
 
@@ -167,6 +161,11 @@ the correct dense result.
 
 Migrating
 ---------
+
+.. note::
+
+   ``SparseSeries`` and ``SparseDataFrame`` were removed in pandas 1.0.0. This migration
+   guide is present to aid in migrating from previous versions.
 
 In older versions of pandas, the ``SparseSeries`` and ``SparseDataFrame`` classes (documented below)
 were the preferred way to work with sparse data. With the advent of extension arrays, these subclasses
@@ -195,7 +194,7 @@ From an array-like, use the regular :class:`Series` or
 .. ipython:: python
 
    # New way
-   pd.DataFrame({"A": pd.SparseArray([0, 1])})
+   pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
 
 From a SciPy sparse matrix, use :meth:`DataFrame.sparse.from_spmatrix`,
 
@@ -257,10 +256,10 @@ Instead, you'll need to ensure that the values being assigned are sparse
 
 .. ipython:: python
 
-   df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
+   df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])})
    df['B'] = [0, 0]  # remains dense
    df['B'].dtype
-   df['B'] = pd.SparseArray([0, 0])
+   df['B'] = pd.arrays.SparseArray([0, 0])
    df['B'].dtype
 
 The ``SparseDataFrame.default_kind`` and ``SparseDataFrame.default_fill_value`` attributes
@@ -366,12 +365,3 @@ row and columns coordinates of the matrix. Note that this will consume a signifi
 
    ss_dense = pd.Series.sparse.from_coo(A, dense_index=True)
    ss_dense
-
-
-.. _sparse.subclasses:
-
-Sparse subclasses
------------------
-
-The :class:`SparseSeries` and :class:`SparseDataFrame` classes are deprecated. Visit their
-API pages for usage.

@@ -125,7 +125,6 @@ The ``metadata`` field is ``None`` except for:
   in ``BYTE_ARRAY`` Parquet columns. The encoding can be one of:
 
     * ``'pickle'``
-    * ``'msgpack'``
     * ``'bson'``
     * ``'json'``
 

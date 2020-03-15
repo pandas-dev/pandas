@@ -1,12 +1,10 @@
-import itertools
-
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
 
 
 @pytest.fixture
@@ -50,7 +48,9 @@ class TestMultiIndexLoc:
 
         empty = Series(data=[], dtype=np.float64)
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype=np.float64,
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
@@ -72,7 +72,9 @@ class TestMultiIndexLoc:
         # empty array:
         empty = np.array([])
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype="float64",
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
@@ -223,17 +225,13 @@ class TestMultiIndexLoc:
         # GH 3053
         # loc should treat integer slices like label slices
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([6, 7, 8], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[6, 7, 8], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[6:8, :]
         expected = df
         tm.assert_frame_equal(result, expected)
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([10, 20, 30], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[10, 20, 30], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[20:30, :]
         expected = df.iloc[2:]
@@ -413,3 +411,79 @@ def test_loc_setitem_single_column_slice():
     df.loc[:, "B"] = np.arange(4)
     expected.iloc[:, 2] = np.arange(4)
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_nan_multiindex():
+    # GH 5286
+    tups = [
+        ("Good Things", "C", np.nan),
+        ("Good Things", "R", np.nan),
+        ("Bad Things", "C", np.nan),
+        ("Bad Things", "T", np.nan),
+        ("Okay Things", "N", "B"),
+        ("Okay Things", "N", "D"),
+        ("Okay Things", "B", np.nan),
+        ("Okay Things", "D", np.nan),
+    ]
+    df = DataFrame(
+        np.ones((8, 4)),
+        columns=Index(["d1", "d2", "d3", "d4"]),
+        index=MultiIndex.from_tuples(tups, names=["u1", "u2", "u3"]),
+    )
+    result = df.loc["Good Things"].loc["C"]
+    expected = DataFrame(
+        np.ones((1, 4)),
+        index=Index([np.nan], dtype="object", name="u3"),
+        columns=Index(["d1", "d2", "d3", "d4"], dtype="object"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_period_string_indexing():
+    # GH 9892
+    a = pd.period_range("2013Q1", "2013Q4", freq="Q")
+    i = (1111, 2222, 3333)
+    idx = pd.MultiIndex.from_product((a, i), names=("Periode", "CVR"))
+    df = pd.DataFrame(
+        index=idx,
+        columns=(
+            "OMS",
+            "OMK",
+            "RES",
+            "DRIFT_IND",
+            "OEVRIG_IND",
+            "FIN_IND",
+            "VARE_UD",
+            "LOEN_UD",
+            "FIN_UD",
+        ),
+    )
+    result = df.loc[("2013Q1", 1111), "OMS"]
+    expected = pd.Series(
+        [np.nan],
+        dtype=object,
+        name="OMS",
+        index=pd.MultiIndex.from_tuples(
+            [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
+        ),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_datetime_mask_slicing():
+    # GH 16699
+    dt_idx = pd.to_datetime(["2017-05-04", "2017-05-05"])
+    m_idx = pd.MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
+    df = pd.DataFrame(
+        data=[[1, 2], [3, 4], [5, 6], [7, 6]], index=m_idx, columns=["C1", "C2"]
+    )
+    result = df.loc[(dt_idx[0], (df.index.get_level_values(1) > "2017-05-04")), "C1"]
+    expected = pd.Series(
+        [3],
+        name="C1",
+        index=MultiIndex.from_tuples(
+            [(pd.Timestamp("2017-05-04"), pd.Timestamp("2017-05-05"))],
+            names=["Idx1", "Idx2"],
+        ),
+    )
+    tm.assert_series_equal(result, expected)

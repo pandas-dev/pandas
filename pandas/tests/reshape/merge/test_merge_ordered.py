@@ -1,9 +1,9 @@
-from numpy import nan
+import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, merge_ordered
-from pandas.util.testing import assert_frame_equal
+import pandas._testing as tm
 
 
 class TestMergeOrdered:
@@ -17,12 +17,12 @@ class TestMergeOrdered:
         expected = DataFrame(
             {
                 "key": ["a", "b", "c", "d", "e", "f"],
-                "lvalue": [1, nan, 2, nan, 3, nan],
-                "rvalue": [nan, 1, 2, 3, nan, 4],
+                "lvalue": [1, np.nan, 2, np.nan, 3, np.nan],
+                "rvalue": [np.nan, 1, 2, 3, np.nan, 4],
             }
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_ffill(self):
         result = merge_ordered(self.left, self.right, on="key", fill_method="ffill")
@@ -30,10 +30,10 @@ class TestMergeOrdered:
             {
                 "key": ["a", "b", "c", "d", "e", "f"],
                 "lvalue": [1.0, 1, 2, 2, 3, 3.0],
-                "rvalue": [nan, 1, 2, 3, 3, 4],
+                "rvalue": [np.nan, 1, 2, 3, 3, 4],
             }
         )
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_multigroup(self):
         left = pd.concat([self.left, self.left], ignore_index=True)
@@ -47,17 +47,17 @@ class TestMergeOrdered:
             {
                 "key": ["a", "b", "c", "d", "e", "f"] * 2,
                 "lvalue": [1.0, 1, 2, 2, 3, 3.0] * 2,
-                "rvalue": [nan, 1, 2, 3, 3, 4] * 2,
+                "rvalue": [np.nan, 1, 2, 3, 3, 4] * 2,
             }
         )
         expected["group"] = ["a"] * 6 + ["b"] * 6
 
-        assert_frame_equal(result, expected.loc[:, result.columns])
+        tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
         result2 = merge_ordered(
             self.right, left, on="key", right_by="group", fill_method="ffill"
         )
-        assert_frame_equal(result, result2.loc[:, result.columns])
+        tm.assert_frame_equal(result, result2.loc[:, result.columns])
 
         result = merge_ordered(left, self.right, on="key", left_by="group")
         assert result["group"].notna().all()
@@ -110,8 +110,8 @@ class TestMergeOrdered:
                 "group": list("aaaaabbbbb"),
                 "key": ["a", "b", "c", "d", "e"] * 2,
                 "lvalue": [1, 1, 2, 2, 3] * 2,
-                "rvalue": [nan, 1, 2, 3, 3] * 2,
+                "rvalue": [np.nan, 1, 2, 3, 3] * 2,
             }
         )
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

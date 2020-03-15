@@ -1,10 +1,7 @@
-try:
-    import json
-except ImportError:
-    import simplejson as json
 import calendar
 import datetime
 import decimal
+import json
 import locale
 import math
 import re
@@ -20,7 +17,7 @@ from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
 
 from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def _clean_dict(d):
@@ -36,7 +33,6 @@ def _clean_dict(d):
     -------
     cleaned_dict : dict
     """
-
     return {str(k): v for k, v in d.items()}
 
 
@@ -50,6 +46,18 @@ def orient(request):
 @pytest.fixture(params=[None, True])
 def numpy(request):
     return request.param
+
+
+def get_int32_compat_dtype(numpy, orient):
+    # See GH#32527
+    dtype = np.int64
+    if not ((numpy is None or orient == "index") or (numpy is True and orient is None)):
+        if compat.is_platform_windows():
+            dtype = np.int32
+        else:
+            dtype = np.intp
+
+    return dtype
 
 
 class TestUltraJSONTests:
@@ -114,9 +122,9 @@ class TestUltraJSONTests:
     @pytest.mark.parametrize("ensure_ascii", [True, False])
     def test_encode_string_conversion(self, ensure_ascii):
         string_input = "A string \\ / \b \f \n \r \t </script> &"
-        not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n ' '\\r \\t <\\/script> &"'
+        not_html_encoded = '"A string \\\\ \\/ \\b \\f \\n \\r \\t <\\/script> &"'
         html_encoded = (
-            '"A string \\\\ \\/ \\b \\f \\n \\r \\t ' '\\u003c\\/script\\u003e \\u0026"'
+            '"A string \\\\ \\/ \\b \\f \\n \\r \\t \\u003c\\/script\\u003e \\u0026"'
         )
 
         def helper(expected_output, **encode_kwargs):
@@ -365,21 +373,21 @@ class TestUltraJSONTests:
     )
     def test_encode_time_conversion_basic(self, test):
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     def test_encode_time_conversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     def test_encode_time_conversion_dateutil(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, dateutil.tz.tzutc())
         output = ujson.encode(test)
-        expected = '"{iso}"'.format(iso=test.isoformat())
+        expected = f'"{test.isoformat()}"'
         assert expected == output
 
     @pytest.mark.parametrize(
@@ -562,11 +570,6 @@ class TestUltraJSONTests:
         with pytest.raises(TypeError, match=msg):
             ujson.loads(None)
 
-    def test_version(self):
-        assert re.match(
-            r"^\d+\.\d+(\.\d+)?$", ujson.__version__
-        ), "ujson.__version__ must be a string like '1.4.0'"
-
     def test_encode_numeric_overflow(self):
         with pytest.raises(OverflowError):
             ujson.encode(12839128391289382193812939)
@@ -583,7 +586,7 @@ class TestUltraJSONTests:
     def test_decode_number_with_32bit_sign_bit(self, val):
         # Test that numbers that fit within 32 bits but would have the
         # sign bit set (2**31 <= x < 2**32) are decoded properly.
-        doc = '{{"id": {val}}}'.format(val=val)
+        doc = f'{{"id": {val}}}'
         assert ujson.decode(doc)["id"] == val
 
     def test_encode_big_escape(self):
@@ -624,7 +627,7 @@ class TestUltraJSONTests:
             def recursive_attr(self):
                 return _TestObject("recursive_attr")
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return str(self.val)
 
         msg = "Maximum recursion level reached"
@@ -764,8 +767,9 @@ class TestNumpyJSONTests:
             ["a", "b"],
             {"key": "val"},
         ]
-        arr = np.array(arr_list)
-        tm.assert_numpy_array_equal(np.array(ujson.decode(ujson.encode(arr))), arr)
+        arr = np.array(arr_list, dtype=object)
+        result = np.array(ujson.decode(ujson.encode(arr)), dtype=object)
+        tm.assert_numpy_array_equal(result, arr)
 
     def test_array_float(self):
         dtype = np.float32
@@ -780,7 +784,9 @@ class TestNumpyJSONTests:
         tm.assert_almost_equal(arr, arr_out)
 
     def test_0d_array(self):
-        with pytest.raises(TypeError):
+        # gh-18878
+        msg = re.escape("array(1) (0d array) is not JSON serializable at the moment")
+        with pytest.raises(TypeError, match=msg):
             ujson.encode(np.array(1))
 
     @pytest.mark.parametrize(
@@ -816,7 +822,7 @@ class TestNumpyJSONTests:
 
         # see gh-10837: write out the dump explicitly
         # so there is no dependency on iteration order
-        input_dumps = '[{"a": 42, "b":31}, {"a": 24, "c": 99}, ' '{"a": 2.4, "b": 78}]'
+        input_dumps = '[{"a": 42, "b":31}, {"a": 24, "c": 99}, {"a": 2.4, "b": 78}]'
         output = ujson.loads(input_dumps, numpy=True, labelled=True)
         expected_vals = np.array([42, 31, 24, 99, 2.4, 78], dtype=int).reshape((3, 2))
         assert (expected_vals == output[0]).all()
@@ -839,13 +845,20 @@ class TestPandasJSONTests:
         if orient == "records" and numpy:
             pytest.skip("Not idiomatic pandas")
 
+        dtype = get_int32_compat_dtype(numpy, orient)
+
         df = DataFrame(
-            [[1, 2, 3], [4, 5, 6]], index=["a", "b"], columns=["x", "y", "z"]
+            [[1, 2, 3], [4, 5, 6]],
+            index=["a", "b"],
+            columns=["x", "y", "z"],
+            dtype=dtype,
         )
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
+        assert (df.dtypes == dtype).all()
 
         output = ujson.decode(ujson.encode(df, **encode_kwargs), **decode_kwargs)
+        assert (df.dtypes == dtype).all()
 
         # Ensure proper DataFrame initialization.
         if orient == "split":
@@ -863,7 +876,8 @@ class TestPandasJSONTests:
         elif orient == "index":
             df = df.transpose()
 
-        tm.assert_frame_equal(output, df, check_dtype=False)
+        assert (df.dtypes == dtype).all()
+        tm.assert_frame_equal(output, df)
 
     def test_dataframe_nested(self, orient):
         df = DataFrame(
@@ -903,14 +917,20 @@ class TestPandasJSONTests:
         tm.assert_frame_equal(output, df)
 
     def test_series(self, orient, numpy):
+        dtype = get_int32_compat_dtype(numpy, orient)
         s = Series(
-            [10, 20, 30, 40, 50, 60], name="series", index=[6, 7, 8, 9, 10, 15]
+            [10, 20, 30, 40, 50, 60],
+            name="series",
+            index=[6, 7, 8, 9, 10, 15],
+            dtype=dtype,
         ).sort_values()
+        assert s.dtype == dtype
 
         encode_kwargs = {} if orient is None else dict(orient=orient)
         decode_kwargs = {} if numpy is None else dict(numpy=numpy)
 
         output = ujson.decode(ujson.encode(s, **encode_kwargs), **decode_kwargs)
+        assert s.dtype == dtype
 
         if orient == "split":
             dec = _clean_dict(output)
@@ -926,7 +946,8 @@ class TestPandasJSONTests:
             s.name = None
             s.index = [0, 1, 2, 3, 4, 5]
 
-        tm.assert_series_equal(output, s, check_dtype=False)
+        assert s.dtype == dtype
+        tm.assert_series_equal(output, s)
 
     def test_series_nested(self, orient):
         s = Series(

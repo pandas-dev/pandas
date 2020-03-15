@@ -7,7 +7,7 @@ Extending pandas
 ****************
 
 While pandas provides a rich set of methods, containers, and data types, your
-needs may not be fully satisfied. Pandas offers a few options for extending
+needs may not be fully satisfied. pandas offers a few options for extending
 pandas.
 
 .. _extending.register-accessors:
@@ -80,8 +80,8 @@ Extension types
    The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
    experimental. They may change between versions without warning.
 
-Pandas defines an interface for implementing data types and arrays that *extend*
-NumPy's type system. Pandas itself uses the extension system for some types
+pandas defines an interface for implementing data types and arrays that *extend*
+NumPy's type system. pandas itself uses the extension system for some types
 that aren't built into NumPy (categorical, period, interval, datetime with
 timezone).
 
@@ -122,7 +122,7 @@ This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
 ``dtype`` attribute.
 
-Pandas makes no restrictions on how an extension array is created via its
+pandas makes no restrictions on how an extension array is created via its
 ``__new__`` or ``__init__``, and puts no restrictions on how you store your
 data. We do require that your array be convertible to a NumPy array, even if
 this is relatively expensive (as it is for ``Categorical``).
@@ -224,7 +224,7 @@ for an example.
 
 As part of your implementation, we require that you defer to pandas when a pandas
 container (:class:`Series`, :class:`DataFrame`, :class:`Index`) is detected in ``inputs``.
-If any of those is present, you should return ``NotImplemented``. Pandas will take care of
+If any of those is present, you should return ``NotImplemented``. pandas will take care of
 unboxing the array from the container and re-calling the ufunc with the unwrapped input.
 
 .. _extending.extension.testing:
@@ -251,6 +251,48 @@ To use a test, subclass it:
 See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
 for a list of all the tests available.
 
+.. _extending.extension.arrow:
+
+Compatibility with Apache Arrow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An ``ExtensionArray`` can support conversion to / from ``pyarrow`` arrays
+(and thus support for example serialization to the Parquet file format)
+by implementing two methods: ``ExtensionArray.__arrow_array__`` and
+``ExtensionDtype.__from_arrow__``.
+
+The ``ExtensionArray.__arrow_array__`` ensures that ``pyarrow`` knowns how
+to convert the specific extension array into a ``pyarrow.Array`` (also when
+included as a column in a pandas DataFrame):
+
+.. code-block:: python
+
+    class MyExtensionArray(ExtensionArray):
+        ...
+
+        def __arrow_array__(self, type=None):
+            # convert the underlying array values to a pyarrow Array
+            import pyarrow
+            return pyarrow.array(..., type=type)
+
+The ``ExtensionDtype.__from_arrow__`` method then controls the conversion
+back from pyarrow to a pandas ExtensionArray. This method receives a pyarrow
+``Array`` or ``ChunkedArray`` as only argument and is expected to return the
+appropriate pandas ``ExtensionArray`` for this dtype and the passed values:
+
+.. code-block:: none
+
+    class ExtensionDtype:
+        ...
+
+        def __from_arrow__(self, array: pyarrow.Array/ChunkedArray) -> ExtensionArray:
+            ...
+
+See more in the `Arrow documentation <https://arrow.apache.org/docs/python/extending_types.html>`__.
+
+Those methods have been implemented for the nullable integer and string extension
+dtypes included in pandas, and ensure roundtrip to pyarrow and the Parquet file format.
+
 .. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/dtypes.py
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
@@ -264,7 +306,7 @@ Subclassing pandas data structures
 
   1. Extensible method chains with :ref:`pipe <basics.pipe>`
 
-  2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
+  2. Use *composition*. See `here <https://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
 
   3. Extending by :ref:`registering an accessor <extending.register-accessors>`
 

@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import _np_version_under1p16
+
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -14,6 +16,7 @@ from pandas import (
     Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
     Series,
     Timestamp,
@@ -21,7 +24,7 @@ from pandas import (
     period_range,
     timedelta_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
@@ -274,23 +277,19 @@ class TestCategoricalConstructors:
     def test_constructor_with_generator(self):
         # This was raising an Error in isna(single_val).any() because isna
         # returned a scalar for a generator
-        xrange = range
 
         exp = Categorical([0, 1, 2])
         cat = Categorical((x for x in [0, 1, 2]))
         tm.assert_categorical_equal(cat, exp)
-        cat = Categorical(xrange(3))
+        cat = Categorical(range(3))
         tm.assert_categorical_equal(cat, exp)
-
-        # This uses xrange internally
-        from pandas.core.index import MultiIndex
 
         MultiIndex.from_product([range(5), ["a", "b", "c"]])
 
         # check that categories accept generators and sequences
         cat = Categorical([0, 1, 2], categories=(x for x in [0, 1, 2]))
         tm.assert_categorical_equal(cat, exp)
-        cat = Categorical([0, 1, 2], categories=xrange(3))
+        cat = Categorical([0, 1, 2], categories=range(3))
         tm.assert_categorical_equal(cat, exp)
 
     @pytest.mark.parametrize(
@@ -309,7 +308,7 @@ class TestCategoricalConstructors:
         c = Categorical(s)
 
         expected = type(dtl)(s)
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
         tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
@@ -320,7 +319,7 @@ class TestCategoricalConstructors:
         c = Categorical(s2)
 
         expected = type(dtl)(s2.dropna())
-        expected.freq = None
+        expected._data.freq = None
 
         tm.assert_index_equal(c.categories, expected)
 
@@ -354,9 +353,9 @@ class TestCategoricalConstructors:
         result = Categorical(Series(idx))
         tm.assert_index_equal(result.categories, idx)
 
-    def test_constructor_invariant(self):
-        # GH 14190
-        vals = [
+    @pytest.mark.parametrize(
+        "values",
+        [
             np.array([1.0, 1.2, 1.8, np.nan]),
             np.array([1, 2, 3], dtype="int64"),
             ["a", "b", "c", np.nan],
@@ -367,11 +366,13 @@ class TestCategoricalConstructors:
                 Timestamp("2014-01-02", tz="US/Eastern"),
                 NaT,
             ],
-        ]
-        for val in vals:
-            c = Categorical(val)
-            c2 = Categorical(c)
-            tm.assert_categorical_equal(c, c2)
+        ],
+    )
+    def test_constructor_invariant(self, values):
+        # GH 14190
+        c = Categorical(values)
+        c2 = Categorical(c)
+        tm.assert_categorical_equal(c, c2)
 
     @pytest.mark.parametrize("ordered", [True, False])
     def test_constructor_with_dtype(self, ordered):
@@ -408,6 +409,11 @@ class TestCategoricalConstructors:
     def test_constructor_str_unknown(self):
         with pytest.raises(ValueError, match="Unknown dtype"):
             Categorical([1, 2], dtype="foo")
+
+    def test_constructor_np_strs(self):
+        # GH#31499 Hastable.map_locations needs to work on np.str_ objects
+        cat = pd.Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
+        assert all(isinstance(x, np.str_) for x in cat.categories)
 
     def test_constructor_from_categorical_with_dtype(self):
         dtype = CategoricalDtype(["a", "b", "c"], ordered=True)
@@ -454,9 +460,26 @@ class TestCategoricalConstructors:
         result = Categorical(["a", "b"], categories=CategoricalIndex(["a", "b", "c"]))
         tm.assert_categorical_equal(result, expected)
 
-    def test_from_codes(self):
+    @pytest.mark.parametrize("klass", [lambda x: np.array(x, dtype=object), list])
+    def test_construction_with_null(self, klass, nulls_fixture):
+        # https://github.com/pandas-dev/pandas/issues/31927
+        values = klass(["a", nulls_fixture, "b"])
+        result = Categorical(values)
 
-        # too few categories
+        dtype = CategoricalDtype(["a", "b"])
+        codes = [0, -1, 1]
+        expected = Categorical.from_codes(codes=codes, dtype=dtype)
+
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_codes_empty(self):
+        cat = ["a", "b", "c"]
+        result = Categorical.from_codes([], categories=cat)
+        expected = Categorical([], categories=cat)
+
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_codes_too_few_categories(self):
         dtype = CategoricalDtype(categories=[1, 2])
         msg = "codes need to be between "
         with pytest.raises(ValueError, match=msg):
@@ -464,22 +487,23 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes([1, 2], dtype=dtype)
 
-        # no int codes
+    def test_from_codes_non_int_codes(self):
+        dtype = CategoricalDtype(categories=[1, 2])
         msg = "codes need to be array-like integers"
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(["a"], categories=dtype.categories)
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(["a"], dtype=dtype)
 
-        # no unique categories
+    def test_from_codes_non_unique_categories(self):
         with pytest.raises(ValueError, match="Categorical categories must be unique"):
             Categorical.from_codes([0, 1, 2], categories=["a", "a", "b"])
 
-        # NaN categories included
+    def test_from_codes_nan_cat_included(self):
         with pytest.raises(ValueError, match="Categorial categories cannot be null"):
             Categorical.from_codes([0, 1, 2], categories=["a", "b", np.nan])
 
-        # too negative
+    def test_from_codes_too_negative(self):
         dtype = CategoricalDtype(categories=["a", "b", "c"])
         msg = r"codes need to be between -1 and len\(categories\)-1"
         with pytest.raises(ValueError, match=msg):
@@ -487,6 +511,8 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes([-2, 1, 2], dtype=dtype)
 
+    def test_from_codes(self):
+        dtype = CategoricalDtype(categories=["a", "b", "c"])
         exp = Categorical(["a", "b", "c"], ordered=False)
         res = Categorical.from_codes([0, 1, 2], categories=dtype.categories)
         tm.assert_categorical_equal(exp, res)
@@ -494,21 +520,18 @@ class TestCategoricalConstructors:
         res = Categorical.from_codes([0, 1, 2], dtype=dtype)
         tm.assert_categorical_equal(exp, res)
 
-    def test_from_codes_with_categorical_categories(self):
+    @pytest.mark.parametrize("klass", [Categorical, CategoricalIndex])
+    def test_from_codes_with_categorical_categories(self, klass):
         # GH17884
         expected = Categorical(["a", "b"], categories=["a", "b", "c"])
 
-        result = Categorical.from_codes([0, 1], categories=Categorical(["a", "b", "c"]))
+        result = Categorical.from_codes([0, 1], categories=klass(["a", "b", "c"]))
         tm.assert_categorical_equal(result, expected)
 
-        result = Categorical.from_codes(
-            [0, 1], categories=CategoricalIndex(["a", "b", "c"])
-        )
-        tm.assert_categorical_equal(result, expected)
-
-        # non-unique Categorical still raises
+    @pytest.mark.parametrize("klass", [Categorical, CategoricalIndex])
+    def test_from_codes_with_non_unique_categorical_categories(self, klass):
         with pytest.raises(ValueError, match="Categorical categories must be unique"):
-            Categorical.from_codes([0, 1], Categorical(["a", "b", "a"]))
+            Categorical.from_codes([0, 1], klass(["a", "b", "a"]))
 
     def test_from_codes_with_nan_code(self):
         # GH21767
@@ -519,23 +542,16 @@ class TestCategoricalConstructors:
         with pytest.raises(ValueError, match="codes need to be array-like integers"):
             Categorical.from_codes(codes, dtype=dtype)
 
-    def test_from_codes_with_float(self):
+    @pytest.mark.parametrize("codes", [[1.0, 2.0, 0], [1.1, 2.0, 0]])
+    def test_from_codes_with_float(self, codes):
         # GH21767
-        codes = [1.0, 2.0, 0]  # integer, but in float dtype
+        # float codes should raise even if values are equal to integers
         dtype = CategoricalDtype(categories=["a", "b", "c"])
 
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype.categories)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical.from_codes(codes, dtype=dtype)
-        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="i1"))
-
-        codes = [1.1, 2.0, 0]  # non-integer
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+        msg = "codes need to be array-like integers"
+        with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(codes, dtype.categories)
-        with pytest.raises(ValueError, match="codes need to be array-like integers"):
+        with pytest.raises(ValueError, match=msg):
             Categorical.from_codes(codes, dtype=dtype)
 
     def test_from_codes_with_dtype_raises(self):
@@ -554,6 +570,23 @@ class TestCategoricalConstructors:
         msg = "Both were None"
         with pytest.raises(ValueError, match=msg):
             Categorical.from_codes([0, 1])
+
+    def test_from_codes_with_nullable_int(self):
+        codes = pd.array([0, 1], dtype="Int64")
+        categories = ["a", "b"]
+
+        result = Categorical.from_codes(codes, categories=categories)
+        expected = Categorical.from_codes(codes.to_numpy(int), categories=categories)
+
+        tm.assert_categorical_equal(result, expected)
+
+    def test_from_codes_with_nullable_int_na_raises(self):
+        codes = pd.array([0, None], dtype="Int64")
+        categories = ["a", "b"]
+
+        msg = "codes cannot contain NA values"
+        with pytest.raises(ValueError, match=msg):
+            Categorical.from_codes(codes, categories=categories)
 
     @pytest.mark.parametrize("dtype", [None, "category"])
     def test_from_inferred_categories(self, dtype):
@@ -601,3 +634,10 @@ class TestCategoricalConstructors:
         c1 = Categorical(values)
         tm.assert_index_equal(c1.categories, Index(values))
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
+
+    @pytest.mark.skipif(_np_version_under1p16, reason="Skipping for NumPy <1.16")
+    def test_constructor_string_and_tuples(self):
+        # GH 21416
+        c = pd.Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))
+        expected_index = pd.Index([("a", "b"), ("b", "a"), "c"])
+        assert c.categories.equals(expected_index)

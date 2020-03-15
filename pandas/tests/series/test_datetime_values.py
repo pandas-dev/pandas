@@ -19,15 +19,13 @@ from pandas import (
     PeriodIndex,
     Series,
     TimedeltaIndex,
-    bdate_range,
     date_range,
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 import pandas.core.common as com
-import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesDatetimeValues:
@@ -209,20 +207,18 @@ class TestSeriesDatetimeValues:
         # test limited display api
         def get_dir(s):
             results = [r for r in s.dt.__dir__() if not r.startswith("_")]
-            return list(sorted(set(results)))
+            return sorted(set(results))
 
         s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         s = Series(
             period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
         )
         results = get_dir(s)
         tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_period + ok_for_period_methods)))
+            results, sorted(set(ok_for_period + ok_for_period_methods))
         )
 
         # 11295
@@ -230,9 +226,7 @@ class TestSeriesDatetimeValues:
         s = Series(pd.date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
         s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_dt + ok_for_dt_methods)))
-        )
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
         exp_values = pd.date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
@@ -345,6 +339,39 @@ class TestSeriesDatetimeValues:
         expected = Series([2017, 2017, 2018, 2018], name="foo")
         tm.assert_series_equal(result, expected)
 
+    def test_dt_tz_localize_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_localize(tz)
+        expected = datetimes.dt.tz_localize(tz)
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_tz_convert_categorical(self, tz_aware_fixture):
+        # GH 27952
+        tz = tz_aware_fixture
+        datetimes = pd.Series(
+            ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns, MET]"
+        )
+        categorical = datetimes.astype("category")
+        result = categorical.dt.tz_convert(tz)
+        expected = datetimes.dt.tz_convert(tz)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("accessor", ["year", "month", "day"])
+    def test_dt_other_accessors_categorical(self, accessor):
+        # GH 27952
+        datetimes = pd.Series(
+            ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
+        )
+        categorical = datetimes.astype("category")
+        result = getattr(categorical.dt, accessor)
+        expected = getattr(datetimes.dt, accessor)
+        tm.assert_series_equal(result, expected)
+
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range("20130101", periods=5, freq="D"))
@@ -399,7 +426,6 @@ class TestSeriesDatetimeValues:
         ]
         for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
             name = name.capitalize()
-            assert s.dt.weekday_name[day] == eng_name
             assert s.dt.day_name(locale=time_locale)[day] == name
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
@@ -472,7 +498,7 @@ class TestSeriesDatetimeValues:
         s.iloc[0] = pd.NaT
         result = s.dt.strftime("%Y/%m/%d")
         expected = Series(
-            ["NaT", "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
+            [np.nan, "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
         )
         tm.assert_series_equal(result, expected)
 
@@ -520,6 +546,20 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 00:00:00.003",
             ]
         )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            DatetimeIndex(["2019-01-01", pd.NaT]),
+            PeriodIndex(["2019-01-01", pd.NaT], dtype="period[D]"),
+        ],
+    )
+    def test_strftime_nat(self, data):
+        # GH 29578
+        s = Series(data)
+        result = s.dt.strftime("%Y-%m-%d")
+        expected = Series(["2019-01-01", np.nan])
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
@@ -581,18 +621,6 @@ class TestSeriesDatetimeValues:
         result = s.dt.date
         assert result[0] == result[2]
 
-    def test_between(self):
-        s = Series(bdate_range("1/1/2000", periods=20).astype(object))
-        s[::2] = np.nan
-
-        result = s[s.between(s[3], s[17])]
-        expected = s[3:18].dropna()
-        assert_series_equal(result, expected)
-
-        result = s[s.between(s[3], s[17], inclusive=False)]
-        expected = s[5:16].dropna()
-        assert_series_equal(result, expected)
-
     def test_date_tz(self):
         # GH11757
         rng = pd.DatetimeIndex(
@@ -601,17 +629,8 @@ class TestSeriesDatetimeValues:
         )
         s = Series(rng)
         expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
-        assert_series_equal(s.dt.date, expected)
-        assert_series_equal(s.apply(lambda x: x.date()), expected)
-
-    def test_datetime_understood(self):
-        # Ensures it doesn't fail to create the right series
-        # reported in issue#16726
-        series = pd.Series(pd.date_range("2012-01-01", periods=3))
-        offset = pd.offsets.DateOffset(days=6)
-        result = series - offset
-        expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(s.dt.date, expected)
+        tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
 
     def test_dt_timetz_accessor(self, tz_naive_fixture):
         # GH21358

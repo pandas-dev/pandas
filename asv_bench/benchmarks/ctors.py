@@ -1,7 +1,8 @@
 import numpy as np
 
 from pandas import DatetimeIndex, Index, MultiIndex, Series, Timestamp
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 def no_change(arr):
@@ -67,7 +68,7 @@ class SeriesConstructors:
     def setup(self, data_fmt, with_index, dtype):
         if data_fmt in (gen_of_str, gen_of_tuples) and with_index:
             raise NotImplementedError(
-                "Series constructors do not support " "using generators with indexes"
+                "Series constructors do not support using generators with indexes"
             )
         N = 10 ** 4
         if dtype == "float":

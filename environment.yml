@@ -1,11 +1,10 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
 dependencies:
   # required
   - numpy>=1.15
-  - python=3
+  - python=3.7
   - python-dateutil>=2.6.1
   - pytz
 
@@ -16,35 +15,49 @@ dependencies:
   - cython>=0.29.13
 
   # code checks
-  - black
+  - black=19.10b0
   - cpplint
   - flake8
-  - flake8-comprehensions  # used by flake8, linting of unnecessary comprehensions
+  - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort  # check that imports are in the right order
-  - mypy
+  - mypy=0.730
   - pycodestyle  # used by flake8
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
-  # some styling is broken with sphinx >= 2 (https://github.com/pandas-dev/pandas/issues/26058)
-  - sphinx=1.8.5
-  - numpydoc>=0.9.0
+  - gitdb2=2.0.6  # GH-32060
+  - sphinx
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
   - nbsphinx
   - pandoc
 
+  # Dask and its dependencies (that dont install with dask)
+  - dask-core
+  - toolz>=0.7.3
+  - fsspec>=0.5.1
+  - partd>=0.3.10
+  - cloudpickle>=0.2.1
+
+  # web (jinja2 is also needed, but it's also an optional pandas dependency)
+  - markdown
+  - feedparser
+  - pyyaml
+  - requests
+
   # testing
   - boto3
   - botocore>=1.11
   - hypothesis>=3.82
   - moto  # mock S3
-  - pytest>=4.0.2
+  - pytest>=5.0.1
   - pytest-cov
-  - pytest-mock
-  - pytest-xdist
+  - pytest-xdist>=1.21
+  - pytest-asyncio
+
+  # downstream tests
   - seaborn
   - statsmodels
 
@@ -58,27 +71,38 @@ dependencies:
   - blosc
   - bottleneck>=1.2.1
   - ipykernel
-  - ipython>=5.6.0
+  - ipython>=7.11.1
   - jinja2  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.6.8
   - scipy>=1.1
+  - numba>=0.46.0
 
   # optional for io
-  - beautifulsoup4>=4.6.0  # pandas.read_html
-  - fastparquet>=0.2.1  # pandas.read_parquet, DataFrame.to_parquet
-  - html5lib  # pandas.read_html
-  - lxml  # pandas.read_html
-  - openpyxl  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - pyarrow>=0.9.0  # pandas.read_paquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  # ---------------
+  # pd.read_html
+  - beautifulsoup4>=4.6.0
+  - html5lib
+  - lxml
+
+  # pd.read_excel, DataFrame.to_excel, pd.ExcelWriter, pd.ExcelFile
+  - openpyxl<=3.0.1
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - odfpy
+
+  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
+  - pyarrow>=0.13.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - python-snappy  # required by pyarrow
+
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.4.2  # pandas.read_hdf, DataFrame.to_hdf
-  - python-snappy  # required by pyarrow
   - s3fs  # pandas.read_csv... when using 's3://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
-  - xlrd  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - xlsxwriter  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - xlwt  # pandas.read_excel, DataFrame.to_excel, pandas.ExcelWriter, pandas.ExcelFile
-  - odfpy  # pandas.read_excel
   - pyreadstat  # pandas.read_spss
+  - tabulate>=0.8.3  # DataFrame.to_markdown
+  - pip:
+    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+    - git+https://github.com/numpy/numpydoc

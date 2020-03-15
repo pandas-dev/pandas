@@ -8,8 +8,9 @@ from pandas._config import get_option
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import NaT, iNaT
+from pandas._typing import DtypeObj
 
-from .common import (
+from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
     ensure_object,
@@ -17,7 +18,6 @@ from .common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetimelike,
     is_datetimelike_v_numeric,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -32,7 +32,7 @@ from .common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from .generic import (
+from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCGeneric,
@@ -41,7 +41,7 @@ from .generic import (
     ABCSeries,
     ABCTimedeltaArray,
 )
-from .inference import is_list_like
+from pandas.core.dtypes.inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
@@ -80,6 +80,9 @@ def isna(obj):
 
     >>> pd.isna('dog')
     False
+
+    >>> pd.isna(pd.NA)
+    True
 
     >>> pd.isna(np.nan)
     True
@@ -128,6 +131,7 @@ isnull = isna
 
 
 def _isna_new(obj):
+
     if is_scalar(obj):
         return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
@@ -158,7 +162,8 @@ def _isna_new(obj):
 
 
 def _isna_old(obj):
-    """Detect missing values. Treat None, NaN, INF, -INF as null.
+    """
+    Detect missing values, treating None, NaN, INF, -INF as null.
 
     Parameters
     ----------
@@ -175,7 +180,7 @@ def _isna_old(obj):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass, ABCExtensionArray)):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
@@ -191,7 +196,9 @@ _isna = _isna_new
 
 
 def _use_inf_as_na(key):
-    """Option change callback for na/inf behaviour
+    """
+    Option change callback for na/inf behaviour.
+
     Choose which replacement for numpy.isnan / -numpy.isfinite is used.
 
     Parameters
@@ -206,7 +213,7 @@ def _use_inf_as_na(key):
     This approach to setting global module values is discussed and
     approved here:
 
-    * http://stackoverflow.com/questions/4859217/
+    * https://stackoverflow.com/questions/4859217/
       programmatically-creating-variables-in-python/4859312#4859312
     """
     flag = get_option(key)
@@ -324,6 +331,9 @@ def notna(obj):
     >>> pd.notna('dog')
     True
 
+    >>> pd.notna(pd.NA)
+    False
+
     >>> pd.notna(np.nan)
     False
 
@@ -373,7 +383,7 @@ def notna(obj):
 notnull = notna
 
 
-def _isna_compat(arr, fill_value=np.nan):
+def _isna_compat(arr, fill_value=np.nan) -> bool:
     """
     Parameters
     ----------
@@ -390,7 +400,7 @@ def _isna_compat(arr, fill_value=np.nan):
     return True
 
 
-def array_equivalent(left, right, strict_nan=False):
+def array_equivalent(left, right, strict_nan: bool = False) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
     in corresponding locations.  False otherwise. It is assumed that left and
@@ -420,7 +430,6 @@ def array_equivalent(left, right, strict_nan=False):
     ...     np.array([1, 2, np.nan]))
     False
     """
-
     left, right = np.asarray(left), np.asarray(right)
 
     # shape compat
@@ -441,12 +450,23 @@ def array_equivalent(left, right, strict_nan=False):
             if left_value is NaT and right_value is not NaT:
                 return False
 
+            elif left_value is libmissing.NA and right_value is not libmissing.NA:
+                return False
+
             elif isinstance(left_value, float) and np.isnan(left_value):
                 if not isinstance(right_value, float) or not np.isnan(right_value):
                     return False
             else:
-                if left_value != right_value:
-                    return False
+                try:
+                    if np.any(np.asarray(left_value != right_value)):
+                        return False
+                except TypeError as err:
+                    if "Cannot compare tz-naive" in str(err):
+                        # tzawareness compat failure, see GH#28507
+                        return False
+                    elif "boolean value of NA is ambiguous" in str(err):
+                        return False
+                    raise
         return True
 
     # NaNs can occur in float and complex arrays.
@@ -457,12 +477,12 @@ def array_equivalent(left, right, strict_nan=False):
             return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
-    # numpy will will not allow this type of datetimelike vs integer comparison
     elif is_datetimelike_v_numeric(left, right):
+        # GH#29553 avoid numpy deprecation warning
         return False
 
-    # M8/m8
-    elif needs_i8_conversion(left) and needs_i8_conversion(right):
+    elif needs_i8_conversion(left) or needs_i8_conversion(right):
+        # datetime64, timedelta64, Period
         if not is_dtype_equal(left.dtype, right.dtype):
             return False
 
@@ -483,11 +503,10 @@ def _infer_fill_value(val):
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
     element to provide proper block construction
     """
-
     if not is_list_like(val):
         val = [val]
     val = np.array(val, copy=False)
-    if is_datetimelike(val):
+    if needs_i8_conversion(val):
         return np.array("NaT", dtype=val.dtype)
     elif is_object_dtype(val.dtype):
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
@@ -507,14 +526,14 @@ def _maybe_fill(arr, fill_value=np.nan):
     return arr
 
 
-def na_value_for_dtype(dtype, compat=True):
+def na_value_for_dtype(dtype, compat: bool = True):
     """
     Return a dtype compat na value
 
     Parameters
     ----------
     dtype : string / dtype
-    compat : boolean, default True
+    compat : bool, default True
 
     Returns
     -------
@@ -562,10 +581,10 @@ def remove_na_arraylike(arr):
     if is_extension_array_dtype(arr):
         return arr[notna(arr)]
     else:
-        return arr[notna(lib.values_from_object(arr))]
+        return arr[notna(np.asarray(arr))]
 
 
-def is_valid_nat_for_dtype(obj, dtype):
+def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 

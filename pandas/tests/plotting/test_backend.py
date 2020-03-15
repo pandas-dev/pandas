@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas
 
 dummy_backend = types.ModuleType("pandas_dummy_backend")
-dummy_backend.plot = lambda *args, **kwargs: None
+setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")
 
 
 @pytest.fixture
@@ -36,6 +36,14 @@ def test_backend_is_correct(monkeypatch, restore_backend):
     assert (
         pandas.plotting._core._get_plot_backend("pandas_dummy_backend") is dummy_backend
     )
+
+
+def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend):
+    monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
+    df = pandas.DataFrame([1, 2, 3])
+
+    assert pandas.get_option("plotting.backend") == "matplotlib"
+    assert df.plot(backend="pandas_dummy_backend") == "used_dummy"
 
 
 @td.skip_if_no_mpl
@@ -86,3 +94,11 @@ def test_setting_backend_without_plot_raises():
 def test_no_matplotlib_ok():
     with pytest.raises(ImportError):
         pandas.plotting._core._get_plot_backend("matplotlib")
+
+
+def test_extra_kinds_ok(monkeypatch, restore_backend):
+    # https://github.com/pandas-dev/pandas/pull/28647
+    monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
+    pandas.set_option("plotting.backend", "pandas_dummy_backend")
+    df = pandas.DataFrame({"A": [1, 2, 3]})
+    df.plot(kind="not a real kind")

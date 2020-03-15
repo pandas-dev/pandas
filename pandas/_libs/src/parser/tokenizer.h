@@ -15,13 +15,13 @@ See LICENSE for the license
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#define ERROR_OK 0
 #define ERROR_NO_DIGITS 1
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
 
 #include "../headers/stdint.h"
 #include "../inline_helper.h"
+#include "../headers/portable.h"
 
 #include "khash.h"
 
@@ -30,10 +30,6 @@ See LICENSE for the license
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
-
-#if defined(_MSC_VER)
-#define strtoll _strtoi64
-#endif  // _MSC_VER
 
 /*
 
@@ -159,11 +155,8 @@ typedef struct parser_t {
     PyObject *skipfunc;
     int64_t skip_first_N_rows;
     int64_t skip_footer;
-    // pick one, depending on whether the converter requires GIL
-    double (*double_converter_nogil)(const char *, char **,
-                                     char, char, char, int);
-    double (*double_converter_withgil)(const char *, char **,
-                                       char, char, char, int);
+    double (*double_converter)(const char *, char **,
+                               char, char, char, int, int *, int *);
 
     // error handling
     char *warn_msg;
@@ -179,7 +172,6 @@ typedef struct coliter_t {
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
-coliter_t *coliter_new(parser_t *self, int i);
 
 #define COLITER_NEXT(iter, word)                           \
     do {                                                   \
@@ -231,6 +223,8 @@ double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
 double precise_xstrtod(const char *p, char **q, char decimal,
                        char sci, char tsep, int skip_trailing,
                        int *error, int *maybe_int);
+
+// GH-15140 - round_trip requires and acquires the GIL on its own
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);

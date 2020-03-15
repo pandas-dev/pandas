@@ -2,7 +2,7 @@ from datetime import datetime
 
 import numpy as np
 
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.date_converters as conv
 

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, Index, MultiIndex, NaT
-from pandas.util.testing import assert_index_equal
+import pandas._testing as tm
 
 
 def test_index_equal_levels_mismatch():
@@ -20,7 +20,7 @@ Index levels are different
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_index_equal(idx1, idx2, exact=False)
+        tm.assert_index_equal(idx1, idx2, exact=False)
 
 
 def test_index_equal_values_mismatch(check_exact):
@@ -34,7 +34,7 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_index_equal(idx1, idx2, check_exact=check_exact)
+        tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
 
 
 def test_index_equal_length_mismatch(check_exact):
@@ -48,7 +48,7 @@ Index length are different
     idx2 = Index([1, 2, 3, 4])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_index_equal(idx1, idx2, check_exact=check_exact)
+        tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
 
 
 def test_index_equal_class_mismatch(check_exact):
@@ -62,7 +62,7 @@ Index classes are different
     idx2 = Index([1, 2, 3.0])
 
     with pytest.raises(AssertionError, match=msg):
-        assert_index_equal(idx1, idx2, exact=True, check_exact=check_exact)
+        tm.assert_index_equal(idx1, idx2, exact=True, check_exact=check_exact)
 
 
 def test_index_equal_values_close(check_exact):
@@ -77,9 +77,9 @@ Index values are different \\(33\\.33333 %\\)
 \\[right\\]: Float64Index\\(\\[1.0, 2.0, 3.0000000001\\], dtype='float64'\\)"""
 
         with pytest.raises(AssertionError, match=msg):
-            assert_index_equal(idx1, idx2, check_exact=check_exact)
+            tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
     else:
-        assert_index_equal(idx1, idx2, check_exact=check_exact)
+        tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
 
 
 def test_index_equal_values_less_close(check_exact, check_less_precise):
@@ -95,9 +95,9 @@ Index values are different \\(33\\.33333 %\\)
 \\[right\\]: Float64Index\\(\\[1.0, 2.0, 3.0001\\], dtype='float64'\\)"""
 
         with pytest.raises(AssertionError, match=msg):
-            assert_index_equal(idx1, idx2, **kwargs)
+            tm.assert_index_equal(idx1, idx2, **kwargs)
     else:
-        assert_index_equal(idx1, idx2, **kwargs)
+        tm.assert_index_equal(idx1, idx2, **kwargs)
 
 
 def test_index_equal_values_too_far(check_exact, check_less_precise):
@@ -112,7 +112,7 @@ Index values are different \\(33\\.33333 %\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 4\\], dtype='int64'\\)"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_index_equal(idx1, idx2, **kwargs)
+        tm.assert_index_equal(idx1, idx2, **kwargs)
 
 
 def test_index_equal_level_values_mismatch(check_exact, check_less_precise):
@@ -127,7 +127,7 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
     with pytest.raises(AssertionError, match=msg):
-        assert_index_equal(idx1, idx2, **kwargs)
+        tm.assert_index_equal(idx1, idx2, **kwargs)
 
 
 @pytest.mark.parametrize(
@@ -135,24 +135,23 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
     [(None, "x"), ("x", "x"), (np.nan, np.nan), (NaT, NaT), (np.nan, NaT)],
 )
 def test_index_equal_names(name1, name2):
-    msg = """Index are different
-
-Attribute "names" are different
-\\[left\\]:  \\[{name1}\\]
-\\[right\\]: \\[{name2}\\]"""
 
     idx1 = Index([1, 2, 3], name=name1)
     idx2 = Index([1, 2, 3], name=name2)
 
     if name1 == name2 or name1 is name2:
-        assert_index_equal(idx1, idx2)
+        tm.assert_index_equal(idx1, idx2)
     else:
         name1 = "'x'" if name1 == "x" else name1
         name2 = "'x'" if name2 == "x" else name2
-        msg = msg.format(name1=name1, name2=name2)
+        msg = f"""Index are different
+
+Attribute "names" are different
+\\[left\\]:  \\[{name1}\\]
+\\[right\\]: \\[{name2}\\]"""
 
         with pytest.raises(AssertionError, match=msg):
-            assert_index_equal(idx1, idx2)
+            tm.assert_index_equal(idx1, idx2)
 
 
 def test_index_equal_category_mismatch(check_categorical):
@@ -168,6 +167,6 @@ ordered=False\\)"""
 
     if check_categorical:
         with pytest.raises(AssertionError, match=msg):
-            assert_index_equal(idx1, idx2, check_categorical=check_categorical)
+            tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
     else:
-        assert_index_equal(idx1, idx2, check_categorical=check_categorical)
+        tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)

@@ -1,13 +1,52 @@
 """
 Low-dependency indexing utilities.
 """
+import warnings
+
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
+from pandas._typing import Any, AnyArrayLike
+
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_extension_array_dtype,
+    is_integer,
+    is_integer_dtype,
+    is_list_like,
+)
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 # -----------------------------------------------------------
 # Indexer Identification
+
+
+def is_valid_positional_slice(slc: slice) -> bool:
+    """
+    Check if a slice object can be interpreted as a positional indexer.
+
+    Parameters
+    ----------
+    slc : slice
+
+    Returns
+    -------
+    bool
+
+    Notes
+    -----
+    A valid positional slice may also be interpreted as a label-based slice
+    depending on the index being sliced.
+    """
+
+    def is_int_or_none(val):
+        return val is None or is_integer(val)
+
+    return (
+        is_int_or_none(slc.start)
+        and is_int_or_none(slc.stop)
+        and is_int_or_none(slc.step)
+    )
 
 
 def is_list_like_indexer(key) -> bool:
@@ -27,8 +66,13 @@ def is_list_like_indexer(key) -> bool:
 
 
 def is_scalar_indexer(indexer, arr_value) -> bool:
-    # return True if we are all scalar indexers
+    """
+    Return True if we are all scalar indexers.
 
+    Returns
+    -------
+    bool
+    """
     if arr_value.ndim == 1:
         if not isinstance(indexer, tuple):
             indexer = tuple([indexer])
@@ -73,11 +117,11 @@ def check_setitem_lengths(indexer, value, values) -> None:
     Parameters
     ----------
     indexer : sequence
-        The key for the setitem
+        Key for the setitem.
     value : array-like
-        The value for the setitem
+        Value for the setitem.
     values : array-like
-        The values being set into
+        Values being set into.
 
     Returns
     -------
@@ -86,8 +130,7 @@ def check_setitem_lengths(indexer, value, values) -> None:
     Raises
     ------
     ValueError
-        When the indexer is an ndarray or list and the lengths don't
-        match.
+        When the indexer is an ndarray or list and the lengths don't match.
     """
     # boolean with truth values == len of the value is ok too
     if isinstance(indexer, (np.ndarray, list)):
@@ -122,7 +165,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     ----------
     indices : ndarray
     n : int
-        length of the array being indexed
+        Length of the array being indexed.
 
     Raises
     ------
@@ -144,9 +187,7 @@ def validate_indices(indices: np.ndarray, n: int) -> None:
     if len(indices):
         min_idx = indices.min()
         if min_idx < -1:
-            msg = "'indices' contains values less than allowed ({} < {})".format(
-                min_idx, -1
-            )
+            msg = f"'indices' contains values less than allowed ({min_idx} < -1)"
             raise ValueError(msg)
 
         max_idx = indices.max()
@@ -168,27 +209,27 @@ def maybe_convert_indices(indices, n: int):
     Parameters
     ----------
     indices : array-like
-        The array of indices that we are to convert.
+        Array of indices that we are to convert.
     n : int
-        The number of elements in the array that we are indexing.
+        Number of elements in the array that we are indexing.
 
     Returns
     -------
-    valid_indices : array-like
+    array-like
         An array-like of positive indices that correspond to the ones
         that were passed in initially to this function.
 
     Raises
     ------
-    IndexError : one of the converted indices either exceeded the number
-        of elements (specified by `n`) OR was still negative.
+    IndexError
+        One of the converted indices either exceeded the number of,
+        elements (specified by `n`), or was still negative.
     """
-
     if isinstance(indices, list):
         indices = np.array(indices)
         if len(indices) == 0:
-            # If list is empty, np.array will return float and cause indexing
-            # errors.
+            # If `indices` is empty, np.array will return a float,
+            # and will cause indexing errors.
             return np.empty(0, dtype=np.intp)
 
     mask = indices < 0
@@ -208,7 +249,11 @@ def maybe_convert_indices(indices, n: int):
 
 def length_of_indexer(indexer, target=None) -> int:
     """
-    return the length of a single non-tuple indexer which could be a slice
+    Return the expected length of target[indexer]
+
+    Returns
+    -------
+    int
     """
     if target is not None and isinstance(indexer, slice):
         target_len = len(target)
@@ -230,7 +275,202 @@ def length_of_indexer(indexer, target=None) -> int:
             step = -step
         return (stop - start + step - 1) // step
     elif isinstance(indexer, (ABCSeries, ABCIndexClass, np.ndarray, list)):
+        if isinstance(indexer, list):
+            indexer = np.array(indexer)
+
+        if indexer.dtype == bool:
+            # GH#25774
+            return indexer.sum()
         return len(indexer)
     elif not is_list_like_indexer(indexer):
         return 1
     raise AssertionError("cannot find the length of the indexer")
+
+
+def deprecate_ndim_indexing(result):
+    """
+    Helper function to raise the deprecation warning for multi-dimensional
+    indexing on 1D Series/Index.
+
+    GH#27125 indexer like idx[:, None] expands dim, but we cannot do that
+    and keep an index, so we currently return ndarray, which is deprecated
+    (Deprecation GH#30588).
+    """
+    if np.ndim(result) > 1:
+        warnings.warn(
+            "Support for multi-dimensional indexing (e.g. `index[:, None]`) "
+            "on an Index is deprecated and will be removed in a future "
+            "version.  Convert to a numpy array before indexing instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+
+def unpack_1tuple(tup):
+    """
+    If we have a length-1 tuple/list that contains a slice, unpack to just
+    the slice.
+
+    Notes
+    -----
+    The list case is deprecated.
+    """
+    if len(tup) == 1 and isinstance(tup[0], slice):
+        # if we don't have a MultiIndex, we may still be able to handle
+        #  a 1-tuple.  see test_1tuple_without_multiindex
+
+        if isinstance(tup, list):
+            # GH#31299
+            warnings.warn(
+                "Indexing with a single-item list containing a "
+                "slice is deprecated and will raise in a future "
+                "version.  Pass a tuple instead.",
+                FutureWarning,
+                stacklevel=3,
+            )
+
+        return tup[0]
+    return tup
+
+
+# -----------------------------------------------------------
+# Public indexer validation
+
+
+def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
+    """
+    Check if `indexer` is a valid array indexer for `array`.
+
+    For a boolean mask, `array` and `indexer` are checked to have the same
+    length. The dtype is validated, and if it is an integer or boolean
+    ExtensionArray, it is checked if there are missing values present, and
+    it is converted to the appropriate numpy array. Other dtypes will raise
+    an error.
+
+    Non-array indexers (integer, slice, Ellipsis, tuples, ..) are passed
+    through as is.
+
+    .. versionadded:: 1.0.0
+
+    Parameters
+    ----------
+    array : array-like
+        The array that is being indexed (only used for the length).
+    indexer : array-like or list-like
+        The array-like that's used to index. List-like input that is not yet
+        a numpy array or an ExtensionArray is converted to one. Other input
+        types are passed through as is.
+
+    Returns
+    -------
+    numpy.ndarray
+        The validated indexer as a numpy array that can be used to index.
+
+    Raises
+    ------
+    IndexError
+        When the lengths don't match.
+    ValueError
+        When `indexer` cannot be converted to a numpy ndarray to index
+        (e.g. presence of missing values).
+
+    See Also
+    --------
+    api.types.is_bool_dtype : Check if `key` is of boolean dtype.
+
+    Examples
+    --------
+    When checking a boolean mask, a boolean ndarray is returned when the
+    arguments are all valid.
+
+    >>> mask = pd.array([True, False])
+    >>> arr = pd.array([1, 2])
+    >>> pd.api.indexers.check_array_indexer(arr, mask)
+    array([ True, False])
+
+    An IndexError is raised when the lengths don't match.
+
+    >>> mask = pd.array([True, False, True])
+    >>> pd.api.indexers.check_array_indexer(arr, mask)
+    Traceback (most recent call last):
+    ...
+    IndexError: Boolean index has wrong length: 3 instead of 2.
+
+    NA values in a boolean array are treated as False.
+
+    >>> mask = pd.array([True, pd.NA])
+    >>> pd.api.indexers.check_array_indexer(arr, mask)
+    array([ True, False])
+
+    A numpy boolean mask will get passed through (if the length is correct):
+
+    >>> mask = np.array([True, False])
+    >>> pd.api.indexers.check_array_indexer(arr, mask)
+    array([ True, False])
+
+    Similarly for integer indexers, an integer ndarray is returned when it is
+    a valid indexer, otherwise an error is  (for integer indexers, a matching
+    length is not required):
+
+    >>> indexer = pd.array([0, 2], dtype="Int64")
+    >>> arr = pd.array([1, 2, 3])
+    >>> pd.api.indexers.check_array_indexer(arr, indexer)
+    array([0, 2])
+
+    >>> indexer = pd.array([0, pd.NA], dtype="Int64")
+    >>> pd.api.indexers.check_array_indexer(arr, indexer)
+    Traceback (most recent call last):
+    ...
+    ValueError: Cannot index with an integer indexer containing NA values
+
+    For non-integer/boolean dtypes, an appropriate error is raised:
+
+    >>> indexer = np.array([0., 2.], dtype="float64")
+    >>> pd.api.indexers.check_array_indexer(arr, indexer)
+    Traceback (most recent call last):
+    ...
+    IndexError: arrays used as indices must be of integer or boolean type
+    """
+    from pandas.core.construction import array as pd_array
+
+    # whathever is not an array-like is returned as-is (possible valid array
+    # indexers that are not array-like: integer, slice, Ellipsis, None)
+    # In this context, tuples are not considered as array-like, as they have
+    # a specific meaning in indexing (multi-dimensional indexing)
+    if is_list_like(indexer):
+        if isinstance(indexer, tuple):
+            return indexer
+    else:
+        return indexer
+
+    # convert list-likes to array
+    if not is_array_like(indexer):
+        indexer = pd_array(indexer)
+        if len(indexer) == 0:
+            # empty list is converted to float array by pd.array
+            indexer = np.array([], dtype=np.intp)
+
+    dtype = indexer.dtype
+    if is_bool_dtype(dtype):
+        if is_extension_array_dtype(dtype):
+            indexer = indexer.to_numpy(dtype=bool, na_value=False)
+        else:
+            indexer = np.asarray(indexer, dtype=bool)
+
+        # GH26658
+        if len(indexer) != len(array):
+            raise IndexError(
+                f"Boolean index has wrong length: "
+                f"{len(indexer)} instead of {len(array)}"
+            )
+    elif is_integer_dtype(dtype):
+        try:
+            indexer = np.asarray(indexer, dtype=np.intp)
+        except ValueError as err:
+            raise ValueError(
+                "Cannot index with an integer indexer containing NA values"
+            ) from err
+    else:
+        raise IndexError("arrays used as indices must be of integer or boolean type")
+
+    return indexer

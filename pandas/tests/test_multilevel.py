@@ -2,19 +2,16 @@ import datetime
 from io import StringIO
 import itertools
 from itertools import product
-from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
 import pytest
-import pytz
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, isna
-from pandas.core.index import Index, MultiIndex
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+import pandas._testing as tm
 
 AGG_FUNCTIONS = [
     "sum",
@@ -81,51 +78,6 @@ class TestMultiLevel(Base):
 
         result = a["A"].append(b["A"])
         tm.assert_series_equal(result, self.frame["A"])
-
-    def test_append_index(self):
-        idx1 = Index([1.1, 1.2, 1.3])
-        idx2 = pd.date_range("2011-01-01", freq="D", periods=3, tz="Asia/Tokyo")
-        idx3 = Index(["A", "B", "C"])
-
-        midx_lv2 = MultiIndex.from_arrays([idx1, idx2])
-        midx_lv3 = MultiIndex.from_arrays([idx1, idx2, idx3])
-
-        result = idx1.append(midx_lv2)
-
-        # see gh-7112
-        tz = pytz.timezone("Asia/Tokyo")
-        expected_tuples = [
-            (1.1, tz.localize(datetime.datetime(2011, 1, 1))),
-            (1.2, tz.localize(datetime.datetime(2011, 1, 2))),
-            (1.3, tz.localize(datetime.datetime(2011, 1, 3))),
-        ]
-        expected = Index([1.1, 1.2, 1.3] + expected_tuples)
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv2.append(idx1)
-        expected = Index(expected_tuples + [1.1, 1.2, 1.3])
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv2.append(midx_lv2)
-        expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv2.append(midx_lv3)
-        tm.assert_index_equal(result, expected)
-
-        result = midx_lv3.append(midx_lv2)
-        expected = Index._simple_new(
-            np.array(
-                [
-                    (1.1, tz.localize(datetime.datetime(2011, 1, 1)), "A"),
-                    (1.2, tz.localize(datetime.datetime(2011, 1, 2)), "B"),
-                    (1.3, tz.localize(datetime.datetime(2011, 1, 3)), "C"),
-                ]
-                + expected_tuples
-            ),
-            None,
-        )
-        tm.assert_index_equal(result, expected)
 
     def test_dataframe_constructor(self):
         multi = DataFrame(
@@ -209,22 +161,12 @@ class TestMultiLevel(Base):
         reindexed = self.frame.loc[[("foo", "one"), ("bar", "one")]]
         tm.assert_frame_equal(reindexed, expected)
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            reindexed = self.frame.ix[[("foo", "one"), ("bar", "one")]]
-        tm.assert_frame_equal(reindexed, expected)
-
     def test_reindex_preserve_levels(self):
         new_index = self.ymd.index[::10]
         chunk = self.ymd.reindex(new_index)
         assert chunk.index is new_index
 
         chunk = self.ymd.loc[new_index]
-        assert chunk.index is new_index
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", FutureWarning)
-            chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
         ymdT = self.ymd.T
@@ -257,7 +199,7 @@ class TestMultiLevel(Base):
         assert lines[2].startswith("a 0 foo")
 
     def test_delevel_infer_dtype(self):
-        tuples = [tuple for tuple in product(["foo", "bar"], [10, 20], [1.0, 1.1])]
+        tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
         index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
         df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"], index=index)
         deleveled = df.reset_index()
@@ -335,7 +277,7 @@ class TestMultiLevel(Base):
         df = self.frame[:0]
         result = df.count(level=0)
         expected = (
-            DataFrame(index=s.index.levels[0], columns=df.columns)
+            DataFrame(index=s.index.levels[0].set_names(["first"]), columns=df.columns)
             .fillna(0)
             .astype(np.int64)
         )
@@ -357,6 +299,49 @@ class TestMultiLevel(Base):
 
         # test that int32 work
         self.ymd.astype(np.int32).unstack()
+
+    @pytest.mark.parametrize(
+        "result_rows,result_columns,index_product,expected_row",
+        [
+            (
+                [[1, 1, None, None, 30.0, None], [2, 2, None, None, 30.0, None]],
+                ["ix1", "ix2", "col1", "col2", "col3", "col4"],
+                2,
+                [None, None, 30.0, None],
+            ),
+            (
+                [[1, 1, None, None, 30.0], [2, 2, None, None, 30.0]],
+                ["ix1", "ix2", "col1", "col2", "col3"],
+                2,
+                [None, None, 30.0],
+            ),
+            (
+                [[1, 1, None, None, 30.0], [2, None, None, None, 30.0]],
+                ["ix1", "ix2", "col1", "col2", "col3"],
+                None,
+                [None, None, 30.0],
+            ),
+        ],
+    )
+    def test_unstack_partial(
+        self, result_rows, result_columns, index_product, expected_row
+    ):
+        # check for regressions on this issue:
+        # https://github.com/pandas-dev/pandas/issues/19351
+        # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
+        # and the Index levels contain values that are not present in the subset
+        result = pd.DataFrame(result_rows, columns=result_columns).set_index(
+            ["ix1", "ix2"]
+        )
+        result = result.iloc[1:2].unstack("ix2")
+        expected = pd.DataFrame(
+            [expected_row],
+            columns=pd.MultiIndex.from_product(
+                [result_columns[2:], [index_product]], names=[None, "ix2"]
+            ),
+            index=pd.Index([2], name="ix1"),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_unstack_multiple_no_empty_columns(self):
         index = MultiIndex.from_tuples(
@@ -539,6 +524,17 @@ Thur,Lunch,Yes,51.51,17"""
             s = df.iloc[:, 0]
             with pytest.raises(KeyError, match="does not match index name"):
                 getattr(s, method)("mistake")
+
+    def test_unused_level_raises(self):
+        # GH 20410
+        mi = MultiIndex(
+            levels=[["a_lot", "onlyone", "notevenone"], [1970, ""]],
+            codes=[[1, 0], [1, 0]],
+        )
+        df = DataFrame(-1, index=range(3), columns=mi)
+
+        with pytest.raises(KeyError, match="notevenone"):
+            df["notevenone"]
 
     def test_unstack_level_name(self):
         result = self.frame.unstack("second")
@@ -848,6 +844,31 @@ Thur,Lunch,Yes,51.51,17"""
         )
         manual_compare_stacked(df, df.stack(0), 0, 1)
 
+    def test_stack_unstack_unordered_multiindex(self):
+        # GH 18265
+        values = np.arange(5)
+        data = np.vstack(
+            [
+                [f"b{x}" for x in values],  # b0, b1, ..
+                [f"a{x}" for x in values],  # a0, a1, ..
+            ]
+        )
+        df = pd.DataFrame(data.T, columns=["b", "a"])
+        df.columns.name = "first"
+        second_level_dict = {"x": df}
+        multi_level_df = pd.concat(second_level_dict, axis=1)
+        multi_level_df.columns.names = ["second", "first"]
+        df = multi_level_df.reindex(sorted(multi_level_df.columns), axis=1)
+        result = df.stack(["first", "second"]).unstack(["first", "second"])
+        expected = DataFrame(
+            [["a0", "b0"], ["a1", "b1"], ["a2", "b2"], ["a3", "b3"], ["a4", "b4"]],
+            index=[0, 1, 2, 3, 4],
+            columns=MultiIndex.from_tuples(
+                [("a", "x"), ("b", "x")], names=["first", "second"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_corner(self):
         midx = MultiIndex(
             levels=[["foo"], ["bar"], ["baz"]],
@@ -914,24 +935,9 @@ Thur,Lunch,Yes,51.51,17"""
         exp = self.frame.swaplevel("first", "second").T
         tm.assert_frame_equal(swapped, exp)
 
-    def test_reorder_levels(self):
-        result = self.ymd.reorder_levels(["month", "day", "year"])
-        expected = self.ymd.swaplevel(0, 1).swaplevel(1, 2)
-        tm.assert_frame_equal(result, expected)
-
-        result = self.ymd["A"].reorder_levels(["month", "day", "year"])
-        expected = self.ymd["A"].swaplevel(0, 1).swaplevel(1, 2)
-        tm.assert_series_equal(result, expected)
-
-        result = self.ymd.T.reorder_levels(["month", "day", "year"], axis=1)
-        expected = self.ymd.T.swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
-        tm.assert_frame_equal(result, expected)
-
-        with pytest.raises(TypeError, match="hierarchical axis"):
-            self.ymd.reorder_levels([1, 2], axis=1)
-
-        with pytest.raises(IndexError, match="Too many levels"):
-            self.ymd.index.reorder_levels([1, 2, 3])
+        msg = "Can only swap levels on a hierarchical axis."
+        with pytest.raises(TypeError, match=msg):
+            DataFrame(range(3)).swaplevel()
 
     def test_insert_index(self):
         df = self.ymd[:5].T
@@ -975,14 +981,12 @@ Thur,Lunch,Yes,51.51,17"""
         series.index.names = ["a", "b"]
 
         result = series.count(level="b")
-        expect = self.series.count(level=1)
-        tm.assert_series_equal(result, expect, check_names=False)
-        assert result.index.name == "b"
+        expect = self.series.count(level=1).rename_axis("b")
+        tm.assert_series_equal(result, expect)
 
         result = series.count(level="a")
-        expect = self.series.count(level=0)
-        tm.assert_series_equal(result, expect, check_names=False)
-        assert result.index.name == "a"
+        expect = self.series.count(level=0).rename_axis("a")
+        tm.assert_series_equal(result, expect)
 
         msg = "Level x not found"
         with pytest.raises(KeyError, match=msg):
@@ -1014,6 +1018,8 @@ Thur,Lunch,Yes,51.51,17"""
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
+        level_name = self.frame.index.names[level]
+
         if axis == 0:
             frame = self.frame
         else:
@@ -1034,7 +1040,7 @@ Thur,Lunch,Yes,51.51,17"""
             frame = frame.sort_index(level=level, axis=axis)
 
         # for good measure, groupby detail
-        level_index = frame._get_axis(axis).levels[level]
+        level_index = frame._get_axis(axis).levels[level].rename(level_name)
 
         tm.assert_index_equal(leftside._get_axis(axis), level_index)
         tm.assert_index_equal(rightside._get_axis(axis), level_index)
@@ -1064,6 +1070,23 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.all(level=0)
         ex = DataFrame({"data": [False, False]}, index=["one", "two"])
         tm.assert_frame_equal(result, ex)
+
+    def test_series_any_timedelta(self):
+        # GH 17667
+        df = DataFrame(
+            {
+                "a": Series([0, 0]),
+                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+            }
+        )
+
+        result = df.any(axis=0)
+        expected = Series(data=[False, True], index=["a", "t"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.any(axis=1)
+        expected = Series(data=[False, True])
+        tm.assert_series_equal(result, expected)
 
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays(
@@ -1176,43 +1199,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
-    def test_pyint_engine(self):
-        # GH 18519 : when combinations of codes cannot be represented in 64
-        # bits, the index underlying the MultiIndex engine works with Python
-        # integers, rather than uint64.
-        N = 5
-        keys = [
-            tuple(l)
-            for l in [
-                [0] * 10 * N,
-                [1] * 10 * N,
-                [2] * 10 * N,
-                [np.nan] * N + [2] * 9 * N,
-                [0] * N + [2] * 9 * N,
-                [np.nan] * N + [2] * 8 * N + [0] * N,
-            ]
-        ]
-        # Each level contains 4 elements (including NaN), so it is represented
-        # in 2 bits, for a total of 2*N*10 = 100 > 64 bits. If we were using a
-        # 64 bit engine and truncating the first levels, the fourth and fifth
-        # keys would collide; if truncating the last levels, the fifth and
-        # sixth; if rotating bits rather than shifting, the third and fifth.
-
-        for idx in range(len(keys)):
-            index = MultiIndex.from_tuples(keys)
-            assert index.get_loc(keys[idx]) == idx
-
-            expected = np.arange(idx + 1, dtype=np.intp)
-            result = index.get_indexer([keys[i] for i in expected])
-            tm.assert_numpy_array_equal(result, expected)
-
-        # With missing key:
-        idces = range(len(keys))
-        expected = np.array([-1] + list(idces), dtype=np.intp)
-        missing = tuple([0, 1] * 5 * N)
-        result = index.get_indexer([missing] + [keys[i] for i in idces])
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_to_html(self):
         self.ymd.columns.name = "foo"
         self.ymd.to_html()
@@ -1298,6 +1284,30 @@ Thur,Lunch,Yes,51.51,17"""
             [("routine1", "result1", ""), ("routine2", "result1", "")], axis=1
         )
         tm.assert_frame_equal(expected, result)
+
+    def test_drop_multiindex_other_level_nan(self):
+        # GH 12754
+        df = (
+            DataFrame(
+                {
+                    "A": ["one", "one", "two", "two"],
+                    "B": [np.nan, 0.0, 1.0, 2.0],
+                    "C": ["a", "b", "c", "c"],
+                    "D": [1, 2, 3, 4],
+                }
+            )
+            .set_index(["A", "B", "C"])
+            .sort_index()
+        )
+        result = df.drop("c", level="C")
+        expected = DataFrame(
+            [2, 1],
+            columns=["D"],
+            index=pd.MultiIndex.from_tuples(
+                [("one", 0.0, "b"), ("one", np.nan, "a")], names=["A", "B", "C"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_drop_nonunique(self):
         df = DataFrame(
@@ -1432,16 +1442,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
 
-    def test_unicode_repr_issues(self):
-        levels = [Index(["a/\u03c3", "b/\u03c3", "c/\u03c3"]), Index([0, 1])]
-        codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
-        index = MultiIndex(levels=levels, codes=codes)
-
-        repr(index.levels)
-
-        # NumPy bug
-        # repr(index.get_level_values(1))
-
     def test_unicode_repr_level_names(self):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
@@ -1467,25 +1467,36 @@ Thur,Lunch,Yes,51.51,17"""
         s2 = Series(
             [1, 2, 3, 4], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)])
         )
-        s3 = Series()
+        s3 = Series(dtype=object)
 
         # it works!
         DataFrame({"foo": s1, "bar": s2, "baz": s3})
         DataFrame.from_dict({"foo": s1, "baz": s3, "bar": s2})
 
+    @pytest.mark.parametrize("d", [4, "d"])
+    def test_empty_frame_groupby_dtypes_consistency(self, d):
+        # GH 20888
+        group_keys = ["a", "b", "c"]
+        df = DataFrame({"a": [1], "b": [2], "c": [3], "d": [d]})
+
+        g = df[df.a == 2].groupby(group_keys)
+        result = g.first().index
+        expected = MultiIndex(
+            levels=[[1], [2], [3]], codes=[[], [], []], names=["a", "b", "c"]
+        )
+
+        tm.assert_index_equal(result, expected)
+
     def test_multiindex_na_repr(self):
         # only an issue with long columns
-
-        from numpy import nan
-
         df3 = DataFrame(
             {
                 "A" * 30: {("A", "A0006000", "nuit"): "A0006000"},
-                "B" * 30: {("A", "A0006000", "nuit"): nan},
-                "C" * 30: {("A", "A0006000", "nuit"): nan},
-                "D" * 30: {("A", "A0006000", "nuit"): nan},
+                "B" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "C" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "D" * 30: {("A", "A0006000", "nuit"): np.nan},
                 "E" * 30: {("A", "A0006000", "nuit"): "A"},
-                "F" * 30: {("A", "A0006000", "nuit"): nan},
+                "F" * 30: {("A", "A0006000", "nuit"): np.nan},
             }
         )
 
@@ -1506,15 +1517,6 @@ Thur,Lunch,Yes,51.51,17"""
         index[0] = ["faz", "boo"]
         df.index = index
         repr(df)
-
-    def test_tuples_have_na(self):
-        index = MultiIndex(
-            levels=[[1, 0], [0, 1, 2, 3]],
-            codes=[[1, 1, 1, 1, -1, 0, 0, 0], [0, 1, 2, 3, 0, 1, 2, 3]],
-        )
-
-        assert isna(index[4][0])
-        assert isna(index.values[4][0])
 
     def test_duplicate_groupby_issues(self):
         idx_tp = [
@@ -1553,31 +1555,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = df.loc[("foo", "bar")]
         tm.assert_frame_equal(result, expected)
 
-    def test_duplicated_drop_duplicates(self):
-        # GH 4060
-        idx = MultiIndex.from_arrays(([1, 2, 3, 1, 2, 3], [1, 1, 1, 1, 2, 2]))
-
-        expected = np.array([False, False, False, True, False, False], dtype=bool)
-        duplicated = idx.duplicated()
-        tm.assert_numpy_array_equal(duplicated, expected)
-        assert duplicated.dtype == bool
-        expected = MultiIndex.from_arrays(([1, 2, 3, 2, 3], [1, 1, 1, 2, 2]))
-        tm.assert_index_equal(idx.drop_duplicates(), expected)
-
-        expected = np.array([True, False, False, False, False, False])
-        duplicated = idx.duplicated(keep="last")
-        tm.assert_numpy_array_equal(duplicated, expected)
-        assert duplicated.dtype == bool
-        expected = MultiIndex.from_arrays(([2, 3, 1, 2, 3], [1, 1, 1, 2, 2]))
-        tm.assert_index_equal(idx.drop_duplicates(keep="last"), expected)
-
-        expected = np.array([True, False, False, True, False, False])
-        duplicated = idx.duplicated(keep=False)
-        tm.assert_numpy_array_equal(duplicated, expected)
-        assert duplicated.dtype == bool
-        expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
-        tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
-
     def test_multiindex_set_index(self):
         # segfault in #3308
         d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
@@ -1588,49 +1565,6 @@ Thur,Lunch,Yes,51.51,17"""
         index = MultiIndex.from_tuples(df["tuples"])
         # it works!
         df.set_index(index)
-
-    def test_datetimeindex(self):
-        idx1 = pd.DatetimeIndex(
-            ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2,
-            tz="Asia/Tokyo",
-        )
-        idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
-        idx = MultiIndex.from_arrays([idx1, idx2])
-
-        expected1 = pd.DatetimeIndex(
-            ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"], tz="Asia/Tokyo"
-        )
-
-        tm.assert_index_equal(idx.levels[0], expected1)
-        tm.assert_index_equal(idx.levels[1], idx2)
-
-        # from datetime combos
-        # GH 7888
-        date1 = datetime.date.today()
-        date2 = datetime.datetime.today()
-        date3 = Timestamp.today()
-
-        for d1, d2 in itertools.product([date1, date2, date3], [date1, date2, date3]):
-            index = MultiIndex.from_product([[d1], [d2]])
-            assert isinstance(index.levels[0], pd.DatetimeIndex)
-            assert isinstance(index.levels[1], pd.DatetimeIndex)
-
-    def test_constructor_with_tz(self):
-
-        index = pd.DatetimeIndex(
-            ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
-        )
-        columns = pd.DatetimeIndex(
-            ["2014/01/01 09:00", "2014/01/02 09:00"], name="dt2", tz="Asia/Tokyo"
-        )
-
-        result = MultiIndex.from_arrays([index, columns])
-        tm.assert_index_equal(result.levels[0], index)
-        tm.assert_index_equal(result.levels[1], columns)
-
-        result = MultiIndex.from_arrays([Series(index), Series(columns)])
-        tm.assert_index_equal(result.levels[0], index)
-        tm.assert_index_equal(result.levels[1], columns)
 
     def test_set_index_datetime(self):
         # GH 3950
@@ -1660,10 +1594,12 @@ Thur,Lunch,Yes,51.51,17"""
         df = df.set_index("label", append=True)
         tm.assert_index_equal(df.index.levels[0], expected)
         tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
+        assert df.index.names == ["datetime", "label"]
 
         df = df.swaplevel(0, 1)
         tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
         tm.assert_index_equal(df.index.levels[1], expected)
+        assert df.index.names == ["label", "datetime"]
 
         df = DataFrame(np.random.random(6))
         idx1 = pd.DatetimeIndex(
@@ -1912,6 +1848,15 @@ Thur,Lunch,Yes,51.51,17"""
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data),)
 
+    def test_subsets_multiindex_dtype(self):
+        # GH 20757
+        data = [["x", 1]]
+        columns = [("a", "b", np.nan), ("a", "c", 0.0)]
+        df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
+        expected = df.dtypes.a.b
+        result = df.a.b.dtypes
+        tm.assert_series_equal(result, expected)
+
 
 class TestSorted(Base):
     """ everything you wanted to test about sorting """
@@ -2037,24 +1982,39 @@ class TestSorted(Base):
             sorted_after.drop([("foo", "three")], axis=1),
         )
 
-    def test_is_lexsorted(self):
-        levels = [[0, 1], [0, 1, 2]]
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+    def test_sort_index_categorical_multiindex(self):
+        # GH 15058
+        df = DataFrame(
+            {
+                "a": range(6),
+                "l1": pd.Categorical(
+                    ["a", "a", "b", "b", "c", "c"],
+                    categories=["c", "a", "b"],
+                    ordered=True,
+                ),
+                "l2": [0, 1, 0, 1, 0, 1],
+            }
         )
-        assert index.is_lexsorted()
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]]
+        result = df.set_index(["l1", "l2"]).sort_index()
+        expected = DataFrame(
+            [4, 5, 0, 1, 2, 3],
+            columns=["a"],
+            index=MultiIndex(
+                levels=[
+                    pd.CategoricalIndex(
+                        ["c", "a", "b"],
+                        categories=["c", "a", "b"],
+                        ordered=True,
+                        name="l1",
+                        dtype="category",
+                    ),
+                    [0, 1],
+                ],
+                codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                names=["l1", "l2"],
+            ),
         )
-        assert not index.is_lexsorted()
-
-        index = MultiIndex(
-            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]]
-        )
-        assert not index.is_lexsorted()
-        assert index.lexsort_depth == 0
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_index_and_reconstruction(self):
 
@@ -2152,6 +2112,14 @@ class TestSorted(Base):
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_non_existent_label_multiindex(self):
+        # GH 12261
+        df = DataFrame(0, columns=[], index=pd.MultiIndex.from_product([[], []]))
+        df.loc["b", "2"] = 1
+        df.loc["a", "3"] = 1
+        result = df.sort_index().index.is_monotonic
+        assert result is True
 
     def test_sort_index_reorder_on_ops(self):
         # 15687
@@ -2306,3 +2274,29 @@ class TestSorted(Base):
         result = s.sort_index(level=["third", "first"], ascending=[False, True])
         expected = s.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            (["b", "a"], [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            (["a", "b"], [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [1, 2]), [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [2, 1]), [["a", "a", "b", "b"], [2, 1, 2, 1]]),
+            ((["b", "a"], [2, 1]), [["b", "b", "a", "a"], [2, 1, 2, 1]]),
+            ((["b", "a"], [1, 2]), [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            ((["c", "a"], [2, 1]), [["c", "a", "a"], [1, 2, 1]]),
+        ],
+    )
+    @pytest.mark.parametrize("dim", ["index", "columns"])
+    def test_multilevel_index_loc_order(self, dim, keys, expected):
+        # GH 22797
+        # Try to respect order of keys given for MultiIndex.loc
+        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
+        df = pd.DataFrame(np.arange(25).reshape(5, 5), **kwargs,)
+        exp_index = MultiIndex.from_arrays(expected)
+        if dim == "index":
+            res = df.loc[keys, :]
+            tm.assert_index_equal(res.index, exp_index)
+        elif dim == "columns":
+            res = df.loc[:, keys]
+            tm.assert_index_equal(res.columns, exp_index)

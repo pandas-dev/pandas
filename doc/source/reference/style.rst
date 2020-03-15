@@ -41,6 +41,7 @@ Style application
    Styler.set_caption
    Styler.set_properties
    Styler.set_uuid
+   Styler.set_na_rep
    Styler.clear
    Styler.pipe
 

@@ -3,7 +3,7 @@ import pytest
 
 from pandas.core.dtypes.cast import construct_1d_ndarray_preserving_na
 
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

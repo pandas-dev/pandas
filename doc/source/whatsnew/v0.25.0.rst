@@ -170,7 +170,7 @@ which level to end normalization (:issue:`23843`):
 
 The repr now looks like this:
 
-.. ipython:: python
+.. code-block:: ipython
 
     from pandas.io.json import json_normalize
     data = [{
@@ -354,6 +354,7 @@ When passed DataFrames whose values are sparse, :func:`concat` will now return a
 :class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
@@ -797,7 +798,7 @@ The columns were lexicographically sorted previously,
 
 The column order now matches the insertion-order of the keys in the ``dict``,
 considering all the records from top to bottom. As a consequence, the column
-order of the resulting DataFrame has changed compared to previous pandas verisons.
+order of the resulting DataFrame has changed compared to previous pandas versions.
 
 .. ipython:: python
 
@@ -828,7 +829,7 @@ If installed, we now require:
 | pytest (dev)    | 4.0.2           |          |
 +-----------------+-----------------+----------+
 
-For `optional libraries <https://dev.pandas.io/install.html#dependencies>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://dev.pandas.io/docs/install.html#dependencies>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 
@@ -886,7 +887,7 @@ Other API changes
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)
 - :meth:`Series.to_excel` and :meth:`DataFrame.to_excel` will now raise a ``ValueError`` when saving timezone aware data. (:issue:`27008`, :issue:`7056`)
 - :meth:`ExtensionArray.argsort` places NA values at the end of the sorted array. (:issue:`21801`)
-- :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extention data types for a ``fixed`` format. (:issue:`7775`)
+- :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` will now raise a ``NotImplementedError`` when saving a :class:`MultiIndex` with extension data types for a ``fixed`` format. (:issue:`7775`)
 - Passing duplicate ``names`` in :meth:`read_csv` will now raise a ``ValueError`` (:issue:`17346`)
 
 .. _whatsnew_0250.deprecations:
@@ -902,8 +903,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 
 **Previous way**
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    df = pd.SparseDataFrame({"A": [0, 0, 1, 2]})
    df.dtypes
@@ -911,6 +911,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 **New way**
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 0, 1, 2])})
    df.dtypes
@@ -1107,7 +1108,7 @@ Indexing
 
 - Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
 - Improved exception message when calling ``.iloc`` or ``.loc`` with a boolean indexer with different length (:issue:`26658`).
-- Bug in ``KeyError`` exception message when indexing a :class:`MultiIndex` with a non-existant key not displaying the original key (:issue:`27250`).
+- Bug in ``KeyError`` exception message when indexing a :class:`MultiIndex` with a non-existent key not displaying the original key (:issue:`27250`).
 - Bug in ``.iloc`` and ``.loc`` with a boolean indexer not raising an ``IndexError`` when too few items are passed (:issue:`26658`).
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` where ``KeyError`` was not raised for a ``MultiIndex`` when the key was less than or equal to the number of levels in the :class:`MultiIndex` (:issue:`14885`).
 - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
@@ -1268,4 +1269,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.24.x..HEAD
+.. contributors:: v0.24.2..v0.25.0

@@ -24,6 +24,27 @@ and `good first issue
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
+When you start working on an issue, it's a good idea to assign the issue to yourself,
+so nobody else duplicates the work on it. GitHub restricts assigning issues to maintainers
+of the project only. In most projects, and until recently in pandas, contributors added a
+comment letting others know they are working on an issue. While this is ok, you need to
+check each issue individually, and it's not possible to find the unassigned ones.
+
+For this reason, we implemented a workaround consisting of adding a comment with the exact
+text `take`. When you do it, a GitHub action will automatically assign you the issue
+(this will take seconds, and may require refreshing the page to see it).
+By doing this, it's possible to filter the list of issues and find only the unassigned ones.
+
+So, a good way to find an issue to start contributing to pandas is to check the list of
+`unassigned good first issues <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22+no%3Aassignee>`_
+and assign yourself one you like by writing a comment with the exact text `take`.
+
+If for whatever reason you are not able to continue working with the issue, please try to
+unassign it, so other people know it's available again. You can check the list of
+assigned issues, since people may not be working in them anymore. If you want to work on one
+that is assigned, feel free to kindly ask the current assignee if you can take it
+(please allow at least a week of inactivity before considering work in the issue discontinued).
+
 Feel free to ask questions on the `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
 
@@ -32,10 +53,10 @@ Feel free to ask questions on the `mailing list
 Bug reports and enhancement requests
 ====================================
 
-Bug reports are an important part of making *pandas* more stable. Having a complete bug report
+Bug reports are an important part of making pandas more stable. Having a complete bug report
 will allow others to reproduce the bug and provide insight into fixing. See
 `this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
-`this blogpost <http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
+`this blogpost <https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
 for tips on writing a good bug report.
 
 Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
@@ -46,7 +67,7 @@ Bug reports must:
 
 #. Include a short, self-contained Python snippet reproducing the problem.
    You can format the code nicely by using `GitHub Flavored Markdown
-   <http://github.github.com/github-flavored-markdown/>`_::
+   <https://github.github.com/github-flavored-markdown/>`_::
 
       ```python
       >>> from pandas import DataFrame
@@ -54,14 +75,14 @@ Bug reports must:
       ...
       ```
 
-#. Include the full version string of *pandas* and its dependencies. You can use the built-in function::
+#. Include the full version string of pandas and its dependencies. You can use the built-in function::
 
       >>> import pandas as pd
       >>> pd.show_versions()
 
 #. Explain why the current behavior is wrong/not desired and what you expect instead.
 
-The issue will then show up to the *pandas* community and be open to comments/ideas from others.
+The issue will then show up to the pandas community and be open to comments/ideas from others.
 
 .. _contributing.github:
 
@@ -69,33 +90,33 @@ Working with the code
 =====================
 
 Now that you have an issue you want to fix, enhancement to add, or documentation to improve,
-you need to learn how to work with GitHub and the *pandas* code base.
+you need to learn how to work with GitHub and the pandas code base.
 
 .. _contributing.version_control:
 
 Version control, Git, and GitHub
 --------------------------------
 
-To the new user, working with Git is one of the more daunting aspects of contributing to *pandas*.
+To the new user, working with Git is one of the more daunting aspects of contributing to pandas.
 It can very quickly become overwhelming, but sticking to the guidelines below will help keep the process
 straightforward and mostly trouble free.  As always, if you are having difficulties please
 feel free to ask for help.
 
 The code is hosted on `GitHub <https://www.github.com/pandas-dev/pandas>`_. To
 contribute you will need to sign up for a `free GitHub account
-<https://github.com/signup/free>`_. We use `Git <http://git-scm.com/>`_ for
+<https://github.com/signup/free>`_. We use `Git <https://git-scm.com/>`_ for
 version control to allow many people to work together on the project.
 
 Some great resources for learning Git:
 
-* the `GitHub help pages <http://help.github.com/>`_.
-* the `NumPy's documentation <http://docs.scipy.org/doc/numpy/dev/index.html>`_.
-* Matthew Brett's `Pydagogue <http://matthew-brett.github.com/pydagogue/>`_.
+* the `GitHub help pages <https://help.github.com/>`_.
+* the `NumPy's documentation <https://docs.scipy.org/doc/numpy/dev/index.html>`_.
+* Matthew Brett's `Pydagogue <https://matthew-brett.github.com/pydagogue/>`_.
 
 Getting started with Git
 ------------------------
 
-`GitHub has instructions <http://help.github.com/set-up-git-redirect>`__ for installing git,
+`GitHub has instructions <https://help.github.com/set-up-git-redirect>`__ for installing git,
 setting up your SSH key, and configuring git.  All these steps need to be completed before
 you can work seamlessly between your local repository and GitHub.
 
@@ -124,6 +145,17 @@ To test out code changes, you'll need to build pandas from source, which
 requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
+
+Using a Docker container
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of manually setting up a development environment, you can use Docker to
+automatically create the environment with just several commands. Pandas provides a `DockerFile`
+in the root directory to build a Docker image with a full pandas development environment.
+
+Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
+a popular free IDE, using the `.devcontainer.json` file.
+See https://code.visualstudio.com/docs/remote/containers for details.
 
 .. _contributing.dev_c:
 
@@ -172,7 +204,7 @@ installed (or you wish to install a newer version) you can install a compiler
     yum groupinstall "Development Tools"
 
 For other Linux distributions, consult your favourite search engine for
-commpiler installation instructions.
+compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -189,7 +221,7 @@ environment:
   <https://conda.io/miniconda.html>`_
 * Make sure your conda is up to date (``conda update conda``)
 * Make sure that you have :ref:`cloned the repository <contributing.forking>`
-* ``cd`` to the *pandas* source directory
+* ``cd`` to the pandas source directory
 
 We'll now kick off a three-step process:
 
@@ -208,7 +240,7 @@ We'll now kick off a three-step process:
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
-   python -m pip install -e . --no-build-isolation
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -228,7 +260,7 @@ To return to your root environment::
 
       conda deactivate
 
-See the full conda docs `here <http://conda.pydata.org/docs>`__.
+See the full conda docs `here <https://conda.pydata.org/docs>`__.
 
 .. _contributing.pip:
 
@@ -236,14 +268,17 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least python3.5 installed on your system.
+You'll need to have at least Python 3.6.1 installed on your system.
 
-.. code-block:: none
+**Unix**/**Mac OS**
+
+.. code-block:: bash
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
    # Any parent directories should already exist
    python3 -m venv ~/virtualenvs/pandas-dev
+
    # Activate the virtualenv
    . ~/virtualenvs/pandas-dev/bin/activate
 
@@ -251,8 +286,34 @@ You'll need to have at least python3.5 installed on your system.
    python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
-   python setup.py build_ext --inplace -j 4
-   python -m pip install -e . --no-build-isolation
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
+
+**Windows**
+
+Below is a brief overview on how to set-up a virtual environment with Powershell
+under Windows. For details please refer to the
+`official virtualenv user guide <https://virtualenv.pypa.io/en/stable/userguide/#activate-script>`__
+
+Use an ENV_DIR of your choice. We'll use ~\virtualenvs\pandas-dev where
+'~' is the folder pointed to by either $env:USERPROFILE (Powershell) or
+%USERPROFILE% (cmd.exe) environment variable. Any parent directories
+should already exist.
+
+.. code-block:: powershell
+
+   # Create a virtual environment
+   python -m venv $env:USERPROFILE\virtualenvs\pandas-dev
+
+   # Activate the virtualenv. Use activate.bat for cmd.exe
+   ~\virtualenvs\pandas-dev\Scripts\Activate.ps1
+
+   # Install the build dependencies
+   python -m pip install -r requirements-dev.txt
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 0
+   python -m pip install -e . --no-build-isolation --no-use-pep517
 
 Creating a branch
 -----------------
@@ -269,7 +330,7 @@ The above can be simplified to::
 
 This changes your working directory to the shiny-new-feature branch.  Keep any
 changes in this branch specific to one bug or feature so it is clear
-what the branch brings to *pandas*. You can have many shiny-new-features
+what the branch brings to pandas. You can have many shiny-new-features
 and switch in between them using the git checkout command.
 
 When creating this branch, make sure your master branch is up to date with
@@ -288,9 +349,9 @@ you created the branch, check the section on
 Contributing to the documentation
 =================================
 
-Contributing to the documentation benefits everyone who uses *pandas*.
+Contributing to the documentation benefits everyone who uses pandas.
 We encourage you to help us improve the documentation, and
-you don't have to be an expert on *pandas* to do so! In fact,
+you don't have to be an expert on pandas to do so! In fact,
 there are sections of the docs that are worse off after being written by
 experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
@@ -300,18 +361,18 @@ the next person.
    :local:
 
 
-About the *pandas* documentation
+About the pandas documentation
 --------------------------------
 
 The documentation is written in **reStructuredText**, which is almost like writing
-in plain English, and built using `Sphinx <http://sphinx.pocoo.org/>`__. The
+in plain English, and built using `Sphinx <https://www.sphinx-doc.org/en/master/>`__. The
 Sphinx Documentation has an excellent `introduction to reST
-<http://sphinx.pocoo.org/rest.html>`__. Review the Sphinx docs to perform more
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`__. Review the Sphinx docs to perform more
 complex changes to the documentation as well.
 
 Some other important things to know about the docs:
 
-* The *pandas* documentation consists of two parts: the docstrings in the code
+* The pandas documentation consists of two parts: the docstrings in the code
   itself and the docs in this folder ``doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
@@ -329,7 +390,7 @@ Some other important things to know about the docs:
      contributing_docstring.rst
 
 * The tutorials make heavy use of the `ipython directive
-  <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
+  <https://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
 
@@ -349,7 +410,7 @@ Some other important things to know about the docs:
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
-* Our API documentation in ``doc/source/api.rst`` houses the auto-generated
+* Our API documentation files in ``doc/source/reference`` house the auto-generated
   documentation from the docstrings. For classes, there are a few subtleties
   around controlling which methods and attributes have pages auto-generated.
 
@@ -367,7 +428,8 @@ Some other important things to know about the docs:
      ``Methods`` section in the class docstring. See ``CategoricalIndex`` for an
      example.
 
-  Every method should be included in a ``toctree`` in ``api.rst``, else Sphinx
+  Every method should be included in a ``toctree`` in one of the documentation files in
+  ``doc/source/reference``, else Sphinx
   will emit a warning.
 
 .. note::
@@ -375,7 +437,7 @@ Some other important things to know about the docs:
     The ``.rst`` files are used to automatically generate Markdown and HTML versions
     of the docs. For this reason, please do not edit ``CONTRIBUTING.md`` directly,
     but instead make any changes to ``doc/source/development/contributing.rst``. Then, to
-    generate ``CONTRIBUTING.md``, use `pandoc <http://johnmacfarlane.net/pandoc/>`_
+    generate ``CONTRIBUTING.md``, use `pandoc <https://johnmacfarlane.net/pandoc/>`_
     with the following command::
 
       pandoc doc/source/development/contributing.rst -t markdown_github > CONTRIBUTING.md
@@ -383,14 +445,14 @@ Some other important things to know about the docs:
 The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
 of a specific class, function or method. The summary also compares the list of
-methods documented in ``doc/source/api.rst`` (which is used to generate
-the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
+methods documented in the files in ``doc/source/reference`` (which is used to generate
+the `API Reference <https://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
-This will identify methods documented in ``doc/source/api.rst`` that are not actually
-class methods, and existing methods that are not documented in ``doc/source/api.rst``.
+This will identify methods documented in ``doc/source/reference`` that are not actually
+class methods, and existing methods that are not documented in ``doc/source/reference``.
 
 
-Updating a *pandas* docstring
+Updating a pandas docstring
 -----------------------------
 
 When improving a single function or method's docstring, it is not necessarily
@@ -415,7 +477,7 @@ When doing a PR with a docstring update, it is good to post the
 output of the validation script in a comment on github.
 
 
-How to build the *pandas* documentation
+How to build the pandas documentation
 ---------------------------------------
 
 Requirements
@@ -453,7 +515,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (docs/source/development/contributing.rst)
+    # For example, compiling only this guide (doc/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 
@@ -481,7 +543,7 @@ And you'll have the satisfaction of seeing your new and improved documentation!
 Building master branch documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When pull requests are merged into the *pandas* ``master`` branch, the main parts of
+When pull requests are merged into the pandas ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <https://dev.pandas.io>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
@@ -501,7 +563,7 @@ Writing good code is not just about what you write. It is also about *how* you
 write it. During :ref:`Continuous Integration <contributing.ci>` testing, several
 tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
-Thus, good style is a requirement for submitting code to *pandas*.
+Thus, good style is a requirement for submitting code to pandas.
 
 There is a tool in pandas to help contributors verify their changes before
 contributing them to the project::
@@ -519,8 +581,7 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-Additional standards are outlined on the `code style wiki
-page <https://github.com/pandas-dev/pandas/wiki/Code-Style-and-Conventions>`_.
+Additional standards are outlined on the `pandas code style guide <code_style>`_
 
 Optional dependencies
 ---------------------
@@ -540,7 +601,7 @@ set in the ``pandas.compat._optional.VERSIONS`` dict.
 C (cpplint)
 ~~~~~~~~~~~
 
-*pandas* uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
+pandas uses the `Google <https://google.github.io/styleguide/cppguide.html>`_
 standard. Google provides an open source style checker called ``cpplint``, but we
 use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
@@ -560,8 +621,8 @@ You can also run this command on an entire directory if necessary::
    cpplint --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive modified-c-directory
 
 To make your commits compliant with this standard, you can install the
-`ClangFormat <http://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
-downloaded `here <http://llvm.org/builds/>`__. To configure, in your home directory,
+`ClangFormat <https://clang.llvm.org/docs/ClangFormat.html>`_ tool, which can be
+downloaded `here <https://llvm.org/builds/>`__. To configure, in your home directory,
 run the following command::
 
     clang-format style=google -dump-config  > .clang-format
@@ -586,10 +647,12 @@ many errors as possible, but it may not correct *all* of them. Thus, it is
 recommended that you run ``cpplint`` to double check and make any other style
 fixes manually.
 
+.. _contributing.code-formatting:
+
 Python (PEP8 / black)
 ~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* follows the `PEP8 <http://www.python.org/dev/peps/pep-0008/>`_ standard
+pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
 `Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
 format throughout the project.
@@ -604,26 +667,19 @@ submitting code to run the check yourself::
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
 
-Optionally, you may wish to setup `pre-commit hooks <https://pre-commit.com/>`_
-to automatically run ``black`` and ``flake8`` when you make a git commit. This
-can be done by installing ``pre-commit``::
+You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
+with the pandas codebase.
 
-   pip install pre-commit
+If you wish to run these checks automatically, we encourage you to use
+:ref:`pre-commits <contributing.pre-commit>` instead.
 
-and then running::
-
-   pre-commit install
-
-from the root of the pandas repository. Now ``black`` and ``flake8`` will be run
-each time you commit changes. You can skip these checks with
-``git commit --no-verify``.
-
-This command will catch any stylistic errors in your changes specifically, but
+One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
+command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
 usage of an imported function, it is stylistically incorrect to import an
 unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
-run this command, though it will take longer::
+run this command, though it may take longer::
 
    git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
@@ -641,11 +697,13 @@ behaviour as follows::
 This will get all the files being changed by the PR (and ending with ``.py``),
 and run ``flake8`` on them, one after the other.
 
+Note that these commands can be run analogously with ``black``.
+
 .. _contributing.import-formatting:
 
 Import formatting
 ~~~~~~~~~~~~~~~~~
-*pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
+pandas uses `isort <https://pypi.org/project/isort/>`__ to standardise import
 formatting across the codebase.
 
 A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
@@ -662,7 +720,6 @@ A summary of our current import sections ( in order ):
 * Local application/library specific imports
 
 Imports are alphabetically sorted within these sections.
-
 
 As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
@@ -687,12 +744,41 @@ to automatically format imports correctly. This will modify your local copy of t
 
 The `--recursive` flag can be passed to sort all files in a directory.
 
+Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
+
+    git diff upstream/master --name-only -- "*.py" | xargs -r isort
+
+Where similar caveats apply if you are on OSX or Windows.
+
 You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+
+.. _contributing.pre-commit:
+
+Pre-commit
+~~~~~~~~~~
+
+You can run many of these styling checks manually as we have described above. However,
+we encourage you to use `pre-commit hooks <https://pre-commit.com/>`_ instead
+to automatically run ``black``, ``flake8``, ``isort`` when you make a git commit. This
+can be done by installing ``pre-commit``::
+
+    pip install pre-commit
+
+and then running::
+
+    pre-commit install
+
+from the root of the pandas repository. Now all of the styling checks will be
+run each time you commit changes without your needing to run each one manually.
+In addition, using this pre-commit hook will also allow you to more easily
+remain up-to-date with our code checks as they change.
+
+Note that if needed, you can skip these checks with ``git commit --no-verify``.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Please try to maintain backward compatibility. *pandas* has lots of users with lots of
+Please try to maintain backward compatibility. pandas has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
 signatures and add deprecation warnings where needed. Also, add the deprecated sphinx
@@ -736,12 +822,12 @@ See :ref:`contributing.warnings` for more.
 
 .. _contributing.type_hints:
 
-Type Hints
+Type hints
 ----------
 
-*pandas* strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
+pandas strongly encourages the use of :pep:`484` style type hints. New development should contain type hints and pull requests to annotate existing code are accepted as well!
 
-Style Guidelines
+Style guidelines
 ~~~~~~~~~~~~~~~~
 
 Types imports should follow the ``from typing import ...`` convention. So rather than
@@ -750,7 +836,7 @@ Types imports should follow the ``from typing import ...`` convention. So rather
 
    import typing
 
-   primes = []  # type: typing.List[int]
+   primes: typing.List[int] = []
 
 You should write
 
@@ -758,19 +844,19 @@ You should write
 
    from typing import List, Optional, Union
 
-   primes = []  # type: List[int]
+   primes: List[int] = []
 
 ``Optional`` should be used where applicable, so instead of
 
 .. code-block:: python
 
-   maybe_primes = []  # type: List[Union[int, None]]
+   maybe_primes: List[Union[int, None]] = []
 
 You should write
 
 .. code-block:: python
 
-   maybe_primes = []  # type: List[Optional[int]]
+   maybe_primes: List[Optional[int]] = []
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
@@ -786,7 +872,7 @@ The appropriate way to annotate this would be as follows
    str_type = str
 
    class SomeClass2:
-       str = None  # type: str_type
+       str: str_type = None
 
 In some cases you may be tempted to use ``cast`` from the typing module when you know better than the analyzer. This occurs particularly when using custom inference functions. For example
 
@@ -817,35 +903,12 @@ The limitation here is that while a human can reasonably understand that ``is_nu
 
 With custom types and inference this is not always possible so exceptions are made, but every effort should be exhausted to avoid ``cast`` before going down such paths.
 
-Syntax Requirements
-~~~~~~~~~~~~~~~~~~~
-
-Because *pandas* still supports Python 3.5, :pep:`526` does not apply and variables **must** be annotated with type comments. Specifically, this is a valid annotation within pandas:
-
-.. code-block:: python
-
-   primes = []  # type: List[int]
-
-Whereas this is **NOT** allowed:
-
-.. code-block:: python
-
-   primes: List[int] = []  # not supported in Python 3.5!
-
-Note that function signatures can always be annotated per :pep:`3107`:
-
-.. code-block:: python
-
-   def sum_of_primes(primes: List[int] = []) -> int:
-       ...
-
-
-Pandas-specific Types
+pandas-specific types
 ~~~~~~~~~~~~~~~~~~~~~
 
-Commonly used types specific to *pandas* will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
+Commonly used types specific to pandas will appear in `pandas._typing <https://github.com/pandas-dev/pandas/blob/master/pandas/_typing.py>`_ and you should use these where applicable. This module is private for now but ultimately this should be exposed to third party libraries who want to implement type checking against pandas.
 
-For example, quite a few functions in *pandas* accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
+For example, quite a few functions in pandas accept a ``dtype`` argument. This can be expressed as a string like ``"object"``, a ``numpy.dtype`` like ``np.int64`` or even a pandas ``ExtensionDtype`` like ``pd.CategoricalDtype``. Rather than burden the user with having to constantly annotate all of those options, this can simply be imported and reused from the pandas._typing module
 
 .. code-block:: python
 
@@ -856,10 +919,10 @@ For example, quite a few functions in *pandas* accept a ``dtype`` argument. This
 
 This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like `axis`. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
 
-Validating Type Hints
+Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
 
 .. code-block:: shell
 
@@ -870,7 +933,7 @@ Validating Type Hints
 Testing with continuous integration
 -----------------------------------
 
-The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
+The pandas test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
 `Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__
 continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
@@ -896,7 +959,7 @@ This is an example of a green build.
 Test-driven development/code writing
 ------------------------------------
 
-*pandas* is serious about testing and strongly encourages contributors to embrace
+pandas is serious about testing and strongly encourages contributors to embrace
 `test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
@@ -905,17 +968,17 @@ So, before actually writing any code, you should write your tests.  Often the te
 taken from the original GitHub issue.  However, it is always worth considering additional
 use cases and writing corresponding tests.
 
-Adding tests is one of the most common requests after code is pushed to *pandas*.  Therefore,
+Adding tests is one of the most common requests after code is pushed to pandas.  Therefore,
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
-Like many packages, *pandas* uses `pytest
-<http://docs.pytest.org/en/latest/>`_ and the convenient
+Like many packages, pandas uses `pytest
+<https://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
-<http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
+<https://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
 .. note::
 
-   The earliest supported pytest version is 4.0.2.
+   The earliest supported pytest version is 5.0.1.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -926,7 +989,7 @@ inspiration.  If your test requires working with files or
 network connectivity, there is more information on the `testing page
 <https://github.com/pandas-dev/pandas/wiki/Testing>`_ of the wiki.
 
-The ``pandas.util.testing`` module has many special ``assert`` functions that
+The ``pandas._testing`` module has many special ``assert`` functions that
 make it easier to make statements about whether Series or DataFrame objects are
 equivalent. The easiest way to verify that your code is correct is to
 explicitly construct the result you expect, then compare the actual result to
@@ -949,17 +1012,20 @@ the expected correct result::
 
         assert_frame_equal(pivoted, expected)
 
+Please remember to add the Github Issue Number as a comment to a new test.
+E.g. "# brief comment, see GH#28907"
+
 Transitioning to ``pytest``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*pandas* existing test structure is *mostly* classed based, meaning that you will typically find tests wrapped in a class.
+pandas existing test structure is *mostly* class-based, meaning that you will typically find tests wrapped in a class.
 
 .. code-block:: python
 
     class TestReallyCoolFeature:
         pass
 
-Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
+Going forward, we are moving to a more *functional* style using the `pytest <https://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
@@ -1109,7 +1175,7 @@ If your change involves checking that a warning is actually emitted, use
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
+   import pandas._testing as tm
 
 
    df = pd.DataFrame()
@@ -1154,7 +1220,7 @@ Running the test suite
 ----------------------
 
 The tests can then be run directly inside your Git clone (without having to
-install *pandas*) by typing::
+install pandas) by typing::
 
     pytest pandas
 
@@ -1192,9 +1258,7 @@ On Windows, one can type::
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
-For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
-
-    .. versionadded:: 0.20.0
+For more, see the `pytest <https://docs.pytest.org/en/latest/>`_ documentation.
 
 Furthermore one can run
 
@@ -1208,9 +1272,9 @@ Running the performance test suite
 ----------------------------------
 
 Performance matters and it is worth considering whether your code has introduced
-performance regressions.  *pandas* is in the process of migrating to
+performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/spacetelescope/asv>`__
-to enable easy monitoring of the performance of critical *pandas* operations.
+to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory.  asv
 supports both python2 and python3.
 
@@ -1265,7 +1329,7 @@ environment by::
 
 or, to use a specific Python interpreter,::
 
-    asv run -e -E existing:python3.5
+    asv run -e -E existing:python3.6
 
 This will display stderr from the benchmarks, and use your local
 ``python`` that comes from your ``$PATH``.
@@ -1297,7 +1361,7 @@ directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).
 
-Contributing your changes to *pandas*
+Contributing your changes to pandas
 =====================================
 
 .. _contributing.commit-code:
@@ -1322,7 +1386,7 @@ Doing 'git status' again should give something like::
     #       modified:   /relative/path/to/file-you-added.py
     #
 
-Finally, commit your changes to your local repository with an explanatory message.  *Pandas*
+Finally, commit your changes to your local repository with an explanatory message. pandas
 uses a convention for commit message prefixes and layout.  Here are
 some common prefixes along with general guidelines for when to use them:
 
@@ -1332,6 +1396,7 @@ some common prefixes along with general guidelines for when to use them:
 * TST: Additions/updates to tests
 * BLD: Updates to the build process/scripts
 * PERF: Performance improvement
+* TYP: Type annotations
 * CLN: Code cleanup
 
 The following defines how a commit message should be structured.  Please reference the
@@ -1369,7 +1434,7 @@ like::
     upstream        git://github.com/pandas-dev/pandas.git (fetch)
     upstream        git://github.com/pandas-dev/pandas.git (push)
 
-Now your code is on GitHub, but it is not yet a part of the *pandas* project.  For that to
+Now your code is on GitHub, but it is not yet a part of the pandas project. For that to
 happen, a pull request needs to be submitted on GitHub.
 
 Review your code
@@ -1472,3 +1537,19 @@ The branch will still exist on GitHub, so to delete it there do::
     git push origin --delete shiny-new-feature
 
 .. _Gitter: https://gitter.im/pydata/pandas
+
+
+Tips for a successful pull request
+==================================
+
+If you have made it to the `Review your code`_ phase, one of the core contributors may
+take a look. Please note however that a handful of people are responsible for reviewing
+all of the contributions, which can often lead to bottlenecks.
+
+To improve the chances of your pull request being reviewed, you should:
+
+- **Reference an open issue** for non-trivial changes to clarify the PR's purpose
+- **Ensure you have appropriate tests**. These should be the first part of any PR
+- **Keep your pull requests as simple as possible**. Larger PRs take longer to review
+- **Ensure that CI is in a green state**. Reviewers may not even look otherwise
+- **Keep** `Updating your pull request`_, either by request or every few days

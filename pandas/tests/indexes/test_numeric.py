@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 import numpy as np
@@ -8,9 +8,9 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
+import pandas._testing as tm
 from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
 
 
 class Numeric(Base):
@@ -87,32 +87,42 @@ class Numeric(Base):
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-    def test_insert(self):
+    def test_insert(self, nulls_fixture):
         # GH 18295 (test missing)
-        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
-        for na in (np.nan, pd.NaT, None):
-            result = self.create_index().insert(1, na)
-            tm.assert_index_equal(result, expected)
+        index = self.create_index()
+        expected = Float64Index([index[0], np.nan] + list(index[1:]))
+        result = index.insert(1, nulls_fixture)
+        tm.assert_index_equal(result, expected)
 
 
 class TestFloat64Index(Numeric):
     _holder = Float64Index
 
-    def setup_method(self, method):
-        self.indices = dict(
-            mixed=Float64Index([1.5, 2, 3, 4, 5]),
-            float=Float64Index(np.arange(5) * 2.5),
-            mixed_dec=Float64Index([5, 4, 3, 2, 1.5]),
-            float_dec=Float64Index(np.arange(4, -1, -1) * 2.5),
-        )
-        self.setup_indices()
+    @pytest.fixture(
+        params=[
+            [1.5, 2, 3, 4, 5],
+            [0.0, 2.5, 5.0, 7.5, 10.0],
+            [5, 4, 3, 2, 1.5],
+            [10.0, 7.5, 5.0, 2.5, 0.0],
+        ],
+        ids=["mixed", "float", "mixed_dec", "float_dec"],
+    )
+    def indices(self, request):
+        return Float64Index(request.param)
 
-    def create_index(self):
+    @pytest.fixture
+    def mixed_index(self):
+        return Float64Index([1.5, 2, 3, 4, 5])
+
+    @pytest.fixture
+    def float_index(self):
+        return Float64Index([0.0, 2.5, 5.0, 7.5, 10.0])
+
+    def create_index(self) -> Float64Index:
         return Float64Index(np.arange(5, dtype="float64"))
 
-    def test_repr_roundtrip(self):
-        for ind in (self.mixed, self.float):
-            tm.assert_index_equal(eval(repr(ind)), ind)
+    def test_repr_roundtrip(self, indices):
+        tm.assert_index_equal(eval(repr(indices)), indices)
 
     def check_is_index(self, i):
         assert isinstance(i, Index)
@@ -157,18 +167,35 @@ class TestFloat64Index(Numeric):
         result = Index(np.array([np.nan]))
         assert pd.isna(result.values).all()
 
+    @pytest.mark.parametrize(
+        "index, dtype",
+        [
+            (pd.Int64Index, "float64"),
+            (pd.UInt64Index, "categorical"),
+            (pd.Float64Index, "datetime64"),
+            (pd.RangeIndex, "float64"),
+        ],
+    )
+    def test_invalid_dtype(self, index, dtype):
+        # GH 29539
+        with pytest.raises(
+            ValueError,
+            match=rf"Incorrect `dtype` passed: expected \w+(?: \w+)?, received {dtype}",
+        ):
+            index([1, 2, 3], dtype=dtype)
+
     def test_constructor_invalid(self):
 
         # invalid
         msg = (
-            r"Float64Index\(\.\.\.\) must be called with a collection of"
-            r" some kind, 0\.0 was passed"
+            r"Float64Index\(\.\.\.\) must be called with a collection of "
+            r"some kind, 0\.0 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(0.0)
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         with pytest.raises(TypeError, match=msg):
             Float64Index(["a", "b", 0.0])
@@ -176,30 +203,32 @@ class TestFloat64Index(Numeric):
         with pytest.raises(TypeError, match=msg):
             Float64Index([Timestamp("20130101")])
 
-    def test_constructor_coerce(self):
+    def test_constructor_coerce(self, mixed_index, float_index):
 
-        self.check_coerce(self.mixed, Index([1.5, 2, 3, 4, 5]))
-        self.check_coerce(self.float, Index(np.arange(5) * 2.5))
-        self.check_coerce(self.float, Index(np.array(np.arange(5) * 2.5, dtype=object)))
+        self.check_coerce(mixed_index, Index([1.5, 2, 3, 4, 5]))
+        self.check_coerce(float_index, Index(np.arange(5) * 2.5))
+        self.check_coerce(
+            float_index, Index(np.array(np.arange(5) * 2.5, dtype=object))
+        )
 
-    def test_constructor_explicit(self):
+    def test_constructor_explicit(self, mixed_index, float_index):
 
         # these don't auto convert
         self.check_coerce(
-            self.float, Index((np.arange(5) * 2.5), dtype=object), is_float_index=False
+            float_index, Index((np.arange(5) * 2.5), dtype=object), is_float_index=False
         )
         self.check_coerce(
-            self.mixed, Index([1.5, 2, 3, 4, 5], dtype=object), is_float_index=False
+            mixed_index, Index([1.5, 2, 3, 4, 5], dtype=object), is_float_index=False
         )
 
-    def test_astype(self):
+    def test_astype(self, mixed_index, float_index):
 
-        result = self.float.astype(object)
-        assert result.equals(self.float)
-        assert self.float.equals(result)
+        result = float_index.astype(object)
+        assert result.equals(float_index)
+        assert float_index.equals(result)
         self.check_is_index(result)
 
-        i = self.mixed.copy()
+        i = mixed_index.copy()
         i.name = "foo"
         result = i.astype(object)
         assert result.equals(i)
@@ -233,18 +262,25 @@ class TestFloat64Index(Numeric):
         # invalid
         for dtype in ["M8[ns]", "m8[ns]"]:
             msg = (
-                "Cannot convert Float64Index to dtype {}; integer values"
-                " are required for conversion"
-            ).format(pandas_dtype(dtype))
+                f"Cannot convert Float64Index to dtype {pandas_dtype(dtype)}; "
+                f"integer values are required for conversion"
+            )
             with pytest.raises(TypeError, match=re.escape(msg)):
                 i.astype(dtype)
 
         # GH 13149
         for dtype in ["int16", "int32", "int64"]:
             i = Float64Index([0, 1.1, np.NAN])
-            msg = "Cannot convert NA to integer"
+            msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
             with pytest.raises(ValueError, match=msg):
                 i.astype(dtype)
+
+    def test_cannot_cast_inf_to_int(self):
+        idx = pd.Float64Index([1, 2, np.inf])
+
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(ValueError, match=msg):
+            idx.astype(int)
 
     def test_type_coercion_fail(self, any_int_dtype):
         # see gh-15832
@@ -349,12 +385,55 @@ class TestFloat64Index(Numeric):
         # GH 8569
         idx = Float64Index([1, 2])
         assert idx.get_loc(1) == 0
-        with pytest.raises(KeyError, match=r"^3\.0$"):
+        with pytest.raises(KeyError, match=r"^3$"):
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(KeyError, match=r"^\[nan\]$"):
+        with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
+            # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
+
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            pd.date_range("2016-01-01", periods=3),
+            pd.timedelta_range("1 Day", periods=3),
+        ],
+    )
+    def test_lookups_datetimelike_values(self, vals):
+        # If we have datetime64 or timedelta64 values, make sure they are
+        #  wrappped correctly  GH#31163
+        ser = pd.Series(vals, index=range(3, 6))
+        ser.index = ser.index.astype("float64")
+
+        expected = vals[1]
+
+        result = ser.index.get_value(ser, 4.0)
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.index.get_value(ser, 4)
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.loc[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        result = ser.loc[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.at[4.0]
+        assert isinstance(result, type(expected)) and result == expected
+        # GH#31329 .at[4] should cast to 4.0, matching .loc behavior
+        result = ser.at[4]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.iloc[1]
+        assert isinstance(result, type(expected)) and result == expected
+
+        result = ser.iat[1]
+        assert isinstance(result, type(expected)) and result == expected
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
@@ -444,11 +523,12 @@ class NumericInt(Numeric):
         tm.assert_index_equal(i, self._holder(i_view, name="Foo"))
 
     def test_is_monotonic(self):
-        assert self.index.is_monotonic is True
-        assert self.index.is_monotonic_increasing is True
-        assert self.index._is_strictly_monotonic_increasing is True
-        assert self.index.is_monotonic_decreasing is False
-        assert self.index._is_strictly_monotonic_decreasing is False
+        index = self._holder([1, 2, 3, 4])
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is False
+        assert index._is_strictly_monotonic_decreasing is False
 
         index = self._holder([4, 3, 2, 1])
         assert index.is_monotonic is False
@@ -483,61 +563,39 @@ class NumericInt(Numeric):
         assert idx.any() == idx.values.any()
 
     def test_identical(self):
-        i = Index(self.index.copy())
-        assert i.identical(self.index)
+        index = self.create_index()
+        i = Index(index.copy())
+        assert i.identical(index)
 
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = self.index.copy(dtype=object)
+        i = index.copy(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
 
-        assert not i.identical(self.index)
+        assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not self.index.copy(dtype=object).identical(
-            self.index.copy(dtype=self._dtype)
-        )
-
-    def test_join_non_unique(self):
-        left = Index([4, 4, 3, 3])
-
-        joined, lidx, ridx = left.join(left, return_indexers=True)
-
-        exp_joined = Index([3, 3, 3, 3, 4, 4, 4, 4])
-        tm.assert_index_equal(joined, exp_joined)
-
-        exp_lidx = np.array([2, 2, 3, 3, 0, 0, 1, 1], dtype=np.intp)
-        tm.assert_numpy_array_equal(lidx, exp_lidx)
-
-        exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.intp)
-        tm.assert_numpy_array_equal(ridx, exp_ridx)
-
-    @pytest.mark.parametrize("kind", ["outer", "inner", "left", "right"])
-    def test_join_self(self, kind):
-        joined = self.index.join(self.index, how=kind)
-        assert self.index is joined
+        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
 
     def test_union_noncomparable(self):
-        from datetime import datetime, timedelta
-
         # corner case, non-Int64Index
-        now = datetime.now()
-        other = Index([now + timedelta(i) for i in range(4)], dtype=object)
-        result = self.index.union(other)
-        expected = Index(np.concatenate((self.index, other)))
+        index = self.create_index()
+        other = Index([datetime.now() + timedelta(i) for i in range(4)], dtype=object)
+        result = index.union(other)
+        expected = Index(np.concatenate((index, other)))
         tm.assert_index_equal(result, expected)
 
-        result = other.union(self.index)
-        expected = Index(np.concatenate((other, self.index)))
+        result = other.union(index)
+        expected = Index(np.concatenate((other, index)))
         tm.assert_index_equal(result, expected)
 
     def test_cant_or_shouldnt_cast(self):
         msg = (
-            "String dtype not supported, you may need to explicitly cast to"
-            " a numeric type"
+            "String dtype not supported, "
+            "you may need to explicitly cast to a numeric type"
         )
         # can't
         data = ["foo", "bar", "baz"]
@@ -550,10 +608,12 @@ class NumericInt(Numeric):
             self._holder(data)
 
     def test_view_index(self):
-        self.index.view(Index)
+        index = self.create_index()
+        index.view(Index)
 
     def test_prevent_casting(self):
-        result = self.index.astype("O")
+        index = self.create_index()
+        result = index.astype("O")
         assert result.dtype == np.object_
 
     def test_take_preserve_name(self):
@@ -569,7 +629,7 @@ class NumericInt(Numeric):
         tm.assert_index_equal(result, expected)
 
         name = self._holder.__name__
-        msg = "Unable to fill values because {name} cannot contain NA".format(name=name)
+        msg = f"Unable to fill values because {name} cannot contain NA"
 
         # fill_value=True
         with pytest.raises(ValueError, match=msg):
@@ -597,15 +657,15 @@ class TestInt64Index(NumericInt):
     _dtype = "int64"
     _holder = Int64Index
 
-    def setup_method(self, method):
-        self.indices = dict(
-            index=Int64Index(np.arange(0, 20, 2)),
-            index_dec=Int64Index(np.arange(19, -1, -1)),
-        )
-        self.setup_indices()
+    @pytest.fixture(
+        params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
+    )
+    def indices(self, request):
+        return Int64Index(request.param)
 
-    def create_index(self):
-        return Int64Index(np.arange(5, dtype="int64"))
+    def create_index(self) -> Int64Index:
+        # return Int64Index(np.arange(5, dtype="int64"))
+        return Int64Index(range(0, 20, 2))
 
     def test_constructor(self):
         # pass list, coerce fine
@@ -619,16 +679,16 @@ class TestInt64Index(NumericInt):
 
         # scalar raise Exception
         msg = (
-            r"Int64Index\(\.\.\.\) must be called with a collection of some"
-            " kind, 5 was passed"
+            r"Int64Index\(\.\.\.\) must be called with a collection of some "
+            "kind, 5 was passed"
         )
         with pytest.raises(TypeError, match=msg):
             Int64Index(5)
 
         # copy
-        arr = self.index.values
+        arr = index.values
         new_index = Int64Index(arr, copy=True)
-        tm.assert_index_equal(new_index, self.index)
+        tm.assert_index_equal(new_index, index)
         val = arr[0] + 3000
 
         # this should not change index
@@ -684,196 +744,40 @@ class TestInt64Index(NumericInt):
         assert isinstance(arr, Index)
 
     def test_get_indexer(self):
+        index = self.create_index()
         target = Int64Index(np.arange(10))
-        indexer = self.index.get_indexer(target)
+        indexer = index.get_indexer(target)
         expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
         target = Int64Index(np.arange(10))
-        indexer = self.index.get_indexer(target, method="pad")
+        indexer = index.get_indexer(target, method="pad")
         expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
         target = Int64Index(np.arange(10))
-        indexer = self.index.get_indexer(target, method="backfill")
+        indexer = index.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
+    def test_get_indexer_nan(self):
+        # GH 7820
+        result = Index([1, 2, np.nan]).get_indexer([np.nan])
+        expected = np.array([2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_intersection(self):
+        index = self.create_index()
         other = Index([1, 2, 3, 4, 5])
-        result = self.index.intersection(other)
-        expected = Index(np.sort(np.intersect1d(self.index.values, other.values)))
+        result = index.intersection(other)
+        expected = Index(np.sort(np.intersect1d(index.values, other.values)))
         tm.assert_index_equal(result, expected)
 
-        result = other.intersection(self.index)
+        result = other.intersection(index)
         expected = Index(
-            np.sort(np.asarray(np.intersect1d(self.index.values, other.values)))
+            np.sort(np.asarray(np.intersect1d(index.values, other.values)))
         )
         tm.assert_index_equal(result, expected)
-
-    def test_join_inner(self):
-        other = Int64Index([7, 12, 25, 1, 2, 5])
-        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
-
-        # not monotonic
-        res, lidx, ridx = self.index.join(other, how="inner", return_indexers=True)
-
-        # no guarantee of sortedness, so sort for comparison purposes
-        ind = res.argsort()
-        res = res.take(ind)
-        lidx = lidx.take(ind)
-        ridx = ridx.take(ind)
-
-        eres = Int64Index([2, 12])
-        elidx = np.array([1, 6], dtype=np.intp)
-        eridx = np.array([4, 1], dtype=np.intp)
-
-        assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="inner", return_indexers=True)
-
-        res2 = self.index.intersection(other_mono)
-        tm.assert_index_equal(res, res2)
-
-        elidx = np.array([1, 6], dtype=np.intp)
-        eridx = np.array([1, 4], dtype=np.intp)
-        assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_left(self):
-        other = Int64Index([7, 12, 25, 1, 2, 5])
-        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
-
-        # not monotonic
-        res, lidx, ridx = self.index.join(other, how="left", return_indexers=True)
-        eres = self.index
-        eridx = np.array([-1, 4, -1, -1, -1, -1, 1, -1, -1, -1], dtype=np.intp)
-
-        assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres)
-        assert lidx is None
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="left", return_indexers=True)
-        eridx = np.array([-1, 1, -1, -1, -1, -1, 4, -1, -1, -1], dtype=np.intp)
-        assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres)
-        assert lidx is None
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # non-unique
-        idx = Index([1, 1, 2, 5])
-        idx2 = Index([1, 2, 5, 7, 9])
-        res, lidx, ridx = idx2.join(idx, how="left", return_indexers=True)
-        eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
-        eridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
-        elidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_right(self):
-        other = Int64Index([7, 12, 25, 1, 2, 5])
-        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
-
-        # not monotonic
-        res, lidx, ridx = self.index.join(other, how="right", return_indexers=True)
-        eres = other
-        elidx = np.array([-1, 6, -1, -1, 1, -1], dtype=np.intp)
-
-        assert isinstance(other, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        assert ridx is None
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="right", return_indexers=True)
-        eres = other_mono
-        elidx = np.array([-1, 1, -1, -1, 6, -1], dtype=np.intp)
-        assert isinstance(other, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        assert ridx is None
-
-        # non-unique
-        idx = Index([1, 1, 2, 5])
-        idx2 = Index([1, 2, 5, 7, 9])
-        res, lidx, ridx = idx.join(idx2, how="right", return_indexers=True)
-        eres = Index([1, 1, 2, 5, 7, 9])  # 1 is in idx2, so it should be x2
-        elidx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
-        eridx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_non_int_index(self):
-        other = Index([3, 6, 7, 8, 10], dtype=object)
-
-        outer = self.index.join(other, how="outer")
-        outer2 = other.join(self.index, how="outer")
-        expected = Index([0, 2, 3, 4, 6, 7, 8, 10, 12, 14, 16, 18])
-        tm.assert_index_equal(outer, outer2)
-        tm.assert_index_equal(outer, expected)
-
-        inner = self.index.join(other, how="inner")
-        inner2 = other.join(self.index, how="inner")
-        expected = Index([6, 8, 10])
-        tm.assert_index_equal(inner, inner2)
-        tm.assert_index_equal(inner, expected)
-
-        left = self.index.join(other, how="left")
-        tm.assert_index_equal(left, self.index.astype(object))
-
-        left2 = other.join(self.index, how="left")
-        tm.assert_index_equal(left2, other)
-
-        right = self.index.join(other, how="right")
-        tm.assert_index_equal(right, other)
-
-        right2 = other.join(self.index, how="right")
-        tm.assert_index_equal(right2, self.index.astype(object))
-
-    def test_join_outer(self):
-        other = Int64Index([7, 12, 25, 1, 2, 5])
-        other_mono = Int64Index([1, 2, 5, 7, 12, 25])
-
-        # not monotonic
-        # guarantee of sortedness
-        res, lidx, ridx = self.index.join(other, how="outer", return_indexers=True)
-        noidx_res = self.index.join(other, how="outer")
-        tm.assert_index_equal(res, noidx_res)
-
-        eres = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 25])
-        elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1], dtype=np.intp)
-        eridx = np.array(
-            [-1, 3, 4, -1, 5, -1, 0, -1, -1, 1, -1, -1, -1, 2], dtype=np.intp
-        )
-
-        assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="outer", return_indexers=True)
-        noidx_res = self.index.join(other_mono, how="outer")
-        tm.assert_index_equal(res, noidx_res)
-
-        elidx = np.array([0, -1, 1, 2, -1, 3, -1, 4, 5, 6, 7, 8, 9, -1], dtype=np.intp)
-        eridx = np.array(
-            [-1, 0, 1, -1, 2, -1, 3, -1, -1, 4, -1, -1, -1, 5], dtype=np.intp
-        )
-        assert isinstance(res, Int64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
 
 
 class TestUInt64Index(NumericInt):
@@ -881,14 +785,24 @@ class TestUInt64Index(NumericInt):
     _dtype = "uint64"
     _holder = UInt64Index
 
-    def setup_method(self, method):
-        vals = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
-        self.indices = dict(
-            index=UInt64Index(vals), index_dec=UInt64Index(reversed(vals))
-        )
-        self.setup_indices()
+    @pytest.fixture(
+        params=[
+            [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25],
+            [2 ** 63 + 25, 2 ** 63 + 20, 2 ** 63 + 15, 2 ** 63 + 10, 2 ** 63],
+        ],
+        ids=["index_inc", "index_dec"],
+    )
+    def indices(self, request):
+        return UInt64Index(request.param)
 
-    def create_index(self):
+    @pytest.fixture
+    def index_large(self):
+        # large values used in TestUInt64Index where no compat needed with Int64/Float64
+        large = [2 ** 63, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20, 2 ** 63 + 25]
+        return UInt64Index(large)
+
+    def create_index(self) -> UInt64Index:
+        # compat with shared Int64/Float64 tests; use index_large for UInt64 only tests
         return UInt64Index(np.arange(5, dtype="uint64"))
 
     def test_constructor(self):
@@ -908,217 +822,38 @@ class TestUInt64Index(NumericInt):
         res = Index(np.array([-1, 2 ** 63], dtype=object))
         tm.assert_index_equal(res, idx)
 
-    def test_get_indexer(self):
+        # https://github.com/pandas-dev/pandas/issues/29526
+        idx = UInt64Index([1, 2 ** 63 + 1], dtype=np.uint64)
+        res = Index([1, 2 ** 63 + 1], dtype=np.uint64)
+        tm.assert_index_equal(res, idx)
+
+    def test_get_indexer(self, index_large):
         target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
-        indexer = self.index.get_indexer(target)
+        indexer = index_large.get_indexer(target)
         expected = np.array([0, -1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
         target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
-        indexer = self.index.get_indexer(target, method="pad")
+        indexer = index_large.get_indexer(target, method="pad")
         expected = np.array([0, 0, 1, 2, 3, 4, 4, 4, 4, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
         target = UInt64Index(np.arange(10).astype("uint64") * 5 + 2 ** 63)
-        indexer = self.index.get_indexer(target, method="backfill")
+        indexer = index_large.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 3, 4, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-    def test_intersection(self):
+    def test_intersection(self, index_large):
         other = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10, 2 ** 63 + 15, 2 ** 63 + 20])
-        result = self.index.intersection(other)
-        expected = Index(np.sort(np.intersect1d(self.index.values, other.values)))
+        result = index_large.intersection(other)
+        expected = Index(np.sort(np.intersect1d(index_large.values, other.values)))
         tm.assert_index_equal(result, expected)
 
-        result = other.intersection(self.index)
+        result = other.intersection(index_large)
         expected = Index(
-            np.sort(np.asarray(np.intersect1d(self.index.values, other.values)))
+            np.sort(np.asarray(np.intersect1d(index_large.values, other.values)))
         )
         tm.assert_index_equal(result, expected)
-
-    def test_join_inner(self):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
-        other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
-        )
-
-        # not monotonic
-        res, lidx, ridx = self.index.join(other, how="inner", return_indexers=True)
-
-        # no guarantee of sortedness, so sort for comparison purposes
-        ind = res.argsort()
-        res = res.take(ind)
-        lidx = lidx.take(ind)
-        ridx = ridx.take(ind)
-
-        eres = UInt64Index(2 ** 63 + np.array([10, 25], dtype="uint64"))
-        elidx = np.array([1, 4], dtype=np.intp)
-        eridx = np.array([5, 2], dtype=np.intp)
-
-        assert isinstance(res, UInt64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="inner", return_indexers=True)
-
-        res2 = self.index.intersection(other_mono)
-        tm.assert_index_equal(res, res2)
-
-        elidx = np.array([1, 4], dtype=np.intp)
-        eridx = np.array([3, 5], dtype=np.intp)
-
-        assert isinstance(res, UInt64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_left(self):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
-        other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
-        )
-
-        # not monotonic
-        res, lidx, ridx = self.index.join(other, how="left", return_indexers=True)
-        eres = self.index
-        eridx = np.array([-1, 5, -1, -1, 2], dtype=np.intp)
-
-        assert isinstance(res, UInt64Index)
-        tm.assert_index_equal(res, eres)
-        assert lidx is None
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="left", return_indexers=True)
-        eridx = np.array([-1, 3, -1, -1, 5], dtype=np.intp)
-
-        assert isinstance(res, UInt64Index)
-        tm.assert_index_equal(res, eres)
-        assert lidx is None
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # non-unique
-        idx = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5], dtype="uint64"))
-        idx2 = UInt64Index(2 ** 63 + np.array([1, 2, 5, 7, 9], dtype="uint64"))
-        res, lidx, ridx = idx2.join(idx, how="left", return_indexers=True)
-
-        # 1 is in idx2, so it should be x2
-        eres = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5, 7, 9], dtype="uint64"))
-        eridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
-        elidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
-
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_right(self):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
-        other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
-        )
-
-        # not monotonic
-        res, lidx, ridx = self.index.join(other, how="right", return_indexers=True)
-        eres = other
-        elidx = np.array([-1, -1, 4, -1, -1, 1], dtype=np.intp)
-
-        tm.assert_numpy_array_equal(lidx, elidx)
-        assert isinstance(other, UInt64Index)
-        tm.assert_index_equal(res, eres)
-        assert ridx is None
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="right", return_indexers=True)
-        eres = other_mono
-        elidx = np.array([-1, -1, -1, 1, -1, 4], dtype=np.intp)
-
-        assert isinstance(other, UInt64Index)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_index_equal(res, eres)
-        assert ridx is None
-
-        # non-unique
-        idx = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5], dtype="uint64"))
-        idx2 = UInt64Index(2 ** 63 + np.array([1, 2, 5, 7, 9], dtype="uint64"))
-        res, lidx, ridx = idx.join(idx2, how="right", return_indexers=True)
-
-        # 1 is in idx2, so it should be x2
-        eres = UInt64Index(2 ** 63 + np.array([1, 1, 2, 5, 7, 9], dtype="uint64"))
-        elidx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
-        eridx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
-
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-    def test_join_non_int_index(self):
-        other = Index(
-            2 ** 63 + np.array([1, 5, 7, 10, 20], dtype="uint64"), dtype=object
-        )
-
-        outer = self.index.join(other, how="outer")
-        outer2 = other.join(self.index, how="outer")
-        expected = Index(
-            2 ** 63 + np.array([0, 1, 5, 7, 10, 15, 20, 25], dtype="uint64")
-        )
-        tm.assert_index_equal(outer, outer2)
-        tm.assert_index_equal(outer, expected)
-
-        inner = self.index.join(other, how="inner")
-        inner2 = other.join(self.index, how="inner")
-        expected = Index(2 ** 63 + np.array([10, 20], dtype="uint64"))
-        tm.assert_index_equal(inner, inner2)
-        tm.assert_index_equal(inner, expected)
-
-        left = self.index.join(other, how="left")
-        tm.assert_index_equal(left, self.index.astype(object))
-
-        left2 = other.join(self.index, how="left")
-        tm.assert_index_equal(left2, other)
-
-        right = self.index.join(other, how="right")
-        tm.assert_index_equal(right, other)
-
-        right2 = other.join(self.index, how="right")
-        tm.assert_index_equal(right2, self.index.astype(object))
-
-    def test_join_outer(self):
-        other = UInt64Index(2 ** 63 + np.array([7, 12, 25, 1, 2, 10], dtype="uint64"))
-        other_mono = UInt64Index(
-            2 ** 63 + np.array([1, 2, 7, 10, 12, 25], dtype="uint64")
-        )
-
-        # not monotonic
-        # guarantee of sortedness
-        res, lidx, ridx = self.index.join(other, how="outer", return_indexers=True)
-        noidx_res = self.index.join(other, how="outer")
-        tm.assert_index_equal(res, noidx_res)
-
-        eres = UInt64Index(
-            2 ** 63 + np.array([0, 1, 2, 7, 10, 12, 15, 20, 25], dtype="uint64")
-        )
-        elidx = np.array([0, -1, -1, -1, 1, -1, 2, 3, 4], dtype=np.intp)
-        eridx = np.array([-1, 3, 4, 0, 5, 1, -1, -1, 2], dtype=np.intp)
-
-        assert isinstance(res, UInt64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
-
-        # monotonic
-        res, lidx, ridx = self.index.join(other_mono, how="outer", return_indexers=True)
-        noidx_res = self.index.join(other_mono, how="outer")
-        tm.assert_index_equal(res, noidx_res)
-
-        elidx = np.array([0, -1, -1, -1, 1, -1, 2, 3, 4], dtype=np.intp)
-        eridx = np.array([-1, 0, 1, 2, 3, 4, -1, -1, 5], dtype=np.intp)
-
-        assert isinstance(res, UInt64Index)
-        tm.assert_index_equal(res, eres)
-        tm.assert_numpy_array_equal(lidx, elidx)
-        tm.assert_numpy_array_equal(ridx, eridx)
 
 
 @pytest.mark.parametrize("dtype", ["int64", "uint64"])
@@ -1145,3 +880,29 @@ def test_range_float_union_dtype():
 
     result = other.union(index)
     tm.assert_index_equal(result, expected)
+
+
+def test_uint_index_does_not_convert_to_float64():
+    # https://github.com/pandas-dev/pandas/issues/28279
+    # https://github.com/pandas-dev/pandas/issues/28023
+    series = pd.Series(
+        [0, 1, 2, 3, 4, 5],
+        index=[
+            7606741985629028552,
+            17876870360202815256,
+            17876870360202815256,
+            13106359306506049338,
+            8991270399732411471,
+            8991270399732411472,
+        ],
+    )
+
+    result = series.loc[[7606741985629028552, 17876870360202815256]]
+
+    expected = UInt64Index(
+        [7606741985629028552, 17876870360202815256, 17876870360202815256],
+        dtype="uint64",
+    )
+    tm.assert_index_equal(result.index, expected)
+
+    tm.assert_equal(result, series[:3])

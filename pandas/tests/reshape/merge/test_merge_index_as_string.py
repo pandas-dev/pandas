@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
-from pandas.util.testing import assert_frame_equal
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -30,7 +30,8 @@ def df2():
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def left_df(request, df1):
     """ Construct left test DataFrame with specified levels
-    (any of 'outer', 'inner', and 'v1')"""
+    (any of 'outer', 'inner', and 'v1')
+    """
     levels = request.param
     if levels:
         df1 = df1.set_index(levels)
@@ -41,7 +42,8 @@ def left_df(request, df1):
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def right_df(request, df2):
     """ Construct right test DataFrame with specified levels
-    (any of 'outer', 'inner', and 'v2')"""
+    (any of 'outer', 'inner', and 'v2')
+    """
     levels = request.param
 
     if levels:
@@ -80,7 +82,6 @@ def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, ho
     DataFrame
         The expected merge result
     """
-
     # Handle on param if specified
     if on is not None:
         left_on, right_on = on, on
@@ -136,7 +137,7 @@ def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
 
     # Perform merge
     result = left_df.merge(right_df, on=on, how=how)
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 @pytest.mark.parametrize(
@@ -159,7 +160,7 @@ def test_merge_indexes_and_columns_lefton_righton(
 
     # Perform merge
     result = left_df.merge(right_df, left_on=left_on, right_on=right_on, how=how)
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 @pytest.mark.parametrize("left_index", ["inner", ["inner", "outer"]])
@@ -185,4 +186,4 @@ def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
         right_df, on=["outer", "inner"], how=join_type, lsuffix="_x", rsuffix="_y"
     )
 
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)

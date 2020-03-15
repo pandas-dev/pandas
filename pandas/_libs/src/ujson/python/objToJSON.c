@@ -31,7 +31,7 @@ Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights
 reserved.
 
 Numeric decoder derived from from TCL library
-http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
+https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1988-1993 The Regents of the University of California.
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
@@ -45,8 +45,7 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/ndarraytypes.h>
 #include <numpy/npy_math.h>
 #include <ultrajson.h>
-#include <../../../tslibs/src/datetime/np_datetime.h>
-#include <../../../tslibs/src/datetime/np_datetime_strings.h>
+#include "date_conversions.h"
 #include "datetime.h"
 
 static PyTypeObject *type_decimal;
@@ -54,13 +53,13 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
-PyObject *cls_timestamp;
+static PyTypeObject *cls_na;
 PyObject *cls_timedelta;
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
-typedef void *(*PFN_PyTypeToJSON)(JSOBJ obj, JSONTypeContext *ti,
-                                  void *outValue, size_t *_outLen);
+typedef char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
+                                  size_t *_outLen);
 
 typedef struct __NpyArrContext {
     PyObject *array;
@@ -94,7 +93,7 @@ typedef struct __TypeContext {
     JSPFN_ITERNEXT iterNext;
     JSPFN_ITERGETNAME iterGetName;
     JSPFN_ITERGETVALUE iterGetValue;
-    PFN_PyTypeToJSON PyTypeToJSON;
+    PFN_PyTypeToUTF8 PyTypeToUTF8;
     PyObject *newObj;
     PyObject *dictObj;
     Py_ssize_t index;
@@ -129,7 +128,6 @@ typedef struct __PyObjectEncoder {
     // pass-through to encode numpy data directly
     int npyType;
     void *npyValue;
-    TypeContext basicTypeContext;
 
     int datetimeIso;
     NPY_DATETIMEUNIT datetimeUnit;
@@ -152,6 +150,7 @@ int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 void *initObjToJSON(void) {
     PyObject *mod_pandas;
     PyObject *mod_nattype;
+    PyObject *mod_natype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
     type_decimal =
         (PyTypeObject *)PyObject_GetAttrString(mod_decimal, "Decimal");
@@ -166,7 +165,6 @@ void *initObjToJSON(void) {
         cls_index = (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Index");
         cls_series =
             (PyTypeObject *)PyObject_GetAttrString(mod_pandas, "Series");
-        cls_timestamp = PyObject_GetAttrString(mod_pandas, "Timestamp");
         cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
         Py_DECREF(mod_pandas);
     }
@@ -178,9 +176,16 @@ void *initObjToJSON(void) {
         Py_DECREF(mod_nattype);
     }
 
-    /* Initialise numpy API and use 2/3 compatible return */
+    mod_natype = PyImport_ImportModule("pandas._libs.missing");
+    if (mod_natype) {
+        cls_na = (PyTypeObject *)PyObject_GetAttrString(mod_natype, "NAType");
+        Py_DECREF(mod_natype);
+    }
+
+    /* Initialise numpy API */
     import_array();
-    return NUMPY_IMPORT_ARRAY_RETVAL;
+    // GH 31463
+    return NULL;
 }
 
 static TypeContext *createTypeContext(void) {
@@ -212,85 +217,42 @@ static TypeContext *createTypeContext(void) {
     return pc;
 }
 
-static int is_sparse_array(PyObject *obj) {
-    // TODO can be removed again once SparseArray.values is removed (GH26421)
-    if (PyObject_HasAttrString(obj, "_subtyp")) {
-        PyObject *_subtype = PyObject_GetAttrString(obj, "_subtyp");
-        PyObject *sparse_array = PyUnicode_FromString("sparse_array");
-        int ret = PyUnicode_Compare(_subtype, sparse_array);
-
-        if (ret == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static PyObject *get_values(PyObject *obj) {
     PyObject *values = NULL;
 
-    if (!is_sparse_array(obj)) {
-        values = PyObject_GetAttrString(obj, "values");
-        PRINTMARK();
-    }
+    PRINTMARK();
 
-    if (values && !PyArray_CheckExact(values)) {
-
-        if (PyObject_HasAttrString(values, "to_numpy")) {
-            values = PyObject_CallMethod(values, "to_numpy", NULL);
-        }
-
-        if (!is_sparse_array(values) &&
-            PyObject_HasAttrString(values, "values")) {
-            PyObject *subvals = get_values(values);
-            PyErr_Clear();
-            PRINTMARK();
-            // subvals are sometimes missing a dimension
-            if (subvals) {
-                PyArrayObject *reshape = (PyArrayObject *)subvals;
-                PyObject *shape = PyObject_GetAttrString(obj, "shape");
-                PyArray_Dims dims;
-                PRINTMARK();
-
-                if (!shape || !PyArray_IntpConverter(shape, &dims)) {
-                    subvals = NULL;
-                } else {
-                    subvals = PyArray_Newshape(reshape, &dims, NPY_ANYORDER);
-                    PyDimMem_FREE(dims.ptr);
-                }
-                Py_DECREF(reshape);
-                Py_XDECREF(shape);
-            }
-            Py_DECREF(values);
-            values = subvals;
-        } else {
-            PRINTMARK();
-            Py_DECREF(values);
-            values = NULL;
-        }
-    }
-
-    if (!values && PyObject_HasAttrString(obj, "_internal_get_values")) {
+    if (PyObject_HasAttrString(obj, "_internal_get_values")) {
         PRINTMARK();
         values = PyObject_CallMethod(obj, "_internal_get_values", NULL);
-        if (values && !PyArray_CheckExact(values)) {
+
+        if (values == NULL) {
+            // Clear so we can subsequently try another method
+            PyErr_Clear();
+        } else if (!PyArray_CheckExact(values)) {
+            // Didn't get a numpy array, so keep trying
             PRINTMARK();
             Py_DECREF(values);
             values = NULL;
         }
     }
 
-    if (!values && PyObject_HasAttrString(obj, "get_block_values")) {
+    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values_for_json")) {
         PRINTMARK();
-        values = PyObject_CallMethod(obj, "get_block_values", NULL);
-        if (values && !PyArray_CheckExact(values)) {
+        values = PyObject_CallMethod(obj, "get_block_values_for_json", NULL);
+
+        if (values == NULL) {
+            // Clear so we can subsequently try another method
+            PyErr_Clear();
+        } else if (!PyArray_CheckExact(values)) {
+            // Didn't get a numpy array, so keep trying
             PRINTMARK();
             Py_DECREF(values);
             values = NULL;
         }
     }
 
-    if (!values) {
+    if (values == NULL) {
         PyObject *typeRepr = PyObject_Repr((PyObject *)Py_TYPE(obj));
         PyObject *repr;
         PRINTMARK();
@@ -385,161 +347,39 @@ static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
     return ret;
 }
 
-static void *CDouble(JSOBJ obj, JSONTypeContext *tc, void *outValue,
-                     size_t *_outLen) {
-    PRINTMARK();
-    *((double *)outValue) = GET_TC(tc)->doubleValue;
-    return NULL;
-}
-
-static void *CLong(JSOBJ obj, JSONTypeContext *tc, void *outValue,
-                   size_t *_outLen) {
-    PRINTMARK();
-    *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
-#ifdef _LP64
-static void *PyIntToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((JSINT64 *)outValue) = PyLong_AsLong(obj);
-    return NULL;
-}
-#else
-static void *PyIntToINT32(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((JSINT32 *)outValue) = PyLong_AsLong(obj);
-    return NULL;
-}
-#endif
-
-static void *PyLongToINT64(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
+static char *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
                            size_t *_outLen) {
-    *((JSINT64 *)outValue) = GET_TC(tc)->longValue;
-    return NULL;
-}
-
-static void *NpyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                              size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    PyArray_CastScalarToCtype(obj, outValue, PyArray_DescrFromType(NPY_DOUBLE));
-    return NULL;
-}
-
-static void *PyFloatToDOUBLE(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                             size_t *_outLen) {
-    PyObject *obj = (PyObject *)_obj;
-    *((double *)outValue) = PyFloat_AsDouble(obj);
-    return NULL;
-}
-
-static void *PyBytesToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                            size_t *_outLen) {
     PyObject *obj = (PyObject *)_obj;
     *_outLen = PyBytes_GET_SIZE(obj);
     return PyBytes_AS_STRING(obj);
 }
 
-static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
+static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *Py_UNUSED(tc),
                              size_t *_outLen) {
-    PyObject *obj, *newObj;
-    obj = (PyObject *)_obj;
-
-    if (PyUnicode_IS_COMPACT_ASCII(obj)) {
-        Py_ssize_t len;
-        char *data = (char *)PyUnicode_AsUTF8AndSize(obj, &len);
-        *_outLen = len;
-        return data;
-    }
-
-    newObj = PyUnicode_AsUTF8String(obj);
-
-    GET_TC(tc)->newObj = newObj;
-
-    *_outLen = PyBytes_GET_SIZE(newObj);
-    return PyBytes_AS_STRING(newObj);
+    return (char *)PyUnicode_AsUTF8AndSize(_obj, (Py_ssize_t *)_outLen);
 }
 
-static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
-                                        JSONTypeContext *tc, void *outValue,
-                                        size_t *_outLen) {
+/* JSON callback. returns a char* and mutates the pointer to *len */
+static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
+                                      JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+    return int64ToIso(GET_TC(tc)->longValue, base, len);
+}
 
-    if (((PyObjectEncoder *)tc->encoder)->datetimeIso) {
-        PRINTMARK();
-        *_outLen = (size_t)get_datetime_iso_8601_strlen(0, base);
-        GET_TC(tc)->cStr = PyObject_Malloc(sizeof(char) * (*_outLen));
-        if (!GET_TC(tc)->cStr) {
-            PyErr_NoMemory();
-            ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-            return NULL;
-        }
+/* JSON callback */
+static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
+                                     size_t *len) {
 
-        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, base)) {
-            PRINTMARK();
-            *_outLen = strlen(GET_TC(tc)->cStr);
-            return GET_TC(tc)->cStr;
-        } else {
-            PRINTMARK();
-            PyErr_SetString(PyExc_ValueError,
-                            "Could not convert datetime value to string");
-            ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-            PyObject_Free(GET_TC(tc)->cStr);
-            return NULL;
-        }
-    } else {
-        PRINTMARK();
-        *((JSINT64 *)outValue) = npy_datetimestruct_to_datetime(base, dts);
+    if (!PyDate_Check(obj)) {
+        PyErr_SetString(PyExc_TypeError, "Expected date object");
         return NULL;
     }
+
+    NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+    return PyDateTimeToIso(obj, base, len);
 }
 
-static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
-                                     void *outValue, size_t *_outLen) {
-    npy_datetimestruct dts;
-    PyDatetimeScalarObject *obj = (PyDatetimeScalarObject *)_obj;
-    PRINTMARK();
-    // TODO(anyone): Does not appear to be reached in tests.
-
-    pandas_datetime_to_datetimestruct(obj->obval,
-                                      (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
-    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
-}
-
-static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                              size_t *_outLen) {
-    npy_datetimestruct dts;
-    PyDateTime_Date *obj = (PyDateTime_Date *)_obj;
-
-    PRINTMARK();
-
-    if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
-        PRINTMARK();
-        return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
-    } else {
-        if (!PyErr_Occurred()) {
-            PyErr_SetString(PyExc_ValueError,
-                            "Could not convert datetime value to string");
-        }
-        ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-        return NULL;
-    }
-}
-
-static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc,
-                                 void *outValue, size_t *_outLen) {
-    npy_datetimestruct dts;
-    PRINTMARK();
-
-    pandas_datetime_to_datetimestruct((npy_datetime)GET_TC(tc)->longValue,
-                                      NPY_FR_ns, &dts);
-    return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
-}
-
-static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
-                          size_t *outLen) {
+static char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, size_t *outLen) {
     PyObject *obj = (PyObject *)_obj;
     PyObject *str;
     PyObject *tmp;
@@ -563,81 +403,15 @@ static void *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     GET_TC(tc)->newObj = str;
 
     *outLen = PyBytes_GET_SIZE(str);
-    outValue = (void *)PyBytes_AS_STRING(str);
+    char *outValue = PyBytes_AS_STRING(str);
     return outValue;
-}
-
-static int NpyTypeToJSONType(PyObject *obj, JSONTypeContext *tc, int npyType,
-                             void *value) {
-    PyArray_VectorUnaryFunc *castfunc;
-    npy_double doubleVal;
-    npy_int64 longVal;
-
-    if (PyTypeNum_ISFLOAT(npyType)) {
-        PRINTMARK();
-        castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_DOUBLE);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError,
-                         "Cannot cast numpy dtype %d to double", npyType);
-        }
-        castfunc(value, &doubleVal, 1, NULL, NULL);
-        if (npy_isnan(doubleVal) || npy_isinf(doubleVal)) {
-            PRINTMARK();
-            return JT_NULL;
-        }
-        GET_TC(tc)->doubleValue = (double)doubleVal;
-        GET_TC(tc)->PyTypeToJSON = CDouble;
-        return JT_DOUBLE;
-    }
-
-    if (PyTypeNum_ISDATETIME(npyType)) {
-        PRINTMARK();
-        castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_INT64);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-                         npyType);
-        }
-        castfunc(value, &longVal, 1, NULL, NULL);
-        if (longVal == get_nat()) {
-            PRINTMARK();
-            return JT_NULL;
-        }
-        GET_TC(tc)->longValue = (JSINT64)longVal;
-        GET_TC(tc)->PyTypeToJSON = NpyDatetime64ToJSON;
-        return ((PyObjectEncoder *)tc->encoder)->datetimeIso ? JT_UTF8
-                                                             : JT_LONG;
-    }
-
-    if (PyTypeNum_ISINTEGER(npyType)) {
-        PRINTMARK();
-        castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(npyType), NPY_INT64);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-                         npyType);
-        }
-        castfunc(value, &longVal, 1, NULL, NULL);
-        GET_TC(tc)->longValue = (JSINT64)longVal;
-        GET_TC(tc)->PyTypeToJSON = CLong;
-        return JT_LONG;
-    }
-
-    if (PyTypeNum_ISBOOL(npyType)) {
-        PRINTMARK();
-        return *((npy_bool *)value) == NPY_TRUE ? JT_TRUE : JT_FALSE;
-    }
-
-    PRINTMARK();
-    return JT_INVALID;
 }
 
 //=============================================================================
 // Numpy array iteration functions
 //=============================================================================
 
-static void NpyArr_freeItemValue(JSOBJ _obj, JSONTypeContext *tc) {
+static void NpyArr_freeItemValue(JSOBJ Py_UNUSED(_obj), JSONTypeContext *tc) {
     if (GET_TC(tc)->npyarr &&
         GET_TC(tc)->itemValue != GET_TC(tc)->npyarr->array) {
         PRINTMARK();
@@ -646,7 +420,9 @@ static void NpyArr_freeItemValue(JSOBJ _obj, JSONTypeContext *tc) {
     }
 }
 
-int NpyArr_iterNextNone(JSOBJ _obj, JSONTypeContext *tc) { return 0; }
+int NpyArr_iterNextNone(JSOBJ Py_UNUSED(_obj), JSONTypeContext *Py_UNUSED(tc)) {
+    return 0;
+}
 
 void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     PyArrayObject *obj;
@@ -703,7 +479,10 @@ void NpyArr_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
     }
 }
 
-void NpyArrPassThru_iterBegin(JSOBJ obj, JSONTypeContext *tc) { PRINTMARK(); }
+void NpyArrPassThru_iterBegin(JSOBJ Py_UNUSED(obj),
+                              JSONTypeContext *Py_UNUSED(tc)) {
+    PRINTMARK();
+}
 
 void NpyArrPassThru_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
     NpyArrContext *npyarr = GET_TC(tc)->npyarr;
@@ -782,12 +561,13 @@ int NpyArr_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     return 1;
 }
 
-JSOBJ NpyArr_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ NpyArr_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PRINTMARK();
     return GET_TC(tc)->itemValue;
 }
 
-char *NpyArr_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *NpyArr_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
+                         size_t *outLen) {
     NpyArrContext *npyarr = GET_TC(tc)->npyarr;
     npy_intp idx;
     PRINTMARK();
@@ -841,7 +621,8 @@ int PdBlock_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
     return NpyArr_iterNextItem(obj, tc);
 }
 
-char *PdBlock_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *PdBlock_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
+                          size_t *outLen) {
     PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
     NpyArrContext *npyarr = blkCtxt->npyCtxts[0];
     npy_intp idx;
@@ -863,7 +644,7 @@ char *PdBlock_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     return cStr;
 }
 
-char *PdBlock_iterGetName_Transpose(JSOBJ obj, JSONTypeContext *tc,
+char *PdBlock_iterGetName_Transpose(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
                                     size_t *outLen) {
     PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
     NpyArrContext *npyarr = blkCtxt->npyCtxts[blkCtxt->colIdx];
@@ -909,7 +690,7 @@ int PdBlock_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void PdBlockPassThru_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void PdBlockPassThru_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
     PRINTMARK();
 
@@ -1141,26 +922,27 @@ int Tuple_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void Tuple_iterEnd(JSOBJ obj, JSONTypeContext *tc) {}
+void Tuple_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc)) {}
 
-JSOBJ Tuple_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ Tuple_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *Tuple_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *Tuple_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
+                        size_t *Py_UNUSED(outLen)) {
     return NULL;
 }
 
 //=============================================================================
-// Iterator iteration functions
+// Set iteration functions
 // itemValue is borrowed reference, no ref counting
 //=============================================================================
-void Iter_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void Set_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     GET_TC(tc)->itemValue = NULL;
     GET_TC(tc)->iterator = PyObject_GetIter(obj);
 }
 
-int Iter_iterNext(JSOBJ obj, JSONTypeContext *tc) {
+int Set_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObject *item;
 
     if (GET_TC(tc)->itemValue) {
@@ -1178,7 +960,7 @@ int Iter_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void Iter_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+void Set_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     if (GET_TC(tc)->itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);
         GET_TC(tc)->itemValue = NULL;
@@ -1190,11 +972,12 @@ void Iter_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
     }
 }
 
-JSOBJ Iter_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ Set_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *Iter_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *Set_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
+                       size_t *Py_UNUSED(outLen)) {
     return NULL;
 }
 
@@ -1210,7 +993,7 @@ void Dir_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
     PRINTMARK();
 }
 
-void Dir_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+void Dir_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     if (GET_TC(tc)->itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);
         GET_TC(tc)->itemValue = NULL;
@@ -1296,12 +1079,13 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     return 1;
 }
 
-JSOBJ Dir_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ Dir_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PRINTMARK();
     return GET_TC(tc)->itemValue;
 }
 
-char *Dir_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *Dir_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
+                      size_t *outLen) {
     PRINTMARK();
     *outLen = PyBytes_GET_SIZE(GET_TC(tc)->itemName);
     return PyBytes_AS_STRING(GET_TC(tc)->itemName);
@@ -1327,20 +1111,21 @@ int List_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void List_iterEnd(JSOBJ obj, JSONTypeContext *tc) {}
+void List_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc)) {}
 
-JSOBJ List_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ List_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *List_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *List_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc),
+                       size_t *Py_UNUSED(outLen)) {
     return NULL;
 }
 
 //=============================================================================
 // pandas Index iteration functions
 //=============================================================================
-void Index_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void Index_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->index = 0;
     GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
     if (!GET_TC(tc)->cStr) {
@@ -1376,13 +1161,16 @@ int Index_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void Index_iterEnd(JSOBJ obj, JSONTypeContext *tc) { PRINTMARK(); }
+void Index_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *Py_UNUSED(tc)) {
+    PRINTMARK();
+}
 
-JSOBJ Index_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ Index_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *Index_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *Index_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
+                        size_t *outLen) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
 }
@@ -1390,7 +1178,7 @@ char *Index_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 //=============================================================================
 // pandas Series iteration functions
 //=============================================================================
-void Series_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void Series_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     GET_TC(tc)->index = 0;
     GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
@@ -1431,17 +1219,18 @@ int Series_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void Series_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+void Series_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     enc->outputFormat = enc->originalOutputFormat;
     PRINTMARK();
 }
 
-JSOBJ Series_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ Series_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *Series_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
+                         size_t *outLen) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
 }
@@ -1449,7 +1238,7 @@ char *Series_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 //=============================================================================
 // pandas DataFrame iteration functions
 //=============================================================================
-void DataFrame_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void DataFrame_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     GET_TC(tc)->index = 0;
     GET_TC(tc)->cStr = PyObject_Malloc(20 * sizeof(char));
@@ -1495,17 +1284,18 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void DataFrame_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+void DataFrame_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
     enc->outputFormat = enc->originalOutputFormat;
     PRINTMARK();
 }
 
-JSOBJ DataFrame_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ DataFrame_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *DataFrame_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
+                            size_t *outLen) {
     *outLen = strlen(GET_TC(tc)->cStr);
     return GET_TC(tc)->cStr;
 }
@@ -1515,12 +1305,12 @@ char *DataFrame_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
 // itemName might converted to string (Python_Str). Do refCounting
 // itemValue is borrowed from object (which is dict). No refCounting
 //=============================================================================
-void Dict_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
+void Dict_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->index = 0;
     PRINTMARK();
 }
 
-int Dict_iterNext(JSOBJ obj, JSONTypeContext *tc) {
+int Dict_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PyObject *itemNameTmp;
 
     if (GET_TC(tc)->itemName) {
@@ -1548,7 +1338,7 @@ int Dict_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     return 1;
 }
 
-void Dict_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
+void Dict_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     if (GET_TC(tc)->itemName) {
         Py_DECREF(GET_TC(tc)->itemName);
         GET_TC(tc)->itemName = NULL;
@@ -1557,11 +1347,12 @@ void Dict_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
     PRINTMARK();
 }
 
-JSOBJ Dict_iterGetValue(JSOBJ obj, JSONTypeContext *tc) {
+JSOBJ Dict_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->itemValue;
 }
 
-char *Dict_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
+char *Dict_iterGetName(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc,
+                       size_t *outLen) {
     *outLen = PyBytes_GET_SIZE(GET_TC(tc)->itemName);
     return PyBytes_AS_STRING(GET_TC(tc)->itemName);
 }
@@ -1598,10 +1389,12 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                            npy_intp num) {
     // NOTE this function steals a reference to labels.
     PyObject *item = NULL;
-    npy_intp i, stride, len;
+    size_t len;
+    npy_intp i, stride;
     char **ret;
     char *dataptr, *cLabel;
     int type_num;
+    NPY_DATETIMEUNIT base = enc->datetimeUnit;
     PRINTMARK();
 
     if (!labels) {
@@ -1639,92 +1432,87 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             break;
         }
 
-        // TODO: for any matches on type_num (date and timedeltas) should use a
-        // vectorized solution to convert to epoch or iso formats
-        if (enc->datetimeIso &&
-            (type_num == NPY_TIMEDELTA || PyDelta_Check(item))) {
-            PyObject *td = PyObject_CallFunction(cls_timedelta, "(O)", item);
-            if (td == NULL) {
-                Py_DECREF(item);
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
+        int is_datetimelike = 0;
+        npy_int64 nanosecVal;
+        if (PyTypeNum_ISDATETIME(type_num)) {
+            is_datetimelike = 1;
+            PyArray_VectorUnaryFunc *castfunc =
+                PyArray_GetCastFunc(PyArray_DescrFromType(type_num), NPY_INT64);
+            if (!castfunc) {
+                PyErr_Format(PyExc_ValueError,
+                             "Cannot cast numpy dtype %d to long",
+                             enc->npyType);
             }
-
-            PyObject *iso = PyObject_CallMethod(td, "isoformat", NULL);
-            Py_DECREF(td);
-            if (iso == NULL) {
-                Py_DECREF(item);
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-            }
-
-            cLabel = (char *)PyUnicode_AsUTF8(iso);
-            Py_DECREF(iso);
-            len = strlen(cLabel);
-        } else if (PyTypeNum_ISDATETIME(type_num) || PyDateTime_Check(item) ||
-                   PyDate_Check(item)) {
-            PyObject *ts = PyObject_CallFunction(cls_timestamp, "(O)", item);
-            if (ts == NULL) {
-                Py_DECREF(item);
-                NpyArr_freeLabels(ret, num);
-                ret = 0;
-                break;
-            }
-
-            if (enc->datetimeIso) {
-                PyObject *iso = PyObject_CallMethod(ts, "isoformat", NULL);
-                Py_DECREF(ts);
-                if (iso == NULL) {
-                    Py_DECREF(item);
-                    NpyArr_freeLabels(ret, num);
-                    ret = 0;
-                    break;
-                }
-
-                cLabel = (char *)PyUnicode_AsUTF8(iso);
-                Py_DECREF(iso);
-                len = strlen(cLabel);
+            castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
+        } else if (PyDate_Check(item) || PyDelta_Check(item)) {
+            is_datetimelike = 1;
+            if (PyObject_HasAttrString(item, "value")) {
+                nanosecVal = get_long_attr(item, "value");
             } else {
-                npy_int64 value;
-                // TODO: refactor to not duplicate what goes on in
-                // beginTypeContext
-                if (PyObject_HasAttrString(ts, "value")) {
-                    PRINTMARK();
-                    value = get_long_attr(ts, "value");
+                if (PyDelta_Check(item)) {
+                    nanosecVal = total_seconds(item) *
+                                 1000000000LL; // nanoseconds per second
                 } else {
-                    PRINTMARK();
-                    value = total_seconds(ts) *
-                            1000000000LL; // nanoseconds per second
+                    // datetime.* objects don't follow above rules
+                    nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
                 }
-                Py_DECREF(ts);
-
-                switch (enc->datetimeUnit) {
-                case NPY_FR_ns:
-                    break;
-                case NPY_FR_us:
-                    value /= 1000LL;
-                    break;
-                case NPY_FR_ms:
-                    value /= 1000000LL;
-                    break;
-                case NPY_FR_s:
-                    value /= 1000000000LL;
-                    break;
-                default:
-                    Py_DECREF(item);
-                    NpyArr_freeLabels(ret, num);
-                    ret = 0;
-                    break;
-                }
-
-                char buf[21] = {0}; // 21 chars for 2**63 as string
-                cLabel = buf;
-                sprintf(buf, "%" NPY_INT64_FMT, value);
-                len = strlen(cLabel);
             }
-        } else { // Fallack to string representation
+        }
+
+        if (is_datetimelike) {
+            if (nanosecVal == get_nat()) {
+                len = 5; // TODO: shouldn't require extra space for terminator
+                cLabel = PyObject_Malloc(len);
+                strncpy(cLabel, "null", len);
+            } else {
+                if (enc->datetimeIso) {
+                    // TODO: Vectorized Timedelta function
+                    if ((type_num == NPY_TIMEDELTA) || (PyDelta_Check(item))) {
+                        PyObject *td =
+                            PyObject_CallFunction(cls_timedelta, "(O)", item);
+                        if (td == NULL) {
+                            Py_DECREF(item);
+                            NpyArr_freeLabels(ret, num);
+                            ret = 0;
+                            break;
+                        }
+
+                        PyObject *iso =
+                            PyObject_CallMethod(td, "isoformat", NULL);
+                        Py_DECREF(td);
+                        if (iso == NULL) {
+                            Py_DECREF(item);
+                            NpyArr_freeLabels(ret, num);
+                            ret = 0;
+                            break;
+                        }
+
+                        len = strlen(PyUnicode_AsUTF8(iso));
+                        cLabel = PyObject_Malloc(len + 1);
+                        memcpy(cLabel, PyUnicode_AsUTF8(iso), len + 1);
+                        Py_DECREF(iso);
+                    } else {
+                        if (type_num == NPY_DATETIME) {
+                            cLabel = int64ToIso(nanosecVal, base, &len);
+                        } else {
+                            cLabel = PyDateTimeToIso((PyDateTime_Date *)item,
+                                                     base, &len);
+                        }
+                    }
+                    if (cLabel == NULL) {
+                        Py_DECREF(item);
+                        NpyArr_freeLabels(ret, num);
+                        ret = 0;
+                        break;
+                    }
+                } else {
+                    cLabel = PyObject_Malloc(21); // 21 chars for int64
+                    sprintf(cLabel, "%" NPY_DATETIME_FMT,
+                            NpyDateTimeToEpoch(nanosecVal, base));
+                    len = strlen(cLabel);
+                }
+            }
+        } else { // Fallback to string representation
             PyObject *str = PyObject_Str(item);
             if (str == NULL) {
                 Py_DECREF(item);
@@ -1742,6 +1530,10 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         // Add 1 to include NULL terminator
         ret[i] = PyObject_Malloc(len + 1);
         memcpy(ret[i], cLabel, len + 1);
+
+        if (is_datetimelike) {
+            PyObject_Free(cLabel);
+        }
 
         if (PyErr_Occurred()) {
             NpyArr_freeLabels(ret, num);
@@ -1784,7 +1576,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     PyObjectEncoder *enc;
     double val;
     npy_int64 value;
-    int base;
+    int unit;
     PRINTMARK();
 
     tc->prv = NULL;
@@ -1796,29 +1588,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
     obj = (PyObject *)_obj;
     enc = (PyObjectEncoder *)tc->encoder;
-
-    if (enc->npyType >= 0) {
-        PRINTMARK();
-        tc->prv = &(enc->basicTypeContext);
-        tc->type = NpyTypeToJSONType(obj, tc, enc->npyType, enc->npyValue);
-
-        if (tc->type == JT_INVALID) {
-            if (enc->defaultHandler) {
-                enc->npyType = -1;
-                PRINTMARK();
-                Object_invokeDefaultHandler(
-                    enc->npyCtxtPassthru->getitem(enc->npyValue,
-                                                  enc->npyCtxtPassthru->array),
-                    enc);
-            } else {
-                PyErr_Format(PyExc_RuntimeError, "Unhandled numpy dtype %d",
-                             enc->npyType);
-            }
-        }
-        enc->npyCtxtPassthru = NULL;
-        enc->npyType = -1;
-        return;
-    }
 
     if (PyBool_Check(obj)) {
         PRINTMARK();
@@ -1837,6 +1606,44 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     }
     tc->prv = pc;
 
+    if (PyTypeNum_ISDATETIME(enc->npyType)) {
+        PRINTMARK();
+        int64_t longVal;
+        PyArray_VectorUnaryFunc *castfunc =
+            PyArray_GetCastFunc(PyArray_DescrFromType(enc->npyType), NPY_INT64);
+        if (!castfunc) {
+            PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
+                         enc->npyType);
+        }
+        castfunc(enc->npyValue, &longVal, 1, NULL, NULL);
+        if (longVal == get_nat()) {
+            PRINTMARK();
+            tc->type = JT_NULL;
+        } else {
+
+            if (enc->datetimeIso) {
+                PRINTMARK();
+                pc->PyTypeToUTF8 = NpyDateTimeToIsoCallback;
+                // Currently no way to pass longVal to iso function, so use
+                // state management
+                GET_TC(tc)->longValue = longVal;
+                tc->type = JT_UTF8;
+            } else {
+                PRINTMARK();
+                NPY_DATETIMEUNIT base =
+                    ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+                GET_TC(tc)->longValue = NpyDateTimeToEpoch(longVal, base);
+                tc->type = JT_LONG;
+            }
+        }
+
+        // TODO: this prevents infinite loop with mixed-type DataFrames;
+        // refactor
+        enc->npyCtxtPassthru = NULL;
+        enc->npyType = -1;
+        return;
+    }
+
     if (PyIter_Check(obj) ||
         (PyArray_Check(obj) && !PyArray_CheckScalar(obj))) {
         PRINTMARK();
@@ -1845,7 +1652,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
     if (PyLong_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         GET_TC(tc)->longValue = PyLong_AsLongLong(obj);
 
@@ -1863,23 +1669,23 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (npy_isnan(val) || npy_isinf(val)) {
             tc->type = JT_NULL;
         } else {
-            pc->PyTypeToJSON = PyFloatToDOUBLE;
+            GET_TC(tc)->doubleValue = val;
             tc->type = JT_DOUBLE;
         }
         return;
     } else if (PyBytes_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyBytesToUTF8;
+        pc->PyTypeToUTF8 = PyBytesToUTF8;
         tc->type = JT_UTF8;
         return;
     } else if (PyUnicode_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyUnicodeToUTF8;
+        pc->PyTypeToUTF8 = PyUnicodeToUTF8;
         tc->type = JT_UTF8;
         return;
     } else if (PyObject_TypeCheck(obj, type_decimal)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyFloatToDOUBLE;
+        GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
         tc->type = JT_DOUBLE;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
@@ -1890,18 +1696,21 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         PRINTMARK();
-        pc->PyTypeToJSON = PyDateTimeToJSON;
         if (enc->datetimeIso) {
             PRINTMARK();
+            pc->PyTypeToUTF8 = PyDateTimeToIsoCallback;
             tc->type = JT_UTF8;
         } else {
             PRINTMARK();
+            NPY_DATETIMEUNIT base =
+                ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+            GET_TC(tc)->longValue = PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
             tc->type = JT_LONG;
         }
         return;
     } else if (PyTime_Check(obj)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyTimeToJSON;
+        pc->PyTypeToUTF8 = PyTimeToJSON;
         tc->type = JT_UTF8;
         return;
     } else if (PyArray_IsScalar(obj, Datetime)) {
@@ -1913,8 +1722,17 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         }
 
         PRINTMARK();
-        pc->PyTypeToJSON = NpyDateTimeScalarToJSON;
-        tc->type = enc->datetimeIso ? JT_UTF8 : JT_LONG;
+        if (enc->datetimeIso) {
+            PRINTMARK();
+            pc->PyTypeToUTF8 = PyDateTimeToIsoCallback;
+            tc->type = JT_UTF8;
+        } else {
+            PRINTMARK();
+            NPY_DATETIMEUNIT base =
+                ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+            GET_TC(tc)->longValue = PyDateTimeToEpoch((PyDateTime_Date *)obj, base);
+            tc->type = JT_LONG;
+        }
         return;
     } else if (PyDelta_Check(obj)) {
         if (PyObject_HasAttrString(obj, "value")) {
@@ -1925,19 +1743,9 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             value = total_seconds(obj) * 1000000000LL; // nanoseconds per second
         }
 
-        base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-        switch (base) {
-        case NPY_FR_ns:
-            break;
-        case NPY_FR_us:
-            value /= 1000LL;
-            break;
-        case NPY_FR_ms:
-            value /= 1000000LL;
-            break;
-        case NPY_FR_s:
-            value /= 1000000000LL;
-            break;
+        unit = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
+        if (scaleNanosecToUnit(&value, unit) != 0) {
+            // TODO: Add some kind of error handling here
         }
 
         exc = PyErr_Occurred();
@@ -1956,12 +1764,10 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         GET_TC(tc)->longValue = value;
 
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         PRINTMARK();
-        pc->PyTypeToJSON = PyLongToINT64;
         tc->type = JT_LONG;
         PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue),
                                   PyArray_DescrFromType(NPY_INT64));
@@ -1982,16 +1788,19 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     } else if (PyArray_IsScalar(obj, Float) || PyArray_IsScalar(obj, Double)) {
         PRINTMARK();
-        pc->PyTypeToJSON = NpyFloatToDOUBLE;
+        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->doubleValue),
+                                  PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
-        tmpObj = PyObject_Repr(obj);
         PyErr_Format(PyExc_TypeError,
-                     "%s (0d array) is not JSON serializable at the moment",
-                     PyBytes_AS_STRING(tmpObj));
-        Py_DECREF(tmpObj);
+                     "%R (0d array) is not JSON serializable at the moment",
+                     obj);
         goto INVALID;
+    } else if (PyObject_TypeCheck(obj, cls_na)) {
+        PRINTMARK();
+        tc->type = JT_NULL;
+        return;
     }
 
 ISITERABLE:
@@ -2244,11 +2053,11 @@ ISITERABLE:
     } else if (PyAnySet_Check(obj)) {
         PRINTMARK();
         tc->type = JT_ARRAY;
-        pc->iterBegin = Iter_iterBegin;
-        pc->iterEnd = Iter_iterEnd;
-        pc->iterNext = Iter_iterNext;
-        pc->iterGetValue = Iter_iterGetValue;
-        pc->iterGetName = Iter_iterGetName;
+        pc->iterBegin = Set_iterBegin;
+        pc->iterEnd = Set_iterEnd;
+        pc->iterNext = Set_iterNext;
+        pc->iterGetValue = Set_iterGetValue;
+        pc->iterGetName = Set_iterGetName;
         return;
     }
 
@@ -2306,7 +2115,7 @@ INVALID:
     return;
 }
 
-void Object_endTypeContext(JSOBJ obj, JSONTypeContext *tc) {
+void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     PRINTMARK();
     if (tc->prv) {
         Py_XDECREF(GET_TC(tc)->newObj);
@@ -2319,35 +2128,22 @@ void Object_endTypeContext(JSOBJ obj, JSONTypeContext *tc) {
 
         PyObject_Free(GET_TC(tc)->cStr);
         GET_TC(tc)->cStr = NULL;
-        if (tc->prv !=
-            &(((PyObjectEncoder *)tc->encoder)->basicTypeContext)) { // NOLINT
-            PyObject_Free(tc->prv);
-        }
+        PyObject_Free(tc->prv);
         tc->prv = NULL;
     }
 }
 
 const char *Object_getStringValue(JSOBJ obj, JSONTypeContext *tc,
                                   size_t *_outLen) {
-    return GET_TC(tc)->PyTypeToJSON(obj, tc, NULL, _outLen);
+    return GET_TC(tc)->PyTypeToUTF8(obj, tc, _outLen);
 }
 
-JSINT64 Object_getLongValue(JSOBJ obj, JSONTypeContext *tc) {
-    JSINT64 ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
+JSINT64 Object_getLongValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+    return GET_TC(tc)->longValue;
 }
 
-JSINT32 Object_getIntValue(JSOBJ obj, JSONTypeContext *tc) {
-    JSINT32 ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
-}
-
-double Object_getDoubleValue(JSOBJ obj, JSONTypeContext *tc) {
-    double ret;
-    GET_TC(tc)->PyTypeToJSON(obj, tc, &ret, NULL);
-    return ret;
+double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+    return GET_TC(tc)->doubleValue;
 }
 
 static void Object_releaseObject(JSOBJ _obj) { Py_DECREF((PyObject *)_obj); }
@@ -2372,11 +2168,18 @@ char *Object_iterGetName(JSOBJ obj, JSONTypeContext *tc, size_t *outLen) {
     return GET_TC(tc)->iterGetName(obj, tc, outLen);
 }
 
-PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
-    static char *kwlist[] = {
-        "obj",    "ensure_ascii", "double_precision", "encode_html_chars",
-        "orient", "date_unit",    "iso_dates",        "default_handler",
-        NULL};
+PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
+                    PyObject *kwargs) {
+    static char *kwlist[] = {"obj",
+                             "ensure_ascii",
+                             "double_precision",
+                             "encode_html_chars",
+                             "orient",
+                             "date_unit",
+                             "iso_dates",
+                             "default_handler",
+                             "indent",
+                             NULL};
 
     char buffer[65536];
     char *ret;
@@ -2389,13 +2192,14 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
     char *sdateFormat = NULL;
     PyObject *oisoDates = 0;
     PyObject *odefHandler = 0;
+    int indent = 0;
 
     PyObjectEncoder pyEncoder = {{
         Object_beginTypeContext,
         Object_endTypeContext,
         Object_getStringValue,
         Object_getLongValue,
-        Object_getIntValue,
+        NULL, // getIntValue is unused
         Object_getDoubleValue,
         Object_iterBegin,
         Object_iterNext,
@@ -2410,6 +2214,7 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         idoublePrecision,
         1, // forceAscii
         0, // encodeHTMLChars
+        0, // indent
     }};
     JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
 
@@ -2421,23 +2226,13 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
     pyEncoder.datetimeUnit = NPY_FR_ms;
     pyEncoder.outputFormat = COLUMNS;
     pyEncoder.defaultHandler = 0;
-    pyEncoder.basicTypeContext.newObj = NULL;
-    pyEncoder.basicTypeContext.dictObj = NULL;
-    pyEncoder.basicTypeContext.itemValue = NULL;
-    pyEncoder.basicTypeContext.itemName = NULL;
-    pyEncoder.basicTypeContext.attrList = NULL;
-    pyEncoder.basicTypeContext.iterator = NULL;
-    pyEncoder.basicTypeContext.cStr = NULL;
-    pyEncoder.basicTypeContext.npyarr = NULL;
-    pyEncoder.basicTypeContext.rowLabels = NULL;
-    pyEncoder.basicTypeContext.columnLabels = NULL;
 
     PRINTMARK();
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOO", kwlist, &oinput,
-                                     &oensureAscii, &idoublePrecision,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist,
+                                     &oinput, &oensureAscii, &idoublePrecision,
                                      &oencodeHTMLChars, &sOrient, &sdateFormat,
-                                     &oisoDates, &odefHandler)) {
+                                     &oisoDates, &odefHandler, &indent)) {
         return NULL;
     }
 
@@ -2502,6 +2297,8 @@ PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
         }
         pyEncoder.defaultHandler = odefHandler;
     }
+
+    encoder->indent = indent;
 
     pyEncoder.originalOutputFormat = pyEncoder.outputFormat;
     PRINTMARK();

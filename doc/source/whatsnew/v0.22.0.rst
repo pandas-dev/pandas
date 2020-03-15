@@ -55,6 +55,7 @@ The default sum for empty or all-*NA* ``Series`` is now ``0``.
 *pandas 0.22.0*
 
 .. ipython:: python
+   :okwarning:
 
    pd.Series([]).sum()
    pd.Series([np.nan]).sum()
@@ -67,6 +68,7 @@ pandas 0.20.3 without bottleneck, or pandas 0.21.x), use the ``min_count``
 keyword.
 
 .. ipython:: python
+   :okwarning:
 
    pd.Series([]).sum(min_count=1)
 
@@ -85,6 +87,7 @@ required for a non-NA sum or product.
 returning ``1`` instead.
 
 .. ipython:: python
+   :okwarning:
 
    pd.Series([]).prod()
    pd.Series([np.nan]).prod()

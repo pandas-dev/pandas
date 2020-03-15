@@ -1,19 +1,116 @@
 """ test label based indexing with loc """
 from io import StringIO
 import re
-from warnings import catch_warnings, filterwarnings
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
+import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
-from pandas.util import testing as tm
 
 
 class TestLoc(Base):
+    def test_loc_getitem_int(self):
+
+        # int label
+        self.check_result("loc", 2, typs=["labels"], fails=KeyError)
+
+    def test_loc_getitem_label(self):
+
+        # label
+        self.check_result("loc", "c", typs=["empty"], fails=KeyError)
+
+    def test_loc_getitem_label_out_of_range(self):
+
+        # out of range label
+        self.check_result(
+            "loc", "f", typs=["ints", "uints", "labels", "mixed", "ts"], fails=KeyError,
+        )
+        self.check_result("loc", "f", typs=["floats"], fails=KeyError)
+        self.check_result("loc", "f", typs=["floats"], fails=KeyError)
+        self.check_result(
+            "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
+        )
+        self.check_result("loc", 20, typs=["labels"], fails=KeyError)
+        self.check_result("loc", 20, typs=["ts"], axes=0, fails=KeyError)
+        self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
+
+    def test_loc_getitem_label_list(self):
+        # TODO: test something here?
+        # list of labels
+        pass
+
+    def test_loc_getitem_label_list_with_missing(self):
+        self.check_result(
+            "loc", [0, 1, 2], typs=["empty"], fails=KeyError,
+        )
+        self.check_result(
+            "loc", [0, 2, 10], typs=["ints", "uints", "floats"], axes=0, fails=KeyError,
+        )
+
+        self.check_result(
+            "loc", [3, 6, 7], typs=["ints", "uints", "floats"], axes=1, fails=KeyError,
+        )
+
+        # GH 17758 - MultiIndex and missing keys
+        self.check_result(
+            "loc", [(1, 3), (1, 4), (2, 5)], typs=["multi"], axes=0, fails=KeyError,
+        )
+
+    def test_loc_getitem_label_list_fails(self):
+        # fails
+        self.check_result(
+            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError,
+        )
+
+    def test_loc_getitem_label_array_like(self):
+        # TODO: test something?
+        # array like
+        pass
+
+    def test_loc_getitem_bool(self):
+        # boolean indexers
+        b = [True, False, True, False]
+
+        self.check_result("loc", b, typs=["empty"], fails=IndexError)
+
+    def test_loc_getitem_label_slice(self):
+
+        # label slices (with ints)
+
+        # real label slices
+
+        # GH 14316
+
+        self.check_result(
+            "loc",
+            slice(1, 3),
+            typs=["labels", "mixed", "empty", "ts", "floats"],
+            fails=TypeError,
+        )
+
+        self.check_result(
+            "loc", slice("20130102", "20130104"), typs=["ts"], axes=1, fails=TypeError,
+        )
+
+        self.check_result(
+            "loc", slice(2, 8), typs=["mixed"], axes=0, fails=TypeError,
+        )
+        self.check_result(
+            "loc", slice(2, 8), typs=["mixed"], axes=1, fails=KeyError,
+        )
+
+        self.check_result(
+            "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError,
+        )
+
+
+class TestLoc2:
+    # TODO: better name, just separating out things that rely on base class
+
     def test_loc_getitem_dups(self):
         # GH 5678
         # repeated getitems on a dup index returning a ndarray
@@ -93,259 +190,40 @@ class TestLoc(Base):
         expected = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         tm.assert_frame_equal(df2, expected)
 
-    def test_loc_getitem_int(self):
+    def test_loc_setitem_dtype(self):
+        # GH31340
+        df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
+        cols = ["a", "b", "c"]
+        df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
-        # int label
-        self.check_result(
-            "int label", "loc", 2, "ix", 2, typs=["ints", "uints"], axes=0
-        )
-        self.check_result(
-            "int label", "loc", 3, "ix", 3, typs=["ints", "uints"], axes=1
-        )
-        self.check_result(
-            "int label", "loc", 2, "ix", 2, typs=["label"], fails=KeyError
-        )
+        expected = DataFrame(
+            {"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]}, dtype="float32"
+        )  # id is inferred as object
 
-    def test_loc_getitem_label(self):
-
-        # label
-        self.check_result("label", "loc", "c", "ix", "c", typs=["labels"], axes=0)
-        self.check_result("label", "loc", "null", "ix", "null", typs=["mixed"], axes=0)
-        self.check_result("label", "loc", 8, "ix", 8, typs=["mixed"], axes=0)
-        self.check_result(
-            "label", "loc", Timestamp("20130102"), "ix", 1, typs=["ts"], axes=0
-        )
-        self.check_result(
-            "label", "loc", "c", "ix", "c", typs=["empty"], fails=KeyError
-        )
-
-    def test_loc_getitem_label_out_of_range(self):
-
-        # out of range label
-        self.check_result(
-            "label range",
-            "loc",
-            "f",
-            "ix",
-            "f",
-            typs=["ints", "uints", "labels", "mixed", "ts"],
-            fails=KeyError,
-        )
-        self.check_result(
-            "label range", "loc", "f", "ix", "f", typs=["floats"], fails=KeyError
-        )
-        self.check_result(
-            "label range",
-            "loc",
-            20,
-            "ix",
-            20,
-            typs=["ints", "uints", "mixed"],
-            fails=KeyError,
-        )
-        self.check_result(
-            "label range", "loc", 20, "ix", 20, typs=["labels"], fails=TypeError
-        )
-        self.check_result(
-            "label range", "loc", 20, "ix", 20, typs=["ts"], axes=0, fails=TypeError
-        )
-        self.check_result(
-            "label range", "loc", 20, "ix", 20, typs=["floats"], axes=0, fails=KeyError
-        )
-
-    def test_loc_getitem_label_list(self):
-
-        # list of labels
-        self.check_result(
-            "list lbl",
-            "loc",
-            [0, 2, 4],
-            "ix",
-            [0, 2, 4],
-            typs=["ints", "uints"],
-            axes=0,
-        )
-        self.check_result(
-            "list lbl",
-            "loc",
-            [3, 6, 9],
-            "ix",
-            [3, 6, 9],
-            typs=["ints", "uints"],
-            axes=1,
-        )
-        self.check_result(
-            "list lbl",
-            "loc",
-            ["a", "b", "d"],
-            "ix",
-            ["a", "b", "d"],
-            typs=["labels"],
-            axes=0,
-        )
-        self.check_result(
-            "list lbl",
-            "loc",
-            ["A", "B", "C"],
-            "ix",
-            ["A", "B", "C"],
-            typs=["labels"],
-            axes=1,
-        )
-        self.check_result(
-            "list lbl",
-            "loc",
-            [2, 8, "null"],
-            "ix",
-            [2, 8, "null"],
-            typs=["mixed"],
-            axes=0,
-        )
-        self.check_result(
-            "list lbl",
-            "loc",
-            [Timestamp("20130102"), Timestamp("20130103")],
-            "ix",
-            [Timestamp("20130102"), Timestamp("20130103")],
-            typs=["ts"],
-            axes=0,
-        )
-
-    def test_loc_getitem_label_list_with_missing(self):
-        self.check_result(
-            "list lbl",
-            "loc",
-            [0, 1, 2],
-            "indexer",
-            [0, 1, 2],
-            typs=["empty"],
-            fails=KeyError,
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.check_result(
-                "list lbl",
-                "loc",
-                [0, 2, 10],
-                "ix",
-                [0, 2, 10],
-                typs=["ints", "uints", "floats"],
-                axes=0,
-                fails=KeyError,
-            )
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.check_result(
-                "list lbl",
-                "loc",
-                [3, 6, 7],
-                "ix",
-                [3, 6, 7],
-                typs=["ints", "uints", "floats"],
-                axes=1,
-                fails=KeyError,
-            )
-
-        # GH 17758 - MultiIndex and missing keys
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.check_result(
-                "list lbl",
-                "loc",
-                [(1, 3), (1, 4), (2, 5)],
-                "ix",
-                [(1, 3), (1, 4), (2, 5)],
-                typs=["multi"],
-                axes=0,
-            )
+        tm.assert_frame_equal(df, expected)
 
     def test_getitem_label_list_with_missing(self):
         s = Series(range(3), index=["a", "b", "c"])
 
         # consistency
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(KeyError, match="with any missing labels"):
             s[["a", "d"]]
 
         s = Series(range(3))
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(KeyError, match="with any missing labels"):
             s[[0, 3]]
-
-    def test_loc_getitem_label_list_fails(self):
-        # fails
-        self.check_result(
-            "list lbl",
-            "loc",
-            [20, 30, 40],
-            "ix",
-            [20, 30, 40],
-            typs=["ints", "uints"],
-            axes=1,
-            fails=KeyError,
-        )
-
-    def test_loc_getitem_label_array_like(self):
-        # array like
-        self.check_result(
-            "array like",
-            "loc",
-            Series(index=[0, 2, 4]).index,
-            "ix",
-            [0, 2, 4],
-            typs=["ints", "uints"],
-            axes=0,
-        )
-        self.check_result(
-            "array like",
-            "loc",
-            Series(index=[3, 6, 9]).index,
-            "ix",
-            [3, 6, 9],
-            typs=["ints", "uints"],
-            axes=1,
-        )
-
-    def test_loc_getitem_bool(self):
-        # boolean indexers
-        b = [True, False, True, False]
-        self.check_result(
-            "bool",
-            "loc",
-            b,
-            "ix",
-            b,
-            typs=["ints", "uints", "labels", "mixed", "ts", "floats"],
-        )
-        self.check_result("bool", "loc", b, "ix", b, typs=["empty"], fails=IndexError)
 
     @pytest.mark.parametrize("index", [[True, False], [True, False, True, False]])
     def test_loc_getitem_bool_diff_len(self, index):
         # GH26658
         s = Series([1, 2, 3])
-        with pytest.raises(
-            IndexError,
-            match=("Item wrong length {} instead of {}.".format(len(index), len(s))),
-        ):
+        msg = f"Boolean index has wrong length: {len(index)} instead of {len(s)}"
+        with pytest.raises(IndexError, match=msg):
             _ = s.loc[index]
 
     def test_loc_getitem_int_slice(self):
-
-        # ok
-        self.check_result(
-            "int slice2",
-            "loc",
-            slice(2, 4),
-            "ix",
-            [2, 4],
-            typs=["ints", "uints"],
-            axes=0,
-        )
-        self.check_result(
-            "int slice2",
-            "loc",
-            slice(3, 6),
-            "ix",
-            [3, 6],
-            typs=["ints", "uints"],
-            axes=1,
-        )
+        # TODO: test something here?
+        pass
 
     def test_loc_to_fail(self):
 
@@ -356,8 +234,8 @@ class TestLoc(Base):
 
         # raise a KeyError?
         msg = (
-            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[1, 2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
@@ -365,7 +243,7 @@ class TestLoc(Base):
         # GH  7496
         # loc should not fallback
 
-        s = Series()
+        s = Series(dtype=object)
         s.loc[1] = 1
         s.loc["a"] = 2
 
@@ -373,28 +251,24 @@ class TestLoc(Base):
             s.loc[-1]
 
         msg = (
-            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-1, -2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-1, -2]]
 
-        msg = (
-            r"\"None of \[Index\(\['4'\], dtype='object'\)\] are" r" in the \[index\]\""
-        )
+        msg = r"\"None of \[Index\(\['4'\], dtype='object'\)\] are in the \[index\]\""
         with pytest.raises(KeyError, match=msg):
             s.loc[["4"]]
 
         s.loc[-1] = 3
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = s.loc[[-1, -2]]
-        expected = Series([3, np.nan], index=[-1, -2])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[-1, -2]]
 
         s["a"] = 2
         msg = (
-            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[-2\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             s.loc[[-2]]
@@ -409,8 +283,8 @@ class TestLoc(Base):
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are"
-            r" in the \[index\]\""
+            r"\"None of \[Int64Index\(\[3\], dtype='int64'\)\] are "
+            r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[3], :]
@@ -435,106 +309,8 @@ class TestLoc(Base):
             s.loc[[3]]
 
         # a non-match and a match
-        with tm.assert_produces_warning(FutureWarning):
-            expected = s.loc[[2, 3]]
-        result = s.reindex([2, 3])
-        tm.assert_series_equal(result, expected)
-
-    def test_loc_getitem_label_slice(self):
-
-        # label slices (with ints)
-        self.check_result(
-            "lab slice",
-            "loc",
-            slice(1, 3),
-            "ix",
-            slice(1, 3),
-            typs=["labels", "mixed", "empty", "ts", "floats"],
-            fails=TypeError,
-        )
-
-        # real label slices
-        self.check_result(
-            "lab slice",
-            "loc",
-            slice("a", "c"),
-            "ix",
-            slice("a", "c"),
-            typs=["labels"],
-            axes=0,
-        )
-        self.check_result(
-            "lab slice",
-            "loc",
-            slice("A", "C"),
-            "ix",
-            slice("A", "C"),
-            typs=["labels"],
-            axes=1,
-        )
-
-        self.check_result(
-            "ts  slice",
-            "loc",
-            slice("20130102", "20130104"),
-            "ix",
-            slice("20130102", "20130104"),
-            typs=["ts"],
-            axes=0,
-        )
-        self.check_result(
-            "ts  slice",
-            "loc",
-            slice("20130102", "20130104"),
-            "ix",
-            slice("20130102", "20130104"),
-            typs=["ts"],
-            axes=1,
-            fails=TypeError,
-        )
-
-        # GH 14316
-        self.check_result(
-            "ts slice rev",
-            "loc",
-            slice("20130104", "20130102"),
-            "indexer",
-            [0, 1, 2],
-            typs=["ts_rev"],
-            axes=0,
-        )
-
-        self.check_result(
-            "mixed slice",
-            "loc",
-            slice(2, 8),
-            "ix",
-            slice(2, 8),
-            typs=["mixed"],
-            axes=0,
-            fails=TypeError,
-        )
-        self.check_result(
-            "mixed slice",
-            "loc",
-            slice(2, 8),
-            "ix",
-            slice(2, 8),
-            typs=["mixed"],
-            axes=1,
-            fails=KeyError,
-        )
-
-        self.check_result(
-            "mixed slice",
-            "loc",
-            slice(2, 4, 2),
-            "ix",
-            slice(2, 4, 2),
-            typs=["mixed"],
-            axes=0,
-            fails=TypeError,
-        )
+        with pytest.raises(KeyError, match="with any missing labels"):
+            s.loc[[2, 3]]
 
     def test_loc_index(self):
         # gh-17131
@@ -552,6 +328,9 @@ class TestLoc(Base):
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[mask.values]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[pd.array(mask, dtype="boolean")]
         tm.assert_frame_equal(result, expected)
 
     def test_loc_general(self):
@@ -703,17 +482,39 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             }
         )
 
-        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(
-            "datetime64[{unit}]".format(unit=unit)
-        )
-        df["expected"] = df.loc[:, "timestamp"].values.astype(
-            "datetime64[{unit}]".format(unit=unit)
-        )
+        df.loc[:, unit] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
+        df["expected"] = df.loc[:, "timestamp"].values.astype(f"datetime64[{unit}]")
         expected = Series(df.loc[:, "expected"], name=unit)
         tm.assert_series_equal(df.loc[:, unit], expected)
 
+    def test_loc_modify_datetime(self):
+        # see gh-28837
+        df = DataFrame.from_dict(
+            {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
+        )
+
+        df["date_dt"] = pd.to_datetime(df["date"], unit="ms", cache=True)
+
+        df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
+        df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]
+
+        expected = DataFrame(
+            [
+                [1485264372711, "2017-01-24 13:26:12.711", "2017-01-24 13:26:12.711"],
+                [1485265925110, "2017-01-24 13:52:05.110", "2017-01-24 13:52:05.110"],
+                [1540215845888, "2018-10-22 13:44:05.888", "2018-10-22 13:44:05.888"],
+                [1540282121025, "2018-10-23 08:08:41.025", "2018-10-23 08:08:41.025"],
+            ],
+            columns=["date", "date_dt", "date_dt_cp"],
+        )
+
+        columns = ["date_dt", "date_dt_cp"]
+        expected[columns] = expected[columns].apply(pd.to_datetime)
+
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_frame(self):
-        df = self.frame_labels
+        df = DataFrame(np.random.randn(4, 4), index=list("abcd"), columns=list("ABCD"))
 
         result = df.iloc[0, 0]
 
@@ -830,6 +631,64 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         assert is_scalar(result) and result == "Z"
 
+    @pytest.mark.parametrize(
+        "index,box,expected",
+        [
+            (
+                ([0, 2], ["A", "B", "C", "D"]),
+                7,
+                pd.DataFrame(
+                    [[7, 7, 7, 7], [3, 4, np.nan, np.nan], [7, 7, 7, 7]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (1, ["C", "D"]),
+                [7, 8],
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [3, 4, 7, 8], [5, 6, np.nan, np.nan]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (1, ["A", "B", "C"]),
+                np.array([7, 8, 9], dtype=np.int64),
+                pd.DataFrame(
+                    [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]],
+                    columns=["A", "B", "C"],
+                ),
+            ),
+            (
+                (slice(1, 3, None), ["B", "C", "D"]),
+                [[7, 8, 9], [10, 11, 12]],
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [3, 7, 8, 9], [5, 10, 11, 12]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (slice(1, 3, None), ["C", "A", "D"]),
+                np.array([[7, 8, 9], [10, 11, 12]], dtype=np.int64),
+                pd.DataFrame(
+                    [[1, 2, np.nan, np.nan], [8, 4, 7, 9], [11, 6, 10, 12]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                (slice(None, None, None), ["A", "C"]),
+                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                pd.DataFrame(
+                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
+                ),
+            ),
+        ],
+    )
+    def test_loc_setitem_missing_columns(self, index, box, expected):
+        # GH 29334
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df.loc[index] = box
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_coercion(self):
 
         # 12411
@@ -874,13 +733,13 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         ]
         expected = pd.Series(vals, index=["foo", "bar"])
 
-        ser = pd.Series()
+        ser = pd.Series(dtype=object)
         ser["foo"] = vals[0]
         ser["bar"] = vals[1]
 
         tm.assert_series_equal(ser, expected)
 
-        ser = pd.Series()
+        ser = pd.Series(dtype=object)
         ser.loc["foo"] = vals[0]
         ser.loc["bar"] = vals[1]
 
@@ -978,18 +837,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[0, 1]].index.name
         assert result == "index_name"
 
-        with catch_warnings(record=True):
-            filterwarnings("ignore", "\\n.ix", FutureWarning)
-            result = df.ix[[0, 1]].index.name
-        assert result == "index_name"
-
         result = df.loc[[0, 1]].index.name
         assert result == "index_name"
 
     def test_loc_empty_list_indexer_is_ok(self):
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(5, 2)
+        df = tm.makeCustomDataframe(5, 2)
         # vertical empty
         tm.assert_frame_equal(
             df.loc[:, []], df.iloc[:, :0], check_index_type=True, check_column_type=True
@@ -1068,6 +921,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         data = [1, 2]
         df = DataFrame(columns=["x", "y"])
+        df.index = df.index.astype(np.int64)
         msg = (
             r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
             r"are in the \[index\]"
@@ -1097,7 +951,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
         expected = Series(data, index=range(2010, 2020))
 
-        result = pd.Series(index=range(2010, 2020))
+        result = pd.Series(index=range(2010, 2020), dtype=np.float64)
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
 
         tm.assert_series_equal(result, expected)
@@ -1109,10 +963,8 @@ def test_series_loc_getitem_label_list_missing_values():
         ["2001-01-04", "2001-01-02", "2001-01-04", "2001-01-14"], dtype="datetime64"
     )
     s = Series([2, 5, 8, 11], date_range("2001-01-01", freq="D", periods=4))
-    expected = Series([11.0, 5.0, 11.0, np.nan], index=key)
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = s.loc[key]
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s.loc[key]
 
 
 @pytest.mark.parametrize(
@@ -1131,3 +983,93 @@ def test_loc_getitem_label_list_integer_labels(
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
     tm.assert_frame_equal(result, expected, check_column_type=check_column_type)
+
+
+def test_loc_setitem_float_intindex():
+    # GH 8720
+    rand_data = np.random.randn(8, 4)
+    result = pd.DataFrame(rand_data)
+    result.loc[:, 0.5] = np.nan
+    expected_data = np.hstack((rand_data, np.array([np.nan] * 8).reshape(8, 1)))
+    expected = pd.DataFrame(expected_data, columns=[0.0, 1.0, 2.0, 3.0, 0.5])
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.DataFrame(rand_data)
+    result.loc[:, 0.5] = np.nan
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_axis_1_slice():
+    # GH 10586
+    cols = [(yr, m) for yr in [2014, 2015] for m in [7, 8, 9, 10]]
+    df = pd.DataFrame(
+        np.ones((10, 8)),
+        index=tuple("ABCDEFGHIJ"),
+        columns=pd.MultiIndex.from_tuples(cols),
+    )
+    result = df.loc(axis=1)[(2014, 9):(2015, 8)]
+    expected = pd.DataFrame(
+        np.ones((10, 4)),
+        index=tuple("ABCDEFGHIJ"),
+        columns=pd.MultiIndex.from_tuples(
+            [(2014, 9), (2014, 10), (2015, 7), (2015, 8)]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_set_dataframe_multiindex():
+    # GH 14592
+    expected = pd.DataFrame(
+        "a", index=range(2), columns=pd.MultiIndex.from_product([range(2), range(2)])
+    )
+    result = expected.copy()
+    result.loc[0, [(0, 1)]] = result.loc[0, [(0, 1)]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_mixed_int_float():
+    # GH#19456
+    ser = pd.Series(range(2), pd.Index([1, 2.0], dtype=object))
+
+    result = ser.loc[1]
+    assert result == 0
+
+
+def test_loc_with_positional_slice_deprecation():
+    # GH#31840
+    ser = pd.Series(range(4), index=["A", "B", "C", "D"])
+
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        ser.loc[:3] = 2
+
+    expected = pd.Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_slice_disallows_positional():
+    # GH#16121, GH#24612, GH#31810
+    dti = pd.date_range("2016-01-01", periods=3)
+    df = pd.DataFrame(np.random.random((3, 2)), index=dti)
+
+    ser = df[0]
+
+    msg = (
+        "cannot do slice indexing on DatetimeIndex with these "
+        r"indexers \[1\] of type int"
+    )
+
+    for obj in [df, ser]:
+        with pytest.raises(TypeError, match=msg):
+            obj.loc[1:3]
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#31840 deprecated incorrect behavior
+            obj.loc[1:3] = 1
+
+    with pytest.raises(TypeError, match=msg):
+        df.loc[1:3, 1]
+
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31840 deprecated incorrect behavior
+        df.loc[1:3, 1] = 2

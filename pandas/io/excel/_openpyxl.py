@@ -2,9 +2,8 @@ from typing import List
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
-
 from pandas._typing import FilePathOrBuffer, Scalar
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.excel._base import ExcelWriter, _BaseExcelReader
 from pandas.io.excel._util import _validate_freeze_panes
@@ -46,12 +45,12 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_style(cls, style_dict):
         """
-        converts a style_dict to an openpyxl style object
+        Converts a style_dict to an openpyxl style object.
+
         Parameters
         ----------
         style_dict : style dictionary to convert
         """
-
         from openpyxl.style import Style
 
         xls_style = Style()
@@ -72,7 +71,8 @@ class _OpenpyxlWriter(ExcelWriter):
     def _convert_to_style_kwargs(cls, style_dict):
         """
         Convert a style_dict to a set of kwargs suitable for initializing
-        or updating-on-copy an openpyxl v2 style object
+        or updating-on-copy an openpyxl v2 style object.
+
         Parameters
         ----------
         style_dict : dict
@@ -83,6 +83,7 @@ class _OpenpyxlWriter(ExcelWriter):
                 'alignment'
                 'number_format'
                 'protection'
+
         Returns
         -------
         style_kwargs : dict
@@ -90,14 +91,13 @@ class _OpenpyxlWriter(ExcelWriter):
             value has been replaced with a native openpyxl style object of the
             appropriate class.
         """
-
         _style_key_map = {"borders": "border"}
 
         style_kwargs = {}
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
-            _conv_to_x = getattr(cls, "_convert_to_{k}".format(k=k), lambda x: None)
+            _conv_to_x = getattr(cls, f"_convert_to_{k}", lambda x: None)
             new_v = _conv_to_x(v)
             if new_v:
                 style_kwargs[k] = new_v
@@ -107,7 +107,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_color(cls, color_spec):
         """
-        Convert ``color_spec`` to an openpyxl v2 Color object
+        Convert ``color_spec`` to an openpyxl v2 Color object.
+
         Parameters
         ----------
         color_spec : str, dict
@@ -120,11 +121,11 @@ class _OpenpyxlWriter(ExcelWriter):
                 'tint'
                 'index'
                 'type'
+
         Returns
         -------
         color : openpyxl.styles.Color
         """
-
         from openpyxl.styles import Color
 
         if isinstance(color_spec, str):
@@ -135,7 +136,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_font(cls, font_dict):
         """
-        Convert ``font_dict`` to an openpyxl v2 Font object
+        Convert ``font_dict`` to an openpyxl v2 Font object.
+
         Parameters
         ----------
         font_dict : dict
@@ -154,11 +156,11 @@ class _OpenpyxlWriter(ExcelWriter):
                 'outline'
                 'shadow'
                 'condense'
+
         Returns
         -------
         font : openpyxl.styles.Font
         """
-
         from openpyxl.styles import Font
 
         _font_key_map = {
@@ -185,22 +187,24 @@ class _OpenpyxlWriter(ExcelWriter):
         """
         Convert ``stop_seq`` to a list of openpyxl v2 Color objects,
         suitable for initializing the ``GradientFill`` ``stop`` parameter.
+
         Parameters
         ----------
         stop_seq : iterable
             An iterable that yields objects suitable for consumption by
             ``_convert_to_color``.
+
         Returns
         -------
         stop : list of openpyxl.styles.Color
         """
-
         return map(cls._convert_to_color, stop_seq)
 
     @classmethod
     def _convert_to_fill(cls, fill_dict):
         """
-        Convert ``fill_dict`` to an openpyxl v2 Fill object
+        Convert ``fill_dict`` to an openpyxl v2 Fill object.
+
         Parameters
         ----------
         fill_dict : dict
@@ -216,11 +220,11 @@ class _OpenpyxlWriter(ExcelWriter):
                 'top'
                 'bottom'
                 'stop'
+
         Returns
         -------
         fill : openpyxl.styles.Fill
         """
-
         from openpyxl.styles import PatternFill, GradientFill
 
         _pattern_fill_key_map = {
@@ -262,7 +266,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_side(cls, side_spec):
         """
-        Convert ``side_spec`` to an openpyxl v2 Side object
+        Convert ``side_spec`` to an openpyxl v2 Side object.
+
         Parameters
         ----------
         side_spec : str, dict
@@ -270,11 +275,11 @@ class _OpenpyxlWriter(ExcelWriter):
             of the following keys (or their synonyms).
                 'style' ('border_style')
                 'color'
+
         Returns
         -------
         side : openpyxl.styles.Side
         """
-
         from openpyxl.styles import Side
 
         _side_key_map = {"border_style": "style"}
@@ -295,7 +300,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_border(cls, border_dict):
         """
-        Convert ``border_dict`` to an openpyxl v2 Border object
+        Convert ``border_dict`` to an openpyxl v2 Border object.
+
         Parameters
         ----------
         border_dict : dict
@@ -311,11 +317,11 @@ class _OpenpyxlWriter(ExcelWriter):
                 'diagonalUp' ('diagonalup')
                 'diagonalDown' ('diagonaldown')
                 'outline'
+
         Returns
         -------
         border : openpyxl.styles.Border
         """
-
         from openpyxl.styles import Border
 
         _border_key_map = {"diagonalup": "diagonalUp", "diagonaldown": "diagonalDown"}
@@ -335,7 +341,8 @@ class _OpenpyxlWriter(ExcelWriter):
     @classmethod
     def _convert_to_alignment(cls, alignment_dict):
         """
-        Convert ``alignment_dict`` to an openpyxl v2 Alignment object
+        Convert ``alignment_dict`` to an openpyxl v2 Alignment object.
+
         Parameters
         ----------
         alignment_dict : dict
@@ -350,7 +357,6 @@ class _OpenpyxlWriter(ExcelWriter):
         -------
         alignment : openpyxl.styles.Alignment
         """
-
         from openpyxl.styles import Alignment
 
         return Alignment(**alignment_dict)
@@ -360,11 +366,13 @@ class _OpenpyxlWriter(ExcelWriter):
         """
         Convert ``number_format_dict`` to an openpyxl v2.1.0 number format
         initializer.
+
         Parameters
         ----------
         number_format_dict : dict
             A dict with zero or more of the following keys.
                 'format_code' : str
+
         Returns
         -------
         number_format : str
@@ -375,16 +383,17 @@ class _OpenpyxlWriter(ExcelWriter):
     def _convert_to_protection(cls, protection_dict):
         """
         Convert ``protection_dict`` to an openpyxl v2 Protection object.
+
         Parameters
         ----------
         protection_dict : dict
             A dict with zero or more of the following keys.
                 'locked'
                 'hidden'
+
         Returns
         -------
         """
-
         from openpyxl.styles import Protection
 
         return Protection(**protection_dict)
@@ -459,7 +468,8 @@ class _OpenpyxlWriter(ExcelWriter):
 
 class _OpenpyxlReader(_BaseExcelReader):
     def __init__(self, filepath_or_buffer: FilePathOrBuffer) -> None:
-        """Reader using openpyxl engine.
+        """
+        Reader using openpyxl engine.
 
         Parameters
         ----------
@@ -481,6 +491,11 @@ class _OpenpyxlReader(_BaseExcelReader):
         return load_workbook(
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False
         )
+
+    def close(self):
+        # https://stackoverflow.com/questions/31416842/
+        #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
+        self.book.close()
 
     @property
     def sheet_names(self) -> List[str]:
@@ -515,7 +530,7 @@ class _OpenpyxlReader(_BaseExcelReader):
         return cell.value
 
     def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
-        data = []  # type: List[List[Scalar]]
+        data: List[List[Scalar]] = []
         for row in sheet.rows:
             data.append([self._convert_cell(cell, convert_float) for cell in row])
 

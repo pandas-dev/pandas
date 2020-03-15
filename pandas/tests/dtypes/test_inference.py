@@ -4,6 +4,7 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 import collections
+from collections import namedtuple
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
@@ -51,7 +52,8 @@ from pandas import (
     Timestamp,
     isna,
 )
-from pandas.util import testing as tm
+import pandas._testing as tm
+from pandas.core.arrays import IntegerArray
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -62,46 +64,46 @@ def coerce(request):
 # collect all objects to be tested for list-like-ness; use tuples of objects,
 # whether they are list-like or not (special casing for sets), and their ID
 ll_params = [
-    ([1], True, "list"),  # noqa: E241
-    ([], True, "list-empty"),  # noqa: E241
-    ((1,), True, "tuple"),  # noqa: E241
-    (tuple(), True, "tuple-empty"),  # noqa: E241
-    ({"a": 1}, True, "dict"),  # noqa: E241
-    (dict(), True, "dict-empty"),  # noqa: E241
-    ({"a", 1}, "set", "set"),  # noqa: E241
-    (set(), "set", "set-empty"),  # noqa: E241
-    (frozenset({"a", 1}), "set", "frozenset"),  # noqa: E241
-    (frozenset(), "set", "frozenset-empty"),  # noqa: E241
-    (iter([1, 2]), True, "iterator"),  # noqa: E241
-    (iter([]), True, "iterator-empty"),  # noqa: E241
-    ((x for x in [1, 2]), True, "generator"),  # noqa: E241
-    ((x for x in []), True, "generator-empty"),  # noqa: E241
-    (Series([1]), True, "Series"),  # noqa: E241
-    (Series([]), True, "Series-empty"),  # noqa: E241
-    (Series(["a"]).str, True, "StringMethods"),  # noqa: E241
-    (Series([], dtype="O").str, True, "StringMethods-empty"),  # noqa: E241
-    (Index([1]), True, "Index"),  # noqa: E241
-    (Index([]), True, "Index-empty"),  # noqa: E241
-    (DataFrame([[1]]), True, "DataFrame"),  # noqa: E241
-    (DataFrame(), True, "DataFrame-empty"),  # noqa: E241
-    (np.ndarray((2,) * 1), True, "ndarray-1d"),  # noqa: E241
-    (np.array([]), True, "ndarray-1d-empty"),  # noqa: E241
-    (np.ndarray((2,) * 2), True, "ndarray-2d"),  # noqa: E241
-    (np.array([[]]), True, "ndarray-2d-empty"),  # noqa: E241
-    (np.ndarray((2,) * 3), True, "ndarray-3d"),  # noqa: E241
-    (np.array([[[]]]), True, "ndarray-3d-empty"),  # noqa: E241
-    (np.ndarray((2,) * 4), True, "ndarray-4d"),  # noqa: E241
-    (np.array([[[[]]]]), True, "ndarray-4d-empty"),  # noqa: E241
-    (np.array(2), False, "ndarray-0d"),  # noqa: E241
-    (1, False, "int"),  # noqa: E241
-    (b"123", False, "bytes"),  # noqa: E241
-    (b"", False, "bytes-empty"),  # noqa: E241
-    ("123", False, "string"),  # noqa: E241
-    ("", False, "string-empty"),  # noqa: E241
-    (str, False, "string-type"),  # noqa: E241
-    (object(), False, "object"),  # noqa: E241
-    (np.nan, False, "NaN"),  # noqa: E241
-    (None, False, "None"),  # noqa: E241
+    ([1], True, "list"),
+    ([], True, "list-empty"),
+    ((1,), True, "tuple"),
+    (tuple(), True, "tuple-empty"),
+    ({"a": 1}, True, "dict"),
+    (dict(), True, "dict-empty"),
+    ({"a", 1}, "set", "set"),
+    (set(), "set", "set-empty"),
+    (frozenset({"a", 1}), "set", "frozenset"),
+    (frozenset(), "set", "frozenset-empty"),
+    (iter([1, 2]), True, "iterator"),
+    (iter([]), True, "iterator-empty"),
+    ((x for x in [1, 2]), True, "generator"),
+    ((_ for _ in []), True, "generator-empty"),
+    (Series([1]), True, "Series"),
+    (Series([], dtype=object), True, "Series-empty"),
+    (Series(["a"]).str, True, "StringMethods"),
+    (Series([], dtype="O").str, True, "StringMethods-empty"),
+    (Index([1]), True, "Index"),
+    (Index([]), True, "Index-empty"),
+    (DataFrame([[1]]), True, "DataFrame"),
+    (DataFrame(), True, "DataFrame-empty"),
+    (np.ndarray((2,) * 1), True, "ndarray-1d"),
+    (np.array([]), True, "ndarray-1d-empty"),
+    (np.ndarray((2,) * 2), True, "ndarray-2d"),
+    (np.array([[]]), True, "ndarray-2d-empty"),
+    (np.ndarray((2,) * 3), True, "ndarray-3d"),
+    (np.array([[[]]]), True, "ndarray-3d-empty"),
+    (np.ndarray((2,) * 4), True, "ndarray-4d"),
+    (np.array([[[[]]]]), True, "ndarray-4d-empty"),
+    (np.array(2), False, "ndarray-0d"),
+    (1, False, "int"),
+    (b"123", False, "bytes"),
+    (b"", False, "bytes-empty"),
+    ("123", False, "string"),
+    ("", False, "string-empty"),
+    (str, False, "string-type"),
+    (object(), False, "object"),
+    (np.nan, False, "NaN"),
+    (None, False, "None"),
 ]
 objs, expected, ids = zip(*ll_params)
 
@@ -138,7 +140,7 @@ def test_is_sequence():
 
 
 def test_is_array_like():
-    assert inference.is_array_like(Series([]))
+    assert inference.is_array_like(Series([], dtype=object))
     assert inference.is_array_like(Series([1, 2]))
     assert inference.is_array_like(np.array(["a", "b"]))
     assert inference.is_array_like(Index(["2016-01-01"]))
@@ -164,7 +166,7 @@ def test_is_array_like():
         {"a": 1},
         {1, "a"},
         Series([1]),
-        Series([]),
+        Series([], dtype=object),
         Series(["a"]).str,
         (x for x in range(5)),
     ],
@@ -238,7 +240,7 @@ def test_is_dict_like_duck_type(has_keys, has_getitem, has_contains):
 
         if has_contains:
 
-            def __contains__(self, key):
+            def __contains__(self, key) -> bool:
                 return self.d.__contains__(key)
 
     d = DictLike({1: 2})
@@ -288,7 +290,10 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-@pytest.mark.parametrize("ll", [collections.namedtuple("Test", list("abc"))(1, 2, 3)])
+test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+
+
+@pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])
 def test_is_names_tuple_passes(ll):
     assert inference.is_named_tuple(ll)
 
@@ -379,9 +384,12 @@ class TestInference:
         assert not libmissing.isneginf_scalar(1)
         assert not libmissing.isneginf_scalar("a")
 
-    def test_maybe_convert_numeric_infinities(self):
+    @pytest.mark.parametrize("maybe_int", [True, False])
+    @pytest.mark.parametrize(
+        "infinity", ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
+    )
+    def test_maybe_convert_numeric_infinities(self, infinity, maybe_int):
         # see gh-13274
-        infinities = ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
         na_values = {"", "NULL", "nan"}
 
         pos = np.array(["inf"], dtype=np.float64)
@@ -389,35 +397,31 @@ class TestInference:
 
         msg = "Unable to parse string"
 
-        for infinity in infinities:
-            for maybe_int in (True, False):
-                out = lib.maybe_convert_numeric(
-                    np.array([infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, pos)
+        out = lib.maybe_convert_numeric(
+            np.array([infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, pos)
 
-                out = lib.maybe_convert_numeric(
-                    np.array(["-" + infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, neg)
+        out = lib.maybe_convert_numeric(
+            np.array(["-" + infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, neg)
 
-                out = lib.maybe_convert_numeric(
-                    np.array([infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, pos)
+        out = lib.maybe_convert_numeric(
+            np.array([infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, pos)
 
-                out = lib.maybe_convert_numeric(
-                    np.array(["+" + infinity], dtype=object), na_values, maybe_int
-                )
-                tm.assert_numpy_array_equal(out, pos)
+        out = lib.maybe_convert_numeric(
+            np.array(["+" + infinity], dtype=object), na_values, maybe_int
+        )
+        tm.assert_numpy_array_equal(out, pos)
 
-                # too many characters
-                with pytest.raises(ValueError, match=msg):
-                    lib.maybe_convert_numeric(
-                        np.array(["foo_" + infinity], dtype=object),
-                        na_values,
-                        maybe_int,
-                    )
+        # too many characters
+        with pytest.raises(ValueError, match=msg):
+            lib.maybe_convert_numeric(
+                np.array(["foo_" + infinity], dtype=object), na_values, maybe_int
+            )
 
     def test_maybe_convert_numeric_post_floatify_nan(self, coerce):
         # see gh-13314
@@ -446,7 +450,7 @@ class TestInference:
     def test_convert_non_hashable(self):
         # GH13324
         # make sure that we are handing non-hashables
-        arr = np.array([[10.0, 2], 1.0, "apple"])
+        arr = np.array([[10.0, 2], 1.0, "apple"], dtype=object)
         result = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
@@ -503,7 +507,14 @@ class TestInference:
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.parametrize("value", [-2 ** 63 - 1, 2 ** 64])
+    def test_convert_numeric_string_uint64(self):
+        # GH32394
+        result = lib.maybe_convert_numeric(
+            np.array(["uint64"], dtype=object), set(), coerce_numeric=True
+        )
+        assert np.isnan(result)
+
+    @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
         arr = np.array([value], dtype=object)
@@ -548,6 +559,27 @@ class TestInference:
         arr = np.array([np.timedelta64(1, "s"), np.nan], dtype=object)
         exp = arr.copy()
         out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
+        tm.assert_numpy_array_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "exp",
+        [
+            IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True])),
+            IntegerArray(np.array([2, 0], dtype="int64"), np.array([False, True])),
+        ],
+    )
+    def test_maybe_convert_objects_nullable_integer(self, exp):
+        # GH27335
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+
+        tm.assert_extension_array_equal(result, exp)
+
+    def test_maybe_convert_objects_bool_nan(self):
+        # GH32146
+        ind = pd.Index([True, False, np.nan], dtype=object)
+        exp = np.array([True, False, np.nan], dtype=object)
+        out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
@@ -611,13 +643,13 @@ class TestTypeInference:
         expected = "integer" if skipna else "integer-na"
         assert result == expected
 
-    def test_deprecation(self):
-        # GH 24050
-        arr = np.array([1, 2, 3], dtype=object)
+    def test_infer_dtype_skipna_default(self):
+        # infer_dtype `skipna` default deprecated in GH#24050,
+        #  changed to True in GH#29876
+        arr = np.array([1, 2, 3, np.nan], dtype=object)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = lib.infer_dtype(arr)  # default: skipna=None -> warn
-            assert result == "integer"
+        result = lib.infer_dtype(arr)
+        assert result == "integer"
 
     def test_bools(self):
         arr = np.array([True, False, True, True, True], dtype="O")
@@ -715,12 +747,17 @@ class TestTypeInference:
     def test_unicode(self):
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=False)
+        # This currently returns "mixed", but it's not clear that's optimal.
+        # This could also return "string" or "mixed-string"
         assert result == "mixed"
 
         arr = ["a", np.nan, "c"]
         result = lib.infer_dtype(arr, skipna=True)
-        expected = "string"
-        assert result == expected
+        assert result == "string"
+
+        arr = ["a", "c"]
+        result = lib.infer_dtype(arr, skipna=False)
+        assert result == "string"
 
     @pytest.mark.parametrize(
         "dtype, missing, skipna, expected",
@@ -1091,28 +1128,28 @@ class TestTypeInference:
 
         assert lib.is_string_array(np.array(["foo", "bar"]))
         assert not lib.is_string_array(
-            np.array(["foo", "bar", np.nan], dtype=object), skipna=False
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=False
         )
         assert lib.is_string_array(
+            np.array(["foo", "bar", pd.NA], dtype=object), skipna=True
+        )
+        # NaN is not valid for string array, just NA
+        assert not lib.is_string_array(
             np.array(["foo", "bar", np.nan], dtype=object), skipna=True
         )
+
         assert not lib.is_string_array(np.array([1, 2]))
 
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
-        result = lib.to_object_array_tuples(values)
+        lib.to_object_array_tuples(values)
 
-        try:
-            # make sure record array works
-            from collections import namedtuple
-
-            record = namedtuple("record", "x y")
-            r = record(5, 6)
-            values = [r]
-            result = lib.to_object_array_tuples(values)  # noqa
-        except ImportError:
-            pass
+        # make sure record array works
+        record = namedtuple("record", "x y")
+        r = record(5, 6)
+        values = [r]
+        lib.to_object_array_tuples(values)
 
     def test_object(self):
 
@@ -1152,8 +1189,6 @@ class TestTypeInference:
     def test_categorical(self):
 
         # GH 8974
-        from pandas import Categorical, Series
-
         arr = Categorical(list("abc"))
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
@@ -1178,6 +1213,24 @@ class TestTypeInference:
 
         inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
         assert inferred == "interval"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
+    def test_string_dtype(self, data, skipna, klass):
+        # StringArray
+        val = klass(data, dtype="string")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "string"
+
+    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
+    def test_boolean_dtype(self, data, skipna, klass):
+        # BooleanArray
+        val = klass(data, dtype="boolean")
+        inferred = lib.infer_dtype(val, skipna=skipna)
+        assert inferred == "boolean"
 
 
 class TestNumberScalar:
@@ -1298,7 +1351,7 @@ class TestNumberScalar:
         assert is_datetime64tz_dtype(tsa)
 
         for tz in ["US/Eastern", "UTC"]:
-            dtype = "datetime64[ns, {}]".format(tz)
+            dtype = f"datetime64[ns, {tz}]"
             assert not is_datetime64_dtype(dtype)
             assert is_datetime64tz_dtype(dtype)
             assert is_datetime64_ns_dtype(dtype)
@@ -1325,9 +1378,11 @@ class TestIsScalar:
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
-        assert is_scalar(Number())
         assert is_scalar(Fraction())
         assert is_scalar(0.0)
+        assert is_scalar(1)
+        assert is_scalar(complex(2))
+        assert is_scalar(float("NaN"))
         assert is_scalar(np.nan)
         assert is_scalar("foobar")
         assert is_scalar(b"foobar")
@@ -1336,6 +1391,7 @@ class TestIsScalar:
         assert is_scalar(time(12, 0))
         assert is_scalar(timedelta(hours=1))
         assert is_scalar(pd.NaT)
+        assert is_scalar(pd.NA)
 
     def test_is_scalar_builtin_nonscalars(self):
         assert not is_scalar({})
@@ -1350,6 +1406,7 @@ class TestIsScalar:
         assert is_scalar(np.int64(1))
         assert is_scalar(np.float64(1.0))
         assert is_scalar(np.int32(1))
+        assert is_scalar(np.complex64(2))
         assert is_scalar(np.object_("foobar"))
         assert is_scalar(np.str_("foobar"))
         assert is_scalar(np.unicode_("foobar"))
@@ -1382,17 +1439,32 @@ class TestIsScalar:
         assert is_scalar(DateOffset(days=1))
 
     def test_is_scalar_pandas_containers(self):
-        assert not is_scalar(Series())
+        assert not is_scalar(Series(dtype=object))
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
 
+    def test_is_scalar_number(self):
+        # Number() is not recognied by PyNumber_Check, so by extension
+        #  is not recognized by is_scalar, but instances of non-abstract
+        #  subclasses are.
+
+        class Numeric(Number):
+            def __init__(self, value):
+                self.value = value
+
+            def __int__(self):
+                return self.value
+
+        num = Numeric(1)
+        assert is_scalar(num)
+
 
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in ["ms", "us", "ns"]:
-        idx = DatetimeIndex(np.array([], dtype="datetime64[{unit}]".format(unit=unit)))
+        idx = DatetimeIndex(np.array([], dtype=f"datetime64[{unit}]"))
         assert len(idx) == 0
 
 

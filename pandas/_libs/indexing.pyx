@@ -1,7 +1,6 @@
 cdef class _NDFrameIndexerBase:
     """
-    A base class for _NDFrameIndexer for fast instantiation and attribute
-    access.
+    A base class for _NDFrameIndexer for fast instantiation and attribute access.
     """
     cdef public object obj, name, _ndim
 
@@ -11,14 +10,14 @@ cdef class _NDFrameIndexerBase:
         self._ndim = None
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         # Delay `ndim` instantiation until required as reading it
         # from `obj` isn't entirely cheap.
         ndim = self._ndim
         if ndim is None:
             ndim = self._ndim = self.obj.ndim
             if ndim > 2:
-                msg = ("NDFrameIndexer does not support NDFrame objects with"
-                       " ndim > 2")
-                raise ValueError(msg)
+                raise ValueError(
+                    "NDFrameIndexer does not support NDFrame objects with ndim > 2"
+                )
         return ndim

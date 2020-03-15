@@ -9,8 +9,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 
 @td.skip_if_no_mpl
@@ -253,6 +253,24 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
+    def test_hist_subplot_xrot(self):
+        # GH 30288
+        df = DataFrame(
+            {
+                "length": [1.5, 0.5, 1.2, 0.9, 3],
+                "animal": ["pig", "rabbit", "pig", "pig", "rabbit"],
+            }
+        )
+        axes = _check_plot_works(
+            df.hist,
+            filterwarnings="always",
+            column="length",
+            by="animal",
+            bins=5,
+            xrot=0,
+        )
+        self._check_ticks_props(axes, xrot=0)
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
@@ -313,7 +331,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         with pytest.raises(AttributeError):
             _grouped_hist(df.A, by=df.C, foo="bar")
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Specify figure size by tuple instead"
+        with pytest.raises(ValueError, match=msg):
             df.hist(by="C", figsize="default")
 
     @pytest.mark.slow

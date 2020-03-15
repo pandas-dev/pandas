@@ -724,6 +724,27 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
+You can merge a mult-indexed Series and a DataFrame, if the names of
+the MultiIndex correspond to the columns from the DataFrame. Transform
+the Series to a DataFrame using :meth:`Series.reset_index` before merging,
+as shown in the following example.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"Let": ["A", "B", "C"], "Num": [1, 2, 3]})
+   df
+
+   ser = pd.Series(
+       ["a", "b", "c", "d", "e", "f"],
+       index=pd.MultiIndex.from_arrays(
+           [["A", "B", "C"] * 2, [1, 2, 3, 4, 5, 6]], names=["Let", "Num"]
+       ),
+   )
+   ser
+
+   pd.merge(df, ser.reset_index(), on=['Let', 'Num'])
+
+
 Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
@@ -843,8 +864,6 @@ resulting dtype will be upcast.
    pd.merge(left, right, how='outer', on='key')
    pd.merge(left, right, how='outer', on='key').dtypes
 
-.. versionadded:: 0.20.0
-
 Merging will preserve ``category`` dtypes of the mergands. See also the section on :ref:`categoricals <categorical.merge>`.
 
 The left frame.
@@ -883,7 +902,7 @@ The merged result:
 .. note::
 
    The category dtypes must be *exactly* the same, meaning the same categories and the ordered attribute.
-   Otherwise the result will coerce to ``object`` dtype.
+   Otherwise the result will coerce to the categories' dtype.
 
 .. note::
 

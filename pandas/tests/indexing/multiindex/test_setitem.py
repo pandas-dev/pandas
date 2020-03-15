@@ -4,8 +4,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, isna, notna
+import pandas._testing as tm
 import pandas.core.common as com
-from pandas.util import testing as tm
 
 
 class TestMultiIndexSetItem:
@@ -141,7 +141,7 @@ class TestMultiIndexSetItem:
             df.loc["bar"] *= 2
 
         # from SO
-        # http://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
+        # https://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
         df_orig = DataFrame.from_dict(
             {
                 "price": {
@@ -413,6 +413,16 @@ class TestMultiIndexSetItem:
 
         df["A"] = df["A"].astype(np.float64)
         tm.assert_index_equal(df.index, index)
+
+    def test_setitem_nonmonotonic(self):
+        # https://github.com/pandas-dev/pandas/issues/31449
+        index = pd.MultiIndex.from_tuples(
+            [("a", "c"), ("b", "x"), ("a", "d")], names=["l1", "l2"]
+        )
+        df = pd.DataFrame(data=[0, 1, 2], index=index, columns=["e"])
+        df.loc["a", "e"] = np.arange(99, 101, dtype="int64")
+        expected = pd.DataFrame({"e": [99, 1, 100]}, index=index)
+        tm.assert_frame_equal(df, expected)
 
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):

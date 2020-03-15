@@ -2,8 +2,9 @@ import string
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, date_range
-import pandas.util.testing as tm
+from pandas import DataFrame, MultiIndex, RangeIndex, date_range
+
+from .pandas_vb_common import tm
 
 
 class GetLoc:
@@ -145,6 +146,57 @@ class CategoricalLevel:
 
     def time_categorical_level(self):
         self.df.set_index(["a", "b"])
+
+
+class Equals:
+    def setup(self):
+        idx_large_fast = RangeIndex(100000)
+        idx_small_slow = date_range(start="1/1/2012", periods=1)
+        self.mi_large_slow = MultiIndex.from_product([idx_large_fast, idx_small_slow])
+
+        self.idx_non_object = RangeIndex(1)
+
+    def time_equals_non_object_index(self):
+        self.mi_large_slow.equals(self.idx_non_object)
+
+
+class SetOperations:
+
+    params = [
+        ("monotonic", "non_monotonic"),
+        ("datetime", "int", "string"),
+        ("intersection", "union", "symmetric_difference"),
+    ]
+    param_names = ["index_structure", "dtype", "method"]
+
+    def setup(self, index_structure, dtype, method):
+        N = 10 ** 5
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_left = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_left = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_left = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_left,
+            "int": int_left,
+            "string": str_left,
+        }
+
+        if index_structure == "non_monotonic":
+            data = {k: mi[::-1] for k, mi in data.items()}
+
+        data = {k: {"left": mi, "right": mi[:-1]} for k, mi in data.items()}
+        self.left = data[dtype]["left"]
+        self.right = data[dtype]["right"]
+
+    def time_operation(self, index_structure, dtype, method):
+        getattr(self.left, method)(self.right)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

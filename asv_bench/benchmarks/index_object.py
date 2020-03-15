@@ -7,11 +7,13 @@ from pandas import (
     Float64Index,
     Index,
     IntervalIndex,
+    MultiIndex,
     RangeIndex,
     Series,
     date_range,
 )
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class SetOperations:
@@ -53,40 +55,6 @@ class SetDisjoint:
         self.datetime_left.difference(self.datetime_right)
 
 
-class Datetime:
-    def setup(self):
-        self.dr = date_range("20000101", freq="D", periods=10000)
-
-    def time_is_dates_only(self):
-        self.dr._is_dates_only
-
-
-class Ops:
-
-    params = ["float", "int"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        N = 10 ** 6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
-        self.index = getattr(tm, indexes[dtype])(N)
-
-    def time_add(self, dtype):
-        self.index + 2
-
-    def time_subtract(self, dtype):
-        self.index - 2
-
-    def time_multiply(self, dtype):
-        self.index * 2
-
-    def time_divide(self, dtype):
-        self.index / 2
-
-    def time_modulo(self, dtype):
-        self.index % 2
-
-
 class Range:
     def setup(self):
         self.idx_inc = RangeIndex(start=0, stop=10 ** 7, step=3)
@@ -109,6 +77,18 @@ class Range:
 
     def time_get_loc_dec(self):
         self.idx_dec.get_loc(100000)
+
+
+class IndexEquals:
+    def setup(self):
+        idx_large_fast = RangeIndex(100000)
+        idx_small_slow = date_range(start="1/1/2012", periods=1)
+        self.mi_large_slow = MultiIndex.from_product([idx_large_fast, idx_small_slow])
+
+        self.idx_non_object = RangeIndex(1)
+
+    def time_non_object_equals_multiindex(self):
+        self.idx_non_object.equals(self.mi_large_slow)
 
 
 class IndexAppend:
@@ -146,7 +126,7 @@ class Indexing:
 
     def setup(self, dtype):
         N = 10 ** 6
-        self.idx = getattr(tm, "make{}Index".format(dtype))(N)
+        self.idx = getattr(tm, f"make{dtype}Index")(N)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
         self.sorted = self.idx.sort_values()

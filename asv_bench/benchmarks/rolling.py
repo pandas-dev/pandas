@@ -25,6 +25,46 @@ class Methods:
         getattr(self.roll, method)()
 
 
+class Apply:
+    params = (
+        ["DataFrame", "Series"],
+        [3, 300],
+        ["int", "float"],
+        [sum, np.sum, lambda x: np.sum(x) + 5],
+        [True, False],
+    )
+    param_names = ["constructor", "window", "dtype", "function", "raw"]
+
+    def setup(self, constructor, window, dtype, function, raw):
+        N = 10 ** 3
+        arr = (100 * np.random.random(N)).astype(dtype)
+        self.roll = getattr(pd, constructor)(arr).rolling(window)
+
+    def time_rolling(self, constructor, window, dtype, function, raw):
+        self.roll.apply(function, raw=raw)
+
+
+class Engine:
+    params = (
+        ["DataFrame", "Series"],
+        ["int", "float"],
+        [np.sum, lambda x: np.sum(x) + 5],
+        ["cython", "numba"],
+    )
+    param_names = ["constructor", "dtype", "function", "engine"]
+
+    def setup(self, constructor, dtype, function, engine):
+        N = 10 ** 3
+        arr = (100 * np.random.random(N)).astype(dtype)
+        self.data = getattr(pd, constructor)(arr)
+
+    def time_rolling_apply(self, constructor, dtype, function, engine):
+        self.data.rolling(10).apply(function, raw=True, engine=engine)
+
+    def time_expanding_apply(self, constructor, dtype, function, engine):
+        self.data.expanding().apply(function, raw=True, engine=engine)
+
+
 class ExpandingMethods:
 
     params = (

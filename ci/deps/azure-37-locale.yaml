@@ -1,10 +1,19 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
 dependencies:
-  - beautifulsoup4
+  - python=3.7.*
+
+  # tools
   - cython>=0.29.13
+  - pytest>=5.0.1
+  - pytest-xdist>=1.21
+  - pytest-asyncio
+  - hypothesis>=3.58.0
+  - pytest-azurepipelines
+
+  # pandas dependencies
+  - beautifulsoup4
   - html5lib
   - ipython
   - jinja2
@@ -17,7 +26,6 @@ dependencies:
   - openpyxl
   - pytables
   - python-dateutil
-  - python=3.7.*
   - pytz
   - s3fs
   - scipy
@@ -25,11 +33,7 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  # universal
-  - pytest>=5.0.1
-  - pytest-xdist>=1.29.0
-  - pytest-mock
-  - pytest-azurepipelines
+  - pyarrow>=0.15
   - pip
   - pip:
-    - hypothesis>=3.58.0
+    - pyxlsb

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Categorical,
     DatetimeIndex,
@@ -18,9 +19,9 @@ from pandas import (
     qcut,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
-import pandas.util.testing as tm
 
 from pandas.tseries.offsets import Day, Nano
 
@@ -130,6 +131,38 @@ def test_qcut_return_intervals():
     tm.assert_series_equal(res, exp)
 
 
+@pytest.mark.parametrize("labels", ["foo", 1, True])
+def test_qcut_incorrect_labels(labels):
+    # GH 13318
+    values = range(5)
+    msg = "Bin labels must either be False, None or passed in as a list-like argument"
+    with pytest.raises(ValueError, match=msg):
+        qcut(values, 4, labels=labels)
+
+
+@pytest.mark.parametrize("labels", [["a", "b", "c"], list(range(3))])
+def test_qcut_wrong_length_labels(labels):
+    # GH 13318
+    values = range(10)
+    msg = "Bin labels must be one fewer than the number of bin edges"
+    with pytest.raises(ValueError, match=msg):
+        qcut(values, 4, labels=labels)
+
+
+@pytest.mark.parametrize(
+    "labels, expected",
+    [
+        (["a", "b", "c"], Categorical(["a", "b", "c"], ordered=True)),
+        (list(range(3)), Categorical([0, 1, 2], ordered=True)),
+    ],
+)
+def test_qcut_list_like_labels(labels, expected):
+    # GH 13318
+    values = range(3)
+    result = qcut(values, 3, labels=labels)
+    tm.assert_categorical_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
@@ -236,3 +269,32 @@ def test_date_like_qcut_bins(arg, expected_bins):
     ser = Series(arg)
     result, result_bins = qcut(ser, 2, retbins=True)
     tm.assert_index_equal(result_bins, expected_bins)
+
+
+@pytest.mark.parametrize("bins", [6, 7])
+@pytest.mark.parametrize(
+    "box, compare",
+    [
+        (Series, tm.assert_series_equal),
+        (np.array, tm.assert_categorical_equal),
+        (list, tm.assert_equal),
+    ],
+)
+def test_qcut_bool_coercion_to_int(bins, box, compare):
+    # issue 20303
+    data_expected = box([0, 1, 1, 0, 1] * 10)
+    data_result = box([False, True, True, False, True] * 10)
+    expected = qcut(data_expected, bins, duplicates="drop")
+    result = qcut(data_result, bins, duplicates="drop")
+    compare(result, expected)
+
+
+@pytest.mark.parametrize("q", [2, 5, 10])
+def test_qcut_nullable_integer(q, any_nullable_int_dtype):
+    arr = pd.array(np.arange(100), dtype=any_nullable_int_dtype)
+    arr[::2] = pd.NA
+
+    result = qcut(arr, q)
+    expected = qcut(arr.astype(float), q)
+
+    tm.assert_categorical_equal(result, expected)

@@ -1,31 +1,19 @@
 """
-Provide basic components for groupby. These defintiions
+Provide basic components for groupby. These definitions
 hold the whitelist of methods that are exposed on the
 SeriesGroupBy and the DataFrameGroupBy objects.
 """
+import collections
+
 from pandas.core.dtypes.common import is_list_like, is_scalar
+
+OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
 
 class GroupByMixin:
     """
     Provide the groupby facilities to the mixed object.
     """
-
-    @staticmethod
-    def _dispatch(name, *args, **kwargs):
-        """
-        Dispatch to apply.
-        """
-
-        def outer(self, *args, **kwargs):
-            def f(x):
-                x = self._shallow_copy(x, groupby=self._groupby)
-                return getattr(x, name)(*args, **kwargs)
-
-            return self._groupby.apply(f)
-
-        outer.__name__ = name
-        return outer
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -53,7 +41,7 @@ class GroupByMixin:
         except IndexError:
             groupby = self._groupby
 
-        self = self.__class__(subset, groupby=groupby, parent=self, **kwargs)
+        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
         self._reset_cache()
         if subset.ndim == 2:
             if is_scalar(key) and key in subset or is_list_like(key):
@@ -110,6 +98,7 @@ reduction_kernels = frozenset(
     [
         "all",
         "any",
+        "corrwith",
         "count",
         "first",
         "idxmax",
@@ -144,7 +133,6 @@ transformation_kernels = frozenset(
     [
         "backfill",
         "bfill",
-        "corrwith",
         "cumcount",
         "cummax",
         "cummin",

@@ -6,9 +6,8 @@ from pandas._libs import join as libjoin
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
 
 a_ = np.array
 
@@ -194,7 +193,7 @@ class TestJoin:
         expected = DataFrame(
             {"key": ["a", "a", "b", "b", "c"], "value": [0, 0, 1, 1, 2]}
         )
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
         # Test when some are missing
         df_a = DataFrame([[1], [2], [3]], index=["a", "b", "c"], columns=["one"])
@@ -213,8 +212,8 @@ class TestJoin:
         source_copy = source.copy()
         source_copy["A"] = 0
         msg = (
-            "You are trying to merge on float64 and object columns. If"
-            " you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object columns. If "
+            "you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")
@@ -227,9 +226,7 @@ class TestJoin:
             {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)},
             index=tm.makeCustomIndex(10, 2),
         )
-        msg = (
-            r"len\(left_on\) must equal the number of levels in the index" ' of "right"'
-        )
+        msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
             merge(df, df2, left_on="a", right_index=True)
 
@@ -241,9 +238,7 @@ class TestJoin:
         df2 = DataFrame(
             {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)}
         )
-        msg = (
-            r"len\(right_on\) must equal the number of levels in the index" ' of "left"'
-        )
+        msg = r'len\(right_on\) must equal the number of levels in the index of "left"'
         with pytest.raises(ValueError, match=msg):
             merge(df, df2, right_on="b", left_index=True)
 
@@ -267,8 +262,9 @@ class TestJoin:
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({"a": [1, 1]})
-        msg = "Can only merge Series or DataFrame objects, a {} was passed".format(
-            str(type(wrong_type))
+        msg = (
+            "Can only merge Series or DataFrame objects, "
+            f"a {type(wrong_type)} was passed"
         )
         with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on="a", right_on="a")
@@ -281,7 +277,7 @@ class TestJoin:
 
         join_col = self.target.pop("C")
         result = self.target.join(self.source, on=join_col)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_join_with_len0(self):
         # nothing to merge
@@ -302,7 +298,7 @@ class TestJoin:
 
         expected = df.join(df2, on="key")
         expected = expected[expected["value"].notna()]
-        tm.assert_series_equal(joined["key"], expected["key"], check_dtype=False)
+        tm.assert_series_equal(joined["key"], expected["key"])
         tm.assert_series_equal(joined["value"], expected["value"], check_dtype=False)
         tm.assert_index_equal(joined.index, expected.index)
 
@@ -314,12 +310,12 @@ class TestJoin:
         joined = df.join(df2, on=["key"])
         expected = df.join(df2, on="key")
 
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
     def test_join_on_series(self):
         result = self.target.join(self.source["MergedA"], on="C")
         expected = self.target.join(self.source[["MergedA"]], on="C")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_join_on_series_buglet(self):
         # GH #638
@@ -341,11 +337,11 @@ class TestJoin:
 
         joined = df1.join(df2, how=join_type)
         expected = _join_by_hand(df1, df2, how=join_type)
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
         joined = df2.join(df1, how=join_type)
         expected = _join_by_hand(df2, df1, how=join_type)
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
     def test_join_index_mixed_overlap(self):
         df1 = DataFrame(
@@ -377,7 +373,7 @@ class TestJoin:
         df1.columns = expected_columns[:4]
         df2.columns = expected_columns[4:]
         expected = _join_by_hand(df1, df2)
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
     def test_join_empty_bug(self):
         # generated an exception in 0.4.3
@@ -416,7 +412,7 @@ class TestJoin:
         ex_index = Index(index1.values).union(Index(index2.values))
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         expected.index.names = index1.names
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
         assert joined.index.names == index1.names
 
         df1 = df1.sort_index(level=1)
@@ -427,7 +423,7 @@ class TestJoin:
         expected = df1.reindex(ex_index).join(df2.reindex(ex_index))
         expected.index.names = index1.names
 
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
         assert joined.index.names == index1.names
 
     def test_join_inner_multiindex(self):
@@ -475,7 +471,7 @@ class TestJoin:
             how="inner",
             sort=False,
         )
-        assert_frame_equal(joined, expected2.reindex_like(joined))
+        tm.assert_frame_equal(joined, expected2.reindex_like(joined))
 
         expected2 = merge(
             to_join,
@@ -490,7 +486,7 @@ class TestJoin:
         expected.index = joined.index
 
         assert joined.index.is_monotonic
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
         # _assert_same_contents(expected, expected2.loc[:, expected.columns])
 
@@ -528,7 +524,7 @@ class TestJoin:
         assert rs.dtypes["md"] == "float32"
 
         xp = xpdf.merge(s, left_on="a", right_index=True)
-        assert_frame_equal(rs, xp)
+        tm.assert_frame_equal(rs, xp)
 
     def test_join_many_non_unique_index(self):
         df1 = DataFrame({"a": [1, 1], "b": [1, 1], "c": [10, 20]})
@@ -547,7 +543,7 @@ class TestJoin:
         expected = expected[result.columns]
         expected["a"] = expected.a.astype("int64")
         expected["b"] = expected.b.astype("int64")
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"a": [1, 1, 1], "b": [1, 1, 1], "c": [10, 20, 30]})
         df2 = DataFrame({"a": [1, 1, 1], "b": [1, 1, 2], "d": [100, 200, 300]})
@@ -562,7 +558,7 @@ class TestJoin:
 
         result = result.reset_index()
 
-        assert_frame_equal(result, expected.loc[:, result.columns])
+        tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
         # GH 11519
         df = DataFrame(
@@ -580,9 +576,9 @@ class TestJoin:
         outer = df.join(s, how="outer")
         left = df.join(s, how="left")
         right = df.join(s, how="right")
-        assert_frame_equal(inner, outer)
-        assert_frame_equal(inner, left)
-        assert_frame_equal(inner, right)
+        tm.assert_frame_equal(inner, outer)
+        tm.assert_frame_equal(inner, left)
+        tm.assert_frame_equal(inner, right)
 
     def test_join_sort(self):
         left = DataFrame({"key": ["foo", "bar", "baz", "foo"], "value": [1, 2, 3, 4]})
@@ -597,7 +593,7 @@ class TestJoin:
             },
             index=[1, 2, 0, 3],
         )
-        assert_frame_equal(joined, expected)
+        tm.assert_frame_equal(joined, expected)
 
         # smoke test
         joined = left.join(right, on="key", sort=False)
@@ -625,7 +621,7 @@ class TestJoin:
     def test_join_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range("2016-01-01", periods=16, freq="M")
-        df = DataFrame([i for i in range(len(index))], index=index, columns=["pnum"])
+        df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
         df2 = concat([df, df])
         result = df.join(df2, how="inner", rsuffix="_df2")
         expected = DataFrame(
@@ -684,7 +680,7 @@ class TestJoin:
         df3 = df.loc[:, ["key"]]
 
         result = df1.join([df2, df3])
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
     def test_join_dups(self):
 
@@ -702,7 +698,7 @@ class TestJoin:
         expected = concat([df, df], axis=1)
         result = df.join(df, rsuffix="_2")
         result.columns = expected.columns
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # GH 4975, invalid join on dups
         w = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
@@ -716,7 +712,7 @@ class TestJoin:
         dta = dta.merge(w, left_index=True, right_index=True)
         expected = concat([x, y, z, w], axis=1)
         expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
-        assert_frame_equal(dta, expected)
+        tm.assert_frame_equal(dta, expected)
 
     def test_join_multi_to_multi(self, join_type):
         # GH 20475
@@ -736,11 +732,9 @@ class TestJoin:
             .merge(right.reset_index(), on=["abc", "xy"], how=join_type)
             .set_index(["abc", "xy", "num"])
         )
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)
 
-        msg = (
-            r"len\(left_on\) must equal the number of levels in the index" ' of "right"'
-        )
+        msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
             left.join(right, on="xy", how=join_type)
 
@@ -769,7 +763,36 @@ class TestJoin:
         result = df1.join(df2.set_index("date"), on="date")
         expected = df1.copy()
         expected["vals_2"] = pd.Series([np.nan] * 2 + list("tuv"), dtype=object)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+
+    def test_join_datetime_string(self):
+        # GH 5647
+        dfa = DataFrame(
+            [
+                ["2012-08-02", "L", 10],
+                ["2012-08-02", "J", 15],
+                ["2013-04-06", "L", 20],
+                ["2013-04-06", "J", 25],
+            ],
+            columns=["x", "y", "a"],
+        )
+        dfa["x"] = pd.to_datetime(dfa["x"])
+        dfb = DataFrame(
+            [["2012-08-02", "J", 1], ["2013-04-06", "L", 2]],
+            columns=["x", "y", "z"],
+            index=[2, 4],
+        )
+        dfb["x"] = pd.to_datetime(dfb["x"])
+        result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
+        expected = DataFrame(
+            [
+                [pd.Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
+                [pd.Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
+            ],
+            index=[2, 4],
+            columns=["x", "y", "z", "a"],
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix="_y"):
@@ -787,13 +810,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             lgroup = left_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("left", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(l_joined, left.columns, join_col)
         else:
@@ -801,13 +822,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             rgroup = right_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("right", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(r_joined, right.columns, join_col)
         else:

@@ -1,27 +1,14 @@
-import contextlib
 import os
 import subprocess
 import sys
 import textwrap
-import warnings
 
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.common as icom
-
-
-@contextlib.contextmanager
-def catch_to_csv_depr():
-    # Catching warnings because Series.to_csv has
-    # been deprecated. Remove this context when
-    # Series.to_csv has been aligned.
-
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("ignore", FutureWarning)
-        yield
 
 
 @pytest.mark.parametrize(
@@ -37,12 +24,11 @@ def catch_to_csv_depr():
 @pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
 def test_compression_size(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        with catch_to_csv_depr():
-            getattr(obj, method)(path, compression=compression_only)
-            compressed_size = os.path.getsize(path)
-            getattr(obj, method)(path, compression=None)
-            uncompressed_size = os.path.getsize(path)
-            assert uncompressed_size > compressed_size
+        getattr(obj, method)(path, compression=compression_only)
+        compressed_size = os.path.getsize(path)
+        getattr(obj, method)(path, compression=None)
+        uncompressed_size = os.path.getsize(path)
+        assert uncompressed_size > compressed_size
 
 
 @pytest.mark.parametrize(
@@ -58,19 +44,17 @@ def test_compression_size(obj, method, compression_only):
 @pytest.mark.parametrize("method", ["to_csv", "to_json"])
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=compression_only)
-        with catch_to_csv_depr():
-            with f:
-                getattr(obj, method)(f)
-                assert not f.closed
-            assert f.closed
-            compressed_size = os.path.getsize(path)
+        f, handles = icom.get_handle(path, "w", compression=compression_only)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
+        assert f.closed
+        compressed_size = os.path.getsize(path)
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=None)
-        with catch_to_csv_depr():
-            with f:
-                getattr(obj, method)(f)
-                assert not f.closed
+        f, handles = icom.get_handle(path, "w", compression=None)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
         assert f.closed
         uncompressed_size = os.path.getsize(path)
         assert uncompressed_size > compressed_size
@@ -124,7 +108,7 @@ def test_compression_warning(compression_only):
         columns=["X", "Y", "Z"],
     )
     with tm.ensure_clean() as path:
-        f, handles = icom._get_handle(path, "w", compression=compression_only)
+        f, handles = icom.get_handle(path, "w", compression=compression_only)
         with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
             with f:
                 df.to_csv(f, compression=compression_only)
@@ -140,12 +124,13 @@ def test_with_missing_lzma():
         import pandas
         """
     )
-    subprocess.check_output([sys.executable, "-c", code])
+    subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
 
 
 def test_with_missing_lzma_runtime():
     """Tests if RuntimeError is hit when calling lzma without
-    having the module available."""
+    having the module available.
+    """
     code = textwrap.dedent(
         """
         import sys
@@ -157,4 +142,4 @@ def test_with_missing_lzma_runtime():
             df.to_csv('foo.csv', compression='xz')
         """
     )
-    subprocess.check_output([sys.executable, "-c", code])
+    subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)

@@ -6,6 +6,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.generic import ABCIndexClass
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
 from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
@@ -19,7 +20,6 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.tests.extension.base import BaseOpsUtil
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -90,7 +90,7 @@ def test_repr_dtype(dtype, expected):
 
 def test_repr_array():
     result = repr(integer_array([1, None, 3]))
-    expected = "<IntegerArray>\n[1, NaN, 3]\nLength: 3, dtype: Int64"
+    expected = "<IntegerArray>\n[1, <NA>, 3]\nLength: 3, dtype: Int64"
     assert result == expected
 
 
@@ -98,9 +98,9 @@ def test_repr_array_long():
     data = integer_array([1, 2, None] * 1000)
     expected = (
         "<IntegerArray>\n"
-        "[  1,   2, NaN,   1,   2, NaN,   1,   2, NaN,   1,\n"
+        "[   1,    2, <NA>,    1,    2, <NA>,    1,    2, <NA>,    1,\n"
         " ...\n"
-        " NaN,   1,   2, NaN,   1,   2, NaN,   1,   2, NaN]\n"
+        " <NA>,    1,    2, <NA>,    1,    2, <NA>,    1,    2, <NA>]\n"
         "Length: 3000, dtype: Int64"
     )
     result = repr(data)
@@ -108,13 +108,19 @@ def test_repr_array_long():
 
 
 class TestConstructors:
+    def test_uses_pandas_na(self):
+        a = pd.array([1, None], dtype=pd.Int64Dtype())
+        assert a[1] is pd.NA
+
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
         dtype = data.dtype
 
         # from float
         expected = pd.Series(data)
-        result = pd.Series(np.array(data).astype("float"), dtype=str(dtype))
+        result = pd.Series(
+            data.to_numpy(na_value=np.nan, dtype="float"), dtype=str(dtype)
+        )
         tm.assert_series_equal(result, expected)
 
         # from int / list
@@ -156,10 +162,13 @@ class TestArithmeticOps(BaseOpsUtil):
 
         # 1 ** na is na, so need to unmask those
         if op_name == "__pow__":
-            mask = np.where(s == 1, False, mask)
+            mask = np.where(~s.isna() & (s == 1), False, mask)
 
         elif op_name == "__rpow__":
-            mask = np.where(other == 1, False, mask)
+            other_is_one = other == 1
+            if isinstance(other_is_one, pd.Series):
+                other_is_one = other_is_one.fillna(False)
+            mask = np.where(other_is_one, False, mask)
 
         # float result type or float op
         if (
@@ -193,7 +202,7 @@ class TestArithmeticOps(BaseOpsUtil):
         # to compare properly, we convert the expected
         # to float, mask to nans and convert infs
         # if we have uints then we process as uints
-        # then conert to float
+        # then convert to float
         # and we ultimately want to create a IntArray
         # for comparisons
 
@@ -208,20 +217,27 @@ class TestArithmeticOps(BaseOpsUtil):
                 else:
                     expected = expected.fillna(0)
             else:
-                expected[(s.values == 0) & ((expected == 0) | expected.isna())] = 0
+                expected[
+                    (s.values == 0).fillna(False)
+                    & ((expected == 0).fillna(False) | expected.isna())
+                ] = 0
         try:
-            expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
+            expected[
+                ((expected == np.inf) | (expected == -np.inf)).fillna(False)
+            ] = fill_value
             original = expected
             expected = expected.astype(s.dtype)
 
         except ValueError:
 
             expected = expected.astype(float)
-            expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
+            expected[
+                ((expected == np.inf) | (expected == -np.inf)).fillna(False)
+            ] = fill_value
             original = expected
             expected = expected.astype(s.dtype)
 
-        expected[mask] = np.nan
+        expected[mask] = pd.NA
 
         # assert that the expected astype is ok
         # (skip for unsigned as they have wrap around)
@@ -255,21 +271,18 @@ class TestArithmeticOps(BaseOpsUtil):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # scalar
         op = all_arithmetic_operators
-
         s = pd.Series(data)
         self._check_op(s, op, 1, exc=TypeError)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op = all_arithmetic_operators
-
         df = pd.DataFrame({"A": data})
         self._check_op(df, op, 1, exc=TypeError)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op = all_arithmetic_operators
-
         s = pd.Series(data)
         other = np.ones(len(s), dtype=s.dtype.type)
         self._check_op(s, op, other, exc=TypeError)
@@ -317,38 +330,96 @@ class TestArithmeticOps(BaseOpsUtil):
         opa = getattr(data, op)
 
         # invalid scalars
-        with pytest.raises(TypeError):
+        msg = (
+            r"(:?can only perform ops with numeric values)"
+            r"|(:?IntegerArray cannot perform the operation mod)"
+        )
+        with pytest.raises(TypeError, match=msg):
             ops("foo")
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ops(pd.Timestamp("20180101"))
 
         # invalid array-likes
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             ops(pd.Series("foo", index=s.index))
 
         if op != "__rpow__":
             # TODO(extension)
             # rpow with a datetimelike coerces the integer array incorrectly
-            with pytest.raises(TypeError):
+            msg = (
+                "can only perform ops with numeric values|"
+                "cannot perform .* with this index type: DatetimeArray|"
+                "Addition/subtraction of integers and integer-arrays "
+                "with DatetimeArray is no longer supported. *"
+            )
+            with pytest.raises(TypeError, match=msg):
                 ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
         # 2d
         result = opa(pd.DataFrame({"A": s}))
         assert result is NotImplemented
 
-        with pytest.raises(NotImplementedError):
+        msg = r"can only perform ops with 1-d structures"
+        with pytest.raises(NotImplementedError, match=msg):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
-    def test_pow(self):
-        # https://github.com/pandas-dev/pandas/issues/22022
-        a = integer_array([1, np.nan, np.nan, 1])
-        b = integer_array([1, np.nan, 1, np.nan])
+    @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
+    def test_divide_by_zero(self, zero, negative):
+        # https://github.com/pandas-dev/pandas/issues/27398
+        a = pd.array([0, 1, -1, None], dtype="Int64")
+        result = a / zero
+        expected = np.array([np.nan, np.inf, -np.inf, np.nan])
+        if negative:
+            expected *= -1
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pow_scalar(self):
+        a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
+        result = a ** 0
+        expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = a ** 1
+        expected = pd.array([-1, 0, 1, None, 2], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = a ** pd.NA
+        expected = pd.array([None, None, 1, None, None], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = a ** np.nan
+        expected = np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        # reversed
+        a = a[1:]  # Can't raise integers to negative powers.
+
+        result = 0 ** a
+        expected = pd.array([1, 0, None, 0], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = 1 ** a
+        expected = pd.array([1, 1, 1, 1], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = pd.NA ** a
+        expected = pd.array([1, None, None, None], dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+
+        result = np.nan ** a
+        expected = np.array([1, np.nan, np.nan, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pow_array(self):
+        a = integer_array([0, 0, 0, 1, 1, 1, None, None, None])
+        b = integer_array([0, 1, None, 0, 1, None, 0, 1, None])
         result = a ** b
-        expected = pd.core.arrays.integer_array([1, np.nan, np.nan, 1])
+        expected = integer_array([1, 0, None, 1, 1, 1, 1, None, None])
         tm.assert_extension_array_equal(result, expected)
 
     def test_rpow_one_to_na(self):
         # https://github.com/pandas-dev/pandas/issues/22022
+        # https://github.com/pandas-dev/pandas/issues/29997
         arr = integer_array([np.nan, np.nan])
         result = np.array([1.0, 2.0]) ** arr
         expected = np.array([1.0, np.nan])
@@ -361,10 +432,10 @@ class TestComparisonOps(BaseOpsUtil):
 
         # array
         result = pd.Series(op(data, other))
-        expected = pd.Series(op(data._data, other))
+        expected = pd.Series(op(data._data, other), dtype="boolean")
 
         # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        expected[data._mask] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -372,22 +443,87 @@ class TestComparisonOps(BaseOpsUtil):
         s = pd.Series(data)
         result = op(s, other)
 
-        expected = pd.Series(data._data)
-        expected = op(expected, other)
+        expected = op(pd.Series(data._data), other)
 
         # fill the nan locations
-        expected[data._mask] = op_name == "__ne__"
+        expected[data._mask] = pd.NA
+        expected = expected.astype("boolean")
 
         tm.assert_series_equal(result, expected)
 
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        self._compare_other(data, op_name, 0)
+    @pytest.mark.parametrize("other", [True, False, pd.NA, -1, 0, 1])
+    def test_scalar(self, other, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([1, 0, None], dtype="Int64")
 
-    def test_compare_array(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        other = pd.Series([0] * len(data))
-        self._compare_other(data, op_name, other)
+        result = op(a, other)
+
+        if other is pd.NA:
+            expected = pd.array([None, None, None], dtype="boolean")
+        else:
+            values = op(a._data, other)
+            expected = pd.arrays.BooleanArray(values, a._mask, copy=True)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = pd.NA
+        tm.assert_extension_array_equal(a, pd.array([1, 0, None], dtype="Int64"))
+
+    def test_array(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([0, 1, 2, None, None, None], dtype="Int64")
+        b = pd.array([0, 1, None, 0, 1, None], dtype="Int64")
+
+        result = op(a, b)
+        values = op(a._data, b._data)
+        mask = a._mask | b._mask
+
+        expected = pd.arrays.BooleanArray(values, mask)
+        tm.assert_extension_array_equal(result, expected)
+
+        # ensure we haven't mutated anything inplace
+        result[0] = pd.NA
+        tm.assert_extension_array_equal(
+            a, pd.array([0, 1, 2, None, None, None], dtype="Int64")
+        )
+        tm.assert_extension_array_equal(
+            b, pd.array([0, 1, None, 0, 1, None], dtype="Int64")
+        )
+
+    def test_compare_with_booleanarray(self, all_compare_operators):
+        op = self.get_op_from_name(all_compare_operators)
+        a = pd.array([True, False, None] * 3, dtype="boolean")
+        b = pd.array([0] * 3 + [1] * 3 + [None] * 3, dtype="Int64")
+        other = pd.array([False] * 3 + [True] * 3 + [None] * 3, dtype="boolean")
+        expected = op(a, other)
+        result = op(a, b)
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_no_shared_mask(self, data):
+        result = data + 1
+        assert np.shares_memory(result._mask, data._mask) is False
+
+    def test_compare_to_string(self, any_nullable_int_dtype):
+        # GH 28930
+        s = pd.Series([1, None], dtype=any_nullable_int_dtype)
+        result = s == "a"
+        expected = pd.Series([False, pd.NA], dtype="boolean")
+
+        self.assert_series_equal(result, expected)
+
+    def test_compare_to_int(self, any_nullable_int_dtype, all_compare_operators):
+        # GH 28930
+        s1 = pd.Series([1, None, 3], dtype=any_nullable_int_dtype)
+        s2 = pd.Series([1, None, 3], dtype="float")
+
+        method = getattr(s1, all_compare_operators)
+        result = method(2)
+
+        method = getattr(s2, all_compare_operators)
+        expected = method(2).astype("boolean")
+        expected[s2.isna()] = pd.NA
+
+        self.assert_series_equal(result, expected)
 
 
 class TestCasting:
@@ -464,7 +600,8 @@ class TestCasting:
 
         # coerce to same numpy_dtype - mixed
         s = pd.Series(mixed)
-        with pytest.raises(ValueError):
+        msg = r"cannot convert to .*-dtype NumPy array with missing values.*"
+        with pytest.raises(ValueError, match=msg):
             s.astype(all_data.dtype.numpy_dtype)
 
         # coerce to object
@@ -472,6 +609,17 @@ class TestCasting:
         result = s.astype("object")
         expected = pd.Series(np.asarray(mixed))
         tm.assert_series_equal(result, expected)
+
+    def test_astype_to_larger_numpy(self):
+        a = pd.array([1, 2], dtype="Int32")
+        result = a.astype("int64")
+        expected = np.array([1, 2], dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        a = pd.array([1, 2], dtype="UInt32")
+        result = a.astype("uint64")
+        expected = np.array([1, 2], dtype="uint64")
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [Int8Dtype(), "Int8", UInt32Dtype(), "UInt32"])
     def test_astype_specific_casting(self, dtype):
@@ -484,6 +632,15 @@ class TestCasting:
         result = s.astype(dtype)
         expected = pd.Series([1, 2, 3, None], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_astype_dt64(self):
+        # GH#32435
+        arr = pd.array([1, 2, 3, pd.NA]) * 10 ** 9
+
+        result = arr.astype("datetime64[ns]")
+
+        expected = np.array([1, 2, 3, "NaT"], dtype="M8[s]").astype("M8[ns]")
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_construct_cast_invalid(self, dtype):
 
@@ -502,12 +659,61 @@ class TestCasting:
         with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
+    @pytest.mark.parametrize("in_series", [True, False])
+    def test_to_numpy_na_nan(self, in_series):
+        a = pd.array([0, 1, None], dtype="Int64")
+        if in_series:
+            a = pd.Series(a)
+
+        result = a.to_numpy(dtype="float64", na_value=np.nan)
+        expected = np.array([0.0, 1.0, np.nan], dtype="float64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = a.to_numpy(dtype="int64", na_value=-1)
+        expected = np.array([0, 1, -1], dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = a.to_numpy(dtype="bool", na_value=False)
+        expected = np.array([False, True, False], dtype="bool")
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("in_series", [True, False])
+    @pytest.mark.parametrize("dtype", ["int32", "int64", "bool"])
+    def test_to_numpy_dtype(self, dtype, in_series):
+        a = pd.array([0, 1], dtype="Int64")
+        if in_series:
+            a = pd.Series(a)
+
+        result = a.to_numpy(dtype=dtype)
+        expected = np.array([0, 1], dtype=dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["float64", "int64", "bool"])
+    def test_to_numpy_na_raises(self, dtype):
+        a = pd.array([0, 1, None], dtype="Int64")
+        with pytest.raises(ValueError, match=dtype):
+            a.to_numpy(dtype=dtype)
+
+    def test_astype_str(self):
+        a = pd.array([1, 2, None], dtype="Int64")
+        expected = np.array(["1", "2", "<NA>"], dtype=object)
+
+        tm.assert_numpy_array_equal(a.astype(str), expected)
+        tm.assert_numpy_array_equal(a.astype("str"), expected)
+
+    def test_astype_boolean(self):
+        # https://github.com/pandas-dev/pandas/issues/31102
+        a = pd.array([1, 0, -1, 2, None], dtype="Int64")
+        result = a.astype("boolean")
+        expected = pd.array([True, False, True, True, None], dtype="boolean")
+        tm.assert_extension_array_equal(result, expected)
+
 
 def test_frame_repr(data_missing):
 
     df = pd.DataFrame({"A": data_missing})
     result = repr(df)
-    expected = "     A\n0  NaN\n1    1"
+    expected = "      A\n0  <NA>\n1     1"
     assert result == expected
 
 
@@ -523,7 +729,7 @@ def test_conversions(data_missing):
     # we assert that we are exactly equal
     # including type conversions of scalars
     result = df["A"].astype("object").values
-    expected = np.array([np.nan, 1], dtype=object)
+    expected = np.array([pd.NA, 1], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
     for r, e in zip(result, expected):
@@ -545,16 +751,17 @@ def test_integer_array_constructor():
     expected = integer_array([1, 2, 3, np.nan], dtype="int64")
     tm.assert_extension_array_equal(result, expected)
 
-    with pytest.raises(TypeError):
+    msg = r".* should be .* numpy array. Use the 'integer_array' function instead"
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values.tolist(), mask)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values, mask.tolist())
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values.astype(float), mask)
-
-    with pytest.raises(TypeError):
+    msg = r"__init__\(\) missing 1 required positional argument: 'mask'"
+    with pytest.raises(TypeError, match=msg):
         IntegerArray(values)
 
 
@@ -602,7 +809,11 @@ def test_integer_array_constructor_copy():
 )
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
-    with pytest.raises(TypeError):
+    msg = (
+        r"(:?.* cannot be converted to an IntegerDtype)"
+        r"|(:?values must be a 1D list-like)"
+    )
+    with pytest.raises(TypeError, match=msg):
         integer_array(values)
 
 
@@ -686,7 +897,7 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
     result = (df.A + df.C) * 3 == 12
-    expected = pd.Series([False, True, False])
+    expected = pd.Series([False, True, None], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
     result = df.A + df.B
@@ -750,13 +961,15 @@ def test_reduce_to_float(op):
 def test_astype_nansafe():
     # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
-    msg = "cannot convert float NaN to integer"
+    msg = "cannot convert to 'uint32'-dtype NumPy array with missing values."
 
     with pytest.raises(ValueError, match=msg):
         arr.astype("uint32")
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
+# np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
+@pytest.mark.filterwarnings("ignore:invalid value encountered in sign")
 def test_ufuncs_single_int(ufunc):
     a = integer_array([1, 2, -3, np.nan])
     result = ufunc(a)
@@ -815,18 +1028,94 @@ def test_ufuncs_binary_int(ufunc):
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
 def test_ufunc_reduce_raises(values):
     a = integer_array(values)
-    with pytest.raises(NotImplementedError):
+    msg = r"The 'reduce' method is not supported."
+    with pytest.raises(NotImplementedError, match=msg):
         np.add.reduce(a)
 
 
-@td.skip_if_no("pyarrow", min_version="0.14.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.15.0")
 def test_arrow_array(data):
     # protocol added in 0.15.0
     import pyarrow as pa
 
     arr = pa.array(data)
-    expected = pa.array(list(data), type=data.dtype.name.lower(), from_pandas=True)
+    expected = np.array(data, dtype=object)
+    expected[data.isna()] = None
+    expected = pa.array(expected, type=data.dtype.name.lower(), from_pandas=True)
     assert arr.equals(expected)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_arrow_roundtrip(data):
+    # roundtrip possible from arrow 0.16.0
+    import pyarrow as pa
+
+    df = pd.DataFrame({"a": data})
+    table = pa.table(df)
+    assert table.field("a").type == str(data.dtype.numpy_dtype)
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, df)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_arrow_from_arrow_uint():
+    # https://github.com/pandas-dev/pandas/issues/31896
+    # possible mismatch in types
+    import pyarrow as pa
+
+    dtype = pd.UInt32Dtype()
+    result = dtype.__from_arrow__(pa.array([1, 2, 3, 4, None], type="int64"))
+    expected = pd.array([1, 2, 3, 4, None], dtype="UInt32")
+
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pandasmethname, kwargs",
+    [
+        ("var", {"ddof": 0}),
+        ("var", {"ddof": 1}),
+        ("kurtosis", {}),
+        ("skew", {}),
+        ("sem", {}),
+    ],
+)
+def test_stat_method(pandasmethname, kwargs):
+    s = pd.Series(data=[1, 2, 3, 4, 5, 6, np.nan, np.nan], dtype="Int64")
+    pandasmeth = getattr(s, pandasmethname)
+    result = pandasmeth(**kwargs)
+    s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")
+    pandasmeth = getattr(s2, pandasmethname)
+    expected = pandasmeth(**kwargs)
+    assert expected == result
+
+
+def test_value_counts_na():
+    arr = pd.array([1, 2, 1, pd.NA], dtype="Int64")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([2, 1, 1], index=[1, 2, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([2, 1], index=[1, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_array_setitem_nullable_boolean_mask():
+    # GH 31446
+    ser = pd.Series([1, 2], dtype="Int64")
+    result = ser.where(ser > 1)
+    expected = pd.Series([pd.NA, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_array_setitem():
+    # GH 31446
+    arr = pd.Series([1, 2], dtype="Int64").array
+    arr[arr > 1] = 1
+
+    expected = pd.array([1, 1], dtype="Int64")
+    tm.assert_extension_array_equal(arr, expected)
 
 
 # TODO(jreback) - these need testing / are broken

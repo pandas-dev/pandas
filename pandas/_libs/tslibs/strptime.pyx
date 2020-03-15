@@ -45,8 +45,7 @@ cdef dict _parse_code_table = {'y': 0,
                                'u': 22}
 
 
-def array_strptime(object[:] values, object fmt,
-                   bint exact=True, errors='raise'):
+def array_strptime(object[:] values, object fmt, bint exact=True, errors='raise'):
     """
     Calculates the datetime structs represented by the passed array of strings
 
@@ -78,12 +77,9 @@ def array_strptime(object[:] values, object fmt,
     if fmt is not None:
         if '%W' in fmt or '%U' in fmt:
             if '%Y' not in fmt and '%y' not in fmt:
-                raise ValueError("Cannot use '%W' or '%U' without "
-                                 "day and year")
-            if ('%A' not in fmt and '%a' not in fmt and '%w' not
-                    in fmt):
-                raise ValueError("Cannot use '%W' or '%U' without "
-                                 "day and year")
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
+            if '%A' not in fmt and '%a' not in fmt and '%w' not in fmt:
+                raise ValueError("Cannot use '%W' or '%U' without day and year")
         elif '%Z' in fmt and '%z' in fmt:
             raise ValueError("Cannot parse both %Z and %z")
 
@@ -106,11 +102,11 @@ def array_strptime(object[:] values, object fmt,
                 if bad_directive == "\\":
                     bad_directive = "%"
                 del err
-                raise ValueError("'%s' is a bad directive in format '%s'" %
-                                 (bad_directive, fmt))
+                raise ValueError(f"'{bad_directive}' is a bad directive "
+                                 f"in format '{fmt}'")
             # IndexError only occurs when the format string is "%"
             except IndexError:
-                raise ValueError("stray %% in format '%s'" % fmt)
+                raise ValueError(f"stray % in format '{fmt}'")
             _regex_cache[fmt] = format_regex
 
     result = np.empty(n, dtype='M8[ns]')
@@ -139,14 +135,13 @@ def array_strptime(object[:] values, object fmt,
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                raise ValueError("time data %r does not match "
-                                 "format %r (match)" % (val, fmt))
+                raise ValueError(f"time data '{val}' does not match "
+                                 f"format '{fmt}' (match)")
             if len(val) != found.end():
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                raise ValueError("unconverted data remains: %s" %
-                                 val[found.end():])
+                raise ValueError(f"unconverted data remains: {val[found.end():]}")
 
         # search
         else:
@@ -155,8 +150,8 @@ def array_strptime(object[:] values, object fmt,
                 if is_coerce:
                     iresult[i] = NPY_NAT
                     continue
-                raise ValueError("time data %r does not match format "
-                                 "%r (search)" % (val, fmt))
+                raise ValueError(f"time data {repr(val)} does not match format "
+                                 f"{repr(fmt)} (search)")
 
         iso_year = -1
         year = 1900
@@ -279,8 +274,8 @@ def array_strptime(object[:] values, object fmt,
                                  "the ISO year directive '%G' and a weekday "
                                  "directive '%A', '%a', '%w', or '%u'.")
             else:
-                raise ValueError("ISO week directive '%V' is incompatible with"
-                                 " the year directive '%Y'. Use the ISO year "
+                raise ValueError("ISO week directive '%V' is incompatible with "
+                                 "the year directive '%Y'. Use the ISO year "
                                  "'%G' instead.")
 
         # If we know the wk of the year and what day of that wk, we can figure
@@ -589,8 +584,8 @@ class TimeRE(dict):
         else:
             return ''
         regex = '|'.join(re.escape(stuff) for stuff in to_convert)
-        regex = '(?P<%s>%s' % (directive, regex)
-        return '%s)' % regex
+        regex = f"(?P<{directive}>{regex})"
+        return regex
 
     def pattern(self, format):
         """
@@ -609,11 +604,11 @@ class TimeRE(dict):
         format = whitespace_replacement.sub(r'\\s+', format)
         while '%' in format:
             directive_index = format.index('%') +1
-            processed_format = "%s%s%s" % (processed_format,
-                                           format[:directive_index -1],
-                                           self[format[directive_index]])
+            processed_format = (f"{processed_format}"
+                                f"{format[:directive_index -1]}"
+                                f"{self[format[directive_index]]}")
             format = format[directive_index +1:]
-        return "%s%s" % (processed_format, format)
+        return f"{processed_format}{format}"
 
     def compile(self, format):
         """Return a compiled re object for the format string."""
@@ -737,8 +732,7 @@ cdef parse_timezone_directive(str z):
         z = z[:3] + z[4:]
         if len(z) > 5:
             if z[5] != ':':
-                msg = "Inconsistent use of : in {0}"
-                raise ValueError(msg.format(z))
+                raise ValueError(f"Inconsistent use of : in {z}")
             z = z[:5] + z[6:]
     hours = int(z[1:3])
     minutes = int(z[3:5])
@@ -751,6 +745,6 @@ cdef parse_timezone_directive(str z):
     microseconds = int(gmtoff_remainder + gmtoff_remainder_padding)
 
     total_minutes = ((hours * 60) + minutes + (seconds // 60) +
-                     (microseconds // 60000000))
+                     (microseconds // 60_000_000))
     total_minutes = -total_minutes if z.startswith("-") else total_minutes
     return pytz.FixedOffset(total_minutes)

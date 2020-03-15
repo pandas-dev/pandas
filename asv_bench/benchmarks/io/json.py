@@ -1,9 +1,8 @@
 import numpy as np
 
 from pandas import DataFrame, concat, date_range, read_json, timedelta_range
-import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO
+from ..pandas_vb_common import BaseIO, tm
 
 
 class ReadJSON(BaseIO):
@@ -20,7 +19,7 @@ class ReadJSON(BaseIO):
         }
         df = DataFrame(
             np.random.randn(N, 5),
-            columns=["float_{}".format(i) for i in range(5)],
+            columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
         df.to_json(self.fname, orient=orient)
@@ -43,7 +42,7 @@ class ReadJSONLines(BaseIO):
         }
         df = DataFrame(
             np.random.randn(N, 5),
-            columns=["float_{}".format(i) for i in range(5)],
+            columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
         df.to_json(self.fname, orient="records", lines=True)
@@ -130,6 +129,30 @@ class ToJSON(BaseIO):
         base_df = getattr(self, frame).copy()
         df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
         df.to_json(self.fname, orient=orient)
+
+
+class ToJSONISO(BaseIO):
+    fname = "__test__.json"
+    params = [["split", "columns", "index", "values", "records"]]
+    param_names = ["orient"]
+
+    def setup(self, orient):
+        N = 10 ** 5
+        index = date_range("20000101", periods=N, freq="H")
+        timedeltas = timedelta_range(start=1, periods=N, freq="s")
+        datetimes = date_range(start=1, periods=N, freq="s")
+        self.df = DataFrame(
+            {
+                "td_1": timedeltas,
+                "td_2": timedeltas,
+                "ts_1": datetimes,
+                "ts_2": datetimes,
+            },
+            index=index,
+        )
+
+    def time_iso_format(self, orient):
+        self.df.to_json(orient=orient, date_format="iso")
 
 
 class ToJSONLines(BaseIO):

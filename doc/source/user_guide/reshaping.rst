@@ -6,6 +6,8 @@
 Reshaping and pivot tables
 **************************
 
+.. _reshaping.reshaping:
+
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
@@ -14,8 +16,7 @@ Reshaping by pivoting DataFrame objects
 .. ipython:: python
    :suppress:
 
-   import pandas.util.testing as tm
-   tm.N = 3
+   import pandas._testing as tm
 
    def unpivot(frame):
        N, K = frame.shape
@@ -25,7 +26,7 @@ Reshaping by pivoting DataFrame objects
        columns = ['date', 'variable', 'value']
        return pd.DataFrame(data, columns=columns)
 
-   df = unpivot(tm.makeTimeDataFrame())
+   df = unpivot(tm.makeTimeDataFrame(3))
 
 Data is often stored in so-called "stacked" or "record" format:
 
@@ -38,10 +39,7 @@ For the curious here is how the above ``DataFrame`` was created:
 
 .. code-block:: python
 
-   import pandas.util.testing as tm
-
-   tm.N = 3
-
+   import pandas._testing as tm
 
    def unpivot(frame):
        N, K = frame.shape
@@ -51,7 +49,7 @@ For the curious here is how the above ``DataFrame`` was created:
        return pd.DataFrame(data, columns=['date', 'variable', 'value'])
 
 
-   df = unpivot(tm.makeTimeDataFrame())
+   df = unpivot(tm.makeTimeDataFrame(3))
 
 To select out everything for variable ``A`` we could do:
 
@@ -314,6 +312,8 @@ user-friendly.
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
 
+.. _reshaping.combine_with_groupby:
+
 Combining with stats and GroupBy
 --------------------------------
 
@@ -539,8 +539,6 @@ Alternatively we can specify custom bin-edges:
    c = pd.cut(ages, bins=[0, 18, 35, 70])
    c
 
-.. versionadded:: 0.20.0
-
 If the ``bins`` keyword is an ``IntervalIndex``, then these will be
 used to bin the passed data.::
 
@@ -728,14 +726,14 @@ Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 ``row`` values are the index, and the mean of ``val0`` are the values? In
 particular, the resulting DataFrame should look like:
 
-.. note::
+.. code-block:: text
 
-   col   col0   col1   col2   col3  col4
-   row
-   row0  0.77  0.605    NaN  0.860  0.65
-   row2  0.13    NaN  0.395  0.500  0.25
-   row3   NaN  0.310    NaN  0.545   NaN
-   row4   NaN  0.100  0.395  0.760  0.24
+    col   col0   col1   col2   col3  col4
+    row
+    row0  0.77  0.605    NaN  0.860  0.65
+    row2  0.13    NaN  0.395  0.500  0.25
+    row3   NaN  0.310    NaN  0.545   NaN
+    row4   NaN  0.100  0.395  0.760  0.24
 
 This solution uses :func:`~pandas.pivot_table`. Also note that
 ``aggfunc='mean'`` is the default. It is included here to be explicit.

@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.base import DataError
-import pandas.util.testing as tm
 
 # gh-12373 : rolling functions error on float32 data
 # make sure rolling functions works for different dtypes
