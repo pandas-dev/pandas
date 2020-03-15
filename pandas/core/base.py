@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional
+from typing import Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -34,7 +34,6 @@ from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
-from pandas.typing import ArrayLike
 
 _shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(
@@ -599,7 +598,7 @@ class IndexOpsMixin:
     )
 
     @property
-    def _values(self) -> ArrayLike:
+    def _values(self) -> Union[ExtensionArray, np.ndarray]:
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
