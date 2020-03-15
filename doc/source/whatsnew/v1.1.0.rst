@@ -207,6 +207,7 @@ Deprecations
 - :meth:`DataFrame.mean` and :meth:`DataFrame.median` with ``numeric_only=None`` will include datetime64 and datetime64tz columns in a future version (:issue:`29941`)
 - Setting values with ``.loc`` using a positional slice is deprecated and will raise in a future version.  Use ``.loc`` with labels or ``.iloc`` with positions instead (:issue:`31840`)
 - :meth:`DataFrame.to_dict` has deprecated accepting short names for ``orient`` in future versions (:issue:`32515`)
+- :meth:`Categorical.to_dense` is deprecated and will be removed in a future version, use ``np.asarray(cat)`` instead (:issue:`32639`)
 
 .. ---------------------------------------------------------------------------
 
@@ -247,6 +248,7 @@ Datetimelike
 - Bug in :class:`Timestamp` where constructing :class:`Timestamp` with dateutil timezone less than 128 nanoseconds before daylight saving time switch from winter to summer would result in nonexistent time (:issue:`31043`)
 - Bug in :meth:`Period.to_timestamp`, :meth:`Period.start_time` with microsecond frequency returning a timestamp one nanosecond earlier than the correct time (:issue:`31475`)
 - :class:`Timestamp` raising confusing error message when year, month or day is missing (:issue:`31200`)
+- Bug in :class:`DatetimeIndex` constructor incorrectly accepting ``bool``-dtyped inputs (:issue:`32668`)
 
 Timedelta
 ^^^^^^^^^
@@ -273,7 +275,7 @@ Conversion
 ^^^^^^^^^^
 - Bug in :class:`Series` construction from NumPy array with big-endian ``datetime64`` dtype (:issue:`29684`)
 - Bug in :class:`Timedelta` construction with large nanoseconds keyword value (:issue:`32402`)
--
+- Bug in :class:`DataFrame` construction where sets would be duplicated rather than raising (:issue:`32582`)
 
 Strings
 ^^^^^^^
@@ -338,6 +340,7 @@ I/O
 - Bug in :meth:`read_csv` was raising `TypeError` when `sep=None` was used in combination with `comment` keyword (:issue:`31396`)
 - Bug in :class:`HDFStore` that caused it to set to ``int64`` the dtype of a ``datetime64`` column when reading a DataFrame in Python 3 from fixed format written in Python 2 (:issue:`31750`)
 - Bug in :meth:`read_excel` where a UTF-8 string with a high surrogate would cause a segmentation violation (:issue:`23809`)
+- Bug in :meth:`read_csv` was causing a file descriptor leak on an empty file (:issue:`31488`)
 
 
 Plotting
