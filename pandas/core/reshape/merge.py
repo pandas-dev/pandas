@@ -1822,7 +1822,9 @@ def _right_outer_join(x, y, max_groups):
     return left_indexer, right_indexer
 
 
-def _factorize_keys(lk, rk, sort=True, how="inner") -> Tuple[np.array, np.array, int]:
+def _factorize_keys(
+    lk, rk, sort: bool = True, how: str = "inner"
+) -> Tuple[np.array, np.array, int]:
     """
     Encode left and right keys as enumerated types.
 
@@ -1884,7 +1886,7 @@ def _factorize_keys(lk, rk, sort=True, how="inner") -> Tuple[np.array, np.array,
         rk, _ = rk._values_for_factorize()
 
     elif (
-        is_categorical_dtype(lk) and is_categorical_dtype(rk) and lk.is_dtype_equal(rk)
+        is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
         if lk.categories.equals(rk.categories):
             # if we exactly match in categories, allow us to factorize on codes
