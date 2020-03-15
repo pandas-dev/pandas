@@ -3,12 +3,13 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
-from typing import Iterable, Optional, Tuple, Union
+from typing import Dict, Iterable, Optional, Tuple, Union
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
+from pandas._typing import Dtype, Scalar, T
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -537,7 +538,7 @@ def _list_of_series_to_arrays(
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
         columns = get_objs_combined_axis(pass_data, sort=False)
 
-    indexer_cache = {}
+    indexer_cache: Dict[int, Scalar] = {}
 
     aligned_values = []
     for s in data:
@@ -660,7 +661,7 @@ def _validate_or_indexify_columns(
 
 
 def _convert_object_array(
-    content: list, coerce_float: bool = False, dtype: Optional[np.dtype] = None
+    content: list, coerce_float: bool = False, dtype: Optional[Dtype] = None
 ) -> list:
     """Internal function ot convert object array.
 
