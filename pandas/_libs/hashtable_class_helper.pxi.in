@@ -789,7 +789,8 @@ cdef class StringHashTable(HashTable):
                 labels[i] = na_sentinel
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
-                v = get_c_string(<str>val) if val.isprintable() else get_c_string(<str>repr(val))
+                v = get_c_string(<str>val) if val.isprintable() else \
+                    get_c_string(<str>repr(val))
                 vecs[i] = v
 
         # compute
