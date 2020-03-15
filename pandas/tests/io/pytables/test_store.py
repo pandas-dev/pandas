@@ -367,7 +367,8 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             with pytest.raises(
                 ValueError,
-                match="`include` should be either 'pandas' or 'native' but is 'illegal'",
+                match="`include` should be either 'pandas' or 'native'"
+                " but is 'illegal'",
             ):
                 store.keys(include="illegal")
 
