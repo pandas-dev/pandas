@@ -442,7 +442,8 @@ class TestDateRanges:
         result = date_range("2011-1-1", "2012-1-31", freq=offset)
 
         start = datetime(2011, 1, 1)
-
+        # 0 * MonthOffset currently raises a FutureWarning,
+        # so we start the range at 1.
         expected = DatetimeIndex([start] + [start + i * offset for i in range(1, 5)])
         tm.assert_index_equal(result, expected)
 
