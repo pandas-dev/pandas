@@ -324,7 +324,7 @@ MultiIndex
         # Common elements are now guaranteed to be ordered by the left side
         left.intersection(right, sort=False)
 
--
+- Bug in :meth:`Index.join` for MultiIndex when joining level between datetimelike and string(:issue:`26558`)
 
 I/O
 ^^^
