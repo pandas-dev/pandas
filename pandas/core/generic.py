@@ -56,6 +56,7 @@ from pandas.util._validators import (
     validate_percentile,
 )
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -100,7 +101,6 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
-from pandas.core.dtypes.base import ExtensionDtype
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
@@ -11198,7 +11198,7 @@ def _make_cum_function(
             axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
-        
+
         if issubclass(self.dtype, ExtensionDtype):
             return self._accumulate(name, skipna=skipna)
 
@@ -11226,10 +11226,11 @@ def _make_cum_function(
         #     np.putmask(y, mask, mask_a)
         #     result = accum_func(y, axis)
         #     np.putmask(result, mask, mask_b)
-        # # TODO: probably here, we need to call self._accumulate if the proper subclass is available
+        # # TODO: probably here, we need to call
+        # self._accumulate if the proper subclass is available
         # else:
         #     result = accum_func(y, axis)
-        
+
         d = self._construct_axes_dict()
         d["copy"] = False
         return self._constructor(result, **d).__finalize__(self)
