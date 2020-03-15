@@ -386,3 +386,39 @@ def is_sequence(obj) -> bool:
         return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False
+
+
+def is_dataclass(item):
+    """
+    Checks if the object is a data-class instance
+
+    Parameters
+    ----------
+    item : object
+
+    Returns
+    --------
+    is_dataclass : bool
+        True if the item is an instance of a data-class,
+        will return false if you pass the data class itself
+
+    Examples
+    --------
+    >>> from dataclasses import dataclass
+    >>> @dataclass
+    ... class Point:
+    ...     x: int
+    ...     y: int
+
+    >>> is_dataclass(Point)
+    False
+    >>> is_dataclass(Point(0,2))
+    True
+
+    """
+    try:
+        from dataclasses import is_dataclass
+
+        return is_dataclass(item) and not isinstance(item, type)
+    except ImportError:
+        return False

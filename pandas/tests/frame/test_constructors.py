@@ -9,7 +9,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import PY37, is_platform_little_endian
 from pandas.compat.numpy import _is_numpy_dev
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1363,6 +1363,46 @@ class TestDataFrameConstructors:
         expected = DataFrame({"y": [1, 2], "z": [3, 4]})
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses(self):
+        # GH21910
+        from dataclasses import make_dataclass
+
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
+
+        datas = [Point(0, 3), Point(1, 3)]
+        expected = DataFrame({"x": [0, 1], "y": [3, 3]})
+        result = DataFrame(datas)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses_with_varying_types(self):
+        # GH21910
+        from dataclasses import make_dataclass
+
+        # varying types
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
+        HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
+
+        datas = [Point(0, 3), HLine(1, 3, 3)]
+
+        expected = DataFrame(
+            {"x": [0, np.nan], "y": [3, 3], "x0": [np.nan, 1], "x1": [np.nan, 3]}
+        )
+        result = DataFrame(datas)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
+    def test_constructor_list_of_dataclasses_error_thrown(self):
+        # GH21910
+        from dataclasses import make_dataclass
+
+        Point = make_dataclass("Point", [("x", int), ("y", int)])
+
+        # expect TypeError
+        with pytest.raises(TypeError):
+            DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 
     def test_constructor_list_of_dict_order(self):
         # GH10056

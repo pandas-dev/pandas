@@ -24,6 +24,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like,
     is_bool,
     is_complex,
+    is_dataclass,
     is_decimal,
     is_dict_like,
     is_file_like,
