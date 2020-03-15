@@ -161,6 +161,8 @@ class TestMissing(base.BaseMissingTests):
 class TestReduce(base.BaseNoReduceTests):
     pass
 
+class TestAccumulate(base.BaseNoAccumulateTests):
+    pass
 
 class TestMethods(base.BaseMethodsTests):
     @pytest.mark.skip(reason="Unobserved categories included")

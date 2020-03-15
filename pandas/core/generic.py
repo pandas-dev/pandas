@@ -100,6 +100,7 @@ import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import _align_method_FRAME
+from pandas.core.dtypes.base import ExtensionDtype
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
@@ -11197,6 +11198,9 @@ def _make_cum_function(
             axis = self._stat_axis_number
         else:
             axis = self._get_axis_number(axis)
+        
+        if issubclass(self.dtype, ExtensionDtype):
+            return self._accumulate(name, skipna=skipna)
 
         if axis == 1:
             return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
@@ -11211,6 +11215,21 @@ def _make_cum_function(
 
         result = self._data.apply(block_accum_func)
 
+        # y = com.values_from_object(self).copy()
+
+        # if skipna and issubclass(y.dtype.type, (np.datetime64, np.timedelta64)):
+        #     result = accum_func(y, axis)
+        #     mask = isna(self)
+        #     np.putmask(result, mask, iNaT)
+        # elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
+        #     mask = isna(self)
+        #     np.putmask(y, mask, mask_a)
+        #     result = accum_func(y, axis)
+        #     np.putmask(result, mask, mask_b)
+        # # TODO: probably here, we need to call self._accumulate if the proper subclass is available
+        # else:
+        #     result = accum_func(y, axis)
+        
         d = self._construct_axes_dict()
         d["copy"] = False
         return self._constructor(result, **d).__finalize__(self)
