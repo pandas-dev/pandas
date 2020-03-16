@@ -17,7 +17,7 @@ Fixed regressions
 
 **Groupby**
 
-- Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` which was failing on frames with MultiIndex columns and a custom function (:issue:`31777`)
+- Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` which was failing on frames with :class:`MultiIndex` columns and a custom function (:issue:`31777`)
 - Fixed regression in ``groupby(..).rolling(..).apply()`` (``RollingGroupby``) where the ``raw`` parameter was ignored (:issue:`31754`)
 - Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.rolling.Rolling.corr>` when using a time offset (:issue:`31789`)
 - Fixed regression in :meth:`groupby(..).nunique() <pandas.core.groupby.DataFrameGroupBy.nunique>` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
@@ -33,7 +33,7 @@ Fixed regressions
 
 **Reindexing/alignment**
 
-- Fixed regression in :meth:`Series.align` when ``other`` is a DataFrame and ``method`` is not None (:issue:`31785`)
+- Fixed regression in :meth:`Series.align` when ``other`` is a :class:`DataFrame` and ``method`` is not ``None`` (:issue:`31785`)
 - Fixed regression in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with (tz-aware) index and ``method=nearest`` (:issue:`26683`)
 - Fixed regression in :meth:`DataFrame.reindex_like` on a :class:`DataFrame` subclass raised an  ``AssertionError`` (:issue:`31925`)
 - Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
@@ -81,7 +81,7 @@ Bug fixes
 
 **Datetimelike**
 
-- Bug in :meth:`Series.astype` not copying for tz-naive and tz-aware datetime64 dtype (:issue:`32490`)
+- Bug in :meth:`Series.astype` not copying for tz-naive and tz-aware ``datetime64`` dtype (:issue:`32490`)
 - Bug where :func:`to_datetime` would raise when passed ``pd.NA`` (:issue:`32213`)
 - Improved error message when subtracting two :class:`Timestamp` that result in an out-of-bounds :class:`Timedelta` (:issue:`31774`)
 
