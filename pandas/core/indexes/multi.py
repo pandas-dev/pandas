@@ -990,15 +990,11 @@ class MultiIndex(Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
             names = kwargs.pop("names", kwargs.pop("name", self.names))
-            # discards freq
-            kwargs.pop("freq", None)
             return MultiIndex.from_tuples(values, names=names, **kwargs)
 
         result = self.copy(**kwargs)
         result._cache = self._cache.copy()
-        # GH32669
-        if "levels" in result._cache:
-            del result._cache["levels"]
+        result._cache.pop("levels", None)  # GH32669
         return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
