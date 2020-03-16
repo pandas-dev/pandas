@@ -4144,9 +4144,9 @@ class AppendableTable(Table):
 
             if track_times is not None:
                 from tables import __version__ as tables_version
-                from packaging.version import Version
+                from distutils.version import LooseVersion
 
-                if Version(tables_version) >= Version("3.4.3"):
+                if LooseVersion(tables_version) >= LooseVersion("3.4.3"):
                     options["track_times"] = track_times
                 else:
                     raise ValueError(

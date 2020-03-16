@@ -304,7 +304,6 @@ class TestHDFStore:
         import hashlib
         import time
         import tables
-        from packaging.version import Version
 
         def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
             h = hash_factory()
@@ -329,7 +328,7 @@ class TestHDFStore:
 
                 return checksum(path)
 
-        if Version(tables.__version__) < Version("3.4.3"):
+        if LooseVersion(tables.__version__) < LooseVersion("3.4.3"):
             with pytest.raises(
                 ValueError,
                 match="You cannot set track_times with table version < 3.4.3",
