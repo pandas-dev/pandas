@@ -860,6 +860,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 return self._get_values(key)
 
         return self._get_with(key)
@@ -981,6 +982,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 try:
                     self._where(~key, value, inplace=True)
                     return
@@ -2228,7 +2230,7 @@ Name: Max Speed, dtype: float64
             return np.nan
         return nanops.nancov(this.values, other.values, min_periods=min_periods)
 
-    def diff(self, periods=1) -> "Series":
+    def diff(self, periods: int = 1) -> "Series":
         """
         First discrete difference of element.
 
