@@ -300,10 +300,7 @@ class TestHDFStore:
 
     @pytest.mark.skipif(
         LooseVersion(tables.__version__) < LooseVersion("3.4.3"),
-        reason=(
-            "Skipping  pytables test when tables version is "
-            "lower than 3.4.3"
-        ),
+        reason=("Skipping  pytables test when tables version is lower than 3.4.3"),
     )
     def test_no_track_times(self, setup_path):
 

@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
-from tables import __version__ as tables_version
 
 from pandas._config import config, get_option
 
@@ -4114,6 +4113,7 @@ class AppendableTable(Table):
         data_columns=None,
         track_times=True,
     ):
+        from tables import __version__ as tables_version
 
         if not append and self.is_exists:
             self._handle.remove_node(self.group, "table")
