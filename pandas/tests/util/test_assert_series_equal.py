@@ -1,5 +1,7 @@
 import pytest
 
+import numpy as np
+import pandas as pd
 from pandas import Categorical, DataFrame, Series
 import pandas._testing as tm
 
@@ -194,3 +196,21 @@ ordered=False\\)"""
             tm.assert_series_equal(s1, s2, check_categorical=check_categorical)
     else:
         _assert_series_equal_both(s1, s2, check_categorical=check_categorical)
+
+
+@pytest.mark.parametrize("check_dtype", [True, False])
+def test_assert_series_equal_extension_dtype_mismatch(check_dtype):
+    left = pd.Series(np.array([1, 2, 3], dtype="int"))
+    right = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
+
+    msg = """Attributes of Series are different
+
+Attribute "dtype" are different
+\\[left\\]:  int64
+\\[right\\]: Int64"""
+
+    if check_dtype:
+        with pytest.raises(AssertionError, match=msg):
+            tm.assert_series_equal(left, right, check_dtype=check_dtype)
+    else:
+        tm.assert_series_equal(left, right, check_dtype=check_dtype)
