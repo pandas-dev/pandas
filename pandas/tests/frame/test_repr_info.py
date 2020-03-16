@@ -212,3 +212,8 @@ class TestDataFrameReprInfoEtc:
         # GH 25445
         result = repr(box([arg("NaT")], dtype=object))
         assert result == expected
+
+    def test_frame_datetime64_pre1900_repr(self):
+        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="A-DEC")})
+        # it works!
+        repr(df)
