@@ -2426,6 +2426,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+
+        .. versionadded:: 1.1.0
+
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : Any, optional
