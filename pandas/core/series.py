@@ -872,6 +872,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 return self._get_values(key)
 
         return self._get_with(key)
@@ -993,6 +994,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 try:
                     self._where(~key, value, inplace=True)
                     return
@@ -2240,7 +2242,7 @@ Name: Max Speed, dtype: float64
             return np.nan
         return nanops.nancov(this.values, other.values, min_periods=min_periods)
 
-    def diff(self, periods=1) -> "Series":
+    def diff(self, periods: int = 1) -> "Series":
         """
         First discrete difference of element.
 
@@ -2666,9 +2668,9 @@ Name: Max Speed, dtype: float64
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if is_categorical_dtype(self.values):
+        if is_categorical_dtype(self.dtype):
             pass
-        elif is_extension_array_dtype(self.values):
+        elif is_extension_array_dtype(self.dtype):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
             new_values = try_cast_to_ea(self._values, new_values)

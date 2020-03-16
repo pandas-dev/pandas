@@ -2273,11 +2273,15 @@ class PythonParser(ParserBase):
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices = None
-        (
-            self.columns,
-            self.num_original_columns,
-            self.unnamed_cols,
-        ) = self._infer_columns()
+        try:
+            (
+                self.columns,
+                self.num_original_columns,
+                self.unnamed_cols,
+            ) = self._infer_columns()
+        except (TypeError, ValueError):
+            self.close()
+            raise
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.

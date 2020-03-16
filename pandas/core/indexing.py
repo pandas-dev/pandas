@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
+    is_hashable,
     is_integer,
     is_iterator,
     is_list_like,
@@ -581,6 +582,9 @@ class _LocationIndexer(_NDFrameIndexerBase):
         """
         Convert a potentially-label-based key into a positional indexer.
         """
+        if self.name == "loc":
+            self._ensure_listlike_indexer(key)
+
         if self.axis is not None:
             return self._convert_tuple(key, is_setter=True)
 
@@ -610,6 +614,42 @@ class _LocationIndexer(_NDFrameIndexerBase):
             if "cannot do" in str(e):
                 raise
             raise IndexingError(key) from e
+
+    def _ensure_listlike_indexer(self, key, axis=None):
+        """
+        Ensure that a list-like of column labels are all present by adding them if
+        they do not already exist.
+
+        Parameters
+        ----------
+        key : _LocIndexer key or list-like of column labels
+            Target labels.
+        axis : key axis if known
+        """
+        column_axis = 1
+
+        # column only exists in 2-dimensional DataFrame
+        if self.ndim != 2:
+            return
+
+        if isinstance(key, tuple):
+            # key may be a tuple if key is a _LocIndexer key
+            # in that case, set key to the column part of key
+            key = key[column_axis]
+            axis = column_axis
+
+        if (
+            axis == column_axis
+            and not isinstance(self.obj.columns, ABCMultiIndex)
+            and is_list_like_indexer(key)
+            and not com.is_bool_indexer(key)
+            and all(is_hashable(k) for k in key)
+        ):
+            for k in key:
+                try:
+                    self.obj[k]
+                except KeyError:
+                    self.obj[k] = np.nan
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
