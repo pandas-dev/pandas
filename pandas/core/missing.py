@@ -350,8 +350,8 @@ def _derive_indices_of_nans_to_preserve(
         preserve_nans |= mid_nans
 
     # sort preserve_nans and covert to list
-    preserve_nans = sorted(preserve_nans)
-    return preserve_nans
+    preserve_nans_sorted = sorted(preserve_nans)
+    return preserve_nans_sorted
 
 
 def _interpolate_scipy_wrapper(
