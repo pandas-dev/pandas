@@ -35,6 +35,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool_dtype,
     is_categorical_dtype,
+    is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
     is_file_like,
@@ -1441,17 +1442,17 @@ class ParserBase:
 
         """
         cols_needed: Iterable
-        if isinstance(self.parse_dates, list):
+        if is_dict_like(self.parse_dates):
+            cols_needed = itertools.chain(*self.parse_dates.values())
+        elif is_list_like(self.parse_dates):
             # a column in parse_dates could be represented
             # ColReference = Union[int, str]
             # DateGroups = List[ColReference]
             # ParseDates = Union[DateGroups, List[DateGroups],
             #     Dict[ColReference, DateGroups]]
             cols_needed = itertools.chain.from_iterable(
-                col if isinstance(col, list) else [col] for col in self.parse_dates
+                col if is_list_like(col) else [col] for col in self.parse_dates
             )
-        elif isinstance(self.parse_dates, dict):
-            cols_needed = itertools.chain(*self.parse_dates.values())
         else:
             cols_needed = []
 
