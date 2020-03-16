@@ -305,8 +305,8 @@ Indexing
 Missing
 ^^^^^^^
 
--
--
+- Calling :meth:`fillna` on an empty Series now correctly returns a shallow copied object. The behaviour is now consistent with :class:`Index`, :class:`DataFrame` and a non-empty :class:`Series` (:issue:`32543`).
+
 
 MultiIndex
 ^^^^^^^^^^
