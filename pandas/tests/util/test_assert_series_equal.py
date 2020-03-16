@@ -217,7 +217,7 @@ Attribute "dtype" are different
 
 
 @pytest.mark.parametrize("check_dtype", [True, False])
-def test_assert_series_equal_extension_dtype_mismatch(check_dtype):
+def test_assert_series_equal_interval_dtype_mismatch(check_dtype):
     left = Series([pd.Interval(0, 1)], dtype="interval")
     right = left.astype(object)
 
