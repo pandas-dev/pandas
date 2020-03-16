@@ -227,11 +227,11 @@ def test_assert_frame_equal_extension_dtype_mismatch():
     right = left.astype(int)
 
     msg = (
-        'Attributes of DataFrame\\.iloc\\[:, 0\\] '
+        "Attributes of DataFrame\\.iloc\\[:, 0\\] "
         '\\(column name="a"\\) are different\n\n'
         'Attribute "dtype" are different\n'
-        '\\[left\\]:  Int64\n'
-        '\\[right\\]: int[32|64]'
+        "\\[left\\]:  Int64\n"
+        "\\[right\\]: int[32|64]"
     )
 
     tm.assert_frame_equal(left, right, check_dtype=False)
@@ -246,11 +246,11 @@ def test_assert_frame_equal_interval_dtype_mismatch():
     right = left.astype(object)
 
     msg = (
-        'Attributes of DataFrame\\.iloc\\[:, 0\\] '
+        "Attributes of DataFrame\\.iloc\\[:, 0\\] "
         '\\(column name="a"\\) are different\n\n'
         'Attribute "dtype" are different\n'
-        '\\[left\\]:  interval\\[int64\\]\n'
-        '\\[right\\]: object'
+        "\\[left\\]:  interval\\[int64\\]\n"
+        "\\[right\\]: object"
     )
 
     tm.assert_frame_equal(left, right, check_dtype=False)
