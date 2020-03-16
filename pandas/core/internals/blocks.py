@@ -605,7 +605,9 @@ class Block(PandasObject):
 
                 # astype formatting
                 else:
-                    values = self.get_values()
+                    # Because we have neither is_extension nor is_datelike,
+                    #  self.values already has the correct shape
+                    values = self.values
 
             else:
                 values = self.get_values(dtype=dtype)
@@ -663,7 +665,7 @@ class Block(PandasObject):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
-        values = self.get_values()
+        values = self.values
 
         if slicer is not None:
             values = values[:, slicer]
@@ -1596,12 +1598,22 @@ class Block(PandasObject):
         return self
 
 
-class NonConsolidatableMixIn:
-    """ hold methods for the nonconsolidatable blocks """
+class ExtensionBlock(Block):
+    """
+    Block for holding extension types.
+
+    Notes
+    -----
+    This holds all 3rd-party extension array types. It's also the immediate
+    parent class for our internal extension types' blocks, CategoricalBlock.
+
+    ExtensionArrays are limited to 1-D.
+    """
 
     _can_consolidate = False
     _verify_integrity = False
     _validate_ndim = False
+    is_extension = True
 
     def __init__(self, values, placement, ndim=None):
         """
@@ -1612,6 +1624,8 @@ class NonConsolidatableMixIn:
         This will call continue to call __init__ for the other base
         classes mixed in with this Mixin.
         """
+        values = self._maybe_coerce_values(values)
+
         # Placement must be converted to BlockPlacement so that we can check
         # its length
         if not isinstance(placement, libinternals.BlockPlacement):
@@ -1624,6 +1638,10 @@ class NonConsolidatableMixIn:
             else:
                 ndim = 2
         super().__init__(values, placement, ndim=ndim)
+
+        if self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(2DEA): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self):
@@ -1719,29 +1737,6 @@ class NonConsolidatableMixIn:
 
         mask = mask.any(0)
         return new_placement, new_values, mask
-
-
-class ExtensionBlock(NonConsolidatableMixIn, Block):
-    """
-    Block for holding extension types.
-
-    Notes
-    -----
-    This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks, CategoricalBlock.
-
-    ExtensionArrays are limited to 1-D.
-    """
-
-    is_extension = True
-
-    def __init__(self, values, placement, ndim=None):
-        values = self._maybe_coerce_values(values)
-        super().__init__(values, placement, ndim)
-
-        if self.ndim == 2 and len(self.mgr_locs) != 1:
-            # TODO(2DEA): check unnecessary with 2D EAs
-            raise AssertionError("block.size != values.size")
 
     def _maybe_coerce_values(self, values):
         """

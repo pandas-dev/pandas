@@ -6081,9 +6081,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            if len(self._get_axis(axis)) == 0:
-                return self
-
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
                     value = create_series_with_explicit_dtype(
@@ -8587,12 +8584,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
+        else:
+            # GH#21947 we have an empty DataFrame, could be object-dtype
+            cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
 
         # try to align with other
         try_quick = True
-        if hasattr(other, "align"):
+        if isinstance(other, NDFrame):
 
             # align with me
             if other.ndim <= self.ndim:
