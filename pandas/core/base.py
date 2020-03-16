@@ -885,6 +885,9 @@ class IndexOpsMixin:
         axis : int, optional
             For compatibility with NumPy. Only 0 or None are allowed.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -982,6 +985,9 @@ class IndexOpsMixin:
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------

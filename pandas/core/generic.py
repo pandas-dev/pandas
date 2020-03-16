@@ -6081,9 +6081,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            if len(self._get_axis(axis)) == 0:
-                return self
-
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
                     value = create_series_with_explicit_dtype(
