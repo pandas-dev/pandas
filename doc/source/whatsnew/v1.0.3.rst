@@ -1,0 +1,27 @@
+
+.. _whatsnew_103:
+
+What's new in 1.0.3 (March ??, 2020)
+------------------------------------
+
+These are the changes in pandas 1.0.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_103.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_103.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.0.2..v1.0.3|HEAD
