@@ -328,13 +328,7 @@ class TestHDFStore:
 
                 return checksum(path)
 
-        if LooseVersion(tables.__version__) < LooseVersion("3.4.3"):
-            with pytest.raises(
-                ValueError,
-                match="You cannot set track_times with table version < 3.4.3",
-            ):
-                create_h5_and_return_checksum(track_times=False)
-        else:
+        if LooseVersion(tables.__version__) >= LooseVersion("3.4.3"):
             checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
             checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
 
