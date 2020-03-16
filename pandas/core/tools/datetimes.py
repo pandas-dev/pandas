@@ -565,7 +565,7 @@ def to_datetime(
 
     Parameters
     ----------
-    arg : int, float, str, datetime, list, tuple, 1-d array, Series DataFrame/dict-like
+    arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
         The object to convert to a datetime.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
