@@ -1217,14 +1217,14 @@ class TestHDFStore:
             df = pd.DataFrame({"a": range(2), "b": range(2)})
             df.to_hdf(path, "k1")
 
-            store = pd.HDFStore(path, "r")
+            with pd.HDFStore(path, "r") as store:
 
-            with pytest.raises(KeyError, match="'No object named k2 in the file'"):
-                pd.read_hdf(store, "k2")
+                with pytest.raises(KeyError, match="'No object named k2 in the file'"):
+                    pd.read_hdf(store, "k2")
 
-            # Test that the file is still open after a KeyError and that we can
-            # still read from it.
-            pd.read_hdf(store, "k1")
+                # Test that the file is still open after a KeyError and that we can
+                # still read from it.
+                pd.read_hdf(store, "k1")
 
     def test_append_frame_column_oriented(self, setup_path):
         with ensure_clean_store(setup_path) as store:
