@@ -206,7 +206,7 @@ def test_assert_series_equal_extension_dtype_mismatch(check_dtype):
 
 Attribute "dtype" are different
 \\[left\\]:  Int64
-\\[right\\]: int64"""
+\\[right\\]: int[32|64]"""
 
     if check_dtype:
         with pytest.raises(AssertionError, match=msg):
