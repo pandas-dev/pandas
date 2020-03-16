@@ -38,6 +38,7 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
+import pandas as pd
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
@@ -826,6 +827,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         indices : array of ints
             Array of insertion points with the same shape as `value`.
         """
+        if is_list_like(value):
+            value = pd.array(value)
+
         if isinstance(value, str):
             try:
                 value = self._scalar_from_string(value)
@@ -839,15 +843,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
-
-        elif isinstance(value, np.ndarray):
-            if not type(self)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
-            value = type(self)(value)
-            self._check_compatible_with(value)
 
         if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
