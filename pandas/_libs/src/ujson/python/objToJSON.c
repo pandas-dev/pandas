@@ -237,21 +237,6 @@ static PyObject *get_values(PyObject *obj) {
         }
     }
 
-    if ((values == NULL) && PyObject_HasAttrString(obj, "get_block_values_for_json")) {
-        PRINTMARK();
-        values = PyObject_CallMethod(obj, "get_block_values_for_json", NULL);
-
-        if (values == NULL) {
-            // Clear so we can subsequently try another method
-            PyErr_Clear();
-        } else if (!PyArray_CheckExact(values)) {
-            // Didn't get a numpy array, so keep trying
-            PRINTMARK();
-            Py_DECREF(values);
-            values = NULL;
-        }
-    }
-
     if (values == NULL) {
         PyObject *typeRepr = PyObject_Repr((PyObject *)Py_TYPE(obj));
         PyObject *repr;
@@ -780,7 +765,7 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
             goto BLKRET;
         }
 
-        tmp = get_values(block);
+        tmp = PyObject_CallMethod(block, "get_block_values_for_json", NULL);
         if (!tmp) {
             ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
             Py_DECREF(block);
@@ -1266,7 +1251,7 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     } else if (index == 2) {
         memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
         if (is_simple_frame(obj)) {
-            GET_TC(tc)->itemValue = get_values(obj);
+            GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "values");
             if (!GET_TC(tc)->itemValue) {
                 return 0;
             }
@@ -1935,7 +1920,7 @@ ISITERABLE:
             pc->iterNext = NpyArr_iterNext;
             pc->iterGetName = NpyArr_iterGetName;
 
-            pc->newObj = get_values(obj);
+            pc->newObj = PyObject_GetAttrString(obj, "values");
             if (!pc->newObj) {
                 goto INVALID;
             }
