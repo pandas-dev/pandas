@@ -987,18 +987,15 @@ class MultiIndex(Index):
         return MultiIndex.from_tuples
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, names=None, sortorder=None, **kwargs):
+        names = self._validate_names(names=names, name=kwargs.pop("name", None))
         if values is not None:
-            names = kwargs.pop("names", kwargs.pop("name", self.names))
-            # discards freq
-            kwargs.pop("freq", None)
-            return MultiIndex.from_tuples(values, names=names, **kwargs)
+            return MultiIndex.from_tuples(values, names=names, sortorder=sortorder)
 
-        result = self.copy(**kwargs)
+        assert sortorder is None
+        result = self.copy(names=names, **kwargs)
         result._cache = self._cache.copy()
-        # GH32669
-        if "levels" in result._cache:
-            del result._cache["levels"]
+        result._cache.pop("levels", None)  # GH32669
         return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
