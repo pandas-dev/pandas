@@ -299,6 +299,13 @@ class TestHDFStore:
             assert set(store.keys()) == expected
             assert set(store) == expected
 
+    @pytest.mark.skipif(
+        LooseVersion(tables.__version__) < LooseVersion("3.4.3"),
+        reason=(
+            "Skipping  pytables test when tables version is "
+            "lower than 3.4.3"
+        ),
+    )
     def test_no_track_times(self, setup_path):
 
         # GH 32682
@@ -327,21 +334,20 @@ class TestHDFStore:
 
                 return checksum(path)
 
-        if LooseVersion(tables.__version__) >= LooseVersion("3.4.3"):
-            checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
-            checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
+        checksum_0_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_0_tt_true = create_h5_and_return_checksum(track_times=True)
 
-            # sleep is necessary to create h5 with different creation time
-            time.sleep(1)
+        # sleep is necessary to create h5 with different creation time
+        time.sleep(1)
 
-            checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
-            checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
+        checksum_1_tt_false = create_h5_and_return_checksum(track_times=False)
+        checksum_1_tt_true = create_h5_and_return_checksum(track_times=True)
 
-            # checksums are the same if track_time = False
-            assert checksum_0_tt_false == checksum_1_tt_false
+        # checksums are the same if track_time = False
+        assert checksum_0_tt_false == checksum_1_tt_false
 
-            # checksums are NOT same if track_time = True
-            assert checksum_0_tt_true != checksum_1_tt_true
+        # checksums are NOT same if track_time = True
+        assert checksum_0_tt_true != checksum_1_tt_true
 
     def test_keys_ignore_hdf_softlink(self, setup_path):
 
