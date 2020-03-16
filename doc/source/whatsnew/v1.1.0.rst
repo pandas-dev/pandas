@@ -238,7 +238,7 @@ Categorical
 - Bug where :func:`merge` was unable to join on non-unique categorical indices (:issue:`28189`)
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
--
+- :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -269,6 +269,7 @@ Numeric
 - Bug in :meth:`DataFrame.floordiv` with ``axis=0`` not treating division-by-zero like :meth:`Series.floordiv` (:issue:`31271`)
 - Bug in :meth:`to_numeric` with string argument ``"uint64"`` and ``errors="coerce"`` silently fails (:issue:`32394`)
 - Bug in :meth:`to_numeric` with ``downcast="unsigned"`` fails for empty data (:issue:`32493`)
+- Bug in :meth:`DataFrame.mean` with ``numeric_only=False`` and either ``datetime64`` dtype or ``PeriodDtype`` column incorrectly raising ``TypeError`` (:issue:`32426`)
 -
 
 Conversion
@@ -377,7 +378,7 @@ Reshaping
 
 Sparse
 ^^^^^^
-
+- Creating a :class:`SparseArray` from timezone-aware dtype will issue a warning before dropping timezone information, instead of doing so silently (:issue:`32501`)
 -
 -
 
@@ -395,6 +396,7 @@ Other
 - Set operations on an object-dtype :class:`Index` now always return object-dtype results (:issue:`31401`)
 - Bug in :meth:`AbstractHolidayCalendar.holidays` when no rules were defined (:issue:`31415`)
 - Bug in :meth:`DataFrame.to_records` incorrectly losing timezone information in timezone-aware ``datetime64`` columns (:issue:`32535`)
+- :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:32538`)
 
 .. ---------------------------------------------------------------------------
 
