@@ -3,12 +3,13 @@ import pytest
 
 import pandas as pd
 from pandas.core.internals import BlockManager, SingleBlockManager
-from pandas.core.internals.blocks import Block, NonConsolidatableMixIn
+from pandas.core.internals.blocks import ExtensionBlock
 
 
-class CustomBlock(NonConsolidatableMixIn, Block):
+class CustomBlock(ExtensionBlock):
 
     _holder = np.ndarray
+    _can_hold_na = False
 
     def concat_same_type(self, to_concat, placement=None):
         """
