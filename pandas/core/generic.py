@@ -2762,7 +2762,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index=True,
         na_rep="NaN",
         formatters=None,
-        formatters_col=None,
         float_format=None,
         sparsify=None,
         index_names=True,
@@ -2777,6 +2776,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         multirow=None,
         caption=None,
         label=None,
+        formatters_col=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -2810,10 +2810,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
-        formatter_col: list of str, optional
-            Formatter elements. The result of each function must be a unicode string. 
-            List must be of length equal to the number. This applies the changes in the original 
-            order of the columns.
         float_format : one-parameter function or str, optional, default None
             Formatter for floating point numbers. For example
             ``float_format="%%.2f"`` and ``float_format="{:0.2f}".format`` will
@@ -2866,6 +2862,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             This is used with ``\ref{}`` in the main ``.tex`` file.
 
             .. versionadded:: 1.0.0
+        formatters_col: list of str, optional, default None
+            Formatter elements. The result of each function must be a unicode string.
+            List must be of length equal to the number.
+            This applies the changes in the original order of the columns.
+
         %(returns)s
         See Also
         --------
@@ -2903,8 +2904,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multirow = config.get_option("display.latex.multirow")
 
         # formatters is a list
-        if formatters_col:
-            formatters = [lambda x: style % x for style in formatters_col]
+        if formatters_col and type(formatters_col) == list:
+            formatters = [lambda x: f"{style}{x}" for style in formatters_col]
 
         formatter = DataFrameFormatter(
             self,

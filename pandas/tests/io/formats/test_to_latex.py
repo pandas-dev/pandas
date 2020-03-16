@@ -137,6 +137,7 @@ index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
         assert result == expected
 
     def test_to_latex_with_formatters_col(self):
+        # GH: 26278
         data = [[1, 2, 3], [4, 5, 6], [7, 8, 9.001]]
         df = DataFrame(data, columns=["a", "b", "c"], index=["foo", "bar", "foobar"])
 
