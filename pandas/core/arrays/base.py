@@ -942,8 +942,8 @@ class ExtensionArray:
 
         Returns
         -------
-        ExtensionArray
-            A view of the :class:`ExtensionArray`.
+        ExtensionArray or np.ndarray
+            A view on the :class:`ExtensionArray`'s data.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
