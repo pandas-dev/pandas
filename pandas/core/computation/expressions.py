@@ -121,12 +121,12 @@ def _evaluate_numexpr(op, op_str, a, b):
 
 
 def _where_standard(cond, a, b):
-    # Caller is responsible for calling values_from_object if necessary
+    # Caller is responsible for extracting ndarray if necessary
     return np.where(cond, a, b)
 
 
 def _where_numexpr(cond, a, b):
-    # Caller is responsible for calling values_from_object if necessary
+    # Caller is responsible for extracting ndarray if necessary
     result = None
 
     if _can_use_numexpr(None, "where", a, b, "where"):
