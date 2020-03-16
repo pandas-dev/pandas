@@ -5,6 +5,7 @@ to disk
 
 import copy
 from datetime import date, tzinfo
+from distutils.version import LooseVersion
 import itertools
 import os
 import re
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
+from tables import __version__ as tables_version
 
 from pandas._config import config, get_option
 
@@ -4142,12 +4144,8 @@ class AppendableTable(Table):
             # set the table attributes
             table.set_attrs()
 
-            if track_times is not None:
-                from tables import __version__ as tables_version
-                from distutils.version import LooseVersion
-
-                if LooseVersion(tables_version) >= LooseVersion("3.4.3"):
-                    options["track_times"] = track_times
+            if LooseVersion(tables_version) >= LooseVersion("3.4.3"):
+                options["track_times"] = track_times
 
             # create the table
             table._handle.create_table(table.group, **options)

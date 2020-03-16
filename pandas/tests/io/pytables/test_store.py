@@ -1,14 +1,17 @@
 import datetime
 from datetime import timedelta
 from distutils.version import LooseVersion
+import hashlib
 from io import BytesIO
 import os
 from pathlib import Path
 import re
+import time
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
+import tables
 
 from pandas.compat import is_platform_little_endian, is_platform_windows
 import pandas.util._test_decorators as td
@@ -300,10 +303,6 @@ class TestHDFStore:
 
         # GH 32682
         # enables to set track_times (see `pytables` `create_table` documentation)
-
-        import hashlib
-        import time
-        import tables
 
         def checksum(filename, hash_factory=hashlib.md5, chunk_num_blocks=128):
             h = hash_factory()
