@@ -11,7 +11,6 @@ from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -256,14 +255,6 @@ class Block(PandasObject):
 
         self._mgr_locs = new_mgr_locs
 
-    @property
-    def array_dtype(self) -> DtypeObj:
-        """
-        the dtype to return if I want to construct this block as an
-        array
-        """
-        return self.dtype
-
     def make_block(self, values, placement=None) -> "Block":
         """
         Create a new block, with type inference propagate any values that are
@@ -403,7 +394,9 @@ class Block(PandasObject):
 
         return [result]
 
-    def fillna(self, value, limit=None, inplace: bool = False, downcast=None):
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List["Block"]:
         """
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
@@ -417,9 +410,9 @@ class Block(PandasObject):
 
         if not self._can_hold_na:
             if inplace:
-                return self
+                return [self]
             else:
-                return self.copy()
+                return [self.copy()]
 
         if self._can_hold_element(value):
             # equivalent: _try_coerce_args(value) would not raise
@@ -428,7 +421,7 @@ class Block(PandasObject):
 
         # we can't process the value, but nothing to do
         if not mask.any():
-            return self if inplace else self.copy()
+            return [self] if inplace else [self.copy()]
 
         # operate column-by-column
         def f(mask, val, idx):
@@ -442,7 +435,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, inplace)
 
-    def split_and_operate(self, mask, f, inplace: bool):
+    def split_and_operate(self, mask, f, inplace: bool) -> List["Block"]:
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -612,7 +605,9 @@ class Block(PandasObject):
 
                 # astype formatting
                 else:
-                    values = self.get_values()
+                    # Because we have neither is_extension nor is_datelike,
+                    #  self.values already has the correct shape
+                    values = self.values
 
             else:
                 values = self.get_values(dtype=dtype)
@@ -670,7 +665,7 @@ class Block(PandasObject):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
-        values = self.get_values()
+        values = self.values
 
         if slicer is not None:
             values = values[:, slicer]
@@ -1191,7 +1186,7 @@ class Block(PandasObject):
         fill_value=None,
         coerce=False,
         downcast=None,
-    ):
+    ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -1233,7 +1228,7 @@ class Block(PandasObject):
         inplace=False,
         downcast=None,
         **kwargs,
-    ):
+    ) -> List["Block"]:
         """ interpolate using scipy wrappers """
         inplace = validate_bool_kwarg(inplace, "inplace")
         data = self.values if inplace else self.values.copy()
@@ -1241,7 +1236,7 @@ class Block(PandasObject):
         # only deal with floats
         if not self.is_float:
             if not self.is_integer:
-                return self
+                return [self]
             data = data.astype(np.float64)
 
         if fill_value is None:
@@ -1603,12 +1598,22 @@ class Block(PandasObject):
         return self
 
 
-class NonConsolidatableMixIn:
-    """ hold methods for the nonconsolidatable blocks """
+class ExtensionBlock(Block):
+    """
+    Block for holding extension types.
+
+    Notes
+    -----
+    This holds all 3rd-party extension array types. It's also the immediate
+    parent class for our internal extension types' blocks, CategoricalBlock.
+
+    ExtensionArrays are limited to 1-D.
+    """
 
     _can_consolidate = False
     _verify_integrity = False
     _validate_ndim = False
+    is_extension = True
 
     def __init__(self, values, placement, ndim=None):
         """
@@ -1619,6 +1624,8 @@ class NonConsolidatableMixIn:
         This will call continue to call __init__ for the other base
         classes mixed in with this Mixin.
         """
+        values = self._maybe_coerce_values(values)
+
         # Placement must be converted to BlockPlacement so that we can check
         # its length
         if not isinstance(placement, libinternals.BlockPlacement):
@@ -1631,6 +1638,10 @@ class NonConsolidatableMixIn:
             else:
                 ndim = 2
         super().__init__(values, placement, ndim=ndim)
+
+        if self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(2DEA): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self):
@@ -1726,25 +1737,6 @@ class NonConsolidatableMixIn:
 
         mask = mask.any(0)
         return new_placement, new_values, mask
-
-
-class ExtensionBlock(NonConsolidatableMixIn, Block):
-    """
-    Block for holding extension types.
-
-    Notes
-    -----
-    This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks, CategoricalBlock.
-
-    ExtensionArrays are limited to 1-D.
-    """
-
-    is_extension = True
-
-    def __init__(self, values, placement, ndim=None):
-        values = self._maybe_coerce_values(values)
-        super().__init__(values, placement, ndim)
 
     def _maybe_coerce_values(self, values):
         """
@@ -2918,14 +2910,6 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
-
-    @property
-    def array_dtype(self):
-        """
-        the dtype to return if I want to construct this block as an
-        array
-        """
-        return np.object_
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime

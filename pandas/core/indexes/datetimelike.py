@@ -622,21 +622,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         if values is None:
             values = self._data
 
-        if isinstance(values, type(self)):
-            values = values._data
         if isinstance(values, np.ndarray):
             # TODO: We would rather not get here
             values = type(self._data)(values, dtype=self.dtype)
 
-        attributes = self._get_attributes_dict()
-
-        if self.freq is not None:
-            if isinstance(values, (DatetimeArray, TimedeltaArray)):
-                if values.freq is None:
-                    del attributes["freq"]
-
-        attributes["name"] = name
-        result = self._simple_new(values, **attributes)
+        result = type(self)._simple_new(values, name=name)
         result._cache = cache
         return result
 
@@ -780,7 +770,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right.values[:loc]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            result = self._shallow_copy(dates)
+            result._set_freq("infer")
+            # TODO: can we infer that it has self.freq?
+            return result
         else:
             left, right = other, self
 
@@ -792,7 +785,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             loc = right.searchsorted(left_end, side="right")
             right_chunk = right.values[loc:]
             dates = concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            result = self._shallow_copy(dates)
+            result._set_freq("infer")
+            # TODO: can we infer that it has self.freq?
+            return result
         else:
             return left
 

@@ -760,6 +760,16 @@ class TestIsin:
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
 
+    def test_categorical_isin(self):
+        vals = np.array([0, 1, 2, 0])
+        cats = ["a", "b", "c"]
+        cat = Categorical(1).from_codes(vals, cats)
+        other = Categorical(1).from_codes(np.array([0, 1]), cats)
+
+        expected = np.array([True, True, False, True])
+        result = algos.isin(cat, other)
+        tm.assert_numpy_array_equal(expected, result)
+
     def test_same_nan_is_in(self):
         # GH 22160
         # nan is special, because from " a is b" doesn't follow "a == b"
