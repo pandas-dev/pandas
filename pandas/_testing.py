@@ -1050,6 +1050,7 @@ def assert_series_equal(
     right,
     check_dtype=True,
     check_index_type="equiv",
+    check_series_type=True,
     check_less_precise=False,
     check_names=True,
     check_exact=False,
@@ -1070,6 +1071,8 @@ def assert_series_equal(
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
+    check_series_type : bool, default True
+         Whether to check the Series class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
@@ -1101,10 +1104,8 @@ def assert_series_equal(
     # instance validation
     _check_isinstance(left, right, Series)
 
-    # TODO: There are some tests using rhs is sparse
-    # lhs is dense. Should use assert_class_equal in future
-    assert isinstance(left, type(right))
-    # assert_class_equal(left, right, obj=obj)
+    if check_series_type:
+        assert_class_equal(left, right, obj=obj)
 
     # length comparison
     if len(left) != len(right):
