@@ -200,8 +200,8 @@ ordered=False\\)"""
 
 @pytest.mark.parametrize("check_dtype", [True, False])
 def test_assert_series_equal_extension_dtype_mismatch(check_dtype):
-    left = pd.Series(np.array([1, 2, 3], dtype="int"))
-    right = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
+    left = Series(np.array([1, 2, 3], dtype="int"))
+    right = Series(pd.array([1, 2, 3], dtype="Int64"))
 
     msg = """Attributes of Series are different
 
