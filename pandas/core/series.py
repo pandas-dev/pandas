@@ -840,15 +840,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
-        key = lib.item_from_zerodim(key)
 
         if key is Ellipsis:
             return self
 
-        # check for is_list_like/slice instead of is_scalar to allow non-standard
-        #  scalars through, e.g. cftime.datetime needed by xarray
-        #  https://github.com/pydata/xarray/issues/3751
-        key_is_scalar = not is_list_like(key) and not isinstance(key, slice)
+        key_is_scalar = is_scalar(key)
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
