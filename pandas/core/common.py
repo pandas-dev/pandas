@@ -87,9 +87,6 @@ def maybe_box_datetimelike(value, dtype=None):
     return value
 
 
-values_from_object = lib.values_from_object
-
-
 def is_bool_indexer(key: Any) -> bool:
     """
     Check whether `key` is a valid boolean indexer.
