@@ -200,14 +200,32 @@ ordered=False\\)"""
 
 @pytest.mark.parametrize("check_dtype", [True, False])
 def test_assert_series_equal_extension_dtype_mismatch(check_dtype):
-    left = Series(np.array([1, 2, 3], dtype="int"))
-    right = Series(pd.array([1, 2, 3], dtype="Int64"))
+    left = Series(np.array([1, 2, 3], dtype="Int64"))
+    right = left.astype(int)
 
     msg = """Attributes of Series are different
 
 Attribute "dtype" are different
-\\[left\\]:  int64
-\\[right\\]: Int64"""
+\\[left\\]:  Int64
+\\[right\\]: int64"""
+
+    if check_dtype:
+        with pytest.raises(AssertionError, match=msg):
+            tm.assert_series_equal(left, right, check_dtype=check_dtype)
+    else:
+        tm.assert_series_equal(left, right, check_dtype=check_dtype)
+
+
+@pytest.mark.parametrize("check_dtype", [True, False])
+def test_assert_series_equal_extension_dtype_mismatch(check_dtype):
+    left = Series([pd.Interval(0, 1)], dtype="interval")
+    right = left.astype(object)
+
+    msg = """Attributes of Series are different
+
+Attribute "dtype" are different
+\\[left\\]:  interval\\[int64\\]
+\\[right\\]: object"""
 
     if check_dtype:
         with pytest.raises(AssertionError, match=msg):

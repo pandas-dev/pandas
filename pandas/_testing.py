@@ -1159,7 +1159,7 @@ def assert_series_equal(
                 f"is not equal to {right._values}."
             )
             raise AssertionError(msg)
-    elif is_interval_dtype(left.dtype) or is_interval_dtype(right.dtype):
+    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
         assert_interval_array_equal(left.array, right.array)
     elif is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
         _testing.assert_almost_equal(
