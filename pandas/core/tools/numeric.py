@@ -162,7 +162,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
         if downcast in ("integer", "signed"):
             typecodes = np.typecodes["Integer"]
-        elif downcast == "unsigned" and np.min(values) >= 0:
+        elif downcast == "unsigned" and (not len(values) or np.min(values) >= 0):
             typecodes = np.typecodes["UnsignedInteger"]
         elif downcast == "float":
             typecodes = np.typecodes["Float"]
