@@ -562,9 +562,6 @@ class TestIndexOps:
             tm.assert_series_equal(obj, result)
 
         # check shallow_copied
-        if isinstance(obj, Series) and len(obj) == 0:
-            # TODO: GH-32543
-            pytest.xfail("Shallow copy for empty Series is bugged")
         assert obj is not result
 
     @pytest.mark.parametrize("null_obj", [np.nan, None])
