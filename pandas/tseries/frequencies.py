@@ -328,7 +328,9 @@ class _FrequencyInferer:
 
     @cache_readonly
     def deltas_asi8(self):
-        return unique_deltas(self.i8values)
+        # NB: we cannot use self.i8values here because we may have converted
+        #  the tz in __init__
+        return unique_deltas(self.index.asi8)
 
     @cache_readonly
     def is_unique(self) -> bool:
