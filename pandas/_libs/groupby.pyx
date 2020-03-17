@@ -848,11 +848,13 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
         return val != val
 
 
+# GH#31710 use memorviews once cython 0.30 is released so we can
+#  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last(rank_t[:, :] out,
                int64_t[:] counts,
-               rank_t[:, :] values,
+               ndarray[rank_t, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=-1):
     """
@@ -937,11 +939,13 @@ def group_last(rank_t[:, :] out,
         raise RuntimeError("empty group with uint64_t")
 
 
+# GH#31710 use memorviews once cython 0.30 is released so we can
+#  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
-              rank_t[:, :] values,
+              ndarray[rank_t, ndim=2] values,
               const int64_t[:] labels, int64_t rank=1,
               Py_ssize_t min_count=-1):
     """
@@ -1235,7 +1239,7 @@ ctypedef fused groupby_t:
 @cython.boundscheck(False)
 def group_max(groupby_t[:, :] out,
               int64_t[:] counts,
-              groupby_t[:, :] values,
+              ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
     """
@@ -1308,7 +1312,7 @@ def group_max(groupby_t[:, :] out,
 @cython.boundscheck(False)
 def group_min(groupby_t[:, :] out,
               int64_t[:] counts,
-              groupby_t[:, :] values,
+              ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
     """

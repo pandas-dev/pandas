@@ -581,8 +581,8 @@ class BlockManager(PandasObject):
             transpose=transpose,
         )
 
-    def diff(self, **kwargs) -> "BlockManager":
-        return self.apply("diff", **kwargs)
+    def diff(self, n: int, axis: int) -> "BlockManager":
+        return self.apply("diff", n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> "BlockManager":
         return self.apply("interpolate", **kwargs)
