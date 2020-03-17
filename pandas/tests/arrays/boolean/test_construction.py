@@ -9,18 +9,12 @@ from pandas.arrays import BooleanArray
 from pandas.core.arrays.boolean import coerce_to_array
 
 
-def make_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
-
-
 @pytest.fixture
-def dtype():
-    return pd.BooleanDtype()
-
-
-@pytest.fixture
-def data(dtype):
-    return pd.array(make_data(), dtype=dtype)
+def data():
+    return pd.array(
+        [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
+        dtype="boolean",
+    )
 
 
 def test_boolean_array_constructor():

@@ -7,18 +7,12 @@ from pandas.arrays import BooleanArray
 from pandas.tests.extension.base import BaseOpsUtil
 
 
-def make_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
-
-
 @pytest.fixture
-def dtype():
-    return pd.BooleanDtype()
-
-
-@pytest.fixture
-def data(dtype):
-    return pd.array(make_data(), dtype=dtype)
+def data():
+    return pd.array(
+        [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
+        dtype="boolean",
+    )
 
 
 class TestComparisonOps(BaseOpsUtil):
