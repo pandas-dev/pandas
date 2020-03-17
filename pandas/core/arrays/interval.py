@@ -153,7 +153,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __new__(cls, data, closed=None, dtype=None, copy=False, verify_integrity=True):
 
         if isinstance(data, ABCSeries) and is_interval_dtype(data):
-            data = data.values
+            data = data._values
 
         if isinstance(data, (cls, ABCIntervalIndex)):
             left = data.left

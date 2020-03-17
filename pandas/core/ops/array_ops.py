@@ -50,7 +50,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
             y = y.astype(np.object_)
 
         if isinstance(y, (ABCSeries, ABCIndex)):
-            y = y.values
+            y = y._values
 
         if x.shape != y.shape:
             raise ValueError("Shapes must match", x.shape, y.shape)

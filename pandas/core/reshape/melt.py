@@ -110,7 +110,7 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    mdata[value_name] = frame.values.ravel("F")
+    mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
