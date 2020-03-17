@@ -396,7 +396,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = self.values.unique()
+        result = self._values.unique()
         # Use _simple_new instead of _shallow_copy to ensure we keep dtype
         #  of result, not self.
         return type(self)._simple_new(result, name=self.name)
@@ -423,7 +423,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         # 3. Rebuild CategoricalIndex.
         if other is None:
             other = self._na_value
-        values = np.where(cond, self.values, other)
+        values = np.where(cond, self._values, other)
         cat = Categorical(values, dtype=self.dtype)
         return type(self)._simple_new(cat, name=self.name)
 
@@ -532,13 +532,13 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 "method='nearest' not implemented yet for CategoricalIndex"
             )
 
-        if isinstance(target, CategoricalIndex) and self.values.is_dtype_equal(target):
-            if self.values.equals(target.values):
+        if isinstance(target, CategoricalIndex) and self._values.is_dtype_equal(target):
+            if self._values.equals(target._values):
                 # we have the same codes
                 codes = target.codes
             else:
                 codes = _recode_for_categories(
-                    target.codes, target.categories, self.values.categories
+                    target.codes, target.categories, self._values.categories
                 )
         else:
             if isinstance(target, CategoricalIndex):
@@ -560,7 +560,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 target = target.codes
                 indexer, missing = self._engine.get_indexer_non_unique(target)
                 return ensure_platform_int(indexer), missing
-            target = target.values
+            target = target._values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
@@ -679,7 +679,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        return self._shallow_copy_with_infer(self.values.map(mapper))
+        return self._shallow_copy_with_infer(self._values.map(mapper))
 
     def delete(self, loc):
         """
