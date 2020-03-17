@@ -711,12 +711,16 @@ def _align_method_FRAME(
 
 
 def _should_reindex_frame_op(
-    left: "DataFrame", right, axis, default_axis: int, fill_value, level
+    left: "DataFrame", right, op, axis, default_axis: int, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
     """
     assert isinstance(left, ABCDataFrame)
+
+    if op is operator.pow or op is rpow:
+        # GH#32685 pow has special semantics for operating with null values
+        return False
 
     if not isinstance(right, ABCDataFrame):
         return False
@@ -779,7 +783,9 @@ def _arith_method_FRAME(cls, op, special):
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
 
-        if _should_reindex_frame_op(self, other, axis, default_axis, fill_value, level):
+        if _should_reindex_frame_op(
+            self, other, op, axis, default_axis, fill_value, level
+        ):
             return _frame_arith_method_with_reindex(self, other, op)
 
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
