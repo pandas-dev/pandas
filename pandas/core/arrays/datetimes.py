@@ -1845,18 +1845,20 @@ def objects_to_datetime64ns(
 
     try:
         result, tz_parsed = tslib.array_to_datetime(
-            data,
+            data.ravel(),
             errors=errors,
             utc=utc,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
         )
+        result = result.reshape(data.shape)
     except ValueError as e:
         try:
-            values, tz_parsed = conversion.datetime_to_datetime64(data)
+            values, tz_parsed = conversion.datetime_to_datetime64(data.ravel())
             # If tzaware, these values represent unix timestamps, so we
             #  return them as i8 to distinguish from wall times
+            values = values.reshape(data.shape)
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
             raise e

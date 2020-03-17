@@ -33,6 +33,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
+from pandas.core.construction import extract_array
 from pandas.core.indexers import maybe_convert_indices
 from pandas.core.indexes.api import Index, ensure_index
 from pandas.core.internals.blocks import (
@@ -416,6 +417,7 @@ class BlockManager(PandasObject):
                 align_keys = ["new", "mask"]
             else:
                 align_keys = ["mask"]
+                kwargs["new"] = extract_array(kwargs["new"], extract_numpy=True)
         else:
             align_keys = []
 
@@ -439,7 +441,9 @@ class BlockManager(PandasObject):
 
                 for k, obj in aligned_args.items():
                     axis = obj._info_axis_number
-                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)
+                    kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
+                    # TODO: if operation commutes, dont unpack DataFrame, but defer
+                    # TODO: will this involve casting for e.g BooleanDtype?
 
             if callable(f):
                 applied = b.apply(f, **kwargs)

@@ -934,7 +934,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : np.ndarray[bool]
         new : a ndarray/object
         align : boolean, perform alignment on other/cond, default is True
         inplace : perform inplace modification, default is False
@@ -946,10 +946,14 @@ class Block(PandasObject):
         -------
         a list of new blocks, the result of the putmask
         """
+        assert isinstance(mask, np.ndarray), type(mask)
+        assert mask.dtype == bool, mask.dtype
+
         new_values = self.values if inplace else self.values.copy()
 
-        new = getattr(new, "values", new)
-        mask = getattr(mask, "values", mask)
+        assert not isinstance(new, (ABCSeries, ABCDataFrame)), type(new)
+        # new = getattr(new, "values", new)
+        # mask = getattr(mask, "values", mask)
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
@@ -1341,7 +1345,7 @@ class Block(PandasObject):
     def where(
         self,
         other,
-        cond,
+        cond: np.ndarray,
         align: bool = True,
         errors="raise",
         try_cast: bool = False,
@@ -1353,7 +1357,7 @@ class Block(PandasObject):
         Parameters
         ----------
         other : a ndarray/object
-        cond  : the condition to respect
+        cond  : np.ndarray[bool]
         align : bool, default True
             Perform alignment on other/cond.
         errors : str, {'raise', 'ignore'}, default 'raise'
@@ -1363,9 +1367,12 @@ class Block(PandasObject):
 
         Returns
         -------
-        a new block(s), the result of the func
+        List[Block]
         """
         import pandas.core.computation.expressions as expressions
+
+        assert isinstance(cond, np.ndarray), type(cond)
+        assert cond.dtype == bool, cond.dtype
 
         assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
@@ -1680,16 +1687,23 @@ class ExtensionBlock(Block):
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : np.ndarray[bool]
+            The condition to respect.
         new : a ndarray/object
         align : boolean, perform alignment on other/cond, default is True
         inplace : perform inplace modification, default is False
 
         Returns
         -------
-        a new block, the result of the putmask
+        List[Block]
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if isinstance(mask, ExtensionArray):
+            assert mask.dtype == "boolean", mask.dtype
+            mask = mask.astype(bool, copy=False)
+        assert isinstance(mask, np.ndarray), type(mask)
+        assert mask.dtype == bool, mask.dtype
 
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
@@ -1933,12 +1947,18 @@ class ExtensionBlock(Block):
             # `other` should be a DataFrame with a single column.
             assert other.shape[1] == 1
             other = other.iloc[:, 0]
+        elif isinstance(other, np.ndarray) and other.ndim == 2:
+            assert other.shape[1] == 1
+            other = other[:, 0]
 
         other = extract_array(other, extract_numpy=True)
 
         if isinstance(cond, ABCDataFrame):
             assert cond.shape[1] == 1
             cond = cond.iloc[:, 0]
+        elif isinstance(cond, np.ndarray) and cond.ndim == 2:
+            assert cond.shape[1] == 1
+            cond = cond[:, 0]
 
         cond = extract_array(cond, extract_numpy=True)
 

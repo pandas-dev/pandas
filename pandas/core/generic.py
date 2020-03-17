@@ -8612,6 +8612,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     # treat like a scalar
                     if len(other) == 1:
                         other = np.array(other[0])
+                        # TODO: should this be extracting the scalar?
 
                     # GH 3235
                     # match True cond to other
