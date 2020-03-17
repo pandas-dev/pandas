@@ -9,7 +9,7 @@ from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -298,6 +299,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # raise when input doesn't have freq
         raise raise_on_incompatible(self, None)
 
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        if not isinstance(dtype, PeriodDtype):
+            return False
+        return dtype.freq == self.freq
+
     # ------------------------------------------------------------------------
     # Rendering Methods
 
@@ -454,12 +463,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
 
-        if isinstance(target, PeriodIndex):
-            if target.freq != self.freq:
-                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-                return no_matches, no_matches
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
 
-            target = target.asi8
+        target = target.asi8
 
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing

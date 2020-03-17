@@ -7,10 +7,18 @@ import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib, tslib as libts
 from pandas._libs.tslibs import fields, parsing, timezones
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import _NS_DTYPE, is_float, is_integer, is_scalar
+from pandas.core.dtypes.common import (
+    _NS_DTYPE,
+    is_datetime64_any_dtype,
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+    is_float,
+    is_integer,
+    is_scalar,
+)
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
@@ -297,6 +305,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if self._has_same_tz(value):
             return Timestamp(value).asm8
         raise ValueError("Passed item and index have different timezone")
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        if not is_datetime64_any_dtype(dtype):
+            return False
+        if self.tz is not None:
+            # If we have tz, we can compare to tzaware
+            return is_datetime64tz_dtype(dtype)
+        # if we dont have tz, we can only compare to tznaive
+        return is_datetime64_dtype(dtype)
 
     # --------------------------------------------------------------------
     # Rendering Methods
