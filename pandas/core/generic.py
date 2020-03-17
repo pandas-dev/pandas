@@ -1915,9 +1915,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     _shared_docs[
         "to_excel"
     ] = """
-    Write %(klass)s to an Excel sheet.
+    Write {klass} to an Excel sheet.
 
-    To write a single %(klass)s to an Excel .xlsx file it is only necessary to
+    To write a single {klass} to an Excel .xlsx file it is only necessary to
     specify a target file name. To write to multiple sheets it is necessary to
     create an `ExcelWriter` object with a target file name, and specify a sheet
     in the file to write to.
@@ -1937,7 +1937,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Missing data representation.
     float_format : str, optional
         Format string for floating point numbers. For example
-        ``float_format="%%.2f"`` will format 0.1234 to 0.12.
+        ``float_format="%.2f"`` will format 0.1234 to 0.12.
     columns : sequence or list of str, optional
         Columns to write.
     header : bool or list of str, default True
@@ -2022,7 +2022,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
     """
 
-    @Appender(_shared_docs["to_excel"] % dict(klass="object"))
+    @doc(_shared_docs["to_excel"], klass="object")
     def to_excel(
         self,
         excel_writer,
