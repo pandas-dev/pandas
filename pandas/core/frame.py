@@ -6509,7 +6509,7 @@ Wild         185.0
     # ----------------------------------------------------------------------
     # Time series-related
 
-    def diff(self, periods=1, axis=0) -> "DataFrame":
+    def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
         """
         First discrete difference of element.
 

@@ -94,20 +94,6 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
 
 
-def values_from_object(obj: object):
-    """
-    Return my values or the object if we are say an ndarray.
-    """
-    func: object
-
-    func = getattr(obj, '_internal_get_values', None)
-    if func is not None:
-        # Includes DataFrame, for which we get frame.values
-        obj = func()
-
-    return obj
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def memory_usage_of_objects(arr: object[:]) -> int64_t:
