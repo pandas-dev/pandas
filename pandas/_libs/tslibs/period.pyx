@@ -1,8 +1,6 @@
 from datetime import datetime
 
-from cpython.object cimport (
-    PyObject_RichCompareBool,
-    Py_EQ, Py_NE)
+from cpython.object cimport PyObject_RichCompareBool, Py_EQ, Py_NE
 
 from numpy cimport int64_t, import_array, ndarray
 import numpy as np
@@ -14,15 +12,25 @@ from libc.string cimport strlen, memset
 
 import cython
 
-from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check, PyDate_Check,
-                               PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+)
 # import datetime C API
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, dtstruct_to_dt64, dt64_to_dtstruct,
-    pandas_datetime_to_datetimestruct, check_dts_bounds,
-    NPY_DATETIMEUNIT, NPY_FR_D, NPY_FR_us)
+    npy_datetimestruct,
+    dtstruct_to_dt64,
+    dt64_to_dtstruct,
+    pandas_datetime_to_datetimestruct,
+    check_dts_bounds,
+    NPY_DATETIMEUNIT,
+    NPY_FR_D,
+    NPY_FR_us,
+)
 
 cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
@@ -37,12 +45,15 @@ from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
 
 cimport pandas._libs.tslibs.ccalendar as ccalendar
-from pandas._libs.tslibs.ccalendar cimport (
-    dayofweek, get_day_of_year, is_leapyear)
+from pandas._libs.tslibs.ccalendar cimport dayofweek, get_day_of_year, is_leapyear
 from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.frequencies cimport (
-    get_freq_code, get_base_alias, get_to_timestamp_base, get_freq_str,
-    get_rule_month)
+    get_base_alias,
+    get_freq_code,
+    get_freq_str,
+    get_rule_month,
+    get_to_timestamp_base,
+)
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.nattype import nat_strings
@@ -55,7 +66,7 @@ from pandas._libs.tslibs.tzconversion cimport tz_convert_utc_to_tzlocal
 
 cdef:
     enum:
-        INT32_MIN = -2147483648
+        INT32_MIN = -2_147_483_648
 
 
 ctypedef struct asfreq_info:
@@ -179,8 +190,7 @@ cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
             return <freq_conv_func>asfreq_MtoB
         elif from_group == FR_WK:
             return <freq_conv_func>asfreq_WtoB
-        elif from_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC,
-                            FR_MS, FR_US, FR_NS]:
+        elif from_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
             return <freq_conv_func>asfreq_DTtoB
         else:
             return <freq_conv_func>nofunc
@@ -289,17 +299,15 @@ cdef int64_t DtoB(npy_datetimestruct *dts, int roll_back,
     return DtoB_weekday(unix_date)
 
 
-cdef inline int64_t upsample_daytime(int64_t ordinal,
-                                     asfreq_info *af_info) nogil:
-    if (af_info.is_end):
+cdef inline int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
+    if af_info.is_end:
         return (ordinal + 1) * af_info.intraday_conversion_factor - 1
     else:
         return ordinal * af_info.intraday_conversion_factor
 
 
-cdef inline int64_t downsample_daytime(int64_t ordinal,
-                                       asfreq_info *af_info) nogil:
-    return ordinal // (af_info.intraday_conversion_factor)
+cdef inline int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) nogil:
+    return ordinal // af_info.intraday_conversion_factor
 
 
 cdef inline int64_t transform_via_day(int64_t ordinal,
@@ -1464,23 +1472,23 @@ def extract_freq(ndarray[object] values):
 
     cdef:
         Py_ssize_t i, n = len(values)
-        object p
+        object value
 
     for i in range(n):
-        p = values[i]
+        value = values[i]
 
         try:
             # now Timestamp / NaT has freq attr
-            if is_period_object(p):
-                return p.freq
+            if is_period_object(value):
+                return value.freq
         except AttributeError:
             pass
 
     raise ValueError('freq not specified and cannot be inferred')
 
-
 # -----------------------------------------------------------------------
 # period helpers
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)

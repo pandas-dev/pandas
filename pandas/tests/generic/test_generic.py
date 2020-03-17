@@ -159,26 +159,13 @@ class Generic:
 
         o = self._construct(shape=4, value=9, dtype=np.int64)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._data = o._data.downcast()
         self._compare(result, o)
-
-        o = self._construct(shape=4, value=9.0)
-        expected = o.astype(np.int64)
-        result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
-        self._compare(result, expected)
 
         o = self._construct(shape=4, value=9.5)
         result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
+        result._data = o._data.downcast()
         self._compare(result, o)
-
-        # are close
-        o = self._construct(shape=4, value=9.000000000005)
-        result = o.copy()
-        result._data = o._data.downcast(dtypes="infer")
-        expected = o.astype(np.int64)
-        self._compare(result, expected)
 
     def test_constructor_compound_dtypes(self):
         # see gh-5191
@@ -187,8 +174,10 @@ class Generic:
         def f(dtype):
             return self._construct(shape=3, value=1, dtype=dtype)
 
-        msg = "compound dtypes are not implemented"
-        f"in the {self._typ.__name__} constructor"
+        msg = (
+            "compound dtypes are not implemented "
+            f"in the {self._typ.__name__} constructor"
+        )
 
         with pytest.raises(NotImplementedError, match=msg):
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])

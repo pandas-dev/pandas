@@ -24,13 +24,6 @@ class TestSeries(Generic):
     _typ = Series
     _comparator = lambda self, x, y: tm.assert_series_equal(x, y)
 
-    def setup_method(self):
-        self.ts = tm.makeTimeSeries()  # Was at top level in test_series
-        self.ts.name = "ts"
-
-        self.series = tm.makeStringSeries()
-        self.series.name = "series"
-
     def test_rename_mi(self):
         s = Series(
             [11, 21, 31],
@@ -244,9 +237,7 @@ class TestToXArray:
         assert isinstance(result, DataArray)
 
         # idempotency
-        tm.assert_series_equal(
-            result.to_series(), s, check_index_type=False, check_categorical=True
-        )
+        tm.assert_series_equal(result.to_series(), s, check_index_type=False)
 
     @td.skip_if_no("xarray", min_version="0.7.0")
     def test_to_xarray(self):

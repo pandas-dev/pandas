@@ -13,6 +13,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -154,7 +155,7 @@ def safe_cast(values, dtype, copy: bool):
     """
     try:
         return values.astype(dtype, casting="safe", copy=copy)
-    except TypeError:
+    except TypeError as err:
 
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
@@ -162,7 +163,7 @@ def safe_cast(values, dtype, copy: bool):
 
         raise TypeError(
             f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
-        )
+        ) from err
 
 
 def coerce_to_array(
@@ -199,8 +200,8 @@ def coerce_to_array(
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
-            except KeyError:
-                raise ValueError(f"invalid dtype specified {dtype}")
+            except KeyError as err:
+                raise ValueError(f"invalid dtype specified {dtype}") from err
 
     if isinstance(values, IntegerArray):
         values, mask = values._data, values._mask
@@ -469,6 +470,8 @@ class IntegerArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = dict(na_value=np.nan)
+        elif is_datetime64_dtype(dtype):
+            kwargs = dict(na_value=np.datetime64("NaT"))
         else:
             kwargs = {}
 

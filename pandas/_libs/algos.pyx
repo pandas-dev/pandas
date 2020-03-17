@@ -7,13 +7,30 @@ from libc.math cimport fabs, sqrt
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    NPY_INT64, NPY_INT32, NPY_INT16, NPY_INT8,
-                    NPY_UINT64, NPY_UINT32, NPY_UINT16, NPY_UINT8,
-                    NPY_FLOAT32, NPY_FLOAT64,
-                    NPY_OBJECT,
-                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t)
+from numpy cimport (
+    NPY_FLOAT32,
+    NPY_FLOAT64,
+    NPY_INT8,
+    NPY_INT16,
+    NPY_INT32,
+    NPY_INT64,
+    NPY_OBJECT,
+    NPY_UINT8,
+    NPY_UINT16,
+    NPY_UINT32,
+    NPY_UINT64,
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 cnp.import_array()
 
 

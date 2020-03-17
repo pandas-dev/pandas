@@ -7,7 +7,6 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
-@pytest.mark.parametrize("sort", [None, False])
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
@@ -18,7 +17,6 @@ def test_set_ops_error_cases(idx, case, sort, method):
         getattr(idx, method)(case, sort=sort)
 
 
-@pytest.mark.parametrize("sort", [None, False])
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
 def test_intersection_base(idx, sort, klass):
     first = idx[2::-1]  # first 3 elements reversed
@@ -39,7 +37,6 @@ def test_intersection_base(idx, sort, klass):
         first.intersection([1, 2, 3], sort=sort)
 
 
-@pytest.mark.parametrize("sort", [None, False])
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
 def test_union_base(idx, sort, klass):
     first = idx[::-1]
@@ -60,7 +57,6 @@ def test_union_base(idx, sort, klass):
         first.union([1, 2, 3], sort=sort)
 
 
-@pytest.mark.parametrize("sort", [None, False])
 def test_difference_base(idx, sort):
     second = idx[4:]
     answer = idx[:4]
@@ -83,7 +79,6 @@ def test_difference_base(idx, sort):
         idx.difference([1, 2, 3], sort=sort)
 
 
-@pytest.mark.parametrize("sort", [None, False])
 def test_symmetric_difference(idx, sort):
     first = idx[1:]
     second = idx[:-1]
@@ -123,7 +118,6 @@ def test_empty(idx):
     assert idx[:0].empty
 
 
-@pytest.mark.parametrize("sort", [None, False])
 def test_difference(idx, sort):
 
     first = idx
@@ -234,7 +228,6 @@ def test_difference_sort_incomparable_true():
         idx.difference(other, sort=True)
 
 
-@pytest.mark.parametrize("sort", [None, False])
 def test_union(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
@@ -253,6 +246,7 @@ def test_union(idx, sort):
     the_union = idx.union(idx[:0], sort=sort)
     assert the_union is idx
 
+    # FIXME: dont leave commented-out
     # won't work in python 3
     # tuples = _index.values
     # result = _index[:4] | tuples[4:]
@@ -270,7 +264,6 @@ def test_union(idx, sort):
     #     assert result.equals(result2)
 
 
-@pytest.mark.parametrize("sort", [None, False])
 def test_intersection(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
@@ -290,6 +283,7 @@ def test_intersection(idx, sort):
     expected = idx[:0]
     assert empty.equals(expected)
 
+    # FIXME: dont leave commented-out
     # can't do in python 3
     # tuples = _index.values
     # result = _index & tuples
@@ -357,6 +351,17 @@ def test_union_sort_other_incomparable_sort():
     idx = pd.MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
     with pytest.raises(TypeError, match="Cannot compare"):
         idx.union(idx[:1], sort=True)
+
+
+def test_union_non_object_dtype_raises():
+    # GH#32646 raise NotImplementedError instead of less-informative error
+    mi = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
+
+    idx = mi.levels[1]
+
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
+        mi.union(idx)
 
 
 @pytest.mark.parametrize(

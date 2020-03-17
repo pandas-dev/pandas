@@ -293,7 +293,7 @@ def test_getitem_setitem_datetimeindex():
 
     result = ts.copy()
     result[ts.index[4:8]] = 0
-    result[4:8] = ts[4:8]
+    result.iloc[4:8] = ts.iloc[4:8]
     tm.assert_series_equal(result, ts)
 
     # also test partial date slicing
@@ -349,7 +349,7 @@ def test_getitem_setitem_periodindex():
 
     result = ts.copy()
     result[ts.index[4:8]] = 0
-    result[4:8] = ts[4:8]
+    result.iloc[4:8] = ts.iloc[4:8]
     tm.assert_series_equal(result, ts)
 
 

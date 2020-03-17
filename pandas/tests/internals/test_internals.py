@@ -203,17 +203,10 @@ def create_mgr(descr, item_shape=None):
 
 class TestBlock:
     def setup_method(self, method):
-        # self.fblock = get_float_ex()  # a,c,e
-        # self.cblock = get_complex_ex() #
-        # self.oblock = get_obj_ex()
-        # self.bool_block = get_bool_ex()
-        # self.int_block = get_int_ex()
-
         self.fblock = create_block("float", [0, 2, 4])
         self.cblock = create_block("complex", [7])
         self.oblock = create_block("object", [1, 3])
         self.bool_block = create_block("bool", [5])
-        self.int_block = create_block("int", [6])
 
     def test_constructor(self):
         int32block = create_block("i4", [0])
@@ -254,21 +247,10 @@ class TestBlock:
         tm.assert_numpy_array_equal(merged.values[[0, 2]], np.array(avals))
         tm.assert_numpy_array_equal(merged.values[[1, 3]], np.array(bvals))
 
-        # TODO: merge with mixed type?
-
     def test_copy(self):
         cop = self.fblock.copy()
         assert cop is not self.fblock
         assert_block_equal(self.fblock, cop)
-
-    def test_reindex_index(self):
-        pass
-
-    def test_reindex_cast(self):
-        pass
-
-    def test_insert(self):
-        pass
 
     def test_delete(self):
         newb = self.fblock.copy()
@@ -300,39 +282,7 @@ class TestBlock:
             newb.delete(3)
 
 
-class TestDatetimeBlock:
-    def test_can_hold_element(self):
-        block = create_block("datetime", [0])
-
-        # We will check that block._can_hold_element iff arr.__setitem__ works
-        arr = pd.array(block.values.ravel())
-
-        # coerce None
-        assert block._can_hold_element(None)
-        arr[0] = None
-        assert arr[0] is pd.NaT
-
-        # coerce different types of datetime objects
-        vals = [np.datetime64("2010-10-10"), datetime(2010, 10, 10)]
-        for val in vals:
-            assert block._can_hold_element(val)
-            arr[0] = val
-
-        val = date(2010, 10, 10)
-        assert not block._can_hold_element(val)
-
-        msg = (
-            "'value' should be a 'Timestamp', 'NaT', "
-            "or array of those. Got 'date' instead."
-        )
-        with pytest.raises(TypeError, match=msg):
-            arr[0] = val
-
-
 class TestBlockManager:
-    def test_constructor_corner(self):
-        pass
-
     def test_attrs(self):
         mgr = create_mgr("a,b,c: f8-1; d,e,f: f8-2")
         assert mgr.nblocks == 2
@@ -358,7 +308,8 @@ class TestBlockManager:
         msg = "Gaps in blk ref_locs"
 
         with pytest.raises(AssertionError, match=msg):
-            BlockManager(blocks, axes)
+            mgr = BlockManager(blocks, axes)
+            mgr._rebuild_blknos_and_blklocs()
 
         blocks[0].mgr_locs = np.array([0])
         blocks[1].mgr_locs = np.array([1])
@@ -441,18 +392,6 @@ class TestBlockManager:
         mgr2.set("quux", tm.randn(N))
         assert mgr2.get("quux").dtype == np.float_
 
-    def test_set_change_dtype_slice(self):  # GH8850
-        cols = MultiIndex.from_tuples([("1st", "a"), ("2nd", "b"), ("3rd", "c")])
-        df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
-        df["2nd"] = df["2nd"] * 2.0
-
-        blocks = df._to_dict_of_blocks()
-        assert sorted(blocks.keys()) == ["float64", "int64"]
-        tm.assert_frame_equal(
-            blocks["float64"], DataFrame([[1.0, 4.0], [4.0, 10.0]], columns=cols[:2])
-        )
-        tm.assert_frame_equal(blocks["int64"], DataFrame([[3], [6]], columns=cols[2:]))
-
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
@@ -486,7 +425,7 @@ class TestBlockManager:
         assert len(mgr.blocks) == 3
         assert isinstance(mgr, BlockManager)
 
-        # what to test here?
+        # TODO: what to test here?
 
     def test_as_array_float(self):
         mgr = create_mgr("c: f4; d: f2; e: f8")
@@ -601,6 +540,13 @@ class TestBlockManager:
         assert new_mgr.get("g").dtype == np.float64
         assert new_mgr.get("h").dtype == np.float16
 
+    def test_invalid_ea_block(self):
+        with pytest.raises(AssertionError, match="block.size != values.size"):
+            create_mgr("a: category; b: category")
+
+        with pytest.raises(AssertionError, match="block.size != values.size"):
+            create_mgr("a: category2; b: category2")
+
     def test_interleave(self):
 
         # self
@@ -613,13 +559,9 @@ class TestBlockManager:
         # will be converted according the actual dtype of the underlying
         mgr = create_mgr("a: category")
         assert mgr.as_array().dtype == "i8"
-        mgr = create_mgr("a: category; b: category")
-        assert mgr.as_array().dtype == "i8"
         mgr = create_mgr("a: category; b: category2")
         assert mgr.as_array().dtype == "object"
         mgr = create_mgr("a: category2")
-        assert mgr.as_array().dtype == "object"
-        mgr = create_mgr("a: category2; b: category2")
         assert mgr.as_array().dtype == "object"
 
         # combinations
@@ -650,22 +592,6 @@ class TestBlockManager:
         mgr = create_mgr("a: M8[ns]; b: m8[ns]")
         assert mgr.as_array().dtype == "object"
 
-    def test_interleave_non_unique_cols(self):
-        df = DataFrame(
-            [[pd.Timestamp("20130101"), 3.5], [pd.Timestamp("20130102"), 4.5]],
-            columns=["x", "x"],
-            index=[1, 2],
-        )
-
-        df_unique = df.copy()
-        df_unique.columns = ["x", "y"]
-        assert df_unique.values.shape == df.values.shape
-        tm.assert_numpy_array_equal(df_unique.values[0], df.values[0])
-        tm.assert_numpy_array_equal(df_unique.values[1], df.values[1])
-
-    def test_consolidate(self):
-        pass
-
     def test_consolidate_ordering_issues(self, mgr):
         mgr.set("f", tm.randn(N))
         mgr.set("d", tm.randn(N))
@@ -682,10 +608,6 @@ class TestBlockManager:
         tm.assert_numpy_array_equal(
             cons.blocks[0].mgr_locs.as_array, np.arange(len(cons.items), dtype=np.int64)
         )
-
-    def test_reindex_index(self):
-        # TODO: should this be pytest.skip?
-        pass
 
     def test_reindex_items(self):
         # mgr is not consolidated, f8 & f8-2 blocks
@@ -767,13 +689,6 @@ class TestBlockManager:
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))
 
-    def test_missing_unicode_key(self):
-        df = DataFrame({"a": [1]})
-        try:
-            df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
-        except KeyError:
-            pass  # this is the expected exception
-
     def test_equals(self):
         # unique items
         bm1 = create_mgr("a,b,c: i8-1; d,e,f: i8-2")
@@ -790,7 +705,7 @@ class TestBlockManager:
             "a:i8;b:f8",  # basic case
             "a:i8;b:f8;c:c8;d:b",  # many types
             "a:i8;e:dt;f:td;g:string",  # more types
-            "a:i8;b:category;c:category2;d:category2",  # categories
+            "a:i8;b:category;c:category2",  # categories
             "c:sparse;d:sparse_na;b:f8",  # sparse
         ],
     )
@@ -836,14 +751,7 @@ class TestIndexing:
         create_mgr("a,b,c,d,e,f: i8", item_shape=(N,)),
         create_mgr("a,b: f8; c,d: i8; e,f: string", item_shape=(N,)),
         create_mgr("a,b: f8; c,d: i8; e,f: f8", item_shape=(N,)),
-        # 3-dim
-        create_mgr("a,b,c,d,e,f: f8", item_shape=(N, N)),
-        create_mgr("a,b,c,d,e,f: i8", item_shape=(N, N)),
-        create_mgr("a,b: f8; c,d: i8; e,f: string", item_shape=(N, N)),
-        create_mgr("a,b: f8; c,d: i8; e,f: f8", item_shape=(N, N)),
     ]
-
-    # MANAGERS = [MANAGERS[6]]
 
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_get_slice(self, mgr):
@@ -865,6 +773,7 @@ class TestIndexing:
             )
             tm.assert_index_equal(mgr.axes[axis][slobj], sliced.axes[axis])
 
+        assert mgr.ndim <= 2, mgr.ndim
         for ax in range(mgr.ndim):
             # slice
             assert_slice_ok(mgr, ax, slice(None))
@@ -993,11 +902,6 @@ class TestIndexing:
                 assert_reindex_indexer_is_ok(
                     mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value,
                 )
-
-    # test_get_slice(slice_like, axis)
-    # take(indexer, axis)
-    # reindex_axis(new_labels, axis)
-    # reindex_indexer(new_labels, indexer, axis)
 
 
 class TestBlockPlacement:
@@ -1151,6 +1055,33 @@ class DummyElement:
 
 
 class TestCanHoldElement:
+    def test_datetime_block_can_hold_element(self):
+        block = create_block("datetime", [0])
+
+        # We will check that block._can_hold_element iff arr.__setitem__ works
+        arr = pd.array(block.values.ravel())
+
+        # coerce None
+        assert block._can_hold_element(None)
+        arr[0] = None
+        assert arr[0] is pd.NaT
+
+        # coerce different types of datetime objects
+        vals = [np.datetime64("2010-10-10"), datetime(2010, 10, 10)]
+        for val in vals:
+            assert block._can_hold_element(val)
+            arr[0] = val
+
+        val = date(2010, 10, 10)
+        assert not block._can_hold_element(val)
+
+        msg = (
+            "'value' should be a 'Timestamp', 'NaT', "
+            "or array of those. Got 'date' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            arr[0] = val
+
     @pytest.mark.parametrize(
         "value, dtype",
         [
@@ -1280,3 +1211,37 @@ def test_dataframe_not_equal():
     df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
     df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
     assert df1.equals(df2) is False
+
+
+def test_missing_unicode_key():
+    df = DataFrame({"a": [1]})
+    with pytest.raises(KeyError, match="\u05d0"):
+        df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
+
+
+def test_set_change_dtype_slice():
+    # GH#8850
+    cols = MultiIndex.from_tuples([("1st", "a"), ("2nd", "b"), ("3rd", "c")])
+    df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
+    df["2nd"] = df["2nd"] * 2.0
+
+    blocks = df._to_dict_of_blocks()
+    assert sorted(blocks.keys()) == ["float64", "int64"]
+    tm.assert_frame_equal(
+        blocks["float64"], DataFrame([[1.0, 4.0], [4.0, 10.0]], columns=cols[:2])
+    )
+    tm.assert_frame_equal(blocks["int64"], DataFrame([[3], [6]], columns=cols[2:]))
+
+
+def test_interleave_non_unique_cols():
+    df = DataFrame(
+        [[pd.Timestamp("20130101"), 3.5], [pd.Timestamp("20130102"), 4.5]],
+        columns=["x", "x"],
+        index=[1, 2],
+    )
+
+    df_unique = df.copy()
+    df_unique.columns = ["x", "y"]
+    assert df_unique.values.shape == df.values.shape
+    tm.assert_numpy_array_equal(df_unique.values[0], df.values[0])
+    tm.assert_numpy_array_equal(df_unique.values[1], df.values[1])
