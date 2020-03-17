@@ -3,6 +3,7 @@ import datetime
 from datetime import timedelta
 from io import StringIO
 import json
+import os
 
 import numpy as np
 import pytest
@@ -42,11 +43,8 @@ def assert_json_roundtrip_equal(result, expected, orient):
 @pytest.mark.filterwarnings("ignore:the 'numpy' keyword is deprecated:FutureWarning")
 class TestPandasContainer:
     @pytest.fixture(autouse=True)
-    def setup(self, datapath, monkeypatch):
-        monkeypatch.chdir(datapath("io", "json", "data"))
-
+    def setup(self):
         self.empty_frame = DataFrame()
-
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.intframe = _intframe.copy()
@@ -437,7 +435,7 @@ class TestPandasContainer:
         left = read_json(inp, orient="values", convert_axes=False)
         tm.assert_frame_equal(left, right)
 
-    def test_v12_compat(self):
+    def test_v12_compat(self, datapath):
         df = DataFrame(
             [
                 [1.56808523, 0.65727391, 1.81021139, -0.17251653],
@@ -454,11 +452,14 @@ class TestPandasContainer:
         df["modified"] = df["date"]
         df.iloc[1, df.columns.get_loc("modified")] = pd.NaT
 
-        df_unser = pd.read_json("tsframe_v012.json")
+        dirpath = datapath("io", "json", "data")
+        v12_json = os.path.join(dirpath, "tsframe_v012.json")
+        df_unser = pd.read_json(v12_json)
         tm.assert_frame_equal(df, df_unser)
 
         df_iso = df.drop(["modified"], axis=1)
-        df_unser_iso = pd.read_json("tsframe_iso_v012.json")
+        v12_iso_json = os.path.join(dirpath, "tsframe_iso_v012.json")
+        df_unser_iso = pd.read_json(v12_iso_json)
         tm.assert_frame_equal(df_iso, df_unser_iso)
 
     def test_blocks_compat_GH9037(self):
