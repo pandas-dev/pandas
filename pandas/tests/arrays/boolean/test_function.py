@@ -111,19 +111,3 @@ def test_diff():
     result = s.diff()
     expected = pd.Series(expected)
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("dropna", [True, False])
-def test_reductions_return_types(dropna, data, all_numeric_reductions):
-    op = all_numeric_reductions
-    s = pd.Series(data)
-    if dropna:
-        s = s.dropna()
-
-    if op in ("sum", "prod"):
-        assert isinstance(getattr(s, op)(), np.int64)
-    elif op in ("min", "max"):
-        assert isinstance(getattr(s, op)(), np.bool_)
-    else:
-        # "mean", "std", "var", "median", "kurt", "skew"
-        assert isinstance(getattr(s, op)(), np.float64)
