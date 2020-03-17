@@ -1167,12 +1167,12 @@ class IndexOpsMixin:
             values = self.astype(object)
             values = getattr(values, "values", values)
             if na_action == "ignore":
-
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
-
-            else:
+            elif na_action is None:
                 map_f = lib.map_infer
+            else:
+                raise ValueError("na_action must either be 'ignore' or None")
 
         # mapper is a function
         new_values = map_f(values, mapper)
