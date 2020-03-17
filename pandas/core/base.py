@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -49,6 +49,8 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    _cache: Dict[str, Any]
+
     @property
     def _constructor(self):
         """
@@ -63,7 +65,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key=None):
+    def _reset_cache(self, key: Optional[str] = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
