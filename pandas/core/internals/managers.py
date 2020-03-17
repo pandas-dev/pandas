@@ -411,6 +411,7 @@ class BlockManager(PandasObject):
                 align_keys = ["other", "cond"]
             else:
                 align_keys = ["cond"]
+                kwargs["other"] = extract_array(kwargs["other"], extract_numpy=True)
         elif f == "putmask":
             align_copy = False
             if kwargs.get("align", True):

@@ -55,6 +55,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype, ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
+    ABCIndexClass,
     ABCPandasArray,
     ABCSeries,
 )
@@ -948,12 +949,9 @@ class Block(PandasObject):
         """
         assert isinstance(mask, np.ndarray), type(mask)
         assert mask.dtype == bool, mask.dtype
+        assert not isinstance(new, (ABCSeries, ABCDataFrame)), type(new)
 
         new_values = self.values if inplace else self.values.copy()
-
-        assert not isinstance(new, (ABCSeries, ABCDataFrame)), type(new)
-        # new = getattr(new, "values", new)
-        # mask = getattr(mask, "values", mask)
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
@@ -1357,7 +1355,7 @@ class Block(PandasObject):
         Parameters
         ----------
         other : a ndarray/object
-        cond  : np.ndarray[bool]
+        cond : np.ndarray[bool]
         align : bool, default True
             Perform alignment on other/cond.
         errors : str, {'raise', 'ignore'}, default 'raise'
@@ -1373,6 +1371,7 @@ class Block(PandasObject):
 
         assert isinstance(cond, np.ndarray), type(cond)
         assert cond.dtype == bool, cond.dtype
+        assert not isinstance(other, (ABCSeries, ABCDataFrame)), type(other)
 
         assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
@@ -1381,9 +1380,6 @@ class Block(PandasObject):
         orig_other = other
         if transpose:
             values = values.T
-
-        other = getattr(other, "_values", getattr(other, "values", other))
-        cond = getattr(cond, "values", cond)
 
         # If the default broadcasting would go in the wrong direction, then
         # explicitly reshape other instead
@@ -1942,25 +1938,21 @@ class ExtensionBlock(Block):
         try_cast: bool = False,
         axis: int = 0,
     ) -> List["Block"]:
-        if isinstance(other, ABCDataFrame):
-            # ExtensionArrays are 1-D, so if we get here then
-            # `other` should be a DataFrame with a single column.
-            assert other.shape[1] == 1
-            other = other.iloc[:, 0]
-        elif isinstance(other, np.ndarray) and other.ndim == 2:
+
+        assert not isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)), type(
+            other
+        )
+        assert not isinstance(cond, (ABCIndexClass, ABCSeries, ABCDataFrame)), type(
+            cond
+        )
+
+        if isinstance(other, np.ndarray) and other.ndim == 2:
             assert other.shape[1] == 1
             other = other[:, 0]
 
-        other = extract_array(other, extract_numpy=True)
-
-        if isinstance(cond, ABCDataFrame):
-            assert cond.shape[1] == 1
-            cond = cond.iloc[:, 0]
-        elif isinstance(cond, np.ndarray) and cond.ndim == 2:
+        if isinstance(cond, np.ndarray) and cond.ndim == 2:
             assert cond.shape[1] == 1
             cond = cond[:, 0]
-
-        cond = extract_array(cond, extract_numpy=True)
 
         if lib.is_scalar(other) and isna(other):
             # The default `other` for Series / Frame is np.nan
