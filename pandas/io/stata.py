@@ -1956,7 +1956,7 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         return max(itemsize, 1)
     elif dtype == np.float64:
         return 255
@@ -1998,7 +1998,7 @@ def _dtype_to_default_stata_fmt(
         if force_strl:
             return "%9s"
     if dtype.type == np.object_:
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         if itemsize > max_str_len:
             if dta_version >= 117:
                 return "%9s"
@@ -2650,7 +2650,7 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column._values))
         itemsize = max(itemsize, 1)
         if itemsize <= 2045:
             return itemsize

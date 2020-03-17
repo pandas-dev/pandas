@@ -2382,7 +2382,7 @@ class DataCol(IndexCol):
                 mask = isna(categories)
                 if mask.any():
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum().values
+                    codes[codes != -1] -= mask.astype(int).cumsum()._values
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered
