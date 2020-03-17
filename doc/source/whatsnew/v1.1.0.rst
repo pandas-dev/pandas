@@ -340,6 +340,7 @@ I/O
   timestamps with ``version="2.0"`` (:issue:`31652`).
 - Bug in :meth:`read_csv` was raising `TypeError` when `sep=None` was used in combination with `comment` keyword (:issue:`31396`)
 - Bug in :class:`HDFStore` that caused it to set to ``int64`` the dtype of a ``datetime64`` column when reading a DataFrame in Python 3 from fixed format written in Python 2 (:issue:`31750`)
+- :func:`read_csv` will raise a ``ValueError`` when the column names passed in `parse_dates` are missing in the Dataframe (:issue:`31251`)
 - Bug in :meth:`read_excel` where a UTF-8 string with a high surrogate would cause a segmentation violation (:issue:`23809`)
 - Bug in :meth:`read_csv` was causing a file descriptor leak on an empty file (:issue:`31488`)
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
