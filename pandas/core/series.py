@@ -2492,8 +2492,7 @@ Name: Max Speed, dtype: float64
         """
         return self.dot(np.transpose(other))
 
-    @Substitution(klass="Series")
-    @Appender(base._shared_docs["searchsorted"])
+    @doc(base.IndexOpsMixin.searchsorted, klass="Series")
     def searchsorted(self, value, side="left", sorter=None):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 

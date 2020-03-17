@@ -5,7 +5,7 @@ import numpy as np
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_hashable,
@@ -887,7 +887,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
         return self.obj._take_with_is_copy(inds, axis=axis)
 
 
-@Appender(IndexingMixin.loc.__doc__)
+@doc(IndexingMixin.loc)
 class _LocIndexer(_LocationIndexer):
     _takeable: bool = False
     _valid_types = (
@@ -899,7 +899,7 @@ class _LocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # Key Checks
 
-    @Appender(_LocationIndexer._validate_key.__doc__)
+    @doc(_LocationIndexer._validate_key)
     def _validate_key(self, key, axis: int):
 
         # valid for a collection of labels (we check their presence later)
@@ -1329,7 +1329,7 @@ class _LocIndexer(_LocationIndexer):
                 )
 
 
-@Appender(IndexingMixin.iloc.__doc__)
+@doc(IndexingMixin.iloc)
 class _iLocIndexer(_LocationIndexer):
     _valid_types = (
         "integer, integer slice (START point is INCLUDED, END "
@@ -2048,7 +2048,7 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
         self.obj._set_value(*key, value=value, takeable=self._takeable)
 
 
-@Appender(IndexingMixin.at.__doc__)
+@doc(IndexingMixin.at)
 class _AtIndexer(_ScalarAccessIndexer):
     _takeable = False
 
@@ -2074,7 +2074,7 @@ class _AtIndexer(_ScalarAccessIndexer):
         return obj.index._get_values_for_loc(obj, loc, key)
 
 
-@Appender(IndexingMixin.iat.__doc__)
+@doc(IndexingMixin.iat)
 class _iAtIndexer(_ScalarAccessIndexer):
     _takeable = True
 
