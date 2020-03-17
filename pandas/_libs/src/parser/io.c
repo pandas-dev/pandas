@@ -42,7 +42,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
         int required = MultiByteToWideChar(CP_UTF8, 0, fname, -1, NULL, 0);
         if (required == 0) {
             free(fs);
-            PyErr_SetFromWindowsErr(GetLastError())
+            PyErr_SetFromWindowsErr(GetLastError());
             return NULL;
         }
         wname = (wchar_t*)malloc(required * sizeof(wchar_t));
@@ -55,7 +55,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
                                                                 required) {
             free(wname);
             free(fs);
-            PyErr_SetFromWindowsErr(GetLastError())
+            PyErr_SetFromWindowsErr(GetLastError());
             return NULL;
         }
         fs->fd = _wopen(wname, O_RDONLY | O_BINARY);
@@ -67,7 +67,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
     if (fs->fd == -1) {
         free(fs);
 #ifdef USE_WIN_UTF16
-        PyErr_SetFromWindowsErr(GetLastError())
+        PyErr_SetFromWindowsErr(GetLastError());
 #else
         PyErr_SetFromErrnoWithFilename(PyExc_OSError, fname);
 #endif
