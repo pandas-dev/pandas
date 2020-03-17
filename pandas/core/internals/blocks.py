@@ -237,9 +237,6 @@ class Block(PandasObject):
         # TODO(2DEA): reshape will be unnecessary with 2D EAs
         return np.asarray(self.values).reshape(self.shape)
 
-    def to_dense(self):
-        return self.values.view()
-
     @property
     def fill_value(self):
         return np.nan
@@ -1820,9 +1817,6 @@ class ExtensionBlock(Block):
     def array_values(self) -> ExtensionArray:
         return self.values
 
-    def to_dense(self):
-        return np.asarray(self.values)
-
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """override to use ExtensionArray astype for the conversion"""
         values = self.values
@@ -2378,12 +2372,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             values = values.reshape(1, -1)
         return values
 
-    def to_dense(self):
-        # we request M8[ns] dtype here, even though it discards tzinfo,
-        # as lots of code (e.g. anything using values_from_object)
-        # expects that behavior.
-        return np.asarray(self.values, dtype=_NS_DTYPE)
-
     def _slice(self, slicer):
         """ return a slice of my values """
         if isinstance(slicer, tuple):
@@ -2910,12 +2898,6 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
-
-    def to_dense(self):
-        # Categorical.get_values returns a DatetimeIndex for datetime
-        # categories, so we can't simply use `np.asarray(self.values)` like
-        # other types.
-        return self.values._internal_get_values()
 
     def to_native_types(self, slicer=None, na_rep="", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """

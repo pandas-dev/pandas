@@ -574,18 +574,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def array(self) -> ExtensionArray:
         return self._data._block.array_values()
 
-    def _internal_get_values(self):
-        """
-        Same as values (but handles sparseness conversions); is a view.
-
-        Returns
-        -------
-        numpy.ndarray
-            Data of the Series.
-        """
-        blk = self._data._block
-        return np.array(blk.to_dense(), copy=False)
-
     # ops
     def ravel(self, order="C"):
         """

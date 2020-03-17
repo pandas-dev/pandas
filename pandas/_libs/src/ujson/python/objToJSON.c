@@ -222,13 +222,19 @@ static PyObject *get_values(PyObject *obj) {
 
     PRINTMARK();
 
-    if (PyObject_HasAttrString(obj, "_internal_get_values")) {
+    if (PyObject_TypeCheck(obj, cls_index) || PyObject_TypeCheck(obj, cls_series)) {
+        // The special cases to worry about are dt64tz and category[dt64tz].
+        //  In both cases we want the UTC-localized datetime64 ndarray,
+        //  without going through and object array of Timestamps.
         PRINTMARK();
-        values = PyObject_CallMethod(obj, "_internal_get_values", NULL);
+        values = PyObject_GetAttrString(obj, "values");
 
         if (values == NULL) {
             // Clear so we can subsequently try another method
             PyErr_Clear();
+        } else if (PyObject_HasAttrString(values, "__array__")) {
+            // We may have gotten a Categorical or Sparse array so call np.array
+            values = PyObject_CallMethod(values, "__array__", NULL);
         } else if (!PyArray_CheckExact(values)) {
             // Didn't get a numpy array, so keep trying
             PRINTMARK();
