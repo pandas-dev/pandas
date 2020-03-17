@@ -15,6 +15,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in ``resample.agg`` when the underlying data is non-writeable (:issue:`31710`)
 
 .. _whatsnew_103.bug_fixes:
 
