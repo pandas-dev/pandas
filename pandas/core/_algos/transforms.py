@@ -1,3 +1,7 @@
+"""
+transforms.py is for shape-preserving functions.
+"""
+
 import numpy as np
 
 from pandas.core.dtypes.common import ensure_platform_int

@@ -39,7 +39,7 @@ from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
-from pandas.core._algos.needsname import shift
+from pandas.core._algos.transforms import shift
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
