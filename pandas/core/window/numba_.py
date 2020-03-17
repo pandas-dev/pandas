@@ -11,62 +11,6 @@ from pandas.core.numba_ import (
 )
 
 
-def make_rolling_apply(
-    func: Callable[..., Scalar],
-    args: Tuple,
-    nogil: bool,
-    parallel: bool,
-    nopython: bool,
-):
-    """
-    Creates a JITted rolling apply function with a JITted version of
-    the user's function.
-
-    Parameters
-    ----------
-    func : function
-        function to be applied to each window and will be JITed
-    args : tuple
-        *args to be passed into the function
-    nogil : bool
-        nogil parameter from engine_kwargs for numba.jit
-    parallel : bool
-        parallel parameter from engine_kwargs for numba.jit
-    nopython : bool
-        nopython parameter from engine_kwargs for numba.jit
-
-    Returns
-    -------
-    Numba function
-    """
-    numba = import_optional_dependency("numba")
-
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
-
-    if parallel:
-        loop_range = numba.prange
-    else:
-        loop_range = range
-
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-    def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int,
-    ) -> np.ndarray:
-        result = np.empty(len(begin))
-        for i in loop_range(len(result)):
-            start = begin[i]
-            stop = end[i]
-            window = values[start:stop]
-            count_nan = np.sum(np.isnan(window))
-            if len(window) - count_nan >= minimum_periods:
-                result[i] = numba_func(window, *args)
-            else:
-                result[i] = np.nan
-        return result
-
-    return roll_apply
-
-
 def generate_numba_apply_func(
     args: Tuple,
     kwargs: Dict[str, Any],
@@ -101,4 +45,29 @@ def generate_numba_apply_func(
 
     check_kwargs_and_nopython(kwargs, nopython)
 
-    return make_rolling_apply(func, args, nogil, parallel, nopython)
+    numba_func = jit_user_function(func, nopython, nogil, parallel)
+
+    numba = import_optional_dependency("numba")
+
+    if parallel:
+        loop_range = numba.prange
+    else:
+        loop_range = range
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def roll_apply(
+        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int,
+    ) -> np.ndarray:
+        result = np.empty(len(begin))
+        for i in loop_range(len(result)):
+            start = begin[i]
+            stop = end[i]
+            window = values[start:stop]
+            count_nan = np.sum(np.isnan(window))
+            if len(window) - count_nan >= minimum_periods:
+                result[i] = numba_func(window, *args)
+            else:
+                result[i] = np.nan
+        return result
+
+    return roll_apply

@@ -461,7 +461,7 @@ class SeriesGroupBy(GroupBy):
 
     @Substitution(klass="Series", selected="A.")
     @Appender(_transform_template)
-    def transform(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
+    def transform(self, func, *args, **kwargs):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
@@ -480,9 +480,7 @@ class SeriesGroupBy(GroupBy):
         result = getattr(self, func)(*args, **kwargs)
         return self._transform_fast(result, func)
 
-    def _transform_general(
-        self, func, engine="cython", engine_kwargs=None, *args, **kwargs
-    ):
+    def _transform_general(self, func, *args, **kwargs):
         """
         Transform with a non-str `func`.
         """
@@ -1357,9 +1355,7 @@ class DataFrameGroupBy(GroupBy):
             # Handle cases like BinGrouper
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
-    def _transform_general(
-        self, func, engine="cython", engine_kwargs=None, *args, **kwargs
-    ):
+    def _transform_general(self, func, *args, **kwargs):
         from pandas.core.reshape.concat import concat
 
         applied = []
@@ -1415,15 +1411,13 @@ class DataFrameGroupBy(GroupBy):
 
     @Substitution(klass="DataFrame", selected="")
     @Appender(_transform_template)
-    def transform(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
+    def transform(self, func, *args, **kwargs):
 
         # optimized transforms
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(
-                func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
-            )
+            return self._transform_general(func, *args, **kwargs)
 
         elif func not in base.transform_kernel_whitelist:
             msg = f"'{func}' is not a valid function name for transform(name)"
