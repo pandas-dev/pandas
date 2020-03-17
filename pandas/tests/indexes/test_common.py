@@ -387,6 +387,7 @@ class TestCommon:
             indices.name = "idx"
 
         try:
+            # Some of these conversions cannot succeed so we use a try / except
             if copy:
                 result = indices.copy(dtype=dtype)
             else:
