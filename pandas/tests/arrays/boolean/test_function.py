@@ -3,7 +3,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.boolean import coerce_to_array
 
 
 def make_data():
