@@ -66,11 +66,7 @@ void *new_file_source(char *fname, size_t buffer_size) {
 #endif
     if (fs->fd == -1) {
         free(fs);
-#ifdef USE_WIN_UTF16
-        PyErr_SetFromWindowsErr(GetLastError());
-#else
         PyErr_SetFromErrnoWithFilename(PyExc_OSError, fname);
-#endif
         return NULL;
     }
 
