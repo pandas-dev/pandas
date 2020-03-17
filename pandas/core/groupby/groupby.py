@@ -1896,7 +1896,7 @@ class GroupBy(_GroupBy):
                 inference = np.int64
             elif is_datetime64_dtype(vals):
                 inference = "datetime64[ns]"
-                vals = vals.astype(np.float)
+                vals = np.asarray(vals).astype(np.float)
 
             return vals, inference
 
@@ -2271,7 +2271,7 @@ class GroupBy(_GroupBy):
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
-            values = obj._data._values
+            values = obj._values
 
             if aggregate:
                 result_sz = ngroups
