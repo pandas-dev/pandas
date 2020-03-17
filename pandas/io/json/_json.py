@@ -186,7 +186,7 @@ class SeriesWriter(Writer):
         indent: int,
     ):
         if not self.index and orient == "split":
-            obj = {"name": obj.name, "data": obj.values}
+            obj = {"name": obj.name, "data": obj._values}
         return super()._write(
             obj,
             orient,
@@ -973,9 +973,9 @@ class Parser:
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
             in_range = (
-                isna(new_data.values)
+                isna(new_data._values)
                 | (new_data > self.min_stamp)
-                | (new_data.values == iNaT)
+                | (new_data._values == iNaT)
             )
             if not in_range.all():
                 return data, False
