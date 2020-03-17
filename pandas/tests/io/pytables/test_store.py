@@ -362,6 +362,9 @@ class TestHDFStore:
                 expected = {"/group/table1", "/group/table2", "/group/table3"}
                 assert set(store.keys(include="native")) == expected
                 assert set(store.keys(include="pandas")) == set()
+                for name in expected:
+                    df = store.get(name)
+                    assert len(df.columns) == 1
 
     def test_keys_illegal_include_keyword_value(self, setup_path):
         with ensure_clean_store(setup_path) as store:
