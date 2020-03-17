@@ -11,7 +11,7 @@ from pandas._libs.tslib import iNaT
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas import Index, Series
+from pandas import Index
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
@@ -31,9 +31,6 @@ def test_fillna(index_or_series_obj):
         tm.assert_series_equal(obj, result)
 
     # check shallow_copied
-    if isinstance(obj, Series) and len(obj) == 0:
-        # TODO: GH-32543
-        pytest.xfail("Shallow copy for empty Series is bugged")
     assert obj is not result
 
 
