@@ -452,10 +452,6 @@ class Categorical(ExtensionArray, PandasObject):
         return self._dtype
 
     @property
-    def _ndarray_values(self) -> np.ndarray:
-        return self.codes
-
-    @property
     def _constructor(self) -> Type["Categorical"]:
         return Categorical
 
@@ -2570,8 +2566,7 @@ def _get_codes_for_values(values, categories):
     if dtype_equal:
         # To prevent erroneous dtype coercion in _get_data_algo, retrieve
         # the underlying numpy array. gh-22702
-        values = getattr(values, "_ndarray_values", values)
-        categories = getattr(categories, "_ndarray_values", categories)
+        pass
     elif is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
