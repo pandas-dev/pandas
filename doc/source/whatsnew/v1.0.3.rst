@@ -16,6 +16,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in ``resample.agg`` when the underlying data is non-writeable (:issue:`31710`)
+- Fixed regression in :class:`DataFrame` exponentiation with reindexing (:issue:`32685`)
 
 .. _whatsnew_103.bug_fixes:
 
