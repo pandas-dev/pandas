@@ -338,6 +338,7 @@ def test_to_numpy_copy():
     tm.assert_extension_array_equal(arr, pd.array([True, False, True], dtype="boolean"))
 
 
+# FIXME: don't leave commented out
 # TODO when BooleanArray coerces to object dtype numpy array, need to do conversion
 # manually in the indexing code
 # def test_indexing_boolean_mask():
