@@ -550,7 +550,6 @@ class TestPandasContainer:
             df_roundtrip,
             check_index_type=True,
             check_column_type=True,
-            check_frame_type=True,
             by_blocks=True,
             check_exact=True,
         )

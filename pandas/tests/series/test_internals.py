@@ -169,6 +169,7 @@ class TestSeriesInternals:
         result = s._convert(datetime=True, coerce=True)
         tm.assert_series_equal(result, s)
 
+        # FIXME: dont leave commented-out
         # r = s.copy()
         # r[0] = np.nan
         # result = r._convert(convert_dates=True,convert_numeric=False)

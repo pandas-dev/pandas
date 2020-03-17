@@ -121,6 +121,14 @@ class TestGetItem:
 
 
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        dti = date_range("20130101", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = DatetimeIndex([dti[0], dti[1], dti[0]], freq=None, name="idx")
+
+        result = dti.where(cond, dti[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_other(self):
         # other is ndarray or Index
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -422,6 +430,17 @@ class TestGetLoc:
         )
         with pytest.raises(NotImplementedError):
             idx.get_loc(time(12, 30), method="pad")
+
+    def test_get_loc_tz_aware(self):
+        # https://github.com/pandas-dev/pandas/issues/32140
+        dti = pd.date_range(
+            pd.Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
+            pd.Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
+            freq="5s",
+        )
+        key = pd.Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
+        result = dti.get_loc(key, method="nearest")
+        assert result == 7433
 
     def test_get_loc_nat(self):
         # GH#20464

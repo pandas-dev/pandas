@@ -17,7 +17,6 @@ Reshaping by pivoting DataFrame objects
    :suppress:
 
    import pandas._testing as tm
-   tm.N = 3
 
    def unpivot(frame):
        N, K = frame.shape
@@ -27,7 +26,7 @@ Reshaping by pivoting DataFrame objects
        columns = ['date', 'variable', 'value']
        return pd.DataFrame(data, columns=columns)
 
-   df = unpivot(tm.makeTimeDataFrame())
+   df = unpivot(tm.makeTimeDataFrame(3))
 
 Data is often stored in so-called "stacked" or "record" format:
 
@@ -42,9 +41,6 @@ For the curious here is how the above ``DataFrame`` was created:
 
    import pandas._testing as tm
 
-   tm.N = 3
-
-
    def unpivot(frame):
        N, K = frame.shape
        data = {'value': frame.to_numpy().ravel('F'),
@@ -53,7 +49,7 @@ For the curious here is how the above ``DataFrame`` was created:
        return pd.DataFrame(data, columns=['date', 'variable', 'value'])
 
 
-   df = unpivot(tm.makeTimeDataFrame())
+   df = unpivot(tm.makeTimeDataFrame(3))
 
 To select out everything for variable ``A`` we could do:
 

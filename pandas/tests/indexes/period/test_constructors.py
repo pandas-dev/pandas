@@ -322,9 +322,9 @@ class TestPeriodIndex:
         idx = period_range("2007-01", name="p", periods=2, freq="M")
 
         with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
-            idx._simple_new(idx, name="p", freq=idx.freq)
+            idx._simple_new(idx, name="p")
 
-        result = idx._simple_new(idx._data, name="p", freq=idx.freq)
+        result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
         with pytest.raises(AssertionError):
@@ -339,19 +339,19 @@ class TestPeriodIndex:
         # GH13079
         idx = PeriodIndex([], freq="M", name="p")
         with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
-            idx._simple_new(idx, name="p", freq="M")
+            idx._simple_new(idx, name="p")
 
-        result = idx._simple_new(idx._data, name="p", freq="M")
+        result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
     @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
         with pytest.raises(AssertionError, match="<class "):
-            PeriodIndex._simple_new(floats, freq="M")
+            PeriodIndex._simple_new(floats)
 
         msg = "PeriodIndex does not allow floating point in construction"
         with pytest.raises(TypeError, match=msg):
-            PeriodIndex(floats, freq="M")
+            PeriodIndex(floats)
 
     def test_constructor_nat(self):
         msg = "start and end must not be NaT"

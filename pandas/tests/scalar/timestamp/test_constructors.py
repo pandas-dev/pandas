@@ -548,3 +548,16 @@ def test_timestamp_constructor_identity():
     expected = Timestamp("2017-01-01T12")
     result = Timestamp(expected)
     assert result is expected
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"year": 2020}, {"year": 2020, "month": 1}])
+def test_constructor_missing_keyword(kwargs):
+    # GH 31200
+
+    # The exact error message of datetime() depends on its version
+    msg1 = r"function missing required argument '(year|month|day)' \(pos [123]\)"
+    msg2 = r"Required argument '(year|month|day)' \(pos [123]\) not found"
+    msg = "|".join([msg1, msg2])
+
+    with pytest.raises(TypeError, match=msg):
+        Timestamp(**kwargs)
