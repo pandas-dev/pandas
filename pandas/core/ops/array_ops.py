@@ -132,7 +132,7 @@ def masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def define_na_arithmetic_op(op, str_rep: str):
+def define_na_arithmetic_op(op, str_rep: Optional[str]):
     def na_op(x, y):
         return na_arithmetic_op(x, y, op, str_rep)
 

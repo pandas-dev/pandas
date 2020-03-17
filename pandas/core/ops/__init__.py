@@ -5,7 +5,7 @@ This is not a public API.
 """
 import datetime
 import operator
-from typing import TYPE_CHECKING, Optional, Set, Tuple
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple
 
 import numpy as np
 
@@ -58,6 +58,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
 
 if TYPE_CHECKING:
     from pandas import DataFrame  # noqa:F401
+    from pandas.core.internals.blocks import Block  # noqa: F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -353,6 +354,70 @@ def fill_binop(left, right, fill_value):
 # Dispatch logic
 
 
+def operate_blockwise(left, right, array_op):
+    assert right._indexed_same(left)
+
+    res_blks: List["Block"] = []
+    rmgr = right._data
+    for n, blk in enumerate(left._data.blocks):
+        locs = blk.mgr_locs
+
+        blk_vals = blk.values
+
+        if not isinstance(blk_vals, np.ndarray):
+            # 1D EA
+            assert len(locs) == 1, locs
+            rser = right.iloc[:, locs[0]]
+            rvals = extract_array(rser, extract_numpy=True)
+            res_values = array_op(blk_vals, rvals)
+            nbs = blk._split_op_result(res_values)
+            res_blks.extend(nbs)
+            continue
+
+        rblks = rmgr._slice_take_blocks_ax0(locs.indexer)
+
+        for k, rblk in enumerate(rblks):
+            lvals = blk_vals[rblk.mgr_locs.indexer, :]
+            rvals = rblk.values
+
+            if not isinstance(rvals, np.ndarray):
+                # 1D EA
+                assert lvals.shape[0] == 1, lvals.shape
+                lvals = lvals[0, :]
+                res_values = array_op(lvals, rvals)
+                nbs = rblk._split_op_result(res_values)
+                assert len(nbs) == 1
+                nb = nbs[0]
+                nb.mgr_locs = locs.as_array[nb.mgr_locs]
+                res_blks.append(nb)
+                continue
+
+            assert lvals.shape == rvals.shape, (lvals.shape, rvals.shape)
+
+            res_values = array_op(lvals, rvals)
+            assert res_values.shape == lvals.shape, (res_values.shape, lvals.shape)
+            nbs = rblk._split_op_result(res_values)
+            for nb in nbs:
+                # TODO: maybe optimize by sticking with slices?
+                nb_mgr_locs = nb.mgr_locs
+                nblocs = locs.as_array[nb_mgr_locs.indexer]
+                nb.mgr_locs = nblocs
+                assert len(nblocs) == nb.shape[0], (len(nblocs), nb.shape)
+                assert all(x in locs.as_array for x in nb.mgr_locs.as_array)
+
+            res_blks.extend(nbs)
+
+    slocs = set(y for nb in res_blks for y in nb.mgr_locs.as_array)
+    nlocs = sum(len(nb.mgr_locs.as_array) for nb in res_blks)
+    assert nlocs == len(left.columns), (nlocs, len(left.columns))
+    assert len(slocs) == nlocs, (len(slocs), nlocs)
+    assert slocs == set(range(nlocs)), slocs
+
+    # TODO: once this is working, pass do_integrity_check=False
+    new_mgr = type(rmgr)(res_blks, axes=rmgr.axes)
+    return new_mgr
+
+
 def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
@@ -385,8 +450,9 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
+        array_op = get_array_op(func, str_rep=str_rep)
+        bm = operate_blockwise(left, right, array_op)
+        return type(left)(bm)
 
     elif isinstance(right, ABCSeries) and axis == "columns":
         # We only get here if called via _combine_series_frame,

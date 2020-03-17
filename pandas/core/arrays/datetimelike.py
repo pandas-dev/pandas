@@ -1299,7 +1299,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         result : same class as self
         """
         assert op in [operator.add, operator.sub]
-        if len(other) == 1:
+        if len(other) == 1 and self.ndim == other.ndim == 1:
             return op(self, other[0])
 
         warnings.warn(
