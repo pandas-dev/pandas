@@ -960,7 +960,7 @@ def test_nonexistent_path(all_parsers):
     parser = all_parsers
     path = f"{tm.rands(10)}.csv"
 
-    msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
+    msg = r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
 
