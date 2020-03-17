@@ -1154,7 +1154,7 @@ def assert_series_equal(
             right._values,
             check_dtype=check_dtype,
             obj=str(obj),
-            index=left.index._internal_get_values(),
+            index=np.asarray(left.index),
         )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -1193,7 +1193,7 @@ def assert_series_equal(
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),
-            index=left.index._internal_get_values(),
+            index=np.asarray(left.index),
         )
 
     # metadata comparison
