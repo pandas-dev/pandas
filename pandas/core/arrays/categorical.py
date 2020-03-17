@@ -15,6 +15,7 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
     deprecate_kwarg,
+    doc,
 )
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
@@ -1352,8 +1353,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    @Substitution(klass="Categorical")
-    @Appender(_shared_docs["searchsorted"])
+    @doc(_shared_docs["searchsorted"], klass="Categorical")
     def searchsorted(self, value, side="left", sorter=None):
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
@@ -1675,6 +1675,12 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dense : array
         """
+        warn(
+            "Categorical.to_dense is deprecated and will be removed in "
+            "a future version.  Use np.asarray(cat) instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return np.asarray(self)
 
     def fillna(self, value=None, method=None, limit=None):
@@ -1733,12 +1739,17 @@ class Categorical(ExtensionArray, PandasObject):
 
             # If value is a dict or a Series (a dict value has already
             # been converted to a Series)
-            if isinstance(value, ABCSeries):
-                if not value[~value.isin(self.categories)].isna().all():
+            if isinstance(value, (np.ndarray, Categorical, ABCSeries)):
+                # We get ndarray or Categorical if called via Series.fillna,
+                #  where it will unwrap another aligned Series before getting here
+
+                mask = ~algorithms.isin(value, self.categories)
+                if not isna(value[mask]).all():
                     raise ValueError("fill value must be in categories")
 
                 values_codes = _get_codes_for_values(value, self.categories)
                 indexer = np.where(codes == -1)
+                codes = codes.copy()
                 codes[indexer] = values_codes[indexer]
 
             # If value is not a dict or Series it should be a scalar

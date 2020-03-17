@@ -12,7 +12,7 @@ import pandas._libs.lib as lib
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -885,6 +885,9 @@ class IndexOpsMixin:
         axis : int, optional
             For compatibility with NumPy. Only 0 or None are allowed.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -982,6 +985,9 @@ class IndexOpsMixin:
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -1420,13 +1426,13 @@ class IndexOpsMixin:
     ] = """
         Find indices where elements should be inserted to maintain order.
 
-        Find the indices into a sorted %(klass)s `self` such that, if the
+        Find the indices into a sorted {klass} `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
 
         .. note::
 
-            The %(klass)s *must* be monotonically sorted, otherwise
+            The {klass} *must* be monotonically sorted, otherwise
             wrong locations will likely be returned. Pandas does *not*
             check this for you.
 
@@ -1434,7 +1440,7 @@ class IndexOpsMixin:
         ----------
         value : array_like
             Values to insert into `self`.
-        side : {'left', 'right'}, optional
+        side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
@@ -1510,8 +1516,7 @@ class IndexOpsMixin:
         0  # wrong result, correct would be 1
         """
 
-    @Substitution(klass="Index")
-    @Appender(_shared_docs["searchsorted"])
+    @doc(_shared_docs["searchsorted"], klass="Index")
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
