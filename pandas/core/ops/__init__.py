@@ -407,7 +407,7 @@ def operate_blockwise(left, right, array_op):
 
             res_blks.extend(nbs)
 
-    slocs = set(y for nb in res_blks for y in nb.mgr_locs.as_array)
+    slocs = {y for nb in res_blks for y in nb.mgr_locs.as_array}
     nlocs = sum(len(nb.mgr_locs.as_array) for nb in res_blks)
     assert nlocs == len(left.columns), (nlocs, len(left.columns))
     assert len(slocs) == nlocs, (len(slocs), nlocs)
