@@ -406,13 +406,13 @@ class BlockManager(PandasObject):
 
         if f == "where":
             align_copy = True
-            if kwargs.get("align", True):
+            if kwargs.pop("align", True):
                 align_keys = ["other", "cond"]
             else:
                 align_keys = ["cond"]
         elif f == "putmask":
             align_copy = False
-            if kwargs.get("align", True):
+            if kwargs.pop("align", True):
                 align_keys = ["new", "mask"]
             else:
                 align_keys = ["mask"]
