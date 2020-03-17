@@ -965,8 +965,10 @@ def non_mapping_dict_subclass():
     return TestNonDictMapping
 
 
-def _gen_mi():
-    # a MultiIndex used to test the general functionality of this object
+def _create_multiindex():
+    """
+    MultiIndex used to test the general functionality of this object
+    """
 
     # See Also: tests.multi.conftest.idx
     major_axis = Index(["foo", "bar", "baz", "qux"])
@@ -1000,7 +1002,7 @@ indices_dict = {
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
-    "multi": _gen_mi(),
+    "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
 }
 
