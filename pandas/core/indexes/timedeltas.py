@@ -1,7 +1,7 @@
 """ implement the TimedeltaIndex """
 
 from pandas._libs import NaT, Timedelta, index as libindex
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -212,6 +212,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         if other.inferred_type == "timedelta":
             other = TimedeltaIndex(other)
         return self, other
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        return is_timedelta64_dtype(dtype)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
