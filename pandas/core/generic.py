@@ -4798,6 +4798,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If int, array-like, or BitGenerator (NumPy>=1.17), seed for
             random number generator
             If np.random.RandomState, use as numpy RandomState object.
+
+            ..versionchanged:: 1.1.0
+
+                array-like and BitGenerator (for NumPy>=1.17) object now passed to
+                np.random.RandomState() as seed
+
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).

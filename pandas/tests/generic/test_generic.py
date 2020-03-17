@@ -663,10 +663,9 @@ class TestNDFrame:
     def test_sample_random_state(self, func_str, arg):
         # GH32503
         df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
-        tm.assert_frame_equal(
-            df.sample(n=3, random_state=com.random_state(eval(func_str)(arg))),
-            df.sample(n=3, random_state=eval(func_str)(arg)),
-        )
+        result = df.sample(n=3, random_state=eval(func_str)(arg))
+        expected = df.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
+        tm.assert_frame_equal(result, expected)
 
     def test_squeeze(self):
         # noop

@@ -62,6 +62,7 @@ def test_random_state():
     assert com.random_state() is np.random
 
     # check array-like
+    # GH32503
     state_arr_like = npr.randint(0, 2 ** 31, size=624, dtype="uint32")
     assert (
         com.random_state(state_arr_like).uniform()
@@ -69,6 +70,7 @@ def test_random_state():
     )
 
     # Check BitGenerators
+    # GH32503
     if not _np_version_under1p17:
         assert (
             com.random_state(npr.MT19937(3)).uniform()
