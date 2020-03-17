@@ -1,0 +1,130 @@
+import numpy as np
+import pytest
+
+import pandas as pd
+import pandas._testing as tm
+from pandas.core.arrays.boolean import coerce_to_array
+
+
+def make_data():
+    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+
+
+@pytest.fixture
+def dtype():
+    return pd.BooleanDtype()
+
+
+@pytest.fixture
+def data(dtype):
+    return pd.array(make_data(), dtype=dtype)
+
+
+@pytest.mark.parametrize(
+    "ufunc", [np.add, np.logical_or, np.logical_and, np.logical_xor]
+)
+def test_ufuncs_binary(ufunc):
+    # two BooleanArrays
+    a = pd.array([True, False, None], dtype="boolean")
+    result = ufunc(a, a)
+    expected = pd.array(ufunc(a._data, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = ufunc(s, a)
+    expected = pd.Series(ufunc(a._data, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_series_equal(result, expected)
+
+    # Boolean with numpy array
+    arr = np.array([True, True, False])
+    result = ufunc(a, arr)
+    expected = pd.array(ufunc(a._data, arr), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ufunc(arr, a)
+    expected = pd.array(ufunc(arr, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    # BooleanArray with scalar
+    result = ufunc(a, True)
+    expected = pd.array(ufunc(a._data, True), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ufunc(True, a)
+    expected = pd.array(ufunc(True, a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    # not handled types
+    with pytest.raises(TypeError):
+        ufunc(a, "test")
+
+
+@pytest.mark.parametrize("ufunc", [np.logical_not])
+def test_ufuncs_unary(ufunc):
+    a = pd.array([True, False, None], dtype="boolean")
+    result = ufunc(a)
+    expected = pd.array(ufunc(a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = ufunc(s)
+    expected = pd.Series(ufunc(a._data), dtype="boolean")
+    expected[a._mask] = np.nan
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("values", [[True, False], [True, None]])
+def test_ufunc_reduce_raises(values):
+    a = pd.array(values, dtype="boolean")
+    with pytest.raises(NotImplementedError):
+        np.add.reduce(a)
+
+
+def test_value_counts_na():
+    arr = pd.array([True, False, pd.NA], dtype="boolean")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([1, 1, 1], index=[True, False, pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([1, 1], index=[True, False], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_diff():
+    a = pd.array(
+        [True, True, False, False, True, None, True, None, False], dtype="boolean"
+    )
+    result = pd.core.algorithms.diff(a, 1)
+    expected = pd.array(
+        [None, False, True, False, True, None, None, None, None], dtype="boolean"
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = s.diff()
+    expected = pd.Series(expected)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_reductions_return_types(dropna, data, all_numeric_reductions):
+    op = all_numeric_reductions
+    s = pd.Series(data)
+    if dropna:
+        s = s.dropna()
+
+    if op in ("sum", "prod"):
+        assert isinstance(getattr(s, op)(), np.int64)
+    elif op in ("min", "max"):
+        assert isinstance(getattr(s, op)(), np.bool_)
+    else:
+        # "mean", "std", "var", "median", "kurt", "skew"
+        assert isinstance(getattr(s, op)(), np.float64)
