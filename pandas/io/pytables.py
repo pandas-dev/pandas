@@ -4963,8 +4963,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
     """
     Convert the passed data into a storable form and a dtype string.
     """
-    if is_categorical_dtype(data.dtype):
-        assert isinstance(data, Categorical)  # for mypy
+    if isinstance(data, Categorical):
         data = data.codes
 
     # For datetime64tz we need to drop the TZ in tests TODO: why?
