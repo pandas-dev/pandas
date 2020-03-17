@@ -22,6 +22,8 @@ from pandas._libs.algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE,
 from pandas._libs.algos import (take_2d_axis1_float64_float64,
                                 groupsort_indexer, tiebreakers)
 
+from pandas._libs.missing cimport checknull
+
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max
 
@@ -846,11 +848,13 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
         return val != val
 
 
+# GH#31710 use memorviews once cython 0.30 is released so we can
+#  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last(rank_t[:, :] out,
                int64_t[:] counts,
-               rank_t[:, :] values,
+               ndarray[rank_t, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=-1):
     """
@@ -887,7 +891,7 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -935,11 +939,13 @@ def group_last(rank_t[:, :] out,
         raise RuntimeError("empty group with uint64_t")
 
 
+# GH#31710 use memorviews once cython 0.30 is released so we can
+#  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
-              rank_t[:, :] values,
+              ndarray[rank_t, ndim=2] values,
               const int64_t[:] labels, int64_t rank=1,
               Py_ssize_t min_count=-1):
     """
@@ -976,7 +982,7 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -1143,7 +1149,7 @@ def group_rank(float64_t[:, :] out,
             # Update out only when there is a transition of values or labels.
             # When a new value or group is encountered, go back #dups steps(
             # the number of occurrence of current value) and assign the ranks
-            # based on the the starting index of the current group (grp_start)
+            # based on the starting index of the current group (grp_start)
             # and the current index
             if (i == N - 1 or
                     (masked_vals[_as[i]] != masked_vals[_as[i+1]]) or
@@ -1233,7 +1239,7 @@ ctypedef fused groupby_t:
 @cython.boundscheck(False)
 def group_max(groupby_t[:, :] out,
               int64_t[:] counts,
-              groupby_t[:, :] values,
+              ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
     """
@@ -1306,7 +1312,7 @@ def group_max(groupby_t[:, :] out,
 @cython.boundscheck(False)
 def group_min(groupby_t[:, :] out,
               int64_t[:] counts,
-              groupby_t[:, :] values,
+              ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
     """

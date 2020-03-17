@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from dateutil import tz
 import numpy as np
@@ -349,4 +349,24 @@ class TestDatetimeIndex:
         result = ser.loc[: ix[-2]]
         expected = ser.iloc[:-1]
 
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "slice_, positions",
+        [
+            [slice(date(2018, 1, 1), None), [0, 1, 2]],
+            [slice(date(2019, 1, 2), None), [2]],
+            [slice(date(2020, 1, 1), None), []],
+            [slice(None, date(2020, 1, 1)), [0, 1, 2]],
+            [slice(None, date(2019, 1, 1)), [0]],
+        ],
+    )
+    def test_getitem_slice_date(self, slice_, positions):
+        # https://github.com/pandas-dev/pandas/issues/31501
+        s = pd.Series(
+            [0, 1, 2],
+            pd.DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
+        )
+        result = s[slice_]
+        expected = s.take(positions)
         tm.assert_series_equal(result, expected)

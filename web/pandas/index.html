@@ -7,7 +7,7 @@
                     <h1>pandas</h1>
                     <p>
                         <strong>pandas</strong> is a fast, powerful, flexible and easy to use open source data analysis and manipulation tool,<br/>
-                        built on top of the <a href="http://www.python.org">Python</a> programming language.
+                        built on top of the <a href="https://www.python.org">Python</a> programming language.
                     </p>
                     <p>
                         <a class="btn btn-primary" href="{{ base_url }}/getting_started.html">Install pandas now!</a>
@@ -43,22 +43,27 @@
                 </div>
                 <section>
                     <h5>With the support of:</h5>
-                    <div class="row h-100">
-                        {% for company in partners.active %}
-                            <div class="col-sm-6 col-md-2 my-auto">
-                                <a href="{{ company.url }}" target="_blank">
-                                    <img class="img-fluid" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
-                                </a>
-                            </div>
-                        {% endfor %}
-                    </div>
+                    {% for row in sponsors.active | batch(6, "") %}
+                        <div class="row h-100">
+                            {% for company in row %}
+                                <div class="col-sm-6 col-md-2 my-auto">
+                                    {% if company %}
+                                        <a href="{{ company.url }}" target="_blank">
+                                            <img class="img-fluid" alt="{{ company.name }}" src="{{ base_url }}{{ company.logo }}"/>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                    <p class="mt-4">The full list of companies supporting <i>pandas</i> is available in the <a href="{{ base_url }}/about/sponsors.html">sponsors page</a>.
                 </section>
             </div>
             <div class="col-md-3">
                 {% if releases %}
                     <h4>Latest version: {{ releases[0].name }}</h4>
                     <ul>
-                        <li><a href="docs/whatsnew/v0.25.0.html">What's new in {{ releases[0].name }}</a></li>
+                        <li><a href="docs/whatsnew/v1.0.0.html">What's new in {{ releases[0].name }}</a></li>
                         <li>Release date:<br/>{{ releases[0].published.strftime("%b %d, %Y") }}</li>
                         <li><a href="{{ base_url}}/docs/">Documentation (web)</a></li>
                         <li><a href="{{ base_url }}/docs/pandas.pdf">Documentation (pdf)</a></li>

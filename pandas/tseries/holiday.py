@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.errors import PerformanceWarning
 
-from pandas import DateOffset, Series, Timestamp, date_range
+from pandas import DateOffset, DatetimeIndex, Series, Timestamp, concat, date_range
 
 from pandas.tseries.offsets import Day, Easter
 
@@ -406,17 +406,14 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         start = Timestamp(start)
         end = Timestamp(end)
 
-        holidays = None
         # If we don't have a cache or the dates are outside the prior cache, we
         # get them again
         if self._cache is None or start < self._cache[0] or end > self._cache[1]:
-            for rule in self.rules:
-                rule_holidays = rule.dates(start, end, return_name=True)
-
-                if holidays is None:
-                    holidays = rule_holidays
-                else:
-                    holidays = holidays.append(rule_holidays)
+            holidays = [rule.dates(start, end, return_name=True) for rule in self.rules]
+            if holidays:
+                holidays = concat(holidays)
+            else:
+                holidays = Series(index=DatetimeIndex([]), dtype=object)
 
             self._cache = (start, end, holidays.sort_index())
 

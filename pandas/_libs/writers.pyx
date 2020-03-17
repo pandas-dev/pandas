@@ -15,8 +15,13 @@ ctypedef fused pandas_string:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def write_csv_rows(list data, ndarray data_index,
-                   Py_ssize_t nlevels, ndarray cols, object writer):
+def write_csv_rows(
+    list data,
+    ndarray data_index,
+    Py_ssize_t nlevels,
+    ndarray cols,
+    object writer
+):
     """
     Write the given data to the writer object, pre-allocating where possible
     for performance improvements.
@@ -114,7 +119,9 @@ def convert_json_to_lines(arr: object) -> str:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
-    """ return the maximum size of elements in a 1-dim string array """
+    """
+    Return the maximum size of elements in a 1-dim string array.
+    """
     cdef:
         Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
         pandas_string val
@@ -130,7 +137,9 @@ def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
 
 
 cpdef inline Py_ssize_t word_len(object val):
-    """ return the maximum length of a string or bytes value """
+    """
+    Return the maximum length of a string or bytes value.
+    """
     cdef:
         Py_ssize_t l = 0
 
@@ -148,17 +157,16 @@ cpdef inline Py_ssize_t word_len(object val):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def string_array_replace_from_nan_rep(
-        ndarray[object, ndim=1] arr, object nan_rep,
-        object replace=None):
+    ndarray[object, ndim=1] arr,
+    object nan_rep,
+    object replace=np.nan
+):
     """
     Replace the values in the array with 'replacement' if
     they are 'nan_rep'. Return the same array.
     """
     cdef:
         Py_ssize_t length = len(arr), i = 0
-
-    if replace is None:
-        replace = np.nan
 
     for i in range(length):
         if arr[i] == nan_rep:

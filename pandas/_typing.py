@@ -45,6 +45,7 @@ Scalar = Union[PythonScalar, PandasScalar]
 # other
 
 Dtype = Union[str, np.dtype, "ExtensionDtype"]
+DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
@@ -63,7 +64,7 @@ Axis = Union[str, int]
 Label = Optional[Hashable]
 Level = Union[Label, int]
 Ordered = Optional[bool]
-JSONSerializable = Union[PythonScalar, List, Dict]
+JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
 
 # For functions like rename that convert one label to another

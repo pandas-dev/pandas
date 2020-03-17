@@ -55,7 +55,6 @@ def deprecate(
         The message to display in the warning.
         Default is '{name} is deprecated. Use {alt_name} instead.'
     """
-
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
     warning_msg = msg or f"{name} is deprecated, use {alt_name} instead"
@@ -163,7 +162,6 @@ def deprecate_kwarg(
     future version please takes steps to stop use of 'cols'
     should raise warning
     """
-
     if mapping is not None and not hasattr(mapping, "get") and not callable(mapping):
         raise TypeError(
             "mapping from old to new argument values must be dict or callable!"
@@ -247,8 +245,61 @@ def rewrite_axis_style_signature(
     return decorate
 
 
+def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
+    """
+    A decorator take docstring templates, concatenate them and perform string
+    substitution on it.
+
+    This decorator will add a variable "_docstring_components" to the wrapped
+    function to keep track the original docstring template for potential usage.
+    If it should be consider as a template, it will be saved as a string.
+    Otherwise, it will be saved as callable, and later user __doc__ and dedent
+    to get docstring.
+
+    Parameters
+    ----------
+    *args : str or callable
+        The string / docstring / docstring template to be appended in order
+        after default docstring under function.
+    **kwags : str
+        The string which would be used to format docstring template.
+    """
+
+    def decorator(func: F) -> F:
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> Callable:
+            return func(*args, **kwargs)
+
+        # collecting docstring and docstring templates
+        docstring_components: List[Union[str, Callable]] = []
+        if func.__doc__:
+            docstring_components.append(dedent(func.__doc__))
+
+        for arg in args:
+            if hasattr(arg, "_docstring_components"):
+                docstring_components.extend(arg._docstring_components)  # type: ignore
+            elif isinstance(arg, str) or arg.__doc__:
+                docstring_components.append(arg)
+
+        # formatting templates and concatenating docstring
+        wrapper.__doc__ = "".join(
+            [
+                arg.format(**kwargs)
+                if isinstance(arg, str)
+                else dedent(arg.__doc__ or "")
+                for arg in docstring_components
+            ]
+        )
+
+        wrapper._docstring_components = docstring_components  # type: ignore
+
+        return cast(F, wrapper)
+
+    return decorator
+
+
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
-# module http://matplotlib.org/users/license.html
+# module https://matplotlib.org/users/license.html
 
 
 class Substitution:

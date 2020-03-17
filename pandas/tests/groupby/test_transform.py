@@ -15,6 +15,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    _is_numpy_dev,
     concat,
     date_range,
 )
@@ -317,6 +318,34 @@ def test_dispatch_transform(tsframe):
     tm.assert_frame_equal(filled, expected)
 
 
+def test_transform_transformation_func(transformation_func):
+    # GH 30918
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
+            "B": [1, 2, np.nan, 3, 3, np.nan, 4],
+        }
+    )
+
+    if transformation_func in ["pad", "backfill", "tshift", "cumcount"]:
+        # These transformation functions are not yet covered in this test
+        pytest.xfail("See GH 31269")
+    elif _is_numpy_dev and transformation_func in ["cummin"]:
+        pytest.xfail("https://github.com/pandas-dev/pandas/issues/31992")
+    elif transformation_func == "fillna":
+        test_op = lambda x: x.transform("fillna", value=0)
+        mock_op = lambda x: x.fillna(value=0)
+    else:
+        test_op = lambda x: x.transform(transformation_func)
+        mock_op = lambda x: getattr(x, transformation_func)()
+
+    result = test_op(df.groupby("A"))
+    groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
+    expected = concat([mock_op(g) for g in groups])
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_transform_select_columns(df):
     f = lambda x: x.mean()
     result = df.groupby("A")[["C", "D"]].transform(f)
@@ -494,7 +523,6 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     dtype : type
         The specified dtype of the data.
     """
-
     is_datetimelike = False
 
     data = np.array([[1], [2], [3], [4]], dtype=dtype)
@@ -1065,8 +1093,10 @@ def test_transform_agg_by_name(reduction_func, obj):
         pytest.xfail("TODO: g.transform('ngroup') doesn't work")
     if func == "size":  # GH#27469
         pytest.xfail("TODO: g.transform('size') doesn't work")
+    if func == "corrwith" and isinstance(obj, Series):  # GH#32293
+        pytest.xfail("TODO: implement SeriesGroupBy.corrwith")
 
-    args = {"nth": [0], "quantile": [0.5]}.get(func, [])
+    args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
 
     result = g.transform(func, *args)
 

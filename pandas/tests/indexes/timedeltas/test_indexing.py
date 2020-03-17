@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import re
 
 import numpy as np
 import pytest
@@ -48,16 +49,31 @@ class TestGetItem:
 
     @pytest.mark.parametrize(
         "key",
-        [pd.Timestamp("1970-01-01"), pd.Timestamp("1970-01-02"), datetime(1970, 1, 1)],
+        [
+            pd.Timestamp("1970-01-01"),
+            pd.Timestamp("1970-01-02"),
+            datetime(1970, 1, 1),
+            pd.Timestamp("1970-01-03").to_datetime64(),
+            # non-matching NA values
+            np.datetime64("NaT"),
+        ],
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
         tdi = pd.timedelta_range(0, periods=10)
-        with pytest.raises(TypeError):
+        with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 
 
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = TimedeltaIndex([tdi[0], tdi[1], tdi[0]], freq=None, name="idx")
+
+        result = tdi.where(cond, tdi[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_invalid_dtypes(self):
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 

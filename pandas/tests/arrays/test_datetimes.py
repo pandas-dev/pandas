@@ -89,11 +89,26 @@ class TestDatetimeArrayConstructor:
         with pytest.raises(ValueError, match="list"):
             DatetimeArray([1, 2, 3])
 
-    def test_other_type_raises(self):
+    def test_bool_dtype_raises(self):
+        arr = np.array([1, 2, 3], dtype="bool")
+
         with pytest.raises(
             ValueError, match="The dtype of 'values' is incorrect.*bool"
         ):
-            DatetimeArray(np.array([1, 2, 3], dtype="bool"))
+            DatetimeArray(arr)
+
+        msg = r"dtype bool cannot be converted to datetime64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray._from_sequence(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            sequence_to_dt64ns(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.DatetimeIndex(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.to_datetime(arr)
 
     def test_incorrect_dtype_raises(self):
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
@@ -150,6 +165,18 @@ class TestDatetimeArray:
         arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
         result = arr.astype(DatetimeTZDtype(tz="US/Central"), copy=False)
         assert result is arr
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "datetime64[ns, UTC]"])
+    @pytest.mark.parametrize(
+        "other", ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, CET]"]
+    )
+    def test_astype_copies(self, dtype, other):
+        # https://github.com/pandas-dev/pandas/pull/32490
+        s = pd.Series([1, 2], dtype=dtype)
+        orig = s.copy()
+        t = s.astype(other)
+        t[:] = pd.NaT
+        tm.assert_series_equal(s, orig)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
@@ -331,25 +358,19 @@ class TestDatetimeArray:
             pd.Timestamp.now().to_period("D"),
         ],
     )
-    @pytest.mark.parametrize(
-        "index",
-        [
-            True,
-            pytest.param(
-                False,
-                marks=pytest.mark.xfail(
-                    reason="Raises ValueError instead of TypeError", raises=ValueError
-                ),
-            ),
-        ],
-    )
+    @pytest.mark.parametrize("index", [True, False])
     def test_searchsorted_invalid_types(self, other, index):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = DatetimeArray(data, freq="D")
         if index:
             arr = pd.Index(arr)
 
-        msg = "searchsorted requires compatible dtype or scalar"
+        msg = "|".join(
+            [
+                "searchsorted requires compatible dtype or scalar",
+                "Unexpected type for 'value'",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             arr.searchsorted(other)
 
