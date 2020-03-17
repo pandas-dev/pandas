@@ -5337,7 +5337,11 @@ Keep all original rows and columns and also all original values
     )
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
-        self, other: "DataFrame", align_axis=1, keep_shape=False, keep_equal=False
+        self,
+        other: "DataFrame",
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
     ) -> "DataFrame":
         return super().differences(
             other=other,

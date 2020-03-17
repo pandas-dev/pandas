@@ -2641,7 +2641,11 @@ Keep all original rows and also all original values
     )
     @Appender(generic._shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
-        self, other: "Series", align_axis=1, keep_shape=False, keep_equal=False
+        self,
+        other: "Series",
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
     ) -> FrameOrSeries:
         return super().differences(
             other=other,
