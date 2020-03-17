@@ -975,7 +975,7 @@ def test_no_permission(all_parsers):
 
     msg = r"\[Errno 13\]"
     with tm.ensure_clean() as path:
-        os.chmod(path, 0)       # make file unreadable
+        os.chmod(path, 0)  # make file unreadable
         with pytest.raises(PermissionError, match=msg) as e:
             parser.read_csv(path)
             assert path == e.value.filename
