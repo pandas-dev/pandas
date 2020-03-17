@@ -787,3 +787,9 @@ class TestSeriesMap:
         result = ser.map(lambda val: str(val)).to_dict()
         expected = {0: "0.3333333333333333"}
         assert result == expected
+
+    def test_map_with_invalid_na_action_raises(self):
+        s = pd.Series([1, 2, 3])
+        msg = "na_action must either be 'ignore' or None"
+        with pytest.raises(ValueError, match=msg):
+            s.map(lambda x: x, na_action="____")
