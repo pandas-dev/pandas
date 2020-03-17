@@ -2763,7 +2763,7 @@ Name: Max Speed, dtype: float64
         other = other.reindex_like(self)
         mask = notna(other)
 
-        self._data = self._data.putmask(mask=mask, new=other, inplace=True)
+        self._data = self._data.putmask(mask=mask, new=other)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------

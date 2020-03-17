@@ -928,26 +928,28 @@ class Block(PandasObject):
         inplace: bool = False,
         axis: int = 0,
         transpose: bool = False,
-    ):
+    ) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
 
-        return the resulting block(s)
+        Return the resulting blocks.
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : the condition to respect
         new : a ndarray/object
-        align : boolean, perform alignment on other/cond, default is True
-        inplace : perform inplace modification, default is False
+        align : bool, default True
+            Perform alignment on other/cond.
+        inplace : bool, default False
+            Perform inplace modification.
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
+        transpose : bool, default False.
+            Set to True if self is stored with axes reversed.
 
         Returns
         -------
-        a list of new blocks, the result of the putmask
+        List[Block]
         """
         new_values = self.values if inplace else self.values.copy()
 
@@ -1657,8 +1659,14 @@ class NonConsolidatableMixIn:
         self.values = values
 
     def putmask(
-        self, mask, new, align=True, inplace=False, axis=0, transpose=False,
-    ):
+        self,
+        mask,
+        new,
+        align: bool = True,
+        inplace: bool = False,
+        axis: int = 0,
+        transpose: bool = False,
+    ) -> List["Block"]:
         """
         putmask the data to the block; we must be a single block and not
         generate other blocks
@@ -1667,14 +1675,16 @@ class NonConsolidatableMixIn:
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : the condition to respect
         new : a ndarray/object
-        align : boolean, perform alignment on other/cond, default is True
-        inplace : perform inplace modification, default is False
+        align : bool, default True.
+            Perform alignment on other/cond.
+        inplace : bool, default False.
+            Perform inplace modification.
 
         Returns
         -------
-        a new block, the result of the putmask
+        List[Block]
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
