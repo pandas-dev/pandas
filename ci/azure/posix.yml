@@ -38,11 +38,11 @@ jobs:
           LC_ALL: "it_IT.utf8"
           EXTRA_APT: "language-pack-it xsel"
 
-        py36_32bit:
-          ENV_FILE: ci/deps/azure-36-32bit.yaml
-          CONDA_PY: "36"
-          PATTERN: "not slow and not network and not clipboard"
-          BITS32: "yes"
+        #py36_32bit:
+        #  ENV_FILE: ci/deps/azure-36-32bit.yaml
+        #  CONDA_PY: "36"
+        #  PATTERN: "not slow and not network and not clipboard"
+        #  BITS32: "yes"
 
         py37_locale:
           ENV_FILE: ci/deps/azure-37-locale.yaml
