@@ -17,7 +17,7 @@ Also, it is a common practice to generate online (html) documentation
 automatically from docstrings. `Sphinx <https://www.sphinx-doc.org>`_ serves
 this purpose.
 
-Next example gives an idea on how a docstring looks like:
+The next example gives an idea of what a docstring looks like:
 
 .. code-block:: python
 
@@ -26,8 +26,8 @@ Next example gives an idea on how a docstring looks like:
         Add up two integer numbers.
 
         This function simply wraps the `+` operator, and does not
-        do anything interesting, except for illustrating what is
-        the docstring of a very simple function.
+        do anything interesting, except for illustrating what
+        the docstring of a very simple function looks like.
 
         Parameters
         ----------
@@ -56,14 +56,14 @@ Next example gives an idea on how a docstring looks like:
         """
         return num1 + num2
 
-Some standards exist about docstrings, so they are easier to read, and they can
-be exported to other formats such as html or pdf.
+Some standards regarding docstrings exist, which make them easier to read, and allow them
+be easily exported to other formats such as html or pdf.
 
 The first conventions every Python docstring should follow are defined in
 `PEP-257 <https://www.python.org/dev/peps/pep-0257/>`_.
 
-As PEP-257 is quite open, and some other standards exist on top of it. In the
-case of pandas, the numpy docstring convention is followed. The conventions is
+As PEP-257 is quite broad, other more specific standards also exist. In the
+case of pandas, the numpy docstring convention is followed. These conventions are
 explained in this document:
 
 * `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
@@ -83,8 +83,8 @@ about reStructuredText can be found in:
 pandas has some helpers for sharing docstrings between related classes, see
 :ref:`docstring.sharing`.
 
-The rest of this document will summarize all the above guides, and will
-provide additional convention specific to the pandas project.
+The rest of this document will summarize all the above guidelines, and will
+provide additional conventions specific to the pandas project.
 
 .. _docstring.tutorial:
 
@@ -101,9 +101,9 @@ left before or after the docstring. The text starts in the next line after the
 opening quotes. The closing quotes have their own line
 (meaning that they are not at the end of the last sentence).
 
-In rare occasions reST styles like bold text or italics will be used in
+On rare occasions reST styles like bold text or italics will be used in
 docstrings, but is it common to have inline code, which is presented between
-backticks. It is considered inline code:
+backticks. The following are considered inline code:
 
 * The name of a parameter
 * Python code, a module, function, built-in, type, literal... (e.g. ``os``,
@@ -235,8 +235,8 @@ The extended summary provides details on what the function does. It should not
 go into the details of the parameters, or discuss implementation notes, which
 go in other sections.
 
-A blank line is left between the short summary and the extended summary. And
-every paragraph in the extended summary is finished by a dot.
+A blank line is left between the short summary and the extended summary.
+Every paragraph in the extended summary ends with a dot.
 
 The extended summary should provide details on why the function is useful and
 their use cases, if it is not too generic.
@@ -542,19 +542,19 @@ first (not an alias like ``np``). If the function is in a module which is not
 the main one, like ``scipy.sparse``, list the full module (e.g.
 ``scipy.sparse.coo_matrix``).
 
-This section, as the previous, also has a header, "See Also" (note the capital
-S and A). Also followed by the line with hyphens, and preceded by a blank line.
+This section has a header, "See Also" (note the capital
+S and A), followed by the line with hyphens and preceded by a blank line.
 
 After the header, we will add a line for each related method or function,
 followed by a space, a colon, another space, and a short description that
-illustrated what this method or function does, why is it relevant in this
-context, and what are the key differences between the documented function and
-the one referencing. The description must also finish with a dot.
+illustrates what this method or function does, why is it relevant in this
+context, and what the key differences are between the documented function and
+the one being referenced. The description must also end with a dot.
 
-Note that in "Returns" and "Yields", the description is located in the
-following line than the type. But in this section it is located in the same
-line, with a colon in between. If the description does not fit in the same
-line, it can continue in the next ones, but it has to be indented in them.
+Note that in "Returns" and "Yields", the description is located on the line
+after the type. In this section, however, it is located on the same
+line, with a colon in between. If the description does not fit on the same
+line, it can continue onto other lines which must be further indented.
 
 For example:
 
@@ -587,7 +587,7 @@ Section 6: Notes
 ~~~~~~~~~~~~~~~~
 
 This is an optional section used for notes about the implementation of the
-algorithm. Or to document technical aspects of the function behavior.
+algorithm, or to document technical aspects of the function behavior.
 
 Feel free to skip it, unless you are familiar with the implementation of the
 algorithm, or you discover some counter-intuitive behavior while writing the
@@ -600,15 +600,15 @@ This section follows the same format as the extended summary section.
 Section 7: Examples
 ~~~~~~~~~~~~~~~~~~~
 
-This is one of the most important sections of a docstring, even if it is
-placed in the last position. As often, people understand concepts better
-with examples, than with accurate explanations.
+This is one of the most important sections of a docstring, despite being
+placed in the last position, as often people understand concepts better
+by example than through accurate explanations.
 
 Examples in docstrings, besides illustrating the usage of the function or
-method, must be valid Python code, that in a deterministic way returns the
-presented output, and that can be copied and run by users.
+method, must be valid Python code, that returns the given output in a
+deterministic way, and that can be copied and run by users.
 
-They are presented as a session in the Python terminal. `>>>` is used to
+Examples are presented as a session in the Python terminal. `>>>` is used to
 present code. `...` is used for code continuing from the previous line.
 Output is presented immediately after the last line of code generating the
 output (no blank lines in between). Comments describing the examples can
@@ -636,7 +636,7 @@ A simple example could be:
             Return the first elements of the Series.
 
             This function is mainly useful to preview the values of the
-            Series without displaying the whole of it.
+            Series without displaying all of it.
 
             Parameters
             ----------
