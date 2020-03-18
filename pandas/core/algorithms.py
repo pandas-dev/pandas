@@ -2025,9 +2025,7 @@ def safe_sort(
         )
     codes = ensure_platform_int(np.asarray(codes))
 
-    from pandas import Index
-
-    if not assume_unique and not Index(values).is_unique:
+    if not assume_unique and not len(unique(values)) == len(values):
         raise ValueError("values should be unique if codes is not None")
 
     if sorter is None:

@@ -425,6 +425,15 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=["first", "last", False])
+def keep(request):
+    """
+    Valid values for the 'keep' parameter used in
+    .duplicated or .drop_duplicates
+    """
+    return request.param
+
+
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
