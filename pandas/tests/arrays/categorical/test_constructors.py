@@ -252,7 +252,7 @@ class TestCategoricalConstructors:
     def test_constructor_with_null(self):
 
         # Cannot have NaN in categories
-        msg = "Categorial categories cannot be null"
+        msg = "Categorical categories cannot be null"
         with pytest.raises(ValueError, match=msg):
             Categorical([np.nan, "a", "b", "c"], categories=[np.nan, "a", "b", "c"])
 
@@ -500,7 +500,7 @@ class TestCategoricalConstructors:
             Categorical.from_codes([0, 1, 2], categories=["a", "a", "b"])
 
     def test_from_codes_nan_cat_included(self):
-        with pytest.raises(ValueError, match="Categorial categories cannot be null"):
+        with pytest.raises(ValueError, match="Categorical categories cannot be null"):
             Categorical.from_codes([0, 1, 2], categories=["a", "b", np.nan])
 
     def test_from_codes_too_negative(self):
