@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_dtype_equal,
@@ -532,6 +531,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._constructor(values, **attributes)
             except (TypeError, ValueError):
                 pass
+
+        # Remove tz so Index will try non-DatetimeIndex inference
+        attributes.pop("tz", None)
         return Index(values, **attributes)
 
     def _update_inplace(self, result, **kwargs):
@@ -3281,13 +3283,11 @@ class Index(IndexOpsMixin, PandasObject):
         target = _ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
-            attrs = self._get_attributes_dict()
-            attrs.pop("freq", None)  # don't preserve freq
             if isinstance(self, ABCRangeIndex):
                 values = range(0)
             else:
                 values = self._data[:0]  # appropriately-dtyped empty array
-            target = self._simple_new(values, **attrs)
+            target = self._simple_new(values, name=self.name)
         else:
             target = ensure_index(target)
 
@@ -3871,50 +3871,6 @@ class Index(IndexOpsMixin, PandasObject):
         _ndarray_values
         """
         return self._data
-
-    def _internal_get_values(self) -> np.ndarray:
-        """
-        Return `Index` data as an `numpy.ndarray`.
-
-        Returns
-        -------
-        numpy.ndarray
-            A one-dimensional numpy array of the `Index` values.
-
-        See Also
-        --------
-        Index.values : The attribute that _internal_get_values wraps.
-
-        Examples
-        --------
-        Getting the `Index` values of a `DataFrame`:
-
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-        ...                    index=['a', 'b', 'c'], columns=['A', 'B', 'C'])
-        >>> df
-           A  B  C
-        a  1  2  3
-        b  4  5  6
-        c  7  8  9
-        >>> df.index._internal_get_values()
-        array(['a', 'b', 'c'], dtype=object)
-
-        Standalone `Index` values:
-
-        >>> idx = pd.Index(['1', '2', '3'])
-        >>> idx._internal_get_values()
-        array(['1', '2', '3'], dtype=object)
-
-        `MultiIndex` arrays also have only one dimension:
-
-        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
-        ...                                  names=('number', 'letter'))
-        >>> midx._internal_get_values()
-        array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
-        >>> midx._internal_get_values().ndim
-        1
-        """
-        return self.values
 
     def _get_engine_target(self) -> np.ndarray:
         """
@@ -4659,10 +4615,8 @@ class Index(IndexOpsMixin, PandasObject):
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if is_categorical(target):
+        if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
-        elif self.is_all_dates and target.is_all_dates:  # GH 30399
-            tgt_values = target.asi8
         else:
             tgt_values = target._get_engine_target()
 
@@ -5197,9 +5151,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        _self = np.asarray(self)
-        item = self._coerce_scalar_to_index(item)._ndarray_values
-        idx = np.concatenate((_self[:loc], item, _self[loc:]))
+        # Note: this method is overriden by all ExtensionIndex subclasses,
+        #  so self is never backed by an EA.
+        arr = np.asarray(self)
+        item = self._coerce_scalar_to_index(item)._values
+        idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return self._shallow_copy_with_infer(idx)
 
     def drop(self, labels, errors: str_t = "raise"):
