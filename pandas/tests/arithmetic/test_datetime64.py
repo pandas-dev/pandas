@@ -1071,7 +1071,7 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
-    def test_dt64arr_addsub_time_object_raises(self, box_with_array, tz_naive_fixture):
+    def test_dt64arr_addsub_time_objects_raises(self, box_with_array, tz_naive_fixture):
         # https://github.com/pandas-dev/pandas/issues/10329
 
         tz = tz_naive_fixture
