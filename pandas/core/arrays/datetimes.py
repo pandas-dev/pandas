@@ -1852,14 +1852,20 @@ def objects_to_datetime64ns(
             yearfirst=yearfirst,
             require_iso8601=require_iso8601,
         )
-    except ValueError as e:
+    except ValueError as err:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data)
             # If tzaware, these values represent unix timestamps, so we
             #  return them as i8 to distinguish from wall times
             return values.view("i8"), tz_parsed
         except (ValueError, TypeError):
-            raise e
+            if "Unknown string format" in err.args[0]:
+                raise ValueError(
+                    f"Unexpected value {err.args[1]}.\n"
+                    "You can coerce to NaT by passing `errors='coerce'`"
+                ) from err
+
+            raise err
 
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
