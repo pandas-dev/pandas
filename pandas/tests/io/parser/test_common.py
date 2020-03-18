@@ -963,10 +963,7 @@ def test_nonexistent_path(all_parsers):
     msg = r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
         parser.read_csv(path)
-
-        filename = e.value.filename
-
-        assert path == filename
+    assert path == e.value.filename
 
 
 def test_no_permission(all_parsers):
@@ -978,7 +975,7 @@ def test_no_permission(all_parsers):
         os.chmod(path, 0)  # make file unreadable
         with pytest.raises(PermissionError, match=msg) as e:
             parser.read_csv(path)
-            assert path == e.value.filename
+        assert path == e.value.filename
 
 
 def test_missing_trailing_delimiters(all_parsers):
