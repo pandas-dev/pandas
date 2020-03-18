@@ -5,7 +5,6 @@ from typing import List
 
 import numpy as np
 
-import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
@@ -16,7 +15,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
@@ -293,18 +291,8 @@ class ExtensionIndex(Index):
     def map(self, mapper, na_action=None):
         # Try to run function on index first, and then on elements of index
         # Especially important for group-by functionality
-        if na_action == "ignore":
-
-            def map_f(values, f):
-                return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
-
-        elif na_action is None:
-            map_f = lib.map_infer
-        else:
-            raise ValueError("na_action must either be 'ignore' or None")
-
         try:
-            result = map_f(self.to_numpy(na_value=np.nan), mapper)
+            result = mapper(self)
 
             # Try to use this result if we can
             if isinstance(result, np.ndarray):
@@ -314,7 +302,7 @@ class ExtensionIndex(Index):
                 raise TypeError("The map function must return an Index object")
             return result
         except Exception:
-            return self.astype(object).map(mapper, na_action=na_action)
+            return self.astype(object).map(mapper)
 
     @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):

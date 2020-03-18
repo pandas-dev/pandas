@@ -240,7 +240,6 @@ Categorical
 - Bug when passing categorical data to :class:`Index` constructor along with ``dtype=object`` incorrectly returning a :class:`CategoricalIndex` instead of object-dtype :class:`Index` (:issue:`32167`)
 - Bug where :class:`Categorical` comparison operator ``__ne__`` would incorrectly evaluate to ``False`` when either element was missing (:issue:`32276`)
 - :meth:`Categorical.fillna` now accepts :class:`Categorical` ``other`` argument (:issue:`32420`)
-- Bug in :meth:`Categorical.map` not supporting the ``na_action`` parameter
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -404,7 +403,6 @@ Other
 - :meth:`IntegerArray.astype` now supports ``datetime64`` dtype (:issue:32538`)
 - Fixed bug in :func:`pandas.testing.assert_series_equal` where dtypes were checked for ``Interval`` and ``ExtensionArray`` operands when ``check_dtype`` was ``False`` (:issue:`32747`)
 - Bug in :meth:`Series.map` not raising on invalid ``na_action``
-- Bug in :meth:`ExtensionIndex.map` where the ``na_action`` parameter was ignored
 
 .. ---------------------------------------------------------------------------
 

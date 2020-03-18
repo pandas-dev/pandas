@@ -33,9 +33,3 @@ def test_wrong_number_names(indices):
 
 def test_tolist_matches_list(indices):
     assert indices.tolist() == list(indices)
-
-
-def test_map_with_invalid_na_action_raises(indices):
-    msg = "na_action must either be 'ignore' or None"
-    with pytest.raises(ValueError, match=msg):
-        indices.map(lambda x: x, na_action="____")
