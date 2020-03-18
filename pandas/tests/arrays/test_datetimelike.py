@@ -822,3 +822,15 @@ def test_searchsorted_datetimelike_with_listlike(klass):
     expected = np.array([0, 1], dtype=result.dtype)
 
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg", [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2]
+)
+def test_searchsorted_datetimelike_with_listlike_invalid_dtype(arg):
+    # https://github.com/pandas-dev/pandas/issues/32762
+    dates = pd.to_datetime(["2020-01-01", "2020-02-01"])
+
+    msg = "[Unexpected type|Cannot compare]"
+    with pytest.raises(TypeError, match=msg):
+        dates.searchsorted(arg)
