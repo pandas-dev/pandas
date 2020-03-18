@@ -380,15 +380,19 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     # There's blkno in this function's name because it's used in block &
     # blockno handling.
     cdef:
-        Py_ssize_t i, diff, tot_len, stop
-        Py_ssize_t start = 0, n = blknos.shape[0]
+        int64_t cur_blkno
+        Py_ssize_t i, start, stop, n, diff, tot_len
         object blkno
         object group_dict = defaultdict(list)
         int64_t[:] res_view
-        int64_t cur_blkno = blknos[start]
+
+    n = blknos.shape[0]
 
     if n == 0:
         return
+
+    start = 0
+    cur_blkno = blknos[start]
 
     if not group:
         for i in range(1, n):
