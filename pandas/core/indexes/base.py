@@ -624,9 +624,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
-        values = self._values
-        if not isinstance(values, np.ndarray):
-            values = values._values_for_argsort()
+        values = self._get_engine_target()
         return values.ravel(order=order)
 
     def view(self, cls=None):
