@@ -874,12 +874,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __getitem__(self, key):
         key = com.apply_if_callable(key, self)
-        key = lib.item_from_zerodim(key)
 
         if key is Ellipsis:
             return self
 
-        key_is_scalar = lib.is_scalar(key)
+        key_is_scalar = is_scalar(key)
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
