@@ -495,7 +495,7 @@ class SeriesGroupBy(GroupBy):
         if engine == "numba":
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
-            new_func = jit_user_function(func, nopython, nogil, parallel)
+            func = jit_user_function(func, nopython, nogil, parallel)
 
         klass = type(self._selected_obj)
 
