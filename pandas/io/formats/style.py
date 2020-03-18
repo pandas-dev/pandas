@@ -27,7 +27,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import Appender, doc
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_float
 
