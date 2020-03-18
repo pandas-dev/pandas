@@ -371,7 +371,6 @@ def get_handle(
         of options.
 
         .. versionadded:: 1.1.0
-
     compression : str or dict, default None
         If string, specifies compression mode. If dict, value at key 'method'
         specifies compression mode. Compression mode must be one of {'infer',

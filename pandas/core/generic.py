@@ -3101,6 +3101,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
             of options.
+
+            .. versionadded:: 1.1.0
         compression : str or dict, default 'infer'
             If str, represents compression mode. If dict, value at 'method' is
             the compression mode. Compression mode may be any of the following
