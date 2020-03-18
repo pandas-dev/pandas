@@ -356,7 +356,9 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
 
