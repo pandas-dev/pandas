@@ -170,7 +170,10 @@ cdef class BlockPlacement:
             if (step > 0 and start < 0) or (step < 0 and stop < step):
                 raise ValueError("iadd causes length change")
 
-            val = slice(start, None, step) if stop < 0 else slice(start, stop, step)
+            if stop < 0:
+                val = slice(start, None, step)
+            else:
+                val = slice(start, stop, step)
 
             return BlockPlacement(val)
         else:
