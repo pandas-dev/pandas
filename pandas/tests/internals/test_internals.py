@@ -547,7 +547,6 @@ class TestBlockManager:
             create_mgr("a: category2; b: category2")
 
     def test_interleave(self):
-
         # self
         for dtype in ["f8", "i8", "object", "bool", "complex", "M8[ns]", "m8[ns]"]:
             mgr = create_mgr(f"a: {dtype}")
@@ -578,7 +577,7 @@ class TestBlockManager:
             ("a: M8[ns]; b: m8[ns]", "object"),
         ],
     )
-    def test_interleave(self, mgr_string, dtype):
+    def test_interleave_dtype(self, mgr_string, dtype):
         # will be converted according the actual dtype of the underlying
         mgr = create_mgr("a: category")
         assert mgr.as_array().dtype == "i8"
