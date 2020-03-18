@@ -230,18 +230,15 @@ void *new_mmap(char *fname) {
 
     mm = (memory_map *)malloc(sizeof(memory_map));
     if (mm == NULL) {
-        PyErr_NoMemory();
         return NULL;
     }
     mm->fd = open(fname, O_RDONLY | O_BINARY);
     if (mm->fd == -1) {
-        PyErr_SetFromErrnoWithFilename(PyExc_OSError, fname);
         free(mm);
         return NULL;
     }
 
     if (fstat(mm->fd, &stat) == -1) {
-        PyErr_SetFromErrnoWithFilename(PyExc_OSError, fname);
         close(mm->fd);
         free(mm);
         return NULL;
@@ -250,7 +247,6 @@ void *new_mmap(char *fname) {
 
     mm->memmap = mmap(NULL, filesize, PROT_READ, MAP_SHARED, mm->fd, 0);
     if (mm->memmap == MAP_FAILED) {
-        PyErr_SetFromErrnoWithFilename(PyExc_OSError, fname);
         close(mm->fd);
         free(mm);
         return NULL;
