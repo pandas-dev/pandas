@@ -76,6 +76,9 @@ from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
 
+# from pandas.core.util.numba_ import check_kwargs_and_nopython, get_jit_arguments, jit_user_function, split_for_numba
+
+
 if TYPE_CHECKING:
     from pandas.core.internals import Block
 
@@ -461,11 +464,13 @@ class SeriesGroupBy(GroupBy):
 
     @Substitution(klass="Series", selected="A.")
     @Appender(_transform_template)
-    def transform(self, func, *args, **kwargs):
+    def transform(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
+            return self._transform_general(
+                func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
+            )
 
         elif func not in base.transform_kernel_whitelist:
             msg = f"'{func}' is not a valid function name for transform(name)"
@@ -480,16 +485,28 @@ class SeriesGroupBy(GroupBy):
         result = getattr(self, func)(*args, **kwargs)
         return self._transform_fast(result, func)
 
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(
+        self, func, engine="cython", engine_kwargs=None, *args, **kwargs
+    ):
         """
         Transform with a non-str `func`.
         """
+
+        if engine == "numba":
+            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+            check_kwargs_and_nopython(kwargs, nopython)
+            new_func = jit_user_function(func, nopython, nogil, parallel)
+
         klass = type(self._selected_obj)
 
         results = []
         for name, group in self:
             object.__setattr__(group, "name", name)
-            res = func(group, *args, **kwargs)
+            if engine == "numba":
+                values, index, _ = split_for_numba(group)
+                res = func(group, index, *args)
+            else:
+                res = func(group, *args, **kwargs)
 
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
@@ -1355,7 +1372,9 @@ class DataFrameGroupBy(GroupBy):
             # Handle cases like BinGrouper
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(
+        self, func, engine="cython", engine_kwargs=None, *args, **kwargs
+    ):
         from pandas.core.reshape.concat import concat
 
         applied = []
@@ -1411,13 +1430,15 @@ class DataFrameGroupBy(GroupBy):
 
     @Substitution(klass="DataFrame", selected="")
     @Appender(_transform_template)
-    def transform(self, func, *args, **kwargs):
+    def transform(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
 
         # optimized transforms
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
+            return self._transform_general(
+                func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
+            )
 
         elif func not in base.transform_kernel_whitelist:
             msg = f"'{func}' is not a valid function name for transform(name)"
@@ -1439,7 +1460,9 @@ class DataFrameGroupBy(GroupBy):
             ):
                 return self._transform_fast(result, func)
 
-        return self._transform_general(func, *args, **kwargs)
+        return self._transform_general(
+            func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
+        )
 
     def _transform_fast(self, result: DataFrame, func_nm: str) -> DataFrame:
         """
