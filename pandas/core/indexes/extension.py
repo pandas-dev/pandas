@@ -304,7 +304,7 @@ class ExtensionIndex(Index):
             raise ValueError("na_action must either be 'ignore' or None")
 
         try:
-            result = map_f(self, mapper)
+            result = map_f(self.to_numpy(na_value=np.nan), mapper)
 
             # Try to use this result if we can
             if isinstance(result, np.ndarray):
