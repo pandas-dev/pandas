@@ -308,7 +308,10 @@ cdef slice_getitem(slice slc, ind):
             return slice(s_start, s_stop, s_step)
 
     else:
-        return np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]
+        # NOTE:
+        # this is the C-optimized equivalent of
+        # `np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]`
+        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INT64)[ind]
 
 
 @cython.boundscheck(False)
