@@ -133,7 +133,10 @@ cdef class BlockPlacement:
         cdef:
             slice s = self._ensure_has_slice()
 
-        val = slice_getitem(s, loc) if s is not None else self._as_array[loc]
+        if s is not None:
+            val = slice_getitem(s, loc)
+        else:
+            val = self._as_array[loc]
 
         if not isinstance(val, slice) and val.ndim == 0:
             return val
