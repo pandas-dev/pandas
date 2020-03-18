@@ -13,9 +13,7 @@ from pandas._libs.tslibs.util cimport get_c_string
 from pandas._libs.missing cimport C_NA
 
 cdef extern from "Python.h":
-    # Note: importing extern-style allows us to declare these as nogil
-    # functions, whereas `from cpython cimport` does not.
-    void PyErr_Clear() nogil
+    void PyErr_Clear()
 
 {{py:
 
