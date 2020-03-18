@@ -1145,6 +1145,9 @@ class Categorical(ExtensionArray, PandasObject):
         mapper : function, dict, or Series
             Mapping correspondence.
 
+        na_action : 'ignore' or None, default None
+            Propagate NaN values if 'ignore', otherwise pass to the mapper.
+
         Returns
         -------
         pandas.Categorical or pandas.Index
