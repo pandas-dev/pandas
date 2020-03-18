@@ -27,7 +27,7 @@ from pandas._config import get_option
 from pandas._libs import lib
 from pandas._typing import Axis, FrameOrSeries, FrameOrSeriesUnion, Label
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, doc
 
 from pandas.core.dtypes.common import is_float
 
@@ -192,17 +192,15 @@ class Styler:
         """
         return self.render()
 
-    @Appender(
-        _shared_docs["to_excel"]
-        % dict(
-            axes="index, columns",
-            klass="Styler",
-            axes_single_arg="{0 or 'index', 1 or 'columns'}",
-            optional_by="""
+    @doc(
+        _shared_docs["to_excel"],
+        axes="index, columns",
+        klass="Styler",
+        axes_single_arg="{0 or 'index', 1 or 'columns'}",
+        optional_by="""
             by : str or list of str
                 Name or list of names which refer to the axis items.""",
-            versionadded_to_excel="\n    .. versionadded:: 0.20",
-        )
+        versionadded_to_excel="\n    .. versionadded:: 0.20",
     )
     def to_excel(
         self,
