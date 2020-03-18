@@ -4,6 +4,7 @@ from cython import Py_ssize_t
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (
+    NPY_INTP,
     float32_t,
     float64_t,
     int8_t,
@@ -77,8 +78,12 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
 
 
 @cython.boundscheck(False)
-def left_outer_join(const int64_t[:] left, const int64_t[:] right,
-                    Py_ssize_t max_groups, sort=True):
+def left_outer_join(
+    const int64_t[:] left,
+    const int64_t[:] right,
+    Py_ssize_t max_groups,
+    bint sort=True,
+):
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
@@ -138,7 +143,13 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
             rev = np.empty(len(left), dtype=np.intp)
-            rev.put(ensure_platform_int(left_sorter), np.arange(len(left)))
+            rev.put(
+                ensure_platform_int(left_sorter),
+                # NOTE:
+                # this is the C-optimized equivalent of
+                # `np.arange(len(left))`
+                cnp.PyArray_Arange(0, len(left), 1, NPY_INTP),
+            )
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
