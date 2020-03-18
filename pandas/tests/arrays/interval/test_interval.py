@@ -189,7 +189,7 @@ def test_arrow_array_missing():
     import pyarrow as pa
     from pandas.core.arrays._arrow_utils import ArrowIntervalType
 
-    arr = IntervalArray.from_breaks([0, 1, 2, 3])
+    arr = IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0])
     arr[1] = None
 
     result = pa.array(arr)
@@ -216,8 +216,8 @@ def test_arrow_array_missing():
 @pyarrow_skip
 @pytest.mark.parametrize(
     "breaks",
-    [[0, 1, 2, 3], pd.date_range("2017", periods=4, freq="D")],
-    ids=["int", "datetime64[ns]"],
+    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    ids=["float", "datetime64[ns]"],
 )
 def test_arrow_table_roundtrip(breaks):
     import pyarrow as pa
