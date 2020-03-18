@@ -869,9 +869,7 @@ def group_last(rank_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    # NOTE:
-    # Casting to avoid build warnings
-    if not len(values) == <Py_ssize_t>len(labels):
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -962,9 +960,7 @@ def group_nth(rank_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    # NOTE:
-    # Casting to avoid build warnings
-    if not len(values) == <Py_ssize_t>len(labels):
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -1258,9 +1254,7 @@ def group_max(groupby_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    # NOTE:
-    # Casting to avoid build warnings
-    if not len(values) == <Py_ssize_t>len(labels):
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -1333,9 +1327,7 @@ def group_min(groupby_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    # NOTE:
-    # Casting to avoid build warnings
-    if not len(values) == <Py_ssize_t>len(labels):
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
