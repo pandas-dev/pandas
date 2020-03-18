@@ -435,6 +435,52 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self) -> Label:
+        """
+        Return the name of the Series.
+
+        The name of a Series becomes its index or column name if it is used
+        to form a DataFrame. It is also used whenever displaying the Series
+        using the interpreter.
+
+        Returns
+        -------
+        label (hashable object)
+            The name of the Series, also the column name if part of a DataFrame.
+
+        See Also
+        --------
+        Series.rename : Sets the Series name when given a scalar input.
+        Index.name : Corresponding Index property.
+
+        Examples
+        --------
+        The Series name can be set initially when calling the constructor.
+
+        >>> s = pd.Series([1, 2, 3], dtype=np.int64, name='Numbers')
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Numbers, dtype: int64
+        >>> s.name = "Integers"
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Integers, dtype: int64
+
+        The name of a Series within a DataFrame is its column name.
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+        ...                   columns=["Odd Numbers", "Even Numbers"])
+        >>> df
+           Odd Numbers  Even Numbers
+        0            1             2
+        1            3             4
+        2            5             6
+        >>> df["Even Numbers"].name
+        'Even Numbers'
+        """
         return self._name
 
     @name.setter
@@ -527,18 +573,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @property
     def array(self) -> ExtensionArray:
         return self._data._block.array_values()
-
-    def _internal_get_values(self):
-        """
-        Same as values (but handles sparseness conversions); is a view.
-
-        Returns
-        -------
-        numpy.ndarray
-            Data of the Series.
-        """
-        blk = self._data._block
-        return np.array(blk.to_dense(), copy=False)
 
     # ops
     def ravel(self, order="C"):
@@ -876,6 +910,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 return self._get_values(key)
 
         return self._get_with(key)
@@ -997,6 +1032,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 try:
                     self._where(~key, value, inplace=True)
                     return
@@ -2244,7 +2280,7 @@ Name: Max Speed, dtype: float64
             return np.nan
         return nanops.nancov(this.values, other.values, min_periods=min_periods)
 
-    def diff(self, periods=1) -> "Series":
+    def diff(self, periods: int = 1) -> "Series":
         """
         First discrete difference of element.
 
@@ -2448,8 +2484,7 @@ Name: Max Speed, dtype: float64
         """
         return self.dot(np.transpose(other))
 
-    @Substitution(klass="Series")
-    @Appender(base._shared_docs["searchsorted"])
+    @doc(base.IndexOpsMixin.searchsorted, klass="Series")
     def searchsorted(self, value, side="left", sorter=None):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
