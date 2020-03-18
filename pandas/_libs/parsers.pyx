@@ -673,10 +673,6 @@ cdef class TextReader:
             # e.g., StringIO
 
             ptr = new_rd_source(source)
-            if ptr == NULL:
-                raise IOError('Initializing parser from file-like '
-                              'object failed')
-
             self.parser.source = ptr
             self.parser.cb_io = &buffer_rd_bytes
             self.parser.cb_cleanup = &del_rd_source
