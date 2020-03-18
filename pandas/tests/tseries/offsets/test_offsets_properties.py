@@ -7,6 +7,7 @@ which was more ambitious but less idiomatic in its use of Hypothesis.
 You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
+from distutils.version import LooseVersion
 import warnings
 
 import dateutil
@@ -33,7 +34,7 @@ from pandas.tseries.offsets import (
     YearEnd,
 )
 
-DATEUTIL_VERSION = dateutil.__version__  # type: ignore
+DATEUTIL_VERSION = LooseVersion(dateutil.__version__)  # type: ignore
 
 # ----------------------------------------------------------------
 # Helpers for generating random data
