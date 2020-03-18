@@ -122,7 +122,7 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
 
     expected = pd.Series([], dtype="int64", index=index, name=empty_series_dti.name)
 
-    tm.assert_series_equal(result, expected)    
+    tm.assert_series_equal(result, expected)
 
 
 @all_ts
