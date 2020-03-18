@@ -20,7 +20,6 @@ cdef class BlockPlacement:
     cdef:
         slice _as_slice
         object _as_array
-
         bint _has_slice, _has_array, _is_known_slice_like
 
     def __init__(self, val):
@@ -52,12 +51,10 @@ cdef class BlockPlacement:
     def __str__(self) -> str:
         cdef:
             slice s = self._ensure_has_slice()
-        if s is not None:
-            v = self._as_slice
-        else:
-            v = self._as_array
 
-        return f'{type(self).__name__}({v})'
+        v = self._as_slice if s is not None else self._as_array
+
+        return f"{type(self).__name__}({v})"
 
     def __repr__(self) -> str:
         return str(self)
@@ -65,68 +62,75 @@ cdef class BlockPlacement:
     def __len__(self) -> int:
         cdef:
             slice s = self._ensure_has_slice()
+
         if s is not None:
             return slice_len(s)
-        else:
-            return len(self._as_array)
+
+        return len(self._as_array)
 
     def __iter__(self):
         cdef:
             slice s = self._ensure_has_slice()
             Py_ssize_t start, stop, step, _
+
         if s is not None:
             start, stop, step, _ = slice_get_indices_ex(s)
             return iter(range(start, stop, step))
-        else:
-            return iter(self._as_array)
+
+        return iter(self._as_array)
 
     @property
     def as_slice(self) -> slice:
         cdef:
             slice s = self._ensure_has_slice()
-        if s is None:
-            raise TypeError('Not slice-like')
-        else:
+
+        if s is not None:
             return s
+
+        raise TypeError("Not slice-like")
 
     @property
     def indexer(self):
         cdef:
             slice s = self._ensure_has_slice()
+
         if s is not None:
             return s
-        else:
-            return self._as_array
+
+        return self._as_array
 
     def isin(self, arr):
         from pandas.core.indexes.api import Int64Index
+
         return Int64Index(self.as_array, copy=False).isin(arr)
 
     @property
     def as_array(self):
         cdef:
             Py_ssize_t start, stop, end, _
+
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
-            # NOTE: this is the C-optimized equivalent of
-            #  np.arange(start, stop, step, dtype=np.int64)
+            # NOTE:
+            # this is the C-optimized equivalent of
+            # `np.arange(start, stop, step, dtype=np.int64)`
             self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
             self._has_array = True
+
         return self._as_array
 
     @property
     def is_slice_like(self) -> bool:
         cdef:
             slice s = self._ensure_has_slice()
+
         return s is not None
 
     def __getitem__(self, loc):
         cdef:
             slice s = self._ensure_has_slice()
-        if s is not None:
-            val = slice_getitem(s, loc)
-        else:
-            val = self._as_array[loc]
+
+        val = slice_getitem(s, loc) if s is not None else self._as_array[loc]
 
         if not isinstance(val, slice) and val.ndim == 0:
             return val
@@ -137,11 +141,12 @@ cdef class BlockPlacement:
         return BlockPlacement(np.delete(self.as_array, loc, axis=0))
 
     def append(self, others):
-        if len(others) == 0:
+        if not len(others):
             return self
 
-        return BlockPlacement(np.concatenate([self.as_array] +
-                                             [o.as_array for o in others]))
+        return BlockPlacement(
+            np.concatenate([self.as_array] + [o.as_array for o in others])
+        )
 
     cdef iadd(self, other):
         cdef:
@@ -159,14 +164,10 @@ cdef class BlockPlacement:
             start += other_int
             stop += other_int
 
-            if ((step > 0 and start < 0) or
-                    (step < 0 and stop < step)):
+            if (step > 0 and start < 0) or (step < 0 and stop < step):
                 raise ValueError("iadd causes length change")
 
-            if stop < 0:
-                val = slice(start, None, step)
-            else:
-                val = slice(start, stop, step)
+            val = slice(start, None, step) if stop < 0 else slice(start, stop, step)
 
             return BlockPlacement(val)
         else:
@@ -187,6 +188,7 @@ cdef class BlockPlacement:
         if not self._has_slice:
             self._as_slice = indexer_as_slice(self._as_array)
             self._has_slice = True
+
         return self._as_slice
 
 
@@ -236,8 +238,7 @@ cdef slice slice_canonize(slice s):
         return slice(start, stop, step)
 
 
-cpdef Py_ssize_t slice_len(
-        slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
+cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
     """
     Get length of a bounded slice.
 
@@ -254,8 +255,7 @@ cpdef Py_ssize_t slice_len(
     if slc is None:
         raise TypeError("slc must be slice")
 
-    PySlice_GetIndicesEx(slc, objlen,
-                         &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
     return length
 
@@ -273,8 +273,7 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    PySlice_GetIndicesEx(slc, objlen,
-                         &start, &stop, &step, &length)
+    PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
     return start, stop, step, length
 
@@ -370,22 +369,16 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     # There's blkno in this function's name because it's used in block &
     # blockno handling.
     cdef:
-        int64_t cur_blkno
-        Py_ssize_t i, start, stop, n, diff
-
+        Py_ssize_t i, start = 0, stop, n = blknos.shape[0], diff, tot_len
         object blkno
         object group_dict = defaultdict(list)
         int64_t[:] res_view
-
-    n = blknos.shape[0]
+        int64_t cur_blkno = blknos[start]
 
     if n == 0:
         return
 
-    start = 0
-    cur_blkno = blknos[start]
-
-    if group is False:
+    if not group:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
                 yield cur_blkno, slice(start, i)
