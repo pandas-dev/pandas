@@ -5,6 +5,7 @@ ExtensionArrays.
 from functools import partial
 import operator
 from typing import Any, Optional
+import warnings
 
 import numpy as np
 
@@ -163,15 +164,18 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     """
     import pandas.core.computation.expressions as expressions
 
-    try:
-        result = expressions.evaluate(op, str_rep, left, right)
-    except TypeError:
-        if is_cmp:
-            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
-            #  In this case we do not fall back to the masked op, as that
-            #  will handle complex numbers incorrectly, see GH#32047
-            raise
-        result = masked_arith_op(left, right, op)
+    with warnings.catch_warnings():
+        # suppress warnings from numpy about element-wise comparison
+        warnings.simplefilter("ignore", DeprecationWarning)
+        try:
+            result = expressions.evaluate(op, str_rep, left, right)
+        except TypeError:
+            if is_cmp:
+                # numexpr failed on comparison op, e.g. ndarray[float] > datetime
+                #  In this case we do not fall back to the masked op, as that
+                #  will handle complex numbers incorrectly, see GH#32047
+                raise
+            result = masked_arith_op(left, right, op)
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
