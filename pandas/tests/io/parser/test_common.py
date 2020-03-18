@@ -15,6 +15,7 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
+import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
 import pandas._testing as tm
@@ -957,7 +958,7 @@ def test_nonexistent_path(all_parsers):
     # gh-14086: raise more helpful FileNotFoundError
     # GH#29233 "File foo" instead of "File b'foo'"
     parser = all_parsers
-    path = "{}.csv".format(tm.rands(10))
+    path = f"{tm.rands(10)}.csv"
 
     msg = f"File {path} does not exist" if parser.engine == "c" else r"\[Errno 2\]"
     with pytest.raises(FileNotFoundError, match=msg) as e:
@@ -1872,7 +1873,7 @@ def test_internal_eof_byte_to_file(all_parsers):
     parser = all_parsers
     data = b'c1,c2\r\n"test \x1a    test", test\r\n'
     expected = DataFrame([["test \x1a    test", " test"]], columns=["c1", "c2"])
-    path = "__{}__.csv".format(tm.rands(10))
+    path = f"__{tm.rands(10)}__.csv"
 
     with tm.ensure_clean(path) as path:
         with open(path, "wb") as f:
@@ -2079,3 +2080,29 @@ def test_integer_precision(all_parsers):
     result = parser.read_csv(StringIO(s), header=None)[4]
     expected = Series([4321583677327450765, 4321113141090630389], name=4)
     tm.assert_series_equal(result, expected)
+
+
+def test_file_descriptor_leak(all_parsers):
+    # GH 31488
+
+    parser = all_parsers
+    with tm.ensure_clean() as path:
+
+        def test():
+            with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+                parser.read_csv(path)
+
+        td.check_file_leaks(test)()
+
+
+@pytest.mark.parametrize("nrows", range(1, 6))
+def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
+    # GH 28071
+    ref = DataFrame(
+        [[np.nan, np.nan], [np.nan, np.nan], [1, 2], [np.nan, np.nan], [3, 4]],
+        columns=list("ab"),
+    )
+    csv = "\nheader\n\na,b\n\n\n1,2\n\n3,4"
+    parser = all_parsers
+    df = parser.read_csv(StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False)
+    tm.assert_frame_equal(df, ref[:nrows])

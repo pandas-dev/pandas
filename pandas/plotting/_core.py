@@ -176,12 +176,11 @@ def hist_frame(
 
     Examples
     --------
+    This example draws a histogram based on the length and width of
+    some animals, displayed in three bins
 
     .. plot::
         :context: close-figs
-
-        This example draws a histogram based on the length and width of
-        some animals, displayed in three bins
 
         >>> df = pd.DataFrame({
         ...     'length': [1.5, 0.5, 1.2, 0.9, 3],
