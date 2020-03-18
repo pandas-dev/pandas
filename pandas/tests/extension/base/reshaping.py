@@ -324,3 +324,10 @@ class BaseReshapingTests(BaseExtensionTests):
         self.assert_frame_equal(result, expected)
         self.assert_frame_equal(np.transpose(np.transpose(df)), df)
         self.assert_frame_equal(np.transpose(np.transpose(df[["A"]])), df[["A"]])
+
+    def test_factorize_roundtrip(self, data):
+        # GH#32673
+        values = data._values_for_factorize()[0]
+        result = type(data)._from_factorized(values, data)
+
+        self.assert_equal(result, data)

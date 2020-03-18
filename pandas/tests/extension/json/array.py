@@ -65,7 +65,9 @@ class JSONArray(ExtensionArray):
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls([UserDict(x) for x in values if x != ()])
+        return cls(
+            [UserDict(x) if x != () else original.dtype.na_value for x in values]
+        )
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):

@@ -4,6 +4,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
@@ -200,6 +201,13 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
 
         result = ser.unstack(0)
         self.assert_equal(result, expected)
+
+    def test_factorize_roundtrip(self, data):
+        # GH#32673, for DTA we dont preserve freq
+        values = data._values_for_factorize()[0]
+        result = type(data)._from_factorized(values, data)
+
+        tm.assert_numpy_array_equal(result.asi8, data.asi8)
 
 
 class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):
