@@ -47,7 +47,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
-    ABCSparseArray,
 )
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -206,7 +205,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             # data is an ndarray, index is defined
             if not isinstance(data, SingleBlockManager):
-                data = SingleBlockManager(data, index, fastpath=True)
+                data = SingleBlockManager.from_array(data, index)
             if copy:
                 data = data.copy()
             if index is None:
@@ -289,9 +288,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif isinstance(data, (set, frozenset)):
                 raise TypeError(f"'{type(data).__name__}' type is unordered")
-            elif isinstance(data, ABCSparseArray):
-                # handle sparse passed here (and force conversion)
-                data = data.to_dense()
             else:
                 data = com.maybe_iterable_to_list(data)
 
@@ -321,7 +317,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 data = sanitize_array(data, index, dtype, copy, raise_cast_failure=True)
 
-                data = SingleBlockManager(data, index, fastpath=True)
+                data = SingleBlockManager.from_array(data, index)
 
         generic.NDFrame.__init__(self, data)
         self.name = name
@@ -439,6 +435,52 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self) -> Label:
+        """
+        Return the name of the Series.
+
+        The name of a Series becomes its index or column name if it is used
+        to form a DataFrame. It is also used whenever displaying the Series
+        using the interpreter.
+
+        Returns
+        -------
+        label (hashable object)
+            The name of the Series, also the column name if part of a DataFrame.
+
+        See Also
+        --------
+        Series.rename : Sets the Series name when given a scalar input.
+        Index.name : Corresponding Index property.
+
+        Examples
+        --------
+        The Series name can be set initially when calling the constructor.
+
+        >>> s = pd.Series([1, 2, 3], dtype=np.int64, name='Numbers')
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Numbers, dtype: int64
+        >>> s.name = "Integers"
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Integers, dtype: int64
+
+        The name of a Series within a DataFrame is its column name.
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+        ...                   columns=["Odd Numbers", "Even Numbers"])
+        >>> df
+           Odd Numbers  Even Numbers
+        0            1             2
+        1            3             4
+        2            5             6
+        >>> df["Even Numbers"].name
+        'Even Numbers'
+        """
         return self._name
 
     @name.setter
@@ -531,17 +573,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @property
     def array(self) -> ExtensionArray:
         return self._data._block.array_values()
-
-    def _internal_get_values(self):
-        """
-        Same as values (but handles sparseness conversions); is a view.
-
-        Returns
-        -------
-        numpy.ndarray
-            Data of the Series.
-        """
-        return self._data.get_values()
 
     # ops
     def ravel(self, order="C"):
@@ -875,6 +906,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 return self._get_values(key)
 
         return self._get_with(key)
@@ -974,14 +1006,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
+        if key is Ellipsis:
+            key = slice(None)
+
         try:
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
             values = self._values
             if is_integer(key) and not self.index.inferred_type == "integer":
                 values[key] = value
-            elif key is Ellipsis:
-                self[:] = value
             else:
                 self.loc[key] = value
 
@@ -995,13 +1028,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
+                key = np.asarray(key, dtype=bool)
                 try:
                     self._where(~key, value, inplace=True)
                     return
                 except InvalidIndexError:
-                    pass
+                    self._set_values(key.astype(np.bool_), value)
 
-            self._set_with(key, value)
+            else:
+                self._set_with(key, value)
 
         if cacher_needs_updating:
             self._maybe_update_cacher()
@@ -1042,13 +1077,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 key_type = lib.infer_dtype(key, skipna=False)
 
+            # Note: key_type == "boolean" should not occur because that
+            #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
                 if self.index.inferred_type == "integer":
                     self._set_labels(key, value)
                 else:
                     return self._set_values(key, value)
-            elif key_type == "boolean":
-                self._set_values(key.astype(np.bool_), value)
             else:
                 self._set_labels(key, value)
 
@@ -1986,7 +2021,7 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(com.values_from_object(self), skipna=skipna)
+        i = nanops.nanargmin(self._values, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2057,7 +2092,7 @@ Name: Max Speed, dtype: float64
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(com.values_from_object(self), skipna=skipna)
+        i = nanops.nanargmax(self._values, skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2095,7 +2130,7 @@ Name: Max Speed, dtype: float64
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        result = com.values_from_object(self).round(decimals)
+        result = self._values.round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result
@@ -2241,7 +2276,7 @@ Name: Max Speed, dtype: float64
             return np.nan
         return nanops.nancov(this.values, other.values, min_periods=min_periods)
 
-    def diff(self, periods=1) -> "Series":
+    def diff(self, periods: int = 1) -> "Series":
         """
         First discrete difference of element.
 
@@ -2445,8 +2480,7 @@ Name: Max Speed, dtype: float64
         """
         return self.dot(np.transpose(other))
 
-    @Substitution(klass="Series")
-    @Appender(base._shared_docs["searchsorted"])
+    @doc(base.IndexOpsMixin.searchsorted, klass="Series")
     def searchsorted(self, value, side="left", sorter=None):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
@@ -2667,9 +2701,9 @@ Name: Max Speed, dtype: float64
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if is_categorical_dtype(self.values):
+        if is_categorical_dtype(self.dtype):
             pass
-        elif is_extension_array_dtype(self.values):
+        elif is_extension_array_dtype(self.dtype):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
             new_values = try_cast_to_ea(self._values, new_values)

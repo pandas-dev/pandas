@@ -11,7 +11,6 @@ from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -231,14 +230,12 @@ class Block(PandasObject):
             return self.values.astype(object)
         return self.values
 
-    def get_block_values(self, dtype=None):
+    def get_block_values_for_json(self) -> np.ndarray:
         """
-        This is used in the JSON C code
+        This is used in the JSON C code.
         """
-        return self.get_values(dtype=dtype)
-
-    def to_dense(self):
-        return self.values.view()
+        # TODO(2DEA): reshape will be unnecessary with 2D EAs
+        return np.asarray(self.values).reshape(self.shape)
 
     @property
     def fill_value(self):
@@ -254,14 +251,6 @@ class Block(PandasObject):
             new_mgr_locs = libinternals.BlockPlacement(new_mgr_locs)
 
         self._mgr_locs = new_mgr_locs
-
-    @property
-    def array_dtype(self) -> DtypeObj:
-        """
-        the dtype to return if I want to construct this block as an
-        array
-        """
-        return self.dtype
 
     def make_block(self, values, placement=None) -> "Block":
         """
@@ -402,7 +391,9 @@ class Block(PandasObject):
 
         return [result]
 
-    def fillna(self, value, limit=None, inplace: bool = False, downcast=None):
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> List["Block"]:
         """
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
@@ -416,9 +407,9 @@ class Block(PandasObject):
 
         if not self._can_hold_na:
             if inplace:
-                return self
+                return [self]
             else:
-                return self.copy()
+                return [self.copy()]
 
         if self._can_hold_element(value):
             # equivalent: _try_coerce_args(value) would not raise
@@ -427,7 +418,7 @@ class Block(PandasObject):
 
         # we can't process the value, but nothing to do
         if not mask.any():
-            return self if inplace else self.copy()
+            return [self] if inplace else [self.copy()]
 
         # operate column-by-column
         def f(mask, val, idx):
@@ -441,7 +432,7 @@ class Block(PandasObject):
 
         return self.split_and_operate(None, f, inplace)
 
-    def split_and_operate(self, mask, f, inplace: bool):
+    def split_and_operate(self, mask, f, inplace: bool) -> List["Block"]:
         """
         split the block per-column, and apply the callable f
         per-column, return a new block for each. Handle
@@ -611,7 +602,9 @@ class Block(PandasObject):
 
                 # astype formatting
                 else:
-                    values = self.get_values()
+                    # Because we have neither is_extension nor is_datelike,
+                    #  self.values already has the correct shape
+                    values = self.values
 
             else:
                 values = self.get_values(dtype=dtype)
@@ -669,7 +662,7 @@ class Block(PandasObject):
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
-        values = self.get_values()
+        values = self.values
 
         if slicer is not None:
             values = values[:, slicer]
@@ -1190,7 +1183,7 @@ class Block(PandasObject):
         fill_value=None,
         coerce=False,
         downcast=None,
-    ):
+    ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -1232,7 +1225,7 @@ class Block(PandasObject):
         inplace=False,
         downcast=None,
         **kwargs,
-    ):
+    ) -> List["Block"]:
         """ interpolate using scipy wrappers """
         inplace = validate_bool_kwarg(inplace, "inplace")
         data = self.values if inplace else self.values.copy()
@@ -1240,7 +1233,7 @@ class Block(PandasObject):
         # only deal with floats
         if not self.is_float:
             if not self.is_integer:
-                return self
+                return [self]
             data = data.astype(np.float64)
 
         if fill_value is None:
@@ -1602,12 +1595,22 @@ class Block(PandasObject):
         return self
 
 
-class NonConsolidatableMixIn:
-    """ hold methods for the nonconsolidatable blocks """
+class ExtensionBlock(Block):
+    """
+    Block for holding extension types.
+
+    Notes
+    -----
+    This holds all 3rd-party extension array types. It's also the immediate
+    parent class for our internal extension types' blocks, CategoricalBlock.
+
+    ExtensionArrays are limited to 1-D.
+    """
 
     _can_consolidate = False
     _verify_integrity = False
     _validate_ndim = False
+    is_extension = True
 
     def __init__(self, values, placement, ndim=None):
         """
@@ -1618,6 +1621,8 @@ class NonConsolidatableMixIn:
         This will call continue to call __init__ for the other base
         classes mixed in with this Mixin.
         """
+        values = self._maybe_coerce_values(values)
+
         # Placement must be converted to BlockPlacement so that we can check
         # its length
         if not isinstance(placement, libinternals.BlockPlacement):
@@ -1630,6 +1635,10 @@ class NonConsolidatableMixIn:
             else:
                 ndim = 2
         super().__init__(values, placement, ndim=ndim)
+
+        if self.ndim == 2 and len(self.mgr_locs) != 1:
+            # TODO(2DEA): check unnecessary with 2D EAs
+            raise AssertionError("block.size != values.size")
 
     @property
     def shape(self):
@@ -1726,25 +1735,6 @@ class NonConsolidatableMixIn:
         mask = mask.any(0)
         return new_placement, new_values, mask
 
-
-class ExtensionBlock(NonConsolidatableMixIn, Block):
-    """
-    Block for holding extension types.
-
-    Notes
-    -----
-    This holds all 3rd-party extension array types. It's also the immediate
-    parent class for our internal extension types' blocks, CategoricalBlock.
-
-    ExtensionArrays are limited to 1-D.
-    """
-
-    is_extension = True
-
-    def __init__(self, values, placement, ndim=None):
-        values = self._maybe_coerce_values(values)
-        super().__init__(values, placement, ndim)
-
     def _maybe_coerce_values(self, values):
         """
         Unbox to an extension array.
@@ -1826,9 +1816,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def array_values(self) -> ExtensionArray:
         return self.values
-
-    def to_dense(self):
-        return np.asarray(self.values)
 
     def to_native_types(self, slicer=None, na_rep="nan", quoting=None, **kwargs):
         """override to use ExtensionArray astype for the conversion"""
@@ -1916,10 +1903,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return super().diff(n, axis)
 
     def shift(
-        self,
-        periods: int,
-        axis: libinternals.BlockPlacement = 0,
-        fill_value: Any = None,
+        self, periods: int, axis: int = 0, fill_value: Any = None,
     ) -> List["ExtensionBlock"]:
         """
         Shift the block by `periods`.
@@ -2172,13 +2156,19 @@ class DatetimeLikeBlockMixin:
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
-        # TODO: this can be removed if we ever have 2D EA
+        # TODO(EA2D): this can be removed if we ever have 2D EA
         result = super().iget(key)
         if isinstance(result, np.datetime64):
             result = Timestamp(result)
         elif isinstance(result, np.timedelta64):
             result = Timedelta(result)
         return result
+
+    def shift(self, periods, axis=0, fill_value=None):
+        # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
+        values = self.array_values()
+        new_values = values.shift(periods, fill_value=fill_value, axis=axis)
+        return self.make_block_same_class(new_values)
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2228,6 +2218,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         # if we are passed a datetime64[ns, tz]
         if is_datetime64tz_dtype(dtype):
             values = self.values
+            if copy:
+                # this should be the only copy
+                values = values.copy()
             if getattr(values, "tz", None) is None:
                 values = DatetimeArray(values).tz_localize("UTC")
             values = values.tz_convert(dtype.tz)
@@ -2280,11 +2273,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return np.atleast_2d(result)
 
     def should_store(self, value) -> bool:
-        return (
-            issubclass(value.dtype.type, np.datetime64)
-            and not is_datetime64tz_dtype(value)
-            and not is_extension_array_dtype(value)
-        )
+        return is_datetime64_dtype(value.dtype)
 
     def set(self, locs, values):
         """
@@ -2382,12 +2371,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             # the analogous NumPy-backed column would be a 2-D ndarray.
             values = values.reshape(1, -1)
         return values
-
-    def to_dense(self):
-        # we request M8[ns] dtype here, even though it discards tzinfo,
-        # as lots of code (e.g. anything using values_from_object)
-        # expects that behavior.
-        return np.asarray(self.values, dtype=_NS_DTYPE)
 
     def _slice(self, slicer):
         """ return a slice of my values """
@@ -2532,9 +2515,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return super().fillna(value, **kwargs)
 
     def should_store(self, value) -> bool:
-        return issubclass(
-            value.dtype.type, np.timedelta64
-        ) and not is_extension_array_dtype(value)
+        return is_timedelta64_dtype(value.dtype)
 
     def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
@@ -2918,20 +2899,6 @@ class CategoricalBlock(ExtensionBlock):
     def _holder(self):
         return Categorical
 
-    @property
-    def array_dtype(self):
-        """
-        the dtype to return if I want to construct this block as an
-        array
-        """
-        return np.object_
-
-    def to_dense(self):
-        # Categorical.get_values returns a DatetimeIndex for datetime
-        # categories, so we can't simply use `np.asarray(self.values)` like
-        # other types.
-        return self.values._internal_get_values()
-
     def to_native_types(self, slicer=None, na_rep="", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
         values = self.values
@@ -3144,14 +3111,15 @@ def _safe_reshape(arr, new_shape):
     return arr
 
 
-def _putmask_smart(v, mask, n):
+def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     """
     Return a new ndarray, try to preserve dtype if possible.
 
     Parameters
     ----------
-    v : `values`, updated in-place (array like)
-    mask : np.ndarray
+    v : np.ndarray
+        `values`, updated in-place.
+    mask : np.ndarray[bool]
         Applies to both sides (array like).
     n : `new values` either scalar or an array like aligned with `values`
 
@@ -3218,9 +3186,6 @@ def _putmask_smart(v, mask, n):
     # change the dtype if needed
     dtype, _ = maybe_promote(n.dtype)
 
-    if is_extension_array_dtype(v.dtype) and is_object_dtype(dtype):
-        v = v._internal_get_values(dtype)
-    else:
-        v = v.astype(dtype)
+    v = v.astype(dtype)
 
     return _putmask_preserve(v, n)

@@ -215,6 +215,63 @@ class TestDataFrameIndexing:
         expected = Series(tuples, index=float_frame.index, name="tuples")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "columns,box,expected",
+        [
+            (
+                ["A", "B", "C", "D"],
+                7,
+                pd.DataFrame(
+                    [[7, 7, 7, 7], [7, 7, 7, 7], [7, 7, 7, 7]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "D"],
+                [7, 8],
+                pd.DataFrame(
+                    [[1, 2, 7, 8], [3, 4, 7, 8], [5, 6, 7, 8]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "B", "C"],
+                np.array([7, 8, 9], dtype=np.int64),
+                pd.DataFrame(
+                    [[7, 8, 9], [7, 8, 9], [7, 8, 9]], columns=["A", "B", "C"]
+                ),
+            ),
+            (
+                ["B", "C", "D"],
+                [[7, 8, 9], [10, 11, 12], [13, 14, 15]],
+                pd.DataFrame(
+                    [[1, 7, 8, 9], [3, 10, 11, 12], [5, 13, 14, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["C", "A", "D"],
+                np.array([[7, 8, 9], [10, 11, 12], [13, 14, 15]], dtype=np.int64),
+                pd.DataFrame(
+                    [[8, 2, 7, 9], [11, 4, 10, 12], [14, 6, 13, 15]],
+                    columns=["A", "B", "C", "D"],
+                ),
+            ),
+            (
+                ["A", "C"],
+                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                pd.DataFrame(
+                    [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
+                ),
+            ),
+        ],
+    )
+    def test_setitem_list_missing_columns(self, columns, box, expected):
+        # GH 29334
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df[columns] = box
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_multi_index(self):
         # GH7655, test that assigning to a sub-frame of a frame
         # with multi-index columns aligns both rows and columns
@@ -458,13 +515,6 @@ class TestDataFrameIndexing:
         series = float_frame["A"]
         float_frame["col6"] = series
         tm.assert_series_equal(series, float_frame["col6"], check_names=False)
-
-        msg = (
-            r"\"None of \[Float64Index\(\[.*dtype='float64'\)\] are in the "
-            r"\[columns\]\""
-        )
-        with pytest.raises(KeyError, match=msg):
-            float_frame[np.random.randn(len(float_frame) + 1)] = 1
 
         # set ndarray
         arr = np.random.randn(len(float_frame))
@@ -1209,7 +1259,7 @@ class TestDataFrameIndexing:
         piece = DataFrame(
             [[1.0, 2.0], [3.0, 4.0]], index=f.index[0:2], columns=["A", "B"]
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(f.loc[f.index[0:2], ["A", "B"]].values, piece.values)
 
@@ -1220,7 +1270,7 @@ class TestDataFrameIndexing:
             index=list(f.index[0:2]) + ["foo", "bar"],
             columns=["A", "B"],
         )
-        key = (slice(None, 2), ["A", "B"])
+        key = (f.index[slice(None, 2)], ["A", "B"])
         f.loc[key] = piece
         tm.assert_almost_equal(
             f.loc[f.index[0:2:], ["A", "B"]].values, piece.values[0:2]
@@ -1230,7 +1280,7 @@ class TestDataFrameIndexing:
         f = float_string_frame.copy()
         piece = f.loc[f.index[:2], ["A"]]
         piece.index = f.index[-2:]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece
         piece["B"] = np.nan
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
@@ -1238,7 +1288,7 @@ class TestDataFrameIndexing:
         # ndarray
         f = float_string_frame.copy()
         piece = float_string_frame.loc[f.index[:2], ["A", "B"]]
-        key = (slice(-2, None), ["A", "B"])
+        key = (f.index[slice(-2, None)], ["A", "B"])
         f.loc[key] = piece.values
         tm.assert_almost_equal(f.loc[f.index[-2:], ["A", "B"]].values, piece.values)
 
@@ -1605,6 +1655,17 @@ class TestDataFrameIndexing:
         actual = df[::-1].reindex(target, method=switched_method)
         tm.assert_frame_equal(expected, actual)
 
+    def test_reindex_subclass(self):
+        # https://github.com/pandas-dev/pandas/issues/31925
+        class MyDataFrame(DataFrame):
+            pass
+
+        expected = DataFrame()
+        df = MyDataFrame()
+        result = df.reindex_like(expected)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_reindex_methods_nearest_special(self):
         df = pd.DataFrame({"x": list(range(5))})
         target = np.array([-0.1, 0.9, 1.1, 1.5])
@@ -1873,7 +1934,7 @@ class TestDataFrameIndexing:
         df = DataFrame(index=date_range("20130101", periods=4))
         df["A"] = np.array([1 * one_hour] * 4, dtype="m8[ns]")
         df.loc[:, "B"] = np.array([2 * one_hour] * 4, dtype="m8[ns]")
-        df.loc[:3, "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
+        df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
         df.loc[:, "D"] = np.array([4 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
         df["F"] = np.timedelta64("NaT")

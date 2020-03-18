@@ -15,6 +15,7 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
     deprecate_kwarg,
+    doc,
 )
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
@@ -1317,7 +1318,7 @@ class Categorical(ExtensionArray, PandasObject):
             setattr(self, k, v)
 
     @property
-    def T(self):
+    def T(self) -> "Categorical":
         """
         Return transposed numpy array.
         """
@@ -1352,8 +1353,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return self._codes.nbytes + self.dtype.categories.memory_usage(deep=deep)
 
-    @Substitution(klass="Categorical")
-    @Appender(_shared_docs["searchsorted"])
+    @doc(_shared_docs["searchsorted"], klass="Categorical")
     def searchsorted(self, value, side="left", sorter=None):
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
@@ -1408,12 +1408,6 @@ class Categorical(ExtensionArray, PandasObject):
         return ~self.isna()
 
     notnull = notna
-
-    def put(self, *args, **kwargs):
-        """
-        Replace specific elements in the Categorical with given values.
-        """
-        raise NotImplementedError(("'put' is not yet implemented for Categorical"))
 
     def dropna(self):
         """
@@ -1494,7 +1488,7 @@ class Categorical(ExtensionArray, PandasObject):
             )
 
     def _values_for_argsort(self):
-        return self._codes.copy()
+        return self._codes
 
     def argsort(self, ascending=True, kind="quicksort", **kwargs):
         """
@@ -1681,6 +1675,12 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         dense : array
         """
+        warn(
+            "Categorical.to_dense is deprecated and will be removed in "
+            "a future version.  Use np.asarray(cat) instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return np.asarray(self)
 
     def fillna(self, value=None, method=None, limit=None):
@@ -1728,7 +1728,8 @@ class Categorical(ExtensionArray, PandasObject):
         # pad / bfill
         if method is not None:
 
-            values = self.to_dense().reshape(-1, len(self))
+            # TODO: dispatch when self.categories is EA-dtype
+            values = np.asarray(self).reshape(-1, len(self))
             values = interpolate_2d(values, method, 0, None, value).astype(
                 self.categories.dtype
             )[0]
@@ -1738,12 +1739,17 @@ class Categorical(ExtensionArray, PandasObject):
 
             # If value is a dict or a Series (a dict value has already
             # been converted to a Series)
-            if isinstance(value, ABCSeries):
-                if not value[~value.isin(self.categories)].isna().all():
+            if isinstance(value, (np.ndarray, Categorical, ABCSeries)):
+                # We get ndarray or Categorical if called via Series.fillna,
+                #  where it will unwrap another aligned Series before getting here
+
+                mask = ~algorithms.isin(value, self.categories)
+                if not isna(value[mask]).all():
                     raise ValueError("fill value must be in categories")
 
                 values_codes = _get_codes_for_values(value, self.categories)
                 indexer = np.where(codes == -1)
+                codes = codes.copy()
                 codes[indexer] = values_codes[indexer]
 
             # If value is not a dict or Series it should be a scalar

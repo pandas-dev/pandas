@@ -283,9 +283,7 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = series._ensure_type(
-                    concat((series.iloc[:row_num], series.iloc[-row_num:]))
-                )
+                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -1352,8 +1350,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
             values = self.values
             is_complex = is_complex_dtype(values)
             mask = isna(values)
-            if hasattr(values, "to_dense"):  # sparse numpy ndarray
-                values = values.to_dense()
             values = np.array(values, dtype="object")
             values[mask] = na_rep
             imask = (~mask).ravel()
