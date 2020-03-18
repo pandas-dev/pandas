@@ -392,8 +392,8 @@ class TestGrouping:
         # when the elements are Timestamp.
         # the result is Index[0:6], very confusing.
 
-        msg = r"Grouper result violates len\(labels\) == len\(data\)"
-        with pytest.raises(AssertionError, match=msg):
+        msg = r"'Timestamp' object is not subscriptable"
+        with pytest.raises(TypeError, match=msg):
             ts.groupby(lambda key: key[0:6])
 
     def test_grouping_error_on_multidim_input(self, df):
