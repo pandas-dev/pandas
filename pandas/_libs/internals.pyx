@@ -68,8 +68,8 @@ cdef class BlockPlacement:
 
         if s is not None:
             return slice_len(s)
-
-        return len(self._as_array)
+        else:
+            return len(self._as_array)
 
     def __iter__(self):
         cdef:
