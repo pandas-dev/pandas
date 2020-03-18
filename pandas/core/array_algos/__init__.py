@@ -1,5 +1,5 @@
 """
-core._algos is for algorithms that operate on ndarray and ExtensionArray.
+core.array_algos is for algorithms that operate on ndarray and ExtensionArray.
 These should:
 
 - Assume that any Index, Series, or DataFrame objects have already been unwrapped.

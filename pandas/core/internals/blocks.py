@@ -64,8 +64,8 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
-from pandas.core._algos.transforms import shift
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
