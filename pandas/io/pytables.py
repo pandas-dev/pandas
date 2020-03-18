@@ -587,7 +587,6 @@ class HDFStore:
         Parameters
         ----------
 
-
         include : str, default 'pandas'
                 When kind equals 'pandas' return pandas objects
                 When kind equals 'native' return native HDF5 Table objects
