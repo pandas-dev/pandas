@@ -775,7 +775,7 @@ def get_level_sorter(const int64_t[:] label, const int64_t[:] starts):
     return out
 
 
-@cython.boundscheck(False)
+@cython.boundscheck(True)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                    const int64_t[:] labels,
