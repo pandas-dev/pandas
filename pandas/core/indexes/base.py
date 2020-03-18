@@ -3584,12 +3584,8 @@ class Index(IndexOpsMixin, PandasObject):
         # We only get here if dtypes match
         assert self.dtype == other.dtype
 
-        if is_extension_array_dtype(self.dtype):
-            lvalues = self._data._values_for_argsort()
-            rvalues = other._data._values_for_argsort()
-        else:
-            lvalues = self._values
-            rvalues = other._values
+        lvalues = self._get_engine_target()
+        rvalues = other._get_engine_target()
 
         left_idx, right_idx = _get_join_indexers(
             [lvalues], [rvalues], how=how, sort=True
@@ -3761,12 +3757,8 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return ret_index
 
-        if is_extension_array_dtype(self.dtype):
-            sv = self._data._values_for_argsort()
-            ov = other._data._values_for_argsort()
-        else:
-            sv = self._values
-            ov = other._values
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
