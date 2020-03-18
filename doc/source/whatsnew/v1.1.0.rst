@@ -69,7 +69,7 @@ Other enhancements
 - `OptionError` is now exposed in `pandas.errors` (:issue:`27553`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
--
+- :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the series, similar to `re.fullmatch` (:issue:`32806`).
 
 .. ---------------------------------------------------------------------------
 
