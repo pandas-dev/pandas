@@ -327,6 +327,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
+
     def _init_dict(self, data, index=None, dtype=None):
         """
         Derive the "_data" and "index" attributes of a new Series from a
@@ -4523,6 +4524,30 @@ Name: Max Speed, dtype: float64
         assert isinstance(self.index, ABCDatetimeIndex)
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values, index=new_index).__finalize__(self)
+
+
+    def cut(
+        self,
+        bins,
+        right: bool = True,
+        labels=None,
+        retbins: bool = False,
+        precision: int = 3,
+        include_lowest: bool = False,
+        duplicates: str = "raise",
+    ):
+        from pandas.core.reshape.tile import cut 
+        
+        return cut(
+            self,
+            bins,
+            right,
+            labels,
+            retbins,
+            precision,
+            include_lowest,
+            duplicates
+            )
 
     # ----------------------------------------------------------------------
     # Add index
