@@ -5,7 +5,7 @@ import numpy as np
 from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.numba_ import (
+from pandas.core.util.numba_ import (
     check_kwargs_and_nopython,
     get_jit_arguments,
     jit_user_function,
