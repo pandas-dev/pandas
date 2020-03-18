@@ -52,7 +52,10 @@ cdef class BlockPlacement:
         cdef:
             slice s = self._ensure_has_slice()
 
-        v = self._as_slice if s is not None else self._as_array
+        if s is not None:
+            v = self._as_slice
+        else:
+            v = self._as_array
 
         return f"{type(self).__name__}({v})"
 
