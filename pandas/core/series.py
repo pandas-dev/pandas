@@ -879,10 +879,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key is Ellipsis:
             return self
 
-        # check for is_list_like/slice instead of is_scalar to allow non-standard
-        #  scalars through, e.g. cftime.datetime needed by xarray
-        #  https://github.com/pydata/xarray/issues/3751
-        key_is_scalar = not is_list_like(key) and not isinstance(key, slice)
+        key_is_scalar = lib.is_scalar(key)
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
@@ -929,6 +926,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             )
         elif isinstance(key, tuple):
             return self._get_values_tuple(key)
+
+        elif not is_list_like(key):
+            # e.g. scalars that aren't recognized by lib.is_scalar, GH#32684
+            return self.loc[key]
 
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
