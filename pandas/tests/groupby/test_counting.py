@@ -3,7 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Period, Series, Timedelta, Timestamp
+from pandas import (DataFrame, Index, MultiIndex, Period, Series, Timedelta,
+    Timestamp)
 import pandas._testing as tm
 
 
@@ -220,3 +221,55 @@ class TestCounting:
         mi = MultiIndex(levels=[[], ["a", "b"]], codes=[[], []], names=["A", "B"])
         expected = Series([], index=mi, dtype=np.int64, name="C")
         tm.assert_series_equal(result, expected, check_index_type=False)
+
+    #def test_count_groupby_index_with_nan_in_data(self):
+    #    # https://github.com/pandas-dev/pandas/issues/21824
+    #    df = DataFrame({"Person": ["John", "Myla", "John", "John", "Myla"],
+    #                       "Age": [24., np.nan, 21., 33, 26],
+    #                       "Single": [False, True, True, True, False]})
+
+    #    res = df.set_index(["Person", "Single"]).count(level="Person")
+    #    expected = DataFrame(index=Index(["John", "Myla"], name="Person"),
+    #                         data={"Age": [2, 1]})
+
+    def test_count_groupby_index_with_nan_in_index(self):
+        # https://github.com/pandas-dev/pandas/issues/21824
+        df = DataFrame({"Person": ["John", "Myla", None, "John", "Myla"],
+                           "Age": [24., 5, 21., 33, 26],
+                           "Single": [False, True, True, True, False]})
+
+        res = df.set_index(["Person", "Single"]).count(level="Person")
+        expected = DataFrame(index=Index(["John", "Myla"], name="Person"),
+                             data={"Age": [2, 2]})
+
+    #def test_count_groupby_index_with_nan_in_data_and_in_index(self):
+    #    # https://github.com/pandas-dev/pandas/issues/21824
+    #    df = DataFrame({"Person": ["John", "Myla", None, "John", "Myla"],
+    #                       "Age": [24., np.nan, 21., 33, 26],
+    #                       "Single": [False, True, True, True, False]})
+
+    #    res = df.set_index(["Person", "Single"]).count(level="Person")
+    #    expected = DataFrame(index=Index(["John", "Myla"], name="Person"),
+    #                         data={"Age": [2, 1]})
+
+
+    def test_count_groupby_column_with_nan_in_groupby_column(self):
+        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
+        res = df.groupby(["B"]).count()
+        expected = DataFrame(index=Index([0.0, 3.0, 4.0, 5.0], name="B"),
+                             data={"A": [1, 1, 1, 1]})
+        tm.assert_frame_equal(expected, res)
+
+    #def test_count_groupby_column_with_nan_in_data(self):
+    #    df = DataFrame({"A": [1, np.NaN, 1, 1, 1], "B": [5, 4., 2, 3, 0]})
+    #    res = df.groupby(["B"]).count()
+    #    expected = DataFrame(index=Index([0.0, 2.0, 3.0, 4.0, 5.0], name="B"),
+    #                         data={"A": [1, 1, 1, 0, 1]})
+    #    tm.assert_frame_equal(expected, res)
+
+    #def test_count_groupby_column_with_nan_in_data_and_in_groupby_column(self):
+    #    df = DataFrame({"A": [1, np.NaN, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
+    #    res = df.groupby(["B"]).count()
+    #    expected = DataFrame(index=Index([0.0, 3.0, 4.0, 5.0], name="B"),
+    #                         data={"A": [1, 1, 0, 1]})
+    #    tm.assert_frame_equal(expected, res)
