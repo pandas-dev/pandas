@@ -1127,7 +1127,7 @@ class Categorical(ExtensionArray, PandasObject):
         if not inplace:
             return cat
 
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
         """
         Map categories using input correspondence (dict, Series, or function).
 
@@ -1196,7 +1196,7 @@ class Categorical(ExtensionArray, PandasObject):
         >>> cat.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        new_categories = self.categories.map(mapper)
+        new_categories = self.categories.map(mapper, na_action=na_action)
         try:
             return self.from_codes(
                 self._codes.copy(), categories=new_categories, ordered=self.ordered

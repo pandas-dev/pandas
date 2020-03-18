@@ -612,7 +612,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return super()._maybe_cast_slice_bound(label, side, kind)
 
-    def map(self, mapper):
+    def map(self, mapper, na_action=None):
         """
         Map values using input correspondence (a dict, Series, or function).
 
@@ -679,7 +679,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        return self._shallow_copy_with_infer(self._values.map(mapper))
+        return self._shallow_copy_with_infer(
+            self._values.map(mapper, na_action=na_action)
+        )
 
     def delete(self, loc):
         """
