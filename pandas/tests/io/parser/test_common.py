@@ -966,7 +966,7 @@ def test_nonexistent_path(all_parsers):
     assert path == e.value.filename
 
 
-@td.skip_if_windows             # os.chmod does not work in windows
+@td.skip_if_windows  # os.chmod does not work in windows
 def test_no_permission(all_parsers):
     # GH 23784
     parser = all_parsers
