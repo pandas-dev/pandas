@@ -118,16 +118,11 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
     # GH28427
     result = getattr(empty_series_dti.resample(freq), resample_method)()
 
-    if isinstance(empty_series_dti.index, PeriodIndex):
-        index = empty_series_dti.index.asfreq(freq=freq)
-    else:
-        index = empty_series_dti.index._shallow_copy(freq=freq)
-    expected = pd.Series([], dtype="int64", index=index, name=empty_series_dti.name)
     index = _asfreq_compat(empty_series_dti.index, freq)
 
     expected = pd.Series([], dtype="int64", index=index, name=empty_series_dti.name)
 
-    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)    
 
 
 @all_ts
