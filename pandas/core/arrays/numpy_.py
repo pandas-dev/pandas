@@ -435,7 +435,10 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
     # ------------------------------------------------------------------------
     # Additional Methods
-    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
+
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 
         if (copy or na_value is not lib.no_default) and result is self._ndarray:
