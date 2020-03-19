@@ -240,13 +240,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         data.sort_indices()
         indices = data.indices
         indptr = data.indptr
-        data = data.data
-        dtype = SparseDtype(data.dtype, 0)
+        array_data = data.data
+        dtype = SparseDtype(array_data.dtype, 0)
         arrays = []
         for i in range(n_columns):
             sl = slice(indptr[i], indptr[i + 1])
             idx = IntIndex(n_rows, indices[sl], check_integrity=False)
-            arr = SparseArray._simple_new(data[sl], idx, dtype)
+            arr = SparseArray._simple_new(array_data[sl], idx, dtype)
             arrays.append(arr)
         return DataFrame._from_arrays(arrays, columns=columns, index=index)
 
