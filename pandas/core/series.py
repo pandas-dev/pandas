@@ -1695,7 +1695,7 @@ Name: Max Speed, dtype: float64
         See Also
         --------
         DataFrame.count : Count non-NA cells for each column or row.
-        
+
         Examples
         --------
         >>> s = pd.Series([0.0, 1.0, np.nan])
@@ -2276,7 +2276,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        DataFrame.cov : Compute pairwise covariance of columns, excluding NA/null values.
+        DataFrame.cov : Compute pairwise covariance of columns
 
         Examples
         --------
