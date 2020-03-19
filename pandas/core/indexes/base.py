@@ -464,8 +464,7 @@ class Index(IndexOpsMixin, PandasObject):
         # _index_data is a (temporary?) fix to ensure that the direct data
         # manipulation we do in `_libs/reduction.pyx` continues to work.
         # We need access to the actual ndarray, since we're messing with
-        # data buffers and strides. We don't re-use `_ndarray_values`, since
-        # we actually set this value too.
+        # data buffers and strides.
         result._index_data = values
         result._name = name
         result._cache = {}
@@ -625,7 +624,8 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
-        return self._ndarray_values.ravel(order=order)
+        values = self._get_engine_target()
+        return values.ravel(order=order)
 
     def view(self, cls=None):
 
@@ -3846,29 +3846,24 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The best array representation.
 
-        This is an ndarray or ExtensionArray. This differs from
-        ``_ndarray_values``, which always returns an ndarray.
+        This is an ndarray or ExtensionArray.
 
-        Both ``_values`` and ``_ndarray_values`` are consistent between
-        ``Series`` and ``Index`` (except for datetime64[ns], which returns
-        a DatetimeArray for _values on the Index, but ndarray[M8ns] on the
-        Series).
+        ``_values`` are consistent between``Series`` and ``Index``.
 
         It may differ from the public '.values' method.
 
-        index             | values          | _values       | _ndarray_values |
-        ----------------- | --------------- | ------------- | --------------- |
-        Index             | ndarray         | ndarray       | ndarray         |
-        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
-        DatetimeIndex     | ndarray[M8ns]   | DatetimeArray | ndarray[M8ns]   |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray | ndarray[M8ns]   |
-        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
-        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
+        index             | values          | _values       |
+        ----------------- | --------------- | ------------- |
+        Index             | ndarray         | ndarray       |
+        CategoricalIndex  | Categorical     | Categorical   |
+        DatetimeIndex     | ndarray[M8ns]   | DatetimeArray |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray |
+        PeriodIndex       | ndarray[object] | PeriodArray   |
+        IntervalIndex     | IntervalArray   | IntervalArray |
 
         See Also
         --------
         values
-        _ndarray_values
         """
         return self._data
 

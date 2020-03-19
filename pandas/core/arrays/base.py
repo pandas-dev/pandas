@@ -93,7 +93,6 @@ class ExtensionArray:
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
-    _ndarray_values
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -1045,22 +1044,6 @@ class ExtensionArray:
     # will then be of the ExtensionArray subclass rather than an array
     # of objects
     _can_hold_na = True
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        Returns
-        -------
-        array : ndarray
-        """
-        return np.array(self)
 
     def _reduce(self, name, skipna=True, **kwargs):
         """

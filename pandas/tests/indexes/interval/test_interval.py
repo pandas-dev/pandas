@@ -147,7 +147,7 @@ class TestIntervalIndex:
         )
 
         # by-definition make a copy
-        result = IntervalIndex(index._ndarray_values, copy=False)
+        result = IntervalIndex(np.array(index), copy=False)
         tm.assert_numpy_array_equal(
             index.left.values, result.left.values, check_same="copy"
         )

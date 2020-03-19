@@ -550,21 +550,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         timedelta64 dtypes), while ``.array`` ensures to always return an
         ExtensionArray.
 
-        Differs from ``._ndarray_values``, as that ensures to always return a
-        numpy array (it will call ``_ndarray_values`` on the ExtensionArray, if
-        the Series was backed by an ExtensionArray).
-
         Overview:
 
-        dtype       | values        | _values       | array         | _ndarray_values |
-        ----------- | ------------- | ------------- | ------------- | --------------- |
-        Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
-        Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
-        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] | ndarray[m8ns]   |
-        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
-        Nullable    | EA            | EA            | EA            | ndarray         |
+        dtype       | values        | _values       | array         |
+        ----------- | ------------- | ------------- | ------------- |
+        Numeric     | ndarray       | ndarray       | PandasArray   |
+        Category    | Categorical   | Categorical   | Categorical   |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   |
+        Nullable    | EA            | EA            | EA            |
 
         """
         return self._data.internal_values()
