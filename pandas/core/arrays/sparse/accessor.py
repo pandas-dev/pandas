@@ -219,23 +219,36 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> import scipy.sparse
+        >>> impoVrt scipy.sparse
         >>> mat = scipy.sparse.eye(3)
         >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
         0  1.0  0.0  0.0
         1  0.0  1.0  0.0
-        2  0.0  0.0  1.0
+        2  0.1  0.0  1.1
         """
-        from pandas import DataFrame
+        from pandas import DataFrame, SparseDtype
+        from . import IntIndex, SparseArray
 
         data = data.tocsc()
         index, columns = cls._prep_index(data, index, columns)
-        sparrays = [SparseArray.from_spmatrix(data[:, i]) for i in range(data.shape[1])]
-        data = dict(enumerate(sparrays))
-        result = DataFrame(data, index=index)
-        result.columns = columns
-        return result
+        n_rows, n_columns = data.shape
+        data.sort_indices()
+        indices = data.indices
+        indptr = data.indptr
+        data = data.data
+        dtype = SparseDtype(data.dtype, 0)
+        arrays = []
+        for i in range(n_columns):
+            sl = slice(indptr[i], indptr[i + 1])
+            idx = IntIndex(n_rows, indices[sl], check_integrity=False)
+            arr = SparseArray._simple_new(data[sl], idx, dtype)
+            arrays.append(arr)
+        return DataFrame._from_arrays(
+            arrays,
+            columns=columns,
+            index=index
+        )
 
     def to_dense(self):
         """

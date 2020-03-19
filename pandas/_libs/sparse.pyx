@@ -40,12 +40,13 @@ cdef class IntIndex(SparseIndex):
         Py_ssize_t length, npoints
         ndarray indices
 
-    def __init__(self, Py_ssize_t length, indices):
+    def __init__(self, Py_ssize_t length, indices, check_integrity=True):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
 
-        self.check_integrity()
+        if check_integrity:
+            self.check_integrity()
 
     def __reduce__(self):
         args = (self.length, self.indices)
