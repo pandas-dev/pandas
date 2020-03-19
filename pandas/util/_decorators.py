@@ -250,9 +250,11 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
     A decorator take docstring templates, concatenate them and perform string
     substitution on it.
 
-    This decorator is robust even if func.__doc__ is None. This decorator will
-    add a variable "_docstr_template" to the wrapped function to save original
-    docstring template for potential usage.
+    This decorator will add a variable "_docstring_components" to the wrapped
+    function to keep track the original docstring template for potential usage.
+    If it should be consider as a template, it will be saved as a string.
+    Otherwise, it will be saved as callable, and later user __doc__ and dedent
+    to get docstring.
 
     Parameters
     ----------
@@ -268,17 +270,28 @@ def doc(*args: Union[str, Callable], **kwargs: str) -> Callable[[F], F]:
         def wrapper(*args, **kwargs) -> Callable:
             return func(*args, **kwargs)
 
-        templates = [func.__doc__ if func.__doc__ else ""]
-        for arg in args:
-            if isinstance(arg, str):
-                templates.append(arg)
-            elif hasattr(arg, "_docstr_template"):
-                templates.append(arg._docstr_template)  # type: ignore
-            elif arg.__doc__:
-                templates.append(arg.__doc__)
+        # collecting docstring and docstring templates
+        docstring_components: List[Union[str, Callable]] = []
+        if func.__doc__:
+            docstring_components.append(dedent(func.__doc__))
 
-        wrapper._docstr_template = "".join(dedent(t) for t in templates)  # type: ignore
-        wrapper.__doc__ = wrapper._docstr_template.format(**kwargs)  # type: ignore
+        for arg in args:
+            if hasattr(arg, "_docstring_components"):
+                docstring_components.extend(arg._docstring_components)  # type: ignore
+            elif isinstance(arg, str) or arg.__doc__:
+                docstring_components.append(arg)
+
+        # formatting templates and concatenating docstring
+        wrapper.__doc__ = "".join(
+            [
+                arg.format(**kwargs)
+                if isinstance(arg, str)
+                else dedent(arg.__doc__ or "")
+                for arg in docstring_components
+            ]
+        )
+
+        wrapper._docstring_components = docstring_components  # type: ignore
 
         return cast(F, wrapper)
 

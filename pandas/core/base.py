@@ -19,11 +19,10 @@ from typing import (
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import T
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
+from pandas.util._decorators import cache_readonly, doc
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import is_nested_object
@@ -63,6 +62,8 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    _cache: Dict[str, Any]
+
     @property
     def _constructor(self):
         """
@@ -77,7 +78,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key=None):
+    def _reset_cache(self, key: Optional[str] = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -99,15 +100,6 @@ class PandasObject(DirNamesMixin):
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
         return super().__sizeof__()
-
-    def _ensure_type(self: T, obj) -> T:
-        """
-        Ensure that an object has same type as self.
-
-        Used by type checkers.
-        """
-        assert isinstance(obj, type(self)), type(obj)
-        return obj
 
 
 class NoNewAttributesMixin:
@@ -881,23 +873,6 @@ class IndexOpsMixin:
         return result
 
     @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        The data as an ndarray, possibly losing information.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        - categorical -> codes
-        """
-        if is_extension_array_dtype(self):
-            return self.array._ndarray_values
-        # As a mixin, we depend on the mixing class having values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        return self.values  # type: ignore
-
-    @property
     def empty(self):
         return not self.size
 
@@ -910,6 +885,9 @@ class IndexOpsMixin:
         axis : int, optional
             For compatibility with NumPy. Only 0 or None are allowed.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -1007,6 +985,9 @@ class IndexOpsMixin:
         axis : {None}
             Dummy argument for consistency with Series.
         skipna : bool, default True
+            Exclude NA/null values when showing the result.
+        *args, **kwargs
+            Additional arguments and keywords for compatibility with NumPy.
 
         Returns
         -------
@@ -1444,13 +1425,13 @@ class IndexOpsMixin:
     ] = """
         Find indices where elements should be inserted to maintain order.
 
-        Find the indices into a sorted %(klass)s `self` such that, if the
+        Find the indices into a sorted {klass} `self` such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
 
         .. note::
 
-            The %(klass)s *must* be monotonically sorted, otherwise
+            The {klass} *must* be monotonically sorted, otherwise
             wrong locations will likely be returned. Pandas does *not*
             check this for you.
 
@@ -1458,7 +1439,7 @@ class IndexOpsMixin:
         ----------
         value : array_like
             Values to insert into `self`.
-        side : {'left', 'right'}, optional
+        side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
@@ -1534,8 +1515,7 @@ class IndexOpsMixin:
         0  # wrong result, correct would be 1
         """
 
-    @Substitution(klass="Index")
-    @Appender(_shared_docs["searchsorted"])
+    @doc(_shared_docs["searchsorted"], klass="Index")
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 

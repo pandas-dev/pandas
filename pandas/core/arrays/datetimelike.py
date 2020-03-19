@@ -40,6 +40,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import missing, nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d, value_counts
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
@@ -130,7 +131,7 @@ class AttributesMixin:
     _data: np.ndarray
 
     @classmethod
-    def _simple_new(cls, values, **kwargs):
+    def _simple_new(cls, values: np.ndarray, **kwargs):
         raise AbstractMethodError(cls)
 
     @property
@@ -455,10 +456,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # do not cache or you'll create a memory leak
         return self._data.view("i8")
 
-    @property
-    def _ndarray_values(self):
-        return self._data
-
     # ----------------------------------------------------------------
     # Rendering Methods
 
@@ -744,6 +741,38 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
     def _values_for_argsort(self):
         return self._data
+
+    @Appender(ExtensionArray.shift.__doc__)
+    def shift(self, periods=1, fill_value=None, axis=0):
+        if not self.size or periods == 0:
+            return self.copy()
+
+        if is_valid_nat_for_dtype(fill_value, self.dtype):
+            fill_value = NaT
+        elif not isinstance(fill_value, self._recognized_scalars):
+            # only warn if we're not going to raise
+            if self._scalar_type is Period and lib.is_integer(fill_value):
+                # kludge for #31971 since Period(integer) tries to cast to str
+                new_fill = Period._from_ordinal(fill_value, freq=self.freq)
+            else:
+                new_fill = self._scalar_type(fill_value)
+
+            # stacklevel here is chosen to be correct when called from
+            #  DataFrame.shift or Series.shift
+            warnings.warn(
+                f"Passing {type(fill_value)} to shift is deprecated and "
+                "will raise in a future version, pass "
+                f"{self._scalar_type.__name__} instead.",
+                FutureWarning,
+                stacklevel=7,
+            )
+            fill_value = new_fill
+
+        fill_value = self._unbox_scalar(fill_value)
+
+        new_values = shift(self._data, periods, axis, fill_value)
+
+        return type(self)._simple_new(new_values, dtype=self.dtype)
 
     # ------------------------------------------------------------------
     # Additional array methods

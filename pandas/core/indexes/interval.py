@@ -263,6 +263,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result = IntervalMixin.__new__(cls)
         result._data = array
         result.name = name
+        result._cache = {}
         result._no_setting_name = False
         result._reset_identity()
         return result
@@ -352,12 +353,15 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+        name = self.name if name is lib.no_default else name
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self._data
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        return self._simple_new(values, **attributes)
+
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     @cache_readonly
     def _isnan(self):
@@ -425,7 +429,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):
-            new_values = self.values.astype(dtype, copy=copy)
+            new_values = self._values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values):
             return self._shallow_copy(new_values)
         return Index.astype(self, dtype, copy=copy)
@@ -906,7 +910,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
-        values = np.where(cond, self.values, other)
+        values = np.where(cond, self._values, other)
         result = IntervalArray(values)
         return self._shallow_copy(result)
 

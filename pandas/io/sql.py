@@ -705,8 +705,16 @@ class SQLTable(PandasObject):
                 else:
                     # convert to microsecond resolution for datetime.datetime
                     d = b.values.astype("M8[us]").astype(object)
+            elif b.is_timedelta:
+                # numpy converts this to an object array of integers,
+                #  whereas b.astype(object).values would convert to
+                #  object array of Timedeltas
+                d = b.values.astype(object)
             else:
-                d = np.array(b.get_values(), dtype=object)
+                # TODO(2DEA): astype-first can be avoided with 2D EAs
+                # astype on the block instead of values to ensure we
+                #  get the right shape
+                d = b.astype(object).values
 
             # replace NaN with None
             if b._can_hold_na:
