@@ -333,13 +333,9 @@ class TestBlockManager:
         assert not mgr2._is_consolidated
         assert not mgr2._known_consolidated
 
-    def test_non_unique_pickle(self):
-
-        mgr = create_mgr("a,a,a:f8")
-        mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
-
-        mgr = create_mgr("a: f8; a: i8")
+    @pytest.mark.parametrize("mgr_string", ["a,a,a:f8", "a: f8; a: i8"])
+    def test_non_unique_pickle(self, mgr_string):
+        mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr)
         tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
 
@@ -427,22 +423,25 @@ class TestBlockManager:
 
         # TODO: what to test here?
 
-    def test_as_array_float(self):
-        mgr = create_mgr("c: f4; d: f2; e: f8")
-        assert mgr.as_array().dtype == np.float64
+    @pytest.mark.parametrize(
+        "mgr_string, dtype",
+        [("c: f4; d: f2", np.float32), ("c: f4; d: f2; e: f8", np.float64)],
+    )
+    def test_as_array_float(self, mgr_string, dtype):
+        mgr = create_mgr(mgr_string)
+        assert mgr.as_array().dtype == dtype
 
-        mgr = create_mgr("c: f4; d: f2")
-        assert mgr.as_array().dtype == np.float32
-
-    def test_as_array_int_bool(self):
-        mgr = create_mgr("a: bool-1; b: bool-2")
-        assert mgr.as_array().dtype == np.bool_
-
-        mgr = create_mgr("a: i8-1; b: i8-2; c: i4; d: i2; e: u1")
-        assert mgr.as_array().dtype == np.int64
-
-        mgr = create_mgr("c: i4; d: i2; e: u1")
-        assert mgr.as_array().dtype == np.int32
+    @pytest.mark.parametrize(
+        "mgr_string, dtype",
+        [
+            ("a: bool-1; b: bool-2", np.bool_),
+            ("a: i8-1; b: i8-2; c: i4; d: i2; e: u1", np.int64),
+            ("c: i4; d: i2; e: u1", np.int32),
+        ],
+    )
+    def test_as_array_int_bool(self, mgr_string, dtype):
+        mgr = create_mgr(mgr_string)
+        assert mgr.as_array().dtype == dtype
 
     def test_as_array_datetime(self):
         mgr = create_mgr("h: datetime-1; g: datetime-2")
@@ -548,7 +547,6 @@ class TestBlockManager:
             create_mgr("a: category2; b: category2")
 
     def test_interleave(self):
-
         # self
         for dtype in ["f8", "i8", "object", "bool", "complex", "M8[ns]", "m8[ns]"]:
             mgr = create_mgr(f"a: {dtype}")
@@ -556,6 +554,30 @@ class TestBlockManager:
             mgr = create_mgr(f"a: {dtype}; b: {dtype}")
             assert mgr.as_array().dtype == dtype
 
+    @pytest.mark.parametrize(
+        "mgr_string, dtype",
+        [
+            ("a: category", "i8"),
+            ("a: category; b: category", "i8"),
+            ("a: category; b: category2", "object"),
+            ("a: category2", "object"),
+            ("a: category2; b: category2", "object"),
+            ("a: f8", "f8"),
+            ("a: f8; b: i8", "f8"),
+            ("a: f4; b: i8", "f8"),
+            ("a: f4; b: i8; d: object", "object"),
+            ("a: bool; b: i8", "object"),
+            ("a: complex", "complex"),
+            ("a: f8; b: category", "object"),
+            ("a: M8[ns]; b: category", "object"),
+            ("a: M8[ns]; b: bool", "object"),
+            ("a: M8[ns]; b: i8", "object"),
+            ("a: m8[ns]; b: bool", "object"),
+            ("a: m8[ns]; b: i8", "object"),
+            ("a: M8[ns]; b: m8[ns]", "object"),
+        ],
+    )
+    def test_interleave_dtype(self, mgr_string, dtype):
         # will be converted according the actual dtype of the underlying
         mgr = create_mgr("a: category")
         assert mgr.as_array().dtype == "i8"
@@ -689,13 +711,12 @@ class TestBlockManager:
     def test_unicode_repr_doesnt_raise(self):
         repr(create_mgr("b,\u05d0: object"))
 
-    def test_equals(self):
+    @pytest.mark.parametrize(
+        "mgr_string", ["a,b,c: i8-1; d,e,f: i8-2", "a,a,a: i8-1; b,b,b: i8-2"]
+    )
+    def test_equals(self, mgr_string):
         # unique items
-        bm1 = create_mgr("a,b,c: i8-1; d,e,f: i8-2")
-        bm2 = BlockManager(bm1.blocks[::-1], bm1.axes)
-        assert bm1.equals(bm2)
-
-        bm1 = create_mgr("a,a,a: i8-1; b,b,b: i8-2")
+        bm1 = create_mgr(mgr_string)
         bm2 = BlockManager(bm1.blocks[::-1], bm1.axes)
         assert bm1.equals(bm2)
 
@@ -905,97 +926,111 @@ class TestIndexing:
 
 
 class TestBlockPlacement:
-    def test_slice_len(self):
-        assert len(BlockPlacement(slice(0, 4))) == 4
-        assert len(BlockPlacement(slice(0, 4, 2))) == 2
-        assert len(BlockPlacement(slice(0, 3, 2))) == 2
+    @pytest.mark.parametrize(
+        "slc, expected",
+        [
+            (slice(0, 4), 4),
+            (slice(0, 4, 2), 2),
+            (slice(0, 3, 2), 2),
+            (slice(0, 1, 2), 1),
+            (slice(1, 0, -1), 1),
+        ],
+    )
+    def test_slice_len(self, slc, expected):
+        assert len(BlockPlacement(slc)) == expected
 
-        assert len(BlockPlacement(slice(0, 1, 2))) == 1
-        assert len(BlockPlacement(slice(1, 0, -1))) == 1
-
-    def test_zero_step_raises(self):
+    @pytest.mark.parametrize("slc", [slice(1, 1, 0), slice(1, 2, 0)])
+    def test_zero_step_raises(self, slc):
         msg = "slice step cannot be zero"
-
         with pytest.raises(ValueError, match=msg):
-            BlockPlacement(slice(1, 1, 0))
+            BlockPlacement(slc)
+
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            slice(None, None),
+            slice(10, None),
+            slice(None, None, -1),
+            slice(None, 10, -1),
+            # These are "unbounded" because negative index will
+            #  change depending on container shape.
+            slice(-1, None),
+            slice(None, -1),
+            slice(-1, -1),
+            slice(-1, None, -1),
+            slice(None, -1, -1),
+            slice(-1, -1, -1),
+        ],
+    )
+    def test_unbounded_slice_raises(self, slc):
+        msg = "unbounded slice"
         with pytest.raises(ValueError, match=msg):
-            BlockPlacement(slice(1, 2, 0))
+            BlockPlacement(slc)
 
-    def test_unbounded_slice_raises(self):
-        def assert_unbounded_slice_error(slc):
-            with pytest.raises(ValueError, match="unbounded slice"):
-                BlockPlacement(slc)
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            slice(0, 0),
+            slice(100, 0),
+            slice(100, 100),
+            slice(100, 100, -1),
+            slice(0, 100, -1),
+        ],
+    )
+    def test_not_slice_like_slices(self, slc):
+        assert not BlockPlacement(slc).is_slice_like
 
-        assert_unbounded_slice_error(slice(None, None))
-        assert_unbounded_slice_error(slice(10, None))
-        assert_unbounded_slice_error(slice(None, None, -1))
-        assert_unbounded_slice_error(slice(None, 10, -1))
+    @pytest.mark.parametrize(
+        "arr, slc",
+        [
+            ([0], slice(0, 1, 1)),
+            ([100], slice(100, 101, 1)),
+            ([0, 1, 2], slice(0, 3, 1)),
+            ([0, 5, 10], slice(0, 15, 5)),
+            ([0, 100], slice(0, 200, 100)),
+            ([2, 1], slice(2, 0, -1)),
+        ],
+    )
+    def test_array_to_slice_conversion(self, arr, slc):
+        assert BlockPlacement(arr).as_slice == slc
 
-        # These are "unbounded" because negative index will change depending on
-        # container shape.
-        assert_unbounded_slice_error(slice(-1, None))
-        assert_unbounded_slice_error(slice(None, -1))
-        assert_unbounded_slice_error(slice(-1, -1))
-        assert_unbounded_slice_error(slice(-1, None, -1))
-        assert_unbounded_slice_error(slice(None, -1, -1))
-        assert_unbounded_slice_error(slice(-1, -1, -1))
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            [],
+            [-1],
+            [-1, -2, -3],
+            [-10],
+            [-1],
+            [-1, 0, 1, 2],
+            [-2, 0, 2, 4],
+            [1, 0, -1],
+            [1, 1, 1],
+        ],
+    )
+    def test_not_slice_like_arrays(self, arr):
+        assert not BlockPlacement(arr).is_slice_like
 
-    def test_not_slice_like_slices(self):
-        def assert_not_slice_like(slc):
-            assert not BlockPlacement(slc).is_slice_like
+    @pytest.mark.parametrize(
+        "slc, expected",
+        [(slice(0, 3), [0, 1, 2]), (slice(0, 0), []), (slice(3, 0), [])],
+    )
+    def test_slice_iter(self, slc, expected):
+        assert list(BlockPlacement(slc)) == expected
 
-        assert_not_slice_like(slice(0, 0))
-        assert_not_slice_like(slice(100, 0))
-
-        assert_not_slice_like(slice(100, 100, -1))
-        assert_not_slice_like(slice(0, 100, -1))
-
-        assert not BlockPlacement(slice(0, 0)).is_slice_like
-        assert not BlockPlacement(slice(100, 100)).is_slice_like
-
-    def test_array_to_slice_conversion(self):
-        def assert_as_slice_equals(arr, slc):
-            assert BlockPlacement(arr).as_slice == slc
-
-        assert_as_slice_equals([0], slice(0, 1, 1))
-        assert_as_slice_equals([100], slice(100, 101, 1))
-
-        assert_as_slice_equals([0, 1, 2], slice(0, 3, 1))
-        assert_as_slice_equals([0, 5, 10], slice(0, 15, 5))
-        assert_as_slice_equals([0, 100], slice(0, 200, 100))
-
-        assert_as_slice_equals([2, 1], slice(2, 0, -1))
-
-    def test_not_slice_like_arrays(self):
-        def assert_not_slice_like(arr):
-            assert not BlockPlacement(arr).is_slice_like
-
-        assert_not_slice_like([])
-        assert_not_slice_like([-1])
-        assert_not_slice_like([-1, -2, -3])
-        assert_not_slice_like([-10])
-        assert_not_slice_like([-1])
-        assert_not_slice_like([-1, 0, 1, 2])
-        assert_not_slice_like([-2, 0, 2, 4])
-        assert_not_slice_like([1, 0, -1])
-        assert_not_slice_like([1, 1, 1])
-
-    def test_slice_iter(self):
-        assert list(BlockPlacement(slice(0, 3))) == [0, 1, 2]
-        assert list(BlockPlacement(slice(0, 0))) == []
-        assert list(BlockPlacement(slice(3, 0))) == []
-
-    def test_slice_to_array_conversion(self):
-        def assert_as_array_equals(slc, asarray):
-            tm.assert_numpy_array_equal(
-                BlockPlacement(slc).as_array, np.asarray(asarray, dtype=np.int64)
-            )
-
-        assert_as_array_equals(slice(0, 3), [0, 1, 2])
-        assert_as_array_equals(slice(0, 0), [])
-        assert_as_array_equals(slice(3, 0), [])
-
-        assert_as_array_equals(slice(3, 0, -1), [3, 2, 1])
+    @pytest.mark.parametrize(
+        "slc, arr",
+        [
+            (slice(0, 3), [0, 1, 2]),
+            (slice(0, 0), []),
+            (slice(3, 0), []),
+            (slice(3, 0, -1), [3, 2, 1]),
+        ],
+    )
+    def test_slice_to_array_conversion(self, slc, arr):
+        tm.assert_numpy_array_equal(
+            BlockPlacement(slc).as_array, np.asarray(arr, dtype=np.int64)
+        )
 
     def test_blockplacement_add(self):
         bpl = BlockPlacement(slice(0, 5))
@@ -1003,30 +1038,30 @@ class TestBlockPlacement:
         assert bpl.add(np.arange(5)).as_slice == slice(0, 10, 2)
         assert list(bpl.add(np.arange(5, 0, -1))) == [5, 5, 5, 5, 5]
 
-    def test_blockplacement_add_int(self):
-        def assert_add_equals(val, inc, result):
-            assert list(BlockPlacement(val).add(inc)) == result
+    @pytest.mark.parametrize(
+        "val, inc, expected",
+        [
+            (slice(0, 0), 0, []),
+            (slice(1, 4), 0, [1, 2, 3]),
+            (slice(3, 0, -1), 0, [3, 2, 1]),
+            ([1, 2, 4], 0, [1, 2, 4]),
+            (slice(0, 0), 10, []),
+            (slice(1, 4), 10, [11, 12, 13]),
+            (slice(3, 0, -1), 10, [13, 12, 11]),
+            ([1, 2, 4], 10, [11, 12, 14]),
+            (slice(0, 0), -1, []),
+            (slice(1, 4), -1, [0, 1, 2]),
+            ([1, 2, 4], -1, [0, 1, 3]),
+        ],
+    )
+    def test_blockplacement_add_int(self, val, inc, expected):
+        assert list(BlockPlacement(val).add(inc)) == expected
 
-        assert_add_equals(slice(0, 0), 0, [])
-        assert_add_equals(slice(1, 4), 0, [1, 2, 3])
-        assert_add_equals(slice(3, 0, -1), 0, [3, 2, 1])
-        assert_add_equals([1, 2, 4], 0, [1, 2, 4])
-
-        assert_add_equals(slice(0, 0), 10, [])
-        assert_add_equals(slice(1, 4), 10, [11, 12, 13])
-        assert_add_equals(slice(3, 0, -1), 10, [13, 12, 11])
-        assert_add_equals([1, 2, 4], 10, [11, 12, 14])
-
-        assert_add_equals(slice(0, 0), -1, [])
-        assert_add_equals(slice(1, 4), -1, [0, 1, 2])
-        assert_add_equals([1, 2, 4], -1, [0, 1, 3])
-
+    @pytest.mark.parametrize("val", [slice(1, 4), [1, 2, 4]])
+    def test_blockplacement_add_int_raises(self, val):
         msg = "iadd causes length change"
-
         with pytest.raises(ValueError, match=msg):
-            BlockPlacement(slice(1, 4)).add(-10)
-        with pytest.raises(ValueError, match=msg):
-            BlockPlacement([1, 2, 4]).add(-10)
+            BlockPlacement(val).add(-10)
 
 
 class DummyElement:
