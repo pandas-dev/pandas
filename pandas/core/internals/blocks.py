@@ -11,6 +11,7 @@ from pandas._libs import NaT, Timestamp, algos as libalgos, lib, tslib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.tslibs import Timedelta, conversion
 from pandas._libs.tslibs.timezones import tz_compare
+from pandas._typing import ArrayLike
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -349,11 +350,12 @@ class Block(PandasObject):
 
     def set(self, locs, values):
         """
-        Modify Block in-place with new item value
+        Modify block values in-place with new item value.
 
-        Returns
-        -------
-        None
+        Notes
+        -----
+        `set` never creates a new array or new Block, whereas `setitem` _may_
+        create a new array and always creates a new Block.
         """
         self.values[locs] = values
 
@@ -802,7 +804,7 @@ class Block(PandasObject):
 
     def setitem(self, indexer, value):
         """
-        Set the value inplace, returning a a maybe different typed block.
+        Attempt self.values[indexer] = value, possibly creating a new array.
 
         Parameters
         ----------
@@ -1644,12 +1646,15 @@ class ExtensionBlock(Block):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def should_store(self, value):
+    def should_store(self, value: ArrayLike) -> bool:
+        """
+        Can we set the given array-like value inplace?
+        """
         return isinstance(value, self._holder)
 
-    def set(self, locs, values, check=False):
+    def set(self, locs, values):
         assert locs.tolist() == [0]
-        self.values = values
+        self.values[:] = values
 
     def putmask(
         self, mask, new, align=True, inplace=False, axis=0, transpose=False,
@@ -1760,7 +1765,7 @@ class ExtensionBlock(Block):
 
     def setitem(self, indexer, value):
         """
-        Set the value inplace, returning a same-typed block.
+        Attempt self.values[indexer] = value, possibly creating a new array.
 
         This differs from Block.setitem by not allowing setitem to change
         the dtype of the Block.
@@ -2070,7 +2075,7 @@ class FloatBlock(FloatOrComplexBlock):
         )
         return formatter.get_result_as_array()
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         # when inserting a column should not coerce integers to floats
         # unnecessarily
         return issubclass(value.dtype.type, np.floating) and value.dtype == self.dtype
@@ -2088,7 +2093,7 @@ class ComplexBlock(FloatOrComplexBlock):
             element, (float, int, complex, np.float_, np.int_)
         ) and not isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return issubclass(value.dtype.type, np.complexfloating)
 
 
@@ -2107,7 +2112,7 @@ class IntBlock(NumericBlock):
             )
         return is_integer(element)
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return is_integer_dtype(value) and value.dtype == self.dtype
 
 
@@ -2117,6 +2122,9 @@ class DatetimeLikeBlockMixin:
     @property
     def _holder(self):
         return DatetimeArray
+
+    def should_store(self, value):
+        return is_dtype_equal(self.dtype, value.dtype)
 
     @property
     def fill_value(self):
@@ -2254,16 +2262,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         ).reshape(i8values.shape)
         return np.atleast_2d(result)
 
-    def should_store(self, value) -> bool:
-        return is_datetime64_dtype(value.dtype)
-
     def set(self, locs, values):
         """
-        Modify Block in-place with new item value
-
-        Returns
-        -------
-        None
+        See Block.set.__doc__
         """
         values = conversion.ensure_datetime64ns(values, copy=False)
 
@@ -2287,6 +2288,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
+    should_store = DatetimeBlock.should_store
 
     @property
     def _holder(self):
@@ -2496,9 +2498,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             )
         return super().fillna(value, **kwargs)
 
-    def should_store(self, value) -> bool:
-        return is_timedelta64_dtype(value.dtype)
-
     def to_native_types(self, slicer=None, na_rep=None, quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
         values = self.values
@@ -2540,7 +2539,7 @@ class BoolBlock(NumericBlock):
             return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return issubclass(value.dtype.type, np.bool_) and not is_extension_array_dtype(
             value
         )
@@ -2632,7 +2631,7 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element: Any) -> bool:
         return True
 
-    def should_store(self, value) -> bool:
+    def should_store(self, value: ArrayLike) -> bool:
         return not (
             issubclass(
                 value.dtype.type,
@@ -2880,6 +2879,9 @@ class CategoricalBlock(ExtensionBlock):
     @property
     def _holder(self):
         return Categorical
+
+    def should_store(self, arr: ArrayLike):
+        return isinstance(arr, self._holder) and is_dtype_equal(self.dtype, arr.dtype)
 
     def to_native_types(self, slicer=None, na_rep="", quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
