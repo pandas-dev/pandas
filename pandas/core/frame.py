@@ -10,11 +10,10 @@ labeling information
 """
 
 import collections
-import datetime
-import itertools
-import warnings
 from collections import abc
+import datetime
 from io import StringIO
+import itertools
 from textwrap import dedent
 from typing import (
     IO,
@@ -33,24 +32,30 @@ from typing import (
     Union,
     cast,
 )
+import warnings
 
 import numpy as np
 
-import pandas.plotting
 from pandas._config import get_option
-from pandas._libs import algos as libalgos
-from pandas._libs import lib, properties
+
+from pandas._libs import algos as libalgos, lib, properties
 from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.core import algorithms
-from pandas.core import common as com
-from pandas.core import nanops, ops
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
-from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    deprecate_kwarg,
+    doc,
+    rewrite_axis_style_signature,
+)
+from pandas.util._validators import (
+    validate_axis_style_args,
+    validate_bool_kwarg,
+    validate_percentile,
+)
+
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
@@ -95,6 +100,12 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
+
+from pandas.core import algorithms, common as com, nanops, ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
+from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
@@ -111,22 +122,11 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
+
 from pandas.io.common import get_filepath_or_buffer
-from pandas.io.formats import console
-from pandas.io.formats import format as fmt
+from pandas.io.formats import console, format as fmt
 from pandas.io.formats.info import info
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    deprecate_kwarg,
-    doc,
-    rewrite_axis_style_signature,
-)
-from pandas.util._validators import (
-    validate_axis_style_args,
-    validate_bool_kwarg,
-    validate_percentile,
-)
+import pandas.plotting
 
 if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
