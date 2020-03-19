@@ -1215,12 +1215,6 @@ class TestStringMethods:
         exp = Series([True, False, np.nan, False])
         tm.assert_series_equal(result, exp)
 
-        # Make sure that flags work
-        from re import IGNORECASE
-
-        result = values.str.fullmatch(".*Bad[_]+.*bad", flags=IGNORECASE)
-        tm.assert_series_equal(result, exp)
-
         # Make sure that the new string arrays work
         string_values = Series(
             ["fooBAD__barBAD", "BAD_BADleroybrown", np.nan, "foo"], dtype="string"
@@ -3404,6 +3398,9 @@ class TestStringMethods:
         assert result.iloc[0].tolist() == ["dave", "google", "com"]
 
         result = data.str.match(pat, flags=re.IGNORECASE)
+        assert result[0]
+
+        result = data.str.fullmatch(pat, flags=re.IGNORECASE)
         assert result[0]
 
         result = data.str.findall(pat, flags=re.IGNORECASE)
