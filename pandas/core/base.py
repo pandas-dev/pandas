@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -49,6 +49,8 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    _cache: Dict[str, Any]
+
     @property
     def _constructor(self):
         """
@@ -63,7 +65,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key=None):
+    def _reset_cache(self, key: Optional[str] = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -854,23 +856,6 @@ class IndexOpsMixin:
             if na_value is not lib.no_default:
                 result[self.isna()] = na_value
         return result
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        The data as an ndarray, possibly losing information.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        - categorical -> codes
-        """
-        if is_extension_array_dtype(self):
-            return self.array._ndarray_values
-        # As a mixin, we depend on the mixing class having values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        return self.values  # type: ignore
 
     @property
     def empty(self):
