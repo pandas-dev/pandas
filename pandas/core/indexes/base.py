@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Hashable, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
 import warnings
 
 import numpy as np
@@ -249,7 +249,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _cache: Dict[str, Any]
     _id = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
