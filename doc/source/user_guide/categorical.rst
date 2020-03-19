@@ -799,7 +799,7 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
 .. _categorical.merge:
 .. _categorical.concat:
 
-Merging / Concatenation
+Merging / concatenation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, combining ``Series`` or ``DataFrames`` which contain the same

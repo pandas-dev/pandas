@@ -218,7 +218,7 @@ Backwards incompatible API changes
 
 .. _whatsnew_0160.api_breaking.timedelta:
 
-Changes in Timedelta
+Changes in timedelta
 ^^^^^^^^^^^^^^^^^^^^
 
 In v0.15.0 a new scalar type ``Timedelta`` was introduced, that is a

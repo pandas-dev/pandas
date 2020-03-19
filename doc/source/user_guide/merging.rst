@@ -1143,7 +1143,7 @@ This is equivalent but less verbose and more memory efficient / faster than this
 
 .. _merging.join_with_two_multi_indexes:
 
-Joining with two MultiIndexes
+Joining with two multiindexes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is supported in a limited way, provided that the index for the right
@@ -1303,7 +1303,7 @@ similarly.
 
 .. _merging.multiple_join:
 
-Joining multiple DataFrames
+Joining multiple dataframes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A list or tuple of ``DataFrames`` can also be passed to :meth:`~DataFrame.join`

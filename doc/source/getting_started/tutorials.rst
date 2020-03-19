@@ -30,7 +30,7 @@ entails.
 For the table of contents, see the `pandas-cookbook GitHub
 repository <https://github.com/jvns/pandas-cookbook>`_.
 
-Learn Pandas by Hernan Rojas
+Learn pandas by hernan rojas
 ----------------------------
 
 A set of lesson for new pandas users: https://bitbucket.org/hrojas/learn-pandas

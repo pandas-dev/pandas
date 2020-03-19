@@ -3,7 +3,7 @@
 {{ header }}
 
 *****************************
-Group By: split-apply-combine
+Group by: split-apply-combine
 *****************************
 
 By "group by" we are referring to a process involving one or more of the following

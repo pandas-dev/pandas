@@ -554,7 +554,7 @@ New behavior:
 
 .. _whatsnew_0210.api_breaking.loc_with_index:
 
-Indexing with a Boolean Index
+Indexing with a boolean Index
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously when passing a boolean ``Index`` to ``.loc``, if the index of the ``Series/DataFrame`` had ``boolean`` labels,
@@ -897,7 +897,7 @@ New behavior:
 
 .. _whatsnew_0210.api.mpl_converters:
 
-No automatic Matplotlib converters
+No automatic matplotlib converters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas no longer registers our ``date``, ``time``, ``datetime``,

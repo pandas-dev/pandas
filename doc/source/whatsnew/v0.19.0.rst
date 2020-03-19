@@ -377,7 +377,7 @@ For ``MultiIndex``, values are dropped if any level is missing by default. Speci
 
 .. _whatsnew_0190.gbq:
 
-Google BigQuery Enhancements
+Google BigQuery enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - The :func:`read_gbq` method has gained the ``dialect`` argument to allow users to specify whether to use BigQuery's legacy SQL or BigQuery's standard SQL. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/reading.html>`__ for more details (:issue:`13615`).
@@ -385,7 +385,7 @@ Google BigQuery Enhancements
 
 .. _whatsnew_0190.errstate:
 
-Fine-grained numpy errstate
+Fine-grained NumPy errstate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previous versions of pandas would permanently silence numpy's ufunc error handling when ``pandas`` was imported. Pandas did this in order to silence the warnings that would arise from using numpy ufuncs on missing data, which are usually represented as ``NaN`` s. Unfortunately, this silenced legitimate warnings arising in non-pandas code in the application. Starting with 0.19.0, pandas will use the ``numpy.errstate`` context manager to silence these warnings in a more fine-grained manner, only around where these operations are actually used in the pandas code base. (:issue:`13109`, :issue:`13145`)
@@ -1185,7 +1185,7 @@ the result of calling :func:`read_csv` without the ``chunksize=`` argument
 
 .. _whatsnew_0190.sparse:
 
-Sparse Changes
+Sparse changes
 ^^^^^^^^^^^^^^
 
 These changes allow pandas to handle sparse data with more dtypes, and for work to make a smoother experience with data handling.

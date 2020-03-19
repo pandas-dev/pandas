@@ -8,7 +8,7 @@ Working with text data
 
 .. _text.types:
 
-Text Data Types
+Text data types
 ---------------
 
 .. versionadded:: 1.0.0
@@ -113,7 +113,7 @@ Everything else that follows in the rest of this document applies equally to
 
 .. _text.string_methods:
 
-String Methods
+String methods
 --------------
 
 Series and Index are equipped with a set of string processing methods
@@ -633,7 +633,7 @@ same result as a ``Series.str.extractall`` with a default index (starts from 0).
    pd.Series(["a1a2", "b1", "c1"], dtype="string").str.extractall(two_groups)
 
 
-Testing for Strings that match or contain a pattern
+Testing for strings that match or contain a pattern
 ---------------------------------------------------
 
 You can check whether elements contain a pattern:

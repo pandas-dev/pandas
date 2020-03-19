@@ -122,7 +122,7 @@ as ``np.nan`` does for float data.
 
 .. _timeseries.representation:
 
-Timestamps vs. Time Spans
+Timestamps vs. time spans
 -------------------------
 
 Timestamped data is the most basic type of time series data that associates
@@ -1434,7 +1434,7 @@ or calendars with additional rules.
 
 .. _timeseries.advanced_datetime:
 
-Time Series-Related Instance Methods
+Time Series-related instance methods
 ------------------------------------
 
 Shifting / lagging

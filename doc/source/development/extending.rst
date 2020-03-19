@@ -210,7 +210,7 @@ will
 
 .. _extending.extension.ufunc:
 
-NumPy Universal Functions
+NumPy universal functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`Series` implements ``__array_ufunc__``. As part of the implementation,

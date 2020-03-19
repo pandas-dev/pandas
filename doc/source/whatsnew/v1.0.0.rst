@@ -15,7 +15,7 @@ including other versions of pandas.
     1.0.
 
 
-New Deprecation Policy
+New deprecation policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Starting with Pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
@@ -61,7 +61,7 @@ the :ref:`custom window rolling documentation <stats.custom_rolling_window>`
 
 .. _whatsnew_100.to_markdown:
 
-Converting to Markdown
+Converting to markdown
 ^^^^^^^^^^^^^^^^^^^^^^
 
 We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue:`11052`)
@@ -746,7 +746,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-Build Changes
+Build changes
 ^^^^^^^^^^^^^
 
 Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
@@ -778,7 +778,7 @@ Other API changes
 
 .. _whatsnew_100.api.documentation:
 
-Documentation Improvements
+Documentation improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added new section on :ref:`scale` (:issue:`28315`).

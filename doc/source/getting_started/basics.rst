@@ -1871,7 +1871,7 @@ Series has the :meth:`~Series.searchsorted` method, which works similarly to
 
 .. _basics.nsorted:
 
-smallest / largest values
+Smallest / largest values
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``Series`` has the :meth:`~Series.nsmallest` and :meth:`~Series.nlargest` methods which return the
@@ -2142,7 +2142,7 @@ Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFra
 
 .. _basics.object_conversion:
 
-object conversion
+Object conversion
 ~~~~~~~~~~~~~~~~~
 
 pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
@@ -2257,7 +2257,7 @@ as DataFrames. However, with :meth:`~pandas.DataFrame.apply`, we can "apply" the
     df
     df.apply(pd.to_timedelta)
 
-gotchas
+Gotchas
 ~~~~~~~
 
 Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.

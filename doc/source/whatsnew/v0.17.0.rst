@@ -339,7 +339,7 @@ Google BigQuery enhancements
 
 .. _whatsnew_0170.east_asian_width:
 
-Display alignment with Unicode East Asian width
+Display alignment with unicode east asian width
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning::
@@ -729,7 +729,7 @@ or it can return False if broadcasting can not be done:
 
    np.array([1, 2, 3]) == np.array([1, 2])
 
-Changes to boolean comparisons vs. None
+Changes to boolean comparisons vs. none
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to comparing with ``np.nan``, rather than raise ``TypeError``. (:issue:`1079`).

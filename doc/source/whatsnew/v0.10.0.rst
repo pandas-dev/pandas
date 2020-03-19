@@ -490,7 +490,7 @@ Updated PyTables support
 however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire
 file and write it out using the new format to take advantage of the updates.
 
-N dimensional Panels (experimental)
+N dimensional panels (experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
