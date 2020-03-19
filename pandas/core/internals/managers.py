@@ -676,8 +676,8 @@ class BlockManager(PandasObject):
         return self._is_consolidated
 
     def _consolidate_check(self) -> None:
-        ftypes = [blk.ftype for blk in self.blocks]
-        self._is_consolidated = len(ftypes) == len(set(ftypes))
+        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
+        self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
 
     @property
