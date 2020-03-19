@@ -8569,15 +8569,13 @@ class _IterableExceptStringOrBytes(metaclass=_IterableExceptStringOrBytesMeta):
     pass
 
 
-@create_block_manager.register
-def _create_block_manager_iterable(
-    data: _IterableExceptStringOrBytes, df, index, columns, dtype, copy
-):
+@create_block_manager.register(_IterableExceptStringOrBytes)
+def _create_block_manager_iterable(data: abc.Iterable, df, index, columns, dtype, copy):
     if not isinstance(data, (abc.Sequence, ExtensionArray)):
         data = list(data)
     if len(data) > 0:
         if is_dataclass(data[0]):
-            data = dataclasses_to_dicts(data)
+            data = cast(List[dict], dataclasses_to_dicts(data))
         if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
             if is_named_tuple(data[0]) and columns is None:
                 columns = data[0]._fields
