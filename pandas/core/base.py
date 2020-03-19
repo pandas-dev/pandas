@@ -356,7 +356,11 @@ class SelectionMixin:
                 if isinstance(obj, ABCDataFrame) and len(
                     obj.columns.intersection(keys)
                 ) != len(keys):
-                    raise SpecificationError("nested renamer is not supported")
+                    cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
+                    if len(cols) > 1:
+                        raise SpecificationError(f"Columns {cols} do not exist")
+                    else:
+                        raise SpecificationError(f"Column {cols} does not exist")
 
             from pandas.core.reshape.concat import concat
 
