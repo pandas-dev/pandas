@@ -79,6 +79,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
 if TYPE_CHECKING:
+    from pandas.wesm import dataframe as dataframe_protocol
     from pandas import Series, DataFrame, Categorical
 
 FormattersType = Union[
@@ -540,7 +541,7 @@ class DataFrameFormatter(TableFormatter):
 
     def __init__(
         self,
-        frame: "DataFrame",
+        frame: "dataframe_protocol.DataFrame",
         columns: Optional[Sequence[str]] = None,
         col_space: Optional[Union[str, int]] = None,
         header: Union[bool, Sequence[str]] = True,
