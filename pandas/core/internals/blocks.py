@@ -29,7 +29,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     _TD_DTYPE,
-    ensure_platform_int,
     is_bool_dtype,
     is_categorical,
     is_categorical_dtype,
@@ -66,6 +65,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -1316,25 +1316,7 @@ class Block(PandasObject):
         # that, handle boolean etc also
         new_values, fill_value = maybe_upcast(self.values, fill_value)
 
-        # make sure array sent to np.roll is c_contiguous
-        f_ordered = new_values.flags.f_contiguous
-        if f_ordered:
-            new_values = new_values.T
-            axis = new_values.ndim - axis - 1
-
-        if np.prod(new_values.shape):
-            new_values = np.roll(new_values, ensure_platform_int(periods), axis=axis)
-
-        axis_indexer = [slice(None)] * self.ndim
-        if periods > 0:
-            axis_indexer[axis] = slice(None, periods)
-        else:
-            axis_indexer[axis] = slice(periods, None)
-        new_values[tuple(axis_indexer)] = fill_value
-
-        # restore original order
-        if f_ordered:
-            new_values = new_values.T
+        new_values = shift(new_values, periods, axis, fill_value)
 
         return [self.make_block(new_values)]
 
