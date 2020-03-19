@@ -290,6 +290,7 @@ Other enhancements
 - Make ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
 - :meth:`to_csv` now accepts an ``error`` argument (:issue:`22610`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``error`` argument (:issue:`22610`)
+- :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
 
 
 .. ---------------------------------------------------------------------------
