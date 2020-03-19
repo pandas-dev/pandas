@@ -74,7 +74,7 @@ class Integer:
             ],
             dtype=object,
         )
-        self.other_mi_many_mismatches = pd.MultiIndex.from_tuples([
+        self.other_mi_many_mismatches = MultiIndex.from_tuples([
             (-7, 41),
             (-2, 3),
             (-0.7, 5),
