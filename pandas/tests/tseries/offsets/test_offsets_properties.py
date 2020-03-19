@@ -7,14 +7,14 @@ which was more ambitious but less idiomatic in its use of Hypothesis.
 You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
-from distutils.version import LooseVersion
 import warnings
 
-import dateutil
 from hypothesis import assume, given, strategies as st
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
 import pytest
+
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Timestamp
@@ -33,8 +33,6 @@ from pandas.tseries.offsets import (
     YearBegin,
     YearEnd,
 )
-
-DATEUTIL_VERSION = LooseVersion(dateutil.__version__)  # type: ignore
 
 # ----------------------------------------------------------------
 # Helpers for generating random data
@@ -89,10 +87,7 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
-@pytest.mark.skipif(
-    DATEUTIL_VERSION < "2.7",
-    reason="hypothesis uses dateutil.tz.UTC which was introduced in dateutils 2.7.0",
-)
+@td.skip_if_no("dateutil", "2.7")
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
@@ -103,10 +98,7 @@ def test_on_offset_implementations(dt, offset):
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
-@pytest.mark.skipif(
-    DATEUTIL_VERSION < "2.7",
-    reason="hypothesis uses dateutil.tz.UTC which was introduced in dateutils 2.7.0",
-)
+@td.skip_if_no("dateutil", "2.7")
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
     # offset.apply_index(dti)[i] should match dti[i] + offset
