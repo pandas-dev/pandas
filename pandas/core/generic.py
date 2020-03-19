@@ -9649,7 +9649,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Describing all columns of a ``DataFrame`` regardless of data type.
 
-        >>> df.describe(include='all')  # doctest: +SKIP
+        >>> df.describe(include='all')
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
@@ -9692,7 +9692,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Including only string columns in a ``DataFrame`` description.
 
-        >>> df.describe(include=[np.object])  # doctest: +SKIP
+        >>> df.describe(include=[np.object])
                object
         count       3
         unique      3
@@ -9710,7 +9710,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Excluding numeric columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+        >>> df.describe(exclude=[np.number])
                categorical object
         count            3      3
         unique           3      3
@@ -9719,7 +9719,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Excluding object columns from a ``DataFrame`` description.
 
-        >>> df.describe(exclude=[np.object])  # doctest: +SKIP
+        >>> df.describe(exclude=[np.object])
                categorical  numeric
         count            3      3.0
         unique           3      NaN
