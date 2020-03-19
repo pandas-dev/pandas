@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union, Pattern
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Pattern, Type, Union
 import warnings
 
 import numpy as np
