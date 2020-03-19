@@ -74,9 +74,37 @@ class Integer:
             ],
             dtype=object,
         )
+        self.other_mi_many_mismatches = pd.MultiIndex.from_tuples([
+            (-7, 41),
+            (-2, 3),
+            (-0.7, 5),
+            (0, 0),
+            (0, 1.5),
+            (0, 340),
+            (0, 1001),
+            (1, -4),
+            (1, 20),
+            (1, 1040),
+            (432, -5),
+            (432, 17),
+            (439, 165.5),
+            (998, -4),
+            (998, 24065),
+            (999, 865.2),
+            (999, 1000),
+            (1045, -843),
+        ])
 
     def time_get_indexer(self):
         self.mi_int.get_indexer(self.obj_index)
+
+    def time_get_indexer_and_backfill(self):
+        self.mi_int.get_indexer(self.other_mi_many_mismatches,
+                                method="backfill")
+
+    def time_get_indexer_and_pad(self):
+        self.mi_int.get_indexer(self.other_mi_many_mismatches,
+                                method="pad")
 
     def time_is_monotonic(self):
         self.mi_int.is_monotonic
