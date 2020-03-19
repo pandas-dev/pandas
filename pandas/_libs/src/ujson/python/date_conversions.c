@@ -67,7 +67,7 @@ npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
 }
 
 /* Convert PyDatetime To ISO C-string. mutates len */
-char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
+char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
                       size_t *len) {
     npy_datetimestruct dts;
     int ret;
@@ -98,7 +98,7 @@ char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base,
     return result;
 }
 
-npy_datetime PyDateTimeToEpoch(PyDateTime_Date *dt, NPY_DATETIMEUNIT base) {
+npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     npy_datetimestruct dts;
     int ret;
 

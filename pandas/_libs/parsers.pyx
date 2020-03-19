@@ -792,7 +792,6 @@ cdef class TextReader:
                 self._tokenize_rows(1)
 
             header = [ self.names ]
-            data_line = 0
 
             if self.parser.lines < 1:
                 field_count = len(header[0])

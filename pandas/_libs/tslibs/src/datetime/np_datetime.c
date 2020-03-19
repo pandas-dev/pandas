@@ -21,7 +21,6 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #endif  // NPY_NO_DEPRECATED_API
 
 #include <Python.h>
-#include <datetime.h>
 
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
@@ -313,15 +312,14 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
  * object into a NumPy npy_datetimestruct.  Uses tzinfo (if present)
  * to convert to UTC time.
  *
- * While the C API has PyDate_* and PyDateTime_* functions, the following
- * implementation just asks for attributes, and thus supports
- * datetime duck typing. The tzinfo time zone conversion would require
- * this style of access anyway.
+ * The following implementation just asks for attributes, and thus 
+ * supports datetime duck typing. The tzinfo time zone conversion
+ * requires this style of access as well.
  *
  * Returns -1 on error, 0 on success, and 1 (with no error set)
  * if obj doesn't have the needed date or datetime attributes.
  */
-int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
+int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                          npy_datetimestruct *out) {
     // Assumes that obj is a valid datetime object
     PyObject *tmp;
