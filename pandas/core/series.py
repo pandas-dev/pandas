@@ -2276,7 +2276,7 @@ Name: Max Speed, dtype: float64
 
         See Also
         --------
-        DataFrame.cov : Compute pairwise covariance of columns
+        DataFrame.cov : Compute pairwise covariance of columns.
 
         Examples
         --------
