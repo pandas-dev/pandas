@@ -651,12 +651,13 @@ Or whether elements match a pattern:
    pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
              dtype="string").str.match(pattern)
 
+.. versionadded:: 1.1.0
+
 .. ipython:: python
 
    pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
              dtype="string").str.fullmatch(pattern)
 
-.. versionadded:: 1.1.0
 
 The distinction between ``match``, ``fullmatch``, and ``contains`` is strictness:
 ``fullmatch`` tests whether the entire string matches the regular expression;
