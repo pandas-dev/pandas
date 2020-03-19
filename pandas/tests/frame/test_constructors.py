@@ -1402,7 +1402,7 @@ class TestDataFrameConstructors:
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
         # expect TypeError
-        msg ="asdict() should be called on dataclass instances"
+        msg = "asdict() should be called on dataclass instances"
         with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 

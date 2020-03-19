@@ -48,8 +48,7 @@ class TestFrameComparisons:
                 tm.assert_frame_equal(result, expected)
 
                 msg = re.escape(
-                    "Invalid comparison between "
-                    "dtype=datetime64[ns] and ndarray"
+                    "Invalid comparison between " "dtype=datetime64[ns] and ndarray"
                 )
                 with pytest.raises(TypeError, match=msg):
                     x >= y

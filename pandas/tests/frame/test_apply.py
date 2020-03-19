@@ -49,10 +49,7 @@ class TestDataFrameApply:
 
         # invalid axis
         df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=["a", "a", "c"])
-        msg = (
-            "No axis named 2 for object type "
-            "<class 'pandas.core.frame.DataFrame'>"
-        )
+        msg = "No axis named 2 for object type " "<class 'pandas.core.frame.DataFrame'>"
         with pytest.raises(ValueError, match=msg):
             df.apply(lambda x: x, 2)
 
@@ -957,8 +954,8 @@ class TestInferOutputShape:
         df = int_frame_const_col
 
         msg = (
-              "invalid value for result_type, must be one of "
-              "{None, 'reduce', 'broadcast', 'expand'}"
+            "invalid value for result_type, must be one of "
+            "{None, 'reduce', 'broadcast', 'expand'}"
         )
         with pytest.raises(ValueError, match=msg):
             df.apply(lambda x: [1, 2, 3], axis=1, result_type=result_type)
