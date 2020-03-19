@@ -250,9 +250,7 @@ We can use Dask's ``read_parquet`` function, but provide a globstring of files t
 
    import dask.dataframe as dd
 
-   ddf = dd.read_parquet(
-       "data/timeseries/ts*.parquet", engine="pyarrow", auto_mkdir=True
-   )
+   ddf = dd.read_parquet("data/timeseries/ts*.parquet", engine="pyarrow")
    ddf
 
 Inspecting the ``ddf`` object, we see a few things
