@@ -5,6 +5,7 @@ from typing import Callable, Dict, Optional
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
+from pandas._typing import FrameOrSeries
 
 
 def check_kwargs_and_nopython(
@@ -56,3 +57,14 @@ def jit_user_function(func: Callable, nopython: bool, nogil: bool, parallel: boo
             return impl
 
     return numba_func
+
+
+def split_for_numba(arg: FrameOrSeries):
+    """
+    Split pandas object into its components as numpy arrays for numba functions.
+    """
+    if getattr(arg, "columns", None) is not None:
+        columns_as_array = arg.columns.to_numpy()
+    else:
+        columns_as_array = None
+    return arg.to_numpy(), arg.index.to_numpy(), columns_as_array

@@ -76,7 +76,12 @@ from pandas.core.series import Series
 
 from pandas.plotting import boxplot_frame_groupby
 
-# from pandas.core.util.numba_ import check_kwargs_and_nopython, get_jit_arguments, jit_user_function, split_for_numba
+from pandas.core.util.numba_ import (
+    check_kwargs_and_nopython,
+    get_jit_arguments,
+    jit_user_function,
+    split_for_numba,
+)
 
 
 if TYPE_CHECKING:
