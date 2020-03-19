@@ -1,5 +1,6 @@
 from decimal import Decimal
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -51,9 +52,14 @@ class TestDataFrameUnaryOperators:
         ],
     )
     def test_neg_raises(self, df):
-        with pytest.raises(TypeError):
+        msg = (
+            "bad operand type for unary -: 'str'|" +
+            "Unary negative expects numeric " +
+            re.escape("dtype, not datetime64[ns]")
+        )
+        with pytest.raises(TypeError, match=msg):
             (-df)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             (-df["a"])
 
     def test_invert(self, float_frame):
@@ -116,9 +122,10 @@ class TestDataFrameUnaryOperators:
         "df", [pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})]
     )
     def test_pos_raises(self, df):
-        with pytest.raises(TypeError):
+        msg = re.escape("Unary plus expects numeric dtype, not datetime64[ns]")
+        with pytest.raises(TypeError, match=msg):
             (+df)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             (+df["a"])
 
 
@@ -173,12 +180,14 @@ class TestDataFrameLogicalOperators:
 
         df1 = DataFrame(1.0, index=[1], columns=["A"])
         df2 = DataFrame(True, index=[1], columns=["A"])
-        with pytest.raises(TypeError):
+        msg = re.escape("unsupported operand type(s) for |: 'float' and 'bool'")
+        with pytest.raises(TypeError, match=msg):
             df1 | df2
 
         df1 = DataFrame("foo", index=[1], columns=["A"])
         df2 = DataFrame(True, index=[1], columns=["A"])
-        with pytest.raises(TypeError):
+        msg = re.escape("unsupported operand type(s) for |: 'str' and 'bool'")
+        with pytest.raises(TypeError, match=msg):
             df1 | df2
 
     def test_logical_operators(self):
@@ -594,7 +603,8 @@ class TestDataFrameOperators:
         )
 
         f = getattr(operator, compare_operators_no_eq_ne)
-        with pytest.raises(TypeError):
+        msg = "'[<>]=?' not supported between instances of 'str' and 'int'"
+        with pytest.raises(TypeError, match=msg):
             f(df, 0)
 
     def test_comparison_protected_from_errstate(self):
@@ -881,9 +891,12 @@ class TestDataFrameOperators:
             align(df, val, "columns")
 
         val = np.zeros((3, 3, 3))
-        with pytest.raises(ValueError):
+        msg = re.escape(
+            "Unable to coerce to Series/DataFrame, dim must be <= 2: (3, 3, 3)"
+        )
+        with pytest.raises(ValueError, match=msg):
             align(df, val, "index")
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             align(df, val, "columns")
 
     def test_no_warning(self, all_arithmetic_operators):
