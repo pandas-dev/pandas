@@ -422,7 +422,7 @@ class DataFrame(NDFrame):
     ):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
-        mgr = create_dataframe(data, self, index, columns, dtype, copy)
+        mgr = create_dataframe(data, index, columns, dtype, copy, type(self))
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
