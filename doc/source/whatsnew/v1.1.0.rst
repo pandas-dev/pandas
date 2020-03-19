@@ -225,8 +225,8 @@ Performance improvements
   avoiding creating these again on the new index. This can speed up many operations that depend on creating copies of
   existing indexes (:issue:`28584`, :issue:`32640`, :issue:`32669`)
 - Performance improvement when creating a :class:`DataFrame` with sparse values
-  ``scipy.sparse`` matrices using the :meth:`DataFrame.sparse.from_spmatrix`
-  constructor (:issue:`32196`).
+  from ``scipy.sparse`` matrices using the
+  :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32196`).
 
 .. ---------------------------------------------------------------------------
 
