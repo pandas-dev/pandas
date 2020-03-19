@@ -249,7 +249,7 @@ Combining / joining / merging
    Series.replace
    Series.update
 
-Time series-related
+Time Series-related
 -------------------
 .. autosummary::
    :toctree: api/
