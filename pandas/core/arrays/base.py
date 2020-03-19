@@ -93,7 +93,6 @@ class ExtensionArray:
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
-    _ndarray_values
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -356,7 +355,9 @@ class ExtensionArray:
         for i in range(len(self)):
             yield self[i]
 
-    def to_numpy(self, dtype=None, copy=False, na_value=lib.no_default):
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
         """
         Convert to a NumPy ndarray.
 
@@ -406,6 +407,13 @@ class ExtensionArray:
         Return a tuple of the array dimensions.
         """
         return (len(self),)
+
+    @property
+    def size(self) -> int:
+        """
+        The number of elements in the array.
+        """
+        return np.prod(self.shape)
 
     @property
     def ndim(self) -> int:
@@ -1036,22 +1044,6 @@ class ExtensionArray:
     # will then be of the ExtensionArray subclass rather than an array
     # of objects
     _can_hold_na = True
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        Returns
-        -------
-        array : ndarray
-        """
-        return np.array(self)
 
     def _reduce(self, name, skipna=True, **kwargs):
         """

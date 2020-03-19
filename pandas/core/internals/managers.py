@@ -193,8 +193,10 @@ class BlockManager(PandasObject):
         # preserve dtype if possible
         if self.ndim == 1:
             assert isinstance(self, SingleBlockManager)  # for mypy
-            arr = np.array([], dtype=self.array_dtype)
-            blocks = [make_block(arr, placement=slice(0, 0), ndim=1)]
+            blk = self.blocks[0]
+            arr = blk.values[:0]
+            nb = blk.make_block_same_class(arr, placement=slice(0, 0), ndim=1)
+            blocks = [nb]
         else:
             blocks = []
         return type(self).from_blocks(blocks, axes)
@@ -389,6 +391,7 @@ class BlockManager(PandasObject):
         BlockManager
         """
         result_blocks = []
+        # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         # filter kwarg is used in replace-* family of methods
         if filter is not None:
@@ -413,11 +416,6 @@ class BlockManager(PandasObject):
                 align_keys = ["new", "mask"]
             else:
                 align_keys = ["mask"]
-        elif f == "fillna":
-            # fillna internally does putmask, maybe it's better to do this
-            # at mgr, not block level?
-            align_copy = False
-            align_keys = ["value"]
         else:
             align_keys = []
 
@@ -565,14 +563,14 @@ class BlockManager(PandasObject):
     def where(self, **kwargs) -> "BlockManager":
         return self.apply("where", **kwargs)
 
-    def setitem(self, **kwargs) -> "BlockManager":
-        return self.apply("setitem", **kwargs)
+    def setitem(self, indexer, value) -> "BlockManager":
+        return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, **kwargs):
         return self.apply("putmask", **kwargs)
 
-    def diff(self, **kwargs) -> "BlockManager":
-        return self.apply("diff", **kwargs)
+    def diff(self, n: int, axis: int) -> "BlockManager":
+        return self.apply("diff", n=n, axis=axis)
 
     def interpolate(self, **kwargs) -> "BlockManager":
         return self.apply("interpolate", **kwargs)
@@ -583,16 +581,30 @@ class BlockManager(PandasObject):
     def fillna(self, **kwargs) -> "BlockManager":
         return self.apply("fillna", **kwargs)
 
-    def downcast(self, **kwargs) -> "BlockManager":
-        return self.apply("downcast", **kwargs)
+    def downcast(self) -> "BlockManager":
+        return self.apply("downcast")
 
     def astype(
         self, dtype, copy: bool = False, errors: str = "raise"
     ) -> "BlockManager":
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
 
-    def convert(self, **kwargs) -> "BlockManager":
-        return self.apply("convert", **kwargs)
+    def convert(
+        self,
+        copy: bool = True,
+        datetime: bool = True,
+        numeric: bool = True,
+        timedelta: bool = True,
+        coerce: bool = False,
+    ) -> "BlockManager":
+        return self.apply(
+            "convert",
+            copy=copy,
+            datetime=datetime,
+            numeric=numeric,
+            timedelta=timedelta,
+            coerce=coerce,
+        )
 
     def replace(self, value, **kwargs) -> "BlockManager":
         assert np.ndim(value) == 0, value
@@ -813,17 +825,15 @@ class BlockManager(PandasObject):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose() if transpose else arr
 
-        mgr = self
-
-        if self._is_single_block and mgr.blocks[0].is_datetimetz:
+        if self._is_single_block and self.blocks[0].is_datetimetz:
             # TODO(Block.get_values): Make DatetimeTZBlock.get_values
             # always be object dtype. Some callers seem to want the
             # DatetimeArray (previously DTI)
-            arr = mgr.blocks[0].get_values(dtype=object)
+            arr = self.blocks[0].get_values(dtype=object)
         elif self._is_single_block or not self.is_mixed_type:
-            arr = np.asarray(mgr.blocks[0].get_values())
+            arr = np.asarray(self.blocks[0].get_values())
         else:
-            arr = mgr._interleave()
+            arr = self._interleave()
 
         return arr.transpose() if transpose else arr
 
@@ -1541,10 +1551,6 @@ class SingleBlockManager(BlockManager):
         return self.blocks[0]
 
     @property
-    def _values(self):
-        return self._block.values
-
-    @property
     def _blknos(self):
         """ compat with BlockManager """
         return None
@@ -1570,10 +1576,6 @@ class SingleBlockManager(BlockManager):
     @property
     def dtype(self) -> DtypeObj:
         return self._block.dtype
-
-    @property
-    def array_dtype(self) -> DtypeObj:
-        return self._block.array_dtype
 
     def get_dtype_counts(self):
         return {self.dtype.name: 1}

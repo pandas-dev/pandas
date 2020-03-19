@@ -217,8 +217,8 @@ def merge_ordered(
 
     See Also
     --------
-    merge
-    merge_asof
+    merge : Merge with a database-style join.
+    merge_asof : Merge on nearest keys.
 
     Examples
     --------
@@ -364,8 +364,8 @@ def merge_asof(
 
     See Also
     --------
-    merge
-    merge_ordered
+    merge : Merge with a database-style join.
+    merge_ordered : Merge with optional filling/interpolation.
 
     Examples
     --------
@@ -1657,10 +1657,13 @@ class _AsOfMerge(_OrderedMerge):
     def _get_join_indexers(self):
         """ return the join indexers """
 
-        def flip(xs):
+        def flip(xs) -> np.ndarray:
             """ unlike np.transpose, this returns an array of tuples """
             xs = [
-                x if not is_extension_array_dtype(x) else x._ndarray_values for x in xs
+                x
+                if not is_extension_array_dtype(x)
+                else extract_array(x)._values_for_argsort()
+                for x in xs
             ]
             labels = list(string.ascii_lowercase[: len(xs)])
             dtypes = [x.dtype for x in xs]
