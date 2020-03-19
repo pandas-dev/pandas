@@ -186,7 +186,7 @@ class SeriesWriter(Writer):
         indent: int,
     ):
         if not self.index and orient == "split":
-            obj = {"name": obj.name, "data": obj._values}
+            obj = {"name": obj.name, "data": obj.values}
         return super()._write(
             obj,
             orient,
