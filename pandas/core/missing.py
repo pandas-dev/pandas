@@ -5,7 +5,7 @@ Routines for filling missing data.
 import numpy as np
 
 from pandas._libs import algos, lib
-from pandas._typing import ArrayLike, Dtype, Hashable, Optional, List
+from pandas._typing import ArrayLike, Dtype, Hashable, List, Optional
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
