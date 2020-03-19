@@ -268,7 +268,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     Indices: array([2, 3], dtype=int32)
     """
 
-    _pandas_ftype = "sparse"
     _subtyp = "sparse_array"  # register ABCSparseArray
     _deprecations = PandasObject._deprecations | frozenset(["get_values"])
     _sparse_index: SparseIndex
