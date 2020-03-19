@@ -31,13 +31,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import (
-    ABCIndexClass,
-    ABCPeriod,
-    ABCPeriodArray,
-    ABCPeriodIndex,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algos
@@ -48,7 +42,7 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick, _delta_to_tick
 
 
-def _field_accessor(name, alias, docstring=None):
+def _field_accessor(name: str, alias: int, docstring=None):
     def f(self):
         base, mult = libfrequencies.get_freq_code(self.freq)
         result = get_period_field_arr(alias, self.asi8, base)
@@ -170,7 +164,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         self._dtype = PeriodDtype(freq)
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, freq=None, **kwargs):
+    def _simple_new(cls, values: np.ndarray, freq=None, **kwargs) -> "PeriodArray":
         # alias for PeriodArray.__init__
         assert isinstance(values, np.ndarray) and values.dtype == "i8"
         return cls(values, freq=freq, **kwargs)
@@ -181,7 +175,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         scalars: Sequence[Optional[Period]],
         dtype: Optional[PeriodDtype] = None,
         copy: bool = False,
-    ) -> ABCPeriodArray:
+    ) -> "PeriodArray":
         if dtype:
             freq = dtype.freq
         else:
@@ -202,11 +196,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return cls(ordinals, freq=freq)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(
+        cls, strings, dtype=None, copy=False
+    ) -> "PeriodArray":
         return cls._from_sequence(strings, dtype, copy)
 
     @classmethod
-    def _from_datetime64(cls, data, freq, tz=None):
+    def _from_datetime64(cls, data, freq, tz=None) -> "PeriodArray":
         """
         Construct a PeriodArray from a datetime64 array
 
@@ -270,12 +266,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # Data / Attributes
 
     @cache_readonly
-    def dtype(self):
+    def dtype(self) -> PeriodDtype:
         return self._dtype
 
     # error: Read-only property cannot override read-write property  [misc]
     @property  # type: ignore
-    def freq(self):
+    def freq(self) -> DateOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -402,7 +398,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     daysinmonth = days_in_month
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> np.ndarray:
         """
         Logical indicating if the date belongs to a leap year.
         """
@@ -459,12 +455,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         return DatetimeArray._from_sequence(new_data, freq="infer")
 
     # --------------------------------------------------------------------
-    # Array-like / EA-Interface Methods
-
-    def _values_for_argsort(self):
-        return self._data
-
-    # --------------------------------------------------------------------
 
     def _time_shift(self, periods, freq=None):
         """
@@ -495,7 +485,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
-    def asfreq(self, freq=None, how="E"):
+    def asfreq(self, freq=None, how="E") -> "PeriodArray":
         """
         Convert the Period Array/Index to the specified frequency `freq`.
 
@@ -557,7 +547,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed=False):
+    def _formatter(self, boxed: bool = False):
         if boxed:
             return str
         return "'{}'".format
@@ -584,7 +574,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
     # ------------------------------------------------------------------
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
@@ -965,8 +955,8 @@ def _get_ordinal_range(start, end, periods, freq, mult=1):
     if end is not None:
         end = Period(end, freq)
 
-    is_start_per = isinstance(start, ABCPeriod)
-    is_end_per = isinstance(end, ABCPeriod)
+    is_start_per = isinstance(start, Period)
+    is_end_per = isinstance(end, Period)
 
     if is_start_per and is_end_per and start.freq != end.freq:
         raise ValueError("start and end must have same freq")

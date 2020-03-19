@@ -2202,7 +2202,7 @@ class DataCol(IndexCol):
             for a in ["name", "cname", "dtype", "pos"]
         )
 
-    def set_data(self, data: Union[np.ndarray, ABCExtensionArray]):
+    def set_data(self, data: ArrayLike):
         assert data is not None
         assert self.dtype is None
 
@@ -4959,11 +4959,11 @@ def _dtype_to_kind(dtype_str: str) -> str:
     return kind
 
 
-def _get_data_and_dtype_name(data: Union[np.ndarray, ABCExtensionArray]):
+def _get_data_and_dtype_name(data: ArrayLike):
     """
     Convert the passed data into a storable form and a dtype string.
     """
-    if is_categorical_dtype(data.dtype):
+    if isinstance(data, Categorical):
         data = data.codes
 
     # For datetime64tz we need to drop the TZ in tests TODO: why?

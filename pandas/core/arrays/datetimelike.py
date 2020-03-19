@@ -131,7 +131,7 @@ class AttributesMixin:
     _data: np.ndarray
 
     @classmethod
-    def _simple_new(cls, values, **kwargs):
+    def _simple_new(cls, values: np.ndarray, **kwargs):
         raise AbstractMethodError(cls)
 
     @property
