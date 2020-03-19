@@ -12,6 +12,9 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 from pandas._libs.tslibs.util cimport get_c_string
 from pandas._libs.missing cimport C_NA
 
+cdef extern from "Python.h":
+    void PyErr_Clear()
+
 {{py:
 
 # name, dtype, c_type
@@ -790,6 +793,9 @@ cdef class StringHashTable(HashTable):
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 v = get_c_string(<str>val)
+                if v == NULL:
+                    PyErr_Clear()
+                    v = get_c_string(<str>repr(val))
                 vecs[i] = v
 
         # compute
