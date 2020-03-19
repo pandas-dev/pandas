@@ -16,7 +16,7 @@ import pandas._libs.json as ujson
 from pandas._libs.tslib import Timestamp
 import pandas.compat as compat
 
-from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, Timedelta, date_range
 import pandas._testing as tm
 
 
@@ -1103,3 +1103,24 @@ class TestPandasJSONTests:
 
         for v in dec:
             assert v in s
+
+    @pytest.mark.parametrize(
+        "td",
+        [
+            Timedelta(days=366),
+            Timedelta(days=-1),
+            Timedelta(hours=13, minutes=5, seconds=5),
+            Timedelta(hours=13, minutes=20, seconds=30),
+            Timedelta(days=-1, nanoseconds=5),
+            Timedelta(nanoseconds=1),
+            Timedelta(microseconds=1, nanoseconds=1),
+            Timedelta(milliseconds=1, microseconds=1, nanoseconds=1),
+            Timedelta(milliseconds=999, microseconds=999, nanoseconds=999),
+        ],
+    )
+    def test_encode_timedelta_iso(self, td):
+        # GH 28256
+        result = ujson.encode(td, iso_dates=True)
+        expected = f'"{td.isoformat()}"'
+
+        assert result == expected

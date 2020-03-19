@@ -28,4 +28,6 @@ char *PyDateTimeToIso(PyDateTime_Date *obj, NPY_DATETIMEUNIT base, size_t *len);
 // Convert a Python Date/Datetime to Unix epoch with resolution base
 npy_datetime PyDateTimeToEpoch(PyDateTime_Date *dt, NPY_DATETIMEUNIT base);
 
+char *int64ToIsoDuration(int64_t value, size_t *len);
+
 #endif

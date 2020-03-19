@@ -603,8 +603,7 @@ class TestTableOrient:
         result = df.to_json(orient="table")
         js = json.loads(result)
         assert js["schema"]["fields"][1]["name"] == "2016-01-01T00:00:00.000Z"
-        # TODO - below expectation is not correct; see GH 28256
-        assert js["schema"]["fields"][2]["name"] == 10000
+        assert js["schema"]["fields"][2]["name"] == "P0DT0H0M10S"
 
     @pytest.mark.parametrize(
         "case",
