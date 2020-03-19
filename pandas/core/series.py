@@ -926,6 +926,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(key, tuple):
             return self._get_values_tuple(key)
 
+        elif not is_list_like(key):
+            # e.g. scalars that aren't recognized by lib.is_scalar, GH#32684
+            return self.loc[key]
+
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
 
