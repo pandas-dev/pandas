@@ -21,7 +21,7 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -591,7 +591,7 @@ class ExtensionArray:
         """
         return self[~self.isna()]
 
-    def shift(self, periods: int = 1, fill_value: object = None) -> ABCExtensionArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> "ExtensionArray":
         """
         Shift values by desired number.
 
@@ -728,7 +728,7 @@ class ExtensionArray:
         """
         return self.astype(object), np.nan
 
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ABCExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, "ExtensionArray"]:
         """
         Encode the extension array as an enumerated type.
 
@@ -833,7 +833,7 @@ class ExtensionArray:
 
     def take(
         self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
-    ) -> ABCExtensionArray:
+    ) -> "ExtensionArray":
         """
         Take elements from an array.
 
@@ -922,7 +922,7 @@ class ExtensionArray:
         # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
-    def copy(self) -> ABCExtensionArray:
+    def copy(self) -> "ExtensionArray":
         """
         Return a copy of the array.
 
@@ -932,7 +932,7 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    def view(self, dtype=None) -> Union[ABCExtensionArray, np.ndarray]:
+    def view(self, dtype=None) -> ArrayLike:
         """
         Return a view on the array.
 
@@ -943,8 +943,8 @@ class ExtensionArray:
 
         Returns
         -------
-        ExtensionArray
-            A view of the :class:`ExtensionArray`.
+        ExtensionArray or np.ndarray
+            A view on the :class:`ExtensionArray`'s data.
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
@@ -1002,7 +1002,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def ravel(self, order="C") -> ABCExtensionArray:
+    def ravel(self, order="C") -> "ExtensionArray":
         """
         Return a flattened view on this array.
 
@@ -1023,8 +1023,8 @@ class ExtensionArray:
 
     @classmethod
     def _concat_same_type(
-        cls, to_concat: Sequence[ABCExtensionArray]
-    ) -> ABCExtensionArray:
+        cls, to_concat: Sequence["ExtensionArray"]
+    ) -> "ExtensionArray":
         """
         Concatenate multiple array.
 
