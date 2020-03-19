@@ -233,6 +233,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         data = data.tocsc()
         index, columns = cls._prep_index(data, index, columns)
         n_rows, n_columns = data.shape
+        # We need to make sure indices are sorted, as we create
+        # IntIndex with no input validation (i.e. check_integrity=False ).
+        # Indices may already be sorted in scipy in which case this adds
+        # a small overhead.
         data.sort_indices()
         indices = data.indices
         indptr = data.indptr
