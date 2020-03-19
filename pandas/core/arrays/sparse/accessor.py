@@ -219,13 +219,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> impoVrt scipy.sparse
+        >>> import scipy.sparse
         >>> mat = scipy.sparse.eye(3)
         >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
         0  1.0  0.0  0.0
         1  0.0  1.0  0.0
-        2  0.1  0.0  1.1
+        2  0.0  0.0  1.0
         """
         from pandas import DataFrame, SparseDtype
         from . import IntIndex, SparseArray

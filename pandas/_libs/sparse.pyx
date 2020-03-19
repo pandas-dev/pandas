@@ -34,6 +34,8 @@ cdef class IntIndex(SparseIndex):
     length : integer
     indices : array-like
         Contains integers corresponding to the indices.
+    check_integrity : bool, default=True
+        Check integrity of the input.
     """
 
     cdef readonly:
