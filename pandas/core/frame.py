@@ -12,9 +12,9 @@ labeling information
 import collections
 from collections import abc
 import datetime
+import functools
 from io import StringIO
 import itertools
-import functools
 from textwrap import dedent
 from typing import (
     IO,
@@ -8481,7 +8481,7 @@ def create_block_manager(
         arr = np.array(data, dtype=dtype, copy=copy)
     except (ValueError, TypeError) as err:
         exc = TypeError(
-            "DataFrame constructor called with " f"incompatible data and dtype: {err}"
+            f"DataFrame constructor called with incompatible data and dtype: {err}"
         )
         raise exc from err
 
