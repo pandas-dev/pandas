@@ -2,7 +2,7 @@ import codecs
 from functools import wraps
 import re
 import textwrap
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, Union, Pattern
 import warnings
 
 import numpy as np
@@ -10,7 +10,7 @@ import numpy as np
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import ArrayLike, Dtype
+from pandas._typing import ArrayLike, Dtype, Scalar
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -787,7 +787,13 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan):
+def str_match(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
     """
     Determine if each string starts with a match of a regular expression.
 
@@ -824,7 +830,13 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     return _na_map(f, arr, na, dtype=dtype)
 
 
-def str_fullmatch(arr, pat, case=True, flags=0, na=np.nan):
+def str_fullmatch(
+    arr: ArrayLike,
+    pat: Union[str, Pattern],
+    case: bool = True,
+    flags: int = 0,
+    na: Scalar = np.nan,
+):
     """
     Determine if each string entirely matches a regular expression.
 
