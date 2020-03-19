@@ -4,7 +4,7 @@ import time
 import locale
 import calendar
 import re
-from datetime import date as datetime_date
+import datetime
 
 from _thread import allocate_lock as _thread_allocate_lock
 
@@ -288,20 +288,20 @@ def array_strptime(object[:] values, object fmt, bint exact=True, errors='raise'
             elif iso_year != -1 and iso_week != -1:
                 year, julian = _calc_julian_from_V(iso_year, iso_week,
                                                    weekday + 1)
-        # Cannot pre-calculate datetime_date() since can change in Julian
+        # Cannot pre-calculate datetime.date() since can change in Julian
         # calculation and thus could have different value for the day of the wk
         # calculation.
         try:
             if julian == -1:
                 # Need to add 1 to result since first day of the year is 1, not
                 # 0.
-                ordinal = datetime_date(year, month, day).toordinal()
-                julian = ordinal - datetime_date(year, 1, 1).toordinal() + 1
+                ordinal = datetime.date(year, month, day).toordinal()
+                julian = ordinal - datetime.date(year, 1, 1).toordinal() + 1
             else:
                 # Assume that if they bothered to include Julian day it will
                 # be accurate.
-                datetime_result = datetime_date.fromordinal(
-                    (julian - 1) + datetime_date(year, 1, 1).toordinal())
+                datetime_result = datetime.date.fromordinal(
+                    (julian - 1) + datetime.date(year, 1, 1).toordinal())
                 year = datetime_result.year
                 month = datetime_result.month
                 day = datetime_result.day
@@ -311,7 +311,7 @@ def array_strptime(object[:] values, object fmt, bint exact=True, errors='raise'
                 continue
             raise
         if weekday == -1:
-            weekday = datetime_date(year, month, day).weekday()
+            weekday = datetime.date(year, month, day).weekday()
 
         dts.year = year
         dts.month = month
@@ -649,7 +649,7 @@ cdef int _calc_julian_from_U_or_W(int year, int week_of_year,
     cdef:
         int first_weekday, week_0_length, days_to_week
 
-    first_weekday = datetime_date(year, 1, 1).weekday()
+    first_weekday = datetime.date(year, 1, 1).weekday()
     # If we are dealing with the %U directive (week starts on Sunday), it's
     # easier to just shift the view to Sunday being the first day of the
     # week.
@@ -692,14 +692,14 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
     cdef:
         int correction, ordinal
 
-    correction = datetime_date(iso_year, 1, 4).isoweekday() + 3
+    correction = datetime.date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
     # ordinal may be negative or 0 now, which means the date is in the previous
     # calendar year
     if ordinal < 1:
-        ordinal += datetime_date(iso_year, 1, 1).toordinal()
+        ordinal += datetime.date(iso_year, 1, 1).toordinal()
         iso_year -= 1
-        ordinal -= datetime_date(iso_year, 1, 1).toordinal()
+        ordinal -= datetime.date(iso_year, 1, 1).toordinal()
     return iso_year, ordinal
 
 
