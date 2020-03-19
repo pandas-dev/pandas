@@ -217,8 +217,8 @@ def merge_ordered(
 
     See Also
     --------
-    merge
-    merge_asof
+    merge : Merge with a database-style join.
+    merge_asof : Merge on nearest keys.
 
     Examples
     --------
@@ -364,8 +364,8 @@ def merge_asof(
 
     See Also
     --------
-    merge
-    merge_ordered
+    merge : Merge with a database-style join.
+    merge_ordered : Merge with optional filling/interpolation.
 
     Examples
     --------

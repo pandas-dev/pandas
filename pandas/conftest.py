@@ -425,6 +425,15 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=["first", "last", False])
+def keep(request):
+    """
+    Valid values for the 'keep' parameter used in
+    .duplicated or .drop_duplicates
+    """
+    return request.param
+
+
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
@@ -870,12 +879,37 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 
 
 @pytest.fixture
+def empty_series():
+    return pd.Series([], index=[], dtype=np.float64)
+
+
+@pytest.fixture
 def datetime_series():
     """
     Fixture for Series of floats with DatetimeIndex
     """
     s = tm.makeTimeSeries()
     s.name = "ts"
+    return s
+
+
+@pytest.fixture
+def string_series():
+    """
+    Fixture for Series of floats with Index of unique strings
+    """
+    s = tm.makeStringSeries()
+    s.name = "series"
+    return s
+
+
+@pytest.fixture
+def object_series():
+    """
+    Fixture for Series of dtype object with Index of unique strings
+    """
+    s = tm.makeObjectSeries()
+    s.name = "objects"
     return s
 
 

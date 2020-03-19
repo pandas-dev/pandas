@@ -1,4 +1,5 @@
 import cython
+from collections import defaultdict
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -307,7 +308,10 @@ cdef slice_getitem(slice slc, ind):
             return slice(s_start, s_stop, s_step)
 
     else:
-        return np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]
+        # NOTE:
+        # this is the C-optimized equivalent of
+        # `np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]`
+        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INT64)[ind]
 
 
 @cython.boundscheck(False)
@@ -373,8 +377,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
         Py_ssize_t i, start, stop, n, diff
 
         object blkno
-        list group_order
-        dict group_dict
+        object group_dict = defaultdict(list)
         int64_t[:] res_view
 
     n = blknos.shape[0]
@@ -395,28 +398,16 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         yield cur_blkno, slice(start, n)
     else:
-        group_order = []
-        group_dict = {}
-
         for i in range(1, n):
             if blknos[i] != cur_blkno:
-                if cur_blkno not in group_dict:
-                    group_order.append(cur_blkno)
-                    group_dict[cur_blkno] = [(start, i)]
-                else:
-                    group_dict[cur_blkno].append((start, i))
+                group_dict[cur_blkno].append((start, i))
 
                 start = i
                 cur_blkno = blknos[i]
 
-        if cur_blkno not in group_dict:
-            group_order.append(cur_blkno)
-            group_dict[cur_blkno] = [(start, n)]
-        else:
-            group_dict[cur_blkno].append((start, n))
+        group_dict[cur_blkno].append((start, n))
 
-        for blkno in group_order:
-            slices = group_dict[blkno]
+        for blkno, slices in group_dict.items():
             if len(slices) == 1:
                 yield blkno, slice(slices[0][0], slices[0][1])
             else:
