@@ -57,7 +57,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import Index, Series  # noqa: F401
+    from pandas import DataFrame, Index, Series  # noqa: F401
 
 # -----------------------------------------------------------------------------
 # constants
@@ -252,7 +252,6 @@ def _get_opstr(op):
     -------
     op_str : string or None
     """
-
     return {
         operator.add: "+",
         radd: "+",
@@ -428,7 +427,6 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
 def _align_method_SERIES(left, right, align_asobject=False):
     """ align lhs and rhs Series """
-
     # ToDo: Different from _align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
@@ -510,6 +508,7 @@ def _comp_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -523,7 +522,7 @@ def _comp_method_SERIES(cls, op, special):
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = comparison_op(lvalues, rvalues, op)
+        res_values = comparison_op(lvalues, rvalues, op, str_rep)
 
         return _construct_result(self, res_values, index=self.index, name=res_name)
 
@@ -584,7 +583,7 @@ def _flex_method_SERIES(cls, op, special):
 # DataFrame
 
 
-def _combine_series_frame(left, right, func, axis: int):
+def _combine_series_frame(left, right, func, axis: int, str_rep: str):
     """
     Apply binary operator `func` to self, other using alignment and fill
     conventions determined by the axis argument.
@@ -595,6 +594,7 @@ def _combine_series_frame(left, right, func, axis: int):
     right : Series
     func : binary operator
     axis : {0, 1}
+    str_rep : str
 
     Returns
     -------
@@ -602,7 +602,17 @@ def _combine_series_frame(left, right, func, axis: int):
     """
     # We assume that self.align(other, ...) has already been called
     if axis == 0:
-        new_data = left._combine_match_index(right, func)
+        values = right._values
+        if isinstance(values, np.ndarray):
+            # We can operate block-wise
+            values = values.reshape(-1, 1)
+
+            array_op = get_array_op(func, str_rep=str_rep)
+            bm = left._data.apply(array_op, right=values.T)
+            return type(left)(bm)
+
+        new_data = dispatch_to_series(left, right, func)
+
     else:
         new_data = dispatch_to_series(left, right, func, axis="columns")
 
@@ -698,6 +708,62 @@ def _align_method_FRAME(
     return left, right
 
 
+def _should_reindex_frame_op(
+    left: "DataFrame", right, op, axis, default_axis: int, fill_value, level
+) -> bool:
+    """
+    Check if this is an operation between DataFrames that will need to reindex.
+    """
+    assert isinstance(left, ABCDataFrame)
+
+    if op is operator.pow or op is rpow:
+        # GH#32685 pow has special semantics for operating with null values
+        return False
+
+    if not isinstance(right, ABCDataFrame):
+        return False
+
+    if fill_value is None and level is None and axis is default_axis:
+        # TODO: any other cases we should handle here?
+        cols = left.columns.intersection(right.columns)
+        if not (cols.equals(left.columns) and cols.equals(right.columns)):
+            return True
+
+    return False
+
+
+def _frame_arith_method_with_reindex(
+    left: "DataFrame", right: "DataFrame", op
+) -> "DataFrame":
+    """
+    For DataFrame-with-DataFrame operations that require reindexing,
+    operate only on shared columns, then reindex.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    op : binary operator
+
+    Returns
+    -------
+    DataFrame
+    """
+    # GH#31623, only operate on shared columns
+    cols = left.columns.intersection(right.columns)
+
+    new_left = left[cols]
+    new_right = right[cols]
+    result = op(new_left, new_right)
+
+    # Do the join on the columns instead of using _align_method_FRAME
+    #  to avoid constructing two potentially large/sparse DataFrames
+    join_columns, _, _ = left.columns.join(
+        right.columns, how="outer", level=None, return_indexers=True
+    )
+    return result.reindex(join_columns, axis=1)
+
+
 def _arith_method_FRAME(cls, op, special):
     str_rep = _get_opstr(op)
     op_name = _get_op_name(op, special)
@@ -714,6 +780,11 @@ def _arith_method_FRAME(cls, op, special):
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
+
+        if _should_reindex_frame_op(
+            self, other, op, axis, default_axis, fill_value, level
+        ):
+            return _frame_arith_method_with_reindex(self, other, op)
 
         self, other = _align_method_FRAME(self, other, axis, flex=True, level=level)
 
@@ -735,7 +806,9 @@ def _arith_method_FRAME(cls, op, special):
                 raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, pass_op, axis=axis)
+            return _combine_series_frame(
+                self, other, pass_op, axis=axis, str_rep=str_rep
+            )
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
@@ -770,10 +843,10 @@ def _flex_comp_method_FRAME(cls, op, special):
 
         elif isinstance(other, ABCSeries):
             axis = self._get_axis_number(axis) if axis is not None else 1
-            return _combine_series_frame(self, other, op, axis=axis)
+            return _combine_series_frame(self, other, op, axis=axis, str_rep=str_rep)
         else:
             # in this case we always have `np.ndim(other) == 0`
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
             return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -797,13 +870,15 @@ def _comp_method_FRAME(cls, op, special):
             new_data = dispatch_to_series(self, other, op, str_rep)
 
         elif isinstance(other, ABCSeries):
-            new_data = dispatch_to_series(self, other, op, axis="columns")
+            new_data = dispatch_to_series(
+                self, other, op, str_rep=str_rep, axis="columns"
+            )
 
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            new_data = dispatch_to_series(self, other, op)
+            new_data = dispatch_to_series(self, other, op, str_rep)
 
         return self._construct_result(new_data)
 

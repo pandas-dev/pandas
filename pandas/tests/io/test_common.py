@@ -141,7 +141,7 @@ bar2,12,13,14,15
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
-        msg1 = r"File (b')?.+does_not_exist\.{}'? does not exist".format(fn_ext)
+        msg1 = fr"File (b')?.+does_not_exist\.{fn_ext}'? does not exist"
         msg2 = fr"\[Errno 2\] No such file or directory: '.+does_not_exist\.{fn_ext}'"
         msg3 = "Expected object or value"
         msg4 = "path_or_buf needs to be a string file path or file-like"
@@ -153,7 +153,7 @@ bar2,12,13,14,15
         msg7 = (
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}.?, error: .*"
+        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,
@@ -196,7 +196,7 @@ bar2,12,13,14,15
         msg7 = (
             fr"\[Errno 2\] File o directory non esistente: '.+does_not_exist\.{fn_ext}'"
         )
-        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}.?, error: .*"
+        msg8 = fr"Failed to open local file.+does_not_exist\.{fn_ext}"
 
         with pytest.raises(
             error_class,

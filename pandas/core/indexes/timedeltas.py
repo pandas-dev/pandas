@@ -1,6 +1,7 @@
 """ implement the TimedeltaIndex """
 
 from pandas._libs import NaT, Timedelta, index as libindex
+from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -51,7 +52,6 @@ from pandas.tseries.frequencies import to_offset
         "_datetimelike_methods",
         "_other_ops",
         "components",
-        "_box_func",
         "to_pytimedelta",
         "sum",
         "std",
@@ -155,7 +155,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         if isinstance(data, TimedeltaArray) and freq is None:
             if copy:
                 data = data.copy()
-            return cls._simple_new(data, name=name, freq=freq)
+            return cls._simple_new(data, name=name)
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
@@ -171,25 +171,15 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         return cls._simple_new(tdarr, name=name)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
-        # `dtype` is passed by _shallow_copy in corner cases, should always
-        #  be timedelta64[ns] if present
+    def _simple_new(cls, values: TimedeltaArray, name: Label = None):
+        assert isinstance(values, TimedeltaArray)
 
-        if not isinstance(values, TimedeltaArray):
-            values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)
-        else:
-            if freq is None:
-                freq = values.freq
-        assert isinstance(values, TimedeltaArray), type(values)
-        assert dtype == _TD_DTYPE, dtype
-        assert values.dtype == "m8[ns]", values.dtype
-
-        tdarr = TimedeltaArray._simple_new(values._data, freq=freq)
         result = object.__new__(cls)
-        result._data = tdarr
+        result._data = values
         result._name = name
+        result._cache = {}
         # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = tdarr._data
+        result._index_data = values._data
 
         result._reset_identity()
         return result
@@ -223,16 +213,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
             other = TimedeltaIndex(other)
         return self, other
 
-    def get_value(self, series, key):
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing
+        Can we compare values of the given dtype to our own?
         """
-        if is_integer(key):
-            loc = key
-        else:
-            loc = self.get_loc(key)
-        return self._get_values_for_loc(series, loc)
+        return is_timedelta64_dtype(dtype)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -251,8 +236,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
         elif isinstance(key, str):
             try:
                 key = Timedelta(key)
-            except ValueError:
-                raise KeyError(key)
+            except ValueError as err:
+                raise KeyError(key) from err
 
         elif isinstance(key, self._data._recognized_scalars) or key is NaT:
             key = Timedelta(key)
@@ -289,12 +274,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin, dtl.TimelikeOps):
             self._invalid_indexer("slice", label)
 
         return label
-
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
-        assert isinstance(key, str), type(key)
-        # given a key, try to figure out a location for a partial slice
-        raise NotImplementedError
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
@@ -346,7 +325,6 @@ def timedelta_range(
 
     Examples
     --------
-
     >>> pd.timedelta_range(start='1 day', periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq='D')

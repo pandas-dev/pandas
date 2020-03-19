@@ -73,17 +73,13 @@ def test_series_set_value():
     dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
     index = DatetimeIndex(dates)
 
-    s = Series(dtype=object)._set_value(dates[0], 1.0)
-    s2 = s._set_value(dates[1], np.nan)
+    s = Series(dtype=object)
+    s._set_value(dates[0], 1.0)
+    s._set_value(dates[1], np.nan)
 
     expected = Series([1.0, np.nan], index=index)
 
-    tm.assert_series_equal(s2, expected)
-
-    # FIXME: dont leave commented-out
-    # s = Series(index[:1], index[:1])
-    # s2 = s._set_value(dates[1], index[1])
-    # assert s2.values.dtype == 'M8[ns]'
+    tm.assert_series_equal(s, expected)
 
 
 @pytest.mark.slow
@@ -148,7 +144,6 @@ def test_frame_datetime64_duplicated():
 
 def test_getitem_setitem_datetime_tz_pytz():
     from pytz import timezone as tz
-    from pandas import date_range
 
     N = 50
     # testing with timezone, GH #2785
@@ -188,8 +183,6 @@ def test_getitem_setitem_datetime_tz_dateutil():
     tz = (
         lambda x: tzutc() if x == "UTC" else gettz(x)
     )  # handle special case for utc in dateutil
-
-    from pandas import date_range
 
     N = 50
 
@@ -300,7 +293,7 @@ def test_getitem_setitem_datetimeindex():
 
     result = ts.copy()
     result[ts.index[4:8]] = 0
-    result[4:8] = ts[4:8]
+    result.iloc[4:8] = ts.iloc[4:8]
     tm.assert_series_equal(result, ts)
 
     # also test partial date slicing
@@ -356,7 +349,7 @@ def test_getitem_setitem_periodindex():
 
     result = ts.copy()
     result[ts.index[4:8]] = 0
-    result[4:8] = ts[4:8]
+    result.iloc[4:8] = ts.iloc[4:8]
     tm.assert_series_equal(result, ts)
 
 
@@ -367,13 +360,14 @@ def test_getitem_median_slice_bug():
     s = Series(np.random.randn(13), index=index)
 
     indexer = [slice(6, 7, None)]
-    result = s[indexer]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#31299
+        result = s[indexer]
     expected = s[indexer[0]]
     tm.assert_series_equal(result, expected)
 
 
 def test_datetime_indexing():
-    from pandas import date_range
 
     index = date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)

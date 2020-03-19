@@ -873,15 +873,13 @@ def get_dummies(
 
         # validate prefixes and separator to avoid silently dropping cols
         def check_len(item, name):
-            len_msg = (
-                "Length of '{name}' ({len_item}) did not match the "
-                "length of the columns being encoded ({len_enc})."
-            )
 
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
-                    len_msg = len_msg.format(
-                        name=name, len_item=len(item), len_enc=data_to_encode.shape[1]
+                    len_msg = (
+                        f"Length of '{name}' ({len(item)}) did not match the "
+                        "length of the columns being encoded "
+                        f"({data_to_encode.shape[1]})."
                     )
                     raise ValueError(len_msg)
 
@@ -987,13 +985,7 @@ def _get_dummies_1d(
     if prefix is None:
         dummy_cols = levels
     else:
-
-        # PY2 embedded unicode, gh-22084
-        def _make_col_name(prefix, prefix_sep, level) -> str:
-            fstr = "{prefix}{prefix_sep}{level}"
-            return fstr.format(prefix=prefix, prefix_sep=prefix_sep, level=level)
-
-        dummy_cols = [_make_col_name(prefix, prefix_sep, level) for level in levels]
+        dummy_cols = [f"{prefix}{prefix_sep}{level}" for level in levels]
 
     index: Optional[Index]
     if isinstance(data, Series):

@@ -156,7 +156,6 @@ def get_is_dtype_funcs():
     begin with 'is_' and end with 'dtype'
 
     """
-
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
     return [getattr(com, fname) for fname in fnames]
 
@@ -280,18 +279,6 @@ def test_is_string_dtype():
     assert com.is_string_dtype(np.array(["a", "b"]))
     assert com.is_string_dtype(pd.StringDtype())
     assert com.is_string_dtype(pd.array(["a", "b"], dtype="string"))
-
-
-def test_is_period_arraylike():
-    assert not com.is_period_arraylike([1, 2, 3])
-    assert not com.is_period_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
-
-
-def test_is_datetime_arraylike():
-    assert not com.is_datetime_arraylike([1, 2, 3])
-    assert not com.is_datetime_arraylike(pd.Index([1, 2, 3]))
-    assert com.is_datetime_arraylike(pd.DatetimeIndex([1, 2, 3]))
 
 
 integer_dtypes: List = []
@@ -675,6 +662,8 @@ def test__get_dtype(input_param, result):
 )
 def test__get_dtype_fails(input_param, expected_error_message):
     # python objects
+    # 2020-02-02 npdev changed error message
+    expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
         com._get_dtype(input_param)
 

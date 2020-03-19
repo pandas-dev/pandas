@@ -2,11 +2,11 @@
 Concat routines.
 """
 
-from typing import Hashable, Iterable, List, Mapping, Optional, Union, overload
+from typing import Iterable, List, Mapping, Union, overload
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion
+from pandas._typing import FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -32,7 +32,7 @@ from pandas.core.internals import concatenate_block_managers
 
 @overload
 def concat(
-    objs: Union[Iterable["DataFrame"], Mapping[Optional[Hashable], "DataFrame"]],
+    objs: Union[Iterable["DataFrame"], Mapping[Label, "DataFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -48,9 +48,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[
-        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
-    ],
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -65,9 +63,7 @@ def concat(
 
 
 def concat(
-    objs: Union[
-        Iterable[FrameOrSeriesUnion], Mapping[Optional[Hashable], FrameOrSeriesUnion]
-    ],
+    objs: Union[Iterable[FrameOrSeriesUnion], Mapping[Label, FrameOrSeriesUnion]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -352,8 +348,8 @@ class _Concatenator:
         for obj in objs:
             if not isinstance(obj, (Series, DataFrame)):
                 msg = (
-                    "cannot concatenate object of type '{typ}'; "
-                    "only Series and DataFrame objs are valid".format(typ=type(obj))
+                    f"cannot concatenate object of type '{type(obj)}'; "
+                    "only Series and DataFrame objs are valid"
                 )
                 raise TypeError(msg)
 
@@ -403,8 +399,7 @@ class _Concatenator:
         self._is_series = isinstance(sample, ABCSeries)
         if not 0 <= axis <= sample.ndim:
             raise AssertionError(
-                "axis must be between 0 and {ndim}, input was "
-                "{axis}".format(ndim=sample.ndim, axis=axis)
+                f"axis must be between 0 and {sample.ndim}, input was {axis}"
             )
 
         # if we have mixed ndims, then convert to highest ndim
@@ -537,7 +532,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Optional[Hashable]] = [None] * len(self.objs)
+                names: List[Label] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
@@ -621,12 +616,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             for key, index in zip(hlevel, indexes):
                 try:
                     i = level.get_loc(key)
-                except KeyError:
-                    raise ValueError(
-                        "Key {key!s} not in level {level!s}".format(
-                            key=key, level=level
-                        )
-                    )
+                except KeyError as err:
+                    raise ValueError(f"Key {key} not in level {level}") from err
 
                 to_concat.append(np.repeat(i, len(index)))
             codes_list.append(np.concatenate(to_concat))
@@ -677,11 +668,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError(
-                "Values not found in passed level: {hlevel!s}".format(
-                    hlevel=hlevel[mask]
-                )
-            )
+            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
 
         new_codes.append(np.repeat(mapped, n))
 
