@@ -348,6 +348,7 @@ I/O
 - Bug in :meth:`read_excel` where a UTF-8 string with a high surrogate would cause a segmentation violation (:issue:`23809`)
 - Bug in :meth:`read_csv` was causing a file descriptor leak on an empty file (:issue:`31488`)
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
+- Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
 
 
 Plotting
