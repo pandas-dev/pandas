@@ -110,7 +110,6 @@ class Block(PandasObject):
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
-    _ftype = "dense"
     _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None):
@@ -321,14 +320,6 @@ class Block(PandasObject):
     @property
     def dtype(self):
         return self.values.dtype
-
-    @property
-    def ftype(self) -> str:
-        if getattr(self.values, "_pandas_ftype", False):
-            dtype = self.dtype.subtype
-        else:
-            dtype = self.dtype
-        return f"{dtype}:{self._ftype}"
 
     def merge(self, other):
         return _merge_blocks([self, other])
@@ -1955,10 +1946,6 @@ class ExtensionBlock(Block):
             )
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
-
-    @property
-    def _ftype(self):
-        return getattr(self.values, "_pandas_ftype", Block._ftype)
 
     def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         # ExtensionArray-safe unstack.
