@@ -789,6 +789,7 @@ class TestSeriesMap:
         assert result == expected
 
     def test_map_with_invalid_na_action_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/32815
         s = pd.Series([1, 2, 3])
         msg = "na_action must either be 'ignore' or None"
         with pytest.raises(ValueError, match=msg):
