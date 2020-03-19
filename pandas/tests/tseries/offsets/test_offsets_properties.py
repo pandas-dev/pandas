@@ -91,7 +91,7 @@ gen_yqm_offset = st.one_of(
 
 @pytest.mark.skipif(
     DATEUTIL_VERSION < "2.7",
-    reason="hypothesis uses dateutil.tz.UTC which was intreduced in dateutils 2.7.0",
+    reason="hypothesis uses dateutil.tz.UTC which was introduced in dateutils 2.7.0",
 )
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
@@ -105,7 +105,7 @@ def test_on_offset_implementations(dt, offset):
 
 @pytest.mark.skipif(
     DATEUTIL_VERSION < "2.7",
-    reason="hypothesis uses dateutil.tz.UTC which was intreduced in dateutils 2.7.0",
+    reason="hypothesis uses dateutil.tz.UTC which was introduced in dateutils 2.7.0",
 )
 @given(gen_yqm_offset, gen_date_range)
 def test_apply_index_implementations(offset, rng):
