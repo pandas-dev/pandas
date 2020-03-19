@@ -930,7 +930,7 @@ class Block(PandasObject):
         putmask the data to the block; it is possible that we may create a
         new dtype of block
 
-        Return the resulting blocks.
+        Return the resulting block(s).
 
         Parameters
         ----------
@@ -1663,23 +1663,7 @@ class ExtensionBlock(Block):
         transpose: bool = False,
     ) -> List["Block"]:
         """
-        putmask the data to the block; we must be a single block and not
-        generate other blocks
-
-        return the resulting block
-
-        Parameters
-        ----------
-        mask : the condition to respect
-        new : a ndarray/object
-        align : bool, default True.
-            Perform alignment on other/cond.
-        inplace : bool, default False.
-            Perform inplace modification.
-
-        Returns
-        -------
-        List[Block]
+        See Block.putmask.__doc__
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
