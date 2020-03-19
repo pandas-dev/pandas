@@ -42,7 +42,7 @@ cdef class IntIndex(SparseIndex):
         Py_ssize_t length, npoints
         ndarray indices
 
-    def __init__(self, Py_ssize_t length, indices, check_integrity=True):
+    def __init__(self, Py_ssize_t length, indices, bint check_integrity=True):
         self.length = length
         self.indices = np.ascontiguousarray(indices, dtype=np.int32)
         self.npoints = len(self.indices)
