@@ -612,7 +612,7 @@ cdef class BaseMultiIndexCodesEngine:
                        in zip(self.levels, zip(*target))]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-    def get_indexer(self, object target) -> np.ndarray:
+    def get_indexer_no_fill(self, object target) -> np.ndarray:
         """
         Returns an array giving the positions of each value of `target` in
         `self.values`, where -1 represents a value in `target` which does not
@@ -631,8 +631,8 @@ cdef class BaseMultiIndexCodesEngine:
         lab_ints = self._extract_level_codes(target)
         return self._base.get_indexer(self, lab_ints)
 
-    def get_indexer_and_fill(self, object values, object target,
-                             object method, object limit = None) -> np.ndarray:
+    def get_indexer(self, object target, object values = None,
+                    object method = None, object limit = None) -> np.ndarray:
         """
         Returns an array giving the positions of each value of `target` in
         `values`, where -1 represents a value in `target` which does not
@@ -648,12 +648,12 @@ cdef class BaseMultiIndexCodesEngine:
 
         Parameters
         ----------
-        values : list-like of tuples
-            must be sorted and all have the same length.  Should be the set of
-            the MultiIndex's values
         target: list-like of tuples
             need not be sorted, but all must have the same length, which must be
             the same as the length of all tuples in `values`
+        values : list-like of tuples
+            must be sorted and all have the same length.  Should be the set of
+            the MultiIndex's values.  Needed only if `method` is not None
         method: string
             "backfill" or "pad"
         limit: int, optional
@@ -664,6 +664,9 @@ cdef class BaseMultiIndexCodesEngine:
         np.ndarray[int64_t, ndim=1] of the indexer of `target` into `values`,
         filled with the `method` (and optionally `limit`) specified
         """
+        if method is None:
+            return self.get_indexer_no_fill(target)
+
         assert method in ("backfill", "pad")
         cdef:
             int64_t i, j, next_code
