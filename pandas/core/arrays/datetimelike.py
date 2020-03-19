@@ -1129,56 +1129,46 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
     def _add_offset(self, offset):
         raise AbstractMethodError(self)
 
-    def _add_delta(self, other):
-        """
-        Add a timedelta-like, Tick or TimedeltaIndex-like object
-        to self, yielding an int64 numpy array
-
-        Parameters
-        ----------
-        delta : {timedelta, np.timedelta64, Tick,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : ndarray[int64]
-
-        Notes
-        -----
-        The result's name is set outside of _add_delta by the calling
-        method (__add__ or __sub__), if necessary (i.e. for Indexes).
-        """
-        if isinstance(other, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_timedeltalike_scalar(other)
-        elif is_timedelta64_dtype(other):
-            # ndarray[timedelta64] or TimedeltaArray/index
-            new_values = self._add_delta_tdi(other)
-
-        return new_values
-
     def _add_timedeltalike_scalar(self, other):
         """
         Add a delta of a timedeltalike
-        return the i8 result view
+
+        Returns
+        -------
+        Same type as self
         """
         if isna(other):
             # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
             new_values = np.empty(self.shape, dtype="i8")
             new_values[:] = iNaT
-            return new_values
+            return type(self)(new_values, dtype=self.dtype)
 
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan).view(
             "i8"
         )
         new_values = self._maybe_mask_results(new_values)
-        return new_values.view("i8")
 
-    def _add_delta_tdi(self, other):
+        new_freq = None
+        if isinstance(self.freq, Tick) or is_period_dtype(self.dtype):
+            # adding a scalar preserves freq
+            new_freq = self.freq
+
+        if new_freq is not None:
+            # fastpath that doesnt require inference
+            return type(self)(new_values, dtype=self.dtype, freq=new_freq)
+        return type(self)._from_sequence(new_values, dtype=self.dtype, freq="infer")
+
+    def _add_timedelta_arraylike(self, other):
         """
         Add a delta of a TimedeltaIndex
-        return the i8 result view
+
+        Returns
+        -------
+        Same type as self
         """
+        # overriden by PeriodArray
+
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
@@ -1196,7 +1186,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if self._hasnans or other._hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
-        return new_values.view("i8")
+
+        return type(self)._from_sequence(new_values, dtype=self.dtype, freq="infer")
 
     def _add_nat(self):
         """
@@ -1338,7 +1329,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if other is NaT:
             result = self._add_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
-            result = self._add_delta(other)
+            result = self._add_timedeltalike_scalar(other)
         elif isinstance(other, DateOffset):
             # specifically _not_ a Tick
             result = self._add_offset(other)
@@ -1354,7 +1345,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # array-like others
         elif is_timedelta64_dtype(other):
             # TimedeltaIndex, ndarray[timedelta64]
-            result = self._add_delta(other)
+            result = self._add_timedelta_arraylike(other)
         elif is_object_dtype(other):
             # e.g. Array/Index of DateOffset objects
             result = self._addsub_object_array(other, operator.add)
@@ -1390,7 +1381,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if other is NaT:
             result = self._sub_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
-            result = self._add_delta(-other)
+            result = self._add_timedeltalike_scalar(-other)
         elif isinstance(other, DateOffset):
             # specifically _not_ a Tick
             result = self._add_offset(-other)
@@ -1409,7 +1400,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         # array-like others
         elif is_timedelta64_dtype(other):
             # TimedeltaIndex, ndarray[timedelta64]
-            result = self._add_delta(-other)
+            result = self._add_timedelta_arraylike(-other)
         elif is_object_dtype(other):
             # e.g. Array/Index of DateOffset objects
             result = self._addsub_object_array(other, operator.sub)
