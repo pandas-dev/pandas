@@ -435,6 +435,52 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def name(self) -> Label:
+        """
+        Return the name of the Series.
+
+        The name of a Series becomes its index or column name if it is used
+        to form a DataFrame. It is also used whenever displaying the Series
+        using the interpreter.
+
+        Returns
+        -------
+        label (hashable object)
+            The name of the Series, also the column name if part of a DataFrame.
+
+        See Also
+        --------
+        Series.rename : Sets the Series name when given a scalar input.
+        Index.name : Corresponding Index property.
+
+        Examples
+        --------
+        The Series name can be set initially when calling the constructor.
+
+        >>> s = pd.Series([1, 2, 3], dtype=np.int64, name='Numbers')
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Numbers, dtype: int64
+        >>> s.name = "Integers"
+        >>> s
+        0    1
+        1    2
+        2    3
+        Name: Integers, dtype: int64
+
+        The name of a Series within a DataFrame is its column name.
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+        ...                   columns=["Odd Numbers", "Even Numbers"])
+        >>> df
+           Odd Numbers  Even Numbers
+        0            1             2
+        1            3             4
+        2            5             6
+        >>> df["Even Numbers"].name
+        'Even Numbers'
+        """
         return self._name
 
     @name.setter
@@ -504,21 +550,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         timedelta64 dtypes), while ``.array`` ensures to always return an
         ExtensionArray.
 
-        Differs from ``._ndarray_values``, as that ensures to always return a
-        numpy array (it will call ``_ndarray_values`` on the ExtensionArray, if
-        the Series was backed by an ExtensionArray).
-
         Overview:
 
-        dtype       | values        | _values       | array         | _ndarray_values |
-        ----------- | ------------- | ------------- | ------------- | --------------- |
-        Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
-        Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
-        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] | ndarray[m8ns]   |
-        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
-        Nullable    | EA            | EA            | EA            | ndarray         |
+        dtype       | values        | _values       | array         |
+        ----------- | ------------- | ------------- | ------------- |
+        Numeric     | ndarray       | ndarray       | PandasArray   |
+        Category    | Categorical   | Categorical   | Categorical   |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   |
+        Nullable    | EA            | EA            | EA            |
 
         """
         return self._data.internal_values()
@@ -527,18 +569,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @property
     def array(self) -> ExtensionArray:
         return self._data._block.array_values()
-
-    def _internal_get_values(self):
-        """
-        Same as values (but handles sparseness conversions); is a view.
-
-        Returns
-        -------
-        numpy.ndarray
-            Data of the Series.
-        """
-        blk = self._data._block
-        return np.array(blk.to_dense(), copy=False)
 
     # ops
     def ravel(self, order="C"):
@@ -891,6 +921,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             )
         elif isinstance(key, tuple):
             return self._get_values_tuple(key)
+
+        elif not is_list_like(key):
+            # e.g. scalars that aren't recognized by lib.is_scalar, GH#32684
+            return self.loc[key]
 
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
@@ -2446,8 +2480,7 @@ Name: Max Speed, dtype: float64
         """
         return self.dot(np.transpose(other))
 
-    @Substitution(klass="Series")
-    @Appender(base._shared_docs["searchsorted"])
+    @doc(base.IndexOpsMixin.searchsorted, klass="Series")
     def searchsorted(self, value, side="left", sorter=None):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 

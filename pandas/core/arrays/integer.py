@@ -478,18 +478,6 @@ class IntegerArray(BaseMaskedArray):
         data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
 
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-        """
-        return self._data
-
     def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
         # use masked algorithms, rather than object-dtype / np.nan.

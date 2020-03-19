@@ -1057,6 +1057,29 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = pd.read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
+    @pytest.mark.parametrize("as_object", [True, False])
+    @pytest.mark.parametrize("date_format", ["iso", "epoch"])
+    @pytest.mark.parametrize("timedelta_typ", [pd.Timedelta, timedelta])
+    def test_timedelta_to_json(self, as_object, date_format, timedelta_typ):
+        # GH28156: to_json not correctly formatting Timedelta
+        data = [timedelta_typ(days=1), timedelta_typ(days=2), pd.NaT]
+        if as_object:
+            data.append("a")
+
+        ser = pd.Series(data, index=data)
+        if date_format == "iso":
+            expected = (
+                '{"P1DT0H0M0S":"P1DT0H0M0S","P2DT0H0M0S":"P2DT0H0M0S","null":null}'
+            )
+        else:
+            expected = '{"86400000":86400000,"172800000":172800000,"null":null}'
+
+        if as_object:
+            expected = expected.replace("}", ',"a":"a"}')
+
+        result = ser.to_json(date_format=date_format)
+        assert result == expected
+
     def test_default_handler(self):
         value = object()
         frame = DataFrame({"a": [7, value]})
