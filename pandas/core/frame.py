@@ -8503,7 +8503,7 @@ def _create_block_manager_dataframe(data: DataFrame, *args, **kwargs):
 
 
 @create_block_manager.register
-def _create_block_manager_dataframe(
+def _create_block_manager_blockmanager(
     data: BlockManager, df, index, columns, dtype, copy
 ):
     mgr = df._init_mgr(
