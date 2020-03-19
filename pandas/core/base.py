@@ -36,7 +36,6 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
-
 _shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(
     klass="IndexOpsMixin",

@@ -346,13 +346,6 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
-    @property
-    def size(self) -> int:
-        """
-        The number of elements in this array.
-        """
-        raise AbstractMethodError(self)
-
     def __iter__(self):
         """
         Iterate over elements of the array.
@@ -469,7 +462,7 @@ class ExtensionArray:
 
         Returns
         -------
-        na_values : ArrayLike
+        na_values : np.ndarray or ExtensionArray
             In most cases, this should return a NumPy ndarray. For
             exceptional cases like ``SparseArray``, where returning
             an ndarray would be expensive, an ExtensionArray may be
@@ -1178,7 +1171,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
         Returns
         -------
-        Callable[[Any, Any], ArrayLike]
+        Callable[[Any, Any], Union[ndarray, ExtensionArray]]
             A method that can be bound to a class. When used, the method
             receives the two arguments, one of which is the instance of
             this class, and should return an ExtensionArray or an ndarray.

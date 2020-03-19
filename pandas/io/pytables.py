@@ -8,17 +8,7 @@ from datetime import date, tzinfo
 import itertools
 import os
 import re
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union, cast
 import warnings
 
 import numpy as np
