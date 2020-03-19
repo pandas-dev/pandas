@@ -251,7 +251,7 @@ Combining / joining / merging
    DataFrame.merge
    DataFrame.update
 
-Time Series-related
+Time series-related
 ~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
