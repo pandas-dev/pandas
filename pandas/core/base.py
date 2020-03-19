@@ -1174,7 +1174,11 @@ class IndexOpsMixin:
             elif na_action is None:
                 map_f = lib.map_infer
             else:
-                raise ValueError("na_action must either be 'ignore' or None")
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
 
         # mapper is a function
         new_values = map_f(values, mapper)
