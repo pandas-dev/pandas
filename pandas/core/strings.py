@@ -839,6 +839,8 @@ def str_fullmatch(arr, pat, case=True, flags=0, na=np.nan):
     na : default NaN
         Fill value for missing values.
 
+    .. versionadded:: 1.1.0
+
     Returns
     -------
     Series/array of boolean values

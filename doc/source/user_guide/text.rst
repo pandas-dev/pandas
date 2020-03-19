@@ -641,21 +641,34 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r'[0-9][a-z]'
-   pd.Series(['1', '2', '3a', '3b', '03c'],
+   pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
              dtype="string").str.contains(pattern)
 
 Or whether elements match a pattern:
 
 .. ipython:: python
 
-   pd.Series(['1', '2', '3a', '3b', '03c'],
+   pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
              dtype="string").str.match(pattern)
 
-The distinction between ``match`` and ``contains`` is strictness: ``match``
-relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
+.. ipython:: python
 
-Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
-an extra ``na`` argument so missing values can be considered True or False:
+   pd.Series(['1', '2', '3a', '3b', '03c', '4dx'],
+             dtype="string").str.fullmatch(pattern)
+
+.. versionadded:: 1.1.0
+
+The distinction between ``match``, ``fullmatch``, and ``contains`` is strictness:
+``fullmatch`` tests whether the entire string matches the regular expression;
+``match`` tests whether there is a match of the regular expression that begins
+at the first character of the string; and ``contains`` tests whether there is
+a match of the regular expression at any position within the string. The
+corresponding functions in the ``re`` package for these three match modes are
+``re.fullmatch``, ``re.match``, and ``re.search``, respectively.
+
+Methods like ``match``, ``fullmatch``, ``contains``, ``startswith``, and
+``endswith`` take an extra ``na`` argument so missing values can be considered
+True or False:
 
 .. ipython:: python
 
