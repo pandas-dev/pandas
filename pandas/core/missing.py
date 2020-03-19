@@ -292,7 +292,7 @@ def _derive_indices_of_nans_to_preserve(
     limit: Optional[int] = None,
     limit_area: Optional[str] = None,
     limit_direction: Optional[str] = None,
-):
+) -> List[int]:
     """
     Derive the indices of NaNs that shall be preserved after interpolation
     This function is called by `interpolate_1d` and takes the arguments with
@@ -310,7 +310,7 @@ def _derive_indices_of_nans_to_preserve(
 
     Returns
     -------
-    preserve_nans: set
+    preserve_nans: list of int
         Set of index pointers to where NaNs should be preserved in `yvalues`
     """
 
