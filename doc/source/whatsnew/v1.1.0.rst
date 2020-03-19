@@ -224,7 +224,7 @@ Performance improvements
 - The internal index method :meth:`~Index._shallow_copy` now copies cached attributes over to the new index,
   avoiding creating these again on the new index. This can speed up many operations that depend on creating copies of
   existing indexes (:issue:`28584`, :issue:`32640`, :issue:`32669`)
-- Performance improvement when creating sparse :class:`DataFrame` from
+- Performance improvement when creating a :class:`DataFrame` with sparse values
   ``scipy.sparse`` matrices using the :meth:`DataFrame.sparse.from_spmatrix`
   constructor (:issue:`32196`).
 
