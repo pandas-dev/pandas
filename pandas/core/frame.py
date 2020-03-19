@@ -10,11 +10,11 @@ labeling information
 """
 
 import collections
-from collections import abc
 import datetime
-import functools
-from io import StringIO
 import itertools
+import warnings
+from collections import abc
+from io import StringIO
 from textwrap import dedent
 from typing import (
     IO,
@@ -33,32 +33,24 @@ from typing import (
     Union,
     cast,
 )
-import warnings
 
 import numpy as np
-import numpy.ma as ma
-import numpy.ma.mrecords as mrecords
 
+import pandas.plotting
 from pandas._config import get_option
-
-from pandas._libs import algos as libalgos, lib, properties
+from pandas._libs import algos as libalgos
+from pandas._libs import lib, properties
 from pandas._typing import Axes, Axis, Dtype, FilePathOrBuffer, Label, Level, Renamer
 from pandas.compat import PY37
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    deprecate_kwarg,
-    doc,
-    rewrite_axis_style_signature,
-)
-from pandas.util._validators import (
-    validate_axis_style_args,
-    validate_bool_kwarg,
-    validate_percentile,
-)
-
+from pandas.core import algorithms
+from pandas.core import common as com
+from pandas.core import nanops, ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
+from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     coerce_to_dtypes,
@@ -69,7 +61,6 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
-    maybe_upcast,
     maybe_upcast_putmask,
     validate_numeric_casting,
 )
@@ -104,12 +95,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna, notna
-
-from pandas.core import algorithms, common as com, nanops, ops
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
-from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
@@ -117,25 +102,31 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
-from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
-    dataclasses_to_dicts,
-    get_names_from_index,
-    init_dict,
-    init_ndarray,
-    masked_rec_array_to_mgr,
+    create_dataframe,
     reorder_arrays,
     sanitize_index,
     to_arrays,
 )
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
-
 from pandas.io.common import get_filepath_or_buffer
-from pandas.io.formats import console, format as fmt
+from pandas.io.formats import console
+from pandas.io.formats import format as fmt
 from pandas.io.formats.info import info
-import pandas.plotting
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+    deprecate_kwarg,
+    doc,
+    rewrite_axis_style_signature,
+)
+from pandas.util._validators import (
+    validate_axis_style_args,
+    validate_bool_kwarg,
+    validate_percentile,
+)
 
 if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
@@ -8462,138 +8453,9 @@ ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)
 
 
-@functools.singledispatch
-def create_dataframe(
-    data: Any,
-    index: Optional[Axes],
-    columns: Optional[Axes],
-    dtype: Optional[Dtype],
-    copy: bool,
-    cls: Type[DataFrame],
-) -> BlockManager:
-    """
-    Create a BlockManager for some given data. Used inside the DataFrame constructor
-    to convert different input types.
-    If you want to provide a custom way to convert from your objec to a DataFrame
-    you can register a dispatch on this function.
-    """
-    # Base case is to try to cast to NumPy array
-    try:
-        arr = np.array(data, dtype=dtype, copy=copy)
-    except (ValueError, TypeError) as err:
-        exc = TypeError(
-            f"DataFrame constructor called with incompatible data and dtype: {err}"
-        )
-        raise exc from err
-
-    if arr.ndim == 0 and index is not None and columns is not None:
-        values = cast_scalar_to_array((len(index), len(columns)), data, dtype=dtype)
-        return init_ndarray(values, index, columns, dtype=values.dtype, copy=False)
-    else:
-        raise ValueError("DataFrame constructor not properly called!")
-
-
-@create_dataframe.register
-def _create_dataframe_none(data: None, *args, **kwargs):
-    return create_dataframe({}, *args, **kwargs)
-
-
 @create_dataframe.register
 def _create_dataframe_dataframe(data: DataFrame, *args, **kwargs):
     return create_dataframe(data._data, *args, **kwargs)
-
-
-@create_dataframe.register
-def _create_dataframe_blockmanager(
-    data: BlockManager, index, columns, dtype, copy, cls
-):
-    return cls._init_mgr(
-        data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
-    )
-
-
-@create_dataframe.register
-def _create_dataframe_dict(data: dict, index, columns, dtype, copy, cls):
-    return init_dict(data, index, columns, dtype=dtype)
-
-
-@create_dataframe.register
-def _create_dataframe_masked_array(
-    data: ma.MaskedArray, index, columns, dtype, copy, cls
-):
-    mask = ma.getmaskarray(data)
-    if mask.any():
-        data, fill_value = maybe_upcast(data, copy=True)
-        data.soften_mask()  # set hardmask False if it was True
-        data[mask] = fill_value
-    else:
-        data = data.copy()
-    return init_ndarray(data, index, columns, dtype=dtype, copy=copy)
-
-
-@create_dataframe.register
-def _create_dataframe_masked_record(
-    data: mrecords.MaskedRecords, index, columns, dtype, copy, cls
-):
-    return masked_rec_array_to_mgr(data, index, columns, dtype, copy)
-
-
-@create_dataframe.register(np.ndarray)
-@create_dataframe.register(Series)
-@create_dataframe.register(Index)
-def _create_dataframe_array_series_index(
-    data: Union[np.ndarray, Series, Index], index, columns, dtype, copy, cls
-):
-    if data.dtype.names:
-        data_columns = list(data.dtype.names)
-        data = {k: data[k] for k in data_columns}
-        if columns is None:
-            columns = data_columns
-        return init_dict(data, index, columns, dtype=dtype)
-    elif getattr(data, "name", None) is not None:
-        return init_dict({data.name: data}, index, columns, dtype=dtype)
-    return init_ndarray(data, index, columns, dtype=dtype, copy=copy)
-
-
-class _IterableExceptStringOrBytesMeta(type):
-    def __subclasscheck__(cls, sub: Type) -> bool:
-        return not issubclass(sub, (str, bytes)) and issubclass(sub, abc.Iterable)
-
-
-class _IterableExceptStringOrBytes(metaclass=_IterableExceptStringOrBytesMeta):
-    """
-    Class that is subclass of iterable but not of str or bytes to use for singledispatch
-    registration
-    """
-
-    pass
-
-
-@create_dataframe.register(_IterableExceptStringOrBytes)
-def _create_dataframe_iterable(data: abc.Iterable, index, columns, dtype, copy, cls):
-    if not isinstance(data, (abc.Sequence, ExtensionArray)):
-        data = list(data)
-    if len(data) > 0:
-        if is_dataclass(data[0]):
-            data = cast(List[dict], dataclasses_to_dicts(data))
-        if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
-            if is_named_tuple(data[0]) and columns is None:
-                columns = data[0]._fields
-            arrays, columns = to_arrays(data, columns, dtype=dtype)
-            columns = ensure_index(columns)
-
-            # set the index
-            if index is None:
-                if isinstance(data[0], Series):
-                    index = get_names_from_index(data)
-                elif isinstance(data[0], Categorical):
-                    index = ibase.default_index(len(data[0]))
-                else:
-                    index = ibase.default_index(len(data))
-
-            return arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
-        return init_ndarray(data, index, columns, dtype=dtype, copy=copy)
-    return init_dict({}, index, columns, dtype=dtype)
 
 
 def _from_nested_dict(data):

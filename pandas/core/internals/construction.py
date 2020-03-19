@@ -3,13 +3,18 @@ Functions for preparing various inputs passed to the DataFrame or Series
 constructors before passing them to a BlockManager.
 """
 from collections import abc
+import functools
+from typing import Any, List, Optional, Type, Union, cast
 
 import numpy as np
 import numpy.ma as ma
+import numpy.ma.mrecords as mrecords
 
 from pandas._libs import lib
+from pandas._typing import Axes, Dtype
 
 from pandas.core.dtypes.cast import (
+    cast_scalar_to_array,
     construct_1d_arraylike_from_scalar,
     maybe_cast_to_datetime,
     maybe_convert_platform,
@@ -18,11 +23,13 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_dataclass,
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_integer_dtype,
     is_list_like,
+    is_named_tuple,
     is_object_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -35,8 +42,9 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas.core import algorithms, common as com
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.construction import extract_array, sanitize_array
+from pandas.core.generic import NDFrame
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     Index,
@@ -45,9 +53,11 @@ from pandas.core.indexes.api import (
     union_indexes,
 )
 from pandas.core.internals import (
+    BlockManager,
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
+from pandas.core.series import Series
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -113,6 +123,135 @@ def masked_rec_array_to_mgr(data, index, columns, dtype, copy: bool):
     if copy:
         mgr = mgr.copy()
     return mgr
+
+
+@functools.singledispatch
+def create_dataframe(
+    data: Any,
+    index: Optional[Axes],
+    columns: Optional[Axes],
+    dtype: Optional[Dtype],
+    copy: bool,
+    cls: Type[NDFrame],
+) -> BlockManager:
+    """
+    Create a BlockManager for some given data. Used inside the DataFrame constructor
+    to convert different input types.
+    If you want to provide a custom way to convert from your objec to a DataFrame
+    you can register a dispatch on this function.
+    """
+    # Base case is to try to cast to NumPy array
+    try:
+        arr = np.array(data, dtype=dtype, copy=copy)
+    except (ValueError, TypeError) as err:
+        exc = TypeError(
+            f"DataFrame constructor called with incompatible data and dtype: {err}"
+        )
+        raise exc from err
+
+    if arr.ndim == 0 and index is not None and columns is not None:
+        values = cast_scalar_to_array((len(index), len(columns)), data, dtype=dtype)
+        return init_ndarray(values, index, columns, dtype=values.dtype, copy=False)
+    else:
+        raise ValueError("DataFrame constructor not properly called!")
+
+
+@create_dataframe.register
+def _create_dataframe_none(data: None, *args, **kwargs):
+    return create_dataframe({}, *args, **kwargs)
+
+
+@create_dataframe.register
+def _create_dataframe_blockmanager(
+    data: BlockManager, index, columns, dtype, copy, cls
+):
+    return cls._init_mgr(
+        data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
+    )
+
+
+@create_dataframe.register
+def _create_dataframe_dict(data: dict, index, columns, dtype, copy, cls):
+    return init_dict(data, index, columns, dtype=dtype)
+
+
+@create_dataframe.register
+def _create_dataframe_masked_array(
+    data: ma.MaskedArray, index, columns, dtype, copy, cls
+):
+    mask = ma.getmaskarray(data)
+    if mask.any():
+        data, fill_value = maybe_upcast(data, copy=True)
+        data.soften_mask()  # set hardmask False if it was True
+        data[mask] = fill_value
+    else:
+        data = data.copy()
+    return init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+
+
+@create_dataframe.register
+def _create_dataframe_masked_record(
+    data: mrecords.MaskedRecords, index, columns, dtype, copy, cls
+):
+    return masked_rec_array_to_mgr(data, index, columns, dtype, copy)
+
+
+@create_dataframe.register(np.ndarray)
+@create_dataframe.register(Series)
+@create_dataframe.register(Index)
+def _create_dataframe_array_series_index(
+    data: Union[np.ndarray, Series, Index], index, columns, dtype, copy, cls
+):
+    if data.dtype.names:
+        data_columns = list(data.dtype.names)
+        data = {k: data[k] for k in data_columns}
+        if columns is None:
+            columns = data_columns
+        return init_dict(data, index, columns, dtype=dtype)
+    elif getattr(data, "name", None) is not None:
+        return init_dict({data.name: data}, index, columns, dtype=dtype)
+    return init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+
+
+class _IterableExceptStringOrBytesMeta(type):
+    def __subclasscheck__(cls, sub: Type) -> bool:
+        return not issubclass(sub, (str, bytes)) and issubclass(sub, abc.Iterable)
+
+
+class _IterableExceptStringOrBytes(metaclass=_IterableExceptStringOrBytesMeta):
+    """
+    Class that is subclass of iterable but not of str or bytes to use for singledispatch
+    registration
+    """
+
+    pass
+
+
+@create_dataframe.register(_IterableExceptStringOrBytes)
+def _create_dataframe_iterable(data: abc.Iterable, index, columns, dtype, copy, cls):
+    if not isinstance(data, (abc.Sequence, ExtensionArray)):
+        data = list(data)
+    if len(data) > 0:
+        if is_dataclass(data[0]):
+            data = cast(List[dict], dataclasses_to_dicts(data))
+        if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
+            if is_named_tuple(data[0]) and columns is None:
+                columns = data[0]._fields
+            arrays, columns = to_arrays(data, columns, dtype=dtype)
+            columns = ensure_index(columns)
+
+            # set the index
+            if index is None:
+                if isinstance(data[0], Series):
+                    index = get_names_from_index(data)
+                elif isinstance(data[0], Categorical):
+                    index = ibase.default_index(len(data[0]))
+                else:
+                    index = ibase.default_index(len(data))
+
+            return arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+        return init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+    return init_dict({}, index, columns, dtype=dtype)
 
 
 # ---------------------------------------------------------------------
