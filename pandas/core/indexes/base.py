@@ -1,7 +1,7 @@
 from datetime import datetime
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Any, Dict, FrozenSet, Hashable, Union
+from typing import TYPE_CHECKING, Any, FrozenSet, Hashable, Union
 import warnings
 
 import numpy as np
@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_bool,
     is_bool_dtype,
-    is_categorical,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_dtype_equal,
@@ -250,7 +249,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _cache: Dict[str, Any]
     _id = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -465,8 +463,7 @@ class Index(IndexOpsMixin, PandasObject):
         # _index_data is a (temporary?) fix to ensure that the direct data
         # manipulation we do in `_libs/reduction.pyx` continues to work.
         # We need access to the actual ndarray, since we're messing with
-        # data buffers and strides. We don't re-use `_ndarray_values`, since
-        # we actually set this value too.
+        # data buffers and strides.
         result._index_data = values
         result._name = name
         result._cache = {}
@@ -532,6 +529,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._constructor(values, **attributes)
             except (TypeError, ValueError):
                 pass
+
+        # Remove tz so Index will try non-DatetimeIndex inference
+        attributes.pop("tz", None)
         return Index(values, **attributes)
 
     def _update_inplace(self, result, **kwargs):
@@ -623,7 +623,8 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
-        return self._ndarray_values.ravel(order=order)
+        values = self._get_engine_target()
+        return values.ravel(order=order)
 
     def view(self, cls=None):
 
@@ -3844,75 +3845,26 @@ class Index(IndexOpsMixin, PandasObject):
         """
         The best array representation.
 
-        This is an ndarray or ExtensionArray. This differs from
-        ``_ndarray_values``, which always returns an ndarray.
+        This is an ndarray or ExtensionArray.
 
-        Both ``_values`` and ``_ndarray_values`` are consistent between
-        ``Series`` and ``Index`` (except for datetime64[ns], which returns
-        a DatetimeArray for _values on the Index, but ndarray[M8ns] on the
-        Series).
+        ``_values`` are consistent between``Series`` and ``Index``.
 
         It may differ from the public '.values' method.
 
-        index             | values          | _values       | _ndarray_values |
-        ----------------- | --------------- | ------------- | --------------- |
-        Index             | ndarray         | ndarray       | ndarray         |
-        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
-        DatetimeIndex     | ndarray[M8ns]   | DatetimeArray | ndarray[M8ns]   |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray | ndarray[M8ns]   |
-        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
-        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
+        index             | values          | _values       |
+        ----------------- | --------------- | ------------- |
+        Index             | ndarray         | ndarray       |
+        CategoricalIndex  | Categorical     | Categorical   |
+        DatetimeIndex     | ndarray[M8ns]   | DatetimeArray |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray |
+        PeriodIndex       | ndarray[object] | PeriodArray   |
+        IntervalIndex     | IntervalArray   | IntervalArray |
 
         See Also
         --------
         values
-        _ndarray_values
         """
         return self._data
-
-    def _internal_get_values(self) -> np.ndarray:
-        """
-        Return `Index` data as an `numpy.ndarray`.
-
-        Returns
-        -------
-        numpy.ndarray
-            A one-dimensional numpy array of the `Index` values.
-
-        See Also
-        --------
-        Index.values : The attribute that _internal_get_values wraps.
-
-        Examples
-        --------
-        Getting the `Index` values of a `DataFrame`:
-
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-        ...                    index=['a', 'b', 'c'], columns=['A', 'B', 'C'])
-        >>> df
-           A  B  C
-        a  1  2  3
-        b  4  5  6
-        c  7  8  9
-        >>> df.index._internal_get_values()
-        array(['a', 'b', 'c'], dtype=object)
-
-        Standalone `Index` values:
-
-        >>> idx = pd.Index(['1', '2', '3'])
-        >>> idx._internal_get_values()
-        array(['1', '2', '3'], dtype=object)
-
-        `MultiIndex` arrays also have only one dimension:
-
-        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
-        ...                                  names=('number', 'letter'))
-        >>> midx._internal_get_values()
-        array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
-        >>> midx._internal_get_values().ndim
-        1
-        """
-        return self.values
 
     def _get_engine_target(self) -> np.ndarray:
         """
@@ -4657,10 +4609,8 @@ class Index(IndexOpsMixin, PandasObject):
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
-        if is_categorical(target):
+        if is_categorical_dtype(target.dtype):
             tgt_values = np.asarray(target)
-        elif self.is_all_dates and target.is_all_dates:  # GH 30399
-            tgt_values = target.asi8
         else:
             tgt_values = target._get_engine_target()
 
@@ -5195,9 +5145,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        _self = np.asarray(self)
-        item = self._coerce_scalar_to_index(item)._ndarray_values
-        idx = np.concatenate((_self[:loc], item, _self[loc:]))
+        # Note: this method is overriden by all ExtensionIndex subclasses,
+        #  so self is never backed by an EA.
+        arr = np.asarray(self)
+        item = self._coerce_scalar_to_index(item)._values
+        idx = np.concatenate((arr[:loc], item, arr[loc:]))
         return self._shallow_copy_with_infer(idx)
 
     def drop(self, labels, errors: str_t = "raise"):
