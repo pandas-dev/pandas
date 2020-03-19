@@ -923,3 +923,15 @@ def test_getitem_2d_no_warning():
     series = pd.Series([1, 2, 3], index=[1, 2, 3])
     with tm.assert_produces_warning(None):
         series[:, None]
+
+
+def test_getitem_unrecognized_scalar():
+    # GH#32684 a scalar key that is not recognized by lib.is_scalar
+
+    # a series that might be produced via `frame.dtypes`
+    ser = pd.Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
+
+    key = ser.index[1]
+
+    result = ser[key]
+    assert result == 2
