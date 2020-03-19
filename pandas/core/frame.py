@@ -431,7 +431,7 @@ class DataFrame(NDFrame):
     ):
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
-        mgr = create_block_manager(data, self, index, columns, dtype, copy)
+        mgr = create_dataframe(data, self, index, columns, dtype, copy)
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
@@ -8463,18 +8463,19 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 
 @functools.singledispatch
-def create_block_manager(
+def create_dataframe(
     data: Any,
-    df: DataFrame,
     index: Optional[Axes],
     columns: Optional[Axes],
     dtype: Optional[Dtype],
     copy: bool,
+    cls: Type[DataFrame],
 ) -> BlockManager:
     """
-    Convert an object into a BlockManager. Used inside the DataFrame constructor
-    so if you want to provide a custom way to convert from your objec to a DataFrame
-    you can register a dispatch on this method.
+    Create a BlockManager for some given data. Used inside the DataFrame constructor
+    to convert different input types.
+    If you want to provide a custom way to convert from your objec to a DataFrame
+    you can register a dispatch on this function.
     """
     # Base case is to try to cast to NumPy array
     try:
@@ -8492,34 +8493,33 @@ def create_block_manager(
         raise ValueError("DataFrame constructor not properly called!")
 
 
-@create_block_manager.register
-def _create_block_manager_none(data: None, *args, **kwargs):
-    return create_block_manager({}, *args, **kwargs)
+@create_dataframe.register
+def _create_dataframe_none(data: None, *args, **kwargs):
+    return create_dataframe({}, *args, **kwargs)
 
 
-@create_block_manager.register
-def _create_block_manager_dataframe(data: DataFrame, *args, **kwargs):
-    return create_block_manager(data._data, *args, **kwargs)
+@create_dataframe.register
+def _create_dataframe_dataframe(data: DataFrame, *args, **kwargs):
+    return create_dataframe(data._data, *args, **kwargs)
 
 
-@create_block_manager.register
-def _create_block_manager_blockmanager(
-    data: BlockManager, df, index, columns, dtype, copy
+@create_dataframe.register
+def _create_dataframe_blockmanager(
+    data: BlockManager, index, columns, dtype, copy, cls
 ):
-    mgr = df._init_mgr(
+    return cls._init_mgr(
         data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
     )
-    return mgr
 
 
-@create_block_manager.register
-def _create_block_manager_dict(data: dict, df, index, columns, dtype, copy):
+@create_dataframe.register
+def _create_dataframe_dict(data: dict, index, columns, dtype, copy, cls):
     return init_dict(data, index, columns, dtype=dtype)
 
 
-@create_block_manager.register
-def _create_block_manager_masked_array(
-    data: ma.MaskedArray, df, index, columns, dtype, copy
+@create_dataframe.register
+def _create_dataframe_masked_array(
+    data: ma.MaskedArray, index, columns, dtype, copy, cls
 ):
     mask = ma.getmaskarray(data)
     if mask.any():
@@ -8531,18 +8531,18 @@ def _create_block_manager_masked_array(
     return init_ndarray(data, index, columns, dtype=dtype, copy=copy)
 
 
-@create_block_manager.register
-def _create_block_manager_masked_record(
-    data: mrecords.MaskedRecords, df, index, columns, dtype, copy
+@create_dataframe.register
+def _create_dataframe_masked_record(
+    data: mrecords.MaskedRecords, index, columns, dtype, copy, cls
 ):
     return masked_rec_array_to_mgr(data, index, columns, dtype, copy)
 
 
-@create_block_manager.register(np.ndarray)
-@create_block_manager.register(Series)
-@create_block_manager.register(Index)
-def _create_block_manager_array_series_index(
-    data: Union[np.ndarray, Series, Index], df, index, columns, dtype, copy
+@create_dataframe.register(np.ndarray)
+@create_dataframe.register(Series)
+@create_dataframe.register(Index)
+def _create_dataframe_array_series_index(
+    data: Union[np.ndarray, Series, Index], index, columns, dtype, copy, cls
 ):
     if data.dtype.names:
         data_columns = list(data.dtype.names)
@@ -8569,8 +8569,8 @@ class _IterableExceptStringOrBytes(metaclass=_IterableExceptStringOrBytesMeta):
     pass
 
 
-@create_block_manager.register(_IterableExceptStringOrBytes)
-def _create_block_manager_iterable(data: abc.Iterable, df, index, columns, dtype, copy):
+@create_dataframe.register(_IterableExceptStringOrBytes)
+def _create_dataframe_iterable(data: abc.Iterable, index, columns, dtype, copy, cls):
     if not isinstance(data, (abc.Sequence, ExtensionArray)):
         data = list(data)
     if len(data) > 0:
