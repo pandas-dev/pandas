@@ -227,8 +227,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         1  0.0  1.0  0.0
         2  0.0  0.0  1.0
         """
-        from pandas import DataFrame, SparseDtype
-        from . import IntIndex, SparseArray
+        from pandas import DataFrame
+        from pandas._libs.sparse import IntIndex
 
         data = data.tocsc()
         index, columns = cls._prep_index(data, index, columns)
