@@ -1342,41 +1342,20 @@ class TestStyler:
 
     def test_bad_apply_shape(self):
         df = pd.DataFrame([[1, 2], [3, 4]])
-        msg = (
-            "Function <function TestStyler.test_bad_apply_shape.<locals>.<lambda> "
-            "at 0x[a-zA-Z0-9]+> returned the wrong shape.\n"
-            "Result has shape: \\(2,\\)\nExpected shape:   \\(2, 2\\)"
-        )
+        msg = "returned the wrong shape"
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: "x", subset=pd.IndexSlice[[0, 1], :])
 
-        msg = (
-            "Function <function TestStyler.test_bad_apply_shape.<locals>.<lambda> "
-            "at 0x[a-zA-Z0-9]+> returned the wrong shape.\n"
-            "Result has shape: \\(1, 2\\)\nExpected shape:   \\(2, 2\\)"
-        )
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: [""], subset=pd.IndexSlice[[0, 1], :])
 
-        msg = (
-            "Function <function TestStyler.test_bad_apply_shape.<locals>.<lambda> "
-            "at 0x[a-zA-Z0-9]+> returned the wrong shape.\n"
-            "Result has shape: \\(4, 2\\)\nExpected shape:   \\(2, 2\\)"
-        )
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", "", ""])
 
-        msg = (
-            "Function <function TestStyler.test_bad_apply_shape.<locals>.<lambda> "
-            "at 0x[a-zA-Z0-9]+> returned the wrong shape.\n"
-            "Result has shape: \\(3, 2\\)\nExpected shape:   \\(1, 2\\)"
-        )
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", ""], subset=1)
 
-        msg = (
-            "Length mismatch: Expected axis has 3 elements, new values have 2 elements"
-        )
+        msg = "Length mismatch: Expected axis has 3 elements"
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: ["", "", ""], axis=1)
 
@@ -1385,11 +1364,7 @@ class TestStyler:
             return ""
 
         df = pd.DataFrame([[1, 2], [3, 4]])
-        msg = (
-            "Function <function TestStyler.test_apply_bad_return.<locals>.f "
-            "at 0x[a-zA-Z0-9]+> must return a DataFrame "
-            "when passed to `Styler.apply` with axis=None"
-        )
+        msg = "must return a DataFrame when passed to `Styler.apply` with axis=None"
         with pytest.raises(TypeError, match=msg):
             df.style._apply(f, axis=None)
 
@@ -1398,10 +1373,7 @@ class TestStyler:
             return pd.DataFrame(index=[1, 2], columns=["a", "b"])
 
         df = pd.DataFrame([[1, 2], [3, 4]])
-        msg = (
-            "Result of <function TestStyler.test_apply_bad_labels.<locals>.f "
-            "at 0x[a-zA-Z0-9]+> must have identical index and columns as the input"
-        )
+        msg = "must have identical index and columns as the input"
         with pytest.raises(ValueError, match=msg):
             df.style._apply(f, axis=None)
 

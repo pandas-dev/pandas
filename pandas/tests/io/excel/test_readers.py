@@ -823,11 +823,7 @@ class TestReaders:
 
     def test_read_excel_bool_header_arg(self, read_ext):
         # GH 6114
-        msg = (
-            "Passing a bool to header is invalid. "
-            "Use header=None for no header or header=int or list-like of ints "
-            "to specify the row\\(s\\) making up the column names"
-        )
+        msg = "Passing a bool to header is invalid"
         for arg in [True, False]:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
