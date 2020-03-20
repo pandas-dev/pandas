@@ -2022,16 +2022,24 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
         raise AbstractMethodError(self)
 
     def __getitem__(self, key):
-        if not isinstance(key, tuple):
+        try:
+            if not isinstance(key, tuple):
 
-            # we could have a convertible item here (e.g. Timestamp)
-            if not is_list_like_indexer(key):
-                key = tuple([key])
+                # we could have a convertible item here (e.g. Timestamp)
+                if not is_list_like_indexer(key):
+                    key = tuple([key])
+                else:
+                    raise ValueError("Invalid call for scalar access (getting)!")
+
+            key = self._convert_key(key)
+            return self.obj._get_value(*key, takeable=self._takeable)
+        except KeyError as err:
+            if isinstance(self.obj.index, ABCMultiIndex):
+                raise KeyError(
+                    f"Detected KeyError {err}, indexing with {key} failing for MultiIndex"
+                ) from err
             else:
-                raise ValueError("Invalid call for scalar access (getting)!")
-
-        key = self._convert_key(key)
-        return self.obj._get_value(*key, takeable=self._takeable)
+                raise
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
