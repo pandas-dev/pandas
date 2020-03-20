@@ -426,7 +426,8 @@ class TestReaders:
         expected["c"] = ["001", "002", "003", "004"]
         tm.assert_frame_equal(actual, expected)
 
-        with pytest.raises(ValueError):
+        msg = "Unable to convert column d to type int64"
+        with pytest.raises(ValueError, match=msg):
             pd.read_excel(basename + read_ext, dtype={"d": "int64"})
 
     @pytest.mark.parametrize(
@@ -822,13 +823,15 @@ class TestReaders:
 
     def test_read_excel_bool_header_arg(self, read_ext):
         # GH 6114
+        msg = "Passing a bool to header is invalid"
         for arg in [True, False]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
 
     def test_read_excel_chunksize(self, read_ext):
         # GH 8011
-        with pytest.raises(NotImplementedError):
+        msg = "chunksize keyword of read_excel is not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             pd.read_excel("test1" + read_ext, chunksize=100)
 
     def test_read_excel_skiprows_list(self, read_ext):
