@@ -28,3 +28,9 @@ def test_delta_to_nanoseconds_error():
 
     with pytest.raises(TypeError, match="<class 'numpy.ndarray'>"):
         delta_to_nanoseconds(obj)
+
+
+def test_huge_nanoseconds_overflow():
+    # GH 32402
+    assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
+    assert delta_to_nanoseconds(Timedelta(nanoseconds=1e10)) == 1e10

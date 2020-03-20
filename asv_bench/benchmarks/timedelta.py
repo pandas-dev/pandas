@@ -5,7 +5,7 @@ benchmarks.tslibs.timedelta for benchmarks that rely only on tslibs.
 
 import numpy as np
 
-from pandas import DataFrame, Series, Timestamp, timedelta_range, to_timedelta
+from pandas import DataFrame, Series, timedelta_range, to_timedelta
 
 
 class ToTimedelta:
@@ -41,15 +41,6 @@ class ToTimedeltaErrors:
         to_timedelta(self.arr, errors=errors)
 
 
-class TimedeltaOps:
-    def setup(self):
-        self.td = to_timedelta(np.arange(1000000))
-        self.ts = Timestamp("2000")
-
-    def time_add_td_ts(self):
-        self.td + self.ts
-
-
 class DatetimeAccessor:
     def setup_cache(self):
         N = 100000
@@ -81,9 +72,6 @@ class TimedeltaIndexing:
 
     def time_get_loc(self):
         self.index.get_loc(self.timedelta)
-
-    def time_shape(self):
-        self.index.shape
 
     def time_shallow_copy(self):
         self.index._shallow_copy()

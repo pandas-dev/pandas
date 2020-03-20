@@ -35,6 +35,9 @@ class Base:
     _holder: Optional[Type[Index]] = None
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
+    def create_index(self) -> Index:
+        raise NotImplementedError("Method not implemented")
+
     def test_pickle_compat_construction(self):
         # need an object to create with
         msg = (
@@ -310,16 +313,11 @@ class Base:
             result = result.tz_localize("UTC").tz_convert(indices.tz)
 
         tm.assert_index_equal(indices, result)
-        tm.assert_numpy_array_equal(
-            indices._ndarray_values, result._ndarray_values, check_same="copy"
-        )
 
         if isinstance(indices, PeriodIndex):
             # .values an object array of Period, thus copied
             result = index_type(ordinal=indices.asi8, copy=False, **init_kwargs)
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
-            )
+            tm.assert_numpy_array_equal(indices.asi8, result.asi8, check_same="same")
         elif isinstance(indices, IntervalIndex):
             # checked in test_interval.py
             pass
@@ -327,9 +325,6 @@ class Base:
             result = index_type(indices.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(
                 indices.values, result.values, check_same="same"
-            )
-            tm.assert_numpy_array_equal(
-                indices._ndarray_values, result._ndarray_values, check_same="same"
             )
 
     def test_memory_usage(self, indices):
@@ -512,14 +507,13 @@ class Base:
             with pytest.raises(TypeError, match=msg):
                 first.union([1, 2, 3])
 
-    @pytest.mark.parametrize("sort", [None, False])
     def test_difference_base(self, sort, indices):
-        if isinstance(indices, CategoricalIndex):
-            return
-
         first = indices[2:]
         second = indices[:4]
-        answer = indices[4:]
+        if isinstance(indices, CategoricalIndex) or indices.is_boolean():
+            answer = []
+        else:
+            answer = indices[4:]
         result = first.difference(second, sort)
         assert tm.equalContents(result, answer)
 
@@ -605,7 +599,8 @@ class Base:
         assert not indices.equals(np.array(indices))
 
         # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(indices, RangeIndex):
+        if not isinstance(indices, (RangeIndex, CategoricalIndex)):
+            # TODO: CategoricalIndex can be re-allowed following GH#32167
             same_values = Index(indices, dtype=object)
             assert indices.equals(same_values)
             assert same_values.equals(indices)
@@ -916,3 +911,16 @@ class Base:
 
         with pytest.raises(TypeError):
             {} in idx._engine
+
+    def test_shallow_copy_copies_cache(self):
+        # GH32669
+        idx = self.create_index()
+        idx.get_loc(idx[0])  # populates the _cache.
+        shallow_copy = idx._shallow_copy()
+
+        # check that the shallow_copied cache is a copy of the original
+        assert idx._cache == shallow_copy._cache
+        assert idx._cache is not shallow_copy._cache
+        # cache values should reference the same object
+        for key, val in idx._cache.items():
+            assert shallow_copy._cache[key] is val, key

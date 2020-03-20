@@ -1,9 +1,11 @@
 """
 Functions for defining unary operations.
 """
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
+
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -13,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import array
 
@@ -93,9 +95,7 @@ def should_series_dispatch(left, right, op):
     return False
 
 
-def dispatch_to_extension_op(
-    op, left: Union[ABCExtensionArray, np.ndarray], right: Any,
-):
+def dispatch_to_extension_op(op, left: ArrayLike, right: Any):
     """
     Assume that left or right is a Series backed by an ExtensionArray,
     apply the operator defined by op.

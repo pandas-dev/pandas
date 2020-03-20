@@ -22,6 +22,8 @@ from pandas._libs.algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE,
 from pandas._libs.algos import (take_2d_axis1_float64_float64,
                                 groupsort_indexer, tiebreakers)
 
+from pandas._libs.missing cimport checknull
+
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max
 
@@ -846,11 +848,13 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
         return val != val
 
 
+# GH#31710 use memorviews once cython 0.30 is released so we can
+#  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_last(rank_t[:, :] out,
                int64_t[:] counts,
-               rank_t[:, :] values,
+               ndarray[rank_t, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=-1):
     """
@@ -865,7 +869,9 @@ def group_last(rank_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -887,7 +893,7 @@ def group_last(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -935,11 +941,13 @@ def group_last(rank_t[:, :] out,
         raise RuntimeError("empty group with uint64_t")
 
 
+# GH#31710 use memorviews once cython 0.30 is released so we can
+#  use `const rank_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth(rank_t[:, :] out,
               int64_t[:] counts,
-              rank_t[:, :] values,
+              ndarray[rank_t, ndim=2] values,
               const int64_t[:] labels, int64_t rank=1,
               Py_ssize_t min_count=-1):
     """
@@ -954,7 +962,9 @@ def group_nth(rank_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -976,7 +986,7 @@ def group_nth(rank_t[:, :] out,
             for j in range(K):
                 val = values[i, j]
 
-                if val == val:
+                if not checknull(val):
                     # NB: use _treat_as_na here once
                     #  conditional-nogil is available.
                     nobs[lab, j] += 1
@@ -1233,7 +1243,7 @@ ctypedef fused groupby_t:
 @cython.boundscheck(False)
 def group_max(groupby_t[:, :] out,
               int64_t[:] counts,
-              groupby_t[:, :] values,
+              ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
     """
@@ -1248,7 +1258,9 @@ def group_max(groupby_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -1306,7 +1318,7 @@ def group_max(groupby_t[:, :] out,
 @cython.boundscheck(False)
 def group_min(groupby_t[:, :] out,
               int64_t[:] counts,
-              groupby_t[:, :] values,
+              ndarray[groupby_t, ndim=2] values,
               const int64_t[:] labels,
               Py_ssize_t min_count=-1):
     """
@@ -1321,7 +1333,9 @@ def group_min(groupby_t[:, :] out,
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    # TODO(cython 3.0):
+    # Instead of `labels.shape[0]` use `len(labels)`
+    if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)

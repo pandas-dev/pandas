@@ -267,8 +267,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         else:
             try:
                 values = ensure_float64(values)
-            except (ValueError, TypeError):
-                raise TypeError(f"cannot handle this type -> {values.dtype}")
+            except (ValueError, TypeError) as err:
+                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -449,13 +449,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError):
+            except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
                     del block_list[i]
                     continue
                 else:
-                    raise DataError("No numeric types to aggregate")
+                    raise DataError("No numeric types to aggregate") from err
 
             if values.size == 0:
                 results.append(values.copy())
@@ -1875,11 +1875,11 @@ class Rolling(_Rolling_and_Expanding):
 
         try:
             return to_offset(self.window)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as err:
             raise ValueError(
                 f"passed window {self.window} is not "
                 "compatible with a datetimelike index"
-            )
+            ) from err
 
     _agg_see_also_doc = dedent(
         """
