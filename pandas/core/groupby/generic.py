@@ -1387,23 +1387,35 @@ class DataFrameGroupBy(GroupBy):
         applied = []
         obj = self._obj_with_exclusions
         gen = self.grouper.get_iterator(obj, axis=self.axis)
-        fast_path, slow_path = self._define_paths(func, *args, **kwargs)
+        if engine == "numba":
+            nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+            check_kwargs_and_nopython(kwargs, nopython)
+            validate_udf(func)
+            func = jit_user_function(func, nopython, nogil, parallel)
+        else:
+            path = None
+            fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
-        path = None
         for name, group in gen:
             object.__setattr__(group, "name", name)
 
-            if path is None:
-                # Try slow path and fast path.
-                try:
-                    path, res = self._choose_path(fast_path, slow_path, group)
-                except TypeError:
-                    return self._transform_item_by_item(obj, fast_path)
-                except ValueError as err:
-                    msg = "transform must return a scalar value for each group"
-                    raise ValueError(msg) from err
+            if engine == "numba":
+                values, index, columns = split_for_numba(group)
+                res = func(values, index, columns, *args)
+                # Return the result as a DataFrame for concatenation later
+                res = DataFrame(res, index=group.index, columns=group.columns)
             else:
-                res = path(group)
+                if path is None:
+                    # Try slow path and fast path.
+                    try:
+                        path, res = self._choose_path(fast_path, slow_path, group)
+                    except TypeError:
+                        return self._transform_item_by_item(obj, fast_path)
+                    except ValueError as err:
+                        msg = "transform must return a scalar value for each group"
+                        raise ValueError(msg) from err
+                else:
+                    res = path(group)
 
             if isinstance(res, Series):
 
