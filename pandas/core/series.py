@@ -22,7 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib, properties, reshape, tslibs
-from pandas._typing import Axis, DtypeObj, FrameOrSeries, Label
+from pandas._typing import Axis, DtypeObj, FrameOrSeriesUnion, Label
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 from pandas.util._validators import validate_bool_kwarg, validate_percentile
@@ -2646,7 +2646,7 @@ Keep all original rows and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeriesUnion:
         return super().differences(
             other=other,
             align_axis=align_axis,

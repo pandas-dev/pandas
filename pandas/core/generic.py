@@ -8298,10 +8298,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @Appender(_shared_docs["differences"] % _shared_doc_kwargs)
     def differences(
         self,
-        other: FrameOrSeries,
+        other,
         align_axis: Axis = 1,
-        keep_shape: bool = False,
-        keep_equal: bool = False,
+        keep_shape: bool_t = False,
+        keep_equal: bool_t = False,
     ):
         from pandas.core.reshape.concat import concat
 
@@ -8323,18 +8323,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 other = other[mask]
 
         if align_axis in (1, "columns"):  # This is needed for Series
-            align_axis = 1
+            axis = 1
         else:
-            align_axis = self._get_axis_number(align_axis)
+            axis = self._get_axis_number(align_axis)
 
-        diff = concat([self, other], axis=align_axis, keys=keys)
+        diff = concat([self, other], axis=axis, keys=keys)
 
-        if align_axis >= self.ndim:
+        if axis >= self.ndim:
             # No need to reorganize data if stacking on new axis
             # This currently applies for stacking two Series on columns
             return diff
 
-        ax = diff._get_axis(align_axis)
+        ax = diff._get_axis(axis)
         ax_names = np.array(ax.names)
 
         # set index names to positions to avoid confusion
@@ -8343,20 +8343,20 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # bring self-other to inner level
         order = list(range(1, ax.nlevels)) + [0]
         if isinstance(diff, ABCDataFrame):
-            diff = diff.reorder_levels(order, axis=align_axis)
+            diff = diff.reorder_levels(order, axis=axis)
         else:
             diff = diff.reorder_levels(order)
 
         # restore the index names in order
-        diff._get_axis(axis=align_axis).names = ax_names[order]
+        diff._get_axis(axis=axis).names = ax_names[order]
 
         # reorder axis to keep things organized
         indices = (
-            np.arange(diff.shape[align_axis])
-            .reshape([2, diff.shape[align_axis] // 2])
+            np.arange(diff.shape[axis])
+            .reshape([2, diff.shape[axis] // 2])
             .T.flatten()
         )
-        diff = diff.take(indices, axis=align_axis)
+        diff = diff.take(indices, axis=axis)
 
         return diff
 
