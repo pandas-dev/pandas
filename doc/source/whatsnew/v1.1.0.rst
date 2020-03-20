@@ -70,7 +70,8 @@ Other enhancements
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
--
+- You can now override how Pandas constructs DataFrames from custom objects, by registering a new function on the
+  ``pandas.core.internals.construction.create_dataframe`` ``singledispatch`` function.
 
 .. ---------------------------------------------------------------------------
 
