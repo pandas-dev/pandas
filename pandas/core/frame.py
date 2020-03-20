@@ -7852,6 +7852,23 @@ Wild         185.0
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
     ):
+        """
+        Reduce DataFrame over axis with given operation.
+
+        Parameters
+        ----------
+        op : func
+            The reducing function to be called on the values.
+        name : str
+            The name of the reduction.
+        axis : int
+        numeric_only : bool, optional
+        filter_type : None or "bool"
+            Set to "bool" for ops that give boolean results.
+        skipna, **kwds : keywords to pass to the `op` function
+
+        """
+        column_wise = kwds.pop("column_wise", False)
 
         assert filter_type is None or filter_type == "bool", filter_type
 
@@ -7897,6 +7914,13 @@ Wild         185.0
                 )
                 raise NotImplementedError(msg)
             return data
+
+        if axis == 0 and column_wise:
+            # column-wise reduction
+            df = self
+            if numeric_only is True:
+                df = _get_data(axis_matters=True)
+            return DataFrame._reduce_columns(df, op, name, skipna=skipna, **kwds)
 
         if numeric_only is not None and axis in [0, 1]:
             df = self
@@ -7993,6 +8017,47 @@ Wild         185.0
         if constructor is not None:
             result = self._constructor_sliced(result, index=labels)
         return result
+
+    def _reduce_columns(self, op, name, skipna=True, **kwds):
+        """
+        Reduce DataFrame column-wise.
+
+        Parameters
+        ----------
+        op : func
+            The reducing function to be called on the values. Only used
+            for columns backed by a numpy ndarray.
+        name : str
+            The name of the reduction.
+        skipna, **kwds : keywords to pass to the `op` function
+
+        Returns
+        -------
+        Series
+        """
+        result = []
+
+        for arr in self._iter_arrays():
+            if isinstance(arr, ExtensionArray):
+                # dispatch to ExtensionArray interface
+                val = arr._reduce(name, skipna=skipna, **kwds)
+            else:
+                # dispatch to numpy arrays
+                with np.errstate(all="ignore"):
+                    val = op(arr, skipna=skipna, **kwds)
+
+            result.append(val)
+
+        return self._constructor_sliced(result, index=self.columns)
+
+    def _iter_arrays(self):
+        """
+        Iterate over the arrays of all columns in order.
+
+        This returns the values as stored in the Block (ndarray or ExtensionArray).
+        """
+        for i in range(len(self.columns)):
+            yield self._data.iget_values(i)
 
     def nunique(self, axis=0, dropna=True) -> Series:
         """

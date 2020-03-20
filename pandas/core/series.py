@@ -3871,6 +3871,7 @@ Name: Max Speed, dtype: float64
         If we have an ndarray as a value, then simply perform the operation,
         otherwise delegate to the object.
         """
+        kwds.pop("column_wise", None)
         delegate = self._values
 
         if axis is not None:
