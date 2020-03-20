@@ -586,11 +586,6 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
                     f"{len(columns)} columns passed, passed data had "
                     f"{len(content)} columns"
                 )
-            raise AssertionError(
-                f"{len(columns)} columns passed, passed data had "
-                f"{len(content)} columns"
-            )
-
     # provide soft conversion of object dtypes
     def convert(arr):
         if dtype != object and dtype != np.object:
