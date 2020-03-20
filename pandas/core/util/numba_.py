@@ -76,10 +76,13 @@ def validate_udf(func: Callable, include_columns: bool = False):
     Validate user defined function for ops when using Numba.
 
     For routines that pass Series objects, the first signature arguments should include:
+
     def f(values, index, ...):
         ...
 
-    For routines that pass DataFrame objects, the first signature arguments should include:
+    For routines that pass DataFrame objects, the first signature arguments should
+    include:
+
     def f(values, index, columns, ...):
         ...
     """
@@ -93,5 +96,6 @@ def validate_udf(func: Callable, include_columns: bool = False):
         or udf_signature[:min_number_args] != expected_args
     ):
         raise ValueError(
-            f"The first {min_number_args} arguments to {func.__name__} must be {expected_args}"
+            f"The first {min_number_args} arguments to {func.__name__} must be "
+            f"{expected_args}"
         )
