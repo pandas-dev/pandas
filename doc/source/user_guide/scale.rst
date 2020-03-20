@@ -246,6 +246,7 @@ We'll import ``dask.dataframe`` and notice that the API feels similar to pandas.
 We can use Dask's ``read_parquet`` function, but provide a globstring of files to read in.
 
 .. ipython:: python
+   :okwarning:
 
    import dask.dataframe as dd
 
