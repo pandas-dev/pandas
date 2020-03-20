@@ -7,7 +7,14 @@ import pytest
 from pandas._libs.tslibs import NaT, Timestamp, iNaT
 
 import pandas as pd
-from pandas import Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+from pandas import (
+    Series,
+    Timedelta,
+    TimedeltaIndex,
+    offsets,
+    timedelta_range,
+    to_timedelta,
+)
 import pandas._testing as tm
 
 
@@ -21,7 +28,7 @@ class TestTimedeltaArithmetic:
 
     def test_array_timedelta_floordiv(self):
         # deprecated GH#19761, enforced GH#29797
-        ints = pd.date_range("2012-10-08", periods=4, freq="D").view("i8")
+        ints = np.array([1349654400, 1349740800, 1349827200, 1349913600]) * 10 ** 9
 
         with pytest.raises(TypeError, match="Invalid dtype"):
             ints // Timedelta(1, unit="s")
@@ -496,72 +503,10 @@ class TestTimedeltas:
             with pytest.raises(ValueError, match=msg):
                 t1.round(freq)
 
-        t1 = timedelta_range("1 days", periods=3, freq="1 min 2 s 3 us")
-        t2 = -1 * t1
-        t1a = timedelta_range("1 days", periods=3, freq="1 min 2 s")
-        t1c = TimedeltaIndex([1, 1, 1], unit="D")
-
-        # note that negative times round DOWN! so don't give whole numbers
-        for (freq, s1, s2) in [
-            ("N", t1, t2),
-            ("U", t1, t2),
-            (
-                "L",
-                t1a,
-                TimedeltaIndex(
-                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"],
-                    dtype="timedelta64[ns]",
-                    freq=None,
-                ),
-            ),
-            (
-                "S",
-                t1a,
-                TimedeltaIndex(
-                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"],
-                    dtype="timedelta64[ns]",
-                    freq=None,
-                ),
-            ),
-            (
-                "12T",
-                t1c,
-                TimedeltaIndex(
-                    ["-1 days", "-1 days", "-1 days"],
-                    dtype="timedelta64[ns]",
-                    freq=None,
-                ),
-            ),
-            (
-                "H",
-                t1c,
-                TimedeltaIndex(
-                    ["-1 days", "-1 days", "-1 days"],
-                    dtype="timedelta64[ns]",
-                    freq=None,
-                ),
-            ),
-            ("d", t1c, TimedeltaIndex([-1, -1, -1], unit="D")),
-        ]:
-
-            r1 = t1.round(freq)
-            tm.assert_index_equal(r1, s1)
-            r2 = t2.round(freq)
-            tm.assert_index_equal(r2, s2)
-
-        # invalid
-        for freq, msg in [
-            ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
-            ("M", "<MonthEnd> is a non-fixed frequency"),
-            ("foobar", "Invalid frequency: foobar"),
-        ]:
-            with pytest.raises(ValueError, match=msg):
-                t1.round(freq)
-
     def test_contains(self):
         # Checking for any NaT-like objects
         # GH 13603
-        td = to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
         for v in [NaT, None, float("nan"), np.nan]:
             assert not (v in td)
 
@@ -733,28 +678,6 @@ class TestTimedeltas:
         assert Timedelta("5.324S").total_seconds() == 5.324
         assert (Timedelta("30S").total_seconds() - 30.0) < 1e-20
         assert (30.0 - Timedelta("30S").total_seconds()) < 1e-20
-
-    def test_timedelta_arithmetic(self):
-        data = Series(["nat", "32 days"], dtype="timedelta64[ns]")
-        deltas = [timedelta(days=1), Timedelta(1, unit="D")]
-        for delta in deltas:
-            result_method = data.add(delta)
-            result_operator = data + delta
-            expected = Series(["nat", "33 days"], dtype="timedelta64[ns]")
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-
-            result_method = data.sub(delta)
-            result_operator = data - delta
-            expected = Series(["nat", "31 days"], dtype="timedelta64[ns]")
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-            # GH 9396
-            result_method = data.div(delta)
-            result_operator = data / delta
-            expected = Series([np.nan, 32.0], dtype="float64")
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
 
     def test_apply_to_timedelta(self):
         timedelta_NaT = to_timedelta("NaT")
