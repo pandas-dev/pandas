@@ -349,7 +349,7 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func, name, skipna=True, **kwds):
+    def reduce(self, func):
         # If 2D, we assume that we're operating column-wise
         if self.ndim == 1:
             # we'll be returning a scalar
@@ -358,10 +358,7 @@ class BlockManager(PandasObject):
 
         res = {}
         for blk in self.blocks:
-            if isinstance(blk, ExtensionBlock):
-                bres = blk.values._reduce(name, skipna=skipna, **kwds)
-            else:
-                bres = func(blk.values)
+            bres = func(blk.values)
 
             if np.ndim(bres) == 0:
                 # EA

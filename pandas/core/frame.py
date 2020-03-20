@@ -7933,14 +7933,14 @@ Wild         185.0
             out_dtype = "bool" if filter_type == "bool" else None
 
             def blk_func(values):
-                if values.ndim == 1 and not isinstance(values, np.ndarray):
-                    # we can't pass axis=1
-                    return op(values, axis=0, skipna=skipna, **kwds)
-                return op(values, axis=1, skipna=skipna, **kwds)
+                if isinstance(values, ExtensionArray):
+                    return values._reduce(name, skipna=skipna, **kwds)
+                else:
+                    return op(values, axis=1, skipna=skipna, **kwds)
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(blk_func, name, skipna, **kwds)
+            res = df._data.reduce(blk_func)
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()
