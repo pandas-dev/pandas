@@ -52,7 +52,7 @@ FilePathOrBuffer = Union[str, Path, IO[AnyStr]]
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
 # is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
 # in, either a DataFrame or a Series is returned.
-FrameOrSeriesUnion = Union["DataFrame", "Series"]
+FrameOrSeriesUnion = Union["DataFrame", "NDFrame", "Series"]
 
 # FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
 # used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a

@@ -8352,9 +8352,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # reorder axis to keep things organized
         indices = (
-            np.arange(diff.shape[axis])
-            .reshape([2, diff.shape[axis] // 2])
-            .T.flatten()
+            np.arange(diff.shape[axis]).reshape([2, diff.shape[axis] // 2]).T.flatten()
         )
         diff = diff.take(indices, axis=axis)
 
