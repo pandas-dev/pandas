@@ -53,23 +53,26 @@ from pandas.core.internals import (
 # BlockManager Interface
 
 
-def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
+def arrays_to_mgr(arrays, arr_names, index, columns, dtype=None, verify_integrity=True):
     """
     Segregate Series based on type and coerce into matrices.
 
     Needs to handle a lot of exceptional cases.
     """
-    # figure out the index, if necessary
-    if index is None:
-        index = extract_index(arrays)
-    else:
-        index = ensure_index(index)
+    if verify_integrity:
+        # figure out the index, if necessary
+        if index is None:
+            index = extract_index(arrays)
+        else:
+            index = ensure_index(index)
 
-    # don't force copy because getting jammed in an ndarray anyway
-    arrays = _homogenize(arrays, index, dtype)
+        # don't force copy because getting jammed in an ndarray anyway
+        arrays = _homogenize(arrays, index, dtype)
+
+        columns = ensure_index(columns)
 
     # from BlockManager perspective
-    axes = [ensure_index(columns), index]
+    axes = [columns, index]
 
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
