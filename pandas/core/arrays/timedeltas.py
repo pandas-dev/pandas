@@ -400,23 +400,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
 
-    def _add_delta(self, delta):
-        """
-        Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self, yielding a new TimedeltaArray.
-
-        Parameters
-        ----------
-        other : {timedelta, np.timedelta64, Tick,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : TimedeltaArray
-        """
-        new_values = super()._add_delta(delta)
-        return type(self)._from_sequence(new_values, freq="infer")
-
     def _add_datetime_arraylike(self, other):
         """
         Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray.

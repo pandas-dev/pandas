@@ -1692,6 +1692,10 @@ Name: Max Speed, dtype: float64
         int or Series (if level specified)
             Number of non-null values in the Series.
 
+        See Also
+        --------
+        DataFrame.count : Count non-NA cells for each column or row.
+
         Examples
         --------
         >>> s = pd.Series([0.0, 1.0, np.nan])
@@ -2222,6 +2226,12 @@ Name: Max Speed, dtype: float64
         float
             Correlation with other.
 
+        See Also
+        --------
+        DataFrame.corr : Compute pairwise correlation between columns.
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -2263,6 +2273,10 @@ Name: Max Speed, dtype: float64
         float
             Covariance between Series and other normalized by N-1
             (unbiased estimator).
+
+        See Also
+        --------
+        DataFrame.cov : Compute pairwise covariance of columns.
 
         Examples
         --------
