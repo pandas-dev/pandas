@@ -413,3 +413,24 @@ def test_set_levels_with_iterable():
         [expected_sizes, colors], names=["size", "color"]
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_at_indexing_fails_multiindex():
+    # GH9259
+    cols = [("a_col", chr(i + 65)) for i in range(5)]
+    cols.extend([("b_col", chr(i + 65)) for i in range(5, 10)])
+    idx = [("a_row", chr(i + 65)) for i in range(5)]
+    idx.extend([("b_row", chr(i + 65)) for i in range(5, 10)])
+    df = pd.DataFrame(
+        np.linspace(1, 100, 100).reshape(10, 10),
+        index=pd.MultiIndex.from_tuples(idx),
+        columns=pd.MultiIndex.from_tuples(cols),
+    )
+    s = pd.Series(np.linspace(1, 91, 10), index=pd.MultiIndex.from_tuples(idx))
+
+    msg = r".+indexing with .+ failing for MultiIndex"
+    with pytest.raises(KeyError, match=msg):
+        df.at["a_row", "A"]
+
+    with pytest.raises(TypeError):
+        s.at["a_row", "A"]
