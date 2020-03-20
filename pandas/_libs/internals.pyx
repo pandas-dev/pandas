@@ -378,25 +378,23 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         object blkno
         object group_dict = defaultdict(list)
-        int64_t[:] res_view
 
     n = blknos.shape[0]
-
-    if n == 0:
-        return
-
+    result = list()
     start = 0
     cur_blkno = blknos[start]
 
-    if group is False:
+    if n == 0:
+        pass
+    elif group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
-                yield cur_blkno, slice(start, i)
+                result.append((cur_blkno, slice(start, i)))
 
                 start = i
                 cur_blkno = blknos[i]
 
-        yield cur_blkno, slice(start, n)
+        result.append((cur_blkno, slice(start, n)))
     else:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
@@ -409,19 +407,20 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
 
         for blkno, slices in group_dict.items():
             if len(slices) == 1:
-                yield blkno, slice(slices[0][0], slices[0][1])
+                result.append((blkno, slice(slices[0][0], slices[0][1])))
             else:
                 tot_len = sum(stop - start for start, stop in slices)
-                result = np.empty(tot_len, dtype=np.int64)
-                res_view = result
+                arr = np.empty(tot_len, dtype=np.int64)
 
                 i = 0
                 for start, stop in slices:
                     for diff in range(start, stop):
-                        res_view[i] = diff
+                        arr[i] = diff
                         i += 1
 
-                yield blkno, result
+                result.append((blkno, arr))
+
+    return result
 
 
 def get_blkno_placements(blknos, group: bool = True):
