@@ -299,13 +299,15 @@ class TestTimedeltas:
         td = Timedelta("10m7s")
         assert td.to_timedelta64() == td.to_numpy()
 
-    def test_round(self):
-
-        t1 = Timedelta("1 days 02:34:56.789123456")
-        t2 = Timedelta("-1 days 02:34:56.789123456")
-
-        for (freq, s1, s2) in [
-            ("N", t1, t2),
+    @pytest.mark.parametrize(
+        "freq,s1,s2",
+        [
+            # This first case has s1, s2 being the same as t1,t2 below
+            (
+                "N",
+                Timedelta("1 days 02:34:56.789123456"),
+                Timedelta("-1 days 02:34:56.789123456"),
+            ),
             (
                 "U",
                 Timedelta("1 days 02:34:56.789123000"),
@@ -323,13 +325,21 @@ class TestTimedeltas:
             ("12T", Timedelta("1 days 02:36:00"), Timedelta("-1 days 02:36:00")),
             ("H", Timedelta("1 days 03:00:00"), Timedelta("-1 days 03:00:00")),
             ("d", Timedelta("1 days"), Timedelta("-1 days")),
-        ]:
-            r1 = t1.round(freq)
-            assert r1 == s1
-            r2 = t2.round(freq)
-            assert r2 == s2
+        ],
+    )
+    def test_round(self, freq, s1, s2):
 
-        # invalid
+        t1 = Timedelta("1 days 02:34:56.789123456")
+        t2 = Timedelta("-1 days 02:34:56.789123456")
+
+        r1 = t1.round(freq)
+        assert r1 == s1
+        r2 = t2.round(freq)
+        assert r2 == s2
+
+    def test_round_invalid(self):
+        t1 = Timedelta("1 days 02:34:56.789123456")
+
         for freq, msg in [
             ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
             ("M", "<MonthEnd> is a non-fixed frequency"),
