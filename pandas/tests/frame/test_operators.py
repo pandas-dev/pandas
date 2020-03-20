@@ -574,7 +574,11 @@ class TestDataFrameOperators:
             result = func(df1, df2)
             tm.assert_numpy_array_equal(result.values, func(df1.values, df2.values))
 
-            with pytest.raises(ValueError, match="dim must be <= 2"):
+            msg = (
+                "Unable to coerce to Series/DataFrame, "
+                "dimension must be <= 2: (30, 4, 1, 1, 1)"
+            )
+            with pytest.raises(ValueError, match=re.escape(msg)):
                 func(df1, ndim_5)
 
             result2 = func(simple_frame, row)
@@ -892,7 +896,7 @@ class TestDataFrameOperators:
 
         val = np.zeros((3, 3, 3))
         msg = re.escape(
-            "Unable to coerce to Series/DataFrame, dim must be <= 2: (3, 3, 3)"
+            "Unable to coerce to Series/DataFrame, dimension must be <= 2: (3, 3, 3)"
         )
         with pytest.raises(ValueError, match=msg):
             align(df, val, "index")
