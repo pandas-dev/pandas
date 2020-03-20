@@ -45,7 +45,7 @@ class SparseArrayConstructor:
 class SparseDataFrameConstructor:
     def setup(self):
         N = 1000
-        self.sparse = scipy.sparse.rand(N, N, 0.005, random_state=0)
+        self.sparse = scipy.sparse.rand(N, N, 0.005)
 
     def time_from_scipy(self):
         pd.DataFrame.sparse.from_spmatrix(self.sparse)
