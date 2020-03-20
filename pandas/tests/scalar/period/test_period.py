@@ -347,10 +347,18 @@ class TestPeriodConstruction:
         assert p == res
         assert isinstance(res, Period)
 
-    def test_period_cons_nat(self):
-        p = Period("NaT", freq="M")
-        assert p is NaT
+    @pytest.mark.parametrize("freq", ["A", "M", "D", "H"])
+    def test_construct_from_nat_string_and_freq(self, freq):
+        per = Period("NaT", freq=freq)
+        assert per is NaT
 
+        per = Period("NaT", freq="2" + freq)
+        assert per is NaT
+
+        per = Period("NaT", freq="3" + freq)
+        assert per is NaT
+
+    def test_period_cons_nat(self):
         p = Period("nat", freq="W-SUN")
         assert p is NaT
 
@@ -1039,13 +1047,6 @@ class TestArithmetic:
         assert p - NaT is NaT
         assert NaT - p is NaT
 
-        p = Period("NaT", freq="M")
-        assert p is NaT
-        assert p + NaT is NaT
-        assert NaT + p is NaT
-        assert p - NaT is NaT
-        assert NaT - p is NaT
-
     def test_add_invalid(self):
         # GH#4731
         per1 = Period(freq="D", year=2008, month=1, day=1)
@@ -1277,90 +1278,65 @@ class TestArithmetic:
                     with pytest.raises(IncompatibleFrequency):
                         o + p
 
+    # TODO: this is really testing NaT and offsets, not Period, also
+    #  the loops in here are highly duplicative
     def test_add_offset_nat(self):
         # freq is DateOffset
-        for freq in ["A", "2A", "3A"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [offsets.YearEnd(2)]:
-                assert p + o is NaT
-                assert o + p is NaT
 
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(365, "D"),
-                timedelta(365),
-            ]:
-                assert p + o is NaT
-                assert o + p is NaT
+        for o in [
+            offsets.YearEnd(2),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(365, "D"),
+            timedelta(365),
+        ]:
+            assert NaT + o is NaT
+            assert o + NaT is NaT
 
-        for freq in ["M", "2M", "3M"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
-                assert p + o is NaT
-                assert o + p is NaT
+        for o in [
+            offsets.MonthEnd(2),
+            offsets.MonthEnd(12),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(365, "D"),
+            timedelta(365),
+        ]:
+            assert NaT + o is NaT
+            assert o + NaT is NaT
 
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(365, "D"),
-                timedelta(365),
-            ]:
-                assert p + o is NaT
-                assert o + p is NaT
+        for o in [
+            offsets.Day(5),
+            offsets.Hour(24),
+            np.timedelta64(2, "D"),
+            np.timedelta64(3600 * 24, "s"),
+            timedelta(-2),
+            timedelta(hours=48),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(4, "h"),
+            timedelta(hours=23),
+        ]:
+            assert NaT + o is NaT
+            assert o + NaT is NaT
 
-        # freq is Tick
-        for freq in ["D", "2D", "3D"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [
-                offsets.Day(5),
-                offsets.Hour(24),
-                np.timedelta64(2, "D"),
-                np.timedelta64(3600 * 24, "s"),
-                timedelta(-2),
-                timedelta(hours=48),
-            ]:
-                assert p + o is NaT
-                assert o + p is NaT
-
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(4, "h"),
-                timedelta(hours=23),
-            ]:
-                assert p + o is NaT
-                assert o + p is NaT
-
-        for freq in ["H", "2H", "3H"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [
-                offsets.Day(2),
-                offsets.Hour(3),
-                np.timedelta64(3, "h"),
-                np.timedelta64(3600, "s"),
-                timedelta(minutes=120),
-                timedelta(days=4, minutes=180),
-            ]:
-                assert p + o is NaT
-                assert o + p is NaT
-
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(3200, "s"),
-                timedelta(hours=23, minutes=30),
-            ]:
-                assert p + o is NaT
-                assert o + p is NaT
+        for o in [
+            offsets.Day(2),
+            offsets.Hour(3),
+            np.timedelta64(3, "h"),
+            np.timedelta64(3600, "s"),
+            timedelta(minutes=120),
+            timedelta(days=4, minutes=180),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(3200, "s"),
+            timedelta(hours=23, minutes=30),
+        ]:
+            assert NaT + o is NaT
+            assert o + NaT is NaT
 
     def test_sub_offset(self):
         # freq is DateOffset
@@ -1436,92 +1412,65 @@ class TestArithmetic:
                 with pytest.raises(IncompatibleFrequency):
                     p - o
 
+    # TODO: this is really testing NaT and offsets, not Period, also
+    #  the loops in here are highly duplicative
     def test_sub_offset_nat(self):
         # freq is DateOffset
-        for freq in ["A", "2A", "3A"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [offsets.YearEnd(2)]:
-                assert p - o is NaT
+        for o in [
+            offsets.YearEnd(2),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(365, "D"),
+            timedelta(365),
+        ]:
+            assert NaT - o is NaT
 
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(365, "D"),
-                timedelta(365),
-            ]:
-                assert p - o is NaT
+        for o in [
+            offsets.MonthEnd(2),
+            offsets.MonthEnd(12),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(365, "D"),
+            timedelta(365),
+        ]:
+            assert NaT - o is NaT
 
-        for freq in ["M", "2M", "3M"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [offsets.MonthEnd(2), offsets.MonthEnd(12)]:
-                assert p - o is NaT
+        for o in [
+            offsets.Day(5),
+            offsets.Hour(24),
+            np.timedelta64(2, "D"),
+            np.timedelta64(3600 * 24, "s"),
+            timedelta(-2),
+            timedelta(hours=48),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(4, "h"),
+            timedelta(hours=23),
+        ]:
+            assert NaT - o is NaT
 
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(365, "D"),
-                timedelta(365),
-            ]:
-                assert p - o is NaT
-
-        # freq is Tick
-        for freq in ["D", "2D", "3D"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [
-                offsets.Day(5),
-                offsets.Hour(24),
-                np.timedelta64(2, "D"),
-                np.timedelta64(3600 * 24, "s"),
-                timedelta(-2),
-                timedelta(hours=48),
-            ]:
-                assert p - o is NaT
-
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(4, "h"),
-                timedelta(hours=23),
-            ]:
-                assert p - o is NaT
-
-        for freq in ["H", "2H", "3H"]:
-            p = Period("NaT", freq=freq)
-            assert p is NaT
-            for o in [
-                offsets.Day(2),
-                offsets.Hour(3),
-                np.timedelta64(3, "h"),
-                np.timedelta64(3600, "s"),
-                timedelta(minutes=120),
-                timedelta(days=4, minutes=180),
-            ]:
-                assert p - o is NaT
-
-            for o in [
-                offsets.YearBegin(2),
-                offsets.MonthBegin(1),
-                offsets.Minute(),
-                np.timedelta64(3200, "s"),
-                timedelta(hours=23, minutes=30),
-            ]:
-                assert p - o is NaT
+        for o in [
+            offsets.Day(2),
+            offsets.Hour(3),
+            np.timedelta64(3, "h"),
+            np.timedelta64(3600, "s"),
+            timedelta(minutes=120),
+            timedelta(days=4, minutes=180),
+            offsets.YearBegin(2),
+            offsets.MonthBegin(1),
+            offsets.Minute(),
+            np.timedelta64(3200, "s"),
+            timedelta(hours=23, minutes=30),
+        ]:
+            assert NaT - o is NaT
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
-    def test_nat_ops(self, freq):
-        p = Period("NaT", freq=freq)
-        assert p is NaT
-        assert p + 1 is NaT
-        assert 1 + p is NaT
-        assert p - 1 is NaT
-        assert p - Period("2011-01", freq=freq) is NaT
-        assert Period("2011-01", freq=freq) - p is NaT
+    def test_period_addsub_nat(self, freq):
+        assert NaT - Period("2011-01", freq=freq) is NaT
+        assert Period("2011-01", freq=freq) - NaT is NaT
 
     def test_period_ops_offset(self):
         p = Period("2011-04-01", freq="D")
