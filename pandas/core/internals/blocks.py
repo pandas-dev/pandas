@@ -895,7 +895,7 @@ class Block(PandasObject):
             # We are setting _all_ of the array's values, so can cast to new dtype
             values[indexer] = value
 
-            values = values.astype(arr_value.dtype)
+            values = values.astype(arr_value.dtype, copy=False)
 
         # set
         else:
