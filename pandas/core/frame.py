@@ -1907,9 +1907,10 @@ class DataFrame(NDFrame):
             Optional dtype to enforce for all arrays.
         verify_integrity : bool, default True
             Validate and homogenize all input. If set to False, it is assumed
-            that all elements of `arrays` are actual arrays to be stored in
-            a block, have the same length as and are aligned with the index,
-            and that `columns` and `index` are ensured to be an Index object.
+            that all elements of `arrays` are actual arrays how they will be
+            stored in a block (numpy ndarray or ExtensionArray), have the same
+            length as and are aligned with the index, and that `columns` and
+            `index` are ensured to be an Index object.
 
         Returns
         -------
