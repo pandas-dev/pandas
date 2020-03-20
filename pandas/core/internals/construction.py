@@ -581,7 +581,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
             # This conversion should be safe to do, as the input expects an Index
             # and the colums are left unmodified throughout the rest of this function.
             columns = ensure_index(columns)
-            if len(columns) != content_length:
+            if len(columns) != len(content):
                 raise AssertionError(
                     f"{len(columns)} columns passed, passed data had "
                     f"{len(content)} columns"
