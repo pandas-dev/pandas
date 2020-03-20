@@ -6,7 +6,7 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender
+from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -449,7 +449,7 @@ class PandasArray(ExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin):
 
         return result
 
-    @Appender(ExtensionArray.searchsorted.__doc__)
+    @doc(ExtensionArray.searchsorted)
     def searchsorted(self, value, side="left", sorter=None):
         return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
 
