@@ -74,9 +74,9 @@ def correct_title_capitalization(title: str) -> str:
     # first word character.
     correct_title: str = re.sub(r"^\W*", "", title)
 
-    #Take into consideration words with multiple capital letters 
-    #Such as DataFrame or PeriodIndex or IO to not lower them.
-    #Lower the other words
+    # Take into consideration words with multiple capital letters
+    # Such as DataFrame or PeriodIndex or IO to not lower them.
+    # Lower the other words
     if re.search(r'((?:[A-Z]\w*){2,})', correct_title):
         list_words: List[str] = correct_title.split(' ')
         if correct_title[0].islower():
