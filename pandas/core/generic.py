@@ -30,7 +30,7 @@ import numpy as np
 
 from pandas._config import config
 
-from pandas._libs import Timestamp, iNaT, lib
+from pandas._libs import Timestamp, lib
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
@@ -967,7 +967,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 continue
 
             ax = self._get_axis(axis_no)
-            baxis = self._get_block_manager_axis(axis_no)
             f = com.get_rename_function(replacements)
 
             if level is not None:
@@ -984,9 +983,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     ]
                     raise KeyError(f"{missing_labels} not found in axis")
 
-            result._data = result._data.rename_axis(
-                f, axis=baxis, copy=copy, level=level
-            )
+            new_index = ax._transform_index(f, level)
+            result.set_axis(new_index, axis=axis_no, inplace=True)
             result._clear_item_cache()
 
         if inplace:
@@ -3579,6 +3577,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result._set_is_copy(self, copy=is_copy)
         return result
 
+    def _iset_item(self, loc: int, value) -> None:
+        self._data.iset(loc, value)
+        self._clear_item_cache()
+
     def _set_item(self, key, value) -> None:
         self._data.set(key, value)
         self._clear_item_cache()
@@ -4556,6 +4558,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
         ...                   index=['mouse', 'rabbit'],
         ...                   columns=['one', 'two', 'three'])
+        >>> df
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
 
         >>> # select columns by name
         >>> df.filter(items=['one', 'three'])
@@ -4788,9 +4794,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-        random_state : int or numpy.random.RandomState, optional
-            Seed for the random number generator (if int), or numpy RandomState
-            object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
+            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
+            random number generator
+            If np.random.RandomState, use as numpy RandomState object.
+
+            ..versionchanged:: 1.1.0
+
+                array-like and BitGenerator (for NumPy>=1.17) object now passed to
+                np.random.RandomState() as seed
+
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
@@ -5374,26 +5387,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _values(self) -> np.ndarray:
         """internal implementation"""
-        return self.values
-
-    def _internal_get_values(self) -> np.ndarray:
-        """
-        Return an ndarray after converting sparse values to dense.
-
-        This is the same as ``.values`` for non-sparse data. For sparse
-        data contained in a `SparseArray`, the data are first
-        converted to a dense representation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Numpy representation of DataFrame.
-
-        See Also
-        --------
-        values : Numpy representation of DataFrame.
-        SparseArray : Container for sparse data.
-        """
         return self.values
 
     @property
@@ -6075,14 +6068,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            if len(self._get_axis(axis)) == 0:
-                return self
-
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
                     value = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
+                    value = value.reindex(self.index, copy=False)
+                    value = value._values
                 elif not is_list_like(value):
                     pass
                 else:
@@ -7485,6 +7477,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Parameters
         ----------
         freq : DateOffset or str
+            Frequency DateOffset or string.
         method : {'backfill'/'bfill', 'pad'/'ffill'}, default None
             Method to use for filling holes in reindexed Series (note this
             does not fill NaNs that already were present):
@@ -7502,11 +7495,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        converted : same type as caller
+        Same type as caller
+            Object converted to the specified frequency.
 
         See Also
         --------
-        reindex
+        reindex : Conform DataFrame to new index with optional filling logic.
 
         Notes
         -----
@@ -8014,15 +8008,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:
         """
-        Method to subset initial periods of time series data based on a date offset.
+        Select initial periods of time series data based on a date offset.
+
+        When having a DataFrame with dates as index, this function can
+        select the first few rows based on a date offset.
 
         Parameters
         ----------
-        offset : str, DateOffset, dateutil.relativedelta
+        offset : str, DateOffset or dateutil.relativedelta
+            The offset length of the data that will be selected. For instance,
+            '1M' will display all the rows having their index within the first month.
 
         Returns
         -------
-        subset : same type as caller
+        Series or DataFrame
+            A subset of the caller.
 
         Raises
         ------
@@ -8038,7 +8038,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
-        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
@@ -8432,9 +8432,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
 
         if method is not None:
-            left = self._ensure_type(
-                left.fillna(method=method, axis=fill_axis, limit=limit)
-            )
+            _left = left.fillna(method=method, axis=fill_axis, limit=limit)
+            assert _left is not None  # needed for mypy
+            left = _left
             right = right.fillna(method=method, axis=fill_axis, limit=limit)
 
         # if DatetimeIndex have different tz, convert to UTC
@@ -8571,12 +8571,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
+        else:
+            # GH#21947 we have an empty DataFrame, could be object-dtype
+            cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
 
         # try to align with other
         try_quick = True
-        if hasattr(other, "align"):
+        if isinstance(other, NDFrame):
 
             # align with me
             if other.ndim <= self.ndim:
@@ -9967,9 +9970,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if fill_method is None:
             data = self
         else:
-            data = self._ensure_type(
-                self.fillna(method=fill_method, axis=axis, limit=limit)
-            )
+            _data = self.fillna(method=fill_method, axis=axis, limit=limit)
+            assert _data is not None  # needed for mypy
+            data = _data
 
         rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
         if freq is not None:
@@ -10092,8 +10095,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="minimum",
             accum_func=np.minimum.accumulate,
             accum_func_name="min",
-            mask_a=np.inf,
-            mask_b=np.nan,
             examples=_cummin_examples,
         )
         cls.cumsum = _make_cum_function(
@@ -10105,8 +10106,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="sum",
             accum_func=np.cumsum,
             accum_func_name="sum",
-            mask_a=0.0,
-            mask_b=np.nan,
             examples=_cumsum_examples,
         )
         cls.cumprod = _make_cum_function(
@@ -10118,8 +10117,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="product",
             accum_func=np.cumprod,
             accum_func_name="prod",
-            mask_a=1.0,
-            mask_b=np.nan,
             examples=_cumprod_examples,
         )
         cls.cummax = _make_cum_function(
@@ -10131,8 +10128,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="maximum",
             accum_func=np.maximum.accumulate,
             accum_func_name="max",
-            mask_a=-np.inf,
-            mask_b=np.nan,
             examples=_cummax_examples,
         )
 
@@ -11172,8 +11167,6 @@ def _make_cum_function(
     desc: str,
     accum_func: Callable,
     accum_func_name: str,
-    mask_a: float,
-    mask_b: float,
     examples: str,
 ) -> Callable:
     @Substitution(
@@ -11195,61 +11188,15 @@ def _make_cum_function(
         if axis == 1:
             return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
 
-        def na_accum_func(blk_values):
-            # We will be applying this function to block values
-            if blk_values.dtype.kind in ["m", "M"]:
-                # GH#30460, GH#29058
-                # numpy 1.18 started sorting NaTs at the end instead of beginning,
-                #  so we need to work around to maintain backwards-consistency.
-                orig_dtype = blk_values.dtype
+        def block_accum_func(blk_values):
+            values = blk_values.T if hasattr(blk_values, "T") else blk_values
 
-                # We need to define mask before masking NaTs
-                mask = isna(blk_values)
+            result = nanops.na_accum_func(values, accum_func, skipna=skipna)
 
-                if accum_func == np.minimum.accumulate:
-                    # Note: the accum_func comparison fails as an "is" comparison
-                    y = blk_values.view("i8")
-                    y[mask] = np.iinfo(np.int64).max
-                    changed = True
-                else:
-                    y = blk_values
-                    changed = False
+            result = result.T if hasattr(result, "T") else result
+            return result
 
-                result = accum_func(y.view("i8"), axis)
-                if skipna:
-                    np.putmask(result, mask, iNaT)
-                elif accum_func == np.minimum.accumulate:
-                    # Restore NaTs that we masked previously
-                    nz = (~np.asarray(mask)).nonzero()[0]
-                    if len(nz):
-                        # everything up to the first non-na entry stays NaT
-                        result[: nz[0]] = iNaT
-
-                if changed:
-                    # restore NaT elements
-                    y[mask] = iNaT  # TODO: could try/finally for this?
-
-                if isinstance(blk_values, np.ndarray):
-                    result = result.view(orig_dtype)
-                else:
-                    # DatetimeArray
-                    result = type(blk_values)._from_sequence(result, dtype=orig_dtype)
-
-            elif skipna and not issubclass(
-                blk_values.dtype.type, (np.integer, np.bool_)
-            ):
-                vals = blk_values.copy().T
-                mask = isna(vals)
-                np.putmask(vals, mask, mask_a)
-                result = accum_func(vals, axis)
-                np.putmask(result, mask, mask_b)
-            else:
-                result = accum_func(blk_values.T, axis)
-
-            # transpose back for ndarray, not for EA
-            return result.T if hasattr(result, "T") else result
-
-        result = self._data.apply(na_accum_func)
+        result = self._data.apply(block_accum_func)
 
         d = self._construct_axes_dict()
         d["copy"] = False

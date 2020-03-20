@@ -104,5 +104,5 @@ dependencies:
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - pip:
-    - git+https://github.com/pandas-dev/pandas-sphinx-theme.git@master
+    - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc

@@ -824,10 +824,14 @@ def assert_categorical_equal(
             left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes",
         )
     else:
+        try:
+            lc = left.categories.sort_values()
+            rc = right.categories.sort_values()
+        except TypeError:
+            # e.g. '<' not supported between instances of 'int' and 'str'
+            lc, rc = left.categories, right.categories
         assert_index_equal(
-            left.categories.sort_values(),
-            right.categories.sort_values(),
-            obj=f"{obj}.categories",
+            lc, rc, obj=f"{obj}.categories",
         )
         assert_index_equal(
             left.categories.take(left.codes),
@@ -1018,7 +1022,8 @@ def assert_extension_array_equal(
 
     if hasattr(left, "asi8") and type(right) == type(left):
         # Avoid slow object-dtype comparisons
-        assert_numpy_array_equal(left.asi8, right.asi8)
+        # np.asarray for case where we have a np.MaskedArray
+        assert_numpy_array_equal(np.asarray(left.asi8), np.asarray(right.asi8))
         return
 
     left_na = np.asarray(left.isna())
@@ -1045,6 +1050,7 @@ def assert_series_equal(
     right,
     check_dtype=True,
     check_index_type="equiv",
+    check_series_type=True,
     check_less_precise=False,
     check_names=True,
     check_exact=False,
@@ -1065,6 +1071,8 @@ def assert_series_equal(
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
+    check_series_type : bool, default True
+         Whether to check the Series class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
@@ -1096,10 +1104,8 @@ def assert_series_equal(
     # instance validation
     _check_isinstance(left, right, Series)
 
-    # TODO: There are some tests using rhs is sparse
-    # lhs is dense. Should use assert_class_equal in future
-    assert isinstance(left, type(right))
-    # assert_class_equal(left, right, obj=obj)
+    if check_series_type:
+        assert_class_equal(left, right, obj=obj)
 
     # length comparison
     if len(left) != len(right):
@@ -1154,22 +1160,25 @@ def assert_series_equal(
                 f"is not equal to {right._values}."
             )
             raise AssertionError(msg)
-    elif is_interval_dtype(left.dtype) or is_interval_dtype(right.dtype):
+    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
         assert_interval_array_equal(left.array, right.array)
-    elif is_datetime64tz_dtype(left.dtype):
-        # .values is an ndarray, but ._values is the ExtensionArray.
+    elif is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
+        _testing.assert_almost_equal(
+            left._values,
+            right._values,
+            check_less_precise=check_less_precise,
+            check_dtype=check_dtype,
+            obj=str(obj),
+        )
+    elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(left._values, right._values)
-    elif (
-        is_extension_array_dtype(left)
-        and not is_categorical_dtype(left)
-        and is_extension_array_dtype(right)
-        and not is_categorical_dtype(right)
-    ):
-        assert_extension_array_equal(left.array, right.array)
+    elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
+        # DatetimeArray or TimedeltaArray
+        assert_extension_array_equal(left._values, right._values)
     else:
         _testing.assert_almost_equal(
-            left._internal_get_values(),
-            right._internal_get_values(),
+            left._values,
+            right._values,
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),

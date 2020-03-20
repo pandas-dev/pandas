@@ -5,6 +5,7 @@ for all of the parsers defined in parsers.py
 
 from io import BytesIO
 import os
+import tempfile
 
 import numpy as np
 import pytest
@@ -173,4 +174,26 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
         f.seek(0)
 
         result = parser.read_csv(f, encoding=encoding if pass_encoding else None)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_encoding_named_temp_file(all_parsers):
+    # see gh-31819
+    parser = all_parsers
+    encoding = "shift-jis"
+
+    if parser.engine == "python":
+        pytest.skip("NamedTemporaryFile does not work with Python engine")
+
+    title = "てすと"
+    data = "こむ"
+
+    expected = DataFrame({title: [data]})
+
+    with tempfile.NamedTemporaryFile() as f:
+        f.write(f"{title}\n{data}".encode(encoding))
+
+        f.seek(0)
+
+        result = parser.read_csv(f, encoding=encoding)
         tm.assert_frame_equal(result, expected)

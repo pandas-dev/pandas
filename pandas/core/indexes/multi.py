@@ -276,6 +276,7 @@ class MultiIndex(Index):
             raise ValueError("Must pass non-zero number of levels/codes")
 
         result = object.__new__(MultiIndex)
+        result._cache = {}
 
         # we've already validated levels and codes, so shortcut here
         result._set_levels(levels, copy=copy, validate=False)
@@ -564,6 +565,7 @@ class MultiIndex(Index):
         if names is lib.no_default:
             names = [getattr(it, "name", None) for it in iterables]
 
+        # codes are all ndarrays, so cartesian_product is lossless
         codes = cartesian_product(codes)
         return MultiIndex(levels, codes, sortorder=sortorder, names=names)
 
@@ -988,10 +990,12 @@ class MultiIndex(Index):
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
             names = kwargs.pop("names", kwargs.pop("name", self.names))
-            # discards freq
-            kwargs.pop("freq", None)
             return MultiIndex.from_tuples(values, names=names, **kwargs)
-        return self.copy(**kwargs)
+
+        result = self.copy(**kwargs)
+        result._cache = self._cache.copy()
+        result._cache.pop("levels", None)  # GH32669
+        return result
 
     def _shallow_copy_with_infer(self, values, **kwargs):
         # On equal MultiIndexes the difference is empty.
@@ -3141,11 +3145,10 @@ class MultiIndex(Index):
         if not isinstance(other, MultiIndex):
             # d-level MultiIndex can equal d-tuple Index
             if not is_object_dtype(other.dtype):
-                if self.nlevels != other.nlevels:
-                    return False
+                # other cannot contain tuples, so cannot match self
+                return False
 
-            other_vals = com.values_from_object(other)
-            return array_equivalent(self._values, other_vals)
+            return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:
             return False
@@ -3236,9 +3239,13 @@ class MultiIndex(Index):
 
         # TODO: Index.union returns other when `len(self)` is 0.
 
-        uniq_tuples = lib.fast_unique_multiple(
-            [self._values, other._ndarray_values], sort=sort
-        )
+        if not is_object_dtype(other.dtype):
+            raise NotImplementedError(
+                "Can only union MultiIndex with MultiIndex or Index of tuples, "
+                "try mi.to_flat_index().union(other) instead."
+            )
+
+        uniq_tuples = lib.fast_unique_multiple([self._values, other._values], sort=sort)
 
         return MultiIndex.from_arrays(
             zip(*uniq_tuples), sortorder=0, names=result_names
@@ -3272,8 +3279,18 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
+        if not is_object_dtype(other.dtype):
+            # The intersection is empty
+            # TODO: we have no tests that get here
+            return MultiIndex(
+                levels=self.levels,
+                codes=[[]] * self.nlevels,
+                names=result_names,
+                verify_integrity=False,
+            )
+
         lvals = self._values
-        rvals = other._ndarray_values
+        rvals = other._values
 
         uniq_tuples = None  # flag whether _inner_indexer was succesful
         if self.is_monotonic and other.is_monotonic:
