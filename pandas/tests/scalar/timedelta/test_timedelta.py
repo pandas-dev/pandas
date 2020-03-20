@@ -71,26 +71,6 @@ class TestTimedeltas:
         td = Timedelta("1 days, 10:11:12.012345678")
         assert td != td.to_pytimedelta()
 
-    def test_freq_conversion(self):
-
-        # truediv
-        td = Timedelta("1 days 2 hours 3 ns")
-        result = td / np.timedelta64(1, "D")
-        assert result == td.value / float(86400 * 1e9)
-        result = td / np.timedelta64(1, "s")
-        assert result == td.value / float(1e9)
-        result = td / np.timedelta64(1, "ns")
-        assert result == td.value
-
-        # floordiv
-        td = Timedelta("1 days 2 hours 3 ns")
-        result = td // np.timedelta64(1, "D")
-        assert result == 1
-        result = td // np.timedelta64(1, "s")
-        assert result == 93600
-        result = td // np.timedelta64(1, "ns")
-        assert result == td.value
-
     def test_fields(self):
         def check(value):
             # that we are int
