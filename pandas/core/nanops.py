@@ -1260,14 +1260,26 @@ def _maybe_null_out(
                 # GH12941, use None to auto cast null
                 result[null_mask] = None
     elif result is not NaT:
-        if mask is not None:
-            null_mask = mask.size - mask.sum()
-        else:
-            null_mask = np.prod(shape)
-        if null_mask < min_count:
+        if _below_min_count(shape, mask, min_count):
             result = np.nan
 
     return result
+
+
+def _below_min_count(shape, mask, min_count):
+    """
+    Check for the `min_count` keyword. Returns True if below `min_count` (when
+    missing value should be returned from the reduction).
+    """
+    if min_count > 0:
+        if mask is None:
+            # no missing values, only check size
+            non_nulls = np.prod(shape)
+        else:
+            non_nulls = mask.size - mask.sum()
+        if non_nulls < min_count:
+            return True
+    return False
 
 
 def _zero_out_fperr(arg):

@@ -8,6 +8,8 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas.compat.numpy import _np_version_under1p17
 
+from pandas.core.nanops import _below_min_count
+
 
 def kleene_or(
     left: Union[bool, np.ndarray],
@@ -202,30 +204,14 @@ def sum(
         if mask.any():
             return libmissing.NA
         else:
-            if _below_min_count(values, None, min_count):
+            if _below_min_count(values.shape, None, min_count):
                 return libmissing.NA
             return np.sum(values)
     else:
-        if _below_min_count(values, mask, min_count):
+        if _below_min_count(values.shape, mask, min_count):
             return libmissing.NA
 
         if _np_version_under1p17:
             return np.sum(values[~mask])
         else:
             return np.sum(values, where=~mask)
-
-
-def _below_min_count(values, mask, min_count):
-    """
-    Check for the `min_count` keyword. Returns True if below `min_count` (when
-    pd.NA should be returned from the reduction).
-    """
-    if min_count > 0:
-        if mask is None:
-            # no missing values, only check size
-            non_nulls = values.size
-        else:
-            non_nulls = mask.size - mask.sum()
-        if non_nulls < min_count:
-            return True
-    return False
