@@ -248,7 +248,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             idx = IntIndex(n_rows, indices[sl], check_integrity=False)
             arr = SparseArray._simple_new(array_data[sl], idx, dtype)
             arrays.append(arr)
-        return DataFrame._from_arrays(arrays, columns=columns, index=index)
+        return DataFrame._from_arrays(
+            arrays, columns=columns, index=index, verify_integrity=False
+        )
 
     def to_dense(self):
         """
