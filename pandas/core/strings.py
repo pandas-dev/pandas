@@ -36,7 +36,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.base import NoNewAttributesMixin
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
@@ -447,7 +446,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
                 stacklevel=3,
             )
 
-        f = lambda x: bool(regex.search(x))
+        f = lambda x: regex.search(x) is not None
     else:
         if case:
             f = lambda x: pat in x
@@ -573,7 +572,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`.
+    :func:`re.sub`, depending on the regex value.
 
     Parameters
     ----------
@@ -776,13 +775,15 @@ def str_repeat(arr, repeats):
     else:
 
         def rep(x, r):
+            if x is libmissing.NA:
+                return x
             try:
                 return bytes.__mul__(x, r)
             except TypeError:
                 return str.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(np.asarray(arr), repeats, rep)
         return result
 
 
@@ -817,7 +818,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     regex = re.compile(pat, flags=flags)
 
     dtype = bool
-    f = lambda x: bool(regex.match(x))
+    f = lambda x: regex.match(x) is not None
 
     return _na_map(f, arr, na, dtype=dtype)
 
@@ -2425,12 +2426,12 @@ class StringMethods(NoNewAttributesMixin):
         try:
             # turn anything in "others" into lists of Series
             others = self._get_series_list(others)
-        except ValueError:  # do not catch TypeError raised by _get_series_list
+        except ValueError as err:  # do not catch TypeError raised by _get_series_list
             raise ValueError(
                 "If `others` contains arrays or lists (or other "
                 "list-likes without an index), these must all be "
                 "of the same length as the calling Series/Index."
-            )
+            ) from err
 
         # align if required
         if any(not data.index.equals(x.index) for x in others):

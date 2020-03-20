@@ -28,7 +28,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
-    ABCIndexClass,
     ABCSeries,
     ABCTimedeltaArray,
 )
@@ -53,13 +52,15 @@ def comp_method_OBJECT_ARRAY(op, x, y):
         if isinstance(y, (ABCSeries, ABCIndex)):
             y = y.values
 
-        result = libops.vec_compare(x.ravel(), y, op)
+        if x.shape != y.shape:
+            raise ValueError("Shapes must match", x.shape, y.shape)
+        result = libops.vec_compare(x.ravel(), y.ravel(), op)
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
     return result.reshape(x.shape)
 
 
-def masked_arith_op(x, y, op):
+def masked_arith_op(x: np.ndarray, y, op):
     """
     If the given arithmetic operation fails, attempt it again on
     only the non-null elements of the input array(s).
@@ -78,10 +79,22 @@ def masked_arith_op(x, y, op):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
+        if len(x) != len(y):
+            if not _can_broadcast(x, y):
+                raise ValueError(x.shape, y.shape)
+
+            # Call notna on pre-broadcasted y for performance
+            ymask = notna(y)
+            y = np.broadcast_to(y, x.shape)
+            ymask = np.broadcast_to(ymask, x.shape)
+
+        else:
+            ymask = notna(y)
+
         # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
         #  we would get int64 dtype, see GH#19956
         yrav = y.ravel()
-        mask = notna(xrav) & notna(yrav)
+        mask = notna(xrav) & ymask.ravel()
 
         if yrav.shape != mask.shape:
             # FIXME: GH#5284, GH#5035, GH#19448
@@ -126,7 +139,7 @@ def define_na_arithmetic_op(op, str_rep: str):
     return na_op
 
 
-def na_arithmetic_op(left, right, op, str_rep: str):
+def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -137,6 +150,8 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     left : np.ndarray
     right : np.ndarray or scalar
     str_rep : str or None
+    is_cmp : bool, default False
+        If this a comparison operation.
 
     Returns
     -------
@@ -151,7 +166,17 @@ def na_arithmetic_op(left, right, op, str_rep: str):
     try:
         result = expressions.evaluate(op, str_rep, left, right)
     except TypeError:
+        if is_cmp:
+            # numexpr failed on comparison op, e.g. ndarray[float] > datetime
+            #  In this case we do not fall back to the masked op, as that
+            #  will handle complex numbers incorrectly, see GH#32047
+            raise
         result = masked_arith_op(left, right, op)
+
+    if is_cmp and (is_scalar(result) or result is NotImplemented):
+        # numpy returned a scalar instead of operating element-wise
+        # e.g. numeric array vs str
+        return invalid_comparison(left, right, op)
 
     return missing.dispatch_fill_zeros(op, left, right, result)
 
@@ -199,7 +224,54 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     return res_values
 
 
-def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
+def _broadcast_comparison_op(lvalues, rvalues, op) -> np.ndarray:
+    """
+    Broadcast a comparison operation between two 2D arrays.
+
+    Parameters
+    ----------
+    lvalues : np.ndarray or ExtensionArray
+    rvalues : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    np.ndarray[bool]
+    """
+    if isinstance(rvalues, np.ndarray):
+        rvalues = np.broadcast_to(rvalues, lvalues.shape)
+        result = comparison_op(lvalues, rvalues, op)
+    else:
+        result = np.empty(lvalues.shape, dtype=bool)
+        for i in range(len(lvalues)):
+            result[i, :] = comparison_op(lvalues[i], rvalues[:, 0], op)
+    return result
+
+
+def _can_broadcast(lvalues, rvalues) -> bool:
+    """
+    Check if we can broadcast rvalues to match the shape of lvalues.
+
+    Parameters
+    ----------
+    lvalues : np.ndarray or ExtensionArray
+    rvalues : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    bool
+    """
+    # We assume that lengths dont match
+    if lvalues.ndim == rvalues.ndim == 2:
+        # See if we can broadcast unambiguously
+        if lvalues.shape[1] == rvalues.shape[-1]:
+            if rvalues.shape[0] == 1:
+                return True
+    return False
+
+
+def comparison_op(
+    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
+) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -223,12 +295,16 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # TODO: same for tuples?
         rvalues = np.asarray(rvalues)
 
-    if isinstance(rvalues, (np.ndarray, ABCExtensionArray, ABCIndexClass)):
+    if isinstance(rvalues, (np.ndarray, ABCExtensionArray)):
         # TODO: make this treatment consistent across ops and classes.
         #  We are not catching all listlikes here (e.g. frozenset, tuple)
         #  The ambiguous case is object-dtype.  See GH#27803
         if len(lvalues) != len(rvalues):
-            raise ValueError("Lengths must match to compare")
+            if _can_broadcast(lvalues, rvalues):
+                return _broadcast_comparison_op(lvalues, rvalues, op)
+            raise ValueError(
+                "Lengths must match to compare", lvalues.shape, rvalues.shape
+            )
 
     if should_extension_dispatch(lvalues, rvalues):
         res_values = dispatch_to_extension_op(op, lvalues, rvalues)
@@ -244,16 +320,8 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        op_name = f"__{op.__name__}__"
-        method = getattr(lvalues, op_name)
         with np.errstate(all="ignore"):
-            res_values = method(rvalues)
-
-        if res_values is NotImplemented:
-            res_values = invalid_comparison(lvalues, rvalues, op)
-        if is_scalar(res_values):
-            typ = type(rvalues)
-            raise TypeError(f"Could not compare {typ} type with Series")
+            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
 
     return res_values
 
@@ -289,12 +357,12 @@ def na_logical_op(x: np.ndarray, y, op):
                 AttributeError,
                 OverflowError,
                 NotImplementedError,
-            ):
+            ) as err:
                 typ = type(y).__name__
                 raise TypeError(
                     f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
                     f"and scalar of type [{typ}]"
-                )
+                ) from err
 
     return result.reshape(x.shape)
 
@@ -380,7 +448,7 @@ def get_array_op(op, str_rep: Optional[str] = None):
     """
     op_name = op.__name__.strip("_")
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op)
+        return partial(comparison_op, op=op, str_rep=str_rep)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
     else:

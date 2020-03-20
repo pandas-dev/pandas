@@ -482,13 +482,13 @@ class _GroupBy(PandasObject, SelectionMixin):
                 try:
                     # If the original grouper was a tuple
                     return [self.indices[name] for name in names]
-                except KeyError:
+                except KeyError as err:
                     # turns out it wasn't a tuple
                     msg = (
                         "must supply a same-length tuple to get_group "
                         "with multiple grouping keys"
                     )
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
 
             converters = [get_converter(s) for s in index_sample]
             names = (tuple(f(n) for f, n in zip(converters, name)) for name in names)
@@ -1896,7 +1896,7 @@ class GroupBy(_GroupBy):
                 inference = np.int64
             elif is_datetime64_dtype(vals):
                 inference = "datetime64[ns]"
-                vals = vals.astype(np.float)
+                vals = np.asarray(vals).astype(np.float)
 
             return vals, inference
 
@@ -2271,7 +2271,7 @@ class GroupBy(_GroupBy):
 
         for idx, obj in enumerate(self._iterate_slices()):
             name = obj.name
-            values = obj._data._values
+            values = obj._values
 
             if aggregate:
                 result_sz = ngroups
@@ -2312,10 +2312,11 @@ class GroupBy(_GroupBy):
             return self._wrap_transformed_output(output)
 
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
     def shift(self, periods=1, freq=None, axis=0, fill_value=None):
         """
         Shift each group by periods observations.
+
+        If freq is passed, the index will be increased using the periods and the freq.
 
         Parameters
         ----------
@@ -2324,7 +2325,9 @@ class GroupBy(_GroupBy):
         freq : str, optional
             Frequency string.
         axis : axis to shift, default 0
+            Shift direction.
         fill_value : optional
+            The scalar value to use for newly introduced missing values.
 
             .. versionadded:: 0.24.0
 
@@ -2332,6 +2335,12 @@ class GroupBy(_GroupBy):
         -------
         Series or DataFrame
             Object shifted within each group.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        tshift : Shift the time index, using the index’s frequency
+            if available.
         """
         if freq is not None or axis != 0 or not isna(fill_value):
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))

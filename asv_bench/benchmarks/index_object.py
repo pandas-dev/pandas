@@ -55,14 +55,6 @@ class SetDisjoint:
         self.datetime_left.difference(self.datetime_right)
 
 
-class Datetime:
-    def setup(self):
-        self.dr = date_range("20000101", freq="D", periods=10000)
-
-    def time_is_dates_only(self):
-        self.dr._is_dates_only
-
-
 class Range:
     def setup(self):
         self.idx_inc = RangeIndex(start=0, stop=10 ** 7, step=3)
