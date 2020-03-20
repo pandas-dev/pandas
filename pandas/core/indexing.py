@@ -2036,7 +2036,8 @@ class _ScalarAccessIndexer(_NDFrameIndexerBase):
         except KeyError as err:
             if isinstance(self.obj.index, ABCMultiIndex):
                 raise KeyError(
-                    f"Detected KeyError {err}, indexing with {key} failing for MultiIndex"
+                    f"Detected KeyError {err}, indexing with {key} "
+                    "failing for MultiIndex"
                 ) from err
             else:
                 raise
