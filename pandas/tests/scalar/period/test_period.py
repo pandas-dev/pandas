@@ -930,87 +930,83 @@ class TestPeriodField:
             libperiod.get_period_field_arr(-1, np.empty(1), 0)
 
 
-class TestComparisons:
-    def setup_method(self, method):
-        self.january1 = Period("2000-01", "M")
-        self.january2 = Period("2000-01", "M")
-        self.february = Period("2000-02", "M")
-        self.march = Period("2000-03", "M")
-        self.day = Period("2012-01-01", "D")
+class TestPeriodComparisons:
+    def test_comparison_same_period_different_object(self):
+        # Separate Period objects for the same period
+        left = Period("2000-01", "M")
+        right = Period("2000-01", "M")
 
-    def test_equal(self):
-        assert self.january1 == self.january2
+        assert left == right
+        assert left >= right
+        assert left <= right
+        assert not left < right
+        assert not left > right
 
-    def test_equal_Raises_Value(self):
-        with pytest.raises(IncompatibleFrequency):
-            self.january1 == self.day
+    def test_comparison_same_freq(self):
+        jan = Period("2000-01", "M")
+        feb = Period("2000-02", "M")
 
-    def test_notEqual(self):
-        assert self.january1 != 1
-        assert self.january1 != self.february
+        assert not jan == feb
+        assert jan != feb
+        assert jan < feb
+        assert jan <= feb
+        assert not jan > feb
+        assert not jan >= feb
 
-    def test_greater(self):
-        assert self.february > self.january1
+    def test_comparison_mismatched_freq(self):
+        jan = Period("2000-01", "M")
+        day = Period("2012-01-01", "D")
 
-    def test_greater_Raises_Value(self):
-        with pytest.raises(IncompatibleFrequency):
-            self.january1 > self.day
+        msg = r"Input has different freq=D from Period\(freq=M\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            jan == day
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            jan != day
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            jan < day
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            jan <= day
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            jan > day
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            jan >= day
 
-    def test_greater_Raises_Type(self):
-        with pytest.raises(TypeError):
-            self.january1 > 1
+    def test_comparison_invalid_type(self):
+        jan = Period("2000-01", "M")
 
-    def test_greaterEqual(self):
-        assert self.january1 >= self.january2
+        assert not jan == 1
+        assert jan != 1
 
-    def test_greaterEqual_Raises_Value(self):
-        with pytest.raises(IncompatibleFrequency):
-            self.january1 >= self.day
+        msg = "Cannot compare type Period with type int"
+        for left, right in [(jan, 1), (1, jan)]:
 
-        with pytest.raises(TypeError):
-            print(self.january1 >= 1)
+            with pytest.raises(TypeError, match=msg):
+                left > right
+            with pytest.raises(TypeError, match=msg):
+                left >= right
+            with pytest.raises(TypeError, match=msg):
+                left < right
+            with pytest.raises(TypeError, match=msg):
+                left <= right
 
-    def test_smallerEqual(self):
-        assert self.january1 <= self.january2
-
-    def test_smallerEqual_Raises_Value(self):
-        with pytest.raises(IncompatibleFrequency):
-            self.january1 <= self.day
-
-    def test_smallerEqual_Raises_Type(self):
-        with pytest.raises(TypeError):
-            self.january1 <= 1
-
-    def test_smaller(self):
-        assert self.january1 < self.february
-
-    def test_smaller_Raises_Value(self):
-        with pytest.raises(IncompatibleFrequency):
-            self.january1 < self.day
-
-    def test_smaller_Raises_Type(self):
-        with pytest.raises(TypeError):
-            self.january1 < 1
-
-    def test_sort(self):
-        periods = [self.march, self.january1, self.february]
-        correctPeriods = [self.january1, self.february, self.march]
+    def test_sort_periods(self):
+        jan = Period("2000-01", "M")
+        feb = Period("2000-02", "M")
+        mar = Period("2000-03", "M")
+        periods = [mar, jan, feb]
+        correctPeriods = [jan, feb, mar]
         assert sorted(periods) == correctPeriods
 
-    def test_period_nat_comp(self):
-        p_nat = Period("NaT", freq="D")
+    def test_period_cmp_nat(self):
         p = Period("2011-01-01", freq="D")
 
-        nat = Timestamp("NaT")
         t = Timestamp("2011-01-01")
         # confirm Period('NaT') work identical with Timestamp('NaT')
         for left, right in [
-            (p_nat, p),
-            (p, p_nat),
-            (p_nat, p_nat),
-            (nat, t),
-            (t, nat),
-            (nat, nat),
+            (NaT, p),
+            (p, NaT),
+            (NaT, t),
+            (t, NaT),
         ]:
             assert not left < right
             assert not left > right
