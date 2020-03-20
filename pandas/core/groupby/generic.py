@@ -509,7 +509,7 @@ class SeriesGroupBy(GroupBy):
             object.__setattr__(group, "name", name)
             if engine == "numba":
                 values, index, _ = split_for_numba(group)
-                res = func(group, index, *args)
+                res = func(values, index, *args)
             else:
                 res = func(group, *args, **kwargs)
 
