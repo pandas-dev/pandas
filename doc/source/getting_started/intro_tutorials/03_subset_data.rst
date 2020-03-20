@@ -88,7 +88,7 @@ name of the column of interest.
     </ul>
 
 Each column in a :class:`DataFrame` is a :class:`Series`. As a single column is
-selected, the returned object is a pandas :class:`DataFrame`. We can verify this
+selected, the returned object is a pandas :class:`Series`. We can verify this
 by checking the type of the output:
 
 .. ipython:: python
