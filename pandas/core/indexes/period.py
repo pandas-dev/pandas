@@ -9,7 +9,7 @@ from pandas._libs.lib import no_default
 from pandas._libs.tslibs import frequencies as libfrequencies, resolution
 from pandas._libs.tslibs.parsing import parse_time_string
 from pandas._libs.tslibs.period import Period
-from pandas._typing import Label
+from pandas._typing import DtypeObj, Label
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -19,11 +19,11 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
     is_integer,
-    is_integer_dtype,
     is_object_dtype,
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -234,6 +234,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # For groupby perf. See note in indexes/base about _index_data
         result._index_data = values._data
         result.name = name
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -250,23 +251,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return True
 
     def _shallow_copy(self, values=None, name: Label = no_default):
-        # TODO: simplify, figure out type of values
         name = name if name is not no_default else self.name
-
+        cache = self._cache.copy() if values is None else {}
         if values is None:
             values = self._data
 
-        if isinstance(values, type(self)):
-            values = values._data
-
-        if not isinstance(values, PeriodArray):
-            if isinstance(values, np.ndarray) and values.dtype == "i8":
-                values = PeriodArray(values, freq=self.freq)
-            else:
-                # GH#30713 this should never be reached
-                raise TypeError(type(values), getattr(values, "dtype", None))
-
-        return self._simple_new(values, name=name)
+        result = self._simple_new(values, name=name)
+        result._cache = cache
+        return result
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -306,6 +298,14 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
         # raise when input doesn't have freq
         raise raise_on_incompatible(self, None)
+
+    def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
+        """
+        Can we compare values of the given dtype to our own?
+        """
+        if not isinstance(dtype, PeriodDtype):
+            return False
+        return dtype.freq == self.freq
 
     # ------------------------------------------------------------------------
     # Rendering Methods
@@ -349,12 +349,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
-        if is_integer_dtype(dtype):
-            return self.asi8
-        else:
-            return self.astype(object).values
-
     def __array_wrap__(self, result, context=None):
         """
         Gets called after a ufunc. Needs additional handling as
@@ -388,27 +382,26 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # cannot pass _simple_new as it is
         return type(self)(result, freq=self.freq, name=self.name)
 
-    def asof_locs(self, where, mask):
+    def asof_locs(self, where, mask: np.ndarray) -> np.ndarray:
         """
         where : array of timestamps
         mask : array of booleans where data is not NA
-
         """
         where_idx = where
         if isinstance(where_idx, DatetimeIndex):
             where_idx = PeriodIndex(where_idx.values, freq=self.freq)
+        elif not isinstance(where_idx, PeriodIndex):
+            raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
+        elif where_idx.freq != self.freq:
+            raise raise_on_incompatible(self, where_idx)
 
-        locs = self._ndarray_values[mask].searchsorted(
-            where_idx._ndarray_values, side="right"
-        )
+        locs = self.asi8[mask].searchsorted(where_idx.asi8, side="right")
 
         locs = np.where(locs > 0, locs - 1, 0)
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[
-            (locs == 0) & (where_idx._ndarray_values < self._ndarray_values[first])
-        ] = -1
+        result[(locs == 0) & (where_idx.asi8 < self.asi8[first])] = -1
 
         return result
 
@@ -470,12 +463,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def get_indexer_non_unique(self, target):
         target = ensure_index(target)
 
-        if isinstance(target, PeriodIndex):
-            if target.freq != self.freq:
-                no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-                return no_matches, no_matches
+        if not self._is_comparable_dtype(target.dtype):
+            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
+            return no_matches, no_matches
 
-            target = target.asi8
+        target = target.asi8
 
         indexer, missing = self._int64index.get_indexer_non_unique(target)
         return ensure_platform_int(indexer), missing
@@ -618,10 +610,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
-        idx = np.concatenate(
+        i8result = np.concatenate(
             (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
         )
-        return self._shallow_copy(idx)
+        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
+        return type(self)._simple_new(arr, name=self.name)
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         """

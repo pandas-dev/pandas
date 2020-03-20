@@ -52,17 +52,13 @@ class TestDataFrameToXArray:
         assert isinstance(result, Dataset)
 
         # idempotency
-        # categoricals are not preserved
         # datetimes w/tz are preserved
         # column names are lost
         expected = df.copy()
         expected["f"] = expected["f"].astype(object)
         expected.columns.name = None
         tm.assert_frame_equal(
-            result.to_dataframe(),
-            expected,
-            check_index_type=False,
-            check_categorical=False,
+            result.to_dataframe(), expected,
         )
 
     @td.skip_if_no("xarray", min_version="0.7.0")
@@ -126,9 +122,7 @@ class TestSeriesToXArray:
         assert isinstance(result, DataArray)
 
         # idempotency
-        tm.assert_series_equal(
-            result.to_series(), s, check_index_type=False, check_categorical=True
-        )
+        tm.assert_series_equal(result.to_series(), s, check_index_type=False)
 
     @td.skip_if_no("xarray", min_version="0.7.0")
     def test_to_xarray(self):

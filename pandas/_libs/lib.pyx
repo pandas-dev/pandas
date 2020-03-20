@@ -94,22 +94,6 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
 
 
-def values_from_object(obj: object):
-    """
-    Return my values or the object if we are say an ndarray.
-    """
-    func: object
-
-    if getattr(obj, '_typ', '') == 'dataframe':
-        return obj.values
-
-    func = getattr(obj, '_internal_get_values', None)
-    if func is not None:
-        obj = func()
-
-    return obj
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def memory_usage_of_objects(arr: object[:]) -> int64_t:
@@ -2026,8 +2010,6 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             except (TypeError, ValueError) as err:
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
-                elif "uint64" in str(err):  # Exception from check functions.
-                    raise
 
                 seen.saw_null()
                 floats[i] = NaN
@@ -2300,7 +2282,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                                 return uints
                             else:
                                 return ints
-                elif seen.is_bool:
+                elif seen.is_bool and not seen.nan_:
                     return bools.view(np.bool_)
 
     return objects

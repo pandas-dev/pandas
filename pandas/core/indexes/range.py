@@ -141,7 +141,7 @@ class RangeIndex(Int64Index):
 
         result._range = values
         result.name = name
-
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -168,7 +168,7 @@ class RangeIndex(Int64Index):
         return self._cached_data
 
     @cache_readonly
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
 
     def _get_data_as_items(self):
@@ -391,7 +391,9 @@ class RangeIndex(Int64Index):
         name = self.name if name is no_default else name
 
         if values is None:
-            return self._simple_new(self._range, name=name)
+            result = self._simple_new(self._range, name=name)
+            result._cache = self._cache.copy()
+            return result
         else:
             return Int64Index._simple_new(values, name=name)
 

@@ -25,6 +25,22 @@ class TestCartesianProduct:
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
+    def test_tzaware_retained(self):
+        x = date_range("2000-01-01", periods=2, tz="US/Pacific")
+        y = np.array([3, 4])
+        result1, result2 = cartesian_product([x, y])
+
+        expected = x.repeat(2)
+        tm.assert_index_equal(result1, expected)
+
+    def test_tzaware_retained_categorical(self):
+        x = date_range("2000-01-01", periods=2, tz="US/Pacific").astype("category")
+        y = np.array([3, 4])
+        result1, result2 = cartesian_product([x, y])
+
+        expected = x.repeat(2)
+        tm.assert_index_equal(result1, expected)
+
     def test_empty(self):
         # product of empty factors
         X = [[], [0, 1], []]

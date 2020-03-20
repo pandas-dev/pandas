@@ -507,6 +507,13 @@ class TestInference:
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
+    def test_convert_numeric_string_uint64(self):
+        # GH32394
+        result = lib.maybe_convert_numeric(
+            np.array(["uint64"], dtype=object), set(), coerce_numeric=True
+        )
+        assert np.isnan(result)
+
     @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
     def test_convert_int_overflow(self, value):
         # see gh-18584
@@ -567,6 +574,13 @@ class TestInference:
         result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
 
         tm.assert_extension_array_equal(result, exp)
+
+    def test_maybe_convert_objects_bool_nan(self):
+        # GH32146
+        ind = pd.Index([True, False, np.nan], dtype=object)
+        exp = np.array([True, False, np.nan], dtype=object)
+        out = lib.maybe_convert_objects(ind.values, safe=1)
+        tm.assert_numpy_array_equal(out, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
@@ -1423,6 +1437,7 @@ class TestIsScalar:
         assert is_scalar(Period("2014-01-01"))
         assert is_scalar(Interval(left=0, right=1))
         assert is_scalar(DateOffset(days=1))
+        assert is_scalar(pd.offsets.Minute(3))
 
     def test_is_scalar_pandas_containers(self):
         assert not is_scalar(Series(dtype=object))
@@ -1431,6 +1446,11 @@ class TestIsScalar:
         assert not is_scalar(DataFrame([[1]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
+        assert not is_scalar(Categorical([]))
+        assert not is_scalar(DatetimeIndex([])._data)
+        assert not is_scalar(TimedeltaIndex([])._data)
+        assert not is_scalar(DatetimeIndex([])._data.to_period("D"))
+        assert not is_scalar(pd.array([1, 2, 3]))
 
     def test_is_scalar_number(self):
         # Number() is not recognied by PyNumber_Check, so by extension
