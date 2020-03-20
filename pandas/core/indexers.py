@@ -69,6 +69,12 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
     """
     Return True if we are all scalar indexers.
 
+    Parameters
+    ----------
+    indexer : object
+    ndim : int
+        Number of dimensions in the object being indexed.
+
     Returns
     -------
     bool
