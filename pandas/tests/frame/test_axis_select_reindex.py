@@ -618,7 +618,7 @@ class TestDataFrameSelectReindex:
         tm.assert_index_equal(bf.index, Index([]))
 
         # Try to align DataFrame to Series along bad axis
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             float_frame.align(af.iloc[0, :3], join="inner", axis=2)
 
