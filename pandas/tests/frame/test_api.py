@@ -127,6 +127,14 @@ class TestDataFrameMisc:
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
 
+    def test_column_name_contains_unicode_surrogate(self):
+        # GH 25509
+        colname = "\ud83d"
+        df = DataFrame({colname: []})
+        # this should not crash
+        assert colname not in dir(df)
+        assert df.columns[0] == colname
+
     def test_new_empty_index(self):
         df1 = DataFrame(np.random.randn(0, 3))
         df2 = DataFrame(np.random.randn(0, 3))
