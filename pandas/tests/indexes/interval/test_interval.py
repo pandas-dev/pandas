@@ -870,7 +870,7 @@ def test_searchsorted_different_argument_classes(klass):
     # https://github.com/pandas-dev/pandas/issues/32762
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
     result = values.searchsorted(klass(values))
-    expected = np.array([0, 1])
+    expected = np.array([0, 1], dtype=result.dtype)
 
     tm.assert_numpy_array_equal(result, expected)
 
