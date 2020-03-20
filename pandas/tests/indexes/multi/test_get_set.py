@@ -428,9 +428,8 @@ def test_at_indexing_fails_multiindex():
     )
     s = pd.Series(np.linspace(1, 91, 10), index=pd.MultiIndex.from_tuples(idx))
 
-    msg = r".+indexing with .+ failing for MultiIndex"
-    with pytest.raises(KeyError, match=msg):
+    with pytest.raises(KeyError, match=r".+? indexing with .+? failing for MultiIndex"):
         df.at["a_row", "A"]
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r".+? got multiple values for argument .+?"):
         s.at["a_row", "A"]
