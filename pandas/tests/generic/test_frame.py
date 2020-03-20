@@ -10,6 +10,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
+from pandas.core.internals.construction import create_dataframe
 
 from .test_generic import Generic
 
@@ -169,6 +170,7 @@ class TestDataFrame(Generic):
         df = DataFrame({"x": [1, 2, 3]})
 
         df.y = 2
+
         df["y"] = [2, 4, 6]
         df.y = 5
 
@@ -182,6 +184,25 @@ class TestDataFrame(Generic):
         empty_frame_copy = deepcopy(empty_frame)
 
         self._compare(empty_frame_copy, empty_frame)
+
+    def test_register_constructor(self):
+        # Verify that if you register a custom `create_dataframe` imeplementation
+        # this will be used in the constructor
+        class MyCustomObject:
+            pass
+
+        o = MyCustomObject()
+
+        with pytest.raises(ValueError):
+            DataFrame(o)
+
+        @create_dataframe.register
+        def _create_dataframe_custom(o: MyCustomObject, *args, **kwargs):
+            return create_dataframe(None, *args, **kwargs)
+
+        result = DataFrame(o)
+        expected = DataFrame(None)
+        self._compare(result, expected)
 
 
 # formerly in Generic but only test DataFrame
