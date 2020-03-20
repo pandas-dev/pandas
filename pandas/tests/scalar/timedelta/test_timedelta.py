@@ -7,14 +7,7 @@ import pytest
 from pandas._libs.tslibs import NaT, Timestamp, iNaT
 
 import pandas as pd
-from pandas import (
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    offsets,
-    timedelta_range,
-    to_timedelta,
-)
+from pandas import Timedelta, TimedeltaIndex, offsets, to_timedelta
 import pandas._testing as tm
 
 
@@ -597,29 +590,6 @@ class TestTimedeltas:
         with pytest.raises(ValueError):
             Timedelta("- 1days, 00")
 
-    def test_overflow(self):
-        # GH 9442
-        s = Series(pd.date_range("20130101", periods=100000, freq="H"))
-        s[0] += Timedelta("1s 1ms")
-
-        # mean
-        result = (s - s.min()).mean()
-        expected = Timedelta((TimedeltaIndex((s - s.min())).asi8 / len(s)).sum())
-
-        # the computation is converted to float so
-        # might be some loss of precision
-        assert np.allclose(result.value / 1000, expected.value / 1000)
-
-        # sum
-        msg = "overflow in timedelta operation"
-        with pytest.raises(ValueError, match=msg):
-            (s - s.min()).sum()
-        s1 = s[0:10000]
-        with pytest.raises(ValueError, match=msg):
-            (s1 - s1.min()).sum()
-        s2 = s[0:1000]
-        result = (s2 - s2.min()).sum()
-
     def test_pickle(self):
 
         v = Timedelta("1 days 10:11:12.0123456")
@@ -635,7 +605,7 @@ class TestTimedeltas:
         d = {td: 2}
         assert d[v] == 2
 
-        tds = timedelta_range("1 second", periods=20)
+        tds = [Timedelta(seconds=1) + Timedelta(days=n) for n in range(20)]
         assert all(hash(td) == hash(td.to_pytimedelta()) for td in tds)
 
         # python timedeltas drop ns resolution
@@ -678,35 +648,6 @@ class TestTimedeltas:
         assert Timedelta("5.324S").total_seconds() == 5.324
         assert (Timedelta("30S").total_seconds() - 30.0) < 1e-20
         assert (30.0 - Timedelta("30S").total_seconds()) < 1e-20
-
-    def test_apply_to_timedelta(self):
-        timedelta_NaT = to_timedelta("NaT")
-
-        list_of_valid_strings = ["00:00:01", "00:00:02"]
-        a = to_timedelta(list_of_valid_strings)
-        b = Series(list_of_valid_strings).apply(to_timedelta)
-        # Can't compare until apply on a Series gives the correct dtype
-        # assert_series_equal(a, b)
-
-        list_of_strings = ["00:00:01", np.nan, NaT, timedelta_NaT]
-
-        # TODO: unused?
-        a = to_timedelta(list_of_strings)  # noqa
-        b = Series(list_of_strings).apply(to_timedelta)  # noqa
-        # Can't compare until apply on a Series gives the correct dtype
-        # assert_series_equal(a, b)
-
-    def test_components(self):
-        rng = timedelta_range("1 days, 10:11:12", periods=2, freq="s")
-        rng.components
-
-        # with nat
-        s = Series(rng)
-        s[1] = np.nan
-
-        result = s.dt.components
-        assert not result.iloc[0].isna().all()
-        assert result.iloc[1].isna().all()
 
     def test_resolution_string(self):
         assert Timedelta(days=1).resolution_string == "D"
