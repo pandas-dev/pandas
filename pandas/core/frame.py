@@ -7864,7 +7864,7 @@ Wild         185.0
         axis : int
         numeric_only : bool, optional
         filter_type : None or "bool"
-            Set to "bool" for ops that give boolean results.
+            Set to "bool" for ops that only work on boolean values.
         skipna, **kwds : keywords to pass to the `op` function
 
         """
