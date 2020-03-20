@@ -72,6 +72,7 @@ Other enhancements
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - You can now override how Pandas constructs DataFrames from custom objects, by registering a new function on the
   ``pandas.core.internals.construction.create_dataframe`` ``singledispatch`` function.
+-
 
 .. ---------------------------------------------------------------------------
 
