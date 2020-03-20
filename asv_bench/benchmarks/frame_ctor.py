@@ -140,17 +140,26 @@ class FromArrays:
 
     def time_frame_from_arrays_float(self):
         self.df = DataFrame._from_arrays(
-            self.float_arrays, index=self.index, columns=self.columns
+            self.float_arrays,
+            index=self.index,
+            columns=self.columns,
+            verify_integrity=False,
         )
 
     def time_frame_from_arrays_int(self):
         self.df = DataFrame._from_arrays(
-            self.int_arrays, index=self.index, columns=self.columns
+            self.int_arrays,
+            index=self.index,
+            columns=self.columns,
+            verify_integrity=False,
         )
 
     def time_frame_from_arrays_sparse(self):
         self.df = DataFrame._from_arrays(
-            self.sparse_arrays, index=self.index, columns=self.columns
+            self.sparse_arrays,
+            index=self.index,
+            columns=self.columns,
+            verify_integrity=False,
         )
 
 
