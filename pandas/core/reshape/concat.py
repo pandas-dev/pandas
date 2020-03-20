@@ -315,7 +315,7 @@ class _Concatenator:
                 "Only can inner (intersect) or outer (union) join the other axis"
             )
 
-        if isinstance(objs, dict):
+        if isinstance(objs, Mapping):
             if keys is None:
                 keys = list(objs.keys())
             objs = [objs[k] for k in keys]
