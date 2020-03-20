@@ -46,11 +46,6 @@ cdef class BlockPlacement:
                 arr = np.empty(0, dtype=np.int64)
                 self._as_array = arr
                 self._has_array = True
-        elif len(val) == 1:
-            val = val[0]
-            slc = slice(val, val + 1, 1)
-            self._as_slice = slc
-            self._has_slice = True
         else:
             # Cython memoryview interface requires ndarray to be writeable.
             arr = np.require(val, dtype=np.int64, requirements='W')
