@@ -393,7 +393,7 @@ class TestSeriesConstructors:
         expected = Series(
             ["a", "a"], index=[0, 1], dtype=CategoricalDtype(["a", "b"], ordered=True)
         )
-        tm.assert_series_equal(result, expected, check_categorical=True)
+        tm.assert_series_equal(result, expected)
 
     def test_constructor_categorical_string(self):
         # GH 26336: the string 'category' maintains existing CategoricalDtype
@@ -1420,4 +1420,11 @@ class TestSeriesConstructors:
         ]
         result = Series(dt_list)
         expected = Series(dt_list, dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH#25843
+        tz = tz_aware_fixture
+        result = Series([Timestamp("2019", tz=tz)], dtype="datetime64[ns]")
+        expected = Series([Timestamp("2019")])
         tm.assert_series_equal(result, expected)

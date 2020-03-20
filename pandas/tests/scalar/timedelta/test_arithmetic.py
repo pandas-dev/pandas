@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, offsets
+from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, offsets
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -377,7 +377,21 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
 
-    @pytest.mark.parametrize("nan", [np.nan, np.float64("NaN"), float("nan")])
+    @pytest.mark.parametrize(
+        "nan",
+        [
+            np.nan,
+            pytest.param(
+                np.float64("NaN"),
+                marks=pytest.mark.xfail(
+                    _is_numpy_dev,
+                    reason="https://github.com/pandas-dev/pandas/issues/31992",
+                    strict=False,
+                ),
+            ),
+            float("nan"),
+        ],
+    )
     def test_td_div_nan(self, nan):
         # np.float64('NaN') has a 'dtype' attr, avoid treating as array
         td = Timedelta(10, unit="d")
@@ -397,6 +411,46 @@ class TestTimedeltaMultiplicationDivision:
         assert result == 1 / 240.0
 
         assert np.timedelta64(60, "h") / td == 0.25
+
+    def test_td_rdiv_na_scalar(self):
+        # GH#31869 None gets cast to NaT
+        td = Timedelta(10, unit="d")
+
+        result = NaT / td
+        assert np.isnan(result)
+
+        result = None / td
+        assert np.isnan(result)
+
+        result = np.timedelta64("NaT") / td
+        assert np.isnan(result)
+
+        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+            np.datetime64("NaT") / td
+
+        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+            np.nan / td
+
+    def test_td_rdiv_ndarray(self):
+        td = Timedelta(10, unit="d")
+
+        arr = np.array([td], dtype=object)
+        result = arr / td
+        expected = np.array([1], dtype=np.float64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.array([None])
+        result = arr / td
+        expected = np.array([np.nan])
+        tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.array([np.nan], dtype=object)
+        with pytest.raises(TypeError, match="Cannot divide float by Timedelta"):
+            arr / td
+
+        arr = np.array([np.nan], dtype=np.float64)
+        with pytest.raises(TypeError, match="cannot use operands with types dtype"):
+            arr / td
 
     # ---------------------------------------------------------------
     # Timedelta.__floordiv__

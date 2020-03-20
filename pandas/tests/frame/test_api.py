@@ -46,19 +46,19 @@ class TestDataFrameMisc:
 
     def test_add_prefix_suffix(self, float_frame):
         with_prefix = float_frame.add_prefix("foo#")
-        expected = pd.Index(["foo#{c}".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"foo#{c}" for c in float_frame.columns])
         tm.assert_index_equal(with_prefix.columns, expected)
 
         with_suffix = float_frame.add_suffix("#foo")
-        expected = pd.Index(["{c}#foo".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"{c}#foo" for c in float_frame.columns])
         tm.assert_index_equal(with_suffix.columns, expected)
 
         with_pct_prefix = float_frame.add_prefix("%")
-        expected = pd.Index(["%{c}".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"%{c}" for c in float_frame.columns])
         tm.assert_index_equal(with_pct_prefix.columns, expected)
 
         with_pct_suffix = float_frame.add_suffix("%")
-        expected = pd.Index(["{c}%".format(c=c) for c in float_frame.columns])
+        expected = pd.Index([f"{c}%" for c in float_frame.columns])
         tm.assert_index_equal(with_pct_suffix.columns, expected)
 
     def test_get_axis(self, float_frame):
@@ -126,6 +126,14 @@ class TestDataFrameMisc:
             hash(df)
         with pytest.raises(TypeError, match=msg):
             hash(empty_frame)
+
+    def test_column_name_contains_unicode_surrogate(self):
+        # GH 25509
+        colname = "\ud83d"
+        df = DataFrame({colname: []})
+        # this should not crash
+        assert colname not in dir(df)
+        assert df.columns[0] == colname
 
     def test_new_empty_index(self):
         df1 = DataFrame(np.random.randn(0, 3))

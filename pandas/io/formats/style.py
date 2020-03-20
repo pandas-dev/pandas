@@ -85,7 +85,7 @@ class Styler:
         number and ``<num_col>`` is the column number.
     na_rep : str, optional
         Representation for missing values.
-        If ``na_rep`` is None, no special formatting is applied
+        If ``na_rep`` is None, no special formatting is applied.
 
         .. versionadded:: 1.0.0
 
@@ -446,13 +446,13 @@ class Styler:
         Parameters
         ----------
         formatter : str, callable, dict or None
-            If ``formatter`` is None, the default formatter is used
+            If ``formatter`` is None, the default formatter is used.
         subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
         na_rep : str, optional
             Representation for missing values.
-            If ``na_rep`` is None, no special formatting is applied
+            If ``na_rep`` is None, no special formatting is applied.
 
             .. versionadded:: 1.0.0
 
@@ -462,7 +462,6 @@ class Styler:
 
         Notes
         -----
-
         ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
         ``a`` is one of
 
@@ -474,7 +473,6 @@ class Styler:
 
         Examples
         --------
-
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
@@ -802,7 +800,6 @@ class Styler:
         --------
         Styler.applymap
         """
-
         if other is None:
             other = ""
 
@@ -1006,19 +1003,27 @@ class Styler:
     def _highlight_null(v, null_color: str) -> str:
         return f"background-color: {null_color}" if pd.isna(v) else ""
 
-    def highlight_null(self, null_color: str = "red") -> "Styler":
+    def highlight_null(
+        self,
+        null_color: str = "red",
+        subset: Optional[Union[Label, Sequence[Label]]] = None,
+    ) -> "Styler":
         """
         Shade the background ``null_color`` for missing values.
 
         Parameters
         ----------
-        null_color : str
+        null_color : str, default 'red'
+        subset : label or list of labels, default None
+            A valid slice for ``data`` to limit the style application to.
+
+            .. versionadded:: 1.1.0
 
         Returns
         -------
         self : Styler
         """
-        self.applymap(self._highlight_null, null_color=null_color)
+        self.applymap(self._highlight_null, null_color=null_color, subset=subset)
         return self
 
     def background_gradient(

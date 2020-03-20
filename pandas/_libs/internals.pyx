@@ -1,4 +1,5 @@
 import cython
+from collections import defaultdict
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -7,7 +8,9 @@ cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
-from numpy cimport int64_t
+cimport numpy as cnp
+from numpy cimport NPY_INT64, int64_t
+cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
@@ -105,8 +108,9 @@ cdef class BlockPlacement:
             Py_ssize_t start, stop, end, _
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
-            self._as_array = np.arange(start, stop, step,
-                                       dtype=np.int64)
+            # NOTE: this is the C-optimized equivalent of
+            #  np.arange(start, stop, step, dtype=np.int64)
+            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INT64)
             self._has_array = True
         return self._as_array
 
@@ -283,8 +287,7 @@ cdef slice_getitem(slice slc, ind):
     s_start, s_stop, s_step, s_len = slice_get_indices_ex(slc)
 
     if isinstance(ind, slice):
-        ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind,
-                                                                      s_len)
+        ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind, s_len)
 
         if ind_step > 0 and ind_len == s_len:
             # short-cut for no-op slice
@@ -305,7 +308,10 @@ cdef slice_getitem(slice slc, ind):
             return slice(s_start, s_stop, s_step)
 
     else:
-        return np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]
+        # NOTE:
+        # this is the C-optimized equivalent of
+        # `np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]`
+        return cnp.PyArray_Arange(s_start, s_stop, s_step, NPY_INT64)[ind]
 
 
 @cython.boundscheck(False)
@@ -371,64 +377,50 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
         Py_ssize_t i, start, stop, n, diff
 
         object blkno
-        list group_order
-        dict group_dict
-        int64_t[:] res_view
+        object group_dict = defaultdict(list)
 
     n = blknos.shape[0]
-
-    if n == 0:
-        return
-
+    result = list()
     start = 0
     cur_blkno = blknos[start]
 
-    if group is False:
+    if n == 0:
+        pass
+    elif group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
-                yield cur_blkno, slice(start, i)
+                result.append((cur_blkno, slice(start, i)))
 
                 start = i
                 cur_blkno = blknos[i]
 
-        yield cur_blkno, slice(start, n)
+        result.append((cur_blkno, slice(start, n)))
     else:
-        group_order = []
-        group_dict = {}
-
         for i in range(1, n):
             if blknos[i] != cur_blkno:
-                if cur_blkno not in group_dict:
-                    group_order.append(cur_blkno)
-                    group_dict[cur_blkno] = [(start, i)]
-                else:
-                    group_dict[cur_blkno].append((start, i))
+                group_dict[cur_blkno].append((start, i))
 
                 start = i
                 cur_blkno = blknos[i]
 
-        if cur_blkno not in group_dict:
-            group_order.append(cur_blkno)
-            group_dict[cur_blkno] = [(start, n)]
-        else:
-            group_dict[cur_blkno].append((start, n))
+        group_dict[cur_blkno].append((start, n))
 
-        for blkno in group_order:
-            slices = group_dict[blkno]
+        for blkno, slices in group_dict.items():
             if len(slices) == 1:
-                yield blkno, slice(slices[0][0], slices[0][1])
+                result.append((blkno, slice(slices[0][0], slices[0][1])))
             else:
                 tot_len = sum(stop - start for start, stop in slices)
-                result = np.empty(tot_len, dtype=np.int64)
-                res_view = result
+                arr = np.empty(tot_len, dtype=np.int64)
 
                 i = 0
                 for start, stop in slices:
                     for diff in range(start, stop):
-                        res_view[i] = diff
+                        arr[i] = diff
                         i += 1
 
-                yield blkno, result
+                result.append((blkno, arr))
+
+    return result
 
 
 def get_blkno_placements(blknos, group: bool = True):

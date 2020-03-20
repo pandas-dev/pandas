@@ -17,6 +17,7 @@ from pandas.core.computation import expr, ops, scope as _scope
 from pandas.core.computation.common import _ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
+from pandas.core.construction import extract_array
 
 from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
@@ -95,7 +96,6 @@ class BinOp(ops.BinOp):
     def prune(self, klass):
         def pr(left, right):
             """ create and return a new specialized BinOp from myself """
-
             if left is None:
                 return right
             elif right is None:
@@ -150,7 +150,8 @@ class BinOp(ops.BinOp):
 
     @property
     def is_in_table(self) -> bool:
-        """ return True if this is a valid column name for generation (e.g. an
+        """
+        return True if this is a valid column name for generation (e.g. an
         actual column in the table)
         """
         return self.queryables.get(self.lhs) is not None
@@ -176,7 +177,8 @@ class BinOp(ops.BinOp):
         return f"({self.lhs} {self.op} {val})"
 
     def convert_value(self, v) -> "TermValue":
-        """ convert the expression that is in the term to something that is
+        """
+        convert the expression that is in the term to something that is
         accepted by pytables
         """
 
@@ -201,7 +203,7 @@ class BinOp(ops.BinOp):
             v = Timedelta(v, unit="s").value
             return TermValue(int(v), v, kind)
         elif meta == "category":
-            metadata = com.values_from_object(self.metadata)
+            metadata = extract_array(self.metadata, extract_numpy=True)
             result = metadata.searchsorted(v, side="left")
 
             # result returns 0 if v is first element or if v is not in metadata
@@ -423,8 +425,10 @@ class PyTablesExprVisitor(BaseExprVisitor):
 
         try:
             return self.const_type(value[slobj], self.env)
-        except TypeError:
-            raise ValueError(f"cannot subscript {repr(value)} with {repr(slobj)}")
+        except TypeError as err:
+            raise ValueError(
+                f"cannot subscript {repr(value)} with {repr(slobj)}"
+            ) from err
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr
@@ -476,7 +480,6 @@ def _validate_where(w):
     ------
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
-
     if not (isinstance(w, (PyTablesExpr, str)) or is_list_like(w)):
         raise TypeError(
             "where must be passed as a string, PyTablesExpr, "
@@ -503,7 +506,6 @@ class PyTablesExpr(expr.Expr):
 
     Examples
     --------
-
     'index>=date'
     "columns=['A', 'D']"
     'columns=A'
@@ -574,21 +576,20 @@ class PyTablesExpr(expr.Expr):
 
     def evaluate(self):
         """ create and return the numexpr condition and filter """
-
         try:
             self.condition = self.terms.prune(ConditionBinOp)
-        except AttributeError:
+        except AttributeError as err:
             raise ValueError(
                 f"cannot process expression [{self.expr}], [{self}] "
                 "is not a valid condition"
-            )
+            ) from err
         try:
             self.filter = self.terms.prune(FilterBinOp)
-        except AttributeError:
+        except AttributeError as err:
             raise ValueError(
                 f"cannot process expression [{self.expr}], [{self}] "
                 "is not a valid filter"
-            )
+            ) from err
 
         return self.condition, self.filter
 

@@ -13,6 +13,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -103,6 +104,10 @@ class _IntegerDtype(ExtensionDtype):
         import pyarrow  # noqa: F811
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
+        pyarrow_type = pyarrow.from_numpy_dtype(self.type)
+        if not array.type.equals(pyarrow_type):
+            array = array.cast(pyarrow_type)
+
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
@@ -148,10 +153,9 @@ def safe_cast(values, dtype, copy: bool):
     ints.
 
     """
-
     try:
         return values.astype(dtype, casting="safe", copy=copy)
-    except TypeError:
+    except TypeError as err:
 
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
@@ -159,7 +163,7 @@ def safe_cast(values, dtype, copy: bool):
 
         raise TypeError(
             f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
-        )
+        ) from err
 
 
 def coerce_to_array(
@@ -196,8 +200,8 @@ def coerce_to_array(
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
-            except KeyError:
-                raise ValueError(f"invalid dtype specified {dtype}")
+            except KeyError as err:
+                raise ValueError(f"invalid dtype specified {dtype}") from err
 
     if isinstance(values, IntegerArray):
         values, mask = values._data, values._mask
@@ -466,22 +470,13 @@ class IntegerArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = dict(na_value=np.nan)
+        elif is_datetime64_dtype(dtype):
+            kwargs = dict(na_value=np.datetime64("NaT"))
         else:
             kwargs = {}
 
         data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-        """
-        return self._data
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
@@ -489,7 +484,8 @@ class IntegerArray(BaseMaskedArray):
         return self.to_numpy(na_value=np.nan), np.nan
 
     def _values_for_argsort(self) -> np.ndarray:
-        """Return values for sorting.
+        """
+        Return values for sorting.
 
         Returns
         -------
@@ -596,7 +592,6 @@ class IntegerArray(BaseMaskedArray):
         other : scalar or array-like
         op_name : str
         """
-
         # if we have a float operand we are by-definition
         # a float result
         # or our op is a divide

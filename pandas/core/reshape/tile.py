@@ -286,7 +286,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
-    q : int or list-like of int
+    q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
     labels : array or False, default None
@@ -513,7 +513,6 @@ def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """ based on the dtype, return our labels """
-
     closed = "right" if right else "left"
 
     if is_datetime64tz_dtype(dtype):
@@ -544,7 +543,6 @@ def _preprocess_for_cut(x):
     input to array, strip the index information and store it
     separately
     """
-
     # Check that the passed array is a Pandas or Numpy object
     # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
     ndim = getattr(x, "ndim", None)
@@ -589,7 +587,8 @@ def _round_frac(x, precision: int):
 
 
 def _infer_precision(base_precision: int, bins) -> int:
-    """Infer an appropriate precision for _round_frac
+    """
+    Infer an appropriate precision for _round_frac
     """
     for precision in range(base_precision, 20):
         levels = [_round_frac(b, precision) for b in bins]
