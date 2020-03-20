@@ -1278,8 +1278,7 @@ class TestArithmetic:
                     with pytest.raises(IncompatibleFrequency):
                         o + p
 
-    # TODO: this is really testing NaT and offsets, not Period, also
-    #  the loops in here are highly duplicative
+    # TODO: this is really testing NaT and offsets, not Period
     def test_add_offset_nat(self):
         # freq is DateOffset
 
@@ -1287,56 +1286,31 @@ class TestArithmetic:
             offsets.YearEnd(2),
             offsets.YearBegin(2),
             offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(365, "D"),
-            timedelta(365),
-        ]:
-            assert NaT + o is NaT
-            assert o + NaT is NaT
-
-        for o in [
             offsets.MonthEnd(2),
             offsets.MonthEnd(12),
-            offsets.YearBegin(2),
-            offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(365, "D"),
-            timedelta(365),
-        ]:
-            assert NaT + o is NaT
-            assert o + NaT is NaT
-
-        for o in [
+            offsets.Day(2),
             offsets.Day(5),
             offsets.Hour(24),
-            np.timedelta64(2, "D"),
-            np.timedelta64(3600 * 24, "s"),
-            timedelta(-2),
-            timedelta(hours=48),
-            offsets.YearBegin(2),
-            offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(4, "h"),
-            timedelta(hours=23),
-        ]:
-            assert NaT + o is NaT
-            assert o + NaT is NaT
-
-        for o in [
-            offsets.Day(2),
             offsets.Hour(3),
+            offsets.Minute(),
             np.timedelta64(3, "h"),
+            np.timedelta64(4, "h"),
+            np.timedelta64(3200, "s"),
             np.timedelta64(3600, "s"),
+            np.timedelta64(3600 * 24, "s"),
+            np.timedelta64(2, "D"),
+            np.timedelta64(365, "D"),
+            timedelta(-2),
+            timedelta(365),
             timedelta(minutes=120),
             timedelta(days=4, minutes=180),
-            offsets.YearBegin(2),
-            offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(3200, "s"),
+            timedelta(hours=23),
             timedelta(hours=23, minutes=30),
+            timedelta(hours=48),
         ]:
             assert NaT + o is NaT
             assert o + NaT is NaT
+            assert NaT - o is NaT
 
     def test_sub_offset(self):
         # freq is DateOffset
@@ -1411,61 +1385,6 @@ class TestArithmetic:
             ]:
                 with pytest.raises(IncompatibleFrequency):
                     p - o
-
-    # TODO: this is really testing NaT and offsets, not Period, also
-    #  the loops in here are highly duplicative
-    def test_sub_offset_nat(self):
-        # freq is DateOffset
-        for o in [
-            offsets.YearEnd(2),
-            offsets.YearBegin(2),
-            offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(365, "D"),
-            timedelta(365),
-        ]:
-            assert NaT - o is NaT
-
-        for o in [
-            offsets.MonthEnd(2),
-            offsets.MonthEnd(12),
-            offsets.YearBegin(2),
-            offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(365, "D"),
-            timedelta(365),
-        ]:
-            assert NaT - o is NaT
-
-        for o in [
-            offsets.Day(5),
-            offsets.Hour(24),
-            np.timedelta64(2, "D"),
-            np.timedelta64(3600 * 24, "s"),
-            timedelta(-2),
-            timedelta(hours=48),
-            offsets.YearBegin(2),
-            offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(4, "h"),
-            timedelta(hours=23),
-        ]:
-            assert NaT - o is NaT
-
-        for o in [
-            offsets.Day(2),
-            offsets.Hour(3),
-            np.timedelta64(3, "h"),
-            np.timedelta64(3600, "s"),
-            timedelta(minutes=120),
-            timedelta(days=4, minutes=180),
-            offsets.YearBegin(2),
-            offsets.MonthBegin(1),
-            offsets.Minute(),
-            np.timedelta64(3200, "s"),
-            timedelta(hours=23, minutes=30),
-        ]:
-            assert NaT - o is NaT
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_period_addsub_nat(self, freq):
