@@ -72,7 +72,19 @@ def correct_title_capitalization(title: str) -> str:
 
     # Strip all non-word characters from the beginning of the title to the
     # first word character.
-    correct_title: str = re.sub(r"^\W*", "", title).capitalize()
+    correct_title: str = re.sub(r"^\W*", "", title)
+
+    if re.search(r'((?:[A-Z]\w*){2,})', correct_title):
+        list_words = correct_title.split(' ')
+        if list_words[0][0].islower(): list_words[0].capitalize()
+        for idx in range(1, len(list_words)):
+            if not re.search(r'((?:[A-Z]\w*){2,})', list_words[idx]):
+                list_words[idx] = list_words[idx].lower()
+
+        correct_title = " ".join(list_words)
+
+    else:
+        correct_title = correct_title.capitalize()
 
     # Remove a URL from the title. We do this because words in a URL must
     # stay lowercase, even if they are a capitalization exception.
