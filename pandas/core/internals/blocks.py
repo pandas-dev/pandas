@@ -874,7 +874,7 @@ class Block(PandasObject):
             # GH#8669 empty indexers
             pass
 
-        elif is_scalar_indexer(indexer, arr_value):
+        elif is_scalar_indexer(indexer, self.ndim):
             # setting a single element for each dim and with a rhs that could
             #  be e.g. a list; see GH#6043
             values[indexer] = value
@@ -892,12 +892,10 @@ class Block(PandasObject):
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
         elif exact_match:
+            # We are setting _all_ of the array's values, so can cast to new dtype
             values[indexer] = value
 
-            try:
-                values = values.astype(arr_value.dtype)
-            except ValueError:
-                pass
+            values = values.astype(arr_value.dtype, copy=False)
 
         # set
         else:
