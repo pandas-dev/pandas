@@ -7920,7 +7920,7 @@ Wild         185.0
             df = self
             if numeric_only is True:
                 df = _get_data(axis_matters=True)
-            return DataFrame._reduce_columns(df, op, name, skipna=skipna, **kwds)
+            return df._reduce_columns(op, name, skipna=skipna, **kwds)
 
         if numeric_only is not None and axis in [0, 1]:
             df = self
