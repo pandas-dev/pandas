@@ -1,4 +1,5 @@
 """Common utilities for Numba operations"""
+import inspect
 import types
 from typing import Callable, Dict, Optional
 
@@ -68,3 +69,29 @@ def split_for_numba(arg: FrameOrSeries):
     else:
         columns_as_array = None
     return arg.to_numpy(), arg.index.to_numpy(), columns_as_array
+
+
+def validate_udf(func: Callable, include_columns: bool = False):
+    """
+    Validate user defined function for ops when using Numba.
+
+    For routines that pass Series objects, the first signature arguments should include:
+    def f(values, index, ...):
+        ...
+
+    For routines that pass DataFrame objects, the first signature arguments should include:
+    def f(values, index, columns, ...):
+        ...
+    """
+    udf_signature = list(inspect.signature(func).parameters.keys())
+    expected_args = ["values", "index"]
+    if include_columns:
+        expected_args.append("columns")
+    min_number_args = len(expected_args)
+    if (
+        len(udf_signature) < min_number_args
+        or udf_signature[:min_number_args] != expected_args
+    ):
+        raise ValueError(
+            f"The first {min_number_args} arguments to {func.__name__} must be {expected_args}"
+        )

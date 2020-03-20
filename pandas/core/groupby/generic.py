@@ -81,6 +81,7 @@ from pandas.core.util.numba_ import (
     get_jit_arguments,
     jit_user_function,
     split_for_numba,
+    validate_udf,
 )
 
 
@@ -500,6 +501,7 @@ class SeriesGroupBy(GroupBy):
         if engine == "numba":
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
+            validate_udf(func)
             func = jit_user_function(func, nopython, nogil, parallel)
 
         klass = type(self._selected_obj)
