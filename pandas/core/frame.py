@@ -7940,7 +7940,7 @@ Wild         185.0
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager._reduce
-            res = df._data.reduce(blk_func)
+            res = df._data.reduce(blk_func, name, skipna, **kwds)
             assert isinstance(res, dict)
             if len(res):
                 assert len(res) == max(list(res.keys())) + 1, res.keys()

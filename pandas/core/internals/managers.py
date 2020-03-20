@@ -349,16 +349,19 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self, func, *args, **kwargs):
+    def reduce(self, func, name, skipna=True, **kwds):
         # If 2D, we assume that we're operating column-wise
         if self.ndim == 1:
             # we'll be returning a scalar
             blk = self.blocks[0]
-            return func(blk.values, *args, **kwargs)
+            return func(blk.values)
 
         res = {}
         for blk in self.blocks:
-            bres = func(blk.values, *args, **kwargs)
+            if isinstance(blk, ExtensionBlock):
+                bres = blk.values._reduce(name, skipna=skipna, **kwds)
+            else:
+                bres = func(blk.values)
 
             if np.ndim(bres) == 0:
                 # EA
@@ -366,7 +369,7 @@ class BlockManager(PandasObject):
                 new_res = zip(blk.mgr_locs.as_array, [bres])
             else:
                 assert bres.ndim == 1, bres.shape
-                assert blk.shape[0] == len(bres), (blk.shape, bres.shape, args, kwargs)
+                assert blk.shape[0] == len(bres), (blk.shape, bres.shape)
                 new_res = zip(blk.mgr_locs.as_array, bres)
 
             nr = dict(new_res)
