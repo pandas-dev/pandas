@@ -209,7 +209,7 @@ class SelectionMixin:
         if self._selection is not None and isinstance(self.obj, ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
-        if not isinstance(self.obj, ABCDataFrame) or not self.exclusions:
+        elif not self.exclusions and not isinstance(self.obj, ABCDataFrame):
             return self.obj
 
         # there may be elements in self.exclusions that are no longer

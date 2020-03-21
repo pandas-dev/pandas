@@ -467,9 +467,12 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
     tm.assert_equal(result, expected)
 
 
-def test_by_column_not_in_values():
+@pytest.mark.parametrize(
+    "columns", [pd.MultiIndex.from_tuples([("A", ""), ("B", "C")]), ["A", "B"]]
+)
+def test_by_column_not_in_values(columns):
     # GH 32262
-    df = pd.DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
+    df = pd.DataFrame([[1, 0]] * 20 + [[2, 0]] * 12 + [[3, 0]] * 8, columns=columns)
 
     g = df.groupby("A")
     original_obj = g.obj.copy(deep=True)

@@ -170,14 +170,19 @@ key and type of :class:`Index`.  These now consistently raise ``KeyError`` (:iss
 GroupBy.rolling no longer returns grouped-by column in values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Suppose we start with
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]})
+    df
+
 *Previous behavior*:
 
 .. code-block:: ipython
 
-    In [1]: df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]})
-
-    In [2]: df.groupby("A").rolling(2).sum()
-    Out[2]:
+    In [1]: df.groupby("A").rolling(2).sum()
+    Out[1]:
            A    B
     A
     1 0  NaN  NaN
@@ -189,7 +194,6 @@ GroupBy.rolling no longer returns grouped-by column in values
 
 .. ipython:: python
 
-    df = pd.DataFrame({"A": [1, 1, 2, 3], "B": [0, 1, 2, 3]})
     df.groupby("A").rolling(2).sum()
 
 .. ---------------------------------------------------------------------------
