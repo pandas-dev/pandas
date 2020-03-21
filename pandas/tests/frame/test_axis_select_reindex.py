@@ -173,13 +173,15 @@ class TestDataFrameSelectReindex:
         res2 = df.drop(index=["a"], columns=["d"])
         tm.assert_frame_equal(res1, res2)
 
-        with pytest.raises(ValueError):
+        msg = "Cannot specify both 'labels' and 'index'/'columns'"
+        with pytest.raises(ValueError, match=msg):
             df.drop(labels="a", index="b")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.drop(labels="a", columns="b")
 
-        with pytest.raises(ValueError):
+        msg = "Need to specify at least one of 'labels', 'index' or 'columns'"
+        with pytest.raises(ValueError, match=msg):
             df.drop(axis=1)
 
     def test_merge_join_different_levels(self):
@@ -616,7 +618,8 @@ class TestDataFrameSelectReindex:
         tm.assert_index_equal(bf.index, Index([]))
 
         # Try to align DataFrame to Series along bad axis
-        with pytest.raises(ValueError):
+        msg = "No axis named 2 for object type DataFrame"
+        with pytest.raises(ValueError, match=msg):
             float_frame.align(af.iloc[0, :3], join="inner", axis=2)
 
         # align dataframe to series with broadcast or not
