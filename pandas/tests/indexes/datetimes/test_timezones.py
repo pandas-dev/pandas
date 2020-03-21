@@ -319,10 +319,10 @@ class TestDatetimeIndexTimezones:
         times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
         index = DatetimeIndex(times)
         tz = "US/Eastern"
-        with pytest.raises(pytz.NonExistentTimeError):
+        with pytest.raises(pytz.NonExistentTimeError, match="|".join(times)):
             index.tz_localize(tz=tz)
 
-        with pytest.raises(pytz.NonExistentTimeError):
+        with pytest.raises(pytz.NonExistentTimeError, match="|".join(times)):
             index.tz_localize(tz=tz, nonexistent="raise")
 
         result = index.tz_localize(tz=tz, nonexistent="NaT")
@@ -336,7 +336,7 @@ class TestDatetimeIndexTimezones:
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
         dr = date_range(datetime(2011, 11, 6, 0), periods=5, freq=pd.offsets.Hour())
-        with pytest.raises(pytz.AmbiguousTimeError):
+        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
             dr.tz_localize(tz)
 
         # With repeated hours, we can infer the transition
@@ -365,7 +365,7 @@ class TestDatetimeIndexTimezones:
     def test_dti_tz_localize_ambiguous_times(self, tz):
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
         dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3, freq=pd.offsets.Hour())
-        with pytest.raises(pytz.NonExistentTimeError):
+        with pytest.raises(pytz.NonExistentTimeError, match="2011-03-13 02:30:00"):
             dr.tz_localize(tz)
 
         # after dst transition, it works
@@ -375,7 +375,7 @@ class TestDatetimeIndexTimezones:
 
         # November 6, 2011, fall back, repeat 2 AM hour
         dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3, freq=pd.offsets.Hour())
-        with pytest.raises(pytz.AmbiguousTimeError):
+        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
             dr.tz_localize(tz)
 
         # UTC is OK
@@ -411,11 +411,11 @@ class TestDatetimeIndexTimezones:
         tm.assert_numpy_array_equal(dti3.values, dti_utc.values)
 
         dti = pd.date_range(start="11/6/2011 1:59", end="11/6/2011 2:00", freq="L")
-        with pytest.raises(pytz.AmbiguousTimeError):
+        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
             dti.tz_localize(tzstr)
 
         dti = pd.date_range(start="3/13/2011 1:59", end="3/13/2011 2:00", freq="L")
-        with pytest.raises(pytz.NonExistentTimeError):
+        with pytest.raises(pytz.NonExistentTimeError, match="2011-03-13 02:00:00"):
             dti.tz_localize(tzstr)
 
     @pytest.mark.parametrize(
@@ -441,7 +441,7 @@ class TestDatetimeIndexTimezones:
         # DST ambiguity, this should fail
         rng = date_range("3/11/2012", "3/12/2012", freq="30T")
         # Is this really how it should fail??
-        with pytest.raises(pytz.NonExistentTimeError):
+        with pytest.raises(pytz.NonExistentTimeError, match="2012-03-11 02:00:00"):
             rng.tz_localize(tz)
 
     def test_dti_tz_localize_roundtrip(self, tz_aware_fixture):
@@ -452,7 +452,9 @@ class TestDatetimeIndexTimezones:
         tz = tz_aware_fixture
         localized = idx.tz_localize(tz)
         # cant localize a tz-aware object
-        with pytest.raises(TypeError):
+        with pytest.raises(
+            TypeError, match="Already tz-aware, use tz_convert to convert"
+        ):
             localized.tz_localize(tz)
         reset = localized.tz_localize(None)
         assert reset.tzinfo is None
@@ -542,7 +544,8 @@ class TestDatetimeIndexTimezones:
         di = DatetimeIndex(times)
 
         # When the sizes are incompatible, make sure error is raised
-        with pytest.raises(Exception):
+        msg = "Length of ambiguous bool-array must be the same size as vals"
+        with pytest.raises(Exception, match=msg):
             di.tz_localize(tz, ambiguous=is_dst)
 
         # When sizes are compatible and there are repeats ('infer' won't work)
@@ -564,7 +567,7 @@ class TestDatetimeIndexTimezones:
         # construction with an ambiguous end-point
         # GH#11626
 
-        with pytest.raises(pytz.AmbiguousTimeError):
+        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
             date_range(
                 "2013-10-26 23:00", "2013-10-27 01:00", tz="Europe/London", freq="H"
             )
@@ -588,7 +591,7 @@ class TestDatetimeIndexTimezones:
     def test_dti_construction_nonexistent_endpoint(self, tz, option, expected):
         # construction with an nonexistent end-point
 
-        with pytest.raises(pytz.NonExistentTimeError):
+        with pytest.raises(pytz.NonExistentTimeError, match="2019-03-10 02:00:00"):
             date_range(
                 "2019-03-10 00:00", "2019-03-10 02:00", tz="US/Pacific", freq="H"
             )
@@ -613,10 +616,15 @@ class TestDatetimeIndexTimezones:
         n = 60
         dti = date_range(start="2015-03-29 02:00:00", periods=n, freq="min")
         if method == "raise":
-            with pytest.raises(pytz.NonExistentTimeError):
+            with pytest.raises(pytz.NonExistentTimeError, match="2015-03-29 02:00:00"):
                 dti.tz_localize(tz, nonexistent=method)
         elif exp == "invalid":
-            with pytest.raises(ValueError):
+            msg = (
+                "The nonexistent argument must be one of "
+                "'raise', 'NaT', 'shift_forward', 'shift_backward' "
+                "or a timedelta object"
+            )
+            with pytest.raises(ValueError, match=msg):
                 dti.tz_localize(tz, nonexistent=method)
         else:
             result = dti.tz_localize(tz, nonexistent=method)
@@ -1082,7 +1090,8 @@ class TestDatetimeIndexTimezones:
         dr = bdate_range(
             datetime(2005, 1, 1, tzinfo=pytz.utc), datetime(2009, 1, 1, tzinfo=pytz.utc)
         )
-        with pytest.raises(Exception):
+        msg = "Start and end cannot both be tz-aware with different timezones"
+        with pytest.raises(Exception, match=msg):
             bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc), "1/1/2009", tz=tz)
 
     @pytest.mark.parametrize("prefix", ["", "dateutil/"])
