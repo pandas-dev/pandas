@@ -3,13 +3,11 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCDateOffset
-
 import pandas as pd
 from pandas import Series, TimedeltaIndex, timedelta_range
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Day, Hour
+from pandas.tseries.offsets import DateOffset, Day, Hour
 
 
 class TestTimedeltaIndexOps:
@@ -263,7 +261,7 @@ class TestTimedeltaIndexOps:
         # can set to an offset, converting from string if necessary
         idx._data.freq = freq
         assert idx.freq == freq
-        assert isinstance(idx.freq, ABCDateOffset)
+        assert isinstance(idx.freq, DateOffset)
 
         # can reset to None
         idx._data.freq = None
