@@ -393,6 +393,19 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)
 
+        if isinstance(right.dtype, np.dtype) and left._data.nblocks == 1:
+            # includes TDA/DTA-naive
+            rvals = right._values
+            right = rvals.reshape(1, -1)
+            right = np.broadcast_to(right, left.shape).T  # Needs TDA/DTA compat
+            if not isinstance(rvals, np.ndarray):
+                # re-wrap DTA/TDA
+                right = type(rvals)(right)
+
+            array_op = get_array_op(func, str_rep=str_rep)
+            bm = left._data.apply(array_op, right=right)  # TODO: BlockManager.apply needs to know to align right
+            return type(left)(bm)
+
         if right.dtype == "timedelta64[ns]":
             # ensure we treat NaT values as the correct dtype
             # Note: we do not do this unconditionally as it may be lossy or

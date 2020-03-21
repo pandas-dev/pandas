@@ -1417,7 +1417,7 @@ class TestDatetime64DateOffsetArithmetic:
 
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = None if (box_with_array is pd.DataFrame and tz is not None) else PerformanceWarning
         with tm.assert_produces_warning(warn):
             res = dtarr + other
         expected = DatetimeIndex(
@@ -2378,7 +2378,7 @@ class TestDatetimeIndexArithmetic:
         expected = pd.DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
 
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = None if (box_with_array is pd.DataFrame and tz is not None) else PerformanceWarning
         with tm.assert_produces_warning(warn):
             result = dtarr + other
         tm.assert_equal(result, expected)

@@ -1320,7 +1320,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = PerformanceWarning #if box is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             res = tdi + other
         tm.assert_equal(res, expected)
@@ -1346,7 +1346,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = PerformanceWarning #if box is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             res = tdi + other
         tm.assert_equal(res, expected)
@@ -1382,7 +1382,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = PerformanceWarning #if box is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
@@ -1401,7 +1401,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
+        warn = PerformanceWarning#None if box_with_array is pd.DataFrame else PerformanceWarning
         with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
@@ -1473,7 +1473,7 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=1), pd.offsets.Day(2), pd.Timestamp("2000-01-04")]
         )
 
-        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
+        warn = PerformanceWarning# if box_with_array is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             result = tdarr + other
 
@@ -1481,6 +1481,8 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=2), pd.Timedelta(days=4), pd.Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, box_with_array)
+        if box_with_array is pd.DataFrame:
+            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
@@ -1495,6 +1497,8 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(0), pd.Timedelta(0), pd.Timestamp("2000-01-01")]
         )
         expected = tm.box_expected(expected, box_with_array)
+        if box_with_array is pd.DataFrame:
+            expected = expected.astype(object)
         tm.assert_equal(result, expected)
 
 
