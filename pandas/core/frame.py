@@ -6453,7 +6453,8 @@ Wild         185.0
     pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
     DataFrame.pivot : Return reshaped DataFrame organized
         by given index / column values.
-    Series.explode : Transform each element of a list-like to a row.
+    DataFrame.explode : Explode a DataFrame from list-like
+            columns to long format.
 
     Examples
     --------
