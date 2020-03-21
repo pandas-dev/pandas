@@ -1,5 +1,6 @@
 from typing import List, cast
 
+import numpy as np
 from pandas._typing import FilePathOrBuffer, Scalar
 from pandas.compat._optional import import_optional_dependency
 
@@ -149,10 +150,11 @@ class _ODFReader(_BaseExcelReader):
     def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
         from odf.namespaces import OFFICENS
 
-        # print("cell: ", cell, convert_float)
+        # print("\ncell: ", cell, convert_float)
+        if str(cell) == "#N/A":
+            return np.nan
 
         cell_type = cell.attributes.get((OFFICENS, "value-type"))
-        cell_value = cell.attributes.get((OFFICENS, "value"))
         # print("type=", cell_type, "value=", repr(cell_value))
         if cell_type == "boolean":
             if str(cell) == "TRUE":
@@ -162,16 +164,11 @@ class _ODFReader(_BaseExcelReader):
             return self.empty_value
         elif cell_type == "float":
             # GH5394
-
-            value = cell.attributes.get((OFFICENS, "value"))
-            if value == "":  # NA handling
-                return ""
-            cell_value = float(cell_value)
+            cell_value = float(cell.attributes.get((OFFICENS, "value")))
+            # print("value = ", value)
             if convert_float:
-                # print("convert", cell_value, int(cell_value))
                 val = int(cell_value)
                 if val == cell_value:
-                    # print("return the int")
                     return val
             return cell_value
         elif cell_type == "percentage":
