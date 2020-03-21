@@ -68,30 +68,39 @@ class _ODSWriter(ExcelWriter):
             for _ in range(cell.col - col_count[cell.row]):
                 rows[cell.row].addElement(TableCell())
                 col_count[cell.row] += 1
-            class_to_cell_type = {
-                str: "string",
-                int: "float",
-                float: "float",
-                bool: "boolean",
-            }
             val, fmt = self._value_with_fmt(cell.val)
-            # print("type", type(val), "value", val)
-            value = val
+            print("type", type(val), "value", val)
+            pvalue = value = val
             if isinstance(val, bool):
                 value = str(val).lower()
-                #            if isinstance(val, datetime.date):
-                #                tc = TableCell(valuetype="date",
-            if isinstance(val, datetime.date):
+                pvalue = str(val).upper()
+            if isinstance(val, datetime.datetime):
+                print('datetime', val.strftime("%Y-%m-%d"), val.strftime("%x"))
+                if val.time():
+                    value = val.isoformat()
+                    pvalue = val.strftime("%c")
+                else:
+                    value = val.strftime("%Y-%m-%d")
+                    pvalue = val.strftime("%x")
+                tc = TableCell(valuetype="date", datevalue=value)
+            elif isinstance(val, datetime.date):
                 print('date', val.strftime("%Y-%m-%d"), val.strftime("%x"))
                 value = val.strftime("%Y-%m-%d")
+                pvalue = val.strftime("%x")
+#                value = val.isoformat()
+#                pvalue = val.strftime("%c")
                 tc = TableCell(valuetype="date", datevalue=value)
             else:
+                class_to_cell_type = {
+                    str: "string",
+                    int: "float",
+                    float: "float",
+                    bool: "boolean",
+                }
                 tc = TableCell(valuetype=class_to_cell_type[type(val)], value=value)
             rows[cell.row].addElement(tc)
             col_count[cell.row] += 1
-            if isinstance(val, bool):
-                value = str(val).upper()
-            p = P(text=value)
+            p = P(text=pvalue)
             tc.addElement(p)
             """
             stylekey = json.dumps(cell.style)
