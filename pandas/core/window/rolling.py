@@ -196,7 +196,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def _get_win_type(self, kwargs: Dict):
         """
-        Exists for compatibility, overriden by subclass Window.
+        Exists for compatibility, overridden by subclass Window.
 
         Parameters
         ----------

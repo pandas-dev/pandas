@@ -3314,7 +3314,7 @@ class MultiIndex(Index):
         lvals = self._values
         rvals = other._values
 
-        uniq_tuples = None  # flag whether _inner_indexer was succesful
+        uniq_tuples = None  # flag whether _inner_indexer was successful
         if self.is_monotonic and other.is_monotonic:
             try:
                 uniq_tuples = self._inner_indexer(lvals, rvals)[0]

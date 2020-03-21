@@ -8051,7 +8051,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2018-04-09  1
         2018-04-11  2
 
-        Notice the data for 3 first calender days were returned, not the first
+        Notice the data for 3 first calendar days were returned, not the first
         3 days observed in the dataset, and therefore data for 2018-04-13 was
         not returned.
         """
@@ -8113,7 +8113,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2018-04-13  3
         2018-04-15  4
 
-        Notice the data for 3 last calender days were returned, not the last
+        Notice the data for 3 last calendar days were returned, not the last
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
         """
