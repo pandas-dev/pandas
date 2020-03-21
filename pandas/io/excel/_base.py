@@ -692,10 +692,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # validate that this engine can handle the extension
         if isinstance(path, str):
             ext = os.path.splitext(path)[-1]
-        else:
-            ext = "xls" if engine == "xlwt" else "xlsx"
-
-        self.check_extension(ext)
+            self.check_extension(ext)
 
         self.path = path
         self.sheets = {}
