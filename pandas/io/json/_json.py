@@ -973,9 +973,9 @@ class Parser:
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
             in_range = (
-                isna(new_data.values)
+                isna(new_data._values)
                 | (new_data > self.min_stamp)
-                | (new_data.values == iNaT)
+                | (new_data._values == iNaT)
             )
             if not in_range.all():
                 return data, False

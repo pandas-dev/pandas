@@ -126,7 +126,7 @@ class TablePlotter:
         if col_nlevels > 1:
             col = data.columns._get_level_values(0)
             values = [
-                data.columns._get_level_values(i).values for i in range(1, col_nlevels)
+                data.columns._get_level_values(i)._values for i in range(1, col_nlevels)
             ]
             col_df = pd.DataFrame(values)
             data.columns = col_df.columns

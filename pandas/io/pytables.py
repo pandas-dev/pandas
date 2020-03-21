@@ -2382,7 +2382,7 @@ class DataCol(IndexCol):
                 mask = isna(categories)
                 if mask.any():
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum().values
+                    codes[codes != -1] -= mask.astype(int).cumsum()._values
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered
@@ -4826,7 +4826,9 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     # encode if needed
     if len(data):
         data = (
-            Series(data.ravel()).str.encode(encoding, errors).values.reshape(data.shape)
+            Series(data.ravel())
+            .str.encode(encoding, errors)
+            ._values.reshape(data.shape)
         )
 
     # create the sized dtype
@@ -4865,7 +4867,7 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data).str.decode(encoding, errors=errors).values
+            data = Series(data).str.decode(encoding, errors=errors)._values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
