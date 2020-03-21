@@ -550,21 +550,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         timedelta64 dtypes), while ``.array`` ensures to always return an
         ExtensionArray.
 
-        Differs from ``._ndarray_values``, as that ensures to always return a
-        numpy array (it will call ``_ndarray_values`` on the ExtensionArray, if
-        the Series was backed by an ExtensionArray).
-
         Overview:
 
-        dtype       | values        | _values       | array         | _ndarray_values |
-        ----------- | ------------- | ------------- | ------------- | --------------- |
-        Numeric     | ndarray       | ndarray       | PandasArray   | ndarray         |
-        Category    | Categorical   | Categorical   | Categorical   | ndarray[int]    |
-        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray | ndarray[M8ns]   |
-        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] | ndarray[m8ns]   |
-        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   | ndarray[int]    |
-        Nullable    | EA            | EA            | EA            | ndarray         |
+        dtype       | values        | _values       | array         |
+        ----------- | ------------- | ------------- | ------------- |
+        Numeric     | ndarray       | ndarray       | PandasArray   |
+        Category    | Categorical   | Categorical   | Categorical   |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   |
+        Nullable    | EA            | EA            | EA            |
 
         """
         return self._data.internal_values()
@@ -925,6 +921,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             )
         elif isinstance(key, tuple):
             return self._get_values_tuple(key)
+
+        elif not is_list_like(key):
+            # e.g. scalars that aren't recognized by lib.is_scalar, GH#32684
+            return self.loc[key]
 
         if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
             key = list(key)
@@ -1692,6 +1692,10 @@ Name: Max Speed, dtype: float64
         int or Series (if level specified)
             Number of non-null values in the Series.
 
+        See Also
+        --------
+        DataFrame.count : Count non-NA cells for each column or row.
+
         Examples
         --------
         >>> s = pd.Series([0.0, 1.0, np.nan])
@@ -2222,6 +2226,12 @@ Name: Max Speed, dtype: float64
         float
             Correlation with other.
 
+        See Also
+        --------
+        DataFrame.corr : Compute pairwise correlation between columns.
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -2263,6 +2273,10 @@ Name: Max Speed, dtype: float64
         float
             Covariance between Series and other normalized by N-1
             (unbiased estimator).
+
+        See Also
+        --------
+        DataFrame.cov : Compute pairwise covariance of columns.
 
         Examples
         --------
