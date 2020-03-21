@@ -1,5 +1,3 @@
-from io import StringIO
-
 import numpy as np
 
 import pandas as pd
@@ -19,33 +17,6 @@ def assert_range_equal(left, right):
 
 
 class TestTimeSeries:
-    def test_autocorr(self, datetime_series):
-        # Just run the function
-        corr1 = datetime_series.autocorr()
-
-        # Now run it with the lag parameter
-        corr2 = datetime_series.autocorr(lag=1)
-
-        # corr() with lag needs Series of at least length 2
-        if len(datetime_series) <= 2:
-            assert np.isnan(corr1)
-            assert np.isnan(corr2)
-        else:
-            assert corr1 == corr2
-
-        # Choose a random lag between 1 and length of Series - 2
-        # and compare the result with the Series corr() function
-        n = 1 + np.random.randint(max(1, len(datetime_series) - 2))
-        corr1 = datetime_series.corr(datetime_series.shift(n))
-        corr2 = datetime_series.autocorr(lag=n)
-
-        # corr() with lag needs Series of at least length 2
-        if len(datetime_series) <= 2:
-            assert np.isnan(corr1)
-            assert np.isnan(corr2)
-        else:
-            assert corr1 == corr2
-
     def test_mpl_compat_hack(self, datetime_series):
 
         # This is currently failing because the test was relying on
@@ -78,13 +49,6 @@ class TestTimeSeries:
         mask[22] = True
         masked = rng[mask]
         assert masked.freq is None
-
-    def test_series_ctor_datetime64(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
-        dates = np.asarray(rng)
-
-        series = Series(dates)
-        assert np.issubdtype(series.dtype, np.dtype("M8[ns]"))
 
     def test_promote_datetime_date(self):
         rng = date_range("1/1/2000", periods=20)
@@ -122,15 +86,6 @@ class TestTimeSeries:
         expected = grouped.count()
 
         tm.assert_series_equal(result, expected)
-
-    def test_to_csv_numpy_16_bug(self):
-        frame = DataFrame({"a": date_range("1/1/2000", periods=10)})
-
-        buf = StringIO()
-        frame.to_csv(buf)
-
-        result = buf.getvalue()
-        assert "2000-01-01" in result
 
     def test_series_map_box_timedelta(self):
         # GH 11349
