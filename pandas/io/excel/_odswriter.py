@@ -57,13 +57,19 @@ class _ODSWriter(ExcelWriter):
         style_dict = {}
 
         rows = defaultdict(TableRow)
+        col_count = defaultdict(int)
 
         for cell in cells:
             print(cell.row, cell.col, cell.val)
+            # fill with empty cells if needed
+            for _ in range(cell.col - col_count[cell.row]):
+                rows[cell.row].addElement(TableCell())
+                col_count[cell.row] += 1
             class_to_cell_type = { str: "string", int: "float", float: "float", bool: "boolean" }
             val, fmt = self._value_with_fmt(cell.val)
             tc = TableCell(valuetype=class_to_cell_type[type(val)], value=val)
             rows[cell.row].addElement(tc)
+            col_count[cell.row] += 1
             p = P(text=val)
             tc.addElement(p)
             """
