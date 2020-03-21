@@ -9,6 +9,7 @@ from pandas._libs.tslib import iNaT
 from pandas.compat.numpy import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 import pandas as pd
 from pandas import (
@@ -32,7 +33,7 @@ def test_value_counts(index_or_series_obj):
     counter = collections.Counter(obj)
     expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
     expected.index = expected.index.astype(obj.dtype)
-    if isinstance(obj, pd.MultiIndex):
+    if isinstance(obj, ABCMultiIndex):
         expected.index = pd.Index(expected.index)
 
     # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)

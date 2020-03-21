@@ -4,6 +4,7 @@ import pytest
 from pandas._libs.tslib import iNaT
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, needs_i8_conversion
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 import pandas as pd
 import pandas._testing as tm
@@ -17,7 +18,7 @@ def test_unique(index_or_series_obj):
 
     # dict.fromkeys preserves the order
     unique_values = list(dict.fromkeys(obj.values))
-    if isinstance(obj, pd.MultiIndex):
+    if isinstance(obj, ABCMultiIndex):
         expected = pd.MultiIndex.from_tuples(unique_values)
         expected.names = obj.names
         tm.assert_index_equal(result, expected)
@@ -39,7 +40,7 @@ def test_unique_null(null_obj, index_or_series_obj):
         pytest.skip("type doesn't allow for NA operations")
     elif len(obj) < 1:
         pytest.skip("Test doesn't make sense on empty data")
-    elif isinstance(obj, pd.MultiIndex):
+    elif isinstance(obj, ABCMultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     values = obj.values
@@ -85,7 +86,7 @@ def test_nunique_null(null_obj, index_or_series_obj):
 
     if not allow_na_ops(obj):
         pytest.skip("type doesn't allow for NA operations")
-    elif isinstance(obj, pd.MultiIndex):
+    elif isinstance(obj, ABCMultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     values = obj.values

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -11,7 +13,7 @@ def test_factorize(index_or_series_obj, sort):
     result_codes, result_uniques = obj.factorize(sort=sort)
 
     constructor = pd.Index
-    if isinstance(obj, pd.MultiIndex):
+    if isinstance(obj, ABCMultiIndex):
         constructor = pd.MultiIndex.from_tuples
     expected_uniques = constructor(obj.unique())
 

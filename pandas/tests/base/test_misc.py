@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_object_dtype,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 import pandas as pd
 from pandas import DataFrame, Index, IntervalIndex, Series
@@ -161,7 +162,7 @@ def test_searchsorted(index_or_series_obj):
     # See gh-12238
     obj = index_or_series_obj
 
-    if isinstance(obj, pd.MultiIndex):
+    if isinstance(obj, ABCMultiIndex):
         # See gh-14833
         pytest.skip("np.searchsorted doesn't work on pd.MultiIndex")
 
