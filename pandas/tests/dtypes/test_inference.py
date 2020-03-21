@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import iNaT, lib, missing as libmissing
+from pandas._libs import lib, missing as libmissing
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
@@ -50,7 +50,6 @@ from pandas import (
     Timedelta,
     TimedeltaIndex,
     Timestamp,
-    isna,
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
@@ -1480,14 +1479,12 @@ def test_nan_to_nat_conversions():
         dict({"A": np.asarray(range(10), dtype="float64"), "B": Timestamp("20010101")})
     )
     df.iloc[3:6, :] = np.nan
-    result = df.loc[4, "B"].value
-    assert result == iNaT
+    result = df.loc[4, "B"]
+    assert result is pd.NaT
 
     s = df["B"].copy()
-    s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
-    assert isna(s[8])
-
-    assert s[8].value == np.datetime64("NaT").astype(np.int64)
+    s[8:9] = np.nan
+    assert s[8] is pd.NaT
 
 
 @td.skip_if_no_scipy
