@@ -88,6 +88,13 @@ class TestTimedeltaAdditionSubtraction:
         result = op(td, NaT)
         assert result is NaT
 
+    def test_td_add_timestamp_overflow(self):
+        with pytest.raises(OverflowError):
+            Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
+
+        with pytest.raises(OverflowError):
+            Timestamp("1700-01-01") + timedelta(days=13 * 19999)
+
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     def test_td_add_td(self, op):
         td = Timedelta(10, unit="d")
@@ -365,6 +372,26 @@ class TestTimedeltaMultiplicationDivision:
 
         assert np.isnan(td / NaT)
 
+    def test_td_div_td64_non_nano(self):
+
+        # truediv
+        td = Timedelta("1 days 2 hours 3 ns")
+        result = td / np.timedelta64(1, "D")
+        assert result == td.value / float(86400 * 1e9)
+        result = td / np.timedelta64(1, "s")
+        assert result == td.value / float(1e9)
+        result = td / np.timedelta64(1, "ns")
+        assert result == td.value
+
+        # floordiv
+        td = Timedelta("1 days 2 hours 3 ns")
+        result = td // np.timedelta64(1, "D")
+        assert result == 1
+        result = td // np.timedelta64(1, "s")
+        assert result == 93600
+        result = td // np.timedelta64(1, "ns")
+        assert result == td.value
+
     def test_td_div_numeric_scalar(self):
         # GH#19738
         td = Timedelta(10, unit="d")
@@ -589,6 +616,13 @@ class TestTimedeltaMultiplicationDivision:
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
 
+    def test_td_rfloordiv_intarray(self):
+        # deprecated GH#19761, enforced GH#29797
+        ints = np.array([1349654400, 1349740800, 1349827200, 1349913600]) * 10 ** 9
+
+        with pytest.raises(TypeError, match="Invalid dtype"):
+            ints // Timedelta(1, unit="s")
+
     def test_td_rfloordiv_numeric_series(self):
         # GH#18846
         td = Timedelta(hours=3, minutes=3)
@@ -796,3 +830,129 @@ class TestTimedeltaMultiplicationDivision:
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
         with pytest.raises(TypeError):
             op(arr, Timedelta("1D"))
+
+
+class TestTimedeltaComparison:
+    def test_compare_tick(self, tick_classes):
+        cls = tick_classes
+
+        off = cls(4)
+        td = off.delta
+        assert isinstance(td, Timedelta)
+
+        assert td == off
+        assert not td != off
+        assert td <= off
+        assert td >= off
+        assert not td < off
+        assert not td > off
+
+        assert not td == 2 * off
+        assert td != 2 * off
+        assert td <= 2 * off
+        assert td < 2 * off
+        assert not td >= 2 * off
+        assert not td > 2 * off
+
+    def test_comparison_object_array(self):
+        # analogous to GH#15183
+        td = Timedelta("2 days")
+        other = Timedelta("3 hours")
+
+        arr = np.array([other, td], dtype=object)
+        res = arr == td
+        expected = np.array([False, True], dtype=bool)
+        assert (res == expected).all()
+
+        # 2D case
+        arr = np.array([[other, td], [td, other]], dtype=object)
+        res = arr != td
+        expected = np.array([[True, False], [False, True]], dtype=bool)
+        assert res.shape == expected.shape
+        assert (res == expected).all()
+
+    def test_compare_timedelta_ndarray(self):
+        # GH#11835
+        periods = [Timedelta("0 days 01:00:00"), Timedelta("0 days 01:00:00")]
+        arr = np.array(periods)
+        result = arr[0] > arr
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.skip(reason="GH#20829 is reverted until after 0.24.0")
+    def test_compare_custom_object(self):
+        """
+        Make sure non supported operations on Timedelta returns NonImplemented
+        and yields to other operand (GH#20829).
+        """
+
+        class CustomClass:
+            def __init__(self, cmp_result=None):
+                self.cmp_result = cmp_result
+
+            def generic_result(self):
+                if self.cmp_result is None:
+                    return NotImplemented
+                else:
+                    return self.cmp_result
+
+            def __eq__(self, other):
+                return self.generic_result()
+
+            def __gt__(self, other):
+                return self.generic_result()
+
+        t = Timedelta("1s")
+
+        assert not (t == "string")
+        assert not (t == 1)
+        assert not (t == CustomClass())
+        assert not (t == CustomClass(cmp_result=False))
+
+        assert t < CustomClass(cmp_result=True)
+        assert not (t < CustomClass(cmp_result=False))
+
+        assert t == CustomClass(cmp_result=True)
+
+    @pytest.mark.parametrize("val", ["string", 1])
+    def test_compare_unknown_type(self, val):
+        # GH#20829
+        t = Timedelta("1s")
+        with pytest.raises(TypeError):
+            t >= val
+        with pytest.raises(TypeError):
+            t > val
+        with pytest.raises(TypeError):
+            t <= val
+        with pytest.raises(TypeError):
+            t < val
+
+
+def test_ops_notimplemented():
+    class Other:
+        pass
+
+    other = Other()
+
+    td = Timedelta("1 day")
+    assert td.__add__(other) is NotImplemented
+    assert td.__sub__(other) is NotImplemented
+    assert td.__truediv__(other) is NotImplemented
+    assert td.__mul__(other) is NotImplemented
+    assert td.__floordiv__(other) is NotImplemented
+
+
+def test_ops_error_str():
+    # GH#13624
+    td = Timedelta("1 day")
+
+    for left, right in [(td, "a"), ("a", td)]:
+
+        with pytest.raises(TypeError):
+            left + right
+
+        with pytest.raises(TypeError):
+            left > right
+
+        assert not left == right
+        assert left != right

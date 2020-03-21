@@ -209,3 +209,27 @@ class TestSeriesAnalytics:
         )
         with pytest.raises(ValueError, match=msg):
             np.sum(s, keepdims=True)
+
+    def test_td64_summation_overflow(self):
+        # GH 9442
+        s = pd.Series(pd.date_range("20130101", periods=100000, freq="H"))
+        s[0] += pd.Timedelta("1s 1ms")
+
+        # mean
+        result = (s - s.min()).mean()
+        expected = pd.Timedelta((pd.TimedeltaIndex((s - s.min())).asi8 / len(s)).sum())
+
+        # the computation is converted to float so
+        # might be some loss of precision
+        assert np.allclose(result.value / 1000, expected.value / 1000)
+
+        # sum
+        msg = "overflow in timedelta operation"
+        with pytest.raises(ValueError, match=msg):
+            (s - s.min()).sum()
+
+        s1 = s[0:10000]
+        with pytest.raises(ValueError, match=msg):
+            (s1 - s1.min()).sum()
+        s2 = s[0:1000]
+        (s2 - s2.min()).sum()

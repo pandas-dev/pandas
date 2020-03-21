@@ -69,3 +69,67 @@ class TestVectorizedTimedelta:
             td.round(freq="M")
         with pytest.raises(ValueError, match=msg):
             elt.round(freq="M")
+
+    @pytest.mark.parametrize(
+        "freq,msg",
+        [
+            ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
+            ("M", "<MonthEnd> is a non-fixed frequency"),
+            ("foobar", "Invalid frequency: foobar"),
+        ],
+    )
+    def test_tdi_round_invalid(self, freq, msg):
+        t1 = timedelta_range("1 days", periods=3, freq="1 min 2 s 3 us")
+
+        with pytest.raises(ValueError, match=msg):
+            t1.round(freq)
+        with pytest.raises(ValueError, match=msg):
+            # Same test for TimedeltaArray
+            t1._data.round(freq)
+
+    # TODO: de-duplicate with test_tdi_round
+    def test_round(self):
+        t1 = timedelta_range("1 days", periods=3, freq="1 min 2 s 3 us")
+        t2 = -1 * t1
+        t1a = timedelta_range("1 days", periods=3, freq="1 min 2 s")
+        t1c = TimedeltaIndex([1, 1, 1], unit="D")
+
+        # note that negative times round DOWN! so don't give whole numbers
+        for (freq, s1, s2) in [
+            ("N", t1, t2),
+            ("U", t1, t2),
+            (
+                "L",
+                t1a,
+                TimedeltaIndex(
+                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"],
+                ),
+            ),
+            (
+                "S",
+                t1a,
+                TimedeltaIndex(
+                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"],
+                ),
+            ),
+            ("12T", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"],),),
+            ("H", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"],),),
+            ("d", t1c, TimedeltaIndex([-1, -1, -1], unit="D")),
+        ]:
+
+            r1 = t1.round(freq)
+            tm.assert_index_equal(r1, s1)
+            r2 = t2.round(freq)
+            tm.assert_index_equal(r2, s2)
+
+    def test_components(self):
+        rng = timedelta_range("1 days, 10:11:12", periods=2, freq="s")
+        rng.components
+
+        # with nat
+        s = Series(rng)
+        s[1] = np.nan
+
+        result = s.dt.components
+        assert not result.iloc[0].isna().all()
+        assert result.iloc[1].isna().all()

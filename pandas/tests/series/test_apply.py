@@ -787,3 +787,18 @@ class TestSeriesMap:
         result = ser.map(lambda val: str(val)).to_dict()
         expected = {0: "0.3333333333333333"}
         assert result == expected
+
+    def test_apply_to_timedelta(self):
+        list_of_valid_strings = ["00:00:01", "00:00:02"]
+        a = pd.to_timedelta(list_of_valid_strings)
+        b = Series(list_of_valid_strings).apply(pd.to_timedelta)
+        # FIXME: dont leave commented-out
+        # Can't compare until apply on a Series gives the correct dtype
+        # assert_series_equal(a, b)
+
+        list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
+
+        a = pd.to_timedelta(list_of_strings)  # noqa
+        b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+        # Can't compare until apply on a Series gives the correct dtype
+        # assert_series_equal(a, b)
