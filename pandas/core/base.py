@@ -357,10 +357,7 @@ class SelectionMixin:
                     obj.columns.intersection(keys)
                 ) != len(keys):
                     cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
-                    if len(cols) > 1:
-                        raise SpecificationError(f"Columns {cols} do not exist")
-                    else:
-                        raise SpecificationError(f"Column {cols} does not exist")
+                    raise SpecificationError(f"Column(s) {cols} do not exist")
 
             from pandas.core.reshape.concat import concat
 
