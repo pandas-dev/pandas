@@ -597,7 +597,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
 
 cdef inline bint _infer_tsobject_fold(
     _TSObject obj,
-    ndarray[int64_t] trans,
+    const int64_t[:] trans,
     const int64_t[:] deltas,
     int32_t pos,
 ):
