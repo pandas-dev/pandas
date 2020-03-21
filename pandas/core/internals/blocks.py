@@ -932,7 +932,7 @@ class Block(PandasObject):
         inplace : bool, default False
             Perform inplace modification.
         axis : int
-        transpose : bool, default False.
+        transpose : bool, default False
             Set to True if self is stored with axes reversed.
 
         Returns
