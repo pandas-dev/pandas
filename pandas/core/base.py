@@ -214,7 +214,12 @@ class SelectionMixin:
 
         # there may be elements in self.exclusions that are no longer
         # in self.obj, see GH 32468
-        exclusions = self.exclusions.intersection(self.obj.columns)
+        unique_column_names = {
+            j
+            for i in range(self.obj.columns.nlevels)
+            for j in self.obj.columns.get_level_values(i)
+        }
+        exclusions = self.exclusions.intersection(unique_column_names)
         return self.obj.drop(exclusions, axis=1)
 
     def __getitem__(self, key):

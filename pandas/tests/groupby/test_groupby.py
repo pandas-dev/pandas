@@ -5,6 +5,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas._testing as tm
@@ -1563,7 +1565,8 @@ def test_groupby_multiindex_not_lexsorted():
     tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
 
     expected = lexsorted_df.groupby("a").mean()
-    result = not_lexsorted_df.groupby("a").mean()
+    with tm.assert_produces_warning(PerformanceWarning):
+        result = not_lexsorted_df.groupby("a").mean()
     tm.assert_frame_equal(expected, result)
 
     # a transforming function should work regardless of sort
