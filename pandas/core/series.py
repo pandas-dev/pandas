@@ -3461,7 +3461,7 @@ Name: Max Speed, dtype: float64
     def explode(self) -> "Series":
         """
         Explode Series from list-like column to long format.
-        
+
         Transform each element of a list-like to a row, replicating the
         index values.
 
