@@ -7820,13 +7820,21 @@ Wild         185.0
                 f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
             )
 
+        # Mask NaNs: Mask rows where the index level is NaN and all values in
+        # the DataFrame that are NaN
         if frame._is_mixed_type:
             # Since we have mixed types, calling notna(frame.values) might
             # upcast everything to object
-            mask = notna(frame).values
+            mask = (
+                notna(frame.index.get_level_values(level=level)).reshape(-1, 1) &
+                notna(frame).values
+            )
         else:
             # But use the speedup when we have homogeneous dtypes
-            mask = notna(frame.values)
+            mask = (
+                notna(frame.index.get_level_values(level=level)).reshape(-1, 1) &
+                notna(frame.values)
+            )
 
         if axis == 1:
             # We're transposing the mask rather than frame to avoid potential
