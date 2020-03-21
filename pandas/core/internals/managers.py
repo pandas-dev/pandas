@@ -1765,7 +1765,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            make_block(array, klass=DatetimeTZBlock, placement=[i])
+            make_block(array, klass=DatetimeTZBlock, placement=i)
             for i, _, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1780,7 +1780,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
-            make_block(array, klass=CategoricalBlock, placement=[i])
+            make_block(array, klass=CategoricalBlock, placement=i)
             for i, _, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
@@ -1788,7 +1788,7 @@ def form_blocks(arrays, names, axes):
     if len(items_dict["ExtensionBlock"]):
 
         external_blocks = [
-            make_block(array, klass=ExtensionBlock, placement=[i])
+            make_block(array, klass=ExtensionBlock, placement=i)
             for i, _, array in items_dict["ExtensionBlock"]
         ]
 
@@ -1796,7 +1796,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["ObjectValuesExtensionBlock"]):
         external_blocks = [
-            make_block(array, klass=ObjectValuesExtensionBlock, placement=[i])
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=i)
             for i, _, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
