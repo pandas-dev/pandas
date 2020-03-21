@@ -77,6 +77,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     infer_dtype_from_object,
     is_bool_dtype,
+    is_dataclass,
     is_datetime64_any_dtype,
     is_dict_like,
     is_dtype_equal,
@@ -117,6 +118,7 @@ from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
     arrays_to_mgr,
+    dataclasses_to_dicts,
     get_names_from_index,
     init_dict,
     init_ndarray,
@@ -474,6 +476,8 @@ class DataFrame(NDFrame):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
                 data = list(data)
             if len(data) > 0:
+                if is_dataclass(data[0]):
+                    data = dataclasses_to_dicts(data)
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
@@ -1249,7 +1253,7 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
-    def to_numpy(self, dtype=None, copy=False) -> np.ndarray:
+    def to_numpy(self, dtype=None, copy: bool = False) -> np.ndarray:
         """
         Convert the DataFrame to a NumPy array.
 
@@ -1401,11 +1405,45 @@ class DataFrame(NDFrame):
             )
         # GH16122
         into_c = com.standardize_mapping(into)
-        if orient.lower().startswith("d"):
+
+        orient = orient.lower()
+        # GH32515
+        if orient.startswith(("d", "l", "s", "r", "i")) and orient not in {
+            "dict",
+            "list",
+            "series",
+            "split",
+            "records",
+            "index",
+        }:
+            warnings.warn(
+                "Using short name for 'orient' is deprecated. Only the "
+                "options: ('dict', list, 'series', 'split', 'records', 'index') "
+                "will be used in a future version. Use one of the above "
+                "to silence this warning.",
+                FutureWarning,
+            )
+
+            if orient.startswith("d"):
+                orient = "dict"
+            elif orient.startswith("l"):
+                orient = "list"
+            elif orient.startswith("sp"):
+                orient = "split"
+            elif orient.startswith("s"):
+                orient = "series"
+            elif orient.startswith("r"):
+                orient = "records"
+            elif orient.startswith("i"):
+                orient = "index"
+
+        if orient == "dict":
             return into_c((k, v.to_dict(into)) for k, v in self.items())
-        elif orient.lower().startswith("l"):
+
+        elif orient == "list":
             return into_c((k, v.tolist()) for k, v in self.items())
-        elif orient.lower().startswith("sp"):
+
+        elif orient == "split":
             return into_c(
                 (
                     ("index", self.index.tolist()),
@@ -1419,9 +1457,11 @@ class DataFrame(NDFrame):
                     ),
                 )
             )
-        elif orient.lower().startswith("s"):
+
+        elif orient == "series":
             return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
-        elif orient.lower().startswith("r"):
+
+        elif orient == "records":
             columns = self.columns.tolist()
             rows = (
                 dict(zip(columns, row))
@@ -1431,13 +1471,15 @@ class DataFrame(NDFrame):
                 into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
-        elif orient.lower().startswith("i"):
+
+        elif orient == "index":
             if not self.index.is_unique:
                 raise ValueError("DataFrame index must be unique for orient='index'.")
             return into_c(
                 (t[0], dict(zip(self.columns, t[1:])))
                 for t in self.itertuples(name=None)
             )
+
         else:
             raise ValueError(f"orient '{orient}' not understood")
 
@@ -1773,7 +1815,9 @@ class DataFrame(NDFrame):
             else:
                 ix_vals = [self.index.values]
 
-            arrays = ix_vals + [self[c]._internal_get_values() for c in self.columns]
+            arrays = ix_vals + [
+                np.asarray(self.iloc[:, i]) for i in range(len(self.columns))
+            ]
 
             count = 0
             index_names = list(self.index.names)
@@ -1788,7 +1832,7 @@ class DataFrame(NDFrame):
 
             names = [str(name) for name in itertools.chain(index_names, self.columns)]
         else:
-            arrays = [self[c]._internal_get_values() for c in self.columns]
+            arrays = [np.asarray(self.iloc[:, i]) for i in range(len(self.columns))]
             names = [str(c) for c in self.columns]
             index_names = []
 
@@ -1845,8 +1889,41 @@ class DataFrame(NDFrame):
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
 
     @classmethod
-    def _from_arrays(cls, arrays, columns, index, dtype=None) -> "DataFrame":
-        mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+    def _from_arrays(
+        cls, arrays, columns, index, dtype=None, verify_integrity=True
+    ) -> "DataFrame":
+        """
+        Create DataFrame from a list of arrays corresponding to the columns.
+
+        Parameters
+        ----------
+        arrays : list-like of arrays
+            Each array in the list corresponds to one column, in order.
+        columns : list-like, Index
+            The column names for the resulting DataFrame.
+        index : list-like, Index
+            The rows labels for the resulting DataFrame.
+        dtype : dtype, optional
+            Optional dtype to enforce for all arrays.
+        verify_integrity : bool, default True
+            Validate and homogenize all input. If set to False, it is assumed
+            that all elements of `arrays` are actual arrays how they will be
+            stored in a block (numpy ndarray or ExtensionArray), have the same
+            length as and are aligned with the index, and that `columns` and
+            `index` are ensured to be an Index object.
+
+        Returns
+        -------
+        DataFrame
+        """
+        mgr = arrays_to_mgr(
+            arrays,
+            columns,
+            index,
+            columns,
+            dtype=dtype,
+            verify_integrity=verify_integrity,
+        )
         return cls(mgr)
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
@@ -2687,6 +2764,7 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
+                self.loc._ensure_listlike_indexer(key, axis=1)
                 indexer = self.loc._get_listlike_indexer(
                     key, axis=1, raise_missing=False
                 )[1]
@@ -6566,7 +6644,7 @@ Wild         185.0
     # ----------------------------------------------------------------------
     # Time series-related
 
-    def diff(self, periods=1, axis=0) -> "DataFrame":
+    def diff(self, periods: int = 1, axis: Axis = 0) -> "DataFrame":
         """
         First discrete difference of element.
 
@@ -8122,6 +8200,35 @@ Wild         185.0
         Notes
         -----
         This method is the DataFrame version of ``ndarray.argmin``.
+
+        Examples
+        --------
+        Consider a dataset containing food consumption in Argentina.
+
+        >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
+        ...                    'co2_emissions': [37.2, 19.66, 1712]},
+        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+
+        >>> df
+                        consumption  co2_emissions
+        Pork                  10.51         37.20
+        Wheat Products       103.11         19.66
+        Beef                  55.48       1712.00
+
+        By default, it returns the index for the minimum value in each column.
+
+        >>> df.idxmin()
+        consumption                Pork
+        co2_emissions    Wheat Products
+        dtype: object
+
+        To return the index for the minimum value in each row, use ``axis="columns"``.
+
+        >>> df.idxmin(axis="columns")
+        Pork                consumption
+        Wheat Products    co2_emissions
+        Beef                consumption
+        dtype: object
         """
         axis = self._get_axis_number(axis)
         indices = nanops.nanargmin(self.values, axis=axis, skipna=skipna)

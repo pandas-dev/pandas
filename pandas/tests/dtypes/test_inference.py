@@ -1437,6 +1437,7 @@ class TestIsScalar:
         assert is_scalar(Period("2014-01-01"))
         assert is_scalar(Interval(left=0, right=1))
         assert is_scalar(DateOffset(days=1))
+        assert is_scalar(pd.offsets.Minute(3))
 
     def test_is_scalar_pandas_containers(self):
         assert not is_scalar(Series(dtype=object))
@@ -1445,6 +1446,11 @@ class TestIsScalar:
         assert not is_scalar(DataFrame([[1]]))
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
+        assert not is_scalar(Categorical([]))
+        assert not is_scalar(DatetimeIndex([])._data)
+        assert not is_scalar(TimedeltaIndex([])._data)
+        assert not is_scalar(DatetimeIndex([])._data.to_period("D"))
+        assert not is_scalar(pd.array([1, 2, 3]))
 
     def test_is_scalar_number(self):
         # Number() is not recognied by PyNumber_Check, so by extension

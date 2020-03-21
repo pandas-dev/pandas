@@ -23,6 +23,7 @@ from pandas.errors import PerformanceWarning
 from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -716,23 +717,6 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         result = checked_add_with_arr(i8, -other.value, arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
         return result.view("timedelta64[ns]")
-
-    def _add_delta(self, delta):
-        """
-        Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self, yielding a new DatetimeArray
-
-        Parameters
-        ----------
-        other : {timedelta, np.timedelta64, Tick,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : DatetimeArray
-        """
-        new_values = super()._add_delta(delta)
-        return type(self)._from_sequence(new_values, tz=self.tz, freq="infer")
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
@@ -1903,7 +1887,11 @@ def maybe_convert_dtype(data, copy):
     ------
     TypeError : PeriodDType data is passed
     """
-    if is_float_dtype(data):
+    if not hasattr(data, "dtype"):
+        # e.g. collections.deque
+        return data, copy
+
+    if is_float_dtype(data.dtype):
         # Note: we must cast to datetime64[ns] here in order to treat these
         #  as wall-times instead of UTC timestamps.
         data = data.astype(_NS_DTYPE)
@@ -1911,24 +1899,24 @@ def maybe_convert_dtype(data, copy):
         # TODO: deprecate this behavior to instead treat symmetrically
         #  with integer dtypes.  See discussion in GH#23675
 
-    elif is_timedelta64_dtype(data):
+    elif is_timedelta64_dtype(data.dtype) or is_bool_dtype(data.dtype):
         # GH#29794 enforcing deprecation introduced in GH#23539
         raise TypeError(f"dtype {data.dtype} cannot be converted to datetime64[ns]")
-    elif is_period_dtype(data):
+    elif is_period_dtype(data.dtype):
         # Note: without explicitly raising here, PeriodIndex
         #  test_setops.test_join_does_not_recur fails
         raise TypeError(
             "Passing PeriodDtype data is invalid. Use `data.to_timestamp()` instead"
         )
 
-    elif is_categorical_dtype(data):
+    elif is_categorical_dtype(data.dtype):
         # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through this func,
         #  e.g. the categories are timedelta64s
         data = data.categories.take(data.codes, fill_value=NaT)._values
         copy = False
 
-    elif is_extension_array_dtype(data) and not is_datetime64tz_dtype(data):
+    elif is_extension_array_dtype(data.dtype) and not is_datetime64tz_dtype(data.dtype):
         # Includes categorical
         # TODO: We have no tests for these
         data = np.array(data, dtype=np.object_)

@@ -1912,117 +1912,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         %(klass)s in Markdown-friendly format.
     """
 
-    _shared_docs[
-        "to_excel"
-    ] = """
-    Write %(klass)s to an Excel sheet.
-
-    To write a single %(klass)s to an Excel .xlsx file it is only necessary to
-    specify a target file name. To write to multiple sheets it is necessary to
-    create an `ExcelWriter` object with a target file name, and specify a sheet
-    in the file to write to.
-
-    Multiple sheets may be written to by specifying unique `sheet_name`.
-    With all data written to the file it is necessary to save the changes.
-    Note that creating an `ExcelWriter` object with a file name that already
-    exists will result in the contents of the existing file being erased.
-
-    Parameters
-    ----------
-    excel_writer : str or ExcelWriter object
-        File path or existing ExcelWriter.
-    sheet_name : str, default 'Sheet1'
-        Name of sheet which will contain DataFrame.
-    na_rep : str, default ''
-        Missing data representation.
-    float_format : str, optional
-        Format string for floating point numbers. For example
-        ``float_format="%%.2f"`` will format 0.1234 to 0.12.
-    columns : sequence or list of str, optional
-        Columns to write.
-    header : bool or list of str, default True
-        Write out the column names. If a list of string is given it is
-        assumed to be aliases for the column names.
-    index : bool, default True
-        Write row names (index).
-    index_label : str or sequence, optional
-        Column label for index column(s) if desired. If not specified, and
-        `header` and `index` are True, then the index names are used. A
-        sequence should be given if the DataFrame uses MultiIndex.
-    startrow : int, default 0
-        Upper left cell row to dump data frame.
-    startcol : int, default 0
-        Upper left cell column to dump data frame.
-    engine : str, optional
-        Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
-        via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
-        ``io.excel.xlsm.writer``.
-    merge_cells : bool, default True
-        Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding : str, optional
-        Encoding of the resulting excel file. Only necessary for xlwt,
-        other writers support unicode natively.
-    inf_rep : str, default 'inf'
-        Representation for infinity (there is no native representation for
-        infinity in Excel).
-    verbose : bool, default True
-        Display more information in the error logs.
-    freeze_panes : tuple of int (length 2), optional
-        Specifies the one-based bottommost row and rightmost column that
-        is to be frozen.
-
-    See Also
-    --------
-    to_csv : Write DataFrame to a comma-separated values (csv) file.
-    ExcelWriter : Class for writing DataFrame objects into excel sheets.
-    read_excel : Read an Excel file into a pandas DataFrame.
-    read_csv : Read a comma-separated values (csv) file into DataFrame.
-
-    Notes
-    -----
-    For compatibility with :meth:`~DataFrame.to_csv`,
-    to_excel serializes lists and dicts to strings before writing.
-
-    Once a workbook has been saved it is not possible write further data
-    without rewriting the whole workbook.
-
-    Examples
-    --------
-
-    Create, write to and save a workbook:
-
-    >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
-    ...                    index=['row 1', 'row 2'],
-    ...                    columns=['col 1', 'col 2'])
-    >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
-
-    To specify the sheet name:
-
-    >>> df1.to_excel("output.xlsx",
-    ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
-
-    If you wish to write to more than one sheet in the workbook, it is
-    necessary to specify an ExcelWriter object:
-
-    >>> df2 = df1.copy()
-    >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
-    ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
-    ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
-
-    ExcelWriter can also be used to append to an existing Excel file:
-
-    >>> with pd.ExcelWriter('output.xlsx',
-    ...                     mode='a') as writer:  # doctest: +SKIP
-    ...     df.to_excel(writer, sheet_name='Sheet_name_3')
-
-    To set the library that is used to write the Excel file,
-    you can pass the `engine` keyword (the default engine is
-    automatically chosen depending on the file extension):
-
-    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
-    """
-
-    @Appender(_shared_docs["to_excel"] % dict(klass="object"))
+    @doc(klass="object")
     def to_excel(
         self,
         excel_writer,
@@ -2042,6 +1932,114 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         verbose=True,
         freeze_panes=None,
     ) -> None:
+        """
+        Write {klass} to an Excel sheet.
+
+        To write a single {klass} to an Excel .xlsx file it is only necessary to
+        specify a target file name. To write to multiple sheets it is necessary to
+        create an `ExcelWriter` object with a target file name, and specify a sheet
+        in the file to write to.
+
+        Multiple sheets may be written to by specifying unique `sheet_name`.
+        With all data written to the file it is necessary to save the changes.
+        Note that creating an `ExcelWriter` object with a file name that already
+        exists will result in the contents of the existing file being erased.
+
+        Parameters
+        ----------
+        excel_writer : str or ExcelWriter object
+            File path or existing ExcelWriter.
+        sheet_name : str, default 'Sheet1'
+            Name of sheet which will contain DataFrame.
+        na_rep : str, default ''
+            Missing data representation.
+        float_format : str, optional
+            Format string for floating point numbers. For example
+            ``float_format="%.2f"`` will format 0.1234 to 0.12.
+        columns : sequence or list of str, optional
+            Columns to write.
+        header : bool or list of str, default True
+            Write out the column names. If a list of string is given it is
+            assumed to be aliases for the column names.
+        index : bool, default True
+            Write row names (index).
+        index_label : str or sequence, optional
+            Column label for index column(s) if desired. If not specified, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+        startrow : int, default 0
+            Upper left cell row to dump data frame.
+        startcol : int, default 0
+            Upper left cell column to dump data frame.
+        engine : str, optional
+            Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
+            via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
+            ``io.excel.xlsm.writer``.
+        merge_cells : bool, default True
+            Write MultiIndex and Hierarchical Rows as merged cells.
+        encoding : str, optional
+            Encoding of the resulting excel file. Only necessary for xlwt,
+            other writers support unicode natively.
+        inf_rep : str, default 'inf'
+            Representation for infinity (there is no native representation for
+            infinity in Excel).
+        verbose : bool, default True
+            Display more information in the error logs.
+        freeze_panes : tuple of int (length 2), optional
+            Specifies the one-based bottommost row and rightmost column that
+            is to be frozen.
+
+        See Also
+        --------
+        to_csv : Write DataFrame to a comma-separated values (csv) file.
+        ExcelWriter : Class for writing DataFrame objects into excel sheets.
+        read_excel : Read an Excel file into a pandas DataFrame.
+        read_csv : Read a comma-separated values (csv) file into DataFrame.
+
+        Notes
+        -----
+        For compatibility with :meth:`~DataFrame.to_csv`,
+        to_excel serializes lists and dicts to strings before writing.
+
+        Once a workbook has been saved it is not possible write further data
+        without rewriting the whole workbook.
+
+        Examples
+        --------
+
+        Create, write to and save a workbook:
+
+        >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
+        ...                    index=['row 1', 'row 2'],
+        ...                    columns=['col 1', 'col 2'])
+        >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
+
+        To specify the sheet name:
+
+        >>> df1.to_excel("output.xlsx",
+        ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
+
+        If you wish to write to more than one sheet in the workbook, it is
+        necessary to specify an ExcelWriter object:
+
+        >>> df2 = df1.copy()
+        >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
+        ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
+        ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+
+        ExcelWriter can also be used to append to an existing Excel file:
+
+        >>> with pd.ExcelWriter('output.xlsx',
+        ...                     mode='a') as writer:  # doctest: +SKIP
+        ...     df.to_excel(writer, sheet_name='Sheet_name_3')
+
+        To set the library that is used to write the Excel file,
+        you can pass the `engine` keyword (the default engine is
+        automatically chosen depending on the file extension):
+
+        >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
+        """
+
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
         from pandas.io.formats.excel import ExcelFormatter
@@ -4794,9 +4792,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-        random_state : int or numpy.random.RandomState, optional
-            Seed for the random number generator (if int), or numpy RandomState
-            object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
+            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
+            random number generator
+            If np.random.RandomState, use as numpy RandomState object.
+
+            ..versionchanged:: 1.1.0
+
+                array-like and BitGenerator (for NumPy>=1.17) object now passed to
+                np.random.RandomState() as seed
+
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
@@ -5380,26 +5385,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     @property
     def _values(self) -> np.ndarray:
         """internal implementation"""
-        return self.values
-
-    def _internal_get_values(self) -> np.ndarray:
-        """
-        Return an ndarray after converting sparse values to dense.
-
-        This is the same as ``.values`` for non-sparse data. For sparse
-        data contained in a `SparseArray`, the data are first
-        converted to a dense representation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Numpy representation of DataFrame.
-
-        See Also
-        --------
-        values : Numpy representation of DataFrame.
-        SparseArray : Container for sparse data.
-        """
         return self.values
 
     @property
@@ -6081,14 +6066,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            if len(self._get_axis(axis)) == 0:
-                return self
-
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
                     value = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
+                    value = value.reindex(self.index, copy=False)
+                    value = value._values
                 elif not is_list_like(value):
                     pass
                 else:
@@ -8675,12 +8659,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
+        else:
+            # GH#21947 we have an empty DataFrame, could be object-dtype
+            cond = cond.astype(bool)
 
         cond = -cond if inplace else cond
 
         # try to align with other
         try_quick = True
-        if hasattr(other, "align"):
+        if isinstance(other, NDFrame):
 
             # align with me
             if other.ndim <= self.ndim:

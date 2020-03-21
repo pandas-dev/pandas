@@ -55,9 +55,7 @@ class TestReductions:
         if not isinstance(obj, PeriodIndex):
             expected = getattr(obj.values, opname)()
         else:
-            expected = pd.Period(
-                ordinal=getattr(obj._ndarray_values, opname)(), freq=obj.freq
-            )
+            expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
         try:
             assert result == expected
         except TypeError:
