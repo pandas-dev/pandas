@@ -96,9 +96,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         self.exclusions = kwargs.get("exclusions", set())
 
     def _shallow_copy(self, obj: FrameOrSeries, **kwargs) -> ShallowMixin:
-        exclusions = self.exclusions
-        new_obj = super()._shallow_copy(obj, exclusions=exclusions, **kwargs)
-        # new_obj.obj = new_obj._obj_with_exclusions
+        new_obj = super()._shallow_copy(obj, exclusions=self.exclusions, **kwargs)
         return new_obj
 
     @property

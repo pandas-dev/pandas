@@ -209,10 +209,17 @@ class SelectionMixin:
         if self._selection is not None and isinstance(self.obj, ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
-        if len(self.exclusions) > 0:
-            return self.obj.drop(self.exclusions, axis=1)
-        else:
+        elif not self.exclusions or not isinstance(self.obj, ABCDataFrame):
             return self.obj
+
+        # there may be elements in self.exclusions that are no longer
+        # in self.obj, see GH 32468
+        nlevels = self.obj.columns.nlevels
+        unique_column_names = {
+            j for i in range(nlevels) for j in self.obj.columns.get_level_values(i)
+        }
+        exclusions = self.exclusions.intersection(unique_column_names)
+        return self.obj.drop(exclusions, axis=1)
 
     def __getitem__(self, key):
         if self._selection is not None:
