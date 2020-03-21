@@ -248,6 +248,17 @@ class TestMultiLevel(Base):
         result = self.frame.count(level=0, numeric_only=True)
         tm.assert_index_equal(result.columns, Index(list("ABC"), name="exp"))
 
+    def test_count_index_with_nan(self):
+        # https://github.com/pandas-dev/pandas/issues/21824
+        df = DataFrame({"Person": ["John", "Myla", None, "John", "Myla"],
+                        "Age": [24., 5, 21., 33, 26],
+                        "Single": [False, True, True, True, False]})
+
+        res = df.set_index(["Person", "Single"]).count(level="Person")
+        expected = DataFrame(index=Index(["John", "Myla"], name="Person"),
+                             data={"Age": [2, 2]})
+
+
     def test_count_level_series(self):
         index = MultiIndex(
             levels=[["foo", "bar", "baz"], ["one", "two", "three", "four"]],

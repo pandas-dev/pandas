@@ -222,16 +222,6 @@ class TestCounting:
         expected = Series([], index=mi, dtype=np.int64, name="C")
         tm.assert_series_equal(result, expected, check_index_type=False)
 
-    def test_count_groupby_index_with_nan_in_index(self):
-        # https://github.com/pandas-dev/pandas/issues/21824
-        df = DataFrame({"Person": ["John", "Myla", None, "John", "Myla"],
-                        "Age": [24., 5, 21., 33, 26],
-                        "Single": [False, True, True, True, False]})
-
-        res = df.set_index(["Person", "Single"]).count(level="Person")
-        expected = DataFrame(index=Index(["John", "Myla"], name="Person"),
-                             data={"Age": [2, 2]})
-
     def test_count_groupby_column_with_nan_in_groupby_column(self):
         # https://github.com/pandas-dev/pandas/issues/32841
         df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
