@@ -694,6 +694,17 @@ class TestiLoc2:
         result = s.iloc[np.array(0)]
         assert result == 1
 
+    def test_iloc_setitem_categorical_updates_inplace(self):
+        # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
+        cat = pd.Categorical(["A", "B", "C"])
+        df = pd.DataFrame({1: cat, 2: [1, 2, 3]})
+
+        # This should modify our original values in-place
+        df.iloc[:, 0] = cat[::-1]
+
+        expected = pd.Categorical(["C", "B", "A"])
+        tm.assert_categorical_equal(cat, expected)
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
