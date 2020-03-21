@@ -62,7 +62,7 @@ class _ODSWriter(ExcelWriter):
         rows = defaultdict(TableRow)
         col_count = defaultdict(int)
 
-        for cell in cells:
+        for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
             # print(cell.row, cell.col, cell.val)
             # fill with empty cells if needed
             for _ in range(cell.col - col_count[cell.row]):
