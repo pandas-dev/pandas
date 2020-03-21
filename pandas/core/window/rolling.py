@@ -98,7 +98,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
     def _shallow_copy(self, obj: FrameOrSeries, **kwargs) -> ShallowMixin:
         exclusions = self.exclusions
         new_obj = super()._shallow_copy(obj, exclusions=exclusions, **kwargs)
-        new_obj.obj = new_obj._obj_with_exclusions
+        # new_obj.obj = new_obj._obj_with_exclusions
         return new_obj
 
     @property
@@ -1194,7 +1194,6 @@ class _Rolling_and_Expanding(_Rolling):
                 closed=self.closed,
             ).sum()
             results.append(result)
-
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs["apply"] = dedent(
@@ -1663,7 +1662,10 @@ class _Rolling_and_Expanding(_Rolling):
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
         return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
+            self._obj_with_exclusions,
+            other._obj_with_exclusions,
+            _get_cov,
+            pairwise=bool(pairwise),
         )
 
     _shared_docs["corr"] = dedent(
@@ -1795,7 +1797,10 @@ class _Rolling_and_Expanding(_Rolling):
             return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
 
         return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
+            self._obj_with_exclusions,
+            other._obj_with_exclusions,
+            _get_corr,
+            pairwise=bool(pairwise),
         )
 
 
