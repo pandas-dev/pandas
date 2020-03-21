@@ -987,12 +987,33 @@ class MultiIndex(Index):
         return MultiIndex.from_tuples
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is not None:
-            names = kwargs.pop("names", kwargs.pop("name", self.names))
-            return MultiIndex.from_tuples(values, names=names, **kwargs)
+    def _shallow_copy(
+        self,
+        values=None,
+        name=None,
+        levels=None,
+        codes=None,
+        sortorder=None,
+        names=None,
+        _set_identity: bool = True,
+    ):
+        names = self._validate_names(name=name, names=names)
 
-        result = self.copy(**kwargs)
+        if values is not None:
+            assert levels is None and codes is None
+            return MultiIndex.from_tuples(values, sortorder=sortorder, names=names)
+
+        levels = levels if levels is not None else self.levels
+        codes = codes if codes is not None else self.codes
+
+        result = MultiIndex(
+            levels=levels,
+            codes=codes,
+            sortorder=sortorder,
+            names=names,
+            verify_integrity=False,
+            _set_identity=_set_identity,
+        )
         result._cache = self._cache.copy()
         result._cache.pop("levels", None)  # GH32669
         return result
@@ -1044,7 +1065,6 @@ class MultiIndex(Index):
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
         """
-        names = self._validate_names(name=name, names=names, deep=deep)
         if deep:
             from copy import deepcopy
 
@@ -1052,17 +1072,13 @@ class MultiIndex(Index):
                 levels = deepcopy(self.levels)
             if codes is None:
                 codes = deepcopy(self.codes)
-        else:
-            if levels is None:
-                levels = self.levels
-            if codes is None:
-                codes = self.codes
-        return MultiIndex(
+
+        return self._shallow_copy(
             levels=levels,
+            name=name,
             codes=codes,
             names=names,
             sortorder=self.sortorder,
-            verify_integrity=False,
             _set_identity=_set_identity,
         )
 
