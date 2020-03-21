@@ -1936,6 +1936,12 @@ def _compare_or_regex_search(a, b, regex=False):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
+    # Replace all definitions of missing values (isna=True) to a numpy.nan
+    if is_a_array:
+        a = np.where(isna(a), np.nan, a)
+    if is_b_array:
+        b = np.where(isna(b), np.nan, b)
+
     if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
         # GH#29553 avoid deprecation warnings from numpy
         result = False
