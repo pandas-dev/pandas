@@ -1938,9 +1938,9 @@ def _compare_or_regex_search(a, b, regex=False):
 
     def _get_nan_value(x):
         if np.issubdtype(x.dtype, np.datetime64):
-            return np.datetime64('NaT')
+            return np.datetime64("NaT")
         elif np.issubdtype(x.dtype, np.timedelta64):
-            return np.timedelta64('NaT')
+            return np.timedelta64("NaT")
         return np.nan
 
     # Replace all definitions of missing values (isna=True) to a numpy.nan
