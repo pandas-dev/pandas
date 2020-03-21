@@ -990,17 +990,21 @@ class MultiIndex(Index):
     def _shallow_copy(
         self,
         values=None,
-        name=None,
+        name=lib.no_default,
         levels=None,
         codes=None,
+        dtype=None,
         sortorder=None,
-        names=None,
+        names=lib.no_default,
         _set_identity: bool = True,
     ):
-        names = self._validate_names(name=name, names=names)
+        if names is not lib.no_default and name is not lib.no_default:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif names is lib.no_default:
+            names = name if name is not lib.no_default else self.names
 
         if values is not None:
-            assert levels is None and codes is None
+            assert levels is None and codes is None and dtype is None
             return MultiIndex.from_tuples(values, sortorder=sortorder, names=names)
 
         levels = levels if levels is not None else self.levels
@@ -1009,6 +1013,7 @@ class MultiIndex(Index):
         result = MultiIndex(
             levels=levels,
             codes=codes,
+            dtype=dtype,
             sortorder=sortorder,
             names=names,
             verify_integrity=False,
@@ -1065,6 +1070,7 @@ class MultiIndex(Index):
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
         """
+        names = self._validate_names(name=name, names=names, deep=deep)
         if deep:
             from copy import deepcopy
 
@@ -1075,9 +1081,9 @@ class MultiIndex(Index):
 
         return self._shallow_copy(
             levels=levels,
-            name=name,
             codes=codes,
             names=names,
+            dtype=dtype,
             sortorder=self.sortorder,
             _set_identity=_set_identity,
         )
