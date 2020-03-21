@@ -63,12 +63,11 @@ ABCTimedeltaArray = create_pandas_abc_type(
     "ABCTimedeltaArray", "_typ", ("timedeltaarray")
 )
 ABCPeriodArray = create_pandas_abc_type("ABCPeriodArray", "_typ", ("periodarray",))
-ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period",))
 ABCDateOffset = create_pandas_abc_type("ABCDateOffset", "_typ", ("dateoffset",))
-ABCInterval = create_pandas_abc_type("ABCInterval", "_typ", ("interval",))
 ABCExtensionArray = create_pandas_abc_type(
     "ABCExtensionArray",
     "_typ",
+    # Note: IntervalArray and SparseArray are included bc they have _typ="extension"
     ("extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"),
 )
 ABCPandasArray = create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extension",))
