@@ -214,7 +214,10 @@ class SelectionMixin:
 
         # there may be elements in self.exclusions that are no longer
         # in self.obj, see GH 32468
-        unique_column_names = {j for i in self.obj.columns for j in i}
+        nlevels = self.obj.columns.nlevels
+        unique_column_names = {
+            j for i in range(nlevels) for j in self.obj.columns.get_level_values(i)
+        }
         exclusions = self.exclusions.intersection(unique_column_names)
         return self.obj.drop(exclusions, axis=1)
 
