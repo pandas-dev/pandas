@@ -577,8 +577,9 @@ def try_parse_date_and_time(object[:] dates, object[:] times,
         object[:] result
 
     n = len(dates)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(times) != n:
+    # TODO(cython 3.0):
+    # Instead of `times.shape[0]` use `len(times)`
+    if times.shape[0] != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
 
@@ -614,8 +615,10 @@ def try_parse_year_month_day(object[:] years, object[:] months,
         object[:] result
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if <Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n:
+    # TODO(cython 3.0):
+    # Instead of `months.shape[0]` use `len(months)`
+    # Instead of `days.shape[0]` use `len(days)`
+    if months.shape[0] != n or days.shape[0] != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
@@ -640,10 +643,19 @@ def try_parse_datetime_components(object[:] years,
         double micros
 
     n = len(years)
-    # Cast to avoid build warning see GH#26757
-    if (<Py_ssize_t>len(months) != n or <Py_ssize_t>len(days) != n or
-            <Py_ssize_t>len(hours) != n or <Py_ssize_t>len(minutes) != n or
-            <Py_ssize_t>len(seconds) != n):
+    # TODO(cython 3.0):
+    # Instead of `months.shape[0]` use `len(months)`
+    # Instead of `days.shape[0]` use `len(days)`
+    # Instead of `hours.shape[0]` use `len(hours)`
+    # Instead of `minutes.shape[0]` use `len(minutes)`
+    # Instead of `seconds.shape[0]` use `len(seconds)`
+    if (
+        months.shape[0] != n
+        or days.shape[0] != n
+        or hours.shape[0] != n
+        or minutes.shape[0] != n
+        or seconds.shape[0] != n
+    ):
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 
