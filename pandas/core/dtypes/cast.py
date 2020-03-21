@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_str,
+    groupby_result_dtype,
     is_bool,
     is_bool_dtype,
     is_complex,
@@ -172,7 +173,9 @@ def maybe_downcast_to_dtype(result, dtype):
     return result
 
 
-def maybe_downcast_numeric(result, dtype, do_round: bool = False):
+def maybe_downcast_numeric(
+    result, dtype, do_round: bool = False, how: str = "",
+):
     """
     Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
 
@@ -181,6 +184,7 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
     result : ndarray or ExtensionArray
     dtype : np.dtype or ExtensionDtype
     do_round : bool
+    how : str
 
     Returns
     -------
@@ -194,6 +198,8 @@ def maybe_downcast_numeric(result, dtype, do_round: bool = False):
         # reached via groupoby.agg _ohlc; really this should be handled
         #  earlier
         result = np.array(result)
+
+    dtype = groupby_result_dtype(dtype, how)
 
     def trans(x):
         if do_round:

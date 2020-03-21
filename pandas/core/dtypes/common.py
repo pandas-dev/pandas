@@ -1788,3 +1788,27 @@ def pandas_dtype(dtype) -> DtypeObj:
         raise TypeError(f"dtype '{dtype}' not understood")
 
     return npdtype
+
+
+def groupby_result_dtype(dtype, how) -> DtypeObj:
+    """
+    Get the desired dtype of an aggregation result based on the
+    input dtype and how the aggregation is done.
+
+    Parameters
+    ----------
+    dtype : dtype, type
+        The input dtype for the groupby.
+    how : str
+        How the aggregation is performed.
+
+    Returns
+    -------
+    The desired dtype of the aggregation result.
+    """
+    d = {
+        (np.dtype(np.bool), "add"): np.dtype(np.int64),
+        (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
+        (np.dtype(np.bool), "sum"): np.dtype(np.int64),
+    }
+    return d.get((dtype, how), dtype)

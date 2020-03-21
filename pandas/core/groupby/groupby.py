@@ -42,6 +42,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
+    groupby_result_dtype,
     is_datetime64_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -792,7 +793,7 @@ b  2""",
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
 
-    def _try_cast(self, result, obj, numeric_only: bool = False):
+    def _try_cast(self, result, obj, numeric_only: bool = False, how: str = ""):
         """
         Try to cast the result to our obj original type,
         we may have roundtripped through object in the mean-time.
@@ -805,6 +806,8 @@ b  2""",
             dtype = obj._values.dtype
         else:
             dtype = obj.dtype
+
+        dtype = groupby_result_dtype(dtype, how)
 
         if not is_scalar(result):
             if is_extension_array_dtype(dtype) and dtype.kind != "M":
@@ -852,7 +855,7 @@ b  2""",
                 continue
 
             if self._transform_should_cast(how):
-                result = self._try_cast(result, obj)
+                result = self._try_cast(result, obj, how=how)
 
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
@@ -895,12 +898,12 @@ b  2""",
                 assert len(agg_names) == result.shape[1]
                 for result_column, result_name in zip(result.T, agg_names):
                     key = base.OutputKey(label=result_name, position=idx)
-                    output[key] = self._try_cast(result_column, obj)
+                    output[key] = self._try_cast(result_column, obj, how=how)
                     idx += 1
             else:
                 assert result.ndim == 1
                 key = base.OutputKey(label=name, position=idx)
-                output[key] = self._try_cast(result, obj)
+                output[key] = self._try_cast(result, obj, how=how)
                 idx += 1
 
         if len(output) == 0:

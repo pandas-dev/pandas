@@ -526,7 +526,7 @@ class SeriesGroupBy(GroupBy):
         cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(result._values, ids)
         if cast:
-            out = self._try_cast(out, self.obj)
+            out = self._try_cast(out, self.obj, how=func_nm)
         return Series(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna=True, *args, **kwargs):
@@ -1073,7 +1073,7 @@ class DataFrameGroupBy(GroupBy):
 
             if result is not no_result:
                 # see if we can cast the block back to the original dtype
-                result = maybe_downcast_numeric(result, block.dtype)
+                result = maybe_downcast_numeric(result, block.dtype, how=how)
 
                 if block.is_extension and isinstance(result, np.ndarray):
                     # e.g. block.values was an IntegerArray
@@ -1460,7 +1460,7 @@ class DataFrameGroupBy(GroupBy):
             # TODO: we have no test cases that get here with EA dtypes;
             #  try_cast may not be needed if EAs never get here
             if cast:
-                res = self._try_cast(res, obj.iloc[:, i])
+                res = self._try_cast(res, obj.iloc[:, i], how=func_nm)
             output.append(res)
 
         return DataFrame._from_arrays(output, columns=result.columns, index=obj.index)

@@ -7,6 +7,8 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.common import is_integer_dtype
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
 import pandas._testing as tm
@@ -2057,3 +2059,46 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
         result = df.groupby(np.array(df.a)).groups.__repr__()
         assert result == expected
+
+
+def test_bool_agg_dtype():
+    # GH 7001
+    # Bool aggregation results in int
+    df = pd.DataFrame({"a": [1, 1], "b": [False, True]})
+    s = df.set_index("a")["b"]
+
+    result = df.groupby("a").sum()["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = s.groupby("a").sum().dtype
+    assert is_integer_dtype(result)
+
+    result = df.groupby("a").cumsum()["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = s.groupby("a").cumsum().dtype
+    assert is_integer_dtype(result)
+
+    result = df.groupby("a").agg("sum")["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = s.groupby("a").agg("sum").dtype
+    assert is_integer_dtype(result)
+
+    result = df.groupby("a").agg("cumsum")["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = s.groupby("a").agg("cumsum").dtype
+    assert is_integer_dtype(result)
+
+    result = df.groupby("a").transform("sum")["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = s.groupby("a").transform("sum").dtype
+    assert is_integer_dtype(result)
+
+    result = df.groupby("a").transform("cumsum")["b"].dtype
+    assert is_integer_dtype(result)
+
+    result = s.groupby("a").transform("cumsum").dtype
+    assert is_integer_dtype(result)
