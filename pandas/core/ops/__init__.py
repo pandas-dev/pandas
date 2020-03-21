@@ -3,18 +3,17 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
-import datetime
 import operator
-from typing import TYPE_CHECKING, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Optional, Set
 
 import numpy as np
 
-from pandas._libs import Timedelta, Timestamp, lib
+from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas._typing import ArrayLike, Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_list_like, is_timedelta64_dtype
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -150,65 +149,6 @@ def _maybe_match_name(a, b):
     elif b_has:
         return b.name
     return None
-
-
-def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
-    """
-    Cast non-pandas objects to pandas types to unify behavior of arithmetic
-    and comparison operations.
-
-    Parameters
-    ----------
-    obj: object
-    shape : tuple[int]
-
-    Returns
-    -------
-    out : object
-
-    Notes
-    -----
-    Be careful to call this *after* determining the `name` attribute to be
-    attached to the result of the arithmetic operation.
-    """
-    from pandas.core.arrays import DatetimeArray, TimedeltaArray
-
-    if type(obj) is datetime.timedelta:
-        # GH#22390  cast up to Timedelta to rely on Timedelta
-        # implementation; otherwise operation against numeric-dtype
-        # raises TypeError
-        return Timedelta(obj)
-    elif isinstance(obj, np.datetime64):
-        # GH#28080 numpy casts integer-dtype to datetime64 when doing
-        #  array[int] + datetime64, which we do not allow
-        if isna(obj):
-            # Avoid possible ambiguities with pd.NaT
-            obj = obj.astype("datetime64[ns]")
-            right = np.broadcast_to(obj, shape)
-            return DatetimeArray(right)
-
-        return Timestamp(obj)
-
-    elif isinstance(obj, np.timedelta64):
-        if isna(obj):
-            # wrapping timedelta64("NaT") in Timedelta returns NaT,
-            #  which would incorrectly be treated as a datetime-NaT, so
-            #  we broadcast and wrap in a TimedeltaArray
-            obj = obj.astype("timedelta64[ns]")
-            right = np.broadcast_to(obj, shape)
-            return TimedeltaArray(right)
-
-        # In particular non-nanosecond timedelta64 needs to be cast to
-        #  nanoseconds, or else we get undesired behavior like
-        #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
-        return Timedelta(obj)
-
-    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj.dtype):
-        # GH#22390 Unfortunately we need to special-case right-hand
-        # timedelta64 dtypes because numpy casts integer dtypes to
-        # timedelta64 when operating with timedelta64
-        return TimedeltaArray._from_sequence(obj)
-    return obj
 
 
 # -----------------------------------------------------------------------------
