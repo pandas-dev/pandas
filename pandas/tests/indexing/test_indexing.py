@@ -107,6 +107,11 @@ class TestFancy:
         ],
     )
     def test_setitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
+        # GH 25567
+        obj = obj(indices)
+        idxr = idxr(obj)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
         if (
             (len(indices) == 0)
             and (idxr_id == "iloc")
@@ -114,11 +119,6 @@ class TestFancy:
         ):
             # gh-32896
             pytest.skip("This is currently failing. There's an xfailed test below.")
-
-        # GH 25567
-        obj = obj(indices)
-        idxr = idxr(obj)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
 
         if idxr_id == "iloc":
             err = ValueError
