@@ -414,24 +414,21 @@ class TestPeriodDtype(Base):
         assert is_dtype_equal(dtype, result)
         result = PeriodDtype.construct_from_string("period[D]")
         assert is_dtype_equal(dtype, result)
+        msg = "Cannot construct a 'PeriodDtype' from "
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype.construct_from_string("foo")
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype.construct_from_string("period[foo]")
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype.construct_from_string("foo[D]")
+
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype.construct_from_string("datetime64[ns]")
+        with pytest.raises(TypeError, match=msg):
+            PeriodDtype.construct_from_string("datetime64[ns, US/Eastern]")
 
         with pytest.raises(TypeError, match="list"):
             PeriodDtype.construct_from_string([1, 2, 3])
-
-    @pytest.mark.parametrize(
-        "string",
-        [
-            "foo",
-            "period[foo]",
-            "foo[D]",
-            "datetime64[ns]",
-            "datetime64[ns, US/Eastern]",
-        ],
-    )
-    def test_construct_dtype_from_string_invalid_raises(self, string):
-        msg = f"Cannot construct a 'PeriodDtype' from '{string}'"
-        with pytest.raises(TypeError, match=re.escape(msg)):
-            PeriodDtype.construct_from_string(string)
 
     def test_is_dtype(self, dtype):
         assert PeriodDtype.is_dtype(dtype)
@@ -479,7 +476,6 @@ class TestPeriodDtype(Base):
 
     def test_empty(self):
         dt = PeriodDtype()
-        # https://github.com/pandas-dev/pandas/issues/27388
         msg = "object has no attribute 'freqstr'"
         with pytest.raises(AttributeError, match=msg):
             str(dt)
