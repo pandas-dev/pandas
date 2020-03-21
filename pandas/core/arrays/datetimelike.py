@@ -804,6 +804,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         indices : array of ints
             Array of insertion points with the same shape as `value`.
         """
+        if is_list_like(value) and not isinstance(value, type(self)):
+            value = array(value)
+
+            if not type(self)._is_recognized_dtype(value):
+                raise TypeError(
+                    "searchsorted requires compatible dtype or scalar, "
+                    f"not {type(value).__name__}"
+                )
+            self._check_compatible_with(value)
+
         if isinstance(value, str):
             try:
                 value = self._scalar_from_string(value)
@@ -817,15 +827,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
 
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
-
-        elif isinstance(value, np.ndarray):
-            if not type(self)._is_recognized_dtype(value):
-                raise TypeError(
-                    "searchsorted requires compatible dtype or scalar, "
-                    f"not {type(value).__name__}"
-                )
-            value = type(self)(value)
-            self._check_compatible_with(value)
 
         if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
