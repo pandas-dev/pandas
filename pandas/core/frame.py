@@ -129,7 +129,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.ops.missing import dispatch_fill_zeros
 from pandas.core.series import Series
-from pandas.protocol.wrapper import PandasDataFrame
+from pandas.protocol.wrapper import DataFrame as DataFrameWrapper
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
@@ -139,6 +139,7 @@ import pandas.plotting
 if TYPE_CHECKING:
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.io.formats.style import Styler
+    from pandas.wesm import dataframe as dataframe_protocol  # noqa: F401
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -436,6 +437,21 @@ class DataFrame(NDFrame):
         if isinstance(data, DataFrame):
             data = data._data
 
+        elif hasattr(data, "__dataframe__"):
+            # materialization as dict of numpy arrays
+            obj = cast("dataframe_protocol.DataFrame", data.__dataframe__)
+
+            def _get_column(col):
+                try:
+                    return col.to_numpy()
+                except NotImplementedError:
+                    return col.to_arrow()
+
+            data = {
+                column_name: _get_column(obj[column_name])
+                for column_name in obj.column_names
+            }
+
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(
                 data, axes=dict(index=index, columns=columns), dtype=dtype, copy=copy
@@ -522,11 +538,11 @@ class DataFrame(NDFrame):
         NDFrame.__init__(self, mgr)
 
     @property
-    def __dataframe__(self) -> PandasDataFrame:
+    def __dataframe__(self) -> DataFrameWrapper:
         """
         DataFrame interchange protocol
         """
-        return PandasDataFrame(self)
+        return DataFrameWrapper(self)
 
     # ----------------------------------------------------------------------
 
@@ -728,7 +744,7 @@ class DataFrame(NDFrame):
             show_dimensions = get_option("display.show_dimensions")
 
             formatter = fmt.DataFrameFormatter(
-                self.__dataframe__,
+                self,
                 columns=None,
                 col_space=None,
                 na_rep="NaN",

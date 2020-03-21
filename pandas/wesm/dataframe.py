@@ -16,7 +16,8 @@ class DataType(ABC):
     frame column. This metadata does not guarantee an specific underlying data
     representation
     """
-    def __eq__(self, other: 'DataType'):  # type: ignore
+
+    def __eq__(self, other: "DataType"):  # type: ignore
         return self.equals(other)
 
     def __str__(self):
@@ -32,7 +33,7 @@ class DataType(ABC):
         """
 
     @abstractmethod
-    def equals(self, other: 'DataType') -> bool:
+    def equals(self, other: "DataType") -> bool:
         """
         Return true if other DataType contains the same metadata as this
         DataType
@@ -41,7 +42,6 @@ class DataType(ABC):
 
 
 class PrimitiveType(DataType):
-
     def equals(self, other: DataType) -> bool:
         return type(self) == type(other)
 
@@ -50,12 +50,12 @@ class NullType(PrimitiveType):
     """
     A data type whose values are always null
     """
+
     def to_string(self):
         return "null"
 
 
 class Boolean(PrimitiveType):
-
     def to_string(self):
         return "bool"
 
@@ -73,25 +73,21 @@ class SignedIntegerType(IntegerType):
 
 
 class Int8(SignedIntegerType):
-
     def to_string(self):
         return "int8"
 
 
 class Int16(SignedIntegerType):
-
     def to_string(self):
         return "int16"
 
 
 class Int32(SignedIntegerType):
-
     def to_string(self):
         return "int32"
 
 
 class Int64(SignedIntegerType):
-
     def to_string(self):
         return "int64"
 
@@ -100,6 +96,7 @@ class Binary(PrimitiveType):
     """
     A variable-size binary (bytes) value
     """
+
     def to_string(self):
         return "binary"
 
@@ -108,6 +105,7 @@ class String(PrimitiveType):
     """
     A UTF8-encoded string value
     """
+
     def to_string(self):
         return "string"
 
@@ -116,6 +114,7 @@ class Object(PrimitiveType):
     """
     Any PyObject value
     """
+
     def to_string(self):
         return "object"
 
@@ -126,22 +125,25 @@ class Categorical(DataType):
     sequence of category values of an arbitrary data type
     """
 
-    def __init__(self, index_type: IntegerType, category_type: DataType,
-                 ordered: bool = False):
+    def __init__(
+        self, index_type: IntegerType, category_type: DataType, ordered: bool = False
+    ):
         self.index_type = index_type
         self.category_type = category_type
         self.ordered = ordered
 
     def equals(self, other: DataType) -> bool:
-        return (isinstance(other, Categorical) and
-                self.index_type == other.index_type and
-                self.category_type == other.category_type and
-                self.ordered == other.ordered)
+        return (
+            isinstance(other, Categorical)
+            and self.index_type == other.index_type
+            and self.category_type == other.category_type
+            and self.ordered == other.ordered
+        )
 
     def to_string(self):
-        return ("categorical(indices={}, categories={}, ordered={})"
-                .format(str(self.index_type), str(self.category_type),
-                        self.ordered))
+        return "categorical(indices={}, categories={}, ordered={})".format(
+            str(self.index_type), str(self.category_type), self.ordered
+        )
 
 
 # ----------------------------------------------------------------------
@@ -149,7 +151,6 @@ class Categorical(DataType):
 
 
 class Column(ABC):
-
     @property
     @abstractmethod
     def name(self) -> Hashable:
@@ -192,6 +193,7 @@ class DataFrame(ABC, Mapping):
     name (when the name is unique) or by position.
     """
 
+    @property
     def __dataframe__(self):
         """
         Idempotence of data frame protocol
