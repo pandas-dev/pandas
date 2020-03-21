@@ -11,6 +11,7 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
+    array,
     date_range,
     timedelta_range,
 )
@@ -110,6 +111,24 @@ class TestTimedeltaIndex(DatetimeLike):
         assert ordered[::-1].is_monotonic
 
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]), check_dtype=False)
+
+    @pytest.mark.parametrize("klass", [list, np.array, array, Series])
+    def test_searchsorted_different_argument_classes(self, klass):
+        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
+        result = idx.searchsorted(klass(idx))
+        expected = np.arange(len(idx))
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "arg",
+        [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2],
+    )
+    def test_searchsorted_invalid_argument_dtype(self, arg):
+        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
+        msg = "searchsorted requires compatible dtype"
+        with pytest.raises(TypeError, match=msg):
+            idx.searchsorted(arg)
 
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"])
