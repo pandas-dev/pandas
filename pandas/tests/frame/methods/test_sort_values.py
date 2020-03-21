@@ -43,7 +43,7 @@ class TestDataFrameSortValues:
         sorted_df = frame.sort_values(by=["B", "A"], ascending=[True, False])
         tm.assert_frame_equal(sorted_df, expected)
 
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             frame.sort_values(by=["A", "B"], axis=2, inplace=True)
 

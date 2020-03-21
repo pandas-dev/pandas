@@ -30,7 +30,7 @@ class TestSeriesSortIndex:
         sorted_series = random_order.sort_index(axis=0)
         tm.assert_series_equal(sorted_series, datetime_series)
 
-        msg = "No axis named 1 for object type <class 'pandas.core.series.Series'>"
+        msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
             random_order.sort_values(axis=1)
 

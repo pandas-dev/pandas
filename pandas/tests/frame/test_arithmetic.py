@@ -1,6 +1,7 @@
 from collections import deque
 from datetime import datetime
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -46,13 +47,16 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                with pytest.raises(TypeError):
+                msg = re.escape(
+                    "Invalid comparison between dtype=datetime64[ns] and ndarray"
+                )
+                with pytest.raises(TypeError, match=msg):
                     x >= y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x > y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x < y
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     x <= y
 
         # GH4968
@@ -98,9 +102,13 @@ class TestFrameComparisons:
                 result = right_f(pd.Timestamp("20010109"), df)
                 tm.assert_frame_equal(result, expected)
             else:
-                with pytest.raises(TypeError):
+                msg = (
+                    "'(<|>)=?' not supported between "
+                    "instances of 'Timestamp' and 'float'"
+                )
+                with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=msg):
                     right_f(pd.Timestamp("20010109"), df)
             # nats
             expected = left_f(df, pd.Timestamp("nat"))

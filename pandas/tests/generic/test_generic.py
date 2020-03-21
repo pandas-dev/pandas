@@ -692,10 +692,10 @@ class TestNDFrame:
         tm.assert_series_equal(df.squeeze(axis=1), df.iloc[:, 0])
         tm.assert_series_equal(df.squeeze(axis="columns"), df.iloc[:, 0])
         assert df.squeeze() == df.iloc[0, 0]
-        msg = "No axis named 2 for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named 2 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis=2)
-        msg = "No axis named x for object type <class 'pandas.core.frame.DataFrame'>"
+        msg = "No axis named x for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
             df.squeeze(axis="x")
 
