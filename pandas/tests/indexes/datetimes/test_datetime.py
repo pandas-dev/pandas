@@ -427,20 +427,9 @@ class TestDatetimeIndex:
         tm.assert_index_equal(index, exp_index)
 
     def test_split_non_utc(self):
+        # GH 14042
         indices = pd.date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
-        split_indices = np.split(indices, indices_or_sections=[])
-        valid_indices = DatetimeIndex(
-            [
-                "2016-01-01 00:00:00+02:00",
-                "2016-01-01 00:00:01+02:00",
-                "2016-01-01 00:00:02+02:00",
-                "2016-01-01 00:00:03+02:00",
-                "2016-01-01 00:00:04+02:00",
-                "2016-01-01 00:00:05+02:00",
-                "2016-01-01 00:00:06+02:00",
-                "2016-01-01 00:00:07+02:00",
-                "2016-01-01 00:00:08+02:00",
-                "2016-01-01 00:00:09+02:00",
-            ]
-        )
-        tm.assert_index_equal(split_indices[0], valid_indices)
+        result = np.split(indices, indices_or_sections=[])[0]
+        expected = indices.copy()
+        expected._set_freq(None)
+        tm.assert_index_equal(result, expected)
