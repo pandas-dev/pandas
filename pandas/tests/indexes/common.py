@@ -913,7 +913,7 @@ class Base:
             {} in idx._engine
 
     def test_copy_copies_cache(self):
-        # GH32883
+        # GH32898
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
         copy = idx.copy()
@@ -926,7 +926,7 @@ class Base:
             assert copy._cache[key] is val, key
 
     def test_shallow_copy_copies_cache(self):
-        # GH32898
+        # GH32669
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
         shallow_copy = idx._shallow_copy()
