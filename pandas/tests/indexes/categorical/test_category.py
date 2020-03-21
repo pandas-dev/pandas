@@ -368,33 +368,41 @@ class TestCategoricalIndex(Base):
     @pytest.mark.parametrize(
         "data, categories, expected",
         [
-            ([1, 1, 1], [1, 2, 3],
+            (
+                [1, 1, 1],
+                [1, 2, 3],
                 {
-                    "first" : np.array([False, True, True]),
-                    "last" : np.array([True, True, False]),
-                    False : np.array([True, True, True]),
-                }
+                    "first": np.array([False, True, True]),
+                    "last": np.array([True, True, False]),
+                    False: np.array([True, True, True]),
+                },
             ),
-            ([1, 1, 1], list("abc"),
+            (
+                [1, 1, 1],
+                list("abc"),
                 {
-                    "first" : np.array([False, True, True]),
-                    "last" : np.array([True, True, False]),
-                    False : np.array([True, True, True]),
-                }
+                    "first": np.array([False, True, True]),
+                    "last": np.array([True, True, False]),
+                    False: np.array([True, True, True]),
+                },
             ),
-            ([2, "a", "b"], list('abc'),
+            (
+                [2, "a", "b"],
+                list("abc"),
                 {
-                    "first" : np.zeros(shape=(3), dtype=np.bool),
-                    "last" : np.zeros(shape=(3), dtype=np.bool),
-                    False : np.zeros(shape=(3), dtype=np.bool),
-                }
+                    "first": np.zeros(shape=(3), dtype=np.bool),
+                    "last": np.zeros(shape=(3), dtype=np.bool),
+                    False: np.zeros(shape=(3), dtype=np.bool),
+                },
             ),
-            (list("abb"), list('abc'),
+            (
+                list("abb"),
+                list("abc"),
                 {
-                    "first" : np.array([False, False, True]),
-                    "last" : np.array([False, True, False]),
-                    False : np.array([False, True, True]),
-                }
+                    "first": np.array([False, False, True]),
+                    "last": np.array([False, True, False]),
+                    False: np.array([False, True, True]),
+                },
             ),
         ],
     )
@@ -411,7 +419,7 @@ class TestCategoricalIndex(Base):
         "data, categories, expected_data, expected_categories",
         [
             ([1, 1, 1], [1, 2, 3], [1], [1]),
-            ([1, 1, 1], list('abc'), [np.nan], []),
+            ([1, 1, 1], list("abc"), [np.nan], []),
             ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan], [1, 2]),
             ([2, "a", "b"], list("abc"), [np.nan, "a", "b"], ["a", "b"]),
         ],
