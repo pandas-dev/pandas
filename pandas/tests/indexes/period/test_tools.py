@@ -10,8 +10,10 @@ from pandas import (
     NaT,
     Period,
     PeriodIndex,
+    Series,
     Timedelta,
     Timestamp,
+    array,
     date_range,
     period_range,
 )
@@ -63,6 +65,17 @@ class TestSearchsorted:
         msg = "Input has different freq=5D from PeriodArray"
         with pytest.raises(IncompatibleFrequency, match=msg):
             pidx.searchsorted(Period("2014-01-01", freq="5D"))
+
+    @pytest.mark.parametrize("klass", [list, np.array, array, Series])
+    def test_searchsorted_different_argument_classes(self, klass):
+        pidx = PeriodIndex(
+            ["2014-01-01", "2014-01-02", "2014-01-03", "2014-01-04", "2014-01-05"],
+            freq="D",
+        )
+        result = pidx.searchsorted(klass(pidx))
+        expected = np.arange(len(result))
+
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_searchsorted_invalid(self):
         pidx = PeriodIndex(
