@@ -1202,7 +1202,9 @@ class TestExcelWriter:
         writer.save()
 
         bio.seek(0)
-        reread_df = pd.read_excel(bio, index_col=0)
+        if engine != "odf":
+            engine = None
+        reread_df = pd.read_excel(bio, engine=engine, index_col=0)
         tm.assert_frame_equal(df, reread_df)
 
     def test_write_lists_dict(self, path):
@@ -1254,16 +1256,20 @@ class TestExcelWriter:
         df = tm.makeDataFrame()
         writer = partial(df.to_excel, engine=engine)
 
-        reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
+        if engine != "odf":
+            engine = None
+        reader = partial(pd.read_excel, engine=engine, index_col=0)
+        result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_path_local_path(self, engine, ext):
         df = tm.makeDataFrame()
         writer = partial(df.to_excel, engine=engine)
 
-        reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
+        if engine != "odf":
+            engine = None
+        reader = partial(pd.read_excel, engine=engine, index_col=0)
+        result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, merge_cells, path):
