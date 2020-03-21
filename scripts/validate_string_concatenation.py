@@ -4,7 +4,7 @@ GH #30454
 
 Check where there is a string that needs to be concatenated.
 
-This is necessary after black formating,
+This is necessary after black formatting,
 where for example black transforms this:
 
 >>> foo = (
