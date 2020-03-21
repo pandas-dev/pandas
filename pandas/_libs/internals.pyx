@@ -79,8 +79,8 @@ cdef class BlockPlacement:
         if s is not None:
             start, stop, step, _ = slice_get_indices_ex(s)
             return iter(range(start, stop, step))
-
-        return iter(self._as_array)
+        else:
+            return iter(self._as_array)
 
     @property
     def as_slice(self) -> slice:
@@ -89,8 +89,8 @@ cdef class BlockPlacement:
 
         if s is not None:
             return s
-
-        raise TypeError("Not slice-like")
+        else:
+            raise TypeError("Not slice-like")
 
     @property
     def indexer(self):
@@ -99,8 +99,8 @@ cdef class BlockPlacement:
 
         if s is not None:
             return s
-
-        return self._as_array
+        else:
+            return self._as_array
 
     def isin(self, arr):
         from pandas.core.indexes.api import Int64Index
