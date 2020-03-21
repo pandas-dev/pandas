@@ -4682,7 +4682,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         raise TypeError("MultiIndex not supported here!")
 
     inferred_type = lib.infer_dtype(index, skipna=False)
-    # we wont get inferred_type of "datetime64" or "timedelta64" as these
+    # we won't get inferred_type of "datetime64" or "timedelta64" as these
     #  would go through the DatetimeIndex/TimedeltaIndex paths above
 
     values = np.asarray(index)

@@ -1118,7 +1118,7 @@ class TestSparseArrayAnalytics:
         arr = SparseArray([1, 2, 0, 0, 0], kind="block")
         result = arr.nbytes
         # (2 * 8) + 4 + 4
-        # sp_values, blocs, blenghts
+        # sp_values, blocs, blengths
         assert result == 24
 
     def test_asarray_datetime64(self):

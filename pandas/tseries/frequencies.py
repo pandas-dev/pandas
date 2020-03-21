@@ -147,13 +147,11 @@ def to_offset(freq) -> Optional[DateOffset]:
         delta = None
         stride_sign = None
         try:
-            splitted = re.split(libfreqs.opattern, freq)
-            if splitted[-1] != "" and not splitted[-1].isspace():
+            split = re.split(libfreqs.opattern, freq)
+            if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")
-            for sep, stride, name in zip(
-                splitted[0::4], splitted[1::4], splitted[2::4]
-            ):
+            for sep, stride, name in zip(split[0::4], split[1::4], split[2::4]):
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = libfreqs._lite_rule_alias.get(name) or name

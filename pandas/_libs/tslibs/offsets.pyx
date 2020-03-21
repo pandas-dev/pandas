@@ -520,7 +520,7 @@ class _BaseOffset:
         state = self.__dict__.copy()
 
         # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserilization
+        # as its a np.busyday; we recreate on deserialization
         if 'calendar' in state:
             del state['calendar']
         try:

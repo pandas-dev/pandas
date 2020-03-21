@@ -1115,7 +1115,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
-    def test_contructor_dict_tuple_indexer(self):
+    def test_constructor_dict_tuple_indexer(self):
         # GH 12948
         data = {(1, 1, None): -1.0}
         result = Series(data)

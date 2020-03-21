@@ -225,7 +225,7 @@ The method :meth:`~DataFrame.info` provides technical information about a
     <div class="d-flex flex-row bg-light gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-For a complete overview of the input and output possibilites from and to pandas, see the user guide section about :ref:`reader and writer functions <io>`.
+For a complete overview of the input and output possibilities from and to pandas, see the user guide section about :ref:`reader and writer functions <io>`.
 
 .. raw:: html
 

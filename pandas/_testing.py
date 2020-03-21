@@ -2206,7 +2206,7 @@ def network(
 
     Notes
     -----
-    * ``raise_on_error`` supercedes ``check_before_test``
+    * ``raise_on_error`` supersedes ``check_before_test``
 
     Returns
     -------

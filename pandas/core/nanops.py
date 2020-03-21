@@ -1313,7 +1313,7 @@ def get_corr_func(method):
         return method
     else:
         raise ValueError(
-            f"Unkown method '{method}', expected one of 'kendall', 'spearman'"
+            f"Unknown method '{method}', expected one of 'kendall', 'spearman'"
         )
 
     def _pearson(a, b):
@@ -1509,7 +1509,7 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
     Parameters
     ----------
     values : np.ndarray or ExtensionArray
-    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minumum.accumulate}
+    accum_func : {np.cumprod, np.maximum.accumulate, np.cumsum, np.minimum.accumulate}
     skipna : bool
 
     Returns

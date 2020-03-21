@@ -202,7 +202,7 @@ class AttributesMixin:
         ----------
         other
         setitem : bool, default False
-            For __setitem__ we may have stricter compatiblity resrictions than
+            For __setitem__ we may have stricter compatibility resrictions than
             for comparisons.
 
         Raises
@@ -1167,7 +1167,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         -------
         Same type as self
         """
-        # overriden by PeriodArray
+        # overridden by PeriodArray
 
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")

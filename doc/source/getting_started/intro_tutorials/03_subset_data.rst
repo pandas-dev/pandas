@@ -101,7 +101,7 @@ And have a look at the ``shape`` of the output:
 
     titanic["Age"].shape
 
-:attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parantheses for attributes) of a
+:attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parentheses for attributes) of a
 pandas ``Series`` and ``DataFrame`` containing the number of rows and
 columns: *(nrows, ncolumns)*. A pandas Series is 1-dimensional and only
 the number of rows is returned.

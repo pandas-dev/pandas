@@ -349,7 +349,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         elif py_string in _not_datelike_strings:
             return False
         else:
-            # xstrtod with such paramaters copies behavior of python `float`
+            # xstrtod with such parameters copies behavior of python `float`
             # cast; for example, " 35.e-1 " is valid string for this cast so,
             # for correctly xstrtod call necessary to pass these params:
             # b'.' - a dot is used as separator, b'e' - an exponential form of

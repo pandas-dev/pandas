@@ -2498,7 +2498,7 @@ class StringMethods(NoNewAttributesMixin):
         Limit number of splits in output.
         ``None``, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        Expand the splitted strings into separate columns.
+        Expand the split strings into separate columns.
 
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.

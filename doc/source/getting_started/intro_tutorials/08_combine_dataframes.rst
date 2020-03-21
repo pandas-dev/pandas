@@ -165,7 +165,7 @@ index. For example:
 .. note::
     The existence of multiple row/column indices at the same time
     has not been mentioned within these tutorials. *Hierarchical indexing*
-    or *MultiIndex* is an advanced and powerfull pandas feature to analyze
+    or *MultiIndex* is an advanced and powerful pandas feature to analyze
     higher dimensional data.
 
     Multi-indexing is out of scope for this pandas introduction. For the

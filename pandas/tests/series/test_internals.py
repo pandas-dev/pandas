@@ -232,7 +232,7 @@ class TestSeriesInternals:
         assert result._data.blocks[0].is_extension is False
 
 
-def test_hasnans_unchached_for_series():
+def test_hasnans_uncached_for_series():
     # GH#19700
     idx = pd.Index([0, 1])
     assert idx.hasnans is False

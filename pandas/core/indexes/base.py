@@ -5145,7 +5145,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        # Note: this method is overriden by all ExtensionIndex subclasses,
+        # Note: this method is overridden by all ExtensionIndex subclasses,
         #  so self is never backed by an EA.
         arr = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values

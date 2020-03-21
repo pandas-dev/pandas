@@ -137,7 +137,7 @@ bar2,12,13,14,15
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
-    def test_read_non_existant(self, reader, module, error_class, fn_ext):
+    def test_read_non_existent(self, reader, module, error_class, fn_ext):
         pytest.importorskip(module)
 
         path = os.path.join(HERE, "data", "does_not_exist." + fn_ext)
