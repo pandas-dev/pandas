@@ -32,7 +32,11 @@ cdef class BlockPlacement:
         self._has_slice = False
         self._has_array = False
 
-        if isinstance(val, slice):
+        if isinstance(val, int):
+            slc = slice(val, val + 1, 1)
+            self._as_slice = slc
+            self._has_slice = True
+        elif isinstance(val, slice):
             slc = slice_canonize(val)
 
             if slc.start != slc.stop:
