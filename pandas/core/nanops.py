@@ -183,11 +183,17 @@ def _get_fill_value(
         if fill_value_typ is None:
             return iNaT
         else:
-            if fill_value_typ == "+inf":
-                # need the max int here
-                return _int64_max
-            else:
-                return iNaT
+            dtype = getattr(dtype, "numpy_dtype", dtype)
+            try:
+                if fill_value_typ == "+inf":
+                    return np.iinfo(dtype).max
+                else:
+                    return np.iinfo(dtype).min
+            except ValueError:
+                if fill_value_typ == "+inf":
+                    return _int64_max
+                else:
+                    iNaT
 
 
 def _maybe_get_mask(

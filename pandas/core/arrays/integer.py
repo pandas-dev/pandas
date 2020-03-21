@@ -560,10 +560,13 @@ class IntegerArray(BaseMaskedArray):
         data = self._data
         mask = self._mask
 
+        preservable_ops = ["min", "max"]
+
         # coerce to a nan-aware float if needed
         # (we explicitly use NaN within reductions)
         if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
+            if name not in preservable_ops or not skipna:
+                data = self.to_numpy("float64", na_value=np.nan)
 
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
@@ -577,9 +580,11 @@ class IntegerArray(BaseMaskedArray):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ["sum", "min", "max", "prod"]:
+        elif name in preservable_ops + ["sum", "prod"]:
             # GH#31409 more performant than casting-then-checking
             result = com.cast_scalar_indexer(result)
+            if isinstance(result, np.integer):
+                result = int(result)
 
         return result
 

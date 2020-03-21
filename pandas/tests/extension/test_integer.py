@@ -238,7 +238,11 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
         result = getattr(s, op_name)(skipna=skipna)
-        expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
+        preserved_ops = ["min", "max"]
+        if skipna and op_name in preserved_ops:
+            expected = getattr(s.dropna(), op_name)(skipna=True)
+        else:
+            expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
         if np.isnan(expected):
             expected = pd.NA
         tm.assert_almost_equal(result, expected)
