@@ -107,6 +107,14 @@ class TestFancy:
         ],
     )
     def test_setitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
+        if (
+            (len(indices) == 0)
+            and (idxr_id == "iloc")
+            and isinstance(obj, pd.DataFrame)
+        ):
+            # gh-32896
+            pytest.skip("This is currently failing. There's an xfailed test below.")
+
         # GH 25567
         obj = obj(indices)
         idxr = idxr(obj)
@@ -128,16 +136,19 @@ class TestFancy:
             err = ValueError
             msg = r"Buffer has wrong number of dimensions \(expected 1, got 3\)|"
 
-        if (
-            (len(indices) == 0)
-            and (idxr_id == "iloc")
-            and isinstance(obj, pd.DataFrame)
-        ):
-            # TODO: Seems to be bugged
-            pytest.xfail("This doesn't raise")
-
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
+
+    @pytest.mark.xfail(reason="gh-32896")
+    def test_setitem_ndarray_3d_does_not_fail_for_iloc_empty_dataframe(self):
+        # when fixing this, please remove the pytest.skip in test_setitem_ndarray_3d
+        i = Index([])
+        obj = DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = f"Cannot set values with ndim > {obj.ndim}"
+        with pytest.raises(ValueError, match=msg):
+            obj.iloc[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957
