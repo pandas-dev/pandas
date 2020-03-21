@@ -428,6 +428,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         return type(self)(data, dtype=self.dtype)
 
     @property
+    def T(self):
+        # Note: we drop any freq
+        data = self._data.T
+        return type(self)(data, dtype=self.dtype)
+
+    @property
     def _box_func(self):
         """
         box function to get object from internal representation

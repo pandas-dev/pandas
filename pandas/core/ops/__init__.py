@@ -55,6 +55,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
     rtruediv,
     rxor,
 )
+from pandas.core.array_algos.npcompat import broadcast_to
 
 if TYPE_CHECKING:
     from pandas import DataFrame  # noqa:F401
@@ -397,16 +398,16 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
             # includes TDA/DTA-naive
             rvals = right._values
             right = rvals.reshape(1, -1)
-            right = np.broadcast_to(right, left.shape).T  # Needs TDA/DTA compat
-            if not isinstance(rvals, np.ndarray):
-                # re-wrap DTA/TDA
-                right = type(rvals)(right)
+            right = broadcast_to(right, left.shape).T  # Needs TDA/DTA compat
+            #if not isinstance(rvals, np.ndarray):
+            #    # re-wrap DTA/TDA
+            #    right = type(rvals)(right)
 
             array_op = get_array_op(func, str_rep=str_rep)
             bm = left._data.apply(array_op, right=right)  # TODO: BlockManager.apply needs to know to align right
             return type(left)(bm)
 
-        if right.dtype == "timedelta64[ns]":
+        if right.dtype == "timedelta64[ns]":  # still needed for two tests with PeriodArray
             # ensure we treat NaT values as the correct dtype
             # Note: we do not do this unconditionally as it may be lossy or
             #  expensive for EA dtypes.

@@ -33,6 +33,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna, notna
 
+from pandas.core.array_algos.npcompat import broadcast_to
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import dispatch_to_extension_op, should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
