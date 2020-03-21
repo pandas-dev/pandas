@@ -2268,7 +2268,7 @@ Name: Max Speed, dtype: float64
         -----
         For boolean dtypes, this uses :meth:`operator.xor` rather than
         :meth:`operator.sub`.
-        The result is calculated according to current dtype in Series, 
+        The result is calculated according to current dtype in Series,
         however dtype of the result is always float64.
 
         Examples

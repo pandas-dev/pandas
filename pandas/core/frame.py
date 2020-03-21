@@ -6476,7 +6476,7 @@ Wild         185.0
         -----
         For boolean dtypes, this uses :meth:`operator.xor` rather than
         :meth:`operator.sub`.
-        The result is calculated according to current dtype in DataFrame, 
+        The result is calculated according to current dtype in DataFrame,
         however dtype of the result is always float64.
 
         Examples
