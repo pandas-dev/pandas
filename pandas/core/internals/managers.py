@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
@@ -375,7 +375,7 @@ class BlockManager(PandasObject):
 
         return res
 
-    def apply(self: T, f, filter=None, **kwargs) -> T:
+    def apply(self: T, f, filter=None, align_keys=None, **kwargs) -> T:
         """
         Iterate over the blocks, collect and create a new BlockManager.
 
@@ -390,6 +390,7 @@ class BlockManager(PandasObject):
         -------
         BlockManager
         """
+        align_keys = align_keys or []
         result_blocks = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
@@ -404,28 +405,14 @@ class BlockManager(PandasObject):
 
         self._consolidate_inplace()
 
+        align_copy = False
         if f == "where":
             align_copy = True
-            if kwargs.get("align", True):
-                align_keys = ["other", "cond"]
-            else:
-                align_keys = ["cond"]
-        elif f == "putmask":
-            align_copy = False
-            if kwargs.get("align", True):
-                align_keys = ["new", "mask"]
-            else:
-                align_keys = ["mask"]
-        else:
-            align_keys = []
 
-        # TODO(EA): may interfere with ExtensionBlock.setitem for blocks
-        # with a .values attribute.
         aligned_args = {
             k: kwargs[k]
             for k in align_keys
-            if not isinstance(kwargs[k], ABCExtensionArray)
-            and hasattr(kwargs[k], "values")
+            if isinstance(kwargs[k], (ABCSeries, ABCDataFrame))
         }
 
         for b in self.blocks:
@@ -561,7 +548,12 @@ class BlockManager(PandasObject):
         return self.apply("apply", func=func)
 
     def where(self, **kwargs) -> "BlockManager":
-        return self.apply("where", **kwargs)
+        if kwargs.pop("align", True):
+            align_keys = ["other", "cond"]
+        else:
+            align_keys = ["cond"]
+
+        return self.apply("where", align_keys=align_keys, **kwargs)
 
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
@@ -571,8 +563,14 @@ class BlockManager(PandasObject):
     ):
         transpose = self.ndim == 2
 
+        if align:
+            align_keys = ["new", "mask"]
+        else:
+            align_keys = ["mask"]
+
         return self.apply(
             "putmask",
+            align_keys=align_keys,
             mask=mask,
             new=new,
             align=align,
@@ -688,8 +686,8 @@ class BlockManager(PandasObject):
         return self._is_consolidated
 
     def _consolidate_check(self) -> None:
-        ftypes = [blk.ftype for blk in self.blocks]
-        self._is_consolidated = len(ftypes) == len(set(ftypes))
+        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
+        self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
 
     @property
@@ -1777,7 +1775,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            make_block(array, klass=DatetimeTZBlock, placement=[i])
+            make_block(array, klass=DatetimeTZBlock, placement=i)
             for i, _, array in items_dict["DatetimeTZBlock"]
         ]
         blocks.extend(dttz_blocks)
@@ -1792,7 +1790,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
-            make_block(array, klass=CategoricalBlock, placement=[i])
+            make_block(array, klass=CategoricalBlock, placement=i)
             for i, _, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
@@ -1800,7 +1798,7 @@ def form_blocks(arrays, names, axes):
     if len(items_dict["ExtensionBlock"]):
 
         external_blocks = [
-            make_block(array, klass=ExtensionBlock, placement=[i])
+            make_block(array, klass=ExtensionBlock, placement=i)
             for i, _, array in items_dict["ExtensionBlock"]
         ]
 
@@ -1808,7 +1806,7 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict["ObjectValuesExtensionBlock"]):
         external_blocks = [
-            make_block(array, klass=ObjectValuesExtensionBlock, placement=[i])
+            make_block(array, klass=ObjectValuesExtensionBlock, placement=i)
             for i, _, array in items_dict["ObjectValuesExtensionBlock"]
         ]
 
