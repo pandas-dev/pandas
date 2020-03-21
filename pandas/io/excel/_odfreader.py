@@ -118,6 +118,7 @@ class _ODFReader(_BaseExcelReader):
             if len(row) < max_row_len:
                 row.extend([self.empty_value] * (max_row_len - len(row)))
 
+        # print(table)
         return table
 
     def _get_row_repeat(self, row) -> int:
@@ -148,7 +149,11 @@ class _ODFReader(_BaseExcelReader):
     def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
         from odf.namespaces import OFFICENS
 
+        # print("cell: ", cell, convert_float)
+
         cell_type = cell.attributes.get((OFFICENS, "value-type"))
+        cell_value = cell.attributes.get((OFFICENS, "value"))
+        # print("type=", cell_type, "value=", repr(cell_value))
         if cell_type == "boolean":
             if str(cell) == "TRUE":
                 return True
@@ -157,14 +162,16 @@ class _ODFReader(_BaseExcelReader):
             return self.empty_value
         elif cell_type == "float":
             # GH5394
-            cell_value = float(cell.attributes.get((OFFICENS, "value")))
 
-            if cell_value == 0.0:  # NA handling
-                return str(cell)
-
+            value = cell.attributes.get((OFFICENS, "value"))
+            if value == "":  # NA handling
+                return ""
+            cell_value = float(cell_value)
             if convert_float:
+                # print("convert", cell_value, int(cell_value))
                 val = int(cell_value)
                 if val == cell_value:
+                    # print("return the int")
                     return val
             return cell_value
         elif cell_type == "percentage":

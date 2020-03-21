@@ -1,13 +1,15 @@
 from collections import defaultdict
+import datetime
 
-import pandas._libs.json as json
+# import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import _validate_freeze_panes
+# from pandas.io.excel._util import _validate_freeze_panes
 
 from odf.opendocument import OpenDocumentSpreadsheet
 from odf.table import Table, TableRow, TableCell
 from odf.text import P
+
 
 class _ODSWriter(ExcelWriter):
     engine = "odf"
@@ -24,8 +26,9 @@ class _ODSWriter(ExcelWriter):
         if encoding is None:
             encoding = "ascii"
         self.book = OpenDocumentSpreadsheet()
-#        self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
-#        self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
+
+    #        self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
+    #        self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
 
     def save(self):
         """
@@ -46,13 +49,13 @@ class _ODSWriter(ExcelWriter):
             wks = self.sheets[sheet_name]
         else:
             wks = Table(name=sheet_name)
-#            wks = self.book.add_sheet(sheet_name) (do at the end or immediately? FIXME)
+            #            wks = self.book.add_sheet(sheet_name) (do at the end or immediately? FIXME)
             self.sheets[sheet_name] = wks
 
-#        if _validate_freeze_panes(freeze_panes):
-#            wks.set_panes_frozen(True)
-#            wks.set_horz_split_pos(freeze_panes[0])
-#            wks.set_vert_split_pos(freeze_panes[1])
+        #        if _validate_freeze_panes(freeze_panes):
+        #            wks.set_panes_frozen(True)
+        #            wks.set_horz_split_pos(freeze_panes[0])
+        #            wks.set_vert_split_pos(freeze_panes[1])
 
         style_dict = {}
 
@@ -60,17 +63,35 @@ class _ODSWriter(ExcelWriter):
         col_count = defaultdict(int)
 
         for cell in cells:
-            print(cell.row, cell.col, cell.val)
+            # print(cell.row, cell.col, cell.val)
             # fill with empty cells if needed
             for _ in range(cell.col - col_count[cell.row]):
                 rows[cell.row].addElement(TableCell())
                 col_count[cell.row] += 1
-            class_to_cell_type = { str: "string", int: "float", float: "float", bool: "boolean" }
+            class_to_cell_type = {
+                str: "string",
+                int: "float",
+                float: "float",
+                bool: "boolean",
+            }
             val, fmt = self._value_with_fmt(cell.val)
-            tc = TableCell(valuetype=class_to_cell_type[type(val)], value=val)
+            # print("type", type(val), "value", val)
+            value = val
+            if isinstance(val, bool):
+                value = str(val).lower()
+                #            if isinstance(val, datetime.date):
+                #                tc = TableCell(valuetype="date",
+            if isinstance(val, datetime.date):
+                print('date', val.strftime("%Y-%m-%d"), val.strftime("%x"))
+                value = val.strftime("%Y-%m-%d")
+                tc = TableCell(valuetype="date", datevalue=value)
+            else:
+                tc = TableCell(valuetype=class_to_cell_type[type(val)], value=value)
             rows[cell.row].addElement(tc)
             col_count[cell.row] += 1
-            p = P(text=val)
+            if isinstance(val, bool):
+                value = str(val).upper()
+            p = P(text=value)
             tc.addElement(p)
             """
             stylekey = json.dumps(cell.style)

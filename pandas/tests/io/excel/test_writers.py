@@ -330,7 +330,7 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(path)
 
-    def test_excel_sheet_by_name_raise(self, path):
+    def test_excel_sheet_by_name_raise(self, path, engine):
         import xlrd
 
         gt = DataFrame(np.random.randn(10, 2))
@@ -341,9 +341,14 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(gt, df)
 
-        msg = "No sheet named <'0'>"
-        with pytest.raises(xlrd.XLRDError, match=msg):
-            pd.read_excel(xl, sheet_name="0")
+        if engine == "odf":
+            msg = "sheet 0 not found"
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel(xl, "0")
+        else:
+            msg = "No sheet named <'0'>"
+            with pytest.raises(xlrd.XLRDError, match=msg):
+                pd.read_excel(xl, sheet_name="0")
 
     def test_excel_writer_context_manager(self, frame, path):
         with ExcelWriter(path) as writer:
