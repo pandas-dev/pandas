@@ -531,7 +531,7 @@ class SelectionMixin:
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised direcly in _aggregate_multiple_funcs
+                        # raised directly in _aggregate_multiple_funcs
                         pass
                     else:
                         raise
