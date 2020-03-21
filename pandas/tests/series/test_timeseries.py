@@ -6,17 +6,6 @@ from pandas import DataFrame, DatetimeIndex, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
-def _simple_ts(start, end, freq="D"):
-    rng = date_range(start, end, freq=freq)
-    return Series(np.random.randn(len(rng)), index=rng)
-
-
-def assert_range_equal(left, right):
-    assert left.equals(right)
-    assert left.freq == right.freq
-    assert left.tz == right.tz
-
-
 class TestTimeSeries:
     def test_mpl_compat_hack(self, datetime_series):
 
@@ -44,8 +33,8 @@ class TestTimeSeries:
 
         masked = rng[mask]
         expected = rng[10:20]
-        assert expected.freq is not None
-        assert_range_equal(masked, expected)
+        assert expected.freq == rng.freq
+        tm.assert_index_equal(masked, expected)
 
         mask[22] = True
         masked = rng[mask]
