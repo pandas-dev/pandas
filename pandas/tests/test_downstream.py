@@ -50,13 +50,12 @@ def test_xarray(df):
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
     cftime = import_module("cftime")
-    xarray = import_module("xarray")
+    xarray = import_module("xarray")  # noqa
 
     times = xarray.cftime_range("0001", periods=2)
-    da = xarray.DataArray(range(2), coords=[("time", times)])
-    result = da.sel(time=cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
-    expected = xarray.DataArray(1, coords={"time": cftime.DatetimeGregorian(1, 1, 2)})
-    xarray.testing.assert_identical(result, expected)
+    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    expected = 1
+    assert result == expected
 
 
 def test_oo_optimizable():

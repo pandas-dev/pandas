@@ -3060,16 +3060,13 @@ class Index(IndexOpsMixin, PandasObject):
             right_indexer,
         )
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
         return indexer
 
     def _filter_indexer_tolerance(
-        self,
-        target: Union["Index", np.ndarray, ExtensionArray],
-        indexer: np.ndarray,
-        tolerance,
+        self, target: "Index", indexer: np.ndarray, tolerance
     ) -> np.ndarray:
-        distance = abs(self.values[indexer] - target)
+        distance = abs(self.values._values[indexer] - target._values)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
