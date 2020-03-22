@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2020 Wes McKinney
 
-from typing import Dict, Hashable, Sequence
+from typing import Any, Dict, Hashable, Optional, Sequence
 
 import numpy as np
 
@@ -71,12 +71,13 @@ class DictDataFrame(dataframe.DataFrame):
     num_rows : int, default None
         If not passed, determined from the data
     """
+    _num_rows: Optional[int]
 
     def __init__(
         self,
         columns: Dict[Hashable, np.ndarray],
-        names: Sequence[Hashable] = None,
-        num_rows: int = None,
+        names: Optional[Sequence[Hashable]] = None,
+        num_rows: Optional[int] = None,
     ):
         if names is None:
             names = list(columns.keys())
@@ -116,7 +117,7 @@ class DictDataFrame(dataframe.DataFrame):
 
 
 def get_example():
-    data = {
+    data: Dict[Hashable, Any] = {
         "a": np.array([1, 2, 3, 4, 5], dtype="int64"),
         "b": np.array(["a", "b", "c", "d", "e"]),
         "c": np.array([True, False, True, False, True]),
