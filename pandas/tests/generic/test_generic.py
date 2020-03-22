@@ -249,14 +249,13 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    @pytest.mark.parametrize("index", tm.all_index_generator(10))
-    def test_head_tail(self, index):
+    def test_head_tail(self, indices):
         # GH5370
 
-        o = self._construct(shape=10)
+        o = self._construct(shape=len(indices))
 
         axis = o._get_axis_name(0)
-        setattr(o, axis, index)
+        setattr(o, axis, indices)
 
         o.head()
 
@@ -272,8 +271,8 @@ class Generic:
         self._compare(o.tail(len(o) + 1), o)
 
         # neg index
-        self._compare(o.head(-3), o.head(7))
-        self._compare(o.tail(-3), o.tail(7))
+        self._compare(o.head(-3), o.head(len(indices) - 3))
+        self._compare(o.tail(-3), o.tail(len(indices) - 3))
 
     def test_sample(self):
         # Fixes issue: 2419

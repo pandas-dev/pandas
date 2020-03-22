@@ -4,6 +4,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 import pandas._testing as tm
@@ -514,9 +516,11 @@ class TestSeriesMap:
         exp = Series([np.nan, "B", "C", "D"])
         tm.assert_series_equal(a.map(c), exp)
 
-    @pytest.mark.parametrize("index", tm.all_index_generator(10))
-    def test_map_empty(self, index):
-        s = Series(index)
+    def test_map_empty(self, indices):
+        if isinstance(indices, ABCMultiIndex):
+            pytest.skip("Initializing a Series from a MultiIndex is not supported")
+
+        s = Series(indices)
         result = s.map({})
 
         expected = pd.Series(np.nan, index=s.index)
