@@ -3066,7 +3066,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _filter_indexer_tolerance(
         self, target: "Index", indexer: np.ndarray, tolerance
     ) -> np.ndarray:
-        distance = abs(self.values._values[indexer] - target._values)
+        distance = abs(self._values[indexer] - target._values)
         indexer = np.where(distance <= tolerance, indexer, -1)
         return indexer
 
