@@ -203,6 +203,8 @@ class TestPDApi(Base):
         "_tslib",
         "_typing",
         "_version",
+        "protocol",
+        "wesm",
     ]
 
     def test_api(self):
