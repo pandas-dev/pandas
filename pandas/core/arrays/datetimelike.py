@@ -854,7 +854,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
                     "searchsorted requires compatible dtype or scalar, "
                     f"not {type(value).__name__}"
                 )
-            self._check_compatible_with(value)
 
         if not (isinstance(value, (self._scalar_type, type(self))) or (value is NaT)):
             raise TypeError(f"Unexpected type for 'value': {type(value)}")
