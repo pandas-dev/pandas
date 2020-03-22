@@ -1935,8 +1935,7 @@ def _compare_or_regex_search(a, b, regex=False):
 
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
-
-    def _get_nan_value(x):
+    
     # GH#32621 replace all pd.NAs to avoid failure of element-wise comparison
     mask = isna(a) | isna(b)
     if is_a_array:
