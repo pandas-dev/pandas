@@ -185,6 +185,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
             validate_dtype_freq(scalars.dtype, freq)
             if copy:
                 scalars = scalars.copy()
+            assert isinstance(scalars, PeriodArray)  # for mypy
             return scalars
 
         periods = np.asarray(scalars, dtype=object)
@@ -452,7 +453,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
-        return DatetimeArray._from_sequence(new_data, freq="infer")
+        return DatetimeArray(new_data)._with_freq("infer")
 
     # --------------------------------------------------------------------
 
