@@ -49,7 +49,8 @@ class TestRangeIndexConstructors:
             np.array([1]),
             [1],
         ]:
-            with pytest.raises(TypeError):
+            msg = f"Value needs to be a scalar value, was type {type(i).__name__}"
+            with pytest.raises(TypeError, match=msg):
                 RangeIndex(i)
 
         # we don't allow on a bare Index
@@ -81,7 +82,7 @@ class TestRangeIndexConstructors:
 
     def test_constructor_range(self):
 
-        msg = "Value needs to be a scalar value, was type <class 'range'>"
+        msg = "Value needs to be a scalar value, was type range"
         with pytest.raises(TypeError, match=msg):
             result = RangeIndex(range(1, 5, 2))
 
