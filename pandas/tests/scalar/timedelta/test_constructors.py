@@ -51,6 +51,7 @@ def test_construction():
     assert Timedelta("1 milli") == timedelta(milliseconds=1)
     assert Timedelta("1 millisecond") == timedelta(milliseconds=1)
     assert Timedelta("1 us") == timedelta(microseconds=1)
+    assert Timedelta("1 µs") == timedelta(microseconds=1)
     assert Timedelta("1 micros") == timedelta(microseconds=1)
     assert Timedelta("1 microsecond") == timedelta(microseconds=1)
     assert Timedelta("1.5 microsecond") == Timedelta("00:00:00.000001500")
