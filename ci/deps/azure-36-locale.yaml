@@ -15,7 +15,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - cftime
+  - cftime  # Needed for downstream xarray.CFTimeIndex test
   - gcsfs
   - html5lib
   - ipython
