@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime
+from typing import DefaultDict
 
 from odf.config import (
     ConfigItem,
@@ -32,7 +33,7 @@ class _ODSWriter(ExcelWriter):
         super().__init__(path, mode=mode, **engine_kwargs)
 
         self.book = OpenDocumentSpreadsheet()
-        self.style_dict = {}
+        self._style_dict = {}
 
     def save(self):
         """
@@ -59,8 +60,8 @@ class _ODSWriter(ExcelWriter):
         if _validate_freeze_panes(freeze_panes):
             self._create_freeze_panes(sheet_name, freeze_panes)
 
-        rows = defaultdict(TableRow)
-        col_count = defaultdict(int)
+        rows: DefautDict = defaultdict(TableRow)
+        col_count: DefaultDict = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
             # fill with empty cells if needed
@@ -133,10 +134,10 @@ class _ODSWriter(ExcelWriter):
         if style is None:
             return None
         style_key = json.dumps(style)
-        if style_key in self.style_dict:
-            return self.style_dict[style_key]
-        name = f"pd{len(self.style_dict)+1}"
-        self.style_dict[style_key] = name
+        if style_key in self._style_dict:
+            return self._style_dict[style_key]
+        name = f"pd{len(self._style_dict)+1}"
+        self._style_dict[style_key] = name
         odf_style = Style(name=name, family="table-cell")
         if "font" in style:
             font = style["font"]
