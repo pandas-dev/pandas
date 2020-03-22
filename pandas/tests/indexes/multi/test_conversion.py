@@ -6,12 +6,6 @@ from pandas import DataFrame, MultiIndex, date_range
 import pandas._testing as tm
 
 
-def test_tolist(idx):
-    result = idx.tolist()
-    exp = list(idx.values)
-    assert result == exp
-
-
 def test_to_numpy(idx):
     result = idx.to_numpy()
     exp = idx.values

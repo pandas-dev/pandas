@@ -33,10 +33,6 @@ def test_wrong_number_names(indices):
         indices.names = ["apple", "banana", "carrot"]
 
 
-def test_tolist_matches_list(indices):
-    assert indices.tolist() == list(indices)
-
-
 class TestConversion:
     def test_to_series(self, indices):
         # assert that we are creating a copy of the index
@@ -62,6 +58,9 @@ class TestConversion:
         assert ser.values is not indices.values
         assert ser.index is not indices
         assert ser.name != indices.name
+
+    def test_tolist_matches_list(self, indices):
+        assert indices.tolist() == list(indices)
 
 
 class TestRoundTrips:
