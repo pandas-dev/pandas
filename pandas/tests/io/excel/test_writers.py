@@ -298,7 +298,6 @@ class TestRoundTrip:
 
 
 @td.skip_if_no("xlrd")
-@td.skip_if_no("odf")
 @pytest.mark.parametrize(
     "engine,ext",
     [
@@ -306,7 +305,7 @@ class TestRoundTrip:
         pytest.param("openpyxl", ".xlsm", marks=td.skip_if_no("openpyxl")),
         pytest.param("xlwt", ".xls", marks=td.skip_if_no("xlwt")),
         pytest.param("xlsxwriter", ".xlsx", marks=td.skip_if_no("xlsxwriter")),
-        pytest.param("odf", ".ods"),
+        pytest.param("odf", ".ods", marks=td.skip_if_no("odf")),
     ],
 )
 @pytest.mark.usefixtures("set_engine")
