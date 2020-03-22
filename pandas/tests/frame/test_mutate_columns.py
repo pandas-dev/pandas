@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 
 class TestDataFrameMutateColumns:
-    def test_insert_error_msmgs(self):
+    def test_setitem_error_msmgs(self):
 
         # GH 7432
         df = DataFrame(
@@ -30,7 +30,7 @@ class TestDataFrameMutateColumns:
         with pytest.raises(TypeError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
-    def test_insert_benchmark(self):
+    def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
         K = 5

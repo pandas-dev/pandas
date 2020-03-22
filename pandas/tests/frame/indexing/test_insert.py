@@ -38,7 +38,7 @@ class TestDataFrameInsert:
 
     def test_insert_column_bug_4032(self):
 
-        # GH4032, inserting a column and renaming causing errors
+        # GH#4032, inserting a column and renaming causing errors
         df = DataFrame({"b": [1.1, 2.2]})
 
         df = df.rename(columns={})
@@ -55,3 +55,14 @@ class TestDataFrameInsert:
         str(result)
         expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
         tm.assert_frame_equal(result, expected)
+
+    def test_insert_with_columns_dups(self):
+        # GH#14291
+        df = DataFrame()
+        df.insert(0, "A", ["g", "h", "i"], allow_duplicates=True)
+        df.insert(0, "A", ["d", "e", "f"], allow_duplicates=True)
+        df.insert(0, "A", ["a", "b", "c"], allow_duplicates=True)
+        exp = DataFrame(
+            [["a", "d", "g"], ["b", "e", "h"], ["c", "f", "i"]], columns=["A", "A", "A"]
+        )
+        tm.assert_frame_equal(df, exp)
