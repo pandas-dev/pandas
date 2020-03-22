@@ -228,14 +228,29 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         2  0.0  0.0  1.0
         """
         from pandas import DataFrame
+        from pandas._libs.sparse import IntIndex
 
         data = data.tocsc()
         index, columns = cls._prep_index(data, index, columns)
-        sparrays = [SparseArray.from_spmatrix(data[:, i]) for i in range(data.shape[1])]
-        data = dict(enumerate(sparrays))
-        result = DataFrame(data, index=index)
-        result.columns = columns
-        return result
+        n_rows, n_columns = data.shape
+        # We need to make sure indices are sorted, as we create
+        # IntIndex with no input validation (i.e. check_integrity=False ).
+        # Indices may already be sorted in scipy in which case this adds
+        # a small overhead.
+        data.sort_indices()
+        indices = data.indices
+        indptr = data.indptr
+        array_data = data.data
+        dtype = SparseDtype(array_data.dtype, 0)
+        arrays = []
+        for i in range(n_columns):
+            sl = slice(indptr[i], indptr[i + 1])
+            idx = IntIndex(n_rows, indices[sl], check_integrity=False)
+            arr = SparseArray._simple_new(array_data[sl], idx, dtype)
+            arrays.append(arr)
+        return DataFrame._from_arrays(
+            arrays, columns=columns, index=index, verify_integrity=False
+        )
 
     def to_dense(self):
         """
@@ -314,12 +329,17 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     @staticmethod
     def _prep_index(data, index, columns):
         import pandas.core.indexes.base as ibase
+        from pandas.core.indexes.api import ensure_index
 
         N, K = data.shape
         if index is None:
             index = ibase.default_index(N)
+        else:
+            index = ensure_index(index)
         if columns is None:
             columns = ibase.default_index(K)
+        else:
+            columns = ensure_index(columns)
 
         if len(columns) != K:
             raise ValueError(f"Column length mismatch: {len(columns)} vs. {K}")
