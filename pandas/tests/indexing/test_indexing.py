@@ -53,9 +53,6 @@ class TestFancy:
             df[2:5] = np.arange(1, 4) * 1j
 
     @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
-    @pytest.mark.parametrize(
         "obj",
         [
             lambda i: Series(np.arange(len(i)), index=i),
@@ -71,9 +68,9 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_getitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = obj(indices)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
@@ -83,16 +80,16 @@ class TestFancy:
                 "Cannot index with multidimensional key",
                 r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
                 "Index data must be 1-dimensional",
+                "positional indexers are out-of-bounds",
+                "Indexing a MultiIndex with a multidimensional key is not implemented",
             ]
         )
 
-        with pytest.raises(ValueError, match=msg):
+        potential_errors = (IndexError, ValueError, NotImplementedError)
+        with pytest.raises(potential_errors, match=msg):
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
     @pytest.mark.parametrize(
         "obj",
         [
@@ -109,17 +106,25 @@ class TestFancy:
             (lambda x: x.iloc, "iloc"),
         ],
     )
-    def test_setitem_ndarray_3d(self, index, obj, idxr, idxr_id):
+    def test_setitem_ndarray_3d(self, indices, obj, idxr, idxr_id):
         # GH 25567
-        obj = obj(index)
+        obj = obj(indices)
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        if (
+            (len(indices) == 0)
+            and (idxr_id == "iloc")
+            and isinstance(obj, pd.DataFrame)
+        ):
+            # gh-32896
+            pytest.skip("This is currently failing. There's an xfailed test below.")
 
         if idxr_id == "iloc":
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
-            isinstance(index, pd.IntervalIndex)
+            isinstance(indices, pd.IntervalIndex)
             and idxr_id == "setitem"
             and obj.ndim == 1
         ):
@@ -133,6 +138,17 @@ class TestFancy:
 
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
+
+    @pytest.mark.xfail(reason="gh-32896")
+    def test_setitem_ndarray_3d_does_not_fail_for_iloc_empty_dataframe(self):
+        # when fixing this, please remove the pytest.skip in test_setitem_ndarray_3d
+        i = Index([])
+        obj = DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = f"Cannot set values with ndim > {obj.ndim}"
+        with pytest.raises(ValueError, match=msg):
+            obj.iloc[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957

@@ -4,6 +4,8 @@ from itertools import chain
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 import pandas as pd
 from pandas import DataFrame, Index, Series, isna
 import pandas._testing as tm
@@ -514,9 +516,11 @@ class TestSeriesMap:
         exp = Series([np.nan, "B", "C", "D"])
         tm.assert_series_equal(a.map(c), exp)
 
-    @pytest.mark.parametrize("index", tm.all_index_generator(10))
-    def test_map_empty(self, index):
-        s = Series(index)
+    def test_map_empty(self, indices):
+        if isinstance(indices, ABCMultiIndex):
+            pytest.skip("Initializing a Series from a MultiIndex is not supported")
+
+        s = Series(indices)
         result = s.map({})
 
         expected = pd.Series(np.nan, index=s.index)
@@ -787,3 +791,25 @@ class TestSeriesMap:
         result = ser.map(lambda val: str(val)).to_dict()
         expected = {0: "0.3333333333333333"}
         assert result == expected
+
+    def test_map_with_invalid_na_action_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/32815
+        s = pd.Series([1, 2, 3])
+        msg = "na_action must either be 'ignore' or None"
+        with pytest.raises(ValueError, match=msg):
+            s.map(lambda x: x, na_action="____")
+
+    def test_apply_to_timedelta(self):
+        list_of_valid_strings = ["00:00:01", "00:00:02"]
+        a = pd.to_timedelta(list_of_valid_strings)
+        b = Series(list_of_valid_strings).apply(pd.to_timedelta)
+        # FIXME: dont leave commented-out
+        # Can't compare until apply on a Series gives the correct dtype
+        # assert_series_equal(a, b)
+
+        list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
+
+        a = pd.to_timedelta(list_of_strings)  # noqa
+        b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+        # Can't compare until apply on a Series gives the correct dtype
+        # assert_series_equal(a, b)
