@@ -1072,8 +1072,10 @@ class DataFrameGroupBy(GroupBy):
             assert not isinstance(result, DataFrame)
 
             if result is not no_result:
-                # see if we can cast the block back to the original dtype
-                result = maybe_downcast_numeric(result, block.dtype, how=how)
+                # see if we can cast the block to the desired dtype
+                # this may not be the original dtype
+                dtype = self._result_dtype(block.dtype, how)
+                result = maybe_downcast_numeric(result, dtype)
 
                 if block.is_extension and isinstance(result, np.ndarray):
                     # e.g. block.values was an IntegerArray

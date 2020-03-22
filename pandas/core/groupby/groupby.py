@@ -33,7 +33,7 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp
 import pandas._libs.groupby as libgroupby
-from pandas._typing import FrameOrSeries, Scalar
+from pandas._typing import DtypeObj, FrameOrSeries, Scalar
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -42,7 +42,6 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     ensure_float,
-    groupby_result_dtype,
     is_datetime64_dtype,
     is_extension_array_dtype,
     is_integer_dtype,
@@ -795,7 +794,7 @@ b  2""",
 
     def _try_cast(self, result, obj, numeric_only: bool = False, how: str = ""):
         """
-        Try to cast the result to our obj original type,
+        Try to cast the result to the desired type,
         we may have roundtripped through object in the mean-time.
 
         If numeric_only is True, then only try to cast numerics
@@ -806,8 +805,7 @@ b  2""",
             dtype = obj._values.dtype
         else:
             dtype = obj.dtype
-
-        dtype = groupby_result_dtype(dtype, how)
+        dtype = self._result_dtype(dtype, how)
 
         if not is_scalar(result):
             if is_extension_array_dtype(dtype) and dtype.kind != "M":
@@ -1027,6 +1025,30 @@ b  2""",
             mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
+
+    @staticmethod
+    def _result_dtype(dtype, how) -> DtypeObj:
+        """
+        Get the desired dtype of a groupby result based on the
+        input dtype and how the aggregation is done.
+
+        Parameters
+        ----------
+        dtype : dtype, type
+            The input dtype of the groupby.
+        how : str
+            How the aggregation is performed.
+
+        Returns
+        -------
+        The desired dtype of the aggregation result.
+        """
+        d = {
+            (np.dtype(np.bool), "add"): np.dtype(np.int64),
+            (np.dtype(np.bool), "cumsum"): np.dtype(np.int64),
+            (np.dtype(np.bool), "sum"): np.dtype(np.int64),
+        }
+        return d.get((dtype, how), dtype)
 
 
 class GroupBy(_GroupBy):
