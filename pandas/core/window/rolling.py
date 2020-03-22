@@ -1178,8 +1178,8 @@ class _Rolling_and_Expanding(_Rolling):
     )
 
     def count(self):
-
-        blocks, obj = self._create_blocks()
+        obj = self._obj_with_exclusions
+        blocks = obj._to_dict_of_blocks(copy=False).values()
         results = []
         for b in blocks:
             result = b.notna().astype(int)
@@ -1192,7 +1192,7 @@ class _Rolling_and_Expanding(_Rolling):
                 closed=self.closed,
             ).sum()
             results.append(result)
-        return self._wrap_results(results, blocks, obj)
+        return self._wrap_results(results, blocks, obj, exclude=self.exclusions)
 
     _shared_docs["apply"] = dedent(
         r"""
