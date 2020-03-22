@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -505,7 +506,7 @@ class TestDataFrameDataTypes:
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
-    def test_astype_from_datetimelike_to_objectt(self, dtype, unit):
+    def test_astype_from_datetimelike_to_object(self, dtype, unit):
         # tests astype to object dtype
         # gh-19223 / gh-12425
         dtype = f"{dtype}[{unit}]"
@@ -636,7 +637,11 @@ class TestDataFrameDataTypes:
 
         df = DataFrame([1, 2, 3])
 
-        with pytest.raises(ValueError):
+        msg = (
+            "Expected value of kwarg 'errors' to be one of "
+            "['raise', 'ignore']. Supplied value is 'True'"
+        )
+        with pytest.raises(ValueError, match=re.escape(msg)):
             df.astype(np.float64, errors=True)
 
         df.astype(np.int8, errors="ignore")

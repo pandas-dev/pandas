@@ -35,7 +35,7 @@ class TestPeriodIndex(DatetimeLike):
     def indices(self, request):
         return request.param
 
-    def create_index(self):
+    def create_index(self) -> PeriodIndex:
         return period_range("20130101", periods=5, freq="D")
 
     def test_pickle_compat_construction(self):
@@ -161,7 +161,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
 
         exp = np.array([], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
 
         idx = PeriodIndex(["2011-01", NaT], freq="M")
 
@@ -169,7 +169,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
 
         idx = PeriodIndex(["2011-01-01", NaT], freq="D")
 
@@ -177,7 +177,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.to_numpy(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
+        tm.assert_numpy_array_equal(idx.asi8, exp)
 
     def test_period_index_length(self):
         pi = period_range(freq="A", start="1/1/2001", end="12/1/2009")

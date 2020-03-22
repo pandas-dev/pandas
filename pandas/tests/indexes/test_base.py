@@ -59,7 +59,7 @@ class TestIndex(Base):
         # copy to avoid mutation, e.g. setting .name
         return indices_dict[key].copy()
 
-    def create_index(self):
+    def create_index(self) -> Index:
         return Index(list("abcde"))
 
     def test_can_hold_identifiers(self):
@@ -2277,7 +2277,7 @@ class TestMixedIntIndex(Base):
     def indices(self, request):
         return Index(request.param)
 
-    def create_index(self):
+    def create_index(self) -> Index:
         return Index([0, "a", 1, "b", 2, "c"])
 
     def test_argsort(self):
@@ -2616,3 +2616,40 @@ def test_convert_almost_null_slice(indices):
         msg = "'>=' not supported between instances of 'str' and 'int'"
         with pytest.raises(TypeError, match=msg):
             idx._convert_slice_indexer(key, "loc")
+
+
+dtlike_dtypes = [
+    np.dtype("timedelta64[ns]"),
+    np.dtype("datetime64[ns]"),
+    pd.DatetimeTZDtype("ns", "Asia/Tokyo"),
+    pd.PeriodDtype("ns"),
+]
+
+
+@pytest.mark.parametrize("ldtype", dtlike_dtypes)
+@pytest.mark.parametrize("rdtype", dtlike_dtypes)
+def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
+
+    vals = np.tile(3600 * 10 ** 9 * np.arange(3), 2)
+
+    def construct(dtype):
+        if dtype is dtlike_dtypes[-1]:
+            # PeriodArray will try to cast ints to strings
+            return pd.DatetimeIndex(vals).astype(dtype)
+        return pd.Index(vals, dtype=dtype)
+
+    left = construct(ldtype)
+    right = construct(rdtype)
+
+    result = left.get_indexer_non_unique(right)
+
+    if ldtype is rdtype:
+        ex1 = np.array([0, 3, 1, 4, 2, 5] * 2, dtype=np.intp)
+        ex2 = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(result[0], ex1)
+        tm.assert_numpy_array_equal(result[1], ex2.astype(np.int64))
+
+    else:
+        no_matches = np.array([-1] * 6, dtype=np.intp)
+        tm.assert_numpy_array_equal(result[0], no_matches)
+        tm.assert_numpy_array_equal(result[1], no_matches)

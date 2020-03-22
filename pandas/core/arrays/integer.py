@@ -13,6 +13,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_datetime64_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -469,23 +470,13 @@ class IntegerArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = dict(na_value=np.nan)
+        elif is_datetime64_dtype(dtype):
+            kwargs = dict(na_value=np.datetime64("NaT"))
         else:
             kwargs = {}
 
         data = self.to_numpy(dtype=dtype, **kwargs)
         return astype_nansafe(data, dtype, copy=False)
-
-    @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        Internal pandas method for lossy conversion to a NumPy ndarray.
-
-        This method is not part of the pandas interface.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-        """
-        return self._data
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, float]:
         # TODO: https://github.com/pandas-dev/pandas/issues/30037
