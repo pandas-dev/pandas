@@ -940,14 +940,6 @@ class TestSeriesMissingData:
         ts.dropna(inplace=True)
         assert ts.name == name
 
-    def test_fill_value_when_combine_const(self):
-        # GH12723
-        s = Series([0, 1, np.nan, 3, 4, 5])
-
-        exp = s.fillna(0).add(2)
-        res = s.add(2, fill_value=0)
-        tm.assert_series_equal(res, exp)
-
     def test_series_fillna_limit(self):
         index = np.arange(10)
         s = Series(np.random.randn(10), index=index)
