@@ -1635,6 +1635,7 @@ class _Rolling_and_Expanding(_Rolling):
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
+        # patch for GH 32332
         other.obj = other._obj_with_exclusions
 
         # GH 16058: offset window
@@ -1660,7 +1661,7 @@ class _Rolling_and_Expanding(_Rolling):
             return (mean(X * Y) - mean(X) * mean(Y)) * bias_adj
 
         return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise),
+            self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
         )
 
     _shared_docs["corr"] = dedent(
@@ -1779,6 +1780,7 @@ class _Rolling_and_Expanding(_Rolling):
             # only default unset
             pairwise = True if pairwise is None else pairwise
         other = self._shallow_copy(other)
+        # patch for GH 32332
         other.obj = other._obj_with_exclusions
         window = self._get_window(other) if not self.is_freq_type else self.win_freq
 
@@ -1793,7 +1795,7 @@ class _Rolling_and_Expanding(_Rolling):
             return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
 
         return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise),
+            self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
         )
 
 
