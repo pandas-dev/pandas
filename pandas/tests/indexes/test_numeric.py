@@ -506,7 +506,7 @@ class TestFloat64Index(Numeric):
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        msg = "index -5 is out of bounds for size 3"
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
@@ -646,7 +646,7 @@ class NumericInt(Numeric):
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        msg = "index -5 is out of bounds for size 3"
+        msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
