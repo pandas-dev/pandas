@@ -1636,3 +1636,20 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     result = groups.agg([function])
     expected.columns = MultiIndex.from_tuples([("b", function)])
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_sum_below_mincount_nullable_integer():
+    # https://github.com/pandas-dev/pandas/issues/32861
+    df = pd.DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
+    grouped = df.groupby("a")
+    idx = pd.Index([0, 1, 2], dtype=object, name="a")
+
+    result = grouped["b"].sum(min_count=2)
+    expected = pd.Series([np.nan] * 3, index=idx, name="b")
+    tm.assert_series_equal(result, expected)
+
+    result = grouped.sum(min_count=2)
+    expected = pd.DataFrame(
+        {"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx
+    )
+    tm.assert_frame_equal(result, expected)
