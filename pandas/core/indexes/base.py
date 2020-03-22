@@ -3049,9 +3049,8 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        target = np.asarray(target)
-        left_distances = np.abs(self.values[left_indexer] - target)
-        right_distances = np.abs(self.values[right_indexer] - target)
+        left_distances = np.abs(self._values[left_indexer] - target._values)
+        right_distances = np.abs(self._values[right_indexer] - target._values)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3060,7 +3059,7 @@ class Index(IndexOpsMixin, PandasObject):
             right_indexer,
         )
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target._values, indexer, tolerance)
         return indexer
 
     def _filter_indexer_tolerance(

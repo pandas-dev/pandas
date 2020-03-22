@@ -14,6 +14,7 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
+  - cftime
   - html5lib
   - jinja2
   - lxml

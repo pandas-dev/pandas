@@ -14,6 +14,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
+  - cftime
   - html5lib
   - ipython
   - jinja2
