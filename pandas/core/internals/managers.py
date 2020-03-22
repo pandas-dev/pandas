@@ -573,7 +573,6 @@ class BlockManager(PandasObject):
             align_keys=align_keys,
             mask=mask,
             new=new,
-            align=align,
             inplace=True,
             axis=axis,
             transpose=transpose,
