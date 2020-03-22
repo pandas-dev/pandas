@@ -58,10 +58,7 @@ class TestRangeIndexConstructors:
         ],
     )
     def test_constructor_additional_invalid_args(self, args):
-        msg = (
-            "Value needs to be a scalar value, "
-            f"was type {type(args).__name__}"
-        )
+        msg = f"Value needs to be a scalar value, was type {type(args).__name__}"
         with pytest.raises(TypeError, match=msg):
             RangeIndex(args)
 
