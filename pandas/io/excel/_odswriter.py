@@ -63,7 +63,11 @@ class _ODSWriter(ExcelWriter):
         col_count = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
-            # print(cell.row, cell.col, cell.val)
+            attributes = {}
+            print(cell.row, cell.col, cell.val, cell.mergestart, cell.mergeend)
+            if cell.mergestart is not None and cell.mergeend is not None:
+                attributes = {"numberrowsspanned": max(1, cell.mergestart),
+                              "numbercolumnsspanned": cell.mergeend}
             # fill with empty cells if needed
             for _ in range(cell.col - col_count[cell.row]):
                 rows[cell.row].addElement(TableCell())
@@ -82,14 +86,14 @@ class _ODSWriter(ExcelWriter):
                 else:
                     value = val.strftime("%Y-%m-%d")
                     pvalue = val.strftime("%x")
-                tc = TableCell(valuetype="date", datevalue=value)
+                tc = TableCell(valuetype="date", datevalue=value, attributes=attributes)
             elif isinstance(val, datetime.date):
                 print('date', val.strftime("%Y-%m-%d"), val.strftime("%x"))
                 value = val.strftime("%Y-%m-%d")
                 pvalue = val.strftime("%x")
 #                value = val.isoformat()
 #                pvalue = val.strftime("%c")
-                tc = TableCell(valuetype="date", datevalue=value)
+                tc = TableCell(valuetype="date", datevalue=value, attributes=attributes)
             else:
                 class_to_cell_type = {
                     str: "string",
@@ -97,7 +101,7 @@ class _ODSWriter(ExcelWriter):
                     float: "float",
                     bool: "boolean",
                 }
-                tc = TableCell(valuetype=class_to_cell_type[type(val)], value=value)
+                tc = TableCell(valuetype=class_to_cell_type[type(val)], value=value, attributes=attributes)
             rows[cell.row].addElement(tc)
             col_count[cell.row] += 1
             p = P(text=pvalue)
@@ -125,8 +129,8 @@ class _ODSWriter(ExcelWriter):
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
         """
-        for row in rows.values():
-            wks.addElement(row)
+        for row_nr in range(max(rows.keys()) + 1):
+            wks.addElement(rows[row_nr])
 
     @classmethod
     def _style_to_xlwt(
