@@ -1062,7 +1062,7 @@ class DataFrameFormatter(TableFormatter):
         col_space = {k: cast(int, v) for k, v in self.col_space.items()}
         index = frame.index
         columns = frame.columns
-        fmt = self._get_formatter("")
+        fmt = self._get_formatter("__index__")
 
         if isinstance(index, ABCMultiIndex):
             fmt_index = index.format(
