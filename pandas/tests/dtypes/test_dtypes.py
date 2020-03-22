@@ -479,7 +479,6 @@ class TestPeriodDtype(Base):
 
     def test_empty(self):
         dt = PeriodDtype()
-        # https://github.com/pandas-dev/pandas/issues/27388
         msg = "object has no attribute 'freqstr'"
         with pytest.raises(AttributeError, match=msg):
             str(dt)
