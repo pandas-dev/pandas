@@ -558,14 +558,25 @@ class BlockManager(PandasObject):
     def setitem(self, indexer, value) -> "BlockManager":
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(self, **kwargs):
+    def putmask(
+        self, mask, new, align: bool = True, axis: int = 0,
+    ):
+        transpose = self.ndim == 2
 
-        if kwargs.pop("align", True):
+        if align:
             align_keys = ["new", "mask"]
         else:
             align_keys = ["mask"]
 
-        return self.apply("putmask", align_keys=align_keys, **kwargs)
+        return self.apply(
+            "putmask",
+            align_keys=align_keys,
+            mask=mask,
+            new=new,
+            inplace=True,
+            axis=axis,
+            transpose=transpose,
+        )
 
     def diff(self, n: int, axis: int) -> "BlockManager":
         return self.apply("diff", n=n, axis=axis)
