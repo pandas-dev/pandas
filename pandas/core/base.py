@@ -531,7 +531,7 @@ class SelectionMixin:
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised direcly in _aggregate_multiple_funcs
+                        # raised directly in _aggregate_multiple_funcs
                         pass
                     else:
                         raise
@@ -1156,8 +1156,14 @@ class IndexOpsMixin:
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
 
-            else:
+            elif na_action is None:
                 map_f = lib.map_infer
+            else:
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
 
         # mapper is a function
         new_values = map_f(values, mapper)

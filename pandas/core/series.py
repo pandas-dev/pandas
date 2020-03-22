@@ -910,7 +910,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _get_with(self, key):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # _convert_slice_indexer to determing if this slice is positional
+            # _convert_slice_indexer to determin if this slice is positional
             #  or label based, and if the latter, convert to positional
             slobj = self.index._convert_slice_indexer(key, kind="getitem")
             return self._slice(slobj)
@@ -3958,7 +3958,7 @@ Name: Max Speed, dtype: float64
         Parameters
         ----------
         axis : {0 or "index"}
-            Unused. Accepted for compatability with DataFrame method only.
+            Unused. Accepted for compatibility with DataFrame method only.
         index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
