@@ -547,14 +547,18 @@ class BaseGrouper:
             how == "add"
             and is_integer_dtype(orig_values.dtype)
             and is_extension_array_dtype(orig_values.dtype)
+            and not isna(result).any()
         ):
             # We need this to ensure that Series[Int64Dtype].resample().sum()
             # remains int64 dtype.
             # Two options for avoiding this special case
             # 1. mask-aware ops and avoid casting to float with NaN above
             # 2. specify the result dtype when calling this method
-            if not isna(result).any():
-                result = result.astype("int64")
+            #
+            # Sometimes result can contain null values (e.g. see
+            # https://github.com/pandas-dev/pandas/issues/32861)
+            # and so we must check for that before casting to int
+            result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
