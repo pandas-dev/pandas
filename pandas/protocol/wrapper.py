@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Hashable, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Hashable, Iterable, Optional, Sequence
 
 from pandas.wesm import dataframe as dataframe_protocol
 
@@ -22,7 +22,7 @@ class Column(dataframe_protocol.Column):
         self._ser = ser
 
     @property
-    def name(self) -> Hashable:
+    def name(self) -> Optional[Hashable]:
         return self._ser.name
 
     @property

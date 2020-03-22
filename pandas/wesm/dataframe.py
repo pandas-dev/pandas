@@ -153,7 +153,7 @@ class Categorical(DataType):
 class Column(ABC):
     @property
     @abstractmethod
-    def name(self) -> Hashable:
+    def name(self) -> Optional[Hashable]:
         pass
 
     @property
