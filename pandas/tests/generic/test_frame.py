@@ -7,6 +7,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, date_range
 import pandas._testing as tm
@@ -245,8 +247,12 @@ class TestToXArray:
         and LooseVersion(xarray.__version__) < LooseVersion("0.10.0"),
         reason="xarray >= 0.10.0 required",
     )
-    @pytest.mark.parametrize("index", tm.all_index_generator(3))
-    def test_to_xarray_index_types(self, index):
+    def test_to_xarray_index_types(self, indices):
+        if isinstance(indices, ABCMultiIndex):
+            pytest.skip("MultiIndex is tested separately")
+        if len(indices) == 0:
+            pytest.skip("Test doesn't make sense for empty index")
+
         from xarray import Dataset
 
         df = DataFrame(
@@ -262,7 +268,7 @@ class TestToXArray:
             }
         )
 
-        df.index = index
+        df.index = indices[:3]
         df.index.name = "foo"
         df.columns.name = "bar"
         result = df.to_xarray()
