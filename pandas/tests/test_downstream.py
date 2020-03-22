@@ -10,6 +10,7 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.wesm import dataframe as dataframe_protocol
 
 
 def import_module(name):
@@ -147,3 +148,44 @@ def test_missing_required_dependency():
     output = exc.value.stdout.decode()
     for name in ["numpy", "pytz", "dateutil"]:
         assert name in output
+
+
+# -----------------------------------------------------------------------------
+# DataFrame interchange protocol
+# -----------------------------------------------------------------------------
+
+
+class TestDataFrameProtocol:
+    def test_interface_smoketest(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+        result = df.__dataframe__
+        assert isinstance(result, dataframe_protocol.DataFrame)
+        assert isinstance(result["a"], dataframe_protocol.Column)
+        assert isinstance(result.column_by_index(0), dataframe_protocol.Column)
+        # assert isinstance(result['a'].dtype, dataframe_protocol.DataType)
+
+        assert result.num_rows == 3
+        assert result.num_columns == 2
+        assert result.column_names == ["a", "b"]
+        assert list(result.iter_column_names()) == ["a", "b"]
+
+        expected = np.array([1, 2, 3], dtype=np.int64)
+        res = result["a"].to_numpy()
+        tm.assert_numpy_array_equal(res, expected)
+        res = result.column_by_index(0).to_numpy()
+        tm.assert_numpy_array_equal(res, expected)
+
+        assert result["a"].name == "a"
+        assert result.column_by_index(0).name == 'a'
+
+    def test_pandas_dataframe_constructor(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+        result = DataFrame(df)
+        tm.assert_frame_equal(result, df)
+        assert result is not df
+
+        result = DataFrame(df.__dataframe__)
+        tm.assert_frame_equal(result, df)
+        assert result is not df

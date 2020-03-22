@@ -438,7 +438,8 @@ class DataFrame(NDFrame):
             data = data._data
 
         elif hasattr(data, "__dataframe__"):
-            # materialization as dict of numpy arrays
+            # construct using dict of numpy arrays
+            # TODO: index, columns, dtype and copy arguments
             obj = cast("dataframe_protocol.DataFrame", data.__dataframe__)
 
             def _get_column(col):

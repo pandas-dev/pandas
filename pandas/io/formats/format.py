@@ -562,10 +562,7 @@ class DataFrameFormatter(TableFormatter):
         bold_rows: bool = False,
         escape: bool = True,
     ):
-        from pandas.core.frame import DataFrame
-
-        # round-trip pandas DataFrame thro interchange protocol
-        self.frame = DataFrame(frame.__dataframe__)
+        self.frame = frame
         self.show_index_names = index_names
 
         if sparsify is None:

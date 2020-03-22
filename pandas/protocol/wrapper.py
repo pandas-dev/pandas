@@ -4,6 +4,7 @@ from pandas.wesm import dataframe as dataframe_protocol
 
 if TYPE_CHECKING:
     import pandas as pd
+    import numpy as np
 
 
 class Column(dataframe_protocol.Column):
@@ -22,7 +23,7 @@ class Column(dataframe_protocol.Column):
 
     @property
     def name(self) -> Hashable:
-        raise NotImplementedError
+        return self._ser.name
 
     @property
     def type(self) -> dataframe_protocol.DataType:
@@ -31,7 +32,7 @@ class Column(dataframe_protocol.Column):
         """
         raise NotImplementedError
 
-    def to_numpy(self):
+    def to_numpy(self) -> "np.ndarray":
         """
         Access column's data as a NumPy array. Recommended to return a view if
         able but not required
@@ -60,17 +61,17 @@ class DataFrame(dataframe_protocol.DataFrame):
     def __init__(self, df: "pd.DataFrame"):
         self._df = df
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._df)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self._df)
 
     def column_by_index(self, i: int) -> dataframe_protocol.Column:
         """
         Return the column at the indicated position.
         """
-        raise NotImplementedError
+        return Column(self._df.iloc[:, i])
 
     def column_by_name(self, key: Hashable) -> dataframe_protocol.Column:
         """
@@ -89,18 +90,18 @@ class DataFrame(dataframe_protocol.DataFrame):
         """
         Return the column names as an iterable.
         """
-        raise NotImplementedError
+        return self.column_names
 
     @property
     def num_columns(self) -> int:
         """
         Return the number of columns in the DataFrame.
         """
-        raise NotImplementedError
+        return self._df.shape[1]
 
     @property
     def num_rows(self) -> int:
         """
         Return the number of rows in the DataFrame.
         """
-        raise NotImplementedError
+        return len(self._df)
