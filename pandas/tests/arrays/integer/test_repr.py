@@ -15,10 +15,6 @@ from pandas.core.arrays.integer import (
 )
 
 
-def make_data():
-    return list(range(8)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100]
-
-
 @pytest.fixture(
     params=[
         Int8Dtype,
@@ -37,7 +33,10 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return integer_array(make_data(), dtype=dtype)
+    return integer_array(
+        list(range(8)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100],
+        dtype=dtype,
+    )
 
 
 @pytest.fixture
