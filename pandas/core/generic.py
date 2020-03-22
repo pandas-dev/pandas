@@ -8652,12 +8652,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self._check_inplace_setting(other)
             new_data = self._data.putmask(
-                mask=cond,
-                new=other,
-                align=align,
-                inplace=True,
-                axis=block_axis,
-                transpose=self._AXIS_REVERSED,
+                mask=cond, new=other, align=align, axis=block_axis,
             )
             self._update_inplace(new_data)
 

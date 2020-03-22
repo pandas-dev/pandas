@@ -910,25 +910,26 @@ class Block(PandasObject):
 
     def putmask(
         self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
-    ):
+    ) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
 
-        return the resulting block(s)
+        Return the resulting block(s).
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : the condition to respect
         new : a ndarray/object
-        inplace : perform inplace modification, default is False
+        inplace : bool, default False
+            Perform inplace modification.
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
+        transpose : bool, default False
+            Set to True if self is stored with axes reversed.
 
         Returns
         -------
-        a list of new blocks, the result of the putmask
+        List[Block]
         """
         new_values = self.values if inplace else self.values.copy()
 
@@ -1626,23 +1627,10 @@ class ExtensionBlock(Block):
         self.values[:] = values
 
     def putmask(
-        self, mask, new, inplace=False, axis=0, transpose=False,
-    ):
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+    ) -> List["Block"]:
         """
-        putmask the data to the block; we must be a single block and not
-        generate other blocks
-
-        return the resulting block
-
-        Parameters
-        ----------
-        mask  : the condition to respect
-        new : a ndarray/object
-        inplace : perform inplace modification, default is False
-
-        Returns
-        -------
-        a new block, the result of the putmask
+        See Block.putmask.__doc__
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
