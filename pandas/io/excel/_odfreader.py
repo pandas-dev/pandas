@@ -1,6 +1,7 @@
 from typing import List, cast
 
 import numpy as np
+
 from pandas._typing import FilePathOrBuffer, Scalar
 from pandas.compat._optional import import_optional_dependency
 

@@ -1,23 +1,22 @@
 from collections import defaultdict
 import datetime
 
+from odf.config import (
+    ConfigItem,
+    ConfigItemMapEntry,
+    ConfigItemMapIndexed,
+    ConfigItemMapNamed,
+    ConfigItemSet,
+)
+from odf.opendocument import OpenDocumentSpreadsheet
+from odf.style import ParagraphProperties, Style, TableCellProperties, TextProperties
+from odf.table import Table, TableCell, TableRow
+from odf.text import P
+
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
-
 from pandas.io.excel._util import _validate_freeze_panes
-
-from odf.opendocument import OpenDocumentSpreadsheet
-from odf.style import Style, TextProperties, TableCellProperties, ParagraphProperties
-from odf.table import Table, TableRow, TableCell
-from odf.text import P
-from odf.config import (
-    ConfigItemSet,
-    ConfigItemMapEntry,
-    ConfigItemMapNamed,
-    ConfigItem,
-    ConfigItemMapIndexed,
-)
 
 
 class _ODSWriter(ExcelWriter):

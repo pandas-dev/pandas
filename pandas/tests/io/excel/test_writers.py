@@ -18,7 +18,6 @@ from pandas.io.excel import (
     _OpenpyxlWriter,
     _XlsxWriter,
     _XlwtWriter,
-    _ODSWriter,
     register_writer,
 )
 
