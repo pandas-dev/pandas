@@ -280,7 +280,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Constructors
 
     def __new__(
-        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs,
+        cls, data=None, dtype=None, copy=False, name=None, tupleize_cols=True, **kwargs
     ) -> "Index":
 
         from pandas.core.indexes.range import RangeIndex
@@ -3049,9 +3049,9 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        target = target._values
-        left_distances = np.abs(self._values[left_indexer] - target)
-        right_distances = np.abs(self._values[right_indexer] - target)
+        target_values = target._values
+        left_distances = np.abs(self._values[left_indexer] - target_values)
+        right_distances = np.abs(self._values[right_indexer] - target_values)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3060,11 +3060,14 @@ class Index(IndexOpsMixin, PandasObject):
             right_indexer,
         )
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
         return indexer
 
     def _filter_indexer_tolerance(
-        self, target: "Index", indexer: np.ndarray, tolerance
+        self,
+        target: Union["Index", np.ndarray, ExtensionArray],
+        indexer: np.ndarray,
+        tolerance,
     ) -> np.ndarray:
         distance = abs(self.values[indexer] - target)
         indexer = np.where(distance <= tolerance, indexer, -1)
