@@ -11,7 +11,7 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.protocol.wrapper import DataFrame as DataFrameWrapper
-from pandas.wesm import dataframe as dataframe_protocol
+from pandas.wesm import dataframe as dataframe_protocol, example_dict_of_ndarray
 
 
 def import_module(name):
@@ -164,8 +164,7 @@ class TestDataFrameProtocol:
         assert isinstance(result, dataframe_protocol.DataFrame)
         assert isinstance(result["a"], dataframe_protocol.Column)
         assert isinstance(result.column_by_index(0), dataframe_protocol.Column)
-        # TODO(simonjayhawkins) don't leave commented out
-        # assert isinstance(result['a'].dtype, dataframe_protocol.DataType)
+        assert isinstance(result["a"].type, dataframe_protocol.DataType)
 
         assert result.num_rows == 3
         assert result.num_columns == 2
@@ -181,6 +180,10 @@ class TestDataFrameProtocol:
 
         assert result["a"].name == "a"
         assert result.column_by_index(0).name == "a"
+
+        expected_type = dataframe_protocol.Int64()
+        assert result["a"].type == expected_type
+        assert result.column_by_index(0).type == expected_type
 
     def test_pandas_dataframe_constructor(self):
         # TODO(simonjayhawkins): move to test_constructors.py
@@ -236,3 +239,10 @@ class TestDataFrameProtocol:
         result = DataFrame(result)
         # index and column names are not available from the protocol api
         tm.assert_frame_equal(result, df, check_names=False)
+
+    def test_example_dict_of_ndarray(self):
+        data, names, df = example_dict_of_ndarray.get_example()
+        df = DataFrame(df)
+        expected = DataFrame(data)
+        tm.assert_frame_equal(df, expected)
+        assert df.columns.to_list() == names

@@ -1,13 +1,13 @@
-from typing import TYPE_CHECKING, Any, Hashable, Iterable, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Hashable, Iterable, Sequence
 
 from pandas.wesm import dataframe as dataframe_protocol
+from pandas.wesm.example_dict_of_ndarray import NumPyColumn
 
 if TYPE_CHECKING:
     import pandas as pd
-    import numpy as np
 
 
-class Column(dataframe_protocol.Column):
+class Column(NumPyColumn):
     """
     Construct generic column from pandas Series
 
@@ -20,31 +20,7 @@ class Column(dataframe_protocol.Column):
 
     def __init__(self, ser: "pd.Series"):
         self._ser = ser
-
-    @property
-    def name(self) -> Optional[Hashable]:
-        return self._ser.name
-
-    @property
-    def type(self) -> dataframe_protocol.DataType:
-        """
-        Return the logical type of each column cell value
-        """
-        raise NotImplementedError
-
-    def to_numpy(self) -> "np.ndarray":
-        """
-        Access column's data as a NumPy array. Recommended to return a view if
-        able but not required
-        """
-        return self._ser.to_numpy()
-
-    def to_arrow(self, **kwargs):
-        """
-        Access column's data in the Apache Arrow format as pyarrow.Array or
-        ChunkedArray. Recommended to return a view if able but not required
-        """
-        raise NotImplementedError("Conversion to Arrow not available")
+        super().__init__(ser.name, ser.to_numpy())
 
 
 class DataFrame(dataframe_protocol.DataFrame):
