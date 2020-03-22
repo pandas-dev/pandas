@@ -42,7 +42,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_bool,
-    is_categorical,
     is_integer_dtype,
     is_interval_dtype,
     is_numeric_dtype,
@@ -1456,10 +1455,7 @@ class DataFrameGroupBy(GroupBy):
         # by take operation
         ids, _, ngroup = self.grouper.group_info
 
-        if any(is_categorical(ping.grouper) for ping in self.grouper.groupings):
-            ids = np.array(
-                [result.index.get_loc(i) for i in self.grouper.result_index]
-            )[ids]
+        result = result.reindex(self.grouper.result_index)
 
         output = []
         for i, _ in enumerate(result.columns):
