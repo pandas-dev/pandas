@@ -50,7 +50,7 @@ def test_xarray(df):
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
     cftime = import_module("cftime")
-    xarray = import_module("xarray")  # noqa
+    xarray = import_module("xarray")
 
     times = xarray.cftime_range("0001", periods=2)
     result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
