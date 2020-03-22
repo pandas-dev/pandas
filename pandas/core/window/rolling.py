@@ -149,7 +149,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Split data into blocks & return conformed data.
         """
-
         obj = self._selected_obj
 
         # filter out the on from the object
@@ -172,7 +171,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         subset : object, default None
             subset to act on
         """
-
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
@@ -198,7 +196,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
 
     def _get_win_type(self, kwargs: Dict):
         """
-        Exists for compatibility, overriden by subclass Window.
+        Exists for compatibility, overridden by subclass Window.
 
         Parameters
         ----------
@@ -238,7 +236,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Provide a nice str repr of our rolling object.
         """
-
         attrs_list = (
             f"{attr_name}={getattr(self, attr_name)}"
             for attr_name in self._attributes
@@ -270,8 +267,8 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         else:
             try:
                 values = ensure_float64(values)
-            except (ValueError, TypeError):
-                raise TypeError(f"cannot handle this type -> {values.dtype}")
+            except (ValueError, TypeError) as err:
+                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)
@@ -284,7 +281,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         """
         Wrap a single result.
         """
-
         if obj is None:
             obj = self._selected_obj
         index = obj.index
@@ -310,7 +306,6 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         obj : conformed data (may be resampled)
         exclude: list of columns to exclude, default to None
         """
-
         from pandas import Series, concat
 
         final = []
@@ -454,13 +449,13 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
             try:
                 values = self._prep_values(b.values)
 
-            except (TypeError, NotImplementedError):
+            except (TypeError, NotImplementedError) as err:
                 if isinstance(obj, ABCDataFrame):
                     exclude.extend(b.columns)
                     del block_list[i]
                     continue
                 else:
-                    raise DataError("No numeric types to aggregate")
+                    raise DataError("No numeric types to aggregate") from err
 
             if values.size == 0:
                 results.append(values.copy())
@@ -851,7 +846,6 @@ class Window(_Window):
 
     Examples
     --------
-
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
     >>> df
          B
@@ -1021,7 +1015,6 @@ class Window(_Window):
         window : ndarray
             the window, weights
         """
-
         window = self.window
         if isinstance(window, (list, tuple, np.ndarray)):
             return com.asarray_tuplesafe(window).astype(float)
@@ -1882,11 +1875,11 @@ class Rolling(_Rolling_and_Expanding):
 
         try:
             return to_offset(self.window)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as err:
             raise ValueError(
                 f"passed window {self.window} is not "
                 "compatible with a datetimelike index"
-            )
+            ) from err
 
     _agg_see_also_doc = dedent(
         """

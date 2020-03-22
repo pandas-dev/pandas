@@ -266,7 +266,6 @@ class JSONTableWriter(FrameWriter):
         to know what the index is, forces orient to records, and forces
         date_format to 'iso'.
         """
-
         super().__init__(
             obj,
             orient,
@@ -526,7 +525,6 @@ def read_json(
 
     Examples
     --------
-
     >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
@@ -572,7 +570,6 @@ def read_json(
         "data": [{"index": "row 1", "col 1": "a", "col 2": "b"},
                 {"index": "row 2", "col 1": "c", "col 2": "d"}]}'
     """
-
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
@@ -886,7 +883,6 @@ class Parser:
         """
         Try to parse a ndarray like into a column by inferring dtype.
         """
-
         # don't try to coerce, unless a force conversion
         if use_dtypes:
             if not self.dtype:
@@ -963,7 +959,6 @@ class Parser:
         Try to coerce object in epoch/iso formats and integer/float in epoch
         formats. Return a boolean if parsing was successful.
         """
-
         # no conversion on empty
         if not len(data):
             return data, False
@@ -978,9 +973,9 @@ class Parser:
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
             in_range = (
-                isna(new_data.values)
+                isna(new_data._values)
                 | (new_data > self.min_stamp)
-                | (new_data.values == iNaT)
+                | (new_data._values == iNaT)
             )
             if not in_range.all():
                 return data, False
@@ -1117,7 +1112,6 @@ class FrameParser(Parser):
         """
         Take a conversion function and possibly recreate the frame.
         """
-
         if filt is None:
             filt = lambda col, c: True
 

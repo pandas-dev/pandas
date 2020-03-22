@@ -347,10 +347,10 @@ class TestArithmeticOps(BaseOpsUtil):
             # TODO(extension)
             # rpow with a datetimelike coerces the integer array incorrectly
             msg = (
-                r"(:?can only perform ops with numeric values)"
-                r"|(:?cannot perform .* with this index type: DatetimeArray)"
-                r"|(:?Addition/subtraction of integers and integer-arrays"
-                r" with DatetimeArray is no longer supported. *)"
+                "can only perform ops with numeric values|"
+                "cannot perform .* with this index type: DatetimeArray|"
+                "Addition/subtraction of integers and integer-arrays "
+                "with DatetimeArray is no longer supported. *"
             )
             with pytest.raises(TypeError, match=msg):
                 ops(pd.Series(pd.date_range("20180101", periods=len(s))))
@@ -632,6 +632,15 @@ class TestCasting:
         result = s.astype(dtype)
         expected = pd.Series([1, 2, 3, None], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_astype_dt64(self):
+        # GH#32435
+        arr = pd.array([1, 2, 3, pd.NA]) * 10 ** 9
+
+        result = arr.astype("datetime64[ns]")
+
+        expected = np.array([1, 2, 3, "NaT"], dtype="M8[s]").astype("M8[ns]")
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_construct_cast_invalid(self, dtype):
 
@@ -1036,9 +1045,9 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+@td.skip_if_no("pyarrow", min_version="0.16.0")
 def test_arrow_roundtrip(data):
-    # roundtrip possible from arrow 1.0.0
+    # roundtrip possible from arrow 0.16.0
     import pyarrow as pa
 
     df = pd.DataFrame({"a": data})
@@ -1046,6 +1055,19 @@ def test_arrow_roundtrip(data):
     assert table.field("a").type == str(data.dtype.numpy_dtype)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+@td.skip_if_no("pyarrow", min_version="0.16.0")
+def test_arrow_from_arrow_uint():
+    # https://github.com/pandas-dev/pandas/issues/31896
+    # possible mismatch in types
+    import pyarrow as pa
+
+    dtype = pd.UInt32Dtype()
+    result = dtype.__from_arrow__(pa.array([1, 2, 3, 4, None], type="int64"))
+    expected = pd.array([1, 2, 3, 4, None], dtype="UInt32")
+
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(

@@ -239,7 +239,7 @@ def test_iso_constructor(fmt, exp):
     ],
 )
 def test_iso_constructor_raises(fmt):
-    msg = "Invalid ISO 8601 Duration format - {}".format(fmt)
+    msg = f"Invalid ISO 8601 Duration format - {fmt}"
     with pytest.raises(ValueError, match=msg):
         Timedelta(fmt)
 

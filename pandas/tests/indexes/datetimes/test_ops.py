@@ -4,10 +4,16 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.generic import ABCDateOffset
-
 import pandas as pd
-from pandas import DatetimeIndex, Index, Series, Timestamp, bdate_range, date_range
+from pandas import (
+    DateOffset,
+    DatetimeIndex,
+    Index,
+    Series,
+    Timestamp,
+    bdate_range,
+    date_range,
+)
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
@@ -363,7 +369,7 @@ class TestDatetimeIndexOps:
         assert not idx.equals(pd.Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.DatetimeIndex._simple_new(idx.asi8, tz="US/Pacific")
+        idx3 = pd.DatetimeIndex(idx.asi8, tz="US/Pacific")
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())
@@ -394,7 +400,7 @@ class TestDatetimeIndexOps:
         # can set to an offset, converting from string if necessary
         idx._data.freq = freq
         assert idx.freq == freq
-        assert isinstance(idx.freq, ABCDateOffset)
+        assert isinstance(idx.freq, DateOffset)
 
         # can reset to None
         idx._data.freq = None

@@ -26,7 +26,14 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, IntervalIndex, Series, date_range
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DatetimeIndex,
+    IntervalIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
@@ -127,6 +134,11 @@ class TestCategoricalDtype(Base):
         with pytest.raises(ValueError, match=msg):
             CategoricalDtype._from_values_or_dtype(values, categories, ordered, dtype)
 
+    def test_from_values_or_dtype_invalid_dtype(self):
+        msg = "Cannot not construct CategoricalDtype from <class 'object'>"
+        with pytest.raises(ValueError, match=msg):
+            CategoricalDtype._from_values_or_dtype(None, None, None, object)
+
     def test_is_dtype(self, dtype):
         assert CategoricalDtype.is_dtype(dtype)
         assert CategoricalDtype.is_dtype("category")
@@ -171,6 +183,11 @@ class TestCategoricalDtype(Base):
         assert cat.dtype._is_boolean is expected
         assert is_bool_dtype(cat) is expected
         assert is_bool_dtype(cat.dtype) is expected
+
+    def test_dtype_specific_categorical_dtype(self):
+        expected = "datetime64[ns]"
+        result = str(Categorical(DatetimeIndex([])).categories.dtype)
+        assert result == expected
 
 
 class TestDatetimeTZDtype(Base):
@@ -344,7 +361,7 @@ class TestPeriodDtype(Base):
         assert hash(dtype) == hash(dtype3)
 
     def test_construction(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid frequency: xx"):
             PeriodDtype("xx")
 
         for s in ["period[D]", "Period[D]", "D"]:
@@ -397,20 +414,24 @@ class TestPeriodDtype(Base):
         assert is_dtype_equal(dtype, result)
         result = PeriodDtype.construct_from_string("period[D]")
         assert is_dtype_equal(dtype, result)
-        with pytest.raises(TypeError):
-            PeriodDtype.construct_from_string("foo")
-        with pytest.raises(TypeError):
-            PeriodDtype.construct_from_string("period[foo]")
-        with pytest.raises(TypeError):
-            PeriodDtype.construct_from_string("foo[D]")
-
-        with pytest.raises(TypeError):
-            PeriodDtype.construct_from_string("datetime64[ns]")
-        with pytest.raises(TypeError):
-            PeriodDtype.construct_from_string("datetime64[ns, US/Eastern]")
 
         with pytest.raises(TypeError, match="list"):
             PeriodDtype.construct_from_string([1, 2, 3])
+
+    @pytest.mark.parametrize(
+        "string",
+        [
+            "foo",
+            "period[foo]",
+            "foo[D]",
+            "datetime64[ns]",
+            "datetime64[ns, US/Eastern]",
+        ],
+    )
+    def test_construct_dtype_from_string_invalid_raises(self, string):
+        msg = f"Cannot construct a 'PeriodDtype' from '{string}'"
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            PeriodDtype.construct_from_string(string)
 
     def test_is_dtype(self, dtype):
         assert PeriodDtype.is_dtype(dtype)
@@ -458,7 +479,8 @@ class TestPeriodDtype(Base):
 
     def test_empty(self):
         dt = PeriodDtype()
-        with pytest.raises(AttributeError):
+        msg = "object has no attribute 'freqstr'"
+        with pytest.raises(AttributeError, match=msg):
             str(dt)
 
     def test_not_string(self):
@@ -747,11 +769,13 @@ class TestCategoricalDtypeParametrized:
         assert c1 is not c3
 
     def test_nan_invalid(self):
-        with pytest.raises(ValueError):
+        msg = "Categorical categories cannot be null"
+        with pytest.raises(ValueError, match=msg):
             CategoricalDtype([1, 2, np.nan])
 
     def test_non_unique_invalid(self):
-        with pytest.raises(ValueError):
+        msg = "Categorical categories must be unique"
+        with pytest.raises(ValueError, match=msg):
             CategoricalDtype([1, 2, 1])
 
     def test_same_categories_different_order(self):

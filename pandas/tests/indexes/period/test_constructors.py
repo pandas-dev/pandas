@@ -147,9 +147,9 @@ class TestPeriodIndex:
 
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(idx._ndarray_values)
+            PeriodIndex(idx.asi8)
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(list(idx._ndarray_values))
+            PeriodIndex(list(idx.asi8))
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
@@ -322,9 +322,9 @@ class TestPeriodIndex:
         idx = period_range("2007-01", name="p", periods=2, freq="M")
 
         with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
-            idx._simple_new(idx, name="p", freq=idx.freq)
+            idx._simple_new(idx, name="p")
 
-        result = idx._simple_new(idx._data, name="p", freq=idx.freq)
+        result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
         with pytest.raises(AssertionError):
@@ -339,19 +339,19 @@ class TestPeriodIndex:
         # GH13079
         idx = PeriodIndex([], freq="M", name="p")
         with pytest.raises(AssertionError, match="<class .*PeriodIndex'>"):
-            idx._simple_new(idx, name="p", freq="M")
+            idx._simple_new(idx, name="p")
 
-        result = idx._simple_new(idx._data, name="p", freq="M")
+        result = idx._simple_new(idx._data, name="p")
         tm.assert_index_equal(result, idx)
 
     @pytest.mark.parametrize("floats", [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
         with pytest.raises(AssertionError, match="<class "):
-            PeriodIndex._simple_new(floats, freq="M")
+            PeriodIndex._simple_new(floats)
 
         msg = "PeriodIndex does not allow floating point in construction"
         with pytest.raises(TypeError, match=msg):
-            PeriodIndex(floats, freq="M")
+            PeriodIndex(floats)
 
     def test_constructor_nat(self):
         msg = "start and end must not be NaT"
@@ -364,7 +364,7 @@ class TestPeriodIndex:
         year = pd.Series([2001, 2002, 2003])
         quarter = year - 2000
         idx = PeriodIndex(year=year, quarter=quarter)
-        strs = ["{t[0]:d}Q{t[1]:d}".format(t=t) for t in zip(quarter, year)]
+        strs = [f"{t[0]:d}Q{t[1]:d}" for t in zip(quarter, year)]
         lops = list(map(Period, strs))
         p = PeriodIndex(lops)
         tm.assert_index_equal(p, idx)

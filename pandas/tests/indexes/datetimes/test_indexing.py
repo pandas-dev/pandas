@@ -121,6 +121,14 @@ class TestGetItem:
 
 
 class TestWhere:
+    def test_where_doesnt_retain_freq(self):
+        dti = date_range("20130101", periods=3, freq="D", name="idx")
+        cond = [True, True, False]
+        expected = DatetimeIndex([dti[0], dti[1], dti[0]], freq=None, name="idx")
+
+        result = dti.where(cond, dti[::-1])
+        tm.assert_index_equal(result, expected)
+
     def test_where_other(self):
         # other is ndarray or Index
         i = pd.date_range("20130101", periods=3, tz="US/Eastern")
@@ -304,7 +312,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_with_timezone(self):
@@ -340,7 +349,8 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
-        with pytest.raises(IndexError):
+        msg = "out of bounds"
+        with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
 
 
@@ -420,8 +430,20 @@ class TestGetLoc:
         tm.assert_numpy_array_equal(
             idx.get_loc(time(12, 30)), np.array([]), check_dtype=False
         )
-        with pytest.raises(NotImplementedError):
+        msg = "cannot yet lookup inexact labels when key is a time object"
+        with pytest.raises(NotImplementedError, match=msg):
             idx.get_loc(time(12, 30), method="pad")
+
+    def test_get_loc_tz_aware(self):
+        # https://github.com/pandas-dev/pandas/issues/32140
+        dti = pd.date_range(
+            pd.Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
+            pd.Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
+            freq="5s",
+        )
+        key = pd.Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
+        result = dti.get_loc(key, method="nearest")
+        assert result == 7433
 
     def test_get_loc_nat(self):
         # GH#20464
@@ -443,7 +465,8 @@ class TestGetLoc:
     def test_get_loc_timedelta_invalid_key(self, key):
         # GH#20464
         dti = pd.date_range("1970-01-01", periods=10)
-        with pytest.raises(TypeError):
+        msg = "Cannot index DatetimeIndex with [Tt]imedelta"
+        with pytest.raises(TypeError, match=msg):
             dti.get_loc(key)
 
     def test_get_loc_reasonable_key_error(self):
@@ -552,9 +575,9 @@ class TestDatetimeIndex:
             idx.insert(3, pd.Timestamp("2000-01-04"))
         with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             idx.insert(3, datetime(2000, 1, 4))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Timezones don't match"):
             idx.insert(3, pd.Timestamp("2000-01-04", tz="US/Eastern"))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Timezones don't match"):
             idx.insert(3, datetime(2000, 1, 4, tzinfo=pytz.timezone("US/Eastern")))
 
         for tz in ["US/Pacific", "Asia/Singapore"]:
@@ -626,7 +649,7 @@ class TestDatetimeIndex:
             assert result.name == expected.name
             assert result.freq == expected.freq
 
-        with pytest.raises((IndexError, ValueError)):
+        with pytest.raises((IndexError, ValueError), match="out of bounds"):
             # either depending on numpy version
             idx.delete(5)
 
@@ -785,5 +808,5 @@ class TestDatetimeIndex:
         ]
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")

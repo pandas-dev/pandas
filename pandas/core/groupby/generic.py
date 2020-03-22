@@ -49,7 +49,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import _isna_ndarraylike, isna, notna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
     is_multi_agg_with_relabel,
@@ -572,8 +572,8 @@ class SeriesGroupBy(GroupBy):
             indices = [
                 self._get_index(name) for name, group in self if true_and_notna(group)
             ]
-        except (ValueError, TypeError):
-            raise TypeError("the filter must return a boolean result")
+        except (ValueError, TypeError) as err:
+            raise TypeError("the filter must return a boolean result") from err
 
         filtered = self._apply_filter(indices, dropna)
         return filtered
@@ -589,32 +589,20 @@ class SeriesGroupBy(GroupBy):
         """
         ids, _, _ = self.grouper.group_info
 
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
-        # GH 27951
-        # temporary fix while we wait for NumPy bug 12629 to be fixed
-        val[isna(val)] = np.datetime64("NaT")
-
-        try:
-            sorter = np.lexsort((val, ids))
-        except TypeError:  # catches object dtypes
-            msg = f"val.dtype must be object, got {val.dtype}"
-            assert val.dtype == object, msg
-            val, _ = algorithms.factorize(val, sort=False)
-            sorter = np.lexsort((val, ids))
-            _isna = lambda a: a == -1
-        else:
-            _isna = isna
-
-        ids, val = ids[sorter], val[sorter]
+        codes, _ = algorithms.factorize(val, sort=False)
+        sorter = np.lexsort((codes, ids))
+        codes = codes[sorter]
+        ids = ids[sorter]
 
         # group boundaries are where group ids change
         # unique observations are where sorted values change
         idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
-        inc = np.r_[1, val[1:] != val[:-1]]
+        inc = np.r_[1, codes[1:] != codes[:-1]]
 
         # 1st item of each group is a new unique observation
-        mask = _isna(val)
+        mask = codes == -1
         if dropna:
             inc[idx] = 1
             inc[mask] = 0
@@ -669,7 +657,7 @@ class SeriesGroupBy(GroupBy):
             )
 
         ids, _, _ = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -786,7 +774,7 @@ class SeriesGroupBy(GroupBy):
             Count of values within each group.
         """
         ids, _, ngroups = self.grouper.group_info
-        val = self.obj._internal_get_values()
+        val = self.obj._values
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
@@ -967,9 +955,11 @@ class DataFrameGroupBy(GroupBy):
                         raise
                     result = self._aggregate_frame(func)
                 else:
-                    result.columns = Index(
-                        result.columns.levels[0], name=self._selected_obj.columns.name
-                    )
+                    # select everything except for the last level, which is the one
+                    # containing the name of the function(s), see GH 32040
+                    result.columns = result.columns.rename(
+                        [self._selected_obj.columns.name] * result.columns.nlevels
+                    ).droplevel(-1)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1095,7 +1085,7 @@ class DataFrameGroupBy(GroupBy):
                         result = type(block.values)._from_sequence(
                             result.ravel(), dtype=block.values.dtype
                         )
-                    except ValueError:
+                    except (ValueError, TypeError):
                         # reshape to be valid for non-Extension Block
                         result = result.reshape(1, -1)
 
@@ -1383,9 +1373,9 @@ class DataFrameGroupBy(GroupBy):
                     path, res = self._choose_path(fast_path, slow_path, group)
                 except TypeError:
                     return self._transform_item_by_item(obj, fast_path)
-                except ValueError:
+                except ValueError as err:
                     msg = "transform must return a scalar value for each group"
-                    raise ValueError(msg)
+                    raise ValueError(msg) from err
             else:
                 res = path(group)
 
@@ -1571,7 +1561,6 @@ class DataFrameGroupBy(GroupBy):
         3  bar  4  1.0
         5  bar  6  9.0
         """
-
         indices = []
 
         obj = self._selected_obj
@@ -1626,7 +1615,6 @@ class DataFrameGroupBy(GroupBy):
         subset : object, default None
             subset to act on
         """
-
         if ndim == 2:
             if subset is None:
                 subset = self.obj
@@ -1786,10 +1774,8 @@ class DataFrameGroupBy(GroupBy):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
-        vals = (
-            (mask & ~_isna_ndarraylike(np.atleast_2d(blk.get_values())))
-            for blk in data.blocks
-        )
+        # TODO(2DEA): reshape would not be necessary with 2D EAs
+        vals = ((mask & ~isna(blk.values).reshape(blk.shape)) for blk in data.blocks)
         locs = (blk.mgr_locs for blk in data.blocks)
 
         counted = (
@@ -1844,7 +1830,6 @@ class DataFrameGroupBy(GroupBy):
         4   ham       5      x
         5   ham       5      y
         """
-
         obj = self._selected_obj
 
         def groupby_series(obj, col=None):

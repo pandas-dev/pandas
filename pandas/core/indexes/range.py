@@ -7,6 +7,8 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
+from pandas._libs.lib import no_default
+from pandas._typing import Label
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
@@ -93,7 +95,7 @@ class RangeIndex(Int64Index):
         # RangeIndex
         if isinstance(start, RangeIndex):
             start = start._range
-            return cls._simple_new(start, dtype=dtype, name=name)
+            return cls._simple_new(start, name=name)
 
         # validate the arguments
         if com.all_none(start, stop, step):
@@ -111,7 +113,7 @@ class RangeIndex(Int64Index):
             raise ValueError("Step must not be zero")
 
         rng = range(start, stop, step)
-        return cls._simple_new(rng, dtype=dtype, name=name)
+        return cls._simple_new(rng, name=name)
 
     @classmethod
     def from_range(cls, data: range, name=None, dtype=None) -> "RangeIndex":
@@ -129,17 +131,17 @@ class RangeIndex(Int64Index):
             )
 
         cls._validate_dtype(dtype)
-        return cls._simple_new(data, dtype=dtype, name=name)
+        return cls._simple_new(data, name=name)
 
     @classmethod
-    def _simple_new(cls, values: range, name=None, dtype=None) -> "RangeIndex":
+    def _simple_new(cls, values: range, name: Label = None) -> "RangeIndex":
         result = object.__new__(cls)
 
         assert isinstance(values, range)
 
         result._range = values
         result.name = name
-
+        result._cache = {}
         result._reset_identity()
         return result
 
@@ -166,7 +168,7 @@ class RangeIndex(Int64Index):
         return self._cached_data
 
     @cache_readonly
-    def _int64index(self):
+    def _int64index(self) -> Int64Index:
         return Int64Index._simple_new(self._data, name=self.name)
 
     def _get_data_as_items(self):
@@ -347,8 +349,8 @@ class RangeIndex(Int64Index):
                 new_key = int(key)
                 try:
                     return self._range.index(new_key)
-                except ValueError:
-                    raise KeyError(key)
+                except ValueError as err:
+                    raise KeyError(key) from err
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
@@ -385,13 +387,15 @@ class RangeIndex(Int64Index):
         return list(self._range)
 
     @Appender(Int64Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values=None, name: Label = no_default):
+        name = self.name if name is no_default else name
+
         if values is None:
-            name = kwargs.get("name", self.name)
-            return self._simple_new(self._range, name=name)
+            result = self._simple_new(self._range, name=name)
+            result._cache = self._cache.copy()
+            return result
         else:
-            kwargs.setdefault("name", self.name)
-            return self._int64index._shallow_copy(values, **kwargs)
+            return Int64Index._simple_new(values, name=name)
 
     @Appender(Int64Index.copy.__doc__)
     def copy(self, name=None, deep=False, dtype=None, **kwargs):
@@ -693,10 +697,10 @@ class RangeIndex(Int64Index):
             new_key = int(key)
             try:
                 return self._range[new_key]
-            except IndexError:
+            except IndexError as err:
                 raise IndexError(
                     f"index {key} is out of bounds for axis 0 with size {len(self)}"
-                )
+                ) from err
         elif is_scalar(key):
             raise IndexError(
                 "only integers, slices (`:`), "

@@ -64,7 +64,7 @@ Axis = Union[str, int]
 Label = Optional[Hashable]
 Level = Union[Label, int]
 Ordered = Optional[bool]
-JSONSerializable = Union[PythonScalar, List, Dict]
+JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
 
 # For functions like rename that convert one label to another

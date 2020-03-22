@@ -15,18 +15,33 @@ from cpython.iterator cimport PyIter_Check
 from cpython.sequence cimport PySequence_Check
 from cpython.number cimport PyNumber_Check
 
-from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
-                               PyTime_Check, PyDelta_Check,
-                               PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDate_Check,
+    PyTime_Check,
+    PyDelta_Check,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_Check, PyArray_GETITEM,
-                    PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
-                    flatiter, NPY_OBJECT,
-                    int64_t, float32_t, float64_t,
-                    uint8_t, uint64_t, complex128_t)
+from numpy cimport (
+    NPY_OBJECT,
+    PyArray_Check,
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+    complex128_t,
+    flatiter,
+    float32_t,
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint64_t,
+)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -60,7 +75,12 @@ from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
 from pandas._libs.missing cimport (
-    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period, C_NA
+    checknull,
+    isnaobj,
+    is_null_datetime64,
+    is_null_timedelta64,
+    is_null_period,
+    C_NA,
 )
 
 
@@ -72,22 +92,6 @@ cdef:
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
     float64_t NaN = <float64_t>np.NaN
-
-
-def values_from_object(obj: object):
-    """
-    Return my values or the object if we are say an ndarray.
-    """
-    func: object
-
-    if getattr(obj, '_typ', '') == 'dataframe':
-        return obj.values
-
-    func = getattr(obj, '_internal_get_values', None)
-    if func is not None:
-        obj = func()
-
-    return obj
 
 
 @cython.wraparound(False)
@@ -246,7 +250,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool=True):
+def fast_unique_multiple(list arrays, sort: bool = True):
     """
     Generate a list of unique values from a list of arrays.
 
@@ -277,6 +281,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
+
     if sort is None:
         try:
             uniques.sort()
@@ -289,7 +294,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
+def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)
@@ -571,6 +576,8 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             if PyArray_Check(x) and PyArray_Check(y):
                 if not array_equivalent_object(x, y):
                     return False
+            elif (x is C_NA) ^ (y is C_NA):
+                return False
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
@@ -1005,7 +1012,7 @@ _TYPE_MAP = {
     'complex64': 'complex',
     'complex128': 'complex',
     'c': 'complex',
-    'string': 'bytes',
+    'string': 'string',
     'S': 'bytes',
     'U': 'string',
     'bool': 'boolean',
@@ -2003,8 +2010,6 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             except (TypeError, ValueError) as err:
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
-                elif "uint64" in str(err):  # Exception from check functions.
-                    raise
 
                 seen.saw_null()
                 floats[i] = NaN
@@ -2054,7 +2059,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         If an array-like object contains only timedelta values or NaT is
         encountered, whether to convert and return an array of m8[ns] dtype.
     convert_to_nullable_integer : bool, default False
-        If an array-like object contains only interger values (and NaN) is
+        If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
 
     Returns
@@ -2277,7 +2282,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                                 return uints
                             else:
                                 return ints
-                elif seen.is_bool:
+                elif seen.is_bool and not seen.nan_:
                     return bools.view(np.bool_)
 
     return objects

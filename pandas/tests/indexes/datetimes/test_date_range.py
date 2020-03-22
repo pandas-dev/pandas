@@ -153,9 +153,10 @@ class TestDateRanges:
 
     def test_date_range_out_of_bounds(self):
         # GH#14187
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Cannot generate range"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range("2016-01-01", periods=100000, freq="D")
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(end="1763-10-12", periods=100000, freq="D")
 
     def test_date_range_gen_error(self):
@@ -736,9 +737,10 @@ class TestGenRangeGeneration:
     )
     def test_mismatching_tz_raises_err(self, start, end):
         # issue 18488
-        with pytest.raises(TypeError):
+        msg = "Start and end cannot both be tz-aware with different timezones"
+        with pytest.raises(TypeError, match=msg):
             pd.date_range(start, end)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             pd.date_range(start, end, freq=BDay())
 
 
@@ -759,17 +761,6 @@ class TestBusinessDateRange:
         with pytest.raises(TypeError, match=msg):
             bdate_range(START, END, periods=10, freq=None)
 
-    def test_naive_aware_conflicts(self):
-        naive = bdate_range(START, END, freq=BDay(), tz=None)
-        aware = bdate_range(START, END, freq=BDay(), tz="Asia/Hong_Kong")
-
-        msg = "tz-naive.*tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            naive.join(aware)
-
-        with pytest.raises(TypeError, match=msg):
-            aware.join(naive)
-
     def test_misc(self):
         end = datetime(2009, 5, 13)
         dr = bdate_range(end=end, periods=20)
@@ -782,16 +773,17 @@ class TestBusinessDateRange:
     def test_date_parse_failure(self):
         badly_formed_date = "2007/100/1"
 
-        with pytest.raises(ValueError):
+        msg = "could not convert string to Timestamp"
+        with pytest.raises(ValueError, match=msg):
             Timestamp(badly_formed_date)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bdate_range(start=badly_formed_date, periods=10)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bdate_range(end=badly_formed_date, periods=10)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             bdate_range(badly_formed_date, badly_formed_date)
 
     def test_daterange_bug_456(self):
@@ -824,8 +816,9 @@ class TestBusinessDateRange:
 
     def test_bday_overflow_error(self):
         # GH#24252 check that we get OutOfBoundsDatetime and not OverflowError
+        msg = "Out of bounds nanosecond timestamp"
         start = pd.Timestamp.max.floor("D").to_pydatetime()
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.date_range(start, periods=2, freq="B")
 
 

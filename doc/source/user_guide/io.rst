@@ -3815,7 +3815,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: ipython
 
       string = "HolyMoly'"
-      store.select('df', 'index == %s' % string)
+      store.select('df', f'index == {string}')
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -5005,7 +5005,7 @@ Possible values are:
   This usually provides better performance for analytic databases
   like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check the SQLAlchemy `documention
+  For more information check the SQLAlchemy `documentation
   <https://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
 - callable with signature ``(pd_table, conn, keys, data_iter)``:
   This can be used to implement a more performant insertion method based on

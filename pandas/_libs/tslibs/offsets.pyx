@@ -114,7 +114,18 @@ def apply_index_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
     def wrapper(self, other):
-        result = func(self, other)
+
+        is_index = getattr(other, "_typ", "") == "datetimeindex"
+
+        # operate on DatetimeArray
+        arr = other._data if is_index else other
+
+        result = func(self, arr)
+
+        if is_index:
+            # Wrap DatetimeArray result back to DatetimeIndex
+            result = type(other)._simple_new(result, name=other.name)
+
         if self.normalize:
             result = result.to_period('D').to_timestamp()
         return result
@@ -509,7 +520,7 @@ class _BaseOffset:
         state = self.__dict__.copy()
 
         # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserilization
+        # as its a np.busyday; we recreate on deserialization
         if 'calendar' in state:
             del state['calendar']
         try:
