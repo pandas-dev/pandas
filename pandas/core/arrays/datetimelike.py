@@ -846,7 +846,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         elif isinstance(value, self._recognized_scalars):
             value = self._scalar_type(value)
 
-        if is_list_like(value) and not isinstance(value, type(self)):
+        elif is_list_like(value) and not isinstance(value, type(self)):
             value = array(value)
 
             if not type(self)._is_recognized_dtype(value):
