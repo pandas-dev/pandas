@@ -60,7 +60,7 @@ class _ODSWriter(ExcelWriter):
         if _validate_freeze_panes(freeze_panes):
             self._create_freeze_panes(sheet_name, freeze_panes)
 
-        rows: DefautDict = defaultdict(TableRow)
+        rows: DefaultDict = defaultdict(TableRow)
         col_count: DefaultDict = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
