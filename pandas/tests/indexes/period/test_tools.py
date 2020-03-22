@@ -73,7 +73,7 @@ class TestSearchsorted:
             freq="D",
         )
         result = pidx.searchsorted(klass(pidx))
-        expected = np.arange(len(result))
+        expected = np.arange(len(pidx), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 

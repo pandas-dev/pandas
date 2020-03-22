@@ -116,7 +116,7 @@ class TestTimedeltaIndex(DatetimeLike):
     def test_searchsorted_different_argument_classes(self, klass):
         idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
         result = idx.searchsorted(klass(idx))
-        expected = np.arange(len(idx))
+        expected = np.arange(len(idx), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 
