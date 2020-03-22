@@ -71,6 +71,7 @@ class DictDataFrame(dataframe.DataFrame):
     num_rows : int, default None
         If not passed, determined from the data
     """
+
     _num_rows: Optional[int]
 
     def __init__(

@@ -3,7 +3,7 @@
 # Copyright (c) 2020 Wes McKinney
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, MutableMapping
+from collections import abc
 from typing import Any, Hashable, Iterable, Optional, Sequence
 
 # ----------------------------------------------------------------------
@@ -183,7 +183,7 @@ class Column(ABC):
 # DataFrame: the main public API
 
 
-class DataFrame(ABC, Mapping):
+class DataFrame(ABC, abc.Mapping):
     """
     An abstract data frame base class.
 
@@ -266,7 +266,7 @@ class DataFrame(ABC, Mapping):
         pass
 
 
-class MutableDataFrame(DataFrame, MutableMapping):
+class MutableDataFrame(DataFrame, abc.MutableMapping):
     # TODO: Mutable data frames are fraught at this interface level and
     # need more discussion
     pass
