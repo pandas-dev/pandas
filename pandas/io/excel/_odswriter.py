@@ -11,7 +11,13 @@ from odf.opendocument import OpenDocumentSpreadsheet
 from odf.style import Style, TextProperties, TableCellProperties, ParagraphProperties
 from odf.table import Table, TableRow, TableCell
 from odf.text import P
-from odf.config import ConfigItemSet, ConfigItemMapEntry, ConfigItemMapNamed, ConfigItem, ConfigItemMapIndexed
+from odf.config import (
+    ConfigItemSet,
+    ConfigItemMapEntry,
+    ConfigItemMapNamed,
+    ConfigItem,
+    ConfigItemMapIndexed,
+)
 
 
 class _ODSWriter(ExcelWriter):
@@ -37,8 +43,9 @@ class _ODSWriter(ExcelWriter):
             self.book.spreadsheet.addElement(sheet)
         return self.book.save(self.path)
 
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
-                    freeze_panes=None):
+    def write_cells(
+        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
+    ):
         # Write the frame cells using odf
         # assert startrow == 0
         # assert startcol == 0
@@ -96,13 +103,17 @@ class _ODSWriter(ExcelWriter):
             else:
                 value = val.strftime("%Y-%m-%d")
                 pvalue = val.strftime("%x")
-            return pvalue, TableCell(valuetype="date", datevalue=value,
-                                     attributes=attributes)
+            return (
+                pvalue,
+                TableCell(valuetype="date", datevalue=value, attributes=attributes),
+            )
         elif isinstance(val, datetime.date):
             value = val.strftime("%Y-%m-%d")
             pvalue = val.strftime("%x")
-            return pvalue, TableCell(valuetype="date", datevalue=value,
-                                     attributes=attributes)
+            return (
+                pvalue,
+                TableCell(valuetype="date", datevalue=value, attributes=attributes),
+            )
         else:
             class_to_cell_type = {
                 str: "string",
@@ -110,8 +121,14 @@ class _ODSWriter(ExcelWriter):
                 float: "float",
                 bool: "boolean",
             }
-            return pvalue, TableCell(valuetype=class_to_cell_type[type(val)],
-                                     value=value, attributes=attributes)
+            return (
+                pvalue,
+                TableCell(
+                    valuetype=class_to_cell_type[type(val)],
+                    value=value,
+                    attributes=attributes,
+                ),
+            )
 
     def _process_style(self, style):
         if style is None:
@@ -129,12 +146,12 @@ class _ODSWriter(ExcelWriter):
         if "borders" in style:
             borders = style["borders"]
             for side, thickness in borders.items():
-                thickness_translation = {
-                    "thin": "0.75pt solid #000000"
-                }
+                thickness_translation = {"thin": "0.75pt solid #000000"}
                 odf_style.addElement(
                     TableCellProperties(
-                        attributes={f"border{side}": thickness_translation[thickness]}))
+                        attributes={f"border{side}": thickness_translation[thickness]}
+                    )
+                )
         if "alignment" in style:
             alignment = style["alignment"]
             horizontal = alignment.get("horizontal")
@@ -162,21 +179,25 @@ class _ODSWriter(ExcelWriter):
         config_item_map_entry = ConfigItemMapEntry(name=sheet_name)
         config_item_map_named.addElement(config_item_map_entry)
 
-        config_item_map_entry.addElement(ConfigItem(name="HorizontalSplitMode",
-                                                    type="short",
-                                                    text="2"))
-        config_item_map_entry.addElement(ConfigItem(name="VerticalSplitMode",
-                                                    type="short",
-                                                    text="2"))
-        config_item_map_entry.addElement(ConfigItem(name="HorizontalSplitPosition",
-                                                    type="int",
-                                                    text=str(freeze_panes[0])))
-        config_item_map_entry.addElement(ConfigItem(name="VerticalSplitPosition",
-                                                    type="int",
-                                                    text=str(freeze_panes[1])))
-        config_item_map_entry.addElement(ConfigItem(name="PositionRight",
-                                                    type="int",
-                                                    text=str(freeze_panes[0])))
-        config_item_map_entry.addElement(ConfigItem(name="PositionBottom",
-                                                    type="int",
-                                                    text=str(freeze_panes[1])))
+        config_item_map_entry.addElement(
+            ConfigItem(name="HorizontalSplitMode", type="short", text="2")
+        )
+        config_item_map_entry.addElement(
+            ConfigItem(name="VerticalSplitMode", type="short", text="2")
+        )
+        config_item_map_entry.addElement(
+            ConfigItem(
+                name="HorizontalSplitPosition", type="int", text=str(freeze_panes[0])
+            )
+        )
+        config_item_map_entry.addElement(
+            ConfigItem(
+                name="VerticalSplitPosition", type="int", text=str(freeze_panes[1])
+            )
+        )
+        config_item_map_entry.addElement(
+            ConfigItem(name="PositionRight", type="int", text=str(freeze_panes[0]))
+        )
+        config_item_map_entry.addElement(
+            ConfigItem(name="PositionBottom", type="int", text=str(freeze_panes[1]))
+        )
