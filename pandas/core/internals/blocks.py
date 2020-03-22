@@ -909,33 +909,27 @@ class Block(PandasObject):
         return block
 
     def putmask(
-        self,
-        mask,
-        new,
-        align: bool = True,
-        inplace: bool = False,
-        axis: int = 0,
-        transpose: bool = False,
-    ):
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+    ) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
 
-        return the resulting block(s)
+        Return the resulting block(s).
 
         Parameters
         ----------
-        mask  : the condition to respect
+        mask : the condition to respect
         new : a ndarray/object
-        align : boolean, perform alignment on other/cond, default is True
-        inplace : perform inplace modification, default is False
+        inplace : bool, default False
+            Perform inplace modification.
         axis : int
-        transpose : boolean
-            Set to True if self is stored with axes reversed
+        transpose : bool, default False
+            Set to True if self is stored with axes reversed.
 
         Returns
         -------
-        a list of new blocks, the result of the putmask
+        List[Block]
         """
         new_values = self.values if inplace else self.values.copy()
 
@@ -1312,13 +1306,7 @@ class Block(PandasObject):
         return [self.make_block(new_values)]
 
     def where(
-        self,
-        other,
-        cond,
-        align: bool = True,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
     ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
@@ -1327,8 +1315,6 @@ class Block(PandasObject):
         ----------
         other : a ndarray/object
         cond  : the condition to respect
-        align : bool, default True
-            Perform alignment on other/cond.
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
@@ -1394,12 +1380,7 @@ class Block(PandasObject):
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(
-                    orig_other,
-                    cond,
-                    align=align,
-                    errors=errors,
-                    try_cast=try_cast,
-                    axis=axis,
+                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis,
                 )
                 return self._maybe_downcast(blocks, "infer")
 
@@ -1646,24 +1627,10 @@ class ExtensionBlock(Block):
         self.values[:] = values
 
     def putmask(
-        self, mask, new, align=True, inplace=False, axis=0, transpose=False,
-    ):
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+    ) -> List["Block"]:
         """
-        putmask the data to the block; we must be a single block and not
-        generate other blocks
-
-        return the resulting block
-
-        Parameters
-        ----------
-        mask  : the condition to respect
-        new : a ndarray/object
-        align : boolean, perform alignment on other/cond, default is True
-        inplace : perform inplace modification, default is False
-
-        Returns
-        -------
-        a new block, the result of the putmask
+        See Block.putmask.__doc__
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -1896,13 +1863,7 @@ class ExtensionBlock(Block):
         ]
 
     def where(
-        self,
-        other,
-        cond,
-        align=True,
-        errors="raise",
-        try_cast: bool = False,
-        axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
     ) -> List["Block"]:
         if isinstance(other, ABCDataFrame):
             # ExtensionArrays are 1-D, so if we get here then
