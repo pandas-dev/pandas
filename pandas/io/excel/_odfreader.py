@@ -120,7 +120,6 @@ class _ODFReader(_BaseExcelReader):
             if len(row) < max_row_len:
                 row.extend([self.empty_value] * (max_row_len - len(row)))
 
-        # print(table)
         return table
 
     def _get_row_repeat(self, row) -> int:
@@ -151,12 +150,10 @@ class _ODFReader(_BaseExcelReader):
     def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
         from odf.namespaces import OFFICENS
 
-        # print("\ncell: ", cell, convert_float)
         if str(cell) == "#N/A":
             return np.nan
 
         cell_type = cell.attributes.get((OFFICENS, "value-type"))
-        # print("type=", cell_type, "value=", repr(cell_value))
         if cell_type == "boolean":
             if str(cell) == "TRUE":
                 return True
@@ -166,7 +163,6 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == "float":
             # GH5394
             cell_value = float(cell.attributes.get((OFFICENS, "value")))
-            # print("value = ", value)
             if convert_float:
                 val = int(cell_value)
                 if val == cell_value:
