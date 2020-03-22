@@ -2,9 +2,10 @@
 Functions for arithmetic and comparison operations on NumPy arrays and
 ExtensionArrays.
 """
+from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 import numpy as np
 
@@ -24,17 +25,11 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import (
-    ABCDatetimeArray,
-    ABCExtensionArray,
-    ABCIndex,
-    ABCSeries,
-    ABCTimedeltaArray,
-)
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.ops import missing
-from pandas.core.ops.dispatch import dispatch_to_extension_op, should_extension_dispatch
+from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.roperator import rpow
 
@@ -199,23 +194,15 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
     ndarrray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
-    from pandas.core.ops import maybe_upcast_for_op
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
-    lvalues = left
-    rvalues = right
+    lvalues = maybe_upcast_datetimelike_array(left)
+    rvalues = maybe_upcast_for_op(right, lvalues.shape)
 
-    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
-
-    if should_extension_dispatch(left, rvalues) or isinstance(
-        rvalues, (ABCTimedeltaArray, ABCDatetimeArray, Timestamp, Timedelta)
-    ):
-        # TimedeltaArray, DatetimeArray, and Timestamp are included here
-        #  because they have `freq` attribute which is handled correctly
-        #  by dispatch_to_extension_op.
+    if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
-        res_values = dispatch_to_extension_op(op, lvalues, rvalues)
+        res_values = op(lvalues, rvalues)
 
     else:
         with np.errstate(all="ignore"):
@@ -287,7 +274,7 @@ def comparison_op(
     ndarray or ExtensionArray
     """
     # NB: We assume extract_array has already been called on left and right
-    lvalues = left
+    lvalues = maybe_upcast_datetimelike_array(left)
     rvalues = right
 
     rvalues = lib.item_from_zerodim(rvalues)
@@ -307,7 +294,8 @@ def comparison_op(
             )
 
     if should_extension_dispatch(lvalues, rvalues):
-        res_values = dispatch_to_extension_op(op, lvalues, rvalues)
+        # Call the method on lvalues
+        res_values = op(lvalues, rvalues)
 
     elif is_scalar(rvalues) and isna(rvalues):
         # numpy does not like comparisons vs None
@@ -406,11 +394,12 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
-    lvalues = left
+    lvalues = maybe_upcast_datetimelike_array(left)
     rvalues = right
 
     if should_extension_dispatch(lvalues, rvalues):
-        res_values = dispatch_to_extension_op(op, lvalues, rvalues)
+        # Call the method on lvalues
+        res_values = op(lvalues, rvalues)
 
     else:
         if isinstance(rvalues, np.ndarray):
@@ -453,3 +442,87 @@ def get_array_op(op, str_rep: Optional[str] = None):
         return partial(logical_op, op=op)
     else:
         return partial(arithmetic_op, op=op, str_rep=str_rep)
+
+
+def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
+    """
+    If we have an ndarray that is either datetime64 or timedelta64, wrap in EA.
+
+    Parameters
+    ----------
+    obj : ndarray or ExtensionArray
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    if isinstance(obj, np.ndarray):
+        if obj.dtype.kind == "m":
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._from_sequence(obj)
+        if obj.dtype.kind == "M":
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray._from_sequence(obj)
+
+    return obj
+
+
+def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
+    """
+    Cast non-pandas objects to pandas types to unify behavior of arithmetic
+    and comparison operations.
+
+    Parameters
+    ----------
+    obj: object
+    shape : tuple[int]
+
+    Returns
+    -------
+    out : object
+
+    Notes
+    -----
+    Be careful to call this *after* determining the `name` attribute to be
+    attached to the result of the arithmetic operation.
+    """
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
+
+    if type(obj) is timedelta:
+        # GH#22390  cast up to Timedelta to rely on Timedelta
+        # implementation; otherwise operation against numeric-dtype
+        # raises TypeError
+        return Timedelta(obj)
+    elif isinstance(obj, np.datetime64):
+        # GH#28080 numpy casts integer-dtype to datetime64 when doing
+        #  array[int] + datetime64, which we do not allow
+        if isna(obj):
+            # Avoid possible ambiguities with pd.NaT
+            obj = obj.astype("datetime64[ns]")
+            right = np.broadcast_to(obj, shape)
+            return DatetimeArray(right)
+
+        return Timestamp(obj)
+
+    elif isinstance(obj, np.timedelta64):
+        if isna(obj):
+            # wrapping timedelta64("NaT") in Timedelta returns NaT,
+            #  which would incorrectly be treated as a datetime-NaT, so
+            #  we broadcast and wrap in a TimedeltaArray
+            obj = obj.astype("timedelta64[ns]")
+            right = np.broadcast_to(obj, shape)
+            return TimedeltaArray(right)
+
+        # In particular non-nanosecond timedelta64 needs to be cast to
+        #  nanoseconds, or else we get undesired behavior like
+        #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
+        return Timedelta(obj)
+
+    elif isinstance(obj, np.ndarray) and obj.dtype.kind == "m":
+        # GH#22390 Unfortunately we need to special-case right-hand
+        # timedelta64 dtypes because numpy casts integer dtypes to
+        # timedelta64 when operating with timedelta64
+        return TimedeltaArray._from_sequence(obj)
+    return obj
