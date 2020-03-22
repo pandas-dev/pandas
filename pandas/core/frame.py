@@ -439,7 +439,7 @@ class DataFrame(NDFrame):
 
         elif hasattr(data, "__dataframe__"):
             # construct using dict of numpy arrays
-            # TODO: index, columns, dtype and copy arguments
+            # TODO(simonjayhawkins) index, columns, dtype and copy arguments
             obj = cast("dataframe_protocol.DataFrame", data.__dataframe__)
 
             def _get_column(col):
@@ -452,6 +452,16 @@ class DataFrame(NDFrame):
                 column_name: _get_column(obj[column_name])
                 for column_name in obj.column_names
             }
+
+            if not index:
+                try:
+                    index = MultiIndex.from_tuples(obj.row_names)
+                except TypeError:
+                    index = obj.row_names
+                except NotImplementedError:
+                    # It is not necessary to implement row_names in the
+                    # dataframe interchange protocol
+                    pass
 
         if isinstance(data, BlockManager):
             mgr = self._init_mgr(

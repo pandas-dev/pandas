@@ -86,6 +86,14 @@ class DataFrame(dataframe_protocol.DataFrame):
         """
         return self._df.columns.to_list()
 
+    @property
+    def row_names(self) -> Sequence[Any]:
+        """
+        Return the row names (if any) as a materialized sequence. It is not
+        necessary to implement this method
+        """
+        return self._df.index.to_list()
+
     def iter_column_names(self) -> Iterable[Any]:
         """
         Return the column names as an iterable.

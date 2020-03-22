@@ -10,6 +10,7 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.protocol.wrapper import DataFrame as DataFrameWrapper
 from pandas.wesm import dataframe as dataframe_protocol
 
 
@@ -163,12 +164,14 @@ class TestDataFrameProtocol:
         assert isinstance(result, dataframe_protocol.DataFrame)
         assert isinstance(result["a"], dataframe_protocol.Column)
         assert isinstance(result.column_by_index(0), dataframe_protocol.Column)
+        # TODO(simonjayhawkins) don't leave commented out
         # assert isinstance(result['a'].dtype, dataframe_protocol.DataType)
 
         assert result.num_rows == 3
         assert result.num_columns == 2
         assert result.column_names == ["a", "b"]
         assert list(result.iter_column_names()) == ["a", "b"]
+        assert result.row_names == [0, 1, 2]
 
         expected = np.array([1, 2, 3], dtype=np.int64)
         res = result["a"].to_numpy()
@@ -177,9 +180,10 @@ class TestDataFrameProtocol:
         tm.assert_numpy_array_equal(res, expected)
 
         assert result["a"].name == "a"
-        assert result.column_by_index(0).name == 'a'
+        assert result.column_by_index(0).name == "a"
 
     def test_pandas_dataframe_constructor(self):
+        # TODO(simonjayhawkins): move to test_constructors.py
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         result = DataFrame(df)
@@ -189,3 +193,46 @@ class TestDataFrameProtocol:
         result = DataFrame(df.__dataframe__)
         tm.assert_frame_equal(result, df)
         assert result is not df
+
+        # It is not necessary to implement row_names in the
+        # dataframe interchange protocol
+
+        # TODO(simonjayhawkins) how to monkeypatch property with pytest
+        # raises AttributeError: can't set attribute
+
+        class _DataFrameWrapper(DataFrameWrapper):
+            @property
+            def row_names(self):
+                raise NotImplementedError("row_names")
+
+        result = _DataFrameWrapper(df)
+        with pytest.raises(NotImplementedError, match="row_names"):
+            result.row_names
+
+        result = DataFrame(result)
+        tm.assert_frame_equal(result, df)
+
+    def test_multiindex(self):
+        df = (
+            DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+            .reset_index()
+            .set_index(["index", "a"])
+        )
+        result = df.__dataframe__
+
+        assert result.row_names == [(0, 1), (1, 2), (2, 3)]
+
+        # TODO(simonjayhawkins) split this test and move to test_constructors.py
+        result = DataFrame(result)
+        # index and column names are not available from the protocol api
+        tm.assert_frame_equal(result, df, check_names=False)
+
+        df = df.unstack()
+        result = df.__dataframe__
+
+        assert result.column_names == [("b", 1), ("b", 2), ("b", 3)]
+
+        # TODO(simonjayhawkins) split this test and move to test_constructors.py
+        result = DataFrame(result)
+        # index and column names are not available from the protocol api
+        tm.assert_frame_equal(result, df, check_names=False)
