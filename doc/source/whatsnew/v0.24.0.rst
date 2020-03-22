@@ -397,7 +397,7 @@ Other enhancements
 - :func:`~DataFrame.to_csv`, :func:`~Series.to_csv`, :func:`~DataFrame.to_json`, and :func:`~Series.to_json` now support ``compression='infer'`` to infer compression based on filename extension (:issue:`15008`).
   The default compression for ``to_csv``, ``to_json``, and ``to_pickle`` methods has been updated to ``'infer'`` (:issue:`22004`).
 - :meth:`DataFrame.to_sql` now supports writing ``TIMESTAMP WITH TIME ZONE`` types for supported databases. For databases that don't support timezones, datetime data will be stored as timezone unaware local timestamps. See the :ref:`io.sql_datetime_data` for implications (:issue:`9086`).
-- :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
+- :func:`to_timedelta` now supports iso-formatted timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` objects in the constructor (:issue:`2193`)
 - :class:`DatetimeIndex` has gained the :attr:`DatetimeIndex.timetz` attribute. This returns the local time with timezone information. (:issue:`21358`)
 - :meth:`~Timestamp.round`, :meth:`~Timestamp.ceil`, and :meth:`~Timestamp.floor` for :class:`DatetimeIndex` and :class:`Timestamp`
