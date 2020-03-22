@@ -1683,32 +1683,6 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
     return df
 
 
-def all_index_generator(k=10):
-    """
-    Generator which can be iterated over to get instances of all the various
-    index classes.
-
-    Parameters
-    ----------
-    k: length of each of the index instances
-    """
-    all_make_index_funcs = [
-        makeIntIndex,
-        makeFloatIndex,
-        makeStringIndex,
-        makeUnicodeIndex,
-        makeDateIndex,
-        makePeriodIndex,
-        makeTimedeltaIndex,
-        makeBoolIndex,
-        makeRangeIndex,
-        makeIntervalIndex,
-        makeCategoricalIndex,
-    ]
-    for make_index_func in all_make_index_funcs:
-        yield make_index_func(k=k)
-
-
 def index_subclass_makers_generator():
     make_index_funcs = [
         makeDateIndex,
