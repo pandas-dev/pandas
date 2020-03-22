@@ -582,7 +582,7 @@ class DataFrameFormatter(TableFormatter):
             self.formatters = formatters
         else:
             raise ValueError(
-                f"Formatters length({len(   )}) should match "
+                f"Formatters length({len(formatters)}) should match "
                 f"DataFrame number of columns({len(frame.columns)})"
             )
         self.na_rep = na_rep
