@@ -7820,26 +7820,15 @@ Wild         185.0
                 f"Can only count levels on hierarchical {self._get_axis_name(axis)}."
             )
 
-        # Mask NaNs: Mask rows where the index level is NaN and all values in
-        # the DataFrame that are NaN
-        if frame._is_mixed_type:
-            # Since we have mixed types, calling notna(frame.values) might
-            # upcast everything to object
-            mask = (
-                notna(frame.index.get_level_values(level=level)).reshape(-1, 1) &
-                notna(frame).values
-            )
-        else:
-            # But use the speedup when we have homogeneous dtypes
-            mask = (
-                notna(frame.index.get_level_values(level=level)).reshape(-1, 1) &
-                notna(frame.values)
-            )
+        # Mask NaNs: Mask rows or columns where the index level is NaN, and all
+        # values in the DataFrame that are NaN
+        values_mask = notna(frame.values)
 
+        index_mask = notna(count_axis.get_level_values(level=level))
         if axis == 1:
-            # We're transposing the mask rather than frame to avoid potential
-            # upcasts to object, which induces a ~20x slowdown
-            mask = mask.T
+            mask = index_mask & values_mask
+        else:
+            mask = index_mask.reshape(-1, 1) & values_mask
 
         if isinstance(level, str):
             level = count_axis._get_level_number(level)
@@ -7847,15 +7836,14 @@ Wild         185.0
         level_name = count_axis._names[level]
         level_index = count_axis.levels[level]._shallow_copy(name=level_name)
         level_codes = ensure_int64(count_axis.codes[level])
-        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=0)
-
-        result = DataFrame(counts, index=level_index, columns=agg_axis)
+        counts = lib.count_level_2d(mask, level_codes, len(level_index), axis=axis)
 
         if axis == 1:
-            # Undo our earlier transpose
-            return result.T
+            result = DataFrame(counts, index=agg_axis, columns=level_index)
         else:
-            return result
+            result = DataFrame(counts, index=level_index, columns=agg_axis)
+
+        return result
 
     def _reduce(
         self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds

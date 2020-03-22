@@ -250,14 +250,31 @@ class TestMultiLevel(Base):
 
     def test_count_index_with_nan(self):
         # https://github.com/pandas-dev/pandas/issues/21824
-        df = DataFrame({"Person": ["John", "Myla", None, "John", "Myla"],
-                        "Age": [24., 5, 21., 33, 26],
-                        "Single": [False, True, True, True, False]})
+        df = DataFrame(
+            {
+                "Person": ["John", "Myla", None, "John", "Myla"],
+                "Age": [24.0, 5, 21.0, 33, 26],
+                "Single": [False, True, True, True, False],
+            }
+        )
 
+        # count on row labels
         res = df.set_index(["Person", "Single"]).count(level="Person")
-        expected = DataFrame(index=Index(["John", "Myla"], name="Person"),
-                             data={"Age": [2, 2]})
+        expected = DataFrame(
+            index=Index(["John", "Myla"], name="Person"),
+            columns=Index(["Age"]),
+            data=np.array([2, 2]),
+        )
+        tm.assert_frame_equal(res, expected)
 
+        # count on column labels
+        res = df.set_index(["Person", "Single"]).T.count(level="Person", axis=1)
+        expected = DataFrame(
+            columns=Index(["John", "Myla"], name="Person"),
+            index=Index(["Age"]),
+            data=np.array([[2, 2]]),
+        )
+        tm.assert_frame_equal(res, expected)
 
     def test_count_level_series(self):
         index = MultiIndex(
