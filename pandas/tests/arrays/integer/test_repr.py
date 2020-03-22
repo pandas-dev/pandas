@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype,
@@ -32,6 +33,16 @@ def make_data():
 )
 def dtype(request):
     return request.param()
+
+
+@pytest.fixture
+def data(dtype):
+    return integer_array(make_data(), dtype=dtype)
+
+
+@pytest.fixture
+def data_missing(dtype):
+    return integer_array([np.nan, 1], dtype=dtype)
 
 
 def test_dtypes(dtype):
@@ -77,4 +88,12 @@ def test_repr_array_long():
         "Length: 3000, dtype: Int64"
     )
     result = repr(data)
+    assert result == expected
+
+
+def test_frame_repr(data_missing):
+
+    df = pd.DataFrame({"A": data_missing})
+    result = repr(df)
+    expected = "      A\n0  <NA>\n1     1"
     assert result == expected

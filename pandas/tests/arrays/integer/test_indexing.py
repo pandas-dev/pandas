@@ -1,61 +1,19 @@
-import numpy as np
-import pytest
-
-import pandas.util._test_decorators as td
-
-from pandas.core.dtypes.generic import ABCIndexClass
-
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
-from pandas.core.arrays import IntegerArray, integer_array
-from pandas.core.arrays.integer import (
-    Int8Dtype,
-    Int16Dtype,
-    Int32Dtype,
-    Int64Dtype,
-    UInt8Dtype,
-    UInt16Dtype,
-    UInt32Dtype,
-    UInt64Dtype,
-)
-from pandas.tests.extension.base import BaseOpsUtil
 
 
-def make_data():
-    return list(range(8)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100]
+def test_array_setitem_nullable_boolean_mask():
+    # GH 31446
+    ser = pd.Series([1, 2], dtype="Int64")
+    result = ser.where(ser > 1)
+    expected = pd.Series([pd.NA, 2], dtype="Int64")
+    tm.assert_series_equal(result, expected)
 
 
-@pytest.fixture(
-    params=[
-        Int8Dtype,
-        Int16Dtype,
-        Int32Dtype,
-        Int64Dtype,
-        UInt8Dtype,
-        UInt16Dtype,
-        UInt32Dtype,
-        UInt64Dtype,
-    ]
-)
-def dtype(request):
-    return request.param()
+def test_array_setitem():
+    # GH 31446
+    arr = pd.Series([1, 2], dtype="Int64").array
+    arr[arr > 1] = 1
 
-
-@pytest.fixture
-def data(dtype):
-    return integer_array(make_data(), dtype=dtype)
-
-
-@pytest.fixture
-def data_missing(dtype):
-    return integer_array([np.nan, 1], dtype=dtype)
-
-
-@pytest.fixture(params=["data", "data_missing"])
-def all_data(request, data, data_missing):
-    """Parametrized fixture giving 'data' and 'data_missing'"""
-    if request.param == "data":
-        return data
-    elif request.param == "data_missing":
-        return data_missing
+    expected = pd.array([1, 1], dtype="Int64")
+    tm.assert_extension_array_equal(arr, expected)
