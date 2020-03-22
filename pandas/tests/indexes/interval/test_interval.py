@@ -871,7 +871,9 @@ def test_searchsorted_different_argument_classes(klass):
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
     result = values.searchsorted(klass(values))
     expected = np.array([0, 1], dtype=result.dtype)
+    tm.assert_numpy_array_equal(result, expected)
 
+    result = values._data.searchsorted(klass(values))
     tm.assert_numpy_array_equal(result, expected)
 
 

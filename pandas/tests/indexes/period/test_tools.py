@@ -74,7 +74,9 @@ class TestSearchsorted:
         )
         result = pidx.searchsorted(klass(pidx))
         expected = np.arange(len(pidx), dtype=result.dtype)
+        tm.assert_numpy_array_equal(result, expected)
 
+        result = pidx._data.searchsorted(klass(pidx))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_searchsorted_invalid(self):

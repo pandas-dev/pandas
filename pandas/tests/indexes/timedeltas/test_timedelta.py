@@ -117,7 +117,9 @@ class TestTimedeltaIndex(DatetimeLike):
         idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
         result = idx.searchsorted(klass(idx))
         expected = np.arange(len(idx), dtype=result.dtype)
+        tm.assert_numpy_array_equal(result, expected)
 
+        result = idx._data.searchsorted(klass(idx))
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
