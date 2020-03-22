@@ -2,18 +2,6 @@ from collections import defaultdict
 import datetime
 from typing import DefaultDict
 
-from odf.config import (
-    ConfigItem,
-    ConfigItemMapEntry,
-    ConfigItemMapIndexed,
-    ConfigItemMapNamed,
-    ConfigItemSet,
-)
-from odf.opendocument import OpenDocumentSpreadsheet
-from odf.style import ParagraphProperties, Style, TableCellProperties, TextProperties
-from odf.table import Table, TableCell, TableRow
-from odf.text import P
-
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
@@ -25,6 +13,8 @@ class _ODSWriter(ExcelWriter):
     supported_extensions = (".ods",)
 
     def __init__(self, path, engine=None, encoding=None, mode="w", **engine_kwargs):
+        from odf.opendocument import OpenDocumentSpreadsheet
+
         engine_kwargs["engine"] = engine
 
         if mode == "a":
@@ -46,6 +36,9 @@ class _ODSWriter(ExcelWriter):
     def write_cells(
         self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
     ):
+        from odf.table import Table, TableCell, TableRow
+        from odf.text import P
+
         # Write the frame cells using odf
         # assert startrow == 0
         # assert startcol == 0
@@ -90,6 +83,8 @@ class _ODSWriter(ExcelWriter):
         return attributes
 
     def _make_table_cell(self, cell):
+        from odf.table import TableCell
+
         attributes = self._make_table_cell_attributes(cell)
         val, fmt = self._value_with_fmt(cell.val)
         pvalue = value = val
@@ -131,6 +126,13 @@ class _ODSWriter(ExcelWriter):
             )
 
     def _process_style(self, style):
+        from odf.style import (
+            ParagraphProperties,
+            Style,
+            TableCellProperties,
+            TextProperties,
+        )
+
         if style is None:
             return None
         style_key = json.dumps(style)
@@ -164,6 +166,14 @@ class _ODSWriter(ExcelWriter):
         return name
 
     def _create_freeze_panes(self, sheet_name, freeze_panes):
+        from odf.config import (
+            ConfigItem,
+            ConfigItemMapEntry,
+            ConfigItemMapIndexed,
+            ConfigItemMapNamed,
+            ConfigItemSet,
+        )
+
         config_item_set = ConfigItemSet(name="ooo:view-settings")
         self.book.settings.addElement(config_item_set)
 
