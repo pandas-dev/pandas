@@ -55,23 +55,17 @@ class TestRangeIndexConstructors:
             np.arange(0, 10),
             np.array([1]),
             [1],
-        ]
+        ],
     )
     def test_constructor_additional_invalid_args(self, args):
         msg = (
-            "Value needs to be a scalar value, "
+            "Value needs to be a scalar value, " 
             f"was type {type(args).__name__}"
         )
         with pytest.raises(TypeError, match=msg):
             RangeIndex(args)
 
-    @pytest.mark.parametrize(
-        "args",
-        [
-            "foo",
-            datetime(2000, 1, 1, 0, 0),
-        ]
-    )
+    @pytest.mark.parametrize("args", ["foo", datetime(2000, 1, 1, 0, 0)])
     def test_constructor_invalid_args_wrong_type(self, args):
         msg = f"Wrong type {type(args)} for value {args}"
         with pytest.raises(TypeError, match=msg):

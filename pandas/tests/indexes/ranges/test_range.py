@@ -311,7 +311,7 @@ class TestRangeIndex(Numeric):
             ("foo", "bar", "baz"),
             # shouldn't
             ("0", "1", "2"),
-        ]
+        ],
     )
     def test_cant_or_shouldnt_cast(self, start, stop, step):
         msg = f"Wrong type {type(start)} for value {start}"
