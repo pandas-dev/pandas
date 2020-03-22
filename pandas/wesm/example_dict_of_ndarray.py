@@ -3,10 +3,10 @@
 # Copyright (c) 2020 Wes McKinney
 
 from typing import Dict, Hashable, Sequence
-import pandas.wesm.dataframe as dataframe
 
 import numpy as np
 
+import pandas.wesm.dataframe as dataframe
 
 _numeric_types = {
     "int8": dataframe.Int8(),
