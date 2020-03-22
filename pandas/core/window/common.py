@@ -35,6 +35,8 @@ def _dispatch(name: str, *args, **kwargs):
     def outer(self, *args, **kwargs):
         def f(x):
             x = self._shallow_copy(x, groupby=self._groupby)
+            # patch for GH 32332
+            x.obj = x._obj_with_exclusions
             return getattr(x, name)(*args, **kwargs)
 
         return self._groupby.apply(f)
