@@ -674,7 +674,7 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string wont recognize
+                # GH#31499 if we have a np.str_ get_c_string won't recognize
                 #  it as a str, even though isinstance does.
                 v = get_c_string(<str>val)
             else:
@@ -709,7 +709,7 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string wont recognize
+                # GH#31499 if we have a np.str_ get_c_string won't recognize
                 #  it as a str, even though isinstance does.
                 v = get_c_string(<str>val)
             else:
