@@ -468,12 +468,12 @@ class SeriesGroupBy(GroupBy):
 
     @Substitution(klass="Series", selected="A.")
     @Appender(_transform_template)
-    def transform(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
+    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(
-                func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
         elif func not in base.transform_kernel_whitelist:
@@ -490,7 +490,7 @@ class SeriesGroupBy(GroupBy):
         return self._transform_fast(result, func)
 
     def _transform_general(
-        self, func, engine="cython", engine_kwargs=None, *args, **kwargs
+        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
         """
         Transform with a non-str `func`.
@@ -1378,7 +1378,7 @@ class DataFrameGroupBy(GroupBy):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
 
     def _transform_general(
-        self, func, engine="cython", engine_kwargs=None, *args, **kwargs
+        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
     ):
         from pandas.core.reshape.concat import concat
 
@@ -1388,7 +1388,7 @@ class DataFrameGroupBy(GroupBy):
         if engine == "numba":
             nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
             check_kwargs_and_nopython(kwargs, nopython)
-            validate_udf(func)
+            validate_udf(func, include_columns=True)
             func = jit_user_function(func, nopython, nogil, parallel)
         else:
             path = None
@@ -1447,14 +1447,14 @@ class DataFrameGroupBy(GroupBy):
 
     @Substitution(klass="DataFrame", selected="")
     @Appender(_transform_template)
-    def transform(self, func, engine="cython", engine_kwargs=None, *args, **kwargs):
+    def transform(self, func, *args, engine="cython", engine_kwargs=None, **kwargs):
 
         # optimized transforms
         func = self._get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(
-                func, engine=engine, engine_kwargs=engine_kwargs, *args, **kwargs
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
         elif func not in base.transform_kernel_whitelist:
