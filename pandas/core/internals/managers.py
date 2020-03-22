@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseDtype
@@ -1937,23 +1937,22 @@ def _compare_or_regex_search(a, b, regex=False):
     is_b_array = isinstance(b, np.ndarray)
 
     def _get_nan_value(x):
-        if np.issubdtype(x.dtype, np.datetime64):
-            return np.datetime64("NaT")
-        elif np.issubdtype(x.dtype, np.timedelta64):
-            return np.timedelta64("NaT")
-        return np.nan
-
-    # Replace all definitions of missing values (isna=True) to a numpy.nan
+    # GH#32621 replace all pd.NAs to avoid failure of element-wise comparison
+    mask = isna(a) | isna(b)
     if is_a_array:
-        a = np.where(isna(a), _get_nan_value(a), a)
+        a = np.where(mask, na_value_for_dtype(a.dtype, compat=False), a)
     if is_b_array:
-        b = np.where(isna(b), _get_nan_value(b), b)
+        b = np.where(mask, na_value_for_dtype(b.dtype, compat=False), b)
 
     if is_datetimelike_v_numeric(a, b) or is_numeric_v_string_like(a, b):
         # GH#29553 avoid deprecation warnings from numpy
         result = False
     else:
         result = op(a)
+        if isinstance(result, np.ndarray):
+            result[mask] = na_value_for_dtype(result.dtype, compat=False)
+        elif isna(result):
+            result = na_value_for_dtype(np.bool, compat=False)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]
