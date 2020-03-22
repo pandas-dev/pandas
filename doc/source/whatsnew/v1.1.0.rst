@@ -349,6 +349,7 @@ I/O
 - Bug in :meth:`read_csv` was causing a file descriptor leak on an empty file (:issue:`31488`)
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
+- Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
 
 
 Plotting
