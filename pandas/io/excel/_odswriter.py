@@ -1,13 +1,14 @@
 from collections import defaultdict
 import datetime
 
-# import pandas._libs.json as json
+import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
 
 # from pandas.io.excel._util import _validate_freeze_panes
 
 from odf.opendocument import OpenDocumentSpreadsheet
+from odf.style import Style, TextProperties, TableCellProperties, ParagraphProperties
 from odf.table import Table, TableRow, TableCell
 from odf.text import P
 
@@ -24,12 +25,8 @@ class _ODSWriter(ExcelWriter):
 
         super().__init__(path, mode=mode, **engine_kwargs)
 
-        if encoding is None:
-            encoding = "ascii"
         self.book = OpenDocumentSpreadsheet()
-
-    #        self.fm_datetime = xlwt.easyxf(num_format_str=self.datetime_format)
-    #        self.fm_date = xlwt.easyxf(num_format_str=self.date_format)
+        self.style_dict = {}
 
     def save(self):
         """
@@ -57,25 +54,25 @@ class _ODSWriter(ExcelWriter):
         #            wks.set_horz_split_pos(freeze_panes[0])
         #            wks.set_vert_split_pos(freeze_panes[1])
 
-        style_dict = {}
 
         rows = defaultdict(TableRow)
         col_count = defaultdict(int)
 
         for cell in sorted(cells, key=lambda cell: (cell.row, cell.col)):
             attributes = {}
+            style_name = self._process_style(cell.style)
+            if style_name is not None:
+                attributes["stylename"] = style_name
             print(cell.row, cell.col, cell.val, cell.mergestart, cell.mergeend)
             if cell.mergestart is not None and cell.mergeend is not None:
-                attributes = {
-                    "numberrowsspanned": max(1, cell.mergestart),
-                    "numbercolumnsspanned": cell.mergeend,
-                }
+                attributes["numberrowsspanned"] = max(1, cell.mergestart)
+                attributes["numbercolumnsspanned"] = cell.mergeend
             # fill with empty cells if needed
             for _ in range(cell.col - col_count[cell.row]):
                 rows[cell.row].addElement(TableCell())
                 col_count[cell.row] += 1
             val, fmt = self._value_with_fmt(cell.val)
-            print("type", type(val), "value", val)
+            # print("type", type(val), "value", val)
             pvalue = value = val
             if isinstance(val, bool):
                 value = str(val).lower()
@@ -108,78 +105,38 @@ class _ODSWriter(ExcelWriter):
             col_count[cell.row] += 1
             p = P(text=pvalue)
             tc.addElement(p)
-            """
-            stylekey = json.dumps(cell.style)
-            if fmt:
-                stylekey += fmt
-
-            if stylekey in style_dict:
-                style = style_dict[stylekey]
-            else:
-                style = self._convert_to_style(cell.style, fmt)
-                style_dict[stylekey] = style
-        """
         for row_nr in range(max(rows.keys()) + 1):
             wks.addElement(rows[row_nr])
 
-    @classmethod
-    def _style_to_xlwt(
-        cls, item, firstlevel: bool = True, field_sep=",", line_sep=";"
-    ) -> str:
-        """
-        helper which recursively generate an xlwt easy style string
-        for example:
-
-            hstyle = {"font": {"bold": True},
-            "border": {"top": "thin",
-                    "right": "thin",
-                    "bottom": "thin",
-                    "left": "thin"},
-            "align": {"horiz": "center"}}
-            will be converted to
-            font: bold on; \
-                    border: top thin, right thin, bottom thin, left thin; \
-                    align: horiz center;
-        """
-        if hasattr(item, "items"):
-            if firstlevel:
-                it = [
-                    f"{key}: {cls._style_to_xlwt(value, False)}"
-                    for key, value in item.items()
-                ]
-                out = f"{(line_sep).join(it)} "
-                return out
-            else:
-                it = [
-                    f"{key} {cls._style_to_xlwt(value, False)}"
-                    for key, value in item.items()
-                ]
-                out = f"{(field_sep).join(it)} "
-                return out
-        else:
-            item = f"{item}"
-            item = item.replace("True", "on")
-            item = item.replace("False", "off")
-            return item
-
-    @classmethod
-    def _convert_to_style(cls, style_dict, num_format_str=None):
-        """
-        converts a style_dict to an xlwt style object
-
-        Parameters
-        ----------
-        style_dict : style dictionary to convert
-        num_format_str : optional number format string
-        """
-        import xlwt
-
-        if style_dict:
-            xlwt_stylestr = cls._style_to_xlwt(style_dict)
-            style = xlwt.easyxf(xlwt_stylestr, field_sep=",", line_sep=";")
-        else:
-            style = xlwt.XFStyle()
-        if num_format_str is not None:
-            style.num_format_str = num_format_str
-
-        return style
+    def _process_style(self, style):
+        if style is None:
+            return None
+        style_key = json.dumps(style)
+        if style_key in self.style_dict:
+            return self.style_dict[style_key]
+        name = f"pd{len(self.style_dict)+1}"
+        self.style_dict[style_key] = name
+        odf_style = Style(name=name, family="table-cell")
+        if "font" in style:
+            font = style["font"]
+            if font.get("bold", False):
+                odf_style.addElement(TextProperties(fontweight="bold"))
+        if "borders" in style:
+            borders = style["borders"]
+            for side, thickness in borders.items():
+                thickness_translation = {
+                    "thin": "0.75pt solid #000000"
+                }
+                odf_style.addElement(
+                    TableCellProperties(
+                        attributes={f"border{side}": thickness_translation[thickness]}))
+        if "alignment" in style:
+            alignment = style["alignment"]
+            horizontal = alignment.get("horizontal")
+            if horizontal:
+                odf_style.addElement(ParagraphProperties(textalign=horizontal))
+            vertical = alignment.get("vertical")
+            if vertical:
+                odf_style.addElement(TableCellProperties(verticalalign=vertical))
+        self.book.styles.addElement(odf_style)
+        return name
