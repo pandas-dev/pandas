@@ -5,8 +5,8 @@ from typing import Callable, Dict, Optional
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
 from pandas._typing import FrameOrSeries
+from pandas.compat._optional import import_optional_dependency
 
 
 def check_kwargs_and_nopython(

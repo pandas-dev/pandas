@@ -73,9 +73,6 @@ from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
 from pandas.core.series import Series
-
-from pandas.plotting import boxplot_frame_groupby
-
 from pandas.core.util.numba_ import (
     check_kwargs_and_nopython,
     get_jit_arguments,
@@ -84,6 +81,7 @@ from pandas.core.util.numba_ import (
     validate_udf,
 )
 
+from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
     from pandas.core.internals import Block
