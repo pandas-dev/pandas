@@ -77,6 +77,38 @@ def test_to_html_with_col_space(col_space):
         assert "min-width" in h
         assert str(col_space) in h
 
+# @pytest.mark.parametrize("col_space", [
+#     [30, 40],
+#     [30, 40, 50],
+#     [30, 'foo', '20em'],
+#     {},
+#     {'a': 'foo', 'b': 23, 'd':34},
+#     {'a': 'foo', 'b': 223, 'd':34}
+
+# ])
+def test_to_html_with_column_specific_col_space():
+    df = DataFrame(np.random.random(size=(3, 3)), columns=['a','b','c'])
+
+    msg = (
+        "Col_space length\\(\\d+\\) should match "
+        "DataFrame number of columns\\(\\d+\\)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.to_html(col_space=[30, 40])
+
+    
+    with pytest.raises(ValueError, match=msg):
+        df.to_html(col_space=[30, 40, 50, 60])
+
+    msg = "unknown column"
+    with pytest.raises(ValueError, match=msg):
+        df.to_html(col_space={'a': 'foo', 'b': 23, 'd':34})
+    
+    result = df.to_html(col_space={'a': '2em', 'b': 23})
+    hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
+    assert 'min-width: 2em;">a</th>' in hdrs[1]
+    assert 'min-width: 23px;">b</th>' in hdrs[2]
+    assert '<th>c</th>' in hdrs[3]
 
 def test_to_html_with_empty_string_label():
     # GH 3547, to_html regards empty string labels as repeated labels

@@ -56,6 +56,12 @@ class HTMLFormatter(TableFormatter):
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
         if isinstance(self.fmt.col_space, dict):
+            for column in self.fmt.col_space.keys():
+                if column not in self.frame.columns:
+                    raise ValueError(
+                        f"Col_space is defined for an unknown column: {column}"
+                    )
+
             self.fmt.col_space = {
                 column: f"{value}px" if isinstance(value, int) else value
                 for column, value in self.fmt.col_space.items()
