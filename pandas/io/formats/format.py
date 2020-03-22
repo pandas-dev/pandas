@@ -83,6 +83,10 @@ FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
+ColspaceType = Union[
+    str, int,
+    List[Union[str, int]], Tuple[Union[str, int], ...], Mapping[Union[str, int], Union[str, int]]
+]
 
 common_docstring = """
         Parameters
@@ -540,7 +544,7 @@ class DataFrameFormatter(TableFormatter):
         self,
         frame: "DataFrame",
         columns: Optional[Sequence[str]] = None,
-        col_space: Optional[Union[str, int]] = None,
+        col_space: Optional[ColspaceType] = None,
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -575,12 +579,20 @@ class DataFrameFormatter(TableFormatter):
             self.formatters = formatters
         else:
             raise ValueError(
-                f"Formatters length({len(formatters)}) should match "
+                f"Formatters length({len(   )}) should match "
                 f"DataFrame number of columns({len(frame.columns)})"
             )
         self.na_rep = na_rep
         self.decimal = decimal
-        self.col_space = col_space
+        if col_space is None:
+            self.col_space = {}
+        elif isinstance(col_space, (dict, str, int)) or len(frame.columns) == len(col_space):
+            self.col_space = col_space
+        else:
+            raise ValueError(
+                f"Col_space length({len(col_space)}) should match "
+                f"DataFrame number of columns({len(frame.columns)})"
+            )
         self.header = header
         self.index = index
         self.line_width = line_width
