@@ -15,35 +15,6 @@ from pandas.core.arrays.integer import (
 )
 
 
-@pytest.fixture(
-    params=[
-        Int8Dtype,
-        Int16Dtype,
-        Int32Dtype,
-        Int64Dtype,
-        UInt8Dtype,
-        UInt16Dtype,
-        UInt32Dtype,
-        UInt64Dtype,
-    ]
-)
-def dtype(request):
-    return request.param()
-
-
-@pytest.fixture
-def data(dtype):
-    return integer_array(
-        list(range(8)) + [np.nan] + list(range(10, 98)) + [np.nan] + [99, 100],
-        dtype=dtype,
-    )
-
-
-@pytest.fixture
-def data_missing(dtype):
-    return integer_array([np.nan, 1], dtype=dtype)
-
-
 def test_dtypes(dtype):
     # smoke tests on auto dtype construction
 

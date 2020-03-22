@@ -4,32 +4,6 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import integer_array
-from pandas.core.arrays.integer import (
-    Int8Dtype,
-    Int16Dtype,
-    Int32Dtype,
-    Int64Dtype,
-    UInt8Dtype,
-    UInt16Dtype,
-    UInt32Dtype,
-    UInt64Dtype,
-)
-
-
-@pytest.fixture(
-    params=[
-        Int8Dtype,
-        Int16Dtype,
-        Int32Dtype,
-        Int64Dtype,
-        UInt8Dtype,
-        UInt16Dtype,
-        UInt32Dtype,
-        UInt64Dtype,
-    ]
-)
-def dtype(request):
-    return request.param()
 
 
 def test_dtypes(dtype):
