@@ -1,8 +1,8 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-import operator
 from datetime import datetime
+import operator
 from typing import Any, List, Optional, Union
 
 import numpy as np
