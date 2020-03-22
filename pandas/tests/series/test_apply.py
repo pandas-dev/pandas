@@ -792,6 +792,13 @@ class TestSeriesMap:
         expected = {0: "0.3333333333333333"}
         assert result == expected
 
+    def test_map_with_invalid_na_action_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/32815
+        s = pd.Series([1, 2, 3])
+        msg = "na_action must either be 'ignore' or None"
+        with pytest.raises(ValueError, match=msg):
+            s.map(lambda x: x, na_action="____")
+
     def test_apply_to_timedelta(self):
         list_of_valid_strings = ["00:00:01", "00:00:02"]
         a = pd.to_timedelta(list_of_valid_strings)
