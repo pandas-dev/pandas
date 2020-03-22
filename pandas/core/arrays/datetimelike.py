@@ -396,6 +396,34 @@ default 'raise'
     def ceil(self, freq, ambiguous="raise", nonexistent="raise"):
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
+    def _with_freq(self, freq):
+        """
+        Helper to set our freq in-place, returning self to allow method chaining.
+
+        Parameters
+        ----------
+        freq : DateOffset, None, or "infer"
+
+        Returns
+        -------
+        self
+        """
+        # GH#29843
+        if freq is None:
+            # Always valid
+            pass
+        elif len(self) == 0 and isinstance(freq, DateOffset):
+            # Always valid.  In the TimedeltaArray case, we assume this
+            #  is a Tick offset.
+            pass
+        else:
+            # As an internal method, we can ensure this assertion always holds
+            assert freq == "infer"
+            freq = frequencies.to_offset(self.inferred_freq)
+
+        self._freq = freq
+        return self
+
 
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray):
     """
@@ -1157,7 +1185,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
         if new_freq is not None:
             # fastpath that doesnt require inference
             return type(self)(new_values, dtype=self.dtype, freq=new_freq)
-        return type(self)._from_sequence(new_values, dtype=self.dtype, freq="infer")
+        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1187,7 +1215,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin, ExtensionArray)
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
 
-        return type(self)._from_sequence(new_values, dtype=self.dtype, freq="infer")
+        return type(self)(new_values, dtype=self.dtype)._with_freq("infer")
 
     def _add_nat(self):
         """
