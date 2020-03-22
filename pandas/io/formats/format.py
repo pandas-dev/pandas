@@ -84,6 +84,9 @@ FormattersType = Union[
 ]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Union[
+    Mapping[Union[str, int], Union[str, int]],
+]
+ColspaceArgType = Union[
     str,
     int,
     List[Union[str, int]],
@@ -543,11 +546,13 @@ class DataFrameFormatter(TableFormatter):
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
 
+    col_space: ColspaceType
+
     def __init__(
         self,
         frame: "DataFrame",
         columns: Optional[Sequence[str]] = None,
-        col_space: Optional[ColspaceType] = None,
+        col_space: Optional[ColspaceArgType] = None,
         header: Union[bool, Sequence[str]] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -589,15 +594,24 @@ class DataFrameFormatter(TableFormatter):
         self.decimal = decimal
         if col_space is None:
             self.col_space = {}
-        elif isinstance(col_space, (dict, str, int)) or len(frame.columns) == len(
-            col_space
-        ):
+        elif isinstance(col_space, (int, str)):
+            self.col_space = {"": col_space}
+            self.col_space.update({column: col_space for column in self.frame.columns})
+        elif isinstance(col_space, dict):
+            for column in col_space.keys():
+                if column not in self.frame.columns and column != "":
+                    raise ValueError(
+                        f"Col_space is defined for an unknown column: {column}"
+                    )
             self.col_space = col_space
         else:
-            raise ValueError(
-                f"Col_space length({len(col_space)}) should match "
-                f"DataFrame number of columns({len(frame.columns)})"
-            )
+            if len(frame.columns) != len(col_space):
+                raise ValueError(
+                    f"Col_space length({len(col_space)}) should match "
+                    f"DataFrame number of columns({len(frame.columns)})"
+                )
+            self.col_space = dict(zip(self.frame.columns, col_space))
+
         self.header = header
         self.index = index
         self.line_width = line_width
@@ -725,7 +739,7 @@ class DataFrameFormatter(TableFormatter):
         """
         # this method is not used by to_html where self.col_space
         # could be a string so safe to cast
-        self.col_space = cast(int, self.col_space)
+        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
 
         frame = self.tr_frame
         # may include levels names also
@@ -737,10 +751,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values,
-                    self.justify,
-                    minimum=(self.col_space or 0),
-                    adj=self.adj,
+                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj,
                 )
                 stringified.append(fmt_values)
         else:
@@ -764,7 +775,7 @@ class DataFrameFormatter(TableFormatter):
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 header_colwidth = max(
-                    self.col_space or 0, *(self.adj.len(x) for x in cheader)
+                    col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
                 )
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
@@ -955,7 +966,7 @@ class DataFrameFormatter(TableFormatter):
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
-            space=self.col_space,
+            space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
         )
 
@@ -1048,10 +1059,10 @@ class DataFrameFormatter(TableFormatter):
     def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
         # to_html(). so safe to cast col_space here.
-        self.col_space = cast(int, self.col_space)
+        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
         index = frame.index
         columns = frame.columns
-        fmt = self._get_formatter("__index__")
+        fmt = self._get_formatter("")
 
         if isinstance(index, ABCMultiIndex):
             fmt_index = index.format(
@@ -1066,7 +1077,7 @@ class DataFrameFormatter(TableFormatter):
         fmt_index = [
             tuple(
                 _make_fixed_width(
-                    list(x), justify="left", minimum=(self.col_space or 0), adj=self.adj
+                    list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj,
                 )
             )
             for x in fmt_index

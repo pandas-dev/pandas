@@ -95,8 +95,9 @@ def test_to_html_with_column_specific_col_space():
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space={"a": "foo", "b": 23, "d": 34})
 
-    result = df.to_html(col_space={"a": "2em", "b": 23})
+    result = df.to_html(col_space={"a": "2em", "b": 23, "": "10%"})
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
+    assert 'min-width: 10%;"></th>' in hdrs[0]
     assert 'min-width: 2em;">a</th>' in hdrs[1]
     assert 'min-width: 23px;">b</th>' in hdrs[2]
     assert "<th>c</th>" in hdrs[3]
