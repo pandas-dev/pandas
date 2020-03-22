@@ -4,6 +4,7 @@ import datetime
 # import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
+
 # from pandas.io.excel._util import _validate_freeze_panes
 
 from odf.opendocument import OpenDocumentSpreadsheet
@@ -49,7 +50,6 @@ class _ODSWriter(ExcelWriter):
             wks = self.sheets[sheet_name]
         else:
             wks = Table(name=sheet_name)
-            #            wks = self.book.add_sheet(sheet_name) (do at the end or immediately? FIXME)
             self.sheets[sheet_name] = wks
 
         #        if _validate_freeze_panes(freeze_panes):
@@ -66,8 +66,10 @@ class _ODSWriter(ExcelWriter):
             attributes = {}
             print(cell.row, cell.col, cell.val, cell.mergestart, cell.mergeend)
             if cell.mergestart is not None and cell.mergeend is not None:
-                attributes = {"numberrowsspanned": max(1, cell.mergestart),
-                              "numbercolumnsspanned": cell.mergeend}
+                attributes = {
+                    "numberrowsspanned": max(1, cell.mergestart),
+                    "numbercolumnsspanned": cell.mergeend,
+                }
             # fill with empty cells if needed
             for _ in range(cell.col - col_count[cell.row]):
                 rows[cell.row].addElement(TableCell())
@@ -79,7 +81,6 @@ class _ODSWriter(ExcelWriter):
                 value = str(val).lower()
                 pvalue = str(val).upper()
             if isinstance(val, datetime.datetime):
-                print('datetime', val.strftime("%Y-%m-%d"), val.strftime("%x"))
                 if val.time():
                     value = val.isoformat()
                     pvalue = val.strftime("%c")
@@ -88,11 +89,8 @@ class _ODSWriter(ExcelWriter):
                     pvalue = val.strftime("%x")
                 tc = TableCell(valuetype="date", datevalue=value, attributes=attributes)
             elif isinstance(val, datetime.date):
-                print('date', val.strftime("%Y-%m-%d"), val.strftime("%x"))
                 value = val.strftime("%Y-%m-%d")
                 pvalue = val.strftime("%x")
-#                value = val.isoformat()
-#                pvalue = val.strftime("%c")
                 tc = TableCell(valuetype="date", datevalue=value, attributes=attributes)
             else:
                 class_to_cell_type = {
@@ -101,7 +99,11 @@ class _ODSWriter(ExcelWriter):
                     float: "float",
                     bool: "boolean",
                 }
-                tc = TableCell(valuetype=class_to_cell_type[type(val)], value=value, attributes=attributes)
+                tc = TableCell(
+                    valuetype=class_to_cell_type[type(val)],
+                    value=value,
+                    attributes=attributes,
+                )
             rows[cell.row].addElement(tc)
             col_count[cell.row] += 1
             p = P(text=pvalue)
@@ -116,18 +118,6 @@ class _ODSWriter(ExcelWriter):
             else:
                 style = self._convert_to_style(cell.style, fmt)
                 style_dict[stylekey] = style
-
-            if cell.mergestart is not None and cell.mergeend is not None:
-                wks.write_merge(
-                    startrow + cell.row,
-                    startrow + cell.mergestart,
-                    startcol + cell.col,
-                    startcol + cell.mergeend,
-                    val,
-                    style,
-                )
-            else:
-                wks.write(startrow + cell.row, startcol + cell.col, val, style)
         """
         for row_nr in range(max(rows.keys()) + 1):
             wks.addElement(rows[row_nr])
