@@ -130,7 +130,6 @@ def test_to_frame_resulting_column_order():
 
 
 def test_roundtrip_pickle_with_tz():
-    return  # FIXME: this can't be right?
 
     # GH 8367
     # round-trip of timezone
@@ -140,34 +139,6 @@ def test_roundtrip_pickle_with_tz():
     )
     unpickled = tm.round_trip_pickle(index)
     assert index.equal_levels(unpickled)
-
-
-def test_to_series(idx):
-    # assert that we are creating a copy of the index
-
-    s = idx.to_series()
-    assert s.values is not idx.values
-    assert s.index is not idx
-    assert s.name == idx.name
-
-
-def test_to_series_with_arguments(idx):
-    # GH18699
-
-    # index kwarg
-    s = idx.to_series(index=idx)
-
-    assert s.values is not idx.values
-    assert s.index is idx
-    assert s.name == idx.name
-
-    # name kwarg
-    idx = idx
-    s = idx.to_series(name="__test")
-
-    assert s.values is not idx.values
-    assert s.index is not idx
-    assert s.name != idx.name
 
 
 def test_to_flat_index(idx):

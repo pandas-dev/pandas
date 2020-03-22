@@ -5,6 +5,8 @@ TODO: consider using hypothesis for these.
 """
 import pytest
 
+import pandas._testing as tm
+
 
 def test_sort(indices):
     msg = "cannot sort an Index object in-place, use sort_values instead"
@@ -33,3 +35,41 @@ def test_wrong_number_names(indices):
 
 def test_tolist_matches_list(indices):
     assert indices.tolist() == list(indices)
+
+
+class TestConversion:
+    def test_to_series(self, indices):
+        # assert that we are creating a copy of the index
+
+        ser = indices.to_series()
+        assert ser.values is not indices.values
+        assert ser.index is not indices
+        assert ser.name == indices.name
+
+    def test_to_series_with_arguments(self, indices):
+        # GH#18699
+
+        # index kwarg
+        ser = indices.to_series(index=indices)
+
+        assert ser.values is not indices.values
+        assert ser.index is indices
+        assert ser.name == indices.name
+
+        # name kwarg
+        ser = indices.to_series(name="__test")
+
+        assert ser.values is not indices.values
+        assert ser.index is not indices
+        assert ser.name != indices.name
+
+
+class TestRoundTrips:
+    def test_pickle_roundtrip(self, indices):
+        result = tm.round_trip_pickle(indices)
+        tm.assert_index_equal(result, indices)
+
+
+class TestIndexing:
+    def test_slice_keeps_name(self, indices):
+        assert indices.name == indices[1:].name
