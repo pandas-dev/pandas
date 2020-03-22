@@ -77,7 +77,11 @@ class HTMLFormatter(TableFormatter):
                 )
             )
         elif isinstance(self.fmt.col_space, (int, str)):
-            col_space = f"{self.fmt.col_space}px" if isinstance(self.fmt.col_space, int) else self.fmt.col_space
+            col_space = (
+                f"{self.fmt.col_space}px"
+                if isinstance(self.fmt.col_space, int)
+                else self.fmt.col_space
+            )
             self.fmt.col_space = {"": col_space}
             self.fmt.col_space.update(
                 {column: col_space for column in self.frame.columns}
@@ -149,7 +153,7 @@ class HTMLFormatter(TableFormatter):
         -------
         A written <th> cell.
         """
-        col_space = self.fmt.col_space.get(s,None)
+        col_space = self.fmt.col_space.get(s, None)
 
         if header and col_space is not None:
             tags = tags or ""

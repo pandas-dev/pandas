@@ -84,8 +84,11 @@ FormattersType = Union[
 ]
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Union[
-    str, int,
-    List[Union[str, int]], Tuple[Union[str, int], ...], Mapping[Union[str, int], Union[str, int]]
+    str,
+    int,
+    List[Union[str, int]],
+    Tuple[Union[str, int], ...],
+    Mapping[Union[str, int], Union[str, int]],
 ]
 
 common_docstring = """
@@ -586,7 +589,9 @@ class DataFrameFormatter(TableFormatter):
         self.decimal = decimal
         if col_space is None:
             self.col_space = {}
-        elif isinstance(col_space, (dict, str, int)) or len(frame.columns) == len(col_space):
+        elif isinstance(col_space, (dict, str, int)) or len(frame.columns) == len(
+            col_space
+        ):
             self.col_space = col_space
         else:
             raise ValueError(
