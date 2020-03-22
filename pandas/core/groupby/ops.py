@@ -553,7 +553,8 @@ class BaseGrouper:
             # Two options for avoiding this special case
             # 1. mask-aware ops and avoid casting to float with NaN above
             # 2. specify the result dtype when calling this method
-            result = result.astype("int64")
+            if not isna(result).any():
+                result = result.astype("int64")
 
         if kind == "aggregate" and self._filter_empty_groups and not counts.all():
             assert result.ndim != 2
