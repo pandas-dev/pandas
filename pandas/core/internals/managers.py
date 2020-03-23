@@ -428,8 +428,6 @@ class BlockManager(PandasObject):
                 for k, obj in aligned_args.items():
                     axis = obj._info_axis_number
                     kwargs[k] = obj.reindex(b_items, axis=axis, copy=align_copy)._values
-                    # TODO: if operation commutes, dont unpack DataFrame, but defer
-                    # TODO: will this involve casting for e.g BooleanDtype?
 
             if callable(f):
                 applied = b.apply(f, **kwargs)
