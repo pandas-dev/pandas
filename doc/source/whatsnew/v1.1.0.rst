@@ -380,6 +380,7 @@ Reshaping
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 - Bug in :meth:`DataFrame.apply` where callback was called with :class:`Series` parameter even though ``raw=True`` requested. (:issue:`32423`)
 - Bug in :meth:`DataFrame.pivot_table` losing timezone information when creating a :class:`MultiIndex` level from a column with timezone-aware dtype (:issue:`32558`)
+- Fixed incorrect type checking in ``pd.concat`` where annotations hinted to ``objs`` being of type ``Mapping``, but only an instance of ``dict`` would be accepted. (:issue:`32863`)
 
 
 Sparse
