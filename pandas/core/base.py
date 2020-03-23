@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Dict, FrozenSet, List, Optional, Union
+from typing import Any, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -49,6 +49,8 @@ class PandasObject(DirNamesMixin):
     Baseclass for various pandas objects.
     """
 
+    _cache: Dict[str, Any]
+
     @property
     def _constructor(self):
         """
@@ -63,7 +65,7 @@ class PandasObject(DirNamesMixin):
         # Should be overwritten by base classes
         return object.__repr__(self)
 
-    def _reset_cache(self, key=None):
+    def _reset_cache(self, key: Optional[str] = None) -> None:
         """
         Reset cached properties. If ``key`` is passed, only clears that key.
         """
@@ -354,7 +356,8 @@ class SelectionMixin:
                 if isinstance(obj, ABCDataFrame) and len(
                     obj.columns.intersection(keys)
                 ) != len(keys):
-                    raise SpecificationError("nested renamer is not supported")
+                    cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
+                    raise SpecificationError(f"Column(s) {cols} do not exist")
 
             from pandas.core.reshape.concat import concat
 
@@ -529,7 +532,7 @@ class SelectionMixin:
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised direcly in _aggregate_multiple_funcs
+                        # raised directly in _aggregate_multiple_funcs
                         pass
                     else:
                         raise
@@ -856,23 +859,6 @@ class IndexOpsMixin:
         return result
 
     @property
-    def _ndarray_values(self) -> np.ndarray:
-        """
-        The data as an ndarray, possibly losing information.
-
-        The expectation is that this is cheap to compute, and is primarily
-        used for interacting with our indexers.
-
-        - categorical -> codes
-        """
-        if is_extension_array_dtype(self):
-            return self.array._ndarray_values
-        # As a mixin, we depend on the mixing class having values.
-        # Special mixin syntax may be developed in the future:
-        # https://github.com/python/typing/issues/246
-        return self.values  # type: ignore
-
-    @property
     def empty(self):
         return not self.size
 
@@ -1172,8 +1158,14 @@ class IndexOpsMixin:
                 def map_f(values, f):
                     return lib.map_infer_mask(values, f, isna(values).view(np.uint8))
 
-            else:
+            elif na_action is None:
                 map_f = lib.map_infer
+            else:
+                msg = (
+                    "na_action must either be 'ignore' or None, "
+                    f"{na_action} was passed"
+                )
+                raise ValueError(msg)
 
         # mapper is a function
         new_values = map_f(values, mapper)

@@ -888,8 +888,15 @@ def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def raise_assert_detail(obj, message, left, right, diff=None):
+def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
     __tracebackhide__ = True
+
+    msg = f"""{obj} are different
+
+{message}"""
+
+    if isinstance(index_values, np.ndarray):
+        msg += f"\n[index]: {pprint_thing(index_values)}"
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
@@ -901,9 +908,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     elif is_categorical_dtype(right):
         right = repr(right)
 
-    msg = f"""{obj} are different
-
-{message}
+    msg += f"""
 [left]:  {left}
 [right]: {right}"""
 
@@ -921,6 +926,7 @@ def assert_numpy_array_equal(
     err_msg=None,
     check_same=None,
     obj="numpy array",
+    index_values=None,
 ):
     """
     Check that 'np.ndarray' is equivalent.
@@ -940,6 +946,8 @@ def assert_numpy_array_equal(
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    index_values : numpy.ndarray, default None
+        optional index (shared by both left and right), used in output.
     """
     __tracebackhide__ = True
 
@@ -977,7 +985,7 @@ def assert_numpy_array_equal(
 
             diff = diff * 100.0 / left.size
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
-            raise_assert_detail(obj, msg, left, right)
+            raise_assert_detail(obj, msg, left, right, index_values=index_values)
 
         raise AssertionError(err_msg)
 
@@ -1143,7 +1151,11 @@ def assert_series_equal(
             raise AssertionError("check_exact may only be used with numeric Series")
 
         assert_numpy_array_equal(
-            left._values, right._values, check_dtype=check_dtype, obj=str(obj)
+            left._values,
+            right._values,
+            check_dtype=check_dtype,
+            obj=str(obj),
+            index_values=np.asarray(left.index),
         )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -1160,7 +1172,7 @@ def assert_series_equal(
                 f"is not equal to {right._values}."
             )
             raise AssertionError(msg)
-    elif is_interval_dtype(left.dtype) or is_interval_dtype(right.dtype):
+    elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
         assert_interval_array_equal(left.array, right.array)
     elif is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
         _testing.assert_almost_equal(
@@ -1170,7 +1182,7 @@ def assert_series_equal(
             check_dtype=check_dtype,
             obj=str(obj),
         )
-    elif is_extension_array_dtype(left.dtype) or is_extension_array_dtype(right.dtype):
+    elif is_extension_array_dtype(left.dtype) and is_extension_array_dtype(right.dtype):
         assert_extension_array_equal(left._values, right._values)
     elif needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype):
         # DatetimeArray or TimedeltaArray
@@ -1182,6 +1194,7 @@ def assert_series_equal(
             check_less_precise=check_less_precise,
             check_dtype=check_dtype,
             obj=str(obj),
+            index_values=np.asarray(left.index),
         )
 
     # metadata comparison
@@ -1683,32 +1696,6 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
     return df
 
 
-def all_index_generator(k=10):
-    """
-    Generator which can be iterated over to get instances of all the various
-    index classes.
-
-    Parameters
-    ----------
-    k: length of each of the index instances
-    """
-    all_make_index_funcs = [
-        makeIntIndex,
-        makeFloatIndex,
-        makeStringIndex,
-        makeUnicodeIndex,
-        makeDateIndex,
-        makePeriodIndex,
-        makeTimedeltaIndex,
-        makeBoolIndex,
-        makeRangeIndex,
-        makeIntervalIndex,
-        makeCategoricalIndex,
-    ]
-    for make_index_func in all_make_index_funcs:
-        yield make_index_func(k=k)
-
-
 def index_subclass_makers_generator():
     make_index_funcs = [
         makeDateIndex,
@@ -2206,7 +2193,7 @@ def network(
 
     Notes
     -----
-    * ``raise_on_error`` supercedes ``check_before_test``
+    * ``raise_on_error`` supersedes ``check_before_test``
 
     Returns
     -------

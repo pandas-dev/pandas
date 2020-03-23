@@ -1,7 +1,7 @@
 
 .. _whatsnew_103:
 
-What's new in 1.0.3 (March ??, 2020)
+What's new in 1.0.3 (March 17, 2020)
 ------------------------------------
 
 These are the changes in pandas 1.0.3. See :ref:`release` for a full changelog

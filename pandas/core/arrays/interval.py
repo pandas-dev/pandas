@@ -29,7 +29,6 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCExtensionArray,
     ABCIndexClass,
-    ABCInterval,
     ABCIntervalIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -529,7 +528,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             value_left, value_right = value, value
 
         # scalar interval
-        elif is_interval_dtype(value) or isinstance(value, ABCInterval):
+        elif is_interval_dtype(value) or isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             value_left, value_right = value.left, value.right
 
@@ -642,7 +641,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        if not isinstance(value, ABCInterval):
+        if not isinstance(value, Interval):
             msg = (
                 "'IntervalArray.fillna' only supports filling with a "
                 f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
