@@ -627,7 +627,7 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(self, obj: Series, func: Callable):
+    def agg_series(self, obj: Series, func: Callable[[Series], Any]):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
@@ -656,7 +656,7 @@ class BaseGrouper:
                 raise
         return self._aggregate_series_pure_python(obj, func)
 
-    def _aggregate_series_fast(self, obj: Series, func: Callable):
+    def _aggregate_series_fast(self, obj: Series, func: Callable[[Series], Any]):
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -675,7 +675,7 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(self, obj: Series, func: Callable):
+    def _aggregate_series_pure_python(self, obj: Series, func: Callable[[Series], Any]):
 
         group_index, _, ngroups = self.group_info
 
@@ -861,7 +861,7 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(self, obj: Series, func: Callable):
+    def agg_series(self, obj: Series, func: Callable[[Series], Any]):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result
@@ -935,7 +935,9 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f: Callable, sdata: FrameOrSeries, names):
+    def fast_apply(
+        self, f: Callable[[FrameOrSeries], Any], sdata: FrameOrSeries, names
+    ):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
         return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
