@@ -368,7 +368,7 @@ class SelectionMixin:
                     )
                 return colg.aggregate(how)
 
-            def _agg_2dim(name, how):
+            def _agg_2dim(how):
                 """
                 aggregate a 2-dim with how
                 """
