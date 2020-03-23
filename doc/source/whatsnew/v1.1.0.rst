@@ -224,6 +224,10 @@ Performance improvements
 - The internal index method :meth:`~Index._shallow_copy` now copies cached attributes over to the new index,
   avoiding creating these again on the new index. This can speed up many operations that depend on creating copies of
   existing indexes (:issue:`28584`, :issue:`32640`, :issue:`32669`)
+- Significant performance improvement when creating a :class:`DataFrame` with
+  sparse values from ``scipy.sparse`` matrices using the
+  :meth:`DataFrame.sparse.from_spmatrix` constructor (:issue:`32821`,
+  :issue:`32825`,  :issue:`32826`, :issue:`32856`, :issue:`32858`).
 
 .. ---------------------------------------------------------------------------
 
@@ -350,6 +354,7 @@ I/O
 - Bug in :meth:`read_csv` was causing a file descriptor leak on an empty file (:issue:`31488`)
 - Bug in :meth:`read_csv` was causing a segfault when there were blank lines between the header and data rows (:issue:`28071`)
 - Bug in :meth:`read_csv` was raising a misleading exception on a permissions issue (:issue:`23784`)
+- Bug in :meth:`read_csv` was raising an ``IndexError`` when header=None and 2 extra data columns
 
 
 Plotting
@@ -381,7 +386,7 @@ Reshaping
 - :meth:`DataFrame.replace` and :meth:`Series.replace` will raise a ``TypeError`` if ``to_replace`` is not an expected type. Previously the ``replace`` would fail silently (:issue:`18634`)
 - Bug in :meth:`DataFrame.apply` where callback was called with :class:`Series` parameter even though ``raw=True`` requested. (:issue:`32423`)
 - Bug in :meth:`DataFrame.pivot_table` losing timezone information when creating a :class:`MultiIndex` level from a column with timezone-aware dtype (:issue:`32558`)
-
+- :meth:`DataFrame.agg` now provides more descriptive ``SpecificationError`` message when attempting to aggregating non-existant column (:issue:`32755`)
 
 Sparse
 ^^^^^^
