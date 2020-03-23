@@ -1809,6 +1809,11 @@ class ExtensionBlock(Block):
             if not com.is_null_slice(slicer[0]):
                 raise AssertionError("invalid slicing for a 1-ndim categorical")
             slicer = slicer[1]
+        elif not isinstance(slicer, tuple) and self.ndim == 2:
+            # reached via getitem_block via _slice_take_blocks_ax0
+            # TODO(EA2D): wont be necessary with 2D EAs
+            # treat this like (slicer, slice(None)
+            slicer = slice(None)
 
         return self.values[slicer]
 
