@@ -933,11 +933,8 @@ class Block(PandasObject):
         """
         new_values = self.values if inplace else self.values.copy()
 
-        # TODO: Ideally we would ensure not-Series/Index/DataFrame before here
-        new = extract_array(new, extract_numpy=True)
-        new = new.values if isinstance(new, ABCDataFrame) else new  # FIXME: kludge
-        mask = extract_array(mask, extract_numpy=True)
-        mask = mask.values if isinstance(mask, ABCDataFrame) else mask  # FIXME: kludge
+        new = getattr(new, "values", new)
+        mask = getattr(mask, "values", mask)
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
@@ -1337,10 +1334,8 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        # TODO: ideally we would ensure not Series/Index/DataFrame before here
-        other = extract_array(other, extract_numpy=True)
-        cond = extract_array(cond, extract_numpy=True)
-        cond = cond.values if isinstance(cond, ABCDataFrame) else cond  # kludge
+        other = getattr(other, "_values", getattr(other, "values", other))
+        cond = getattr(cond, "values", cond)
 
         # If the default broadcasting would go in the wrong direction, then
         # explicitly reshape other instead
