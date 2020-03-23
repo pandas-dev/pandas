@@ -550,7 +550,7 @@ cdef int64_t _tz_convert_tzlocal_fromutc(int64_t val, tzinfo tz, bint *fold):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int64_t[:] _tz_convert_dst(
-    const int64_t[:] values, tzinfo tz, bint to_utc=True
+    const int64_t[:] values, tzinfo tz, bint to_utc=True,
 ):
     """
     tz_convert for non-UTC non-tzlocal cases where we have to check
