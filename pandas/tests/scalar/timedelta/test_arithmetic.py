@@ -325,10 +325,7 @@ class TestTimedeltaMultiplicationDivision:
     def test_td_mul_nat(self, op, td_nat):
         # GH#19819
         td = Timedelta(10, unit="d")
-        msg = (
-            "cannot use operands with types|"
-            "Cannot multiply Timedelta with NaT"
-        )
+        msg = "cannot use operands with types|" "Cannot multiply Timedelta with NaT"
         with pytest.raises(TypeError, match=msg):
             op(td, td_nat)
 
