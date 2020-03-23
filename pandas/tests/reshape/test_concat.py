@@ -1244,12 +1244,14 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_mapping(self, non_mapping_dict_subclass):
-        frames = non_mapping_dict_subclass({
-            "foo": DataFrame(np.random.randn(4, 3)),
-            "bar": DataFrame(np.random.randn(4, 3)),
-            "baz": DataFrame(np.random.randn(4, 3)),
-            "qux": DataFrame(np.random.randn(4, 3)),
-        })
+        frames = non_mapping_dict_subclass(
+            {
+                "foo": DataFrame(np.random.randn(4, 3)),
+                "bar": DataFrame(np.random.randn(4, 3)),
+                "baz": DataFrame(np.random.randn(4, 3)),
+                "qux": DataFrame(np.random.randn(4, 3)),
+            }
+        )
 
         sorted_keys = list(frames.keys())
 
