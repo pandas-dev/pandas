@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import Callable, List, Optional, Sequence, Tuple, Type
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
@@ -148,7 +148,9 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_iterator(comp_ids, ngroups, self.levels, self.codes)
 
-    def apply(self, f: Callable, data: FrameOrSeries, axis: int = 0):
+    def apply(
+        self, f: Callable[[FrameOrSeries], Any], data: FrameOrSeries, axis: int = 0
+    ):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
