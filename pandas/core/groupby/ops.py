@@ -307,7 +307,7 @@ class BaseGrouper:
         )
         return result
 
-    def get_group_levels(self) -> List:
+    def get_group_levels(self) -> List[Index]:
         if not self.compressed and len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
