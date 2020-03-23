@@ -330,7 +330,8 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(gt, df)
 
-        with pytest.raises(xlrd.XLRDError):
+        msg = "No sheet named <'0'>"
+        with pytest.raises(xlrd.XLRDError, match=msg):
             pd.read_excel(xl, "0")
 
     def test_excel_writer_context_manager(self, frame, path):
@@ -973,7 +974,11 @@ class TestExcelWriter:
         # This if will be removed once multi-column Excel writing
         # is implemented. For now fixing gh-9794.
         if c_idx_nlevels > 1:
-            with pytest.raises(NotImplementedError):
+            msg = (
+                "Writing to Excel with MultiIndex columns and no index "
+                "\\('index'=False\\) is not yet implemented."
+            )
+            with pytest.raises(NotImplementedError, match=msg):
                 roundtrip(df, use_headers, index=False)
         else:
             res = roundtrip(df, use_headers)
