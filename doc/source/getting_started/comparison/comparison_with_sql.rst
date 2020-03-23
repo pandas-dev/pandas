@@ -388,10 +388,10 @@ In pandas, you can use :meth:`~pandas.concat` in conjunction with
 
     pd.concat([df1, df2]).drop_duplicates()
 
-Pandas equivalents for some SQL analytic and aggregate functions
+pandas equivalents for some SQL analytic and aggregate functions
 ----------------------------------------------------------------
 
-Top N rows with offset
+Top n rows with offset
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: sql
@@ -405,7 +405,7 @@ Top N rows with offset
 
     tips.nlargest(10 + 5, columns='tip').tail(10)
 
-Top N rows per group
+Top n rows per group
 ~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: sql
